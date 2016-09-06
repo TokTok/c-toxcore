@@ -21,6 +21,22 @@
 extern "C" {
 #endif
 
+/* Encryption and signature keys definition */
+#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
+#define SIG_PUBLIC_KEY CRYPTO_SIGN_PUBLIC_KEY_SIZE
+#define SIG_SECRET_KEY CRYPTO_SIGN_SECRET_KEY_SIZE
+
+/* Size of the group chat_id */
+#define CHAT_ID_SIZE SIG_PUBLIC_KEY
+
+/* Extended keys for group chats */
+#define EXT_SECRET_KEY (ENC_SECRET_KEY + SIG_SECRET_KEY)
+#define EXT_PUBLIC_KEY (ENC_PUBLIC_KEY + SIG_PUBLIC_KEY)
+
+
+/* Maximum size of a signature (may be smaller) */
+#define SIGNATURE_SIZE CRYPTO_SIGNATURE_SIZE
 /* Maximum number of clients stored per friend. */
 #define MAX_FRIEND_CLIENTS 8
 
@@ -108,9 +124,11 @@ typedef struct IPPTsPng {
     uint64_t    last_pinged;
 
     Hardening hardening;
-    /* Returned by this node. Either our friend or us. */
+    /* Returned by this node */
     IP_Port     ret_ip_port;
     uint64_t    ret_timestamp;
+    /* true if this ip_port is ours */
+    bool        ret_ip_self;
 } IPPTsPng;
 
 typedef struct Client_data {
@@ -153,12 +171,16 @@ int packed_node_size(Family ip_family);
 
 /* Packs an IP_Port structure into data of max size length.
  *
+ * Packed_length is the offset of data currently packed.
+ *
  * Returns size of packed IP_Port data on success
  * Return -1 on failure.
  */
 int pack_ip_port(uint8_t *data, uint16_t length, const IP_Port *ip_port);
 
 /* Unpack IP_Port structure from data of max size length into ip_port.
+ *
+ * len_processed is the offset of data currently unpacked.
  *
  * Return size of unpacked ip_port on success.
  * Return -1 on failure.
@@ -408,6 +430,14 @@ bool dht_non_lan_connected(const DHT *dht);
 
 
 uint32_t addto_lists(DHT *dht, IP_Port ip_port, const uint8_t *public_key);
+
+/* Copies our own ip_port structure to dest. WAN addresses take priority over LAN addresses.
+ *
+ * Return 0 if our ip port can't be found (this usually means we're not connected to the DHT).
+ * Return 1 if IP is a WAN address.
+ * Return 2 if IP is a LAN address.
+ */
+unsigned int ipport_self_copy(const DHT *dht, IP_Port *dest);
 
 #ifdef __cplusplus
 }  // extern "C"
