@@ -10,6 +10,12 @@
  */
 #include "crypto_core.h"
 
+#ifndef VANILLA_NACL
+// Need dht because of ENC_SECRET_KEY and ENC_PUBLIC_KEY
+#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -28,6 +34,20 @@
 #include <randombytes.h>
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
 #endif
+
+#ifndef VANILLA_NACL
+#if CRYPTO_SIGNATURE_SIZE != crypto_sign_BYTES
+#error "CRYPTO_SIGNATURE_SIZE should be equal to crypto_sign_BYTES"
+#endif
+
+#if CRYPTO_SIGN_PUBLIC_KEY_SIZE != crypto_sign_PUBLICKEYBYTES
+#error "CRYPTO_SIGN_PUBLIC_KEY_SIZE should be equal to crypto_sign_PUBLICKEYBYTES"
+#endif
+
+#if CRYPTO_SIGN_SECRET_KEY_SIZE != crypto_sign_SECRETKEYBYTES
+#error "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES"
+#endif
+#endif /* VANILLA_NACL */
 
 //!TOKSTYLE-
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
@@ -96,6 +116,14 @@ uint64_t random_u64(void)
     random_bytes((uint8_t *)&randnum, sizeof(randnum));
     return randnum;
 }
+
+#ifndef VANILLA_NACL
+/* Return a value between 0 and upper_bound using a uniform distribution */
+uint32_t random_int_range(uint32_t upper_bound)
+{
+    return randombytes_uniform(upper_bound);
+}
+#endif
 
 bool public_key_valid(const uint8_t *public_key)
 {
