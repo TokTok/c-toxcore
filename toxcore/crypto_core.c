@@ -29,6 +29,12 @@
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
 #endif
 
+#ifndef VANILLA_NACL
+// Need dht because of ENC_SECRET_KEY and ENC_PUBLIC_KEY
+#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
+#endif
+
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
               "CRYPTO_PUBLIC_KEY_SIZE should be equal to crypto_box_PUBLICKEYBYTES");
 static_assert(CRYPTO_SECRET_KEY_SIZE == crypto_box_SECRETKEYBYTES,
