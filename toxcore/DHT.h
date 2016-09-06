@@ -21,6 +21,22 @@
 extern "C" {
 #endif
 
+/* Encryption and signature keys definition */
+#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
+#define SIG_PUBLIC_KEY CRYPTO_SIGN_PUBLIC_KEY_SIZE
+#define SIG_SECRET_KEY CRYPTO_SIGN_SECRET_KEY_SIZE
+
+/* Size of the group chat_id */
+#define CHAT_ID_SIZE SIG_PUBLIC_KEY
+
+/* Extended keys for group chats */
+#define EXT_SECRET_KEY (ENC_SECRET_KEY + SIG_SECRET_KEY)
+#define EXT_PUBLIC_KEY (ENC_PUBLIC_KEY + SIG_PUBLIC_KEY)
+
+
+/* Maximum size of a signature (may be smaller) */
+#define SIGNATURE_SIZE CRYPTO_SIGNATURE_SIZE
 /* Maximum number of clients stored per friend. */
 #define MAX_FRIEND_CLIENTS 8
 
