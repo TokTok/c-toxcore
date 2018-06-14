@@ -85,7 +85,9 @@ static void test_one(void)
     struct Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, data, save_size);
+    bool res = tox_options_set_savedata_data(options, data, save_size);
+    ck_assert(res == true);
+
     tox2 = tox_new_log(options, &err_n, &index[1]);
     ck_assert_msg(err_n == TOX_ERR_NEW_OK, "Load failed");
 
@@ -113,7 +115,9 @@ static void test_one(void)
 
     tox_options_default(options);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
-    tox_options_set_savedata_data(options, sk, sizeof(sk));
+    res = tox_options_set_savedata_data(options, sk, sizeof(sk));
+    ck_assert(res == true);
+
     tox2 = tox_new_log(options, &err_n, &index[1]);
     ck_assert_msg(err_n == TOX_ERR_NEW_OK, "Load failed");
     uint8_t address3[TOX_ADDRESS_SIZE];
