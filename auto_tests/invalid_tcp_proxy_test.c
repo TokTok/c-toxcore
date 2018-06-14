@@ -23,7 +23,10 @@ int main(void)
     struct Tox_Options *opts = tox_options_new(nullptr);
     tox_options_set_udp_enabled(opts, false);
     tox_options_set_proxy_type(opts, TOX_PROXY_TYPE_SOCKS5);
-    tox_options_set_proxy_host(opts, "localhost");
+    const char proxy[] = "localhost";
+    bool res = tox_options_set_proxy_host(opts, proxy, sizeof(proxy));
+    ck_assert(res == true);
+
     tox_options_set_proxy_port(opts, 51724);
     Tox *tox = tox_new_log(opts, nullptr, nullptr);
     tox_options_free(opts);
