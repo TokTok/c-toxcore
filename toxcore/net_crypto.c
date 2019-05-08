@@ -989,7 +989,7 @@ static int handle_request_packet(Mono_Time *mono_time, Packets_Array *send_array
     uint32_t requested = 0;
 
     const uint64_t temp_time = current_time_monotonic(mono_time);
-    uint64_t l_sent_time = -1;
+    uint64_t l_sent_time = 0;
 
     for (uint32_t i = send_array->buffer_start; i != send_array->buffer_end; ++i) {
         if (length == 0) {
@@ -1567,9 +1567,8 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
             rtt_time = DEFAULT_TCP_PING_CONNECTION;
         }
 
-        int requested = handle_request_packet(c->mono_time, &conn->send_array,
-                                              real_data, real_length,
-                                              &rtt_calc_time, rtt_time);
+        const int requested = handle_request_packet(c->mono_time, &conn->send_array,
+                              real_data, real_length, &rtt_calc_time, rtt_time);
 
         if (requested == -1) {
             return -1;
@@ -1623,10 +1622,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
 
     if (rtt_calc_time != 0) {
         uint64_t rtt_time = current_time_monotonic(c->mono_time) - rtt_calc_time;
-
-        if (rtt_time < conn->rtt_time) {
-            conn->rtt_time = rtt_time;
-        }
+        conn->rtt_time = rtt_time;
     }
 
     return 0;
