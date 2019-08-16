@@ -287,11 +287,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
         }
 
         if (num_nodes >= 2) {
-            nodes[0] = (Node_format) {
-                0
-            };
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
-            nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
+            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(num_nodes);
@@ -304,11 +300,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
                 return 0;
             }
 
-            nodes[0] = (Node_format) {
-                0
-            };
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
-            nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
+            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(num_nodes_bs);
@@ -493,7 +485,9 @@ static int send_onion_packet_tcp_udp(const Onion_Client *onion_c, const Onion_Pa
         return 0;
     }
 
-    if (net_family_is_tcp_family(path->ip_port1.ip.family)) {
+    unsigned int tcp_connections_number;
+
+    if (ip_port_to_tcp_connections_number(&path->ip_port1, &tcp_connections_number)) {
         uint8_t packet[ONION_MAX_PACKET_SIZE];
         int len = create_onion_packet_tcp(packet, sizeof(packet), path, dest, data, length);
 
@@ -501,7 +495,7 @@ static int send_onion_packet_tcp_udp(const Onion_Client *onion_c, const Onion_Pa
             return -1;
         }
 
-        return send_tcp_onion_request(onion_c->c, path->ip_port1.ip.ip.v4.uint32, packet, len);
+        return send_tcp_onion_request(onion_c->c, tcp_connections_number, packet, len);
     }
 
     return -1;
@@ -1041,7 +1035,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
     }
 
     IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_family;
+    ip_port.ip.family = net_family_tcp_server;
 
     if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE) {
         return handle_announce_response(object, &ip_port, data, length, userdata);
