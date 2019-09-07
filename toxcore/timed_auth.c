@@ -35,7 +35,7 @@ static void create_timed_auth_to_hash(const Mono_Time *mono_time, uint16_t timeo
 }
 
 void generate_timed_auth(const Mono_Time *mono_time, uint16_t timeout, const uint8_t *key,
-                                const uint8_t *data, uint16_t length, uint8_t *timed_auth)
+                         const uint8_t *data, uint16_t length, uint8_t *timed_auth)
 {
     VLA(uint8_t, to_hash, sizeof(uint64_t) + length);
     create_timed_auth_to_hash(mono_time, timeout, false, data, length, to_hash);
@@ -43,7 +43,7 @@ void generate_timed_auth(const Mono_Time *mono_time, uint16_t timeout, const uin
 }
 
 bool check_timed_auth(const Mono_Time *mono_time, uint16_t timeout, const uint8_t *key, const uint8_t *data,
-                             uint16_t length, const uint8_t *timed_auth)
+                      uint16_t length, const uint8_t *timed_auth)
 {
     VLA(uint8_t, to_hash, sizeof(uint64_t) + length);
 
