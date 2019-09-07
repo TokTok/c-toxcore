@@ -61,6 +61,20 @@ extern "C" {
 #define CRYPTO_SHA512_SIZE             64
 
 /**
+ * @brief The number of bytes in an HMAC authenticator.
+ */
+#define CRYPTO_HMAC_SIZE               32
+
+uint32_t crypto_hmac_size(void);
+
+/**
+ * @brief The number of bytes in an HMAC secret key.
+ */
+#define CRYPTO_HMAC_KEY_SIZE           32
+
+uint32_t crypto_hmac_key_size(void);
+
+/**
  * @brief A `bzero`-like function which won't be optimised away by the compiler.
  *
  * Some compilers will inline `bzero` or `memset` if they can prove that there
@@ -81,6 +95,18 @@ void crypto_sha256(uint8_t *hash, const uint8_t *data, size_t length);
  */
 non_null()
 void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length);
+
+/**
+ * @brief Compute an HMAC authenticator (32 bytes).
+ */
+non_null()
+void crypto_hmac(uint8_t *auth, const uint8_t *key, const uint8_t *data, size_t length);
+
+/**
+ * @brief Verify an HMAC authenticator.
+ */
+non_null()
+bool crypto_hmac_verify(const uint8_t *auth, const uint8_t *key, const uint8_t *data, size_t length);
 
 /**
  * @brief Compare 2 public keys of length @ref CRYPTO_PUBLIC_KEY_SIZE, not vulnerable to
@@ -278,6 +304,12 @@ bool crypto_memlock(void *data, size_t length);
  */
 non_null()
 bool crypto_memunlock(void *data, size_t length);
+
+/**
+ * @brief Fill a key CRYPTO_HMAC_KEY_SIZE big with random bytes.
+ */
+non_null()
+void new_hmac_key(uint8_t *key);
 
 #ifdef __cplusplus
 }  // extern "C"
