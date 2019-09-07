@@ -40,17 +40,10 @@ struct Onion_Announce {
     DHT     *dht;
     Networking_Core *net;
     Onion_Announce_Entry entries[ONION_ANNOUNCE_MAX_ENTRIES];
-    /* This is CRYPTO_SYMMETRIC_KEY_SIZE long just so we can use new_symmetric_key() to fill it */
-    uint8_t secret_bytes[CRYPTO_SYMMETRIC_KEY_SIZE];
+    uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
     Shared_Keys shared_keys_recv;
 };
-
-non_null()
-static bool onion_ping_id_eq(const uint8_t *a, const uint8_t *b)
-{
-    return pk_equal(a, b);
-}
 
 uint8_t *onion_announce_entry_public_key(Onion_Announce *onion_a, uint32_t entry)
 {
@@ -234,20 +227,6 @@ int send_data_request(const Networking_Core *net, const Onion_Path *path, const 
     return 0;
 }
 
-/** Generate a ping_id and put it in ping_id */
-non_null()
-static void generate_ping_id(const Onion_Announce *onion_a, uint64_t ping_time, const uint8_t *public_key,
-                             const IP_Port *ret_ip_port, uint8_t *ping_id)
-{
-    ping_time /= PING_ID_TIMEOUT;
-    uint8_t data[CRYPTO_SYMMETRIC_KEY_SIZE + sizeof(ping_time) + CRYPTO_PUBLIC_KEY_SIZE + sizeof(IP_Port)];
-    memcpy(data, onion_a->secret_bytes, CRYPTO_SYMMETRIC_KEY_SIZE);
-    memcpy(data + CRYPTO_SYMMETRIC_KEY_SIZE, &ping_time, sizeof(ping_time));
-    memcpy(data + CRYPTO_SYMMETRIC_KEY_SIZE + sizeof(ping_time), public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(data + CRYPTO_SYMMETRIC_KEY_SIZE + sizeof(ping_time) + CRYPTO_PUBLIC_KEY_SIZE, ret_ip_port, sizeof(IP_Port));
-    crypto_sha256(ping_id, data, sizeof(data));
-}
-
 /** @brief check if public key is in entries list
  *
  * return -1 if no
@@ -402,18 +381,17 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
         return 1;
     }
 
-    uint8_t ping_id1[ONION_PING_ID_SIZE];
-    generate_ping_id(onion_a, mono_time_get(onion_a->mono_time), packet_public_key, source, ping_id1);
-
-    uint8_t ping_id2[ONION_PING_ID_SIZE];
-    generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
+    const uint16_t ping_id_data_len = CRYPTO_PUBLIC_KEY_SIZE + sizeof(source);
+    uint8_t ping_id_data[CRYPTO_PUBLIC_KEY_SIZE + sizeof(source)];
+    memcpy(ping_id_data, packet_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(ping_id_data + CRYPTO_PUBLIC_KEY_SIZE, &source, sizeof(source));
 
     int index;
 
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
-    if (onion_ping_id_eq(ping_id1, plain)
-            || onion_ping_id_eq(ping_id2, plain)) {
+    if (check_timed_auth(onion_a->mono_time, PING_ID_TIMEOUT, onion_a->hmac_key,
+                         ping_id_data, ping_id_data_len, plain)) {
         index = add_to_entries(onion_a, source, packet_public_key, data_public_key,
                                packet + (ANNOUNCE_REQUEST_SIZE_RECV - ONION_RETURN_3));
     } else {
@@ -429,17 +407,21 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
 
     uint8_t pl[1 + ONION_PING_ID_SIZE + sizeof(nodes_list)];
 
+    uint8_t ping_id[TIMED_AUTH_SIZE];
+    generate_timed_auth(onion_a->mono_time, PING_ID_TIMEOUT, onion_a->hmac_key,
+                        ping_id_data, ping_id_data_len, ping_id);
+
     if (index == -1) {
         pl[0] = 0;
-        memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+        memcpy(pl + 1, ping_id, ONION_PING_ID_SIZE);
     } else {
         if (pk_equal(onion_a->entries[index].public_key, packet_public_key)) {
             if (!pk_equal(onion_a->entries[index].data_public_key, data_public_key)) {
                 pl[0] = 0;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+                memcpy(pl + 1, ping_id, ONION_PING_ID_SIZE);
             } else {
                 pl[0] = 2;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+                memcpy(pl + 1, ping_id, ONION_PING_ID_SIZE);
             }
         } else {
             pl[0] = 1;
@@ -527,7 +509,7 @@ Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT 
     onion_a->mono_time = mono_time;
     onion_a->dht = dht;
     onion_a->net = dht_get_net(dht);
-    new_symmetric_key(onion_a->secret_bytes);
+    new_hmac_key(onion_a->hmac_key);
 
     networking_registerhandler(onion_a->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_announce_request, onion_a);
     networking_registerhandler(onion_a->net, NET_PACKET_ONION_DATA_REQUEST, &handle_data_request, onion_a);
@@ -543,5 +525,8 @@ void kill_onion_announce(Onion_Announce *onion_a)
 
     networking_registerhandler(onion_a->net, NET_PACKET_ANNOUNCE_REQUEST, nullptr, nullptr);
     networking_registerhandler(onion_a->net, NET_PACKET_ONION_DATA_REQUEST, nullptr, nullptr);
+
+    crypto_memzero(onion_a->hmac_key, CRYPTO_HMAC_KEY_SIZE);
+
     free(onion_a);
 }
