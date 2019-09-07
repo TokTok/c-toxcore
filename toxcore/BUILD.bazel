@@ -421,6 +421,7 @@ cc_library(
         ":ccompat",
         ":mono_time",
         ":onion",
+        ":timed_auth",
         ":util",
     ],
 )
