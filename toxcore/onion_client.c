@@ -1941,6 +1941,7 @@ Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_C
     onion_c->dht = nc_get_dht(c);
     onion_c->net = dht_get_net(onion_c->dht);
     onion_c->c = c;
+
     new_symmetric_key(onion_c->secret_symmetric_key);
     crypto_new_keypair(onion_c->temp_public_key, onion_c->temp_secret_key);
     networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_announce_response, onion_c);

@@ -21,6 +21,7 @@
 
 #include "TCP_common.h"
 #include "ccompat.h"
+#include "forwarding.h"
 #include "list.h"
 #include "mono_time.h"
 #include "util.h"
@@ -59,6 +60,7 @@ typedef struct TCP_Secure_Connection {
 struct TCP_Server {
     const Logger *logger;
     Onion *onion;
+    Forwarding *forwarding;
 
 #ifdef TCP_SERVER_USE_EPOLL
     int efd;
@@ -616,6 +618,42 @@ static int handle_onion_recv_1(void *object, const IP_Port *dest, const uint8_t 
     return 0;
 }
 
+non_null()
+static bool handle_forward_reply_tcp(void *object, const uint8_t *sendback_data, uint16_t sendback_data_len,
+                                     const uint8_t *data, uint16_t length)
+{
+    TCP_Server *tcp_server = (TCP_Server *)object;
+
+    if (sendback_data_len != 1 + sizeof(uint32_t) + sizeof(uint64_t)) {
+        return false;
+    }
+
+    if (*sendback_data != SENDBACK_TCP) {
+        return false;
+    }
+
+    uint32_t con_id;
+    uint64_t identifier;
+    net_unpack_u32(sendback_data + 1, &con_id);
+    net_unpack_u64(sendback_data + 1 + sizeof(uint32_t), &identifier);
+
+    if (con_id >= tcp_server->size_accepted_connections) {
+        return false;
+    }
+
+    TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[con_id];
+
+    if (con->identifier != identifier) {
+        return false;
+    }
+
+    VLA(uint8_t, packet, 1 + length);
+    memcpy(packet + 1, data, length);
+    packet[0] = TCP_PACKET_FORWARDING;
+
+    return (write_packet_TCP_secure_connection(tcp_server->logger, &con->con, packet, SIZEOF_VLA(packet), 0) == 1);
+}
+
 /**
  * @retval 0 on success
  * @retval -1 on failure
@@ -721,6 +759,39 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
 
         case TCP_PACKET_ONION_RESPONSE: {
             LOGGER_TRACE(tcp_server->logger, "handling onion response for %d", con_id);
+            return -1;
+        }
+
+        case TCP_PACKET_FORWARD_REQUEST: {
+            if (!tcp_server->forwarding) {
+                return -1;
+            }
+
+            const uint16_t sendback_data_len = 1 + sizeof(uint32_t) + sizeof(uint64_t);
+            uint8_t sendback_data[1 + sizeof(uint32_t) + sizeof(uint64_t)];
+            sendback_data[0] = SENDBACK_TCP;
+            net_pack_u32(sendback_data + 1, con_id);
+            net_pack_u64(sendback_data + 1 + sizeof(uint32_t), con->identifier);
+
+            IP_Port dest;
+            const int ipport_length = unpack_ip_port(&dest, data + 1, length - 1, false);
+
+            if (ipport_length == -1) {
+                return -1;
+            }
+
+            const uint8_t *const forward_data = data + (1 + ipport_length);
+            const uint16_t forward_data_len = length - (1 + ipport_length);
+
+            if (forward_data_len > MAX_FORWARD_DATA_SIZE) {
+                return -1;
+            }
+
+            send_forwarding(tcp_server->forwarding, &dest, sendback_data, sendback_data_len, forward_data, forward_data_len);
+            return 0;
+        }
+
+        case TCP_PACKET_FORWARDING: {
             return -1;
         }
 
@@ -937,6 +1008,9 @@ TCP_Server *new_TCP_server(const Logger *logger, bool ipv6_enabled, uint16_t num
     if (onion != nullptr) {
         temp->onion = onion;
         set_callback_handle_recv_1(onion, &handle_onion_recv_1, temp);
+
+        temp->forwarding = onion->forwarding;
+        set_callback_forward_reply(temp->forwarding, &handle_forward_reply_tcp, temp);
     }
 
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
@@ -1298,6 +1372,10 @@ void kill_TCP_server(TCP_Server *tcp_server)
 
     if (tcp_server->onion != nullptr) {
         set_callback_handle_recv_1(tcp_server->onion, nullptr, nullptr);
+    }
+
+    if (tcp_server->forwarding) {
+        set_callback_forward_reply(tcp_server->forwarding, nullptr, nullptr);
     }
 
     bs_list_free(&tcp_server->accepted_key_list);

@@ -66,7 +66,8 @@ extern "C" {
 
 /** This define can eventually be removed; it is necessary if a significant
  * proportion of dht nodes do not implement the dht announcements protocol. */
-#define CHECK_ANNOUNCE_NODE
+// FIXME: Disabled during testing
+//#define CHECK_ANNOUNCE_NODE
 
 /**
  * @brief Create a request to peer.
@@ -359,6 +360,10 @@ int dht_getfriendip(const DHT *dht, const uint8_t *public_key, IP_Port *ip_port)
  */
 non_null()
 int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2);
+
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+non_null()
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2);
 
 /**
  * Add node to the node list making sure only the nodes closest to cmp_pk are in the list.

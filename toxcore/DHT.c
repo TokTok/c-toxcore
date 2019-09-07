@@ -219,9 +219,8 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2)
     return 0;
 }
 
-/** Return index of first unequal bit number. */
-non_null()
-static unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
     unsigned int i;
     unsigned int j = 0;
@@ -1964,6 +1963,7 @@ int dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
 
 /** @brief Send the given packet to node with public_key.
  *
+ * @return number of bytes sent.
  * @retval -1 if failure.
  */
 int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packet, uint16_t length)

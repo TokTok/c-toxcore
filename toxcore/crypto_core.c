@@ -145,6 +145,11 @@ bool crypto_sha512_eq(const uint8_t *cksum1, const uint8_t *cksum2)
 #endif
 }
 
+bool crypto_sha256_eq(const uint8_t *cksum1, const uint8_t *cksum2)
+{
+    return crypto_verify_32(cksum1, cksum2) == 0;
+}
+
 uint8_t random_u08(void)
 {
     uint8_t randnum;
