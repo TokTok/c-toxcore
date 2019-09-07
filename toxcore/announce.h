@@ -18,6 +18,10 @@
 #include "network.h"
 #include "rng.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_ANNOUNCEMENT_SIZE 512
 
 typedef void announce_on_retrieve_cb(void *_Nullable object, const uint8_t *_Nullable data, uint16_t length);
@@ -66,5 +70,9 @@ bool announce_store_data(Announcements *_Nonnull announce, const uint8_t *_Nonnu
 #define ANNOUNCE_BUCKET_SIZE 8
 #define ANNOUNCE_BUCKET_PREFIX_LENGTH 5
 #define ANNOUNCE_BUCKETS 32 // ANNOUNCE_BUCKETS = 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_ANNOUNCE_H */

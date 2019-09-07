@@ -235,6 +235,10 @@ set(toxcore_SOURCES
   third_party/cmp/cmp.h
   toxcore/announce.c
   toxcore/announce.h
+  toxcore/announce_client.c
+  toxcore/announce_client.h
+  toxcore/announce_lookups.c
+  toxcore/announce_lookups.h
   toxcore/bin_pack.c
   toxcore/bin_pack.h
   toxcore/bin_unpack.c
@@ -636,6 +640,8 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore TCP_common)
   unit_test(toxcore TCP_connection)
   unit_test(toxcore TCP_server)
+  unit_test(toxcore announce_client)
+  unit_test(toxcore announce_lookups)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)
   unit_test(toxcore ev)

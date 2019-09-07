@@ -144,6 +144,9 @@ struct DHT {
     unsigned int num_to_bootstrap;
 
     dht_nodes_response_cb *_Nullable nodes_response_callback;
+
+    packet_handler_cb *_Nullable data_search_response_callback;
+    void *_Nullable data_search_response_object;
 };
 
 const uint8_t *dht_friend_public_key(const DHT_Friend *dht_friend)
@@ -815,15 +818,12 @@ static bool send_announce_ping(DHT *_Nonnull dht, const uint8_t *_Nonnull public
 }
 
 /** @brief If the response is valid, set the sender as an announce node. */
-static int handle_data_search_response(void *_Nonnull object, const IP_Port *_Nonnull source,
-                                       const uint8_t *_Nonnull packet, uint16_t length,
-                                       void *_Nullable userdata)
+static bool handle_announce_ping_response(DHT *_Nonnull dht, const uint8_t *_Nonnull packet, uint16_t length)
 {
-    DHT *dht = (DHT *) object;
     const int32_t plain_len = (int32_t)length - (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
 
     if (plain_len < (int32_t)(CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint64_t))) {
-        return 1;
+        return false;
     }
 
     VLA(uint8_t, plain, plain_len);
@@ -835,7 +835,7 @@ static int handle_data_search_response(void *_Nonnull object, const IP_Port *_No
                                packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,
                                plain) != plain_len) {
-        return 1;
+        return false;
     }
 
     uint64_t ping_id;
@@ -846,19 +846,43 @@ static int handle_data_search_response(void *_Nonnull object, const IP_Port *_No
     if (ping_array_check(dht->dht_ping_array,
                          dht->mono_time, ping_data,
                          sizeof(ping_data), ping_id) != sizeof(ping_data)) {
-        return 1;
+        return false;
     }
 
     if (!pk_equal(ping_data, public_key)) {
-        return 1;
+        return false;
     }
 
     set_announce_node(dht, public_key);
 
-    return 0;
-
+    return true;
 }
 #endif /* CHECK_ANNOUNCE_NODE */
+
+static int handle_data_search_response(void *_Nonnull object, const IP_Port *_Nonnull source,
+                                       const uint8_t *_Nonnull packet, uint16_t length,
+                                       void *_Nullable userdata)
+{
+    DHT *dht = (DHT *) object;
+
+#ifdef CHECK_ANNOUNCE_NODE
+    if (handle_announce_ping_response(dht, packet, length)) {
+        return 0;
+    }
+#endif /* CHECK_ANNOUNCE_NODE */
+
+    if (dht->data_search_response_callback == nullptr) {
+        return 1;
+    }
+
+    return dht->data_search_response_callback(dht->data_search_response_object, source, packet, length, userdata);
+}
+
+void dht_callback_data_search_response(DHT *dht, packet_handler_cb *function, void *object)
+{
+    dht->data_search_response_callback = function;
+    dht->data_search_response_object = object;
+}
 
 /** @brief Is it ok to store node with public_key in client.
  *
@@ -2365,6 +2389,29 @@ static void do_nat(DHT *_Nonnull dht)
 /*----------------------------------------------------------------------------------*/
 /*-----------------------END OF NAT PUNCHING FUNCTIONS------------------------------*/
 
+/** Write to node a random node from all the nodes we are connected to.
+ * Return true if some node is found and written, false otherwise.
+ */
+bool random_node(DHT *dht, Node_format *node, Family sa_family, bool want_announce)
+{
+    uint8_t id[CRYPTO_PUBLIC_KEY_SIZE];
+
+    for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE / 4; ++i) { /* populate the id with pseudorandom bytes.*/
+        const uint32_t t = random_u32(dht->rng);
+        memcpy(id + i * sizeof(t), &t, sizeof(t));
+    }
+
+    Node_format nodes_list[MAX_SENT_NODES];
+    const uint32_t num_nodes = get_close_nodes(dht, id, nodes_list, sa_family, true, want_announce);
+
+    if (num_nodes == 0) {
+        return false;
+    }
+
+    *node = nodes_list[random_range_u32(dht->rng, num_nodes)];
+    return true;
+}
+
 /** @brief Put up to max_num nodes in nodes from the closelist.
  *
  * @return the number of nodes.
@@ -2564,9 +2611,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Memory *secure_mem, con
     networking_registerhandler(dht->net, NET_PACKET_LAN_DISCOVERY, &handle_lan_discovery, dht);
     cryptopacket_registerhandler(dht, CRYPTO_PACKET_NAT_PING, &handle_nat_ping, dht);
 
-#ifdef CHECK_ANNOUNCE_NODE
     networking_registerhandler(dht->net, NET_PACKET_DATA_SEARCH_RESPONSE, &handle_data_search_response, dht);
-#endif /* CHECK_ANNOUNCE_NODE */
 
     crypto_new_keypair(rng, dht->self_public_key, dht->self_secret_key);
 
@@ -2654,6 +2699,7 @@ void kill_dht(DHT *dht)
     networking_registerhandler(dht->net, NET_PACKET_NODES_RESPONSE, nullptr, nullptr);
     networking_registerhandler(dht->net, NET_PACKET_CRYPTO, nullptr, nullptr);
     networking_registerhandler(dht->net, NET_PACKET_LAN_DISCOVERY, nullptr, nullptr);
+    networking_registerhandler(dht->net, NET_PACKET_DATA_SEARCH_RESPONSE, nullptr, nullptr);
     cryptopacket_registerhandler(dht, CRYPTO_PACKET_NAT_PING, nullptr, nullptr);
 
     shared_key_cache_free(dht->shared_keys_recv);

@@ -892,6 +892,87 @@ cc_library(
 )
 
 cc_library(
+    name = "announce_lookups",
+    srcs = ["announce_lookups.c"],
+    hdrs = ["announce_lookups.h"],
+    deps = [
+        ":DHT",
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        ":forwarding",
+        ":mem",
+        ":mono_time",
+        ":timed_auth",
+    ],
+)
+
+cc_library(
+    name = "announce_client",
+    srcs = ["announce_client.c"],
+    hdrs = ["announce_client.h"],
+    deps = [
+        ":DHT",
+        ":announce",
+        ":announce_lookups",
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        ":forwarding",
+        ":logger",
+        ":mem",
+        ":mono_time",
+        ":net",
+        ":net_crypto",
+        ":network",
+        ":ping_array",
+        ":rng",
+        ":timed_auth",
+        ":util",
+    ],
+)
+
+cc_test(
+    name = "announce_lookups_test",
+    size = "small",
+    srcs = ["announce_lookups_test.cc"],
+    deps = [
+        ":announce_lookups",
+        ":attributes",
+        ":crypto_core",
+        ":mono_time",
+        "//c-toxcore/testing/support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "announce_client_test",
+    size = "small",
+    srcs = ["announce_client_test.cc"],
+    deps = [
+        ":DHT",
+        ":DHT_test_util",
+        ":announce",
+        ":announce_client",
+        ":attributes",
+        ":crypto_core",
+        ":forwarding",
+        ":logger",
+        ":mono_time",
+        ":net",
+        ":net_crypto",
+        ":net_profile",
+        ":network",
+        ":timed_auth",
+        "//c-toxcore/testing/support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "TCP_common",
     srcs = ["TCP_common.c"],
     hdrs = ["TCP_common.h"],
