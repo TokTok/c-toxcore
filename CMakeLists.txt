@@ -184,6 +184,8 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/network.h
   toxcore/state.c
   toxcore/state.h
+  toxcore/timed_auth.c
+  toxcore/timed_auth.h
   toxcore/util.c
   toxcore/util.h)
 
