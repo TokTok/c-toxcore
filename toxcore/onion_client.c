@@ -1539,6 +1539,7 @@ static void populate_path_nodes_tcp(Onion_Client *onion_c)
     const unsigned int num_nodes = copy_connected_tcp_relays(onion_c->c, node_list, MAX_SENT_NODES);
 
     for (unsigned int i = 0; i < num_nodes; ++i) {
+        // XXX: but ip_port is TCP, so will be rejected by onion_add_bs_path_node...
         onion_add_bs_path_node(onion_c, &node_list[i].ip_port, node_list[i].public_key);
     }
 }
