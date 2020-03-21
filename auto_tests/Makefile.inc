@@ -67,6 +67,7 @@ TESTS = \
 	scenario_send_message_test \
 	scenario_set_name_test \
 	scenario_set_status_message_test \
+	scenario_tcp_backup_test \
 	scenario_tox_many_test \
 	scenario_tox_many_tcp_test \
 	scenario_typing_test \
@@ -333,6 +334,10 @@ scenario_set_name_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
 scenario_set_status_message_test_SOURCES = ../auto_tests/scenarios/scenario_set_status_message_test.c
 scenario_set_status_message_test_CFLAGS = $(AUTOTEST_CFLAGS)
 scenario_set_status_message_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
+
+scenario_tcp_backup_test_SOURCES = ../auto_tests/scenarios/scenario_tcp_backup_test.c
+scenario_tcp_backup_test_CFLAGS = $(AUTOTEST_CFLAGS)
+scenario_tcp_backup_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
 
 scenario_tox_many_test_SOURCES = ../auto_tests/scenarios/scenario_tox_many_test.c
 scenario_tox_many_test_CFLAGS = $(AUTOTEST_CFLAGS)
