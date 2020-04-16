@@ -6,7 +6,7 @@ package(features = ["layering_check"])
 
 exports_files(
     srcs = ["tox.h"],
-    visibility = ["//c-toxcore:__pkg__"],
+    visibility = ["//c-toxcore:__subpackages__"],
 )
 
 cc_library(
@@ -520,7 +520,10 @@ cc_library(
     name = "net_crypto",
     srcs = ["net_crypto.c"],
     hdrs = ["net_crypto.h"],
-    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
     deps = [
         ":DHT",
         ":LAN_discovery",

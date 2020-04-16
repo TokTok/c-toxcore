@@ -13,6 +13,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/network.h"
 
 static struct JitterBuffer *jbuf_new(uint32_t capacity);
 static void jbuf_clear(struct JitterBuffer *q);
@@ -27,7 +28,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
 
 
 
-ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
+ACSession *ac_new(Mono_Time *mono_time, const Logger *log, Tox *tox, ToxAV *av, uint32_t friend_number,
                   toxav_audio_receive_frame_cb *cb, void *cb_data)
 {
     ACSession *ac = (ACSession *)calloc(1, sizeof(ACSession));
@@ -127,7 +128,7 @@ void ac_iterate(ACSession *ac)
     int16_t *temp_audio_buffer = (int16_t *)malloc(AUDIO_MAX_BUFFER_SIZE_PCM16 * AUDIO_MAX_CHANNEL_COUNT * sizeof(int16_t));
 
     if (temp_audio_buffer == nullptr) {
-        LOGGER_ERROR(ac->log, "Failed to allocate memory for audio buffer");
+        LOGGER_DEBUG(ac->log, "Failed to allocate memory for audio buffer");
         return;
     }
 
@@ -152,9 +153,9 @@ void ac_iterate(ACSession *ac)
 
             ac->lp_channel_count = opus_packet_get_nb_channels(msg->data + 4);
 
-            /* NOTE: even though OPUS supports decoding mono frames with stereo decoder and vice versa,
-             * it didn't work quite well.
-             */
+            /** NOTE: even though OPUS supports decoding mono frames with stereo decoder and vice versa,
+              * it didn't work quite well.
+              */
             if (!reconfigure_audio_decoder(ac, ac->lp_sampling_rate, ac->lp_channel_count)) {
                 LOGGER_WARNING(ac->log, "Failed to reconfigure decoder!");
                 free(msg);
@@ -277,6 +278,7 @@ static struct JitterBuffer *jbuf_new(uint32_t capacity)
     q->capacity = capacity;
     return q;
 }
+
 static void jbuf_clear(struct JitterBuffer *q)
 {
     while (q->bottom != q->top) {
@@ -285,6 +287,7 @@ static void jbuf_clear(struct JitterBuffer *q)
         ++q->bottom;
     }
 }
+
 static void jbuf_free(struct JitterBuffer *q)
 {
     if (q == nullptr) {
@@ -295,6 +298,11 @@ static void jbuf_free(struct JitterBuffer *q)
     free(q->queue);
     free(q);
 }
+
+/*
+ * if -1 is returned the RTPMessage m needs to be free'd by the caller
+ * if  0 is returned the RTPMessage m is stored in the ringbuffer and must NOT be freed by the caller
+ */
 static int jbuf_write(const Logger *log, struct JitterBuffer *q, struct RTPMessage *m)
 {
     const uint16_t sequnum = m->header.sequnum;
@@ -323,6 +331,7 @@ static int jbuf_write(const Logger *log, struct JitterBuffer *q, struct RTPMessa
 
     return 0;
 }
+
 static struct RTPMessage *jbuf_read(struct JitterBuffer *q, int32_t *success)
 {
     if (q->top == q->bottom) {
