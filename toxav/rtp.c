@@ -3,6 +3,7 @@
  * Copyright © 2013-2015 Tox project.
  */
 #include "rtp.h"
+#include "toxav_hacks.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -11,17 +12,19 @@
 
 #include "bwcontroller.h"
 
-#include "../toxcore/Messenger.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/net_crypto.h"
+#include "../toxcore/tox_private.h"
 #include "../toxcore/util.h"
+
+static int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
 
 /**
  * The number of milliseconds we want to keep a keyframe in the buffer for,
  * even though there are no free slots for incoming frames.
  */
 #define VIDEO_KEEP_KEYFRAME_IN_BUFFER_FOR_MS 15
-
 
 /*
  * return -1 on failure, 0 on success
@@ -39,14 +42,16 @@ static int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const ui
     return -1;
 }
 
+
 // allocate_len is NOT including header!
-static struct RTPMessage *new_message(const struct RTPHeader *header, size_t allocate_len, const uint8_t *data,
-                                      uint16_t data_length)
+static struct RTPMessage *new_message(const Logger *log, const struct RTPHeader *header, size_t allocate_len,
+                                      const uint8_t *data, uint16_t data_length)
 {
     assert(allocate_len >= data_length);
     struct RTPMessage *msg = (struct RTPMessage *)calloc(1, sizeof(struct RTPMessage) + allocate_len);
 
     if (msg == nullptr) {
+        LOGGER_DEBUG(log, "Could not allocate RTPMessage buffer");
         return nullptr;
     }
 
@@ -241,7 +246,7 @@ static struct RTPMessage *process_frame(const Logger *log, struct RTPWorkBufferL
 }
 
 /**
- * @param log A logger.
+ * @param log A pointer to the Logger object.
  * @param wkbl The list of in-progress frames, i.e. all the slots.
  * @param slot_id The slot we want to fill the data into.
  * @param is_keyframe Whether the data is part of a key frame.
@@ -309,7 +314,7 @@ static bool fill_data_into_slot(const Logger *log, struct RTPWorkBufferList *wkb
     return slot->received_len == header->data_length_full;
 }
 
-static void update_bwc_values(const Logger *log, RTPSession *session, const struct RTPMessage *msg)
+static void update_bwc_values(RTPSession *session, const struct RTPMessage *msg)
 {
     if (session->first_packets_counter < DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT) {
         ++session->first_packets_counter;
@@ -319,10 +324,19 @@ static void update_bwc_values(const Logger *log, RTPSession *session, const stru
         bwc_add_recv(session->bwc, data_length_full);
 
         if (received_length_full < data_length_full) {
-            LOGGER_DEBUG(log, "BWC: full length=%u received length=%d", data_length_full, received_length_full);
+            LOGGER_DEBUG(session->log, "BWC: full length=%u received length=%d", data_length_full, received_length_full);
             bwc_add_lost(session->bwc, data_length_full - received_length_full);
         }
     }
+}
+
+static Mono_Time *rtp_get_mono_time_from_rtpsession(RTPSession *session)
+{
+    if (!session || !session->toxav) {
+        return nullptr;
+    }
+
+    return toxav_get_av_mono_time(session->toxav);
 }
 
 /**
@@ -342,26 +356,19 @@ static void update_bwc_values(const Logger *log, RTPSession *session, const stru
  *   payload.
  * @param incoming_data_length The packet length *not* including header, i.e.
  *   this is the actual payload length.
- * @param log A logger.
  *
  * @return -1 on error, 0 on success.
  */
-static int handle_video_packet(RTPSession *session, const struct RTPHeader *header,
-                               const uint8_t *incoming_data, uint16_t incoming_data_length, const Logger *log)
+static int handle_video_packet(const Logger *log, RTPSession *session, const struct RTPHeader *header,
+                               const uint8_t *incoming_data, uint16_t incoming_data_length)
 {
     // Full frame length in bytes. The frame may be split into multiple packets,
     // but this value is the complete assembled frame size.
     const uint32_t full_frame_length = header->data_length_full;
 
-    // Current offset in the frame. If this is the first packet of a multipart
-    // frame or it's not a multipart frame, then this value is 0.
-    const uint32_t offset = header->offset_full; // without header
-
     // The sender tells us whether this is a key frame.
     const bool is_keyframe = (header->flags & RTP_KEY_FRAME) != 0;
 
-    LOGGER_DEBUG(log, "-- handle_video_packet -- full lens=%u len=%u offset=%u is_keyframe=%s",
-                 (unsigned)incoming_data_length, (unsigned)full_frame_length, (unsigned)offset, is_keyframe ? "K" : ".");
     LOGGER_DEBUG(log, "wkbl->next_free_entry:003=%d", session->work_buffer_list->next_free_entry);
 
     const bool is_multipart = full_frame_length != incoming_data_length;
@@ -386,10 +393,11 @@ static int handle_video_packet(RTPSession *session, const struct RTPHeader *head
         // get_slot just told us it's full, so process_frame must return non-null.
         assert(m_new != nullptr);
 
-        LOGGER_DEBUG(log, "-- handle_video_packet -- CALLBACK-001a b0=%d b1=%d", (int)m_new->data[0], (int)m_new->data[1]);
-        update_bwc_values(log, session, m_new);
+        LOGGER_DEBUG(log, "-- handle_video_packet -- CALLBACK-001a b0=%d b1=%d", (int)m_new->data[0],
+                     (int)m_new->data[1]);
+        update_bwc_values(session, m_new);
         // Pass ownership of m_new to the callback.
-        session->mcb(session->m->mono_time, session->cs, m_new);
+        session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, m_new);
         // Now we no longer own m_new.
         m_new = nullptr;
 
@@ -424,9 +432,10 @@ static int handle_video_packet(RTPSession *session, const struct RTPHeader *head
     struct RTPMessage *m_new = process_frame(log, session->work_buffer_list, slot_id);
 
     if (m_new) {
-        LOGGER_DEBUG(log, "-- handle_video_packet -- CALLBACK-003a b0=%d b1=%d", (int)m_new->data[0], (int)m_new->data[1]);
-        update_bwc_values(log, session, m_new);
-        session->mcb(session->m->mono_time, session->cs, m_new);
+        LOGGER_DEBUG(log, "-- handle_video_packet -- CALLBACK-003a b0=%d b1=%d", (int)m_new->data[0],
+                     (int)m_new->data[1]);
+        update_bwc_values(session, m_new);
+        session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, m_new);
 
         m_new = nullptr;
     }
@@ -435,15 +444,44 @@ static int handle_video_packet(RTPSession *session, const struct RTPHeader *head
 }
 
 /**
- * @return -1 on error, 0 on success.
+ * receive custom lossypackets and process them. they can be incoming audio or video packets
  */
-static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length, void *object)
+void handle_rtp_packet(Tox *tox, uint32_t friendnumber, const uint8_t *data, size_t length2, void *dummy)
 {
-    RTPSession *session = (RTPSession *)object;
+    // TODO(Zoff): is this ok?
+    uint16_t length = (uint16_t)length2;
 
-    if (!session || length < RTP_HEADER_SIZE + 1) {
-        LOGGER_WARNING(m->log, "No session or invalid length of received buffer!");
-        return -1;
+    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
+
+    if (!toxav) {
+        // LOGGER_WARNING(log, "ToxAV is NULL!");
+        return;
+    }
+
+    const Logger *log = toxav_get_logger(toxav);
+
+    if (length < RTP_HEADER_SIZE + 1) {
+        LOGGER_WARNING(log, "Invalid length of received buffer!");
+        return;
+    }
+
+    ToxAVCall *call = (ToxAVCall *)call_get(toxav, friendnumber);
+
+    if (!call) {
+        LOGGER_WARNING(log, "ToxAVCall is NULL!");
+        return;
+    }
+
+    RTPSession *session = rtp_session_get(call, data[0]);
+
+    if (!session) {
+        LOGGER_WARNING(log, "No session!");
+        return;
+    }
+
+    if (!session->rtp_receive_active) {
+        LOGGER_WARNING(log, "receiving not allowed!");
+        return;
     }
 
     // Get the packet type.
@@ -456,35 +494,36 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
     rtp_header_unpack(data, &header);
 
     if (header.pt != packet_type % 128) {
-        LOGGER_WARNING(m->log, "RTPHeader packet type and Tox protocol packet type did not agree: %d != %d",
+        LOGGER_WARNING(log, "RTPHeader packet type and Tox protocol packet type did not agree: %d != %d",
                        header.pt, packet_type % 128);
-        return -1;
+        return;
     }
 
     if (header.pt != session->payload_type % 128) {
-        LOGGER_WARNING(m->log, "RTPHeader packet type does not match this session's payload type: %d != %d",
+        LOGGER_WARNING(log, "RTPHeader packet type does not match this session's payload type: %d != %d",
                        header.pt, session->payload_type % 128);
-        return -1;
+        return;
     }
 
     if (header.flags & RTP_LARGE_FRAME && header.offset_full >= header.data_length_full) {
-        LOGGER_ERROR(m->log, "Invalid video packet: frame offset (%u) >= full frame length (%u)",
+        LOGGER_ERROR(log, "Invalid video packet: frame offset (%u) >= full frame length (%u)",
                      (unsigned)header.offset_full, (unsigned)header.data_length_full);
-        return -1;
+        return;
     }
 
     if (header.offset_lower >= header.data_length_lower) {
-        LOGGER_ERROR(m->log, "Invalid old protocol video packet: frame offset (%u) >= full frame length (%u)",
+        LOGGER_ERROR(log, "Invalid old protocol video packet: frame offset (%u) >= full frame length (%u)",
                      (unsigned)header.offset_lower, (unsigned)header.data_length_lower);
-        return -1;
+        return;
     }
 
-    LOGGER_DEBUG(m->log, "header.pt %d, video %d", (uint8_t)header.pt, RTP_TYPE_VIDEO % 128);
+    LOGGER_DEBUG(log, "header.pt %d, video %d", (uint8_t)header.pt, RTP_TYPE_VIDEO % 128);
 
     // The sender uses the new large-frame capable protocol and is sending a
     // video packet.
     if ((header.flags & RTP_LARGE_FRAME) && header.pt == (RTP_TYPE_VIDEO % 128)) {
-        return handle_video_packet(session, &header, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE, m->log);
+        handle_video_packet(log, session, &header, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE);
+        return;
     }
 
     // everything below here is for the old 16 bit protocol ------------------
@@ -499,15 +538,17 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
 
         /* Invoke processing of active multiparted message */
         if (session->mp) {
-            session->mcb(session->m->mono_time, session->cs, session->mp);
+            session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, session->mp);
             session->mp = nullptr;
         }
 
         /* The message came in the allowed time;
          */
 
-        return session->mcb(session->m->mono_time, session->cs, new_message(&header, length - RTP_HEADER_SIZE,
-                            data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE));
+        session->mp = new_message(log, &header, length - RTP_HEADER_SIZE, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE);
+        session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, session->mp);
+        session->mp = nullptr;
+        return;
     }
 
     /* The message is sent in multiple parts */
@@ -530,7 +571,7 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
                 /* There happened to be some corruption on the stream;
                  * continue wihtout this part
                  */
-                return 0;
+                return;
             }
 
             memcpy(session->mp->data + header.offset_lower, data + RTP_HEADER_SIZE,
@@ -542,7 +583,7 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
                 /* Received a full message; now push it for the further
                  * processing.
                  */
-                session->mcb(session->m->mono_time, session->cs, session->mp);
+                session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, session->mp);
                 session->mp = nullptr;
             }
         } else {
@@ -551,17 +592,17 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
                 /* The received message part is from the old message;
                  * discard it.
                  */
-                return 0;
+                return;
             }
 
             /* Push the previous message for processing */
-            session->mcb(session->m->mono_time, session->cs, session->mp);
+            session->mcb(rtp_get_mono_time_from_rtpsession(session), session->cs, session->mp);
 
             session->mp = nullptr;
             goto NEW_MULTIPARTED;
         }
     } else {
-        /* In this case threat the message as if it was received in order
+        /* In this case treat the message as if it was received in order
          */
         /* This is also a point for new multiparted messages */
 NEW_MULTIPARTED:
@@ -573,17 +614,17 @@ NEW_MULTIPARTED:
 
         /* Store message.
          */
-        session->mp = new_message(&header, header.data_length_lower, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE);
+        session->mp = new_message(log, &header, header.data_length_lower, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE);
 
         if (session->mp != nullptr) {
             memmove(session->mp->data + header.offset_lower, session->mp->data, session->mp->len);
         } else {
-            LOGGER_WARNING(m->log, "new_message() returned a null pointer");
-            return -1;
+            LOGGER_WARNING(log, "new_message() returned a null pointer");
+            return;
         }
     }
 
-    return 0;
+    return;
 }
 
 size_t rtp_header_pack(uint8_t *const rdata, const struct RTPHeader *header)
@@ -645,24 +686,23 @@ size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header)
     return p - data;
 }
 
-RTPSession *rtp_new(int payload_type, Messenger *m, Tox *tox, uint32_t friendnumber,
+RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb)
 {
     assert(mcb != nullptr);
     assert(cs != nullptr);
-    assert(m != nullptr);
 
     RTPSession *session = (RTPSession *)calloc(1, sizeof(RTPSession));
 
     if (!session) {
-        LOGGER_WARNING(m->log, "Alloc failed! Program might misbehave!");
+        LOGGER_WARNING(log, "Alloc failed! Program might misbehave!");
         return nullptr;
     }
 
     session->work_buffer_list = (struct RTPWorkBufferList *)calloc(1, sizeof(struct RTPWorkBufferList));
 
     if (session->work_buffer_list == nullptr) {
-        LOGGER_ERROR(m->log, "out of memory while allocating work buffer list");
+        LOGGER_ERROR(log, "out of memory while allocating work buffer list");
         free(session);
         return nullptr;
     }
@@ -670,11 +710,12 @@ RTPSession *rtp_new(int payload_type, Messenger *m, Tox *tox, uint32_t friendnum
     // First entry is free.
     session->work_buffer_list->next_free_entry = 0;
 
-    session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : random_u32();
+    session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : random_u32(); // Zoff: what is this??
     session->payload_type = payload_type;
-    session->m = m;
     session->tox = tox;
+    session->toxav = toxav;
     session->friend_number = friendnumber;
+    session->rtp_receive_active = true;
 
     // set NULL just in case
     session->mp = nullptr;
@@ -685,58 +726,50 @@ RTPSession *rtp_new(int payload_type, Messenger *m, Tox *tox, uint32_t friendnum
     session->cs = cs;
     session->mcb = mcb;
 
-    if (-1 == rtp_allow_receiving(session)) {
-        LOGGER_WARNING(m->log, "Failed to start rtp receiving mode");
-        free(session->work_buffer_list);
-        free(session);
-        return nullptr;
-    }
-
     return session;
 }
 
-void rtp_kill(RTPSession *session)
+void rtp_kill(const Logger *log, RTPSession *session)
 {
     if (!session) {
+        LOGGER_WARNING(log, "No session");
         return;
     }
 
-    LOGGER_DEBUG(session->m->log, "Terminated RTP session: %p", (void *)session);
-    rtp_stop_receiving(session);
-
-    LOGGER_DEBUG(session->m->log, "Terminated RTP session V3 work_buffer_list->next_free_entry: %d",
+    LOGGER_DEBUG(log, "Terminated RTP session: %p", (void *)session);
+    LOGGER_DEBUG(log, "Terminated RTP session V3 work_buffer_list->next_free_entry: %d",
                  (int)session->work_buffer_list->next_free_entry);
 
     free(session->work_buffer_list);
     free(session);
 }
 
-int rtp_allow_receiving(RTPSession *session)
+void rtp_allow_receiving_mark(RTPSession *session)
 {
-    if (session == nullptr) {
-        return -1;
+    if (session) {
+        session->rtp_receive_active = true;
     }
-
-    if (m_callback_rtp_packet(session->m, session->friend_number, session->payload_type,
-                              handle_rtp_packet, session) == -1) {
-        LOGGER_WARNING(session->m->log, "Failed to register rtp receive handler");
-        return -1;
-    }
-
-    LOGGER_DEBUG(session->m->log, "Started receiving on session: %p", (void *)session);
-    return 0;
 }
 
-int rtp_stop_receiving(RTPSession *session)
+void rtp_stop_receiving_mark(RTPSession *session)
 {
-    if (session == nullptr) {
-        return -1;
+    if (session) {
+        session->rtp_receive_active = false;
     }
+}
 
-    m_callback_rtp_packet(session->m, session->friend_number, session->payload_type, nullptr, nullptr);
+void rtp_allow_receiving(Tox *tox)
+{
+    // register callback
+    tox_callback_friend_lossy_packet_per_pktid(tox, handle_rtp_packet, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(tox, handle_rtp_packet, RTP_TYPE_VIDEO);
+}
 
-    LOGGER_DEBUG(session->m->log, "Stopped receiving on session: %p", (void *)session);
-    return 0;
+void rtp_stop_receiving(Tox *tox)
+{
+    // UN-register callback
+    tox_callback_friend_lossy_packet_per_pktid(tox, nullptr, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(tox, nullptr, RTP_TYPE_VIDEO);
 }
 
 /**
@@ -748,11 +781,10 @@ int rtp_stop_receiving(RTPSession *session)
  * @param is_keyframe Whether this video frame is a key frame. If it is an
  *   audio frame, this parameter is ignored.
  */
-int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
-                  bool is_keyframe, const Logger *log)
+int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, uint32_t length,
+                  bool is_keyframe)
 {
     if (!session) {
-        LOGGER_ERROR(log, "No session!");
         return -1;
     }
 
@@ -772,7 +804,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
 
     header.sequnum = session->sequnum;
 
-    header.timestamp = current_time_monotonic(session->m->mono_time);
+    header.timestamp = current_time_monotonic(rtp_get_mono_time_from_rtpsession(session));
 
     header.ssrc = session->ssrc;
 
@@ -814,7 +846,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
 
         if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, SIZEOF_VLA(rdata))) {
             char *netstrerror = net_new_strerror(net_error());
-            LOGGER_WARNING(session->m->log, "RTP send failed (len: %u)! net error: %s",
+            LOGGER_WARNING(log, "RTP send failed (len: %u)! net error: %s",
                            (unsigned)SIZEOF_VLA(rdata), netstrerror);
             net_kill_strerror(netstrerror);
         }
@@ -833,7 +865,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number,
                                                    rdata, piece + RTP_HEADER_SIZE + 1)) {
                 char *netstrerror = net_new_strerror(net_error());
-                LOGGER_WARNING(session->m->log, "RTP send failed (len: %d)! net error: %s",
+                LOGGER_WARNING(log, "RTP send failed (len: %d)! net error: %s",
                                piece + RTP_HEADER_SIZE + 1, netstrerror);
                 net_kill_strerror(netstrerror);
             }
@@ -853,7 +885,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
                                                    piece + RTP_HEADER_SIZE + 1)) {
                 char *netstrerror = net_new_strerror(net_error());
-                LOGGER_WARNING(session->m->log, "RTP send failed (len: %d)! net error: %s",
+                LOGGER_WARNING(log, "RTP send failed (len: %d)! net error: %s",
                                piece + RTP_HEADER_SIZE + 1, netstrerror);
                 net_kill_strerror(netstrerror);
             }

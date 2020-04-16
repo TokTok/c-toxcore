@@ -34,6 +34,11 @@
 #define AUDIO_MAX_BUFFER_SIZE_PCM16 ((AUDIO_MAX_SAMPLE_RATE * AUDIO_MAX_FRAME_DURATION_MS) / 1000)
 #define AUDIO_MAX_BUFFER_SIZE_BYTES (AUDIO_MAX_BUFFER_SIZE_PCM16 * 2)
 
+#ifndef TOX_DEFINED
+#define TOX_DEFINED
+typedef struct Tox Tox;
+#endif /* TOX_DEFINED */
+
 typedef struct ACSession {
     Mono_Time *mono_time;
     const Logger *log;
@@ -61,9 +66,10 @@ typedef struct ACSession {
     /* Audio frame receive callback */
     toxav_audio_receive_frame_cb *acb;
     void *acb_user_data;
+    Tox *tox;
 } ACSession;
 
-ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
+ACSession *ac_new(Mono_Time *mono_time, const Logger *log, Tox *tox, ToxAV *av, uint32_t friend_number,
                   toxav_audio_receive_frame_cb *cb, void *cb_data);
 void ac_kill(ACSession *ac);
 void ac_iterate(ACSession *ac);
