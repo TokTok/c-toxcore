@@ -70,6 +70,8 @@ extern "C" {
 typedef struct Tox Tox;
 #endif /* TOX_DEFINED */
 
+#ifndef TOXAV_DEFINED
+#define TOXAV_DEFINED
 /**
  * @brief The ToxAV instance type.
  *
@@ -80,6 +82,7 @@ typedef struct Tox Tox;
  * without notifying peers.
  */
 typedef struct ToxAV ToxAV;
+#endif /* TOXAV_DEFINED */
 
 
 /** @{
