@@ -127,11 +127,6 @@ typedef enum Userstatus {
     USERSTATUS_INVALID,
 } Userstatus;
 
-typedef enum Contact_Type {
-    CONTACT_TYPE_FRIEND,
-    CONTACT_TYPE_GC,
-} Contact_Type;
-
 #define FILE_ID_LENGTH 32
 
 struct File_Transfers {
@@ -236,7 +231,7 @@ typedef struct Friend {
     uint32_t message_id; // a semi-unique id used in read receipts.
     uint32_t friendrequest_nospam; // The nospam number used in the friend request.
     uint64_t last_seen_time;
-    Connection_Status last_connection_udp_tcp;
+    uint8_t last_connection_udp_tcp;
     struct File_Transfers file_sending[MAX_CONCURRENT_FILE_PIPES];
     uint32_t num_sending_files;
     struct File_Transfers file_receiving[MAX_CONCURRENT_FILE_PIPES];
@@ -245,8 +240,6 @@ typedef struct Friend {
 
     struct Receipts *receipts_start;
     struct Receipts *receipts_end;
-
-    Contact_Type type;
 } Friend;
 
 struct Messenger {
@@ -360,10 +353,6 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
  *  return -8 if increasing the friend list size fails.
  */
 int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk);
-
-int32_t m_add_friend_gc(Messenger *m, GC_Chat *chat);
-
-int32_t m_remove_friend_gc(Messenger *m, const GC_Chat *chat);
 
 /*  return the friend number associated to that client id.
  *  return -1 if no such friend.
