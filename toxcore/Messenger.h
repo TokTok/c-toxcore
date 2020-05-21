@@ -12,8 +12,6 @@
 
 #include "friend_connection.h"
 #include "friend_requests.h"
-#include "group_chats.h"
-#include "group_announce.h"
 #include "logger.h"
 #include "net_crypto.h"
 #include "state.h"
@@ -353,6 +351,18 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
  *  return -8 if increasing the friend list size fails.
  */
 int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk);
+
+/* Initializes the friend connection and onion connection for a groupchat.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int32_t m_create_group_connection(Messenger *m, GC_Chat *chat);
+
+/*
+ * Kills the friend connection for a groupchat.
+ */
+void m_kill_group_connection(Messenger *m, const GC_Chat *chat);
 
 /*  return the friend number associated to that client id.
  *  return -1 if no such friend.
