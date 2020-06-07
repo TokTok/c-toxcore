@@ -336,7 +336,7 @@ static void update_bwc_values(RTPSession *session, const struct RTPMessage *msg)
 
 static Mono_Time *rtp_get_mono_time_from_rtpsession(RTPSession *session)
 {
-    if (!session) || (!session->toxav) {
+    if (!session || !session->toxav) {
         return nullptr;
     }
 
