@@ -166,7 +166,7 @@ typedef struct RTPSession {
     Tox *tox;
     ToxAV *toxav;
     uint32_t friend_number;
-    bool rtp_receive_active;
+    bool rtp_receive_active; /* if this is set to false then incoming rtp packets will not be processed by handle_rtp_packet() */
     BWController *bwc;
     void *cs;
     rtp_m_cb *mcb;
@@ -211,7 +211,7 @@ void rtp_stop_receiving(Tox *tox);
  *   audio frame, this parameter is ignored.
  */
 int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
-                  bool is_keyframe, const Logger *log);
+                  bool is_keyframe);
 
 #ifdef __cplusplus
 }  // extern "C"

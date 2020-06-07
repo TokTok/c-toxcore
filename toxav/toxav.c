@@ -165,8 +165,6 @@ RTPSession *rtp_session_get(ToxAVCall *call, int payload_type)
     } else {
         return call->audio_rtp;
     }
-
-    return nullptr;
 }
 
 BWController *bwc_controller_get(void *call)
@@ -220,7 +218,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     av->msi->av = av;
 
     // save Tox object into toxcore
-    tox_set_av_object(av->tox, (void *)av);
+    tox_set_av_object(av->tox, av);
 
     msi_register_callback(av->msi, callback_invite, MSI_ON_INVITE);
     msi_register_callback(av->msi, callback_start, MSI_ON_START);
@@ -871,7 +869,7 @@ bool toxav_audio_send_frame(ToxAV *av, uint32_t friend_number, const int16_t *pc
             goto RETURN;
         }
 
-        if (rtp_send_data(call->audio_rtp, dest, vrc + sizeof(sampling_rate), false, nullptr) != 0) {
+        if (rtp_send_data(call->audio_rtp, dest, vrc + sizeof(sampling_rate), false) != 0) {
             LOGGER_API_WARNING(av->tox, "Failed to send audio packet");
             rc = TOXAV_ERR_SEND_FRAME_RTP_FAILED;
         }
@@ -909,8 +907,7 @@ static Toxav_Err_Send_Frame send_frames(ToxAV *av, ToxAVCall *call)
                             call->video_rtp,
                             (const uint8_t *)pkt->data.frame.buf,
                             frame_length_in_bytes,
-                            is_keyframe,
-                            nullptr);
+                            is_keyframe);
 
         if (res < 0) {
             LOGGER_API_WARNING(av->tox, "Could not send video frame: %s", strerror(errno));
@@ -1247,16 +1244,16 @@ static ToxAVCall *call_new(ToxAV *av, uint32_t friend_number, Toxav_Err_Call *er
     ToxAVCall *call = nullptr;
 
     Tox_Err_Friend_Query f_con_query_error;
-    Tox_Connection f_conn_status = TOX_CONNECTION_NONE;
+    Tox_Connection f_con_status = TOX_CONNECTION_NONE;
 
     if (toxav_friend_exists(av->tox, friend_number) == 0) {
         rc = TOXAV_ERR_CALL_FRIEND_NOT_FOUND;
         goto RETURN;
     }
 
-    f_conn_status = tox_friend_get_connection_status(av->tox, friend_number, &f_con_query_error);
+    f_con_status = tox_friend_get_connection_status(av->tox, friend_number, &f_con_query_error);
 
-    if (f_conn_status == TOX_CONNECTION_NONE) {
+    if (f_con_status == TOX_CONNECTION_NONE) {
         rc = TOXAV_ERR_CALL_FRIEND_NOT_CONNECTED;
         goto RETURN;
     }

@@ -49,19 +49,14 @@ static int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const ui
 
 // allocate_len is NOT including header!
 static struct RTPMessage *new_message(Tox *tox, const struct RTPHeader *header, size_t allocate_len,
-                                      const uint8_t *data,
-                                      uint16_t data_length)
+                                      const uint8_t *data, uint16_t data_length)
 {
     assert(allocate_len >= data_length);
     struct RTPMessage *msg = (struct RTPMessage *)calloc(1, sizeof(struct RTPMessage) + allocate_len);
 
     if (msg == nullptr) {
-        LOGGER_API_DEBUG(tox, "%s:%d:%s:msg=calloc(%d):NULL", __FILE__, __LINE__, __func__,
-                         (int)(sizeof(struct RTPMessage) + allocate_len));
+        LOGGER_API_DEBUG(tox, "Could not allocate RTPMessage buffer");
         return nullptr;
-    } else {
-        LOGGER_API_DEBUG(tox, "%s:%d:%s:msg=calloc(%d):%p", __FILE__, __LINE__, __func__,
-                         (int)(sizeof(struct RTPMessage) + allocate_len), (void *)msg);
     }
 
     msg->len = data_length; // result without header
@@ -341,11 +336,7 @@ static void update_bwc_values(RTPSession *session, const struct RTPMessage *msg)
 
 static Mono_Time *rtp_get_mono_time_from_rtpsession(RTPSession *session)
 {
-    if (!session) {
-        return nullptr;
-    }
-
-    if (!session->toxav) {
+    if (!session) || (!session->toxav) {
         return nullptr;
     }
 
@@ -721,11 +712,10 @@ RTPSession *rtp_new(int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnum
 
     session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : random_u32(); // Zoff: what is this??
     session->payload_type = payload_type;
-    // session->m = m;
     session->tox = tox;
     session->toxav = toxav;
     session->friend_number = friendnumber;
-    session->rtp_receive_active = true; /* default: true */
+    session->rtp_receive_active = true;
 
     // set NULL just in case
     session->mp = nullptr;
@@ -786,7 +776,7 @@ void rtp_stop_receiving(Tox *tox)
  * @param length is the length of the raw data.
  */
 int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
-                  bool is_keyframe, const Logger *log)
+                  bool is_keyframe)
 {
     if (!session) {
         return -1;

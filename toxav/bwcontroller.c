@@ -54,7 +54,7 @@ struct BWController_s {
 
     uint32_t packet_loss_counted_cycles;
     Mono_Time *bwc_mono_time;
-    bool bwc_receive_active;
+    bool bwc_receive_active; /* if this is set to false then incoming bwc packets will not be processed by bwc_handle_data() */
 };
 
 struct BWCMessage {
@@ -84,7 +84,7 @@ BWController *bwc_new(Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user
     retu->cycle.last_sent_timestamp = now;
     retu->cycle.last_refresh_timestamp = now;
     retu->tox = tox;
-    retu->bwc_receive_active = true; /* default: true */
+    retu->bwc_receive_active = true;
     retu->rcvpkt.rb = rb_new(BWC_AVG_PKT_COUNT);
     retu->cycle.lost = 0;
     retu->cycle.recv = 0;
@@ -192,6 +192,7 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
 static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data, size_t length, void *dummy)
 {
     if (length - 1 != sizeof(struct BWCMessage)) {
+        LOGGER_API_ERROR(bwc->tox, "Actual data size and length argument do not match");
         return;
     }
 

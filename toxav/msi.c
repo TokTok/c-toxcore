@@ -168,18 +168,14 @@ int msi_kill(Tox *tox, MSISession *session, const Logger *log)
  */
 bool check_peer_offline_status(Tox *tox, MSISession *session, uint32_t friend_number)
 {
-    if (!tox) {
-        return false;
-    }
-
-    if (!session) {
+    if (!tox) || (!session) {
         return false;
     }
 
     Tox_Err_Friend_Query f_con_query_error;
-    Tox_Connection f_conn_status = tox_friend_get_connection_status(tox, friend_number, &f_con_query_error);
+    Tox_Connection f_con_status = tox_friend_get_connection_status(tox, friend_number, &f_con_query_error);
 
-    if (f_conn_status == TOX_CONNECTION_NONE) {
+    if (f_con_status == TOX_CONNECTION_NONE) {
         /* Friend is now offline */
         LOGGER_API_DEBUG(tox, "Friend %d is now offline", friend_number);
 
@@ -512,6 +508,9 @@ static uint8_t *msg_parse_header_out(MSIHeaderID id, uint8_t *dest, const void *
 static int m_msi_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint16_t length)
 {
     // TODO(Zoff): make this better later! -------------------
+    /* we need to prepend 1 byte (packet id) to data
+     * do this without calloc, memcpy and free in the future
+     */
     size_t length_new = length + 1;
     uint8_t *data_new = (uint8_t *)calloc(1, length_new);
 
@@ -525,14 +524,10 @@ static int m_msi_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uin
         memcpy(data_new + 1, data, length);
     }
 
-    // TODO(Zoff): make this better later! -------------------
-
     Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossless_packet(tox, friendnumber, data_new, length_new, &error);
 
-    // TODO(Zoff): make this better later! -------------------
     free(data_new);
-    // TODO(Zoff): make this better later! -------------------
 
     if (error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
         return 1;
@@ -932,6 +927,7 @@ static void handle_pop(MSICall *call, const MSIMessage *msg)
 static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length2, void *object)
 {
     if (length2 < 2) {
+        LOGGER_API_ERROR(tox, "MSI packet is less than 2 bytes in size");
         // we need more than the ID byte for MSI messages
         return;
     }

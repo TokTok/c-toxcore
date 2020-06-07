@@ -7,8 +7,8 @@
 
 #include <stdint.h>
 
-#include "../toxcore/tox.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/tox.h"
 
 #ifndef TOX_DEFINED
 #define TOX_DEFINED
