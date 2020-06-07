@@ -192,7 +192,7 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
 static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data, size_t length, void *dummy)
 {
     if (length - 1 != sizeof(struct BWCMessage)) {
-        LOGGER_API_ERROR(bwc->tox, "Actual data size and length argument do not match");
+        LOGGER_API_ERROR(tox, "Actual data size and length argument do not match");
         return;
     }
 
