@@ -168,7 +168,7 @@ int msi_kill(Tox *tox, MSISession *session, const Logger *log)
  */
 bool check_peer_offline_status(Tox *tox, MSISession *session, uint32_t friend_number)
 {
-    if (!tox) || (!session) {
+    if (!tox || !session) {
         return false;
     }
 
