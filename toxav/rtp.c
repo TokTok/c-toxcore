@@ -463,12 +463,14 @@ void handle_rtp_packet(Tox *tox, uint32_t friendnumber, const uint8_t *data, siz
     ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
 
     if (!toxav) {
+        LOGGER_API_WARNING(tox, "ToxAV is NULL!");
         return;
     }
 
     ToxAVCall *call = (ToxAVCall *)call_get(toxav, friendnumber);
 
     if (!call) {
+        LOGGER_API_WARNING(tox, "ToxAVCall is NULL!");
         return;
     }
 
@@ -732,11 +734,12 @@ RTPSession *rtp_new(int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnum
 void rtp_kill(Tox *tox, RTPSession *session)
 {
     if (!session) {
+        LOGGER_API_WARNING(tox, "No session");
         return;
     }
 
-    LOGGER_API_DEBUG(session->tox, "Terminated RTP session: %p", (void *)session);
-    LOGGER_API_DEBUG(session->tox, "Terminated RTP session V3 work_buffer_list->next_free_entry: %d",
+    LOGGER_API_DEBUG(tox, "Terminated RTP session: %p", (void *)session);
+    LOGGER_API_DEBUG(tox, "Terminated RTP session V3 work_buffer_list->next_free_entry: %d",
                      (int)session->work_buffer_list->next_free_entry);
 
     free(session->work_buffer_list);
