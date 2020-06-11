@@ -126,7 +126,7 @@ MSISession *msi_new(Tox *tox)
     return retu;
 }
 
-int msi_kill(Tox *tox, MSISession *session, const Logger *log)
+int msi_kill(Tox *tox, MSISession *session)
 {
     if (session == nullptr) {
         LOGGER_API_ERROR(tox, "Tried to terminate non-existing session");

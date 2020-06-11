@@ -110,7 +110,7 @@ MSISession *msi_new(Tox *tox);
 /**
  * Terminate control session. NOTE: all calls will be freed
  */
-int msi_kill(Tox *tox, MSISession *session, const Logger *log);
+int msi_kill(Tox *tox, MSISession *session);
 /**
  * Callback setter.
  */

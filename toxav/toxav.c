@@ -258,7 +258,7 @@ void toxav_kill(ToxAV *av)
     bwc_stop_receiving(av->tox);
 
     /* To avoid possible deadlocks */
-    while (av->msi && msi_kill(av->tox, av->msi, nullptr) != 0) {
+    while (av->msi && msi_kill(av->tox, av->msi) != 0) {
         pthread_mutex_unlock(av->mutex);
         pthread_mutex_lock(av->mutex);
     }
