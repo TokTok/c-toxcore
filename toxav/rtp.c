@@ -364,7 +364,7 @@ static Mono_Time *rtp_get_mono_time_from_rtpsession(RTPSession *session)
  * @return -1 on error, 0 on success.
  */
 static int handle_video_packet(RTPSession *session, const struct RTPHeader *header,
-                               const uint8_t *incoming_data, uint16_t incoming_data_length, const Logger *log)
+                               const uint8_t *incoming_data, uint16_t incoming_data_length)
 {
     // Full frame length in bytes. The frame may be split into multiple packets,
     // but this value is the complete assembled frame size.
@@ -522,7 +522,7 @@ void handle_rtp_packet(Tox *tox, uint32_t friendnumber, const uint8_t *data, siz
     // The sender uses the new large-frame capable protocol and is sending a
     // video packet.
     if ((header.flags & RTP_LARGE_FRAME) && header.pt == (RTP_TYPE_VIDEO % 128)) {
-        handle_video_packet(session, &header, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE, nullptr);
+        handle_video_packet(session, &header, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE);
         return;
     }
 
