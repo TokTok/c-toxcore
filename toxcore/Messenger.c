@@ -3244,6 +3244,13 @@ static uint32_t saved_groups_size(const Messenger *m)
 
 static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
+    Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
+
+    if (temp == nullptr) {
+        LOGGER_ERROR(m->log, "Failed to allocate memory for saved group");
+        return data;
+    }
+
     const GC_Session *c = m->group_handler;
 
     data = state_write_section_header(data, STATE_COOKIE_TYPE, saved_groups_size(m),
@@ -3256,12 +3263,13 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
             continue;
         }
 
-        Saved_Group temp;
-        pack_group_info(chat, &temp, true);
+        pack_group_info(chat, temp, true);
 
-        memcpy(data, &temp, sizeof(Saved_Group));
+        memcpy(data, temp, sizeof(Saved_Group));
         data += sizeof(Saved_Group);
     }
+
+    free(temp);
 
     return data;
 }
@@ -3272,18 +3280,25 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
         return STATE_LOAD_STATUS_ERROR; // TODO(endoffile78): error or continue?
     }
 
+    Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
+
+    if (temp == nullptr) {
+        return STATE_LOAD_STATUS_ERROR;
+    }
+
     const uint32_t num = length / sizeof(Saved_Group);
 
     for (uint32_t i = 0; i < num; ++i) {
-        Saved_Group temp;
-        memcpy(&temp, data + i * sizeof(Saved_Group), sizeof(Saved_Group));
+        memcpy(temp, data + i * sizeof(Saved_Group), sizeof(Saved_Group));
 
-        int group_number = gc_group_load(m->group_handler, &temp, -1);
+        int group_number = gc_group_load(m->group_handler, temp, -1);
 
         if (group_number == -1) {
             LOGGER_WARNING(m->log, "Failed to join group");
         }
     }
+
+    free(temp);
 
     return STATE_LOAD_STATUS_CONTINUE;
 }

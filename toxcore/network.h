@@ -81,7 +81,7 @@ Socket net_accept(Socket sock);
  */
 size_t net_socket_data_recv_buffer(Socket sock);
 
-#define MAX_UDP_PACKET_SIZE 65507
+#define MAX_UDP_PACKET_SIZE 2048
 
 #ifdef USE_TEST_NETWORK
 typedef enum Net_Packet_Type {
