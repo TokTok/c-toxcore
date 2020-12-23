@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 
@@ -1560,7 +1561,7 @@ static void do_reqchunk_filecb(Messenger *m, int32_t friendnumber, void *userdat
     // that the file transfer has finished and may end up in an infinite loop.
     //
     // Request up to that number of chunks per file from the client
-    const uint32_t max_ft_loops = 16;
+    const uint32_t max_ft_loops = 4096;
 
     for (uint32_t i = 0; i < max_ft_loops; ++i) {
         if (!do_all_filetransfers(m, friendnumber, userdata, &free_slots)) {
@@ -3264,4 +3265,17 @@ uint32_t copy_friendlist(Messenger const *m, uint32_t *out_list, uint32_t list_s
     }
 
     return ret;
+}
+
+bool is_receiving_file(const Messenger *m)
+{
+    for (size_t friend = 0; friend < m->numfriends; ++friend) {
+        for (size_t i = 0; i < MAX_CONCURRENT_FILE_PIPES; ++i) {
+            if (m->friendlist[friend].file_receiving[i].status == FILESTATUS_TRANSFERRING) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
