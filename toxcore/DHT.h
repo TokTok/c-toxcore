@@ -67,6 +67,10 @@ extern "C" {
 #define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 #define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 
+/** This define can eventually be removed; it is necessary if a significant
+ * proportion of dht nodes do not implement the dht announcements protocol. */
+#define CHECK_ANNOUNCE_NODE
+
 /**
  * @brief Create a request to peer.
  *
@@ -141,6 +145,11 @@ typedef struct Client_data {
     uint8_t     public_key[CRYPTO_PUBLIC_KEY_SIZE];
     IPPTsPng    assoc4;
     IPPTsPng    assoc6;
+
+#ifdef CHECK_ANNOUNCE_NODE
+    /* Responded to data search? */
+    bool        announce_node;
+#endif
 } Client_data;
 
 /*----------------------------------------------------------------------------------*/
@@ -369,19 +378,25 @@ bool add_to_list(
 non_null()
 bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port);
 
+#ifdef CHECK_ANNOUNCE_NODE
+/** Set node as announce node. */
+non_null()
+void set_announce_node(DHT *dht, const uint8_t *public_key);
+#endif
+
 /**
  * Get the (maximum MAX_SENT_NODES) closest nodes to public_key we know
  * and put them in nodes_list (must be MAX_SENT_NODES big).
  *
  * sa_family = family (IPv4 or IPv6) (0 if we don't care)?
  * is_LAN = return some LAN ips (true or false)
- * want_good = do we want tested nodes or not? (TODO(irungentoo))
+ * want_announce: return only nodes which implement the dht announcements protocol.
  *
  * @return the number of nodes returned.
  */
 non_null()
-int get_close_nodes(
-    const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family, bool is_LAN);
+int get_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family,
+                    bool is_LAN, bool want_announce);
 
 
 /** @brief Put up to max_num nodes in nodes from the random friends.
