@@ -129,7 +129,7 @@ void ac_iterate(ACSession *ac)
     int16_t *temp_audio_buffer = (int16_t *)malloc(AUDIO_MAX_BUFFER_SIZE_PCM16 * AUDIO_MAX_CHANNEL_COUNT * sizeof(int16_t));
 
     if (temp_audio_buffer == nullptr) {
-        LOGGER_ERROR(ac->log, "Failed to allocate memory for audio buffer");
+        LOGGER_API_DEBUG(ac->tox, "Failed to allocate memory for audio buffer");
         return;
     }
 
