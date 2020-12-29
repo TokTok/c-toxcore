@@ -447,11 +447,11 @@ int packed_node_size(Family ip_family)
 }
 
 
-/** @brief Packs an IP_Port structure into data of max size length.
+/** @brief Pack an IP_Port structure into data of max size length.
  *
  * Packed_length is the offset of data currently packed.
  *
- * @return size of packed IP_Port data on success
+ * @return size of packed IP_Port data on success.
  * @retval -1 on failure.
  */
 int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port)
@@ -509,10 +509,16 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     }
 }
 
+/** @brief Encrypt plain and write resulting DHT packet into packet with max size length.
+ *
+ * @return size of packet on success.
+ * @retval -1 on failure.
+ */
 non_null()
-static int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
-                             const uint8_t *shared_key, const uint8_t type,
-                             const uint8_t *plain, size_t plain_length, uint8_t *packet)
+int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
+                      const uint8_t *shared_key, const uint8_t type,
+                      const uint8_t *plain, size_t plain_length,
+                      uint8_t *packet, size_t length)
 {
     uint8_t *encrypted = (uint8_t *)malloc(plain_length + CRYPTO_MAC_SIZE);
     uint8_t nonce[CRYPTO_NONCE_SIZE];
@@ -527,6 +533,10 @@ static int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
 
     if (encrypted_length == -1) {
         free(encrypted);
+        return -1;
+    }
+
+    if (length < 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + encrypted_length) {
         return -1;
     }
 
@@ -1385,7 +1395,7 @@ bool dht_getnodes(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, c
     dht_get_shared_key_sent(dht, shared_key, public_key);
 
     const int len = dht_create_packet(dht->self_public_key, shared_key, NET_PACKET_GET_NODES,
-                                      plain, sizeof(plain), data);
+                                      plain, sizeof(plain), data, sizeof(data));
 
     crypto_memzero(shared_key, sizeof(shared_key));
 
@@ -1436,7 +1446,7 @@ static int sendnodes_ipv6(const DHT *dht, const IP_Port *ip_port, const uint8_t 
     VLA(uint8_t, data, 1 + nodes_length + length + crypto_size);
 
     const int len = dht_create_packet(dht->self_public_key, shared_encryption_key, NET_PACKET_SEND_NODES_IPV6,
-                                      plain, 1 + nodes_length + length, data);
+                                      plain, 1 + nodes_length + length, data, sizeof(data));
 
     if (len != SIZEOF_VLA(data)) {
         return -1;
