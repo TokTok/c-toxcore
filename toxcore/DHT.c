@@ -2364,6 +2364,30 @@ static void do_nat(DHT *_Nonnull dht)
 /*----------------------------------------------------------------------------------*/
 /*-----------------------END OF NAT PUNCHING FUNCTIONS------------------------------*/
 
+/** @brief Write to node a random node from all the nodes we are connected to.
+ * Return true if some node is found and written, false otherwise.
+ * TODO(irungentoo): improve this function.
+ */
+bool random_node(DHT *dht, Node_format *node, Family sa_family, bool want_announce)
+{
+    uint8_t id[CRYPTO_PUBLIC_KEY_SIZE];
+
+    for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE / 4; ++i) { /* populate the id with pseudorandom bytes.*/
+        const uint32_t t = random_u32(dht->rng);
+        memcpy(id + i * sizeof(t), &t, sizeof(t));
+    }
+
+    Node_format nodes_list[MAX_SENT_NODES];
+    const uint32_t num_nodes = get_close_nodes(dht, id, nodes_list, sa_family, true, want_announce);
+
+    if (num_nodes == 0) {
+        return false;
+    }
+
+    *node = nodes_list[random_range_u32(dht->rng, num_nodes)];
+    return true;
+}
+
 /** @brief Put up to max_num nodes in nodes from the closelist.
  *
  * @return the number of nodes.
