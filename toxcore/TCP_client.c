@@ -191,29 +191,38 @@ static int proxy_http_read_connection_response(const Logger *logger, const TCP_C
 }
 
 enum Tcp_Socks5_Proxy_Hs {
-    TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5          = 0x05,
-    TCP_SOCKS5_PROXY_HS_COMM_ESTABLISH_REQUEST  = 0x01,
-    TCP_SOCKS5_PROXY_HS_COMM_REQUEST_GRANTED    = 0x00,
-    TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED  = 0x01,
-    TCP_SOCKS5_PROXY_HS_NO_AUTH                 = 0x00,
-    TCP_SOCKS5_PROXY_HS_RESERVED                = 0x00,
-    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4          = 0x01,
-    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6          = 0x04,
+    TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5                 = 0x05,
+    TCP_SOCKS5_PROXY_HS_COMM_ESTABLISH_REQUEST         = 0x01,
+    TCP_SOCKS5_PROXY_HS_COMM_REQUEST_GRANTED           = 0x00,
+    TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED         = 0x01,
+    TCP_SOCKS5_PROXY_HS_NO_AUTH                        = 0x00,
+    TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH         = 0x02,
+    TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_VERSION = 0x01,
+    TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_SUCCESS = 0x00,
+    TCP_SOCKS5_PROXY_HS_RESERVED                       = 0x00,
+    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4                 = 0x01,
+    TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6                 = 0x04,
 };
 
 non_null()
-static void proxy_socks5_generate_greetings(TCP_Client_Connection *tcp_conn)
+static void proxy_socks5_generate_handshake(TCP_Client_Connection *tcp_conn)
 {
     tcp_conn->con.last_packet[0] = TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5;
     tcp_conn->con.last_packet[1] = TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED;
-    tcp_conn->con.last_packet[2] = TCP_SOCKS5_PROXY_HS_NO_AUTH;
+
+    if (tcp_conn->proxy_info.socks5_username == nullptr || tcp_conn->proxy_info.socks5_password == nullptr) {
+        tcp_conn->con.last_packet[2] = TCP_SOCKS5_PROXY_HS_NO_AUTH;
+    } else {
+        tcp_conn->con.last_packet[2] = TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH;
+    }
 
     tcp_conn->con.last_packet_length = 3;
     tcp_conn->con.last_packet_sent = 0;
 }
 
 /**
- * @retval 1 on success.
+ * @retval 2 on success, username/password auth.
+ * @retval 1 on success, no auth.
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
@@ -228,7 +237,57 @@ static int socks5_read_handshake_response(const Logger *logger, const TCP_Client
         return 0;
     }
 
-    if (data[0] == TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5 && data[1] == TCP_SOCKS5_PROXY_HS_COMM_REQUEST_GRANTED) {
+    if (data[0] == TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5) {
+        if (tcp_conn->proxy_info.socks5_username == nullptr || tcp_conn->proxy_info.socks5_password == nullptr) {
+            if (data[1] == TCP_SOCKS5_PROXY_HS_NO_AUTH) {
+                return 1;
+            }
+        } else {
+            if (data[1] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH) {
+                return 2;
+            }
+        }
+    }
+
+    return -1;
+}
+
+non_null()
+static void proxy_socks5_generate_authentication_request(TCP_Client_Connection *tcp_conn)
+{
+    tcp_conn->con.last_packet[0] = TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_VERSION;
+    tcp_conn->con.last_packet[1] = tcp_conn->proxy_info.socks5_username_length;
+    uint16_t length = 2;
+    memcpy(tcp_conn->con.last_packet + length, tcp_conn->proxy_info.socks5_username,
+           tcp_conn->proxy_info.socks5_username_length);
+    length += tcp_conn->proxy_info.socks5_username_length;
+    tcp_conn->con.last_packet[length] = tcp_conn->proxy_info.socks5_password_length;
+    ++length;
+    memcpy(tcp_conn->con.last_packet + length, tcp_conn->proxy_info.socks5_password,
+           tcp_conn->proxy_info.socks5_password_length);
+    length += tcp_conn->proxy_info.socks5_password_length;
+
+    tcp_conn->con.last_packet_length = length;
+    tcp_conn->con.last_packet_sent = 0;
+}
+
+/* return 1 on success.
+ * return 0 if no data received.
+ * return -1 on failure (connection refused).
+ */
+non_null()
+static int proxy_socks5_read_authentication_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
+{
+    uint8_t data[2];
+    const TCP_Connection *con = &tcp_conn->con;
+    const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+
+    if (ret == -1) {
+        return 0;
+    }
+
+    if (data[0] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_VERSION
+        && data[1] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_SUCCESS) {
         return 1;
     }
 
@@ -649,7 +708,7 @@ TCP_Client_Connection *new_tcp_connection(
 
         case TCP_PROXY_SOCKS5: {
             temp->status = TCP_CLIENT_PROXY_SOCKS5_CONNECTING;
-            proxy_socks5_generate_greetings(temp);
+            proxy_socks5_generate_handshake(temp);
             break;
         }
 
@@ -953,6 +1012,27 @@ void do_tcp_connection(const Logger *logger, const Mono_Time *mono_time,
     if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_CONNECTING) {
         if (send_pending_data(logger, &tcp_connection->con) == 0) {
             const int ret = socks5_read_handshake_response(logger, tcp_connection);
+
+            if (ret == -1) {
+                tcp_connection->kill_at = 0;
+                tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+            }
+
+            if (ret == 1) { /* no auth */
+                proxy_socks5_generate_connection_request(tcp_connection);
+                tcp_connection->status = TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED;
+            }
+
+            if (ret == 2) { /* username/password */
+                proxy_socks5_generate_authentication_request(tcp_connection);
+                tcp_connection->status = TCP_CLIENT_PROXY_SOCKS5_AUTHENTICATING;
+            }
+        }
+    }
+
+    if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_AUTHENTICATING) {
+        if (send_pending_data(logger, &tcp_connection->con) == 0) {
+            const int ret = proxy_socks5_read_authentication_response(logger, tcp_connection);
 
             if (ret == -1) {
                 tcp_connection->kill_at = 0;

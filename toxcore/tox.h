@@ -340,6 +340,24 @@ uint32_t tox_max_filename_length(void);
 
 uint32_t tox_max_hostname_length(void);
 
+/**
+ * Maximum length of a SOCKS5 proxy username in bytes.
+ *
+ * @deprecated The macro will be removed in 0.3.0. Use the function instead.
+ */
+#define TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH 255
+
+uint32_t tox_max_proxy_socks5_username_length(void);
+
+/**
+ * Maximum length of a SOCKS5 proxy password in bytes.
+ *
+ * @deprecated The macro will be removed in 0.3.0. Use the function instead.
+ */
+#define TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH 255
+
+uint32_t tox_max_proxy_socks5_password_length(void);
+
 /** @} */
 
 /** @{
@@ -592,6 +610,46 @@ struct Tox_Options {
     uint16_t proxy_port;
 
     /**
+     * The username to use to connect to a SOCKS5 proxy.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * The data pointed at by this member is owned by the user, so must
+     * outlive the options object.
+     */
+    const uint8_t *proxy_socks5_username;
+
+    /**
+     * The length of the username.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH.
+     */
+    size_t proxy_socks5_username_length;
+
+    /**
+     * The password to use to connect to a SOCKS5 proxy.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * The data pointed at by this member is owned by the user, so must
+     * outlive the options object.
+     */
+    const uint8_t *proxy_socks5_password;
+
+    /**
+     * The length of the password.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH.
+     */
+    size_t proxy_socks5_password_length;
+
+    /**
      * The start port of the inclusive port range to attempt to use.
      *
      * If both start_port and end_port are 0, the default port range will be
@@ -643,6 +701,7 @@ struct Tox_Options {
 
     /**
      * The length of the savedata.
+     * TODO(nurupo): this creates a pointless tox_options_set_savedata_length() function.
      */
     size_t savedata_length;
 
@@ -704,6 +763,20 @@ void tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
 uint16_t tox_options_get_proxy_port(const Tox_Options *options);
 
 void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port);
+
+const uint8_t *tox_options_get_proxy_socks5_username(const Tox_Options *options);
+
+// TODO(nurupo): maybe combine setting username and password in a single function?
+//               setting one but not another is kind of invalid
+void tox_options_set_proxy_socks5_username(Tox_Options *options, const uint8_t username[TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH], size_t length);
+
+size_t tox_options_get_proxy_socks5_username_length(const Tox_Options *options);
+
+const uint8_t *tox_options_get_proxy_socks5_password(const Tox_Options *options);
+
+void tox_options_set_proxy_socks5_password(Tox_Options *options, const uint8_t password[TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH], size_t length);
+
+size_t tox_options_get_proxy_socks5_password_length(const Tox_Options *options);
 
 uint16_t tox_options_get_start_port(const Tox_Options *options);
 
@@ -865,6 +938,16 @@ typedef enum Tox_Err_New {
      * causes this error.
      */
     TOX_ERR_NEW_LOAD_BAD_FORMAT,
+
+    /**
+     * The proxy_socks5_username_length is zero or too long.
+     */
+    TOX_ERR_NEW_PROXY_SOCKS5_BAD_USERNAME_LENGTH,
+
+    /**
+     * The proxy_socks5_password_length is zero or too long.
+     */
+    TOX_ERR_NEW_PROXY_SOCKS5_BAD_PASSWORD_LENGTH,
 
 } Tox_Err_New;
 

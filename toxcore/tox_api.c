@@ -87,6 +87,14 @@ uint32_t tox_max_hostname_length(void)
 {
     return TOX_MAX_HOSTNAME_LENGTH;
 }
+uint32_t tox_max_proxy_socks5_username_length(void)
+{
+    return TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH;
+}
+uint32_t tox_max_proxy_socks5_password_length(void)
+{
+    return TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH;
+}
 uint32_t tox_group_max_topic_length(void)
 {
     return TOX_GROUP_MAX_TOPIC_LENGTH;
@@ -175,6 +183,14 @@ uint16_t tox_options_get_proxy_port(const Tox_Options *options)
 void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port)
 {
     options->proxy_port = proxy_port;
+}
+size_t tox_options_get_proxy_socks5_username_length(const Tox_Options *options)
+{
+    return options->proxy_socks5_username_length;
+}
+size_t tox_options_get_proxy_socks5_password_length(const Tox_Options *options)
+{
+    return options->proxy_socks5_password_length;
 }
 uint16_t tox_options_get_start_port(const Tox_Options *options)
 {
@@ -272,6 +288,28 @@ const Tox_System *tox_options_get_operating_system(const Tox_Options *options)
 void tox_options_set_operating_system(Tox_Options *options, const Tox_System *operating_system)
 {
     options->operating_system = operating_system;
+}
+
+const uint8_t *tox_options_get_proxy_socks5_username(const Tox_Options *options)
+{
+    return options->proxy_socks5_username;
+}
+
+void tox_options_set_proxy_socks5_username(Tox_Options *options, const uint8_t username[TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH], size_t length)
+{
+    options->proxy_socks5_username = username;
+    options->proxy_socks5_username_length = length;
+}
+
+const uint8_t *tox_options_get_proxy_socks5_password(const Tox_Options *options)
+{
+    return options->proxy_socks5_password;
+}
+
+void tox_options_set_proxy_socks5_password(Tox_Options *options, const uint8_t password[TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH], size_t length)
+{
+    options->proxy_socks5_password = password;
+    options->proxy_socks5_password_length = length;
 }
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
