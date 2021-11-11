@@ -3158,25 +3158,15 @@ Tox_Connection tox_group_peer_get_connection_status(const Tox *tox, uint32_t gro
         return TOX_CONNECTION_NONE;
     }
 
-    int ret = gc_get_peer_connection_status(chat, peer_id);
+    unsigned int ret = gc_get_peer_connection_status(chat, peer_id);
 
-    switch (ret) {
-        case 0:
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
-            return TOX_CONNECTION_TCP;
-
-        case 1:
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
-            return TOX_CONNECTION_UDP;
-
-        case -1:
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
-            return TOX_CONNECTION_NONE;
+    if (ret == 0) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
+        return TOX_CONNECTION_NONE;
     }
 
-    /* can't happen */
-    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
-    return TOX_CONNECTION_NONE;
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
+    return (Tox_Connection)ret;
 }
 
 bool tox_group_set_topic(Tox *tox, uint32_t group_number, const uint8_t *topic, size_t length,
