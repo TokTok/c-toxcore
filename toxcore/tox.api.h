@@ -3380,7 +3380,8 @@ namespace group {
        * This key will be parmanently tied to a particular peer until they explicitly leave the group or
        * get kicked, and is the only way to reliably identify the same peer across client restarts.
        *
-       * `public_key` should have room for at least $PEER_PUBLIC_KEY_SIZE bytes.
+       * `public_key` should have room for at least $PEER_PUBLIC_KEY_SIZE bytes. If `public_key` is null
+       * this function has no effect.
        *
        * @param group_number The group number of the group we wish to query.
        * @param peer_id The ID of the peer whose public key we wish to retrieve.
