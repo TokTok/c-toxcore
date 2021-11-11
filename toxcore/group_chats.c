@@ -1103,6 +1103,7 @@ static int handle_gc_sync_response(Messenger *m, int group_number, int peer_numb
     return 0;
 }
 
+static int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_number, uint8_t *public_key);
 static int send_peer_shared_state(const GC_Chat *chat, GC_Connection *gconn);
 static int send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn);
 static int send_peer_sanctions_list(const GC_Chat *chat, GC_Connection *gconn);
@@ -2640,13 +2641,13 @@ static int handle_gc_nick(Messenger *m, int group_number, uint32_t peer_number, 
     return 0;
 }
 
-/* Copies peer_number's public key to public_key.
-
+/* Copies peer_number's public key to `public_key`.
+ *
  * Returns 0 on success.
  * Returns -1 if peer_number is invalid.
- * Returns -2 if public_key is NULL
+ * Returns -2 if `public_key` is null.
  */
-int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_number, uint8_t *public_key)
+static int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_number, uint8_t *public_key)
 {
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
@@ -2663,6 +2664,12 @@ int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_number, uint8_t *p
     return 0;
 }
 
+/* Copies peer_id's public key to `public_key`.
+ *
+ * Returns 0 on success.
+ * Returns -1 if peer_id is invalid or doesn't correspond to a valid peer connection.
+ * Returns -2 if `public_key` is null.
+ */
 int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uint8_t *public_key)
 {
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
@@ -2674,11 +2681,11 @@ int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uin
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
     if (gconn == nullptr) {
-        return -2;
+        return -1;
     }
 
     if (public_key == nullptr) {
-        return -3;
+        return -2;
     }
 
     memcpy(public_key, gconn->addr.public_key, ENC_PUBLIC_KEY);
