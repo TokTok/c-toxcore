@@ -2686,6 +2686,37 @@ int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uin
     return 0;
 }
 
+/* Gets the connection status for peer associated with `peer_id`.
+ *
+ * Returns 1 if we have a direct (UDP) connection with a peer.
+ * Returns 0 if we have an indirect (TCP) connection with a peer.
+ * Returns -1 if peer_id is invalid or corresponds to ourselves.
+ */
+int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id)
+{
+    int peer_number = get_peer_number_of_peer_id(chat, peer_id);
+
+    if (peer_number < 0) {
+        return -1;
+    }
+
+    if (peer_number == 0) {  // we cannot have a connection with ourselves
+        return -1;
+    }
+
+    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return -1;
+    }
+
+    if (gcc_connection_is_direct(chat->mono_time, gconn)) {
+        return 1;
+    }
+
+    return 0;
+}
+
 /* Creates a topic packet and puts it in data. Packet includes the topic, topic length,
  * public signature key of the setter, topic version, and the signature.
  *
