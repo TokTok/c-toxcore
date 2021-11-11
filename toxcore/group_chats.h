@@ -525,7 +525,15 @@ int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_id, uint8_t *publi
 
 int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uint8_t *public_key);
 
-/* Sets the caller's status to status
+/* Gets the connection status for peer associated with `peer_id`.
+ *
+ * Returns 1 if we have a direct (UDP) connection with a peer.
+ * Returns 0 if we have an indirect (TCP) connection with a peer.
+ * Returns -1 if peer_id is invalid or corresponds to ourselves.
+ */
+int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id);
+
+/* Sets the caller's status to status.
  *
  * Returns 0 on success.
  * Returns -1 if the group_number is invalid.

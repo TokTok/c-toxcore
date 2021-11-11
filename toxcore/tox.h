@@ -3822,6 +3822,9 @@ typedef enum TOX_ERR_GROUP_PEER_QUERY {
  * Return the length of the peer's name. If the group number or ID is invalid, the
  * return value is unspecified.
  *
+ * @param group_number The group number of the group we wish to query.
+ * @param peer_id The ID of the peer whose name length we want to retrieve.
+ *
  * The return value is equal to the `length` argument received by the last
  * `group_peer_name` callback.
  */
@@ -3838,7 +3841,7 @@ size_t tox_group_peer_get_name_size(const Tox *tox, uint32_t group_number, uint3
  * `group_peer_name` callback.
  *
  * @param group_number The group number of the group we wish to query.
- * @param peer_id The ID of the peer whose name we want to retrieve.
+ * @param peer_id The ID of the peer whose name we wish to retrieve.
  * @param name A valid memory region large enough to store the friend's name.
  *
  * @return true on success.
@@ -3850,6 +3853,9 @@ bool tox_group_peer_get_name(const Tox *tox, uint32_t group_number, uint32_t pee
  * Return the peer's user status (away/busy/...). If the ID or group number is
  * invalid, the return value is unspecified.
  *
+ * @param group_number The group number of the group we wish to query.
+ * @param peer_id The ID of the peer whose status we wish to query.
+ *
  * The status returned is equal to the last status received through the
  * `group_peer_status` callback.
  */
@@ -3860,11 +3866,25 @@ TOX_USER_STATUS tox_group_peer_get_status(const Tox *tox, uint32_t group_number,
  * Return the peer's role (user/moderator/founder...). If the ID or group number is
  * invalid, the return value is unspecified.
  *
+ * @param group_number The group number of the group we wish to query.
+ * @param peer_id The ID of the peer whose role we wish to query.
+ *
  * The role returned is equal to the last role received through the
  * `group_moderation` callback.
  */
 TOX_GROUP_ROLE tox_group_peer_get_role(const Tox *tox, uint32_t group_number, uint32_t peer_id,
                                        TOX_ERR_GROUP_PEER_QUERY *error);
+
+/**
+ * Return the type of connection we have established with a peer.
+ *
+ * This function will return an error if called on ourselves.
+ *
+ * @param group_number The group number of the group we wish to query.
+ * @param peer_id The ID of the peer whose connection status we wish to query.
+ */
+TOX_CONNECTION tox_group_peer_get_connection_status(const Tox *tox, uint32_t group_number, uint32_t peer_id,
+        TOX_ERR_GROUP_PEER_QUERY *error);
 
 /**
  * Write the group public key with the designated peer_id for the designated group number to public_key.
@@ -3874,6 +3894,8 @@ TOX_GROUP_ROLE tox_group_peer_get_role(const Tox *tox, uint32_t group_number, ui
  *
  * `public_key` should have room for at least TOX_GROUP_PEER_PUBLIC_KEY_SIZE bytes.
  *
+ * @param group_number The group number of the group we wish to query.
+ * @param peer_id The ID of the peer whose public key we wish to retrieve.
  * @param public_key A valid memory region large enough to store the public key.
  *   If this parameter is NULL, this function call has no effect.
  *
