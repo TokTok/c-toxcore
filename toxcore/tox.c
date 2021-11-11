@@ -3181,7 +3181,7 @@ Tox_User_Status tox_group_peer_get_status(const Tox *tox, uint32_t group_number,
 
     uint8_t ret = gc_get_status(chat, peer_id);
 
-    if (ret == (uint8_t) - 1) {
+    if (ret == (uint8_t) -1) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
         return (Tox_User_Status) - 1;
     }
@@ -3202,7 +3202,7 @@ Tox_Group_Role tox_group_peer_get_role(const Tox *tox, uint32_t group_number, ui
 
     uint8_t ret = gc_get_role(chat, peer_id);
 
-    if (ret == (uint8_t) - 1) {
+    if (ret == (uint8_t) -1) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
         return (Tox_Group_Role) - 1;
     }
@@ -3230,6 +3230,37 @@ bool tox_group_peer_get_public_key(const Tox *tox, uint32_t group_number, uint32
 
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
     return 1;
+}
+
+Tox_Connection tox_group_peer_get_connection_status(const Tox *tox, uint32_t group_number, uint32_t peer_id,
+        Tox_Err_Group_Peer_Query *error)
+{
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_GROUP_NOT_FOUND);
+        return TOX_CONNECTION_NONE;
+    }
+
+    int ret = gc_get_peer_connection_status(chat, peer_id);
+
+    switch (ret) {
+        case 0:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
+            return TOX_CONNECTION_TCP;
+
+        case 1:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
+            return TOX_CONNECTION_UDP;
+
+        case -1:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
+            return TOX_CONNECTION_NONE;
+    }
+
+    /* can't happen */
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
+    return TOX_CONNECTION_NONE;
 }
 
 bool tox_group_set_topic(Tox *tox, uint32_t group_number, const uint8_t *topic, size_t length,
