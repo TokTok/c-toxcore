@@ -3305,6 +3305,9 @@ namespace group {
        * Return the length of the peer's name. If the group number or ID is invalid, the
        * return value is unspecified.
        *
+       * @param group_number The group number of the group we wish to query.
+       * @param peer_id The ID of the peer whose name length we want to retrieve.
+       *
        * The return value is equal to the `length` argument received by the last
        * `${event name}` callback.
        */
@@ -3320,12 +3323,12 @@ namespace group {
        * `${event name}` callback.
        *
        * @param group_number The group number of the group we wish to query.
-       * @param peer_id The ID of the peer whose name we want to retrieve.
+       * @param peer_id The ID of the peer whose name we wish to retrieve.
        * @param name A valid memory region large enough to store the friend's name.
        *
        * @return true on success.
        */
-      get(uint32_t group_number, uint32_t  peer_id) with error for query;
+      get(uint32_t group_number, uint32_t peer_id) with error for query;
     }
 
     USER_STATUS status {
@@ -3333,6 +3336,9 @@ namespace group {
       /**
        * Return the peer's user status (away/busy/...). If the ID or group number is
        * invalid, the return value is unspecified.
+       *
+       * @param group_number The group number of the group we wish to query.
+       * @param peer_id The ID of the peer whose status we wish to query.
        *
        * The status returned is equal to the last status received through the
        * `${event status}` callback.
@@ -3345,8 +3351,23 @@ namespace group {
        * Return the peer's role (user/moderator/founder...). If the ID or group number is
        * invalid, the return value is unspecified.
        *
+       * @param group_number The group number of the group we wish to query.
+       * @param peer_id The ID of the peer whose role we wish to query.
+       *
        * The role returned is equal to the last role received through the
        * `${event moderation}` callback.
+       */
+      get(uint32_t group_number, uint32_t peer_id) with error for query;
+    }
+
+    CONNECTION connection_status {
+      /**
+       * Return the type of connection we have established with a peer.
+       *
+       * This function will return an error if called on ourselves.
+       *
+       * @param group_number The group number of the group we wish to query.
+       * @param peer_id The ID of the peer whose connection status we wish to query.
        */
       get(uint32_t group_number, uint32_t peer_id) with error for query;
     }
@@ -3361,6 +3382,8 @@ namespace group {
        *
        * `public_key` should have room for at least $PEER_PUBLIC_KEY_SIZE bytes.
        *
+       * @param group_number The group number of the group we wish to query.
+       * @param peer_id The ID of the peer whose public key we wish to retrieve.
        * @param public_key A valid memory region large enough to store the public key.
        *   If this parameter is NULL, this function call has no effect.
        *
