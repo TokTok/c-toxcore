@@ -516,13 +516,12 @@ int gc_get_peer_nick(const GC_Chat *chat, uint32_t peer_id, uint8_t *name);
  */
 int gc_get_peer_nick_size(const GC_Chat *chat, uint32_t peer_id);
 
-/* Copies peer_id's public key to public_key.
+/* Copies peer_id's public key to `public_key`.
  *
  * Returns 0 on success.
- * Returns -1 if peer_id is invalid.
+ * Returns -1 if peer_id is invalid or doesn't correspond to a valid peer connection.
+ * Returns -2 if `public_key` is null.
  */
-int gc_get_peer_public_key(const GC_Chat *chat, uint32_t peer_id, uint8_t *public_key);
-
 int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uint8_t *public_key);
 
 /* Gets the connection status for peer associated with `peer_id`.
