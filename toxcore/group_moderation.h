@@ -160,6 +160,9 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
 /* Returns true if public key is in the observer list. */
 bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key);
 
+/* Returns true if `signature key` is associated with an entry in the observer list. */
+bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key);
+
 /* Removes observer entry for public key from sanction list.
  * If creds is NULL we make new credentials (this should only be done by a moderator or founder)
  *
