@@ -3322,7 +3322,7 @@ typedef enum TOX_GROUP_TOPIC_LOCK {
     TOX_GROUP_TOPIC_LOCK_ENABLED,
 
     /**
-     * The topic lock is disabled. Peers of any role may set the topic.
+     * The topic lock is disabled. All peers except those with the observer role may set the topic.
      */
     TOX_GROUP_TOPIC_LOCK_DISABLED,
 
@@ -4878,8 +4878,11 @@ typedef enum TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK {
 /**
  * Set the group topic lock state.
  *
- * This function sets the group's topic lock state to on or off, creates a new shared state including
- * the change, and distributes it to the rest of the group.
+ * This function sets the group's topic lock state to enabled ordisabled, creates a new shared
+ * state including the change, and distributes it to the rest of the group.
+ *
+ * When the topic lock is enabled, only the group founder and moderators may set the topic.
+ * When disabled, all peers except those with the observer role may set the topic.
  *
  * @param group_number The group number of the group for which we wish to change the topic lock state.
  * @param topic_lock The state we wish to set the topic lock to.

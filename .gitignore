@@ -64,6 +64,8 @@ libtool
 .libs
 .dirstamp
 build/
+*.nvim*
+*.vim*
 
 #kdevelop
 .kdev/
