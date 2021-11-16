@@ -2866,6 +2866,9 @@ namespace group {
 
 namespace group {
 
+  /**
+   * Represents the group privacy state.
+   */
   enum class PRIVACY_STATE {
     /**
      * The group is considered to be public. Anyone may join the group using the Chat ID.
@@ -2886,6 +2889,21 @@ namespace group {
      * all DHT information related to the group will expire shortly.
      */
     PRIVATE,
+  }
+
+  /**
+   * Represents the state of the group topic lock.
+   */
+  enum class TOPIC_LOCK {
+    /**
+     * The topic lock is enabled. Only peers with the founder and moderator roles may set the topic.
+     */
+    ENABLED,
+
+    /**
+     * The topic lock is disabled. Peers of any role may set the topic.
+     */
+    DISABLED,
   }
 
   /**
@@ -3588,6 +3606,31 @@ namespace group {
     typedef void(uint32_t group_number, PRIVACY_STATE privacy_state);
   }
 
+  TOPIC_LOCK topic_lock {
+
+    /**
+     * Return the topic lock status of the group designated by the given group number. If group number
+     * is invalid, the return value is unspecified.
+     *
+     * The value returned is equal to the data received by the last
+     * `${event topic_lock}` callback.
+     *
+     * @see the `Group chat founder contols` section for the respective set function.
+     */
+    get(uint32_t group_number) with error for state_queries;
+  }
+
+  /**
+   * This event is triggered when the group founder changes the topic lock status.
+   */
+  event topic_lock const {
+    /**
+     * @param group_number The group number of the group for which the topic lock has changed.
+     * @param topic_lock The new topic lock state.
+     */
+    typedef void(uint32_t group_number, TOPIC_LOCK topic_lock);
+  }
+
   uint32_t peer_limit {
 
     /**
@@ -4130,6 +4173,45 @@ namespace group {
     }
 
     /**
+     * Set the group topic lock state.
+     *
+     * This function sets the group's topic lock state to on or off, creates a new shared state including
+     * the change, and distributes it to the rest of the group.
+     *
+     * @param group_number The group number of the group for which we wish to change the topic lock state.
+     * @param topic_lock The state we wish to set the topic lock to.
+     *
+     * @return true on success.
+     */
+    bool set_topic_lock(uint32_t group_number, TOPIC_LOCK topic_lock) {
+      /**
+       * The group number passed did not designate a valid group.
+       */
+      GROUP_NOT_FOUND,
+      /**
+       * $TOPIC_LOCK is an invalid type.
+       */
+      INVALID,
+      /**
+       * The caller does not have the required permissions to set the topic lock.
+       */
+      PERMISSIONS,
+      /**
+       * The topic lock could not be set. This may occur due to an error related to
+       * cryptographic signing of the new shared state.
+       */
+      FAIL_SET,
+      /**
+       * The packet failed to send.
+       */
+      FAIL_SEND,
+      /**
+       * The group is disconnected.
+       */
+      DISCONNECTED,
+    }
+
+    /**
      * Set the group privacy state.
      *
      * This function sets the group's privacy state, creates a new group shared state
@@ -4421,6 +4503,7 @@ typedef TOX_ERR_GROUP_INVITE_ACCEPT Tox_Err_Group_Invite_Accept;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PASSWORD Tox_Err_Group_Founder_Set_Password;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE Tox_Err_Group_Founder_Set_Privacy_State;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT Tox_Err_Group_Founder_Set_Peer_Limit;
+typedef TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK Tox_Err_Group_Founder_Set_Topic_Lock;
 typedef TOX_ERR_GROUP_TOGGLE_IGNORE Tox_Err_Group_Toggle_Ignore;
 typedef TOX_ERR_GROUP_MOD_SET_ROLE Tox_Err_Group_Mod_Set_Role;
 typedef TOX_ERR_GROUP_MOD_KICK_PEER Tox_Err_Group_Mod_Kick_Peer;
@@ -4436,6 +4519,7 @@ typedef TOX_FILE_CONTROL Tox_File_Control;
 typedef TOX_CONFERENCE_TYPE Tox_Conference_Type;
 typedef TOX_GROUP_JOIN_FAIL Tox_Group_Join_Fail;
 typedef TOX_GROUP_PRIVACY_STATE Tox_Group_Privacy_State;
+typedef TOX_GROUP_TOPIC_LOCK Tox_Group_Topic_Lock;
 typedef TOX_GROUP_MOD_EVENT Tox_Group_Mod_Event;
 typedef TOX_GROUP_ROLE Tox_Group_Role;
 typedef TOX_GROUP_EXIT_TYPE Tox_Group_Exit_Type;
