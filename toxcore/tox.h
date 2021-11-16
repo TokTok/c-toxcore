@@ -3283,6 +3283,9 @@ uint32_t tox_group_max_peer_length(void);
 
 
 
+/**
+ * Represents the group privacy state.
+ */
 typedef enum TOX_GROUP_PRIVACY_STATE {
 
     /**
@@ -3306,6 +3309,24 @@ typedef enum TOX_GROUP_PRIVACY_STATE {
     TOX_GROUP_PRIVACY_STATE_PRIVATE,
 
 } TOX_GROUP_PRIVACY_STATE;
+
+
+/**
+ * Represents the state of the group topic lock.
+ */
+typedef enum TOX_GROUP_TOPIC_LOCK {
+
+    /**
+     * The topic lock is enabled. Only peers with the founder and moderator roles may set the topic.
+     */
+    TOX_GROUP_TOPIC_LOCK_ENABLED,
+
+    /**
+     * The topic lock is disabled. Peers of any role may set the topic.
+     */
+    TOX_GROUP_TOPIC_LOCK_DISABLED,
+
+} TOX_GROUP_TOPIC_LOCK;
 
 
 /**
@@ -4124,6 +4145,32 @@ typedef void tox_group_privacy_state_cb(Tox *tox, uint32_t group_number, TOX_GRO
 void tox_callback_group_privacy_state(Tox *tox, tox_group_privacy_state_cb *callback);
 
 /**
+ * Return the topic lock status of the group designated by the given group number. If group number
+ * is invalid, the return value is unspecified.
+ *
+ * The value returned is equal to the data received by the last
+ * `group_topic_lock` callback.
+ *
+ * @see the `Group chat founder contols` section for the respective set function.
+ */
+TOX_GROUP_TOPIC_LOCK tox_group_get_topic_lock(const Tox *tox, uint32_t group_number,
+        TOX_ERR_GROUP_STATE_QUERIES *error);
+
+/**
+ * @param group_number The group number of the group for which the topic lock has changed.
+ * @param topic_lock The new topic lock state.
+ */
+typedef void tox_group_topic_lock_cb(Tox *tox, uint32_t group_number, TOX_GROUP_TOPIC_LOCK topic_lock, void *user_data);
+
+
+/**
+ * Set the callback for the `group_topic_lock` event. Pass NULL to unset.
+ *
+ * This event is triggered when the group founder changes the topic lock status.
+ */
+void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *callback);
+
+/**
  * Return the maximum number of peers allowed for the group designated by the given group number.
  * If the group number is invalid, the return value is unspecified.
  *
@@ -4787,6 +4834,61 @@ typedef enum TOX_ERR_GROUP_FOUNDER_SET_PASSWORD {
 bool tox_group_founder_set_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
                                     TOX_ERR_GROUP_FOUNDER_SET_PASSWORD *error);
 
+typedef enum TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_GROUP_NOT_FOUND,
+
+    /**
+     * TOX_GROUP_TOPIC_LOCK is an invalid type.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_INVALID,
+
+    /**
+     * The caller does not have the required permissions to set the topic lock.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_PERMISSIONS,
+
+    /**
+     * The topic lock could not be set. This may occur due to an error related to
+     * cryptographic signing of the new shared state.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_FAIL_SET,
+
+    /**
+     * The packet failed to send.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_FAIL_SEND,
+
+    /**
+     * The group is disconnected.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_DISCONNECTED,
+
+} TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK;
+
+
+/**
+ * Set the group topic lock state.
+ *
+ * This function sets the group's topic lock state to on or off, creates a new shared state including
+ * the change, and distributes it to the rest of the group.
+ *
+ * @param group_number The group number of the group for which we wish to change the topic lock state.
+ * @param topic_lock The state we wish to set the topic lock to.
+ *
+ * @return true on success.
+ */
+bool tox_group_founder_set_topic_lock(Tox *tox, uint32_t group_number, TOX_GROUP_TOPIC_LOCK topic_lock,
+                                      TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK *error);
+
 typedef enum TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE {
 
     /**
@@ -5151,6 +5253,7 @@ typedef TOX_ERR_GROUP_INVITE_ACCEPT Tox_Err_Group_Invite_Accept;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PASSWORD Tox_Err_Group_Founder_Set_Password;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE Tox_Err_Group_Founder_Set_Privacy_State;
 typedef TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT Tox_Err_Group_Founder_Set_Peer_Limit;
+typedef TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK Tox_Err_Group_Founder_Set_Topic_Lock;
 typedef TOX_ERR_GROUP_TOGGLE_IGNORE Tox_Err_Group_Toggle_Ignore;
 typedef TOX_ERR_GROUP_MOD_SET_ROLE Tox_Err_Group_Mod_Set_Role;
 typedef TOX_ERR_GROUP_MOD_KICK_PEER Tox_Err_Group_Mod_Kick_Peer;
@@ -5166,6 +5269,7 @@ typedef TOX_FILE_CONTROL Tox_File_Control;
 typedef TOX_CONFERENCE_TYPE Tox_Conference_Type;
 typedef TOX_GROUP_JOIN_FAIL Tox_Group_Join_Fail;
 typedef TOX_GROUP_PRIVACY_STATE Tox_Group_Privacy_State;
+typedef TOX_GROUP_TOPIC_LOCK Tox_Group_Topic_Lock;
 typedef TOX_GROUP_MOD_EVENT Tox_Group_Mod_Event;
 typedef TOX_GROUP_ROLE Tox_Group_Role;
 typedef TOX_GROUP_EXIT_TYPE Tox_Group_Exit_Type;
