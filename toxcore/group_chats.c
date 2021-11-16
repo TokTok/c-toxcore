@@ -262,6 +262,27 @@ static int get_peer_number_of_sig_pk(const GC_Chat *chat, const uint8_t *public_
     return -1;
 }
 
+/* Puts the encryption public key associated with `public_sig_key` in `public_key`.
+ *
+ * `public_key` must have room for at least ENC_PUBLIC_KEY bytes.
+ *
+ * Return 0 on success.
+ * Return -1 if no peer associated with signature key is found.
+ */
+int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *public_sig_key)
+{
+    for (uint32_t i = 0; i < chat->numpeers; ++i) {
+        const uint8_t *full_pk = chat->gcc[i].addr.public_key;
+
+        if (memcmp(public_sig_key, get_sig_pk(full_pk), SIG_PUBLIC_KEY) == 0) {
+            memcpy(public_key, get_enc_key(full_pk), ENC_PUBLIC_KEY);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 /* Validates peer's group role.
  *
  * Returns 0 if role is valid.
@@ -2852,6 +2873,10 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         return -2;
     }
 
+    if (chat->group[0].role > GR_USER) {
+        return -2;
+    }
+
     GC_TopicInfo old_topic_info;
     uint8_t old_topic_sig[SIGNATURE_SIZE];
     memcpy(&old_topic_info, &chat->topic_info, sizeof(GC_TopicInfo));
@@ -2959,9 +2984,15 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
         return -1;
     }
 
-    // only validate pk if topic lock is on
+    // only check if topic was set by founder/mod if topic lock is enabled
     if (chat->shared_state.topic_lock == TL_ENABLED && !mod_list_verify_sig_pk(chat, topic_info.public_sig_key)) {
         LOGGER_ERROR(chat->logger, "Invalid topic signature (bad credentials)");
+        return -1;
+    }
+
+    // make sure topic wasn't set by an observer
+    if (chat->shared_state.topic_lock == TL_DISABLED && sanctions_list_is_observer_sig(chat, topic_info.public_sig_key)) {
+        LOGGER_ERROR(chat->logger, "Invalid topic signature ()");
         return -1;
     }
 
@@ -3345,6 +3376,15 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
             }
         }
 
+        // if sanctioned peer set the topic we need to overwrite his signature and redistribute topic info
+        int setter_peer_number = get_peer_number_of_sig_pk(chat, chat->topic_info.public_sig_key);
+
+        if (setter_peer_number == peer_number) {
+            if (gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) != 0) {
+                return -1;
+            }
+        }
+
         struct GC_Sanction sanction;
 
         if (sanctions_list_make_entry(chat, peer_number, &sanction, SA_OBSERVER) == -1) {
@@ -3381,7 +3421,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
     return 0;
 }
 
-/* Sets the role of peer_number. role must be one of: GR_MODERATOR, GR_USER, GR_OBSERVER
+/* Sets the role of peer_number. role must be one of: GR_MODERATOR, GR_USER, GR_OBSERVER.
  *
  * Returns 0 on success.
  * Returns -1 if the group_number is invalid.
@@ -3556,7 +3596,7 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock
     // This needs to happen before we re-broadcast the shared state because if it fails we
     // don't want to enable the topic lock with an invalid topic signature.
     if (topic_lock == TL_ENABLED) {
-        if (gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) == -1) {
+        if (gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) != 0) {
             chat->shared_state.topic_lock = old_topic_lock;
             return -6;
         }

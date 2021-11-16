@@ -695,6 +695,18 @@ bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
     return false;
 }
 
+/* Returns true if `signature key` is associated with an entry in the observer list. */
+bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key)
+{
+    uint8_t public_key[ENC_PUBLIC_KEY];
+
+    if (gc_get_enc_pk_from_sig_pk(chat, public_key, public_sig_key) != 0) {
+        return false;
+    }
+
+    return sanctions_list_is_observer(chat, public_key);
+}
+
 /* Returns true if sanction already exists in the sanctions list. */
 static bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sanction)
 {
