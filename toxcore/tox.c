@@ -86,6 +86,7 @@ struct Tox {
     tox_group_peer_status_cb *group_peer_status_callback;
     tox_group_topic_cb *group_topic_callback;
     tox_group_privacy_state_cb *group_privacy_state_callback;
+    tox_group_topic_lock_cb *group_topic_lock_callback;
     tox_group_peer_limit_cb *group_peer_limit_callback;
     tox_group_password_cb *group_password_callback;
     tox_group_message_cb *group_message_callback;
@@ -380,6 +381,16 @@ static void tox_group_privacy_state_handler(Messenger *m, uint32_t group_number,
 
     if (tox->group_privacy_state_callback != nullptr) {
         tox->group_privacy_state_callback(tox, group_number, (Tox_Group_Privacy_State)privacy_state, tox->non_const_user_data);
+    }
+}
+
+static void tox_group_topic_lock_handler(Messenger *m, uint32_t group_number, unsigned int topic_lock,
+        void *user_data)
+{
+    Tox *tox = (Tox *)user_data;
+
+    if (tox->group_topic_lock_callback != nullptr) {
+        tox->group_topic_lock_callback(tox, group_number, (Tox_Group_Topic_Lock)topic_lock, tox->non_const_user_data);
     }
 }
 
@@ -776,6 +787,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     gc_callback_status_change(tox->m, tox_group_peer_status_handler, tox);
     gc_callback_topic_change(tox->m, tox_group_topic_handler, tox);
     gc_callback_privacy_state(tox->m, tox_group_privacy_state_handler, tox);
+    gc_callback_topic_lock(tox->m, tox_group_topic_lock_handler, tox);
     gc_callback_peer_limit(tox->m, tox_group_peer_limit_handler, tox);
     gc_callback_password(tox->m, tox_group_password_handler, tox);
     gc_callback_peer_join(tox->m, tox_group_peer_join_handler, tox);
@@ -2665,6 +2677,11 @@ void tox_callback_group_privacy_state(Tox *tox, tox_group_privacy_state_cb *func
     tox->group_privacy_state_callback = function;
 }
 
+void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *function)
+{
+    tox->group_topic_lock_callback = function;
+}
+
 void tox_callback_group_peer_limit(Tox *tox, tox_group_peer_limit_cb *function)
 {
     tox->group_peer_limit_callback = function;
@@ -3288,6 +3305,20 @@ Tox_Group_Privacy_State tox_group_get_privacy_state(const Tox *tox, uint32_t gro
     return (Tox_Group_Privacy_State)state;
 }
 
+Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
+{
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_GROUP_NOT_FOUND);
+        return (Tox_Group_Topic_Lock) - 1;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_OK);
+    uint8_t topic_lock = gc_get_topic_lock(chat);
+    return (Tox_Group_Privacy_State)topic_lock;
+}
+
 uint32_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
 {
     const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
@@ -3632,6 +3663,45 @@ bool tox_group_founder_set_privacy_state(Tox *tox, uint32_t group_number, Tox_Gr
 
         case -6:
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_FAIL_SEND);
+            return 0;
+    }
+
+    /* can't happen */
+    return 0;
+}
+
+bool tox_group_founder_set_topic_lock(Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
+                                      Tox_Err_Group_Founder_Set_Topic_Lock *error)
+{
+    int ret = gc_founder_set_topic_lock(tox->m, group_number, topic_lock);
+
+    switch (ret) {
+        case 0:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK);
+            return 1;
+
+        case -1:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_GROUP_NOT_FOUND);
+            return 0;
+
+        case -2:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_INVALID);
+            return 0;
+
+        case -3:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_PERMISSIONS);
+            return 0;
+
+        case -4:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_DISCONNECTED);
+            return 0;
+
+        case -5:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_FAIL_SET);
+            return 0;
+
+        case -6:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_FAIL_SEND);
             return 0;
     }
 

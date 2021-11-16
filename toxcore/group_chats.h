@@ -49,6 +49,12 @@ typedef enum Group_Privacy_State {
     GI_INVALID,
 } Group_Privacy_State;
 
+typedef enum Group_Topic_Lock {
+    TL_ENABLED,
+    TL_OFF,
+    TL_INVALID,
+} Group_Topic_Lock;
+
 typedef enum Group_Moderation_Event {
     MV_KICK,
     MV_OBSERVER,
@@ -204,6 +210,7 @@ typedef struct GC_GroupPeer {
 } GC_GroupPeer;
 
 typedef struct GC_SharedState {
+    uint32_t    version;
     uint8_t     founder_public_key[EXT_PUBLIC_KEY];
     uint32_t    maxpeers;
     uint16_t    group_name_len;
@@ -212,7 +219,7 @@ typedef struct GC_SharedState {
     uint16_t    password_length;
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
     uint8_t     mod_list_hash[GC_MODERATION_HASH_SIZE];
-    uint32_t    version;
+    uint8_t     topic_lock;
 } GC_SharedState;
 
 typedef struct GC_TopicInfo {
@@ -230,6 +237,8 @@ typedef struct GC_Exit_Info GC_Exit_Info;
 
 struct Saved_Group {
     /* Group shared state */
+    uint32_t  shared_state_version;
+    uint8_t   shared_state_signature[SIGNATURE_SIZE];
     uint8_t   founder_public_key[EXT_PUBLIC_KEY];
     uint16_t  maxpeers;
     uint16_t  group_name_length;
@@ -238,8 +247,7 @@ struct Saved_Group {
     uint16_t  password_length;
     uint8_t   password[MAX_GC_PASSWORD_SIZE];
     uint8_t   mod_list_hash[GC_MODERATION_HASH_SIZE];
-    uint32_t  shared_state_version;
-    uint8_t   shared_state_signature[SIGNATURE_SIZE];
+    uint8_t   topic_lock;
 
     /* Topic info */
     uint16_t  topic_length;
@@ -349,6 +357,7 @@ typedef void gc_status_change_cb(Messenger *m, uint32_t group_number, uint32_t p
                                  void *user_data);
 typedef void gc_topic_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
                                 size_t length, void *user_data);
+typedef void gc_topic_lock_cb(Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
 typedef void gc_peer_limit_cb(Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
 typedef void gc_privacy_state_cb(Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
 typedef void gc_password_cb(Messenger *m, uint32_t group_number, const uint8_t *data, size_t length, void *user_data);
@@ -379,6 +388,8 @@ typedef struct GC_Session {
     void *status_change_userdata;
     gc_topic_change_cb *topic_change;
     void *topic_change_userdata;
+    gc_topic_lock_cb *topic_lock;
+    void *topic_lock_userdata;
     gc_peer_limit_cb *peer_limit;
     void *peer_limit_userdata;
     gc_privacy_state_cb *privacy_state;
@@ -442,7 +453,7 @@ int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore);
 
 /* Sets the group topic and broadcasts it to the group.
  *
- * Returns 0 on success. Setter must be a moderator or founder.
+ * Returns 0 on success.
  * Returns -1 if the topic is too long.
  * Returns -2 if the caller does not have the required permissions to set the topic.
  * Returns -3 if the packet cannot be created or signing fails.
@@ -465,11 +476,14 @@ uint16_t gc_get_group_name_size(const GC_Chat *chat);
 /* Copies the group password to password. If password is null this function has no effect. */
 void gc_get_password(const GC_Chat *chat, uint8_t *password);
 
-/* Returns the group password length */
+/* Returns the group password length. */
 uint16_t gc_get_password_size(const GC_Chat *chat);
 
-/* Returns group privacy state */
+/* Returns group privacy state. */
 uint8_t gc_get_privacy_state(const GC_Chat *chat);
+
+/* Returns the group's topic lock state. */
+uint8_t gc_get_topic_lock(const GC_Chat *chat);
 
 /* Returns the group peer limit. */
 uint32_t gc_get_max_peers(const GC_Chat *chat);
@@ -577,6 +591,20 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uin
  */
 int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length);
 
+/* Sets the topic lock and distributes the new shared state to the group.
+ *
+ * This function requires that the shared state be re-signed and will only work for the group founder.
+ *
+ * Returns 0 on success.
+ * Returns -1 if group_number is invalid.
+ * Returns -2 if `topic_lock` is an invalid type.
+ * Returns -3 if the caller does not have sufficient permissions for this action.
+ * Returns -4 if the group is disconnected.
+ * Returns -5 if the topic lock could not be set.
+ * Returns -6 if the packet failed to send.
+ */
+int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock);
+
 /* Sets the group privacy state and distributes the new shared state to the group.
  *
  * This function requires that the shared state be re-signed and will only work for the group founder.
@@ -627,6 +655,7 @@ void gc_callback_status_change(Messenger *m, gc_status_change_cb *function, void
 void gc_callback_topic_change(Messenger *m, gc_topic_change_cb *function, void *userdata);
 void gc_callback_peer_limit(Messenger *m, gc_peer_limit_cb *function, void *userdata);
 void gc_callback_privacy_state(Messenger *m, gc_privacy_state_cb *function, void *userdata);
+void gc_callback_topic_lock(Messenger *m, gc_topic_lock_cb *function, void *userdata);
 void gc_callback_password(Messenger *m, gc_password_cb *function, void *userdata);
 void gc_callback_peer_join(Messenger *m, gc_peer_join_cb *function, void *userdata);
 void gc_callback_peer_exit(Messenger *m, gc_peer_exit_cb *function, void *userdata);
