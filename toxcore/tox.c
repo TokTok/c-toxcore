@@ -3417,7 +3417,7 @@ Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_num
 
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_OK);
     uint8_t topic_lock = gc_get_topic_lock(chat);
-    return (Tox_Group_Privacy_State)topic_lock;
+    return (Tox_Group_Topic_Lock)topic_lock;
 }
 
 uint32_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
