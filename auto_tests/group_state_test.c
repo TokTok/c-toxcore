@@ -33,6 +33,7 @@
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
 #define PEER0_NICK "David"
+#define PEER0_NICK_LEN (sizeof(PEER0_NICK) - 1)
 
 typedef struct State {
     uint32_t index;
@@ -148,7 +149,7 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
 
     TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK lock_set_err;
     tox_group_founder_set_topic_lock(tox, groupnumber, topic_lock, &lock_set_err);
-    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d",
+    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to set topic lock: %d",
                   lock_set_err);
 }
 
@@ -190,18 +191,18 @@ static void group_state_test(Tox **toxes, State *state)
 
     printf("%u Tox instances connected after %u seconds!\n", num_connected, (unsigned)(time(nullptr) - cur_time));
 
-    /* Tox1 creates a group and is a founder of a newly created group */
+    /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnum = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
-                                      (const uint8_t *)PEER0_NICK, strlen(PEER0_NICK), &new_err);
+                                      (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
-    /* Set default group state */
+    /* Founder sets default group state before anyone else joins */
     set_group_state(toxes[0], groupnum, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD, PASS_LEN,
                     (const uint8_t *)TOPIC1, TOPIC1_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
 
-    /* Tox1 gets the Chat ID and implicitly shares it publicly */
+    /* Founder gets the Chat ID and implicitly shares it publicly */
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(toxes[0], groupnum, chat_id, &id_err);
@@ -288,10 +289,12 @@ int main(void)
     setvbuf(stdout, nullptr, _IONBF, 0);
 
     run_auto_test(NUM_GROUP_TOXES, group_state_test, false);
+
     return 0;
 }
 
 #undef PEER0_NICK
+#undef PEER0_NICK_LEN
 
 #undef GROUP_NAME_LEN
 #undef GROUP_NAME
@@ -309,3 +312,4 @@ int main(void)
 #undef PEER_LIMIT_1
 
 #undef NUM_GROUP_TOXES
+
