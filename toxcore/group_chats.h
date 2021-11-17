@@ -643,7 +643,7 @@ int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id);
 void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest);
 
 
-
+/* Group callbacks */
 void gc_callback_message(Messenger *m, gc_message_cb *function, void *userdata);
 void gc_callback_private_message(Messenger *m, gc_private_message_cb *function, void *userdata);
 void gc_callback_custom_packet(Messenger *m, gc_custom_packet_cb *function, void *userdata);
