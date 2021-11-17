@@ -52,9 +52,9 @@ This document details the groupchat implementation, giving a high level overview
 
 There are four distinct roles which are hierarchical in nature (higher roles have all the privileges of lower roles).
 
-* **Founder** - The group's creator. May set all other peers roles to anything except founder. May also set the group password, toggle the privacy state, and set the peer limit.
-* **Moderator** - Promoted by the founder. May kick non-moderators and set the user and observer roles for peers below this role. May also set the topic.
-* **User** - Default non-founder role. May communicate with other peers normally.
+* **Founder** - The group's creator. May set the role of all other peers to anything except founder. May modify the shared state (password, privacy state, topic lock, peer limit).
+* **Moderator** - Promoted by the founder. May kick peers below this role, as well as set peers with the user role to observer, and vice versa. May also set the topic when the topic lock is enabled.
+* **User** - Default non-founder role. May communicate with other peers normally. May set the topic when the topic lock is disabled.
 * **Observer** - Demoted by moderators and the founder. May observe the group and ignore peers; may not communicate with other peers or with the group.
 
 <a name="Group_types" />
@@ -121,12 +121,13 @@ The peer who creates the group is the group's founder. Founders have a set of ad
 * Setting the peer limit
 * Setting the group's privacy state
 * Setting group passwords
+* Toggling the topic lock
 
 <a name="Shared_state" />
 
 ### Shared state
 
-Groups contain a data structure called the **shared state** which is given to every peer who joins the group. Within this structure resides all data pertaining to the group that must only be modifiable by the group founder. This includes things like the group name, the group type, the peer limit, and the password. Additionally, the shared state holds a copy of the group founder's public encryption and signature keys, which is how other peers in the group are able to verify the identity of the group founder.
+Groups contain a data structure called the **shared state** which is given to every peer who joins the group. Within this structure resides all data pertaining to the group that may only be modified by the group founder. This includes the group name, the group type, the peer limit, the topic lock, and the password. The shared state holds a copy of the group founder's public encryption and signature keys, which is how other peers in the group are able to verify the identity of the group founder. It also contains a hash of the moderator list.
 
 The shared state is signed by the founder using the group secret signature key. As the founder is the only peer who holds this secret key, the shared state can be shared with new peers and cryptographically verified even in the absence of the founder.
 
@@ -136,7 +137,7 @@ When the founder modifies the shared state, he increments the shared state versi
 
 ## Moderation
 
-The founder has the ability to promote other peers to the moderator role. Moderators have all the privileges of normal users. In addition, they have the power to kick peers whose role is below moderator, as well as set their roles to anything below moderator (see the [Group roles](#Group roles) section). Moderators may also modify the group topic. Moderators have no power over one another; only the founder can kick or change the role of a moderator.
+The founder has the ability to promote other peers to the moderator role. Moderators have all the privileges of normal users. In addition, they have the power to kick peers whose role is below moderator, as well as set their roles to anything below moderator (see the [Group roles](#Group roles) section). Moderators may also modify the group topic when it is locked. Moderators have no power over one another; only the founder can kick or change the role of a moderator.
 
 <a name="Kicks" />
 
@@ -172,11 +173,11 @@ _Note: The sanctions list is not saved to the Tox save file, meaning that if the
 
 ## Topics
 
-Founders and moderators have the ability to set the **topic**, which is simply an arbitrary string of characters. The integrity of a topic is maintained in a similar manner as sanctions entries, using a data structure called **topic_info**. This is a struct which contains the topic, a version, and the public key of the peer who set it.
+The topic is an arbitrary string of characters with a maximum length of 512 bytes. The topic has two states: locked and unlocked. When locked, only moderators and the founder may modify it. When unlocked, all peers except observers may modify it. The integrity of the topic is maintained in a similar manner as sanctions entries, using a data structure called **topic_info**. This is a struct which contains the topic, a version, and the public key of the peer who last set the topic. The topic lock state is kept track of in the shared state, and may only be modified by the founder.
 
-When a peer modifies the topic, they will increment the version, sign the new topic+version with their secret signature key, replace the public key with their own, then broadcast the new topic_info data along with the signature to the entire group. When a peer receives this broadcast, they will first check if the public signature key of the setter either belongs to the founder, or is in the moderator list. They will then verify the signature using the setter's public signature key, and finally they will ensure that the version is not older than the current topic version.
+When a peer modifies the topic, they will increment the version, sign the new topic+version with their secret signature key, replace the public key with their own, then broadcast the new topic_info data along with the signature to the entire group. When a peer receives this broadcast, if the topic lock is enabled, they will first check if the public signature key of the setter either belongs to the founder or is in the moderator list. If the topic lock is disabled, they will only check that the setter is not an observer. They will then verify the signature using the setter's public signature key, and finally they will ensure that the version is not older than the current topic version.
 
-If the moderator who set the current topic is kicked or demoted, the founder will re-sign the topic using his own signature key, and rebroadcast it to the entire group.
+If the peer who set the current topic is kicked or demoted, or when the topic lock is enabled, the founder will re-sign the topic using his own signature key and rebroadcast it to the entire group.
 
 <a name="State_syncing" />
 
