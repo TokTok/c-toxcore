@@ -408,8 +408,6 @@ typedef struct GC_Session {
 
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached_value);
 
-bool is_public_chat(const GC_Chat *chat);
-
 /* Sends a plain message or an action, depending on type.
  *
  * Returns 0 on success.
@@ -515,7 +513,7 @@ uint8_t gc_get_self_status(const GC_Chat *chat);
 /* Returns your own peer id */
 uint32_t gc_get_self_peer_id(const GC_Chat *chat);
 
-/* Copies your own public key to public_key. If public_key is null this function has no effect. */
+/* Copies self public key to `public_key`. If `public_key` is null this function has no effect. */
 void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key);
 
 /* Copies peer_id's nick to name.

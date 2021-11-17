@@ -98,6 +98,7 @@ typedef enum Group_Sync_Flags {
 } Group_Sync_Flags;
 
 
+static bool self_gc_is_founder(const GC_Chat *chat);
 static bool group_number_valid(const GC_Session *c, int group_number);
 static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, const uint8_t *public_key);
 static int peer_update(Messenger *m, int group_number, GC_GroupPeer *peer, uint32_t peer_number);
@@ -114,9 +115,111 @@ static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, 
 /* Our own peer_number will always be 0 */
 #define PEER_NUMBER_IS_SELF(n)((n) == 0)
 
+
 static uint16_t gc_packet_padding_length(uint16_t length)
 {
     return (MAX_GC_PACKET_SIZE - length) % GC_MAX_PACKET_PADDING;
+}
+
+/* Copies your own nick to `nick`. If `nick` is null this function has no effect.
+ *
+ * `nick` must have room for at least MAX_GC_NICK_SIZE bytes.
+ */
+void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick)
+{
+    if (nick != nullptr) {
+        memcpy(nick, chat->group[0].nick, chat->group[0].nick_length);
+    }
+}
+
+/* Return your own nick length */
+uint16_t gc_get_self_nick_size(const GC_Chat *chat)
+{
+    return chat->group[0].nick_length;
+}
+
+/* Sets self nick to `nick`.
+ *
+ * Returns 0 on success.
+ * Returns -1 if `nick` is null or `length` is greater than MAX_GC_NICK_SIZE.
+ */
+static int self_gc_set_nick(const GC_Chat *chat, const uint8_t *nick, size_t length)
+{
+    if (nick == nullptr || length > MAX_GC_NICK_SIZE) {
+        return -1;
+    }
+
+    memcpy(chat->group[0].nick, nick, length);
+    chat->group[0].nick_length = length;
+
+    return 0;
+}
+
+/* Returns self role. */
+uint8_t gc_get_self_role(const GC_Chat *chat)
+{
+    return chat->group[0].role;
+}
+
+/* Sets self role. If role is invalid this function has no effect. */
+static void self_gc_set_role(GC_Chat *chat, uint8_t role)
+{
+    if (role < GR_INVALID) {
+        chat->group[0].role = role;
+    }
+}
+
+/* Returns self status. */
+uint8_t gc_get_self_status(const GC_Chat *chat)
+{
+    return chat->group[0].status;
+}
+
+/* Sets self status. If status is invalid this function has no effect. */
+static void self_gc_set_status(GC_Chat *chat, uint8_t status)
+{
+    if (status < GS_INVALID) {
+        chat->group[0].status = status;
+    }
+}
+
+/* Sets self confirmed status. */
+static void self_gc_set_confirmed(GC_Chat *chat, bool confirmed)
+{
+    chat->gcc[0].confirmed = confirmed;
+}
+
+/* Returns self peer id. */
+uint32_t gc_get_self_peer_id(const GC_Chat *chat)
+{
+    return chat->group[0].peer_id;
+}
+
+/* Returns true if self has the founder role */
+static bool self_gc_is_founder(const GC_Chat *chat)
+{
+    return gc_get_self_role(chat) == GR_FOUNDER;
+}
+
+/* Copies self public key to `public_key`. if `public_key` is null this function has no effect. */
+void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key)
+{
+    if (public_key != nullptr) {
+        memcpy(public_key, chat->self_public_key, ENC_PUBLIC_KEY);
+    }
+}
+
+/* Sets self extended public key to `ext_public_key`. If `ext_public_key` is null this function has no effect.*/
+static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_key)
+{
+    if (ext_public_key != nullptr) {
+        memcpy(chat->gcc[0].addr.public_key, ext_public_key, EXT_PUBLIC_KEY);
+    }
+}
+
+static uint32_t self_gc_get_public_key_hash(const GC_Chat *chat)
+{
+    return chat->gcc[0].public_key_hash;
 }
 
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached_value)
@@ -161,17 +264,20 @@ void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached
 
     memcpy(temp->self_public_key, chat->self_public_key, EXT_PUBLIC_KEY);
     memcpy(temp->self_secret_key, chat->self_secret_key, EXT_SECRET_KEY);
-    memcpy(temp->self_nick, chat->group[0].nick, MAX_GC_NICK_SIZE);
-    temp->self_nick_length = net_htons(chat->group[0].nick_length);
-    temp->self_role = chat->group[0].role;
-    temp->self_status = chat->group[0].status;
+
+    gc_get_self_nick(chat, temp->self_nick);
+    temp->self_nick_length = net_htons(gc_get_self_nick_size(chat));
+    temp->self_role = gc_get_self_role(chat);
+    temp->self_status = gc_get_self_status(chat);
 }
 
-bool is_public_chat(const GC_Chat *chat)
+/* Returns true if chat privacy state is set to public. */
+static bool is_public_chat(const GC_Chat *chat)
 {
     return chat->shared_state.privacy_state == GI_PUBLIC;
 }
 
+/* Returns the group chat associated with `hash`, or null if hash is not found. */
 static GC_Chat *get_chat_by_hash(const GC_Session *c, uint32_t hash)
 {
     if (c == nullptr) {
@@ -792,7 +898,7 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
  */
 static int sign_gc_shared_state(GC_Chat *chat)
 {
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -1;
     }
 
@@ -1390,11 +1496,12 @@ static int send_gc_invite_request(const GC_Chat *chat, GC_Connection *gconn)
 
     net_pack_u32(data, chat->self_public_key_hash);
 
-    net_pack_u16(data + length, chat->group[0].nick_length);
+    uint16_t self_nick_length = gc_get_self_nick_size(chat);
+    net_pack_u16(data + length, self_nick_length);
     length += sizeof(uint16_t);
 
-    memcpy(data + length, chat->group[0].nick, chat->group[0].nick_length);
-    length += chat->group[0].nick_length;
+    gc_get_self_nick(chat, data + length);
+    length += self_nick_length;
 
     memcpy(data + length, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
     length += MAX_GC_PASSWORD_SIZE;
@@ -1741,7 +1848,7 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
     return 0;
 }
 
-/* Sets the caller's status
+/* Sets the caller's status.
  *
  * Returns 0 on success.
  * Returns -1 if the group_number is invalid.
@@ -1751,7 +1858,7 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
 int gc_set_self_status(const Messenger *m, int group_number, uint8_t status)
 {
     const GC_Session *c = m->group_handler;
-    const GC_Chat *chat = gc_get_group(c, group_number);
+    GC_Chat *chat = gc_get_group(c, group_number);
 
     if (chat == nullptr) {
         return -1;
@@ -1761,9 +1868,10 @@ int gc_set_self_status(const Messenger *m, int group_number, uint8_t status)
         return -2;
     }
 
-    chat->group[0].status = status;
+    self_gc_set_status(chat, status);
+
     uint8_t data[1];
-    data[0] = chat->group[0].status;
+    data[0] = gc_get_self_status(chat);
 
     if (send_gc_broadcast_message(chat, data, 1, GM_STATUS) == -1) {
         return -3;
@@ -2193,7 +2301,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
 
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
-    if (chat->group[0].role == GR_FOUNDER) {
+    if (self_gc_is_founder(chat)) {
         return 0;
     }
 
@@ -2222,7 +2330,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
 
     /* Validate our own role */
     if (validate_gc_peer_role(chat, 0) == -1) {
-        chat->group[0].role = GR_USER;
+        self_gc_set_role(chat, GR_USER);
     }
 
     return 0;
@@ -2315,9 +2423,9 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     chat->moderation.num_sanctions = num_sanctions;
 
     /* We cannot verify our own observer role on the initial sync so we do it now */
-    if (chat->group[0].role == GR_OBSERVER) {
+    if (gc_get_self_role(chat) == GR_OBSERVER) {
         if (!sanctions_list_is_observer(chat, chat->self_public_key)) {
-            chat->group[0].role = GR_USER;
+            self_gc_set_role(chat, GR_USER);
         }
     }
 
@@ -2572,54 +2680,15 @@ int gc_set_self_nick(const Messenger *m, int group_number, const uint8_t *nick, 
         return -4;
     }
 
-    memcpy(chat->group[0].nick, nick, length);
-    chat->group[0].nick_length = length;
+    if (self_gc_set_nick(chat, nick, length) == -1) {
+        return -2;
+    }
 
     if (send_gc_broadcast_message(chat, nick, length, GM_NICK) == -1) {
         return -5;
     }
 
     return 0;
-}
-
-/* Copies your own nick to nick. If nick is null this function has no effect. */
-void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick)
-{
-    if (nick != nullptr) {
-        memcpy(nick, chat->group[0].nick, chat->group[0].nick_length);
-    }
-}
-
-/* Return your own nick length */
-uint16_t gc_get_self_nick_size(const GC_Chat *chat)
-{
-    return chat->group[0].nick_length;
-}
-
-/* Return your own group role */
-uint8_t gc_get_self_role(const GC_Chat *chat)
-{
-    return chat->group[0].role;
-}
-
-/* Return your own status */
-uint8_t gc_get_self_status(const GC_Chat *chat)
-{
-    return chat->group[0].status;
-}
-
-/* Returns your own peer id */
-uint32_t gc_get_self_peer_id(const GC_Chat *chat)
-{
-    return chat->group[0].peer_id;
-}
-
-/* Copies your own public key to public_key. if public_key is null this function has no effect. */
-void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key)
-{
-    if (public_key != nullptr) {
-        memcpy(public_key, chat->self_public_key, ENC_PUBLIC_KEY);
-    }
 }
 
 /* Copies peer_id's nick to name.
@@ -2869,11 +2938,11 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         return -1;
     }
 
-    if (chat->shared_state.topic_lock == TL_ENABLED && chat->group[0].role > GR_MODERATOR) {
+    if (chat->shared_state.topic_lock == TL_ENABLED && gc_get_self_role(chat) > GR_MODERATOR) {
         return -2;
     }
 
-    if (chat->group[0].role > GR_USER) {
+    if (gc_get_self_role(chat) > GR_USER) {
         return -2;
     }
 
@@ -2992,7 +3061,7 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
 
     // make sure topic wasn't set by an observer
     if (chat->shared_state.topic_lock == TL_DISABLED && sanctions_list_is_observer_sig(chat, topic_info.public_sig_key)) {
-        LOGGER_ERROR(chat->logger, "Invalid topic signature ()");
+        LOGGER_ERROR(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
         return -1;
     }
 
@@ -3065,7 +3134,7 @@ uint16_t gc_get_password_size(const GC_Chat *chat)
  */
 int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length)
 {
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -1;
     }
 
@@ -3196,7 +3265,7 @@ static int send_gc_set_mod(const GC_Chat *chat, GC_Connection *gconn, bool add_m
  */
 static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool add_mod)
 {
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -1;
     }
 
@@ -3362,7 +3431,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         return -1;
     }
 
-    if (chat->group[0].role >= GR_USER) {
+    if (gc_get_self_role(chat) >= GR_USER) {
         return -1;
     }
 
@@ -3460,7 +3529,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uin
         return -2;
     }
 
-    if (chat->group[0].role >= GR_USER) {
+    if (gc_get_self_role(chat) >= GR_USER) {
         return -3;
     }
 
@@ -3468,7 +3537,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uin
         return -3;
     }
 
-    if (chat->group[0].role != GR_FOUNDER && (role == GR_MODERATOR || chat->group[peer_number].role <= GR_MODERATOR)) {
+    if (!self_gc_is_founder(chat) && (role == GR_MODERATOR || chat->group[peer_number].role <= GR_MODERATOR)) {
         return -3;
     }
 
@@ -3571,7 +3640,7 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock
         return -2;
     }
 
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -3;
     }
 
@@ -3634,7 +3703,7 @@ int gc_founder_set_privacy_state(Messenger *m, int group_number, uint8_t new_pri
         return -2;
     }
 
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -3;
     }
 
@@ -3688,7 +3757,7 @@ uint32_t gc_get_max_peers(const GC_Chat *chat)
  */
 int gc_founder_set_max_peers(GC_Chat *chat, uint32_t max_peers)
 {
-    if (chat->group[0].role != GR_FOUNDER) {
+    if (!self_gc_is_founder(chat)) {
         return -1;
     }
 
@@ -3735,7 +3804,7 @@ int gc_send_message(const GC_Chat *chat, const uint8_t *message, uint16_t length
         return -3;
     }
 
-    if (chat->group[0].role >= GR_OBSERVER) {
+    if (gc_get_self_role(chat) >= GR_OBSERVER) {
         return -4;
     }
 
@@ -3812,7 +3881,7 @@ int gc_send_private_message(const GC_Chat *chat, uint32_t peer_id, uint8_t type,
         return -4;
     }
 
-    if (chat->group[0].role >= GR_OBSERVER) {
+    if (gc_get_self_role(chat) >= GR_OBSERVER) {
         return -5;
     }
 
@@ -3895,7 +3964,7 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
         return -2;
     }
 
-    if (chat->group[0].role >= GR_OBSERVER) {
+    if (gc_get_self_role(chat) >= GR_OBSERVER) {
         return -3;
     }
 
@@ -4052,11 +4121,11 @@ int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id)
         return -2;
     }
 
-    if (chat->group[0].role >= GR_USER || chat->group[peer_number].role == GR_FOUNDER) {
+    if (gc_get_self_role(chat) >= GR_USER || chat->group[peer_number].role == GR_FOUNDER) {
         return -3;
     }
 
-    if (chat->group[0].role != GR_FOUNDER && chat->group[peer_number].role == GR_MODERATOR) {
+    if (!self_gc_is_founder(chat) && chat->group[peer_number].role == GR_MODERATOR) {
         return -3;
     }
 
@@ -5445,10 +5514,10 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 static void copy_self_to_peer(const GC_Chat *chat, GC_GroupPeer *peer)
 {
     memset(peer, 0, sizeof(GC_GroupPeer));
-    memcpy(peer->nick, chat->group[0].nick, chat->group[0].nick_length);
-    peer->nick_length = chat->group[0].nick_length;
-    peer->status = chat->group[0].status;
-    peer->role = chat->group[0].role;
+    gc_get_self_nick(chat, peer->nick);
+    peer->nick_length = gc_get_self_nick_size(chat);
+    peer->status = gc_get_self_status(chat);
+    peer->role = gc_get_self_role(chat);
 }
 
 /* Returns true if we haven't received a ping from this peer after T seconds.
@@ -5872,13 +5941,16 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
         return -1;
     }
 
-    memcpy(chat->group[0].nick, nick, nick_length);
-    chat->group[0].nick_length = nick_length;
-    chat->group[0].status = GS_NONE;
-    chat->group[0].role = founder ? GR_FOUNDER : GR_USER;
-    chat->gcc[0].confirmed = true;
-    chat->self_public_key_hash = chat->gcc[0].public_key_hash;
-    memcpy(chat->gcc[0].addr.public_key, chat->self_public_key, EXT_PUBLIC_KEY);
+    if (self_gc_set_nick(chat, nick, nick_length) == -1) {
+        group_delete(c, chat);
+        return -1;
+    }
+
+    self_gc_set_status(chat, GS_NONE);
+    self_gc_set_role(chat, founder ? GR_FOUNDER : GR_USER);
+    self_gc_set_confirmed(chat, true);
+    self_gc_set_ext_public_key(chat, chat->self_public_key);
+    chat->self_public_key_hash = self_gc_get_public_key_hash(chat);
 
     return group_number;
 }
@@ -6024,14 +6096,23 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
-    memcpy(chat->gcc[0].addr.public_key, chat->self_public_key, EXT_PUBLIC_KEY);
-    memcpy(chat->group[0].nick, save->self_nick, MAX_GC_NICK_SIZE);
-    chat->group[0].nick_length = net_ntohs(save->self_nick_length);
-    chat->group[0].role = save->self_role;
-    chat->group[0].status = save->self_status;
-    chat->gcc[0].confirmed = true;
+    self_gc_set_ext_public_key(chat, chat->self_public_key);
 
-    if (save->self_role == GR_FOUNDER) {
+    uint16_t self_nick_length = net_ntohs(save->self_nick_length);
+
+    if (self_nick_length > MAX_GC_NICK_SIZE) {
+        self_nick_length = MAX_GC_NICK_SIZE;
+    }
+
+    if (self_gc_set_nick(chat, save->self_nick, self_nick_length) == -1) {
+        return -1;
+    }
+
+    self_gc_set_role(chat, save->self_role);
+    self_gc_set_status(chat, save->self_status);
+    self_gc_set_confirmed(chat, true);
+
+    if (self_gc_is_founder(chat)) {
         if (init_gc_sanctions_creds(chat) == -1) {
             return -1;
         }
