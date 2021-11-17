@@ -493,8 +493,10 @@ void gcc_peer_cleanup(GC_Connection *gconn)
 void gcc_cleanup(GC_Chat *chat)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        if (&chat->gcc[i]) {
-            gcc_peer_cleanup(&chat->gcc[i]);
+        GC_Connection *gconn = &chat->gcc[i];
+
+        if (gconn) {
+            gcc_peer_cleanup(gconn);
         }
     }
 
