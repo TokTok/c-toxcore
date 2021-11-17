@@ -148,7 +148,8 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
 
     TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK lock_set_err;
     tox_group_founder_set_topic_lock(tox, groupnumber, topic_lock, &lock_set_err);
-    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d", lock_set_err);
+    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d",
+                  lock_set_err);
 }
 
 static void group_state_test(Tox **toxes, State *state)
