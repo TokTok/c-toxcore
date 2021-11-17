@@ -4175,7 +4175,7 @@ namespace group {
     /**
      * Set the group topic lock state.
      *
-     * This function sets the group's topic lock state to enabled ordisabled, creates a new shared
+     * This function sets the group's topic lock state to enabled or disabled, creates a new shared
      * state including the change, and distributes it to the rest of the group.
      *
      * When the topic lock is enabled, only the group founder and moderators may set the topic.
