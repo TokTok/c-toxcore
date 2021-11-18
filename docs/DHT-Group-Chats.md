@@ -36,7 +36,7 @@ This document details the groupchat implementation, giving a high level overview
 * Group roles (founder, moderators, users, observers)
 * Moderation (kicking, silencing)
 * Permanent group names (set on creation)
-* Topics (may only be set by moderators and the founder)
+* Topics (permission to modify is set by founder)
 * Password protection
 * Self-repairing (auto-rejoin on disconnect, group split protection, state syncing)
 * Identity separation from the Tox ID
@@ -83,7 +83,7 @@ Groupchats use the [NaCl/libsodium cryptography library](https://en.wikipedia.or
 
 One of the most important security improvements from the old groupchat implementation is the removal of a message-relay mechanism that uses a group-wide shared key. Instead, connections are 1-to-1 (a complete graph), meaning an outbound message is sent once per peer, and encrypted/decrypted using a session key unique to each pair of peers. This prevents MITM attacks that were previously possible. This additionally ensures that private messages are truly private.
 
-Groups make use of 12 unique keys in total: Two permanent keypairs (encryption and signature), two group keypairs (encryption and signature), one session keypair (encryption), and one shared symmetric key (encryption).
+Groups make use of 11 unique keys in total: Two permanent keypairs (encryption and signature), two group keypairs (encryption and signature), one session keypair (encryption), and one shared symmetric key (encryption).
 
 The Tox ID/Tox public key is not used for any purpose. As such, neither peers in a given group nor in the group DHT can be matched with their Tox ID. In other words, there is no way of identifying a peer aside from their IP address, nickname, and group public key. (_Note: group nicknames can be different from the client's main nickname that their friends see_).
 
@@ -161,9 +161,9 @@ Each peer holds a copy of the **sanctions list**. This list is comprised of peer
 
 Entries contain the public key of the sanctioned peer, a timestamp of the time the entry was made, the public signature key of the peer who set the sanction, and a signature of the entry's data, which is signed by the peer who created the entry using their secret signature key. Individual entries are verified by ensuring that the entry's public signature key belongs to the founder or is present in the moderator list, and then verifying that the entry's data was signed by the owner of that key.
 
-Although each individual entry can be verified, we still need a way to verify that the list as a whole is complete and identical for every peer, otherwise any peer would be able to remove entries arbitrarily, or replace the list with an older version. Therefore each peer holds a copy of the **sanctions list credentials**. This is a data structure that holds the version, a hash (sha256) of all sanctions list entries, plus the version, the public signature key of the last peer to have modified the sanctions list, and a signature of the hash which is created by that key.
+Although each individual entry can be verified, we still need a way to verify that the list as a whole is complete, and identical for every peer, otherwise any peer would be able to remove entries arbitrarily, or replace the list with an older version. Therefore each peer holds a copy of the **sanctions list credentials**. This is a data structure that holds a version number, a hash (sha256) of all combined sanctions list entries, the public signature key of the last peer to have modified the list, and a signature of the hash, which is signed by the private signature key associated with the aforementioned public signature key.
 
-When a moderator or founder modifies the sanctions list, he will increment the version, create a new hash, sign the hash+version with his secret signature key, and replace the old public signature key with his own. He will then broadcast the new changes (not the entire list) to the entire group along with the new credentials. When a peer receives this broadcast, he will verify that the new credentials version is not older than the current version and verify that the changes were made by a moderator or the founder. If adding an entry, he will verify that the entry was signed by the signature key of the entry's creator.
+When a moderator or founder modifies the sanctions list, he will increment the version, create a new hash of the list, sign the hash+version with his secret signature key, and replace the old public signature key with his own. He will then broadcast the new changes (not the entire list) to the entire group along with the new credentials. When a peer receives this broadcast, he will verify that the new credentials version is not older than the current version and verify that the changes were made by a moderator or the founder. If adding an entry, he will verify that the entry was signed by the signature key of the entry's creator.
 
 When the founder kicks or demotes a moderator, he will first go through the sanctions list and re-sign each entry made by that moderator using the founder key, then re-broadcast the sanctions list to the entire group. This is necessary to guarantee that all sanctions list entries and its credentials are signed by a current moderator or the founder at all times.
 
@@ -177,7 +177,7 @@ The topic is an arbitrary string of characters with a maximum length of 512 byte
 
 When a peer modifies the topic, they will increment the version, sign the new topic+version with their secret signature key, replace the public key with their own, then broadcast the new topic_info data along with the signature to the entire group. When a peer receives this broadcast, if the topic lock is enabled, they will first check if the public signature key of the setter either belongs to the founder or is in the moderator list. If the topic lock is disabled, they will only check that the setter is not an observer. They will then verify the signature using the setter's public signature key, and finally they will ensure that the version is not older than the current topic version.
 
-If the peer who set the current topic is kicked or demoted, or when the topic lock is enabled, the founder will re-sign the topic using his own signature key and rebroadcast it to the entire group.
+If the peer who set the current topic is kicked or demoted, or if the topic lock is enabled, the peer who initiated the action will re-sign the topic using his own signature key and rebroadcast it to the entire group.
 
 <a name="State_syncing" />
 
