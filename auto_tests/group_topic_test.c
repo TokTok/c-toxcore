@@ -91,6 +91,29 @@ static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topi
     return 0;
 }
 
+static void wait_topic_lock(Tox **toxes, State *state, uint32_t groupnumber, TOX_GROUP_TOPIC_LOCK expected_lock)
+{
+    while (1) {
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+
+        uint32_t count = 0;
+
+        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+            TOX_ERR_GROUP_STATE_QUERIES err;
+            TOX_GROUP_TOPIC_LOCK topic_lock = tox_group_get_topic_lock(toxes[i], groupnumber, &err);
+            ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+
+            if (topic_lock == expected_lock) {
+                ++count;
+            }
+        }
+
+        if (count == NUM_GROUP_TOXES) {
+            break;
+        }
+    }
+}
+
 /* Waits for all peers in group to see the same topic */
 static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, const char *topic, size_t length)
 {
@@ -214,7 +237,7 @@ static void group_topic_test(Tox **toxes, State *state)
                   lock_set_err);
 
     fprintf(stderr, "Topic lock disabled\n");
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    wait_topic_lock(toxes, state, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     /* All peers should be able to change the topic now */
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
@@ -222,8 +245,8 @@ static void group_topic_test(Tox **toxes, State *state)
         snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic first time", i);
         size_t length = strlen(new_topic);
 
-        s_ret = set_topic(toxes[i], groupnumber, new_topic, length);
-        ck_assert_msg(s_ret == 0, "Peer %zu failed to set topic with topic lock disabled", i);
+        int s2_ret = set_topic(toxes[i], groupnumber, new_topic, length);
+        ck_assert_msg(s2_ret == 0, "Peer %zu failed to set topic with topic lock disabled", i);
 
         // make sure every peer can see every other peer's topic change
         wait_state_topic(toxes, state, groupnumber, new_topic, length);
@@ -263,24 +286,28 @@ static void group_topic_test(Tox **toxes, State *state)
 
     fprintf(stderr, "Topic lock enabled\n");
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    wait_topic_lock(toxes, state, groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED);
 
-    s_ret = set_topic(toxes[0], groupnumber, TOPIC, TOPIC_LEN);
-    ck_assert_msg(s_ret == 0, "Founder failed to set topic second time: %d", s_ret);
+    int s3_ret = set_topic(toxes[0], groupnumber, TOPIC, TOPIC_LEN);
+    ck_assert_msg(s3_ret == 0, "Founder failed to set topic second time: %d", s3_ret);
 
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);
 
     /* Other peers attempt to change topic */
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
-        s_ret = set_topic(toxes[i], groupnumber, "test", strlen("test"));
-        ck_assert_msg(s_ret != 0, "Peer %zu changed the topic with the topic lock on", i);
+        int s4_ret = set_topic(toxes[i], groupnumber, "test", strlen("test"));
+        ck_assert_msg(s4_ret != 0, "Peer %zu changed the topic with the topic lock on", i);
         fprintf(stderr, "Peer %zu couldn't set the topic\n", i);
     }
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
     /* A final check that the topic is unchanged */
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);
+
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        TOX_ERR_GROUP_LEAVE err_exit;
+        tox_group_leave(toxes[i], groupnumber, nullptr, 0, &err_exit);
+        ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
+    }
 
     fprintf(stderr, "All tests passed!\n");
 
