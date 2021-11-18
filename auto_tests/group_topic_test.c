@@ -157,8 +157,9 @@ static void group_topic_test(Tox **toxes, State *state)
 
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
-    uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
-                                        (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
+    uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
+                                         GROUP_NAME_LEN,
+                                         (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 

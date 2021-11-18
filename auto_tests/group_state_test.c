@@ -222,7 +222,8 @@ static void group_state_test(Tox **toxes, State *state)
     }
 
     /* Change group state and check that all peers received the changes */
-    set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0, TOX_GROUP_TOPIC_LOCK_DISABLED);
+    set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
+                    TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     fprintf(stderr, "Changing state\n");
 
