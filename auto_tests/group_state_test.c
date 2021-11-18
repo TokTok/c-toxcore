@@ -23,12 +23,6 @@
 #define PASSWORD "dadada"
 #define PASS_LEN (sizeof(PASSWORD) - 1)
 
-#define TOPIC1 "Eternally indestructible"
-#define TOPIC1_LEN (sizeof(TOPIC1) - 1)
-
-#define TOPIC2 "The interjection zone"
-#define TOPIC2_LEN (sizeof(TOPIC2) - 1)
-
 #define GROUP_NAME "The Crystal Palace"
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
@@ -47,8 +41,7 @@ typedef struct State {
  * Returns negative integer if state is invalid.
  */
 static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit, TOX_GROUP_PRIVACY_STATE priv_state,
-                             const uint8_t *password, size_t pass_len, const uint8_t *topic, size_t topic_len,
-                             TOX_GROUP_TOPIC_LOCK topic_lock)
+                             const uint8_t *password, size_t pass_len, TOX_GROUP_TOPIC_LOCK topic_lock)
 {
     TOX_ERR_GROUP_STATE_QUERIES query_err;
 
@@ -64,22 +57,6 @@ static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit
 
     if (my_peer_limit != peer_limit) {
         return -2;
-    }
-
-    size_t my_topic_len = tox_group_get_topic_size(tox, groupnumber, &query_err);
-    ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "Failed to get topic size: %d", query_err);
-
-    if (my_topic_len != topic_len) {
-        return -3;
-    }
-
-    VLA(uint8_t, my_topic, my_topic_len + 1);
-    tox_group_get_topic(tox, groupnumber, my_topic, &query_err);
-    my_topic[my_topic_len] = 0;
-    ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "Failed to get topic: %d", query_err);
-
-    if (memcmp(my_topic, topic, my_topic_len) != 0) {
-        return -4;
     }
 
     size_t my_pass_len = tox_group_get_password_size(tox, groupnumber, &query_err);
@@ -127,8 +104,7 @@ static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit
 }
 
 static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit, TOX_GROUP_PRIVACY_STATE priv_state,
-                            const uint8_t *password, size_t pass_len, const uint8_t *topic, size_t topic_len,
-                            TOX_GROUP_TOPIC_LOCK topic_lock)
+                            const uint8_t *password, size_t pass_len, TOX_GROUP_TOPIC_LOCK topic_lock)
 {
 
     TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT limit_set_err;
@@ -143,13 +119,9 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
     tox_group_founder_set_password(tox, groupnumber, password, pass_len, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "failed to set password: %d", pass_set_err);
 
-    TOX_ERR_GROUP_TOPIC_SET topic_set_err;
-    tox_group_set_topic(tox, groupnumber, topic, topic_len, &topic_set_err);
-    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_TOPIC_SET_OK, "failed to set topic: %d", topic_set_err);
-
     TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK lock_set_err;
     tox_group_founder_set_topic_lock(tox, groupnumber, topic_lock, &lock_set_err);
-    ck_assert_msg(topic_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to set topic lock: %d",
+    ck_assert_msg(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to set topic lock: %d",
                   lock_set_err);
 }
 
@@ -200,7 +172,7 @@ static void group_state_test(Tox **toxes, State *state)
 
     /* Founder sets default group state before anyone else joins */
     set_group_state(toxes[0], groupnum, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD, PASS_LEN,
-                    (const uint8_t *)TOPIC1, TOPIC1_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
+                    TOX_GROUP_TOPIC_LOCK_ENABLED);
 
     /* Founder gets the Chat ID and implicitly shares it publicly */
     TOX_ERR_GROUP_STATE_QUERIES id_err;
@@ -245,13 +217,12 @@ static void group_state_test(Tox **toxes, State *state)
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
         int ret = check_group_state(toxes[i], 0, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD,
-                                    PASS_LEN, (const uint8_t *)TOPIC1, TOPIC1_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
+                                    PASS_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
         ck_assert_msg(ret == 0, "Invalid group state: %d", ret);
     }
 
     /* Change group state and check that all peers received the changes */
-    set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0, (const uint8_t *)TOPIC2,
-                    TOPIC2_LEN, TOX_GROUP_TOPIC_LOCK_DISABLED);
+    set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0, TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     fprintf(stderr, "Changing state\n");
 
@@ -262,7 +233,7 @@ static void group_state_test(Tox **toxes, State *state)
 
         for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
             if (check_group_state(toxes[i], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
-                                  (const uint8_t *)TOPIC2, TOPIC2_LEN, TOX_GROUP_TOPIC_LOCK_DISABLED) == 0) {
+                                  TOX_GROUP_TOPIC_LOCK_DISABLED) == 0) {
                 ++count;
             }
         }
@@ -295,21 +266,11 @@ int main(void)
 
 #undef PEER0_NICK
 #undef PEER0_NICK_LEN
-
 #undef GROUP_NAME_LEN
 #undef GROUP_NAME
-
-#undef TOPIC2_LEN
-#undef TOPIC2
-
-#undef TOPIC1_LEN
-#undef TOPIC1
-
 #undef PASS_LEN
 #undef PASSWORD
-
 #undef PEER_LIMIT_2
 #undef PEER_LIMIT_1
-
 #undef NUM_GROUP_TOXES
 

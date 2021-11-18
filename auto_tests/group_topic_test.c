@@ -52,7 +52,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
 static int set_topic(Tox *tox, uint32_t groupnumber, const char *topic, size_t length)
 {
     TOX_ERR_GROUP_TOPIC_SET err;
-    tox_group_set_topic(tox, groupnumber, topic, length, &err);
+    tox_group_set_topic(tox, groupnumber, (const uint8_t *)topic, length, &err);
 
     if (err != TOX_ERR_GROUP_TOPIC_SET_OK) {
         return -1;
@@ -84,7 +84,7 @@ static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topi
         return -3;
     }
 
-    if (memcmp(expected_topic, topic, topic_length) != 0) {
+    if (memcmp(expected_topic, (const char *)topic, topic_length) != 0) {
         return -4;
     }
 
@@ -92,7 +92,7 @@ static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topi
 }
 
 /* Waits for all peers in group to see the same topic */
-static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, const uint8_t *topic, size_t length)
+static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, const char *topic, size_t length)
 {
     while (1) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
