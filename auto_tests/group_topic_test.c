@@ -52,7 +52,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
 static int set_topic(Tox *tox, uint32_t groupnumber, const char *topic, size_t length)
 {
     TOX_ERR_GROUP_TOPIC_SET err;
-    tox_group_set_topic(tox, groupnumber, topic, length, &err);
+    tox_group_set_topic(tox, groupnumber, (const uint8_t *)topic, length, &err);
 
     if (err != TOX_ERR_GROUP_TOPIC_SET_OK) {
         return -1;
@@ -84,7 +84,7 @@ static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topi
         return -3;
     }
 
-    if (memcmp(expected_topic, topic, topic_length) != 0) {
+    if (memcmp(expected_topic, (const char *)topic, topic_length) != 0) {
         return -4;
     }
 
@@ -92,7 +92,7 @@ static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topi
 }
 
 /* Waits for all peers in group to see the same topic */
-static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, const uint8_t *topic, size_t length)
+static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, const char *topic, size_t length)
 {
     while (1) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
@@ -157,8 +157,9 @@ static void group_topic_test(Tox **toxes, State *state)
 
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
-    uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
-                                        (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
+    uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
+                                         GROUP_NAME_LEN,
+                                         (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
@@ -221,7 +222,7 @@ static void group_topic_test(Tox **toxes, State *state)
         snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic first time", i);
         size_t length = strlen(new_topic);
 
-        int s_ret = set_topic(toxes[i], groupnumber, new_topic, length);
+        s_ret = set_topic(toxes[i], groupnumber, new_topic, length);
         ck_assert_msg(s_ret == 0, "Peer %zu failed to set topic with topic lock disabled", i);
 
         // make sure every peer can see every other peer's topic change
@@ -271,7 +272,7 @@ static void group_topic_test(Tox **toxes, State *state)
 
     /* Other peers attempt to change topic */
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
-        int s_ret = set_topic(toxes[i], groupnumber, "test", strlen("test"));
+        s_ret = set_topic(toxes[i], groupnumber, "test", strlen("test"));
         ck_assert_msg(s_ret != 0, "Peer %zu changed the topic with the topic lock on", i);
         fprintf(stderr, "Peer %zu couldn't set the topic\n", i);
     }
@@ -302,4 +303,3 @@ int main(void)
 #undef GROUP_NAME_LEN
 #undef PEER0_NICK
 #undef PEER0
-
