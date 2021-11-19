@@ -5965,7 +5965,7 @@ static int init_gc_shared_state(GC_Chat *chat, uint8_t privacy_state, const uint
     memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY);
     memcpy(chat->shared_state.group_name, group_name, name_length);
     chat->shared_state.group_name_len = name_length;
-    chat->shared_state.maxpeers = 100;
+    chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
     chat->shared_state.privacy_state = privacy_state;
     chat->shared_state.topic_lock = TL_ENABLED;
 
