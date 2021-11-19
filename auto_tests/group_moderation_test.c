@@ -18,7 +18,8 @@
 #include "check_compat.h"
 
 #define NUM_GROUP_TOXES 5
-#define TEST_GROUP_NAME "Headquarters"
+#define GROUP_NAME "NASA Headquarters"
+#define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
 typedef struct Peer {
     char name[TOX_MAX_NAME_LENGTH];
@@ -51,6 +52,16 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
+static bool all_peers_connected(State *state)
+{
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        if (state[i].num_peers != NUM_GROUP_TOXES - 1) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 /*
  * Waits for all peers to receive the mod event.
@@ -226,27 +237,27 @@ static void group_moderation_test(Tox **toxes, State *state)
     ck_assert_msg(NUM_GROUP_TOXES >= NUM_GROUP_TOXES, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        char name[TOX_MAX_NAME_LENGTH];
-        snprintf(name, sizeof(name), "Toxicle %zu", i);
-        size_t length = strlen(name);
-        state[i].self_name_length = length;
-        memcpy(state[i].self_name, name, length);
-        state[i].self_name[length] = 0;
+        size_t name_length = tox_self_get_name_size(toxes[i]);
+        tox_self_get_name(toxes[i], (uint8_t *)state[i].self_name);
+        state[i].self_name[name_length] = 0;
+        state[i].self_name_length = name_length;
 
         tox_callback_group_join_fail(toxes[i], group_join_fail_handler);
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
         tox_callback_group_moderation(toxes[i], group_mod_event_handler);
     }
 
+    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+
     fprintf(stderr, "Creating new group\n");
 
     /* Founder makes new group */
     TOX_ERR_GROUP_NEW err_new;
-    state[0].group_number = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)TEST_GROUP_NAME,
-                                          strlen(TEST_GROUP_NAME), (const uint8_t *)state[0].self_name, state[0].self_name_length,
+    state[0].group_number = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
+                                          GROUP_NAME_LEN, (const uint8_t *)state[0].self_name, state[0].self_name_length,
                                           &err_new);
 
-    ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
+    ck_assert_msg(err_new == TOX_ERR_GROUP_NEW_OK, "Failed to create group. error: %d\n", err_new);
 
     /* Founder gets chat ID */
     TOX_ERR_GROUP_STATE_QUERIES id_err;
@@ -263,26 +274,14 @@ static void group_moderation_test(Tox **toxes, State *state)
         state[i].group_number = tox_group_join(toxes[i], chat_id, (const uint8_t *)state[i].self_name,
                                                state[i].self_name_length,
                                                nullptr, 0, &join_err);
-        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "Peer %zu failed to join group. error %d", i, join_err);
+        ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "Peer %s (%zu) failed to join group. error %d",
+                      state[i].self_name, i, join_err);
     }
 
-    /* Wait for all peers to be connected with one another in the group */
-    while (1) {
+    // make sure every peer sees every other peer before we continue
+    do {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
-        uint32_t peers_connected = 0;
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (state[i].num_peers == NUM_GROUP_TOXES - 1) {
-                ++peers_connected;
-            }
-        }
-
-        if (peers_connected == NUM_GROUP_TOXES) {
-            fprintf(stderr, "%d peers successfully connected to group\n", NUM_GROUP_TOXES);
-            break;
-        }
-    }
+    } while (!all_peers_connected(state));
 
     // founder doesn't receive callbacks for mod events so we default these to true
     state[0].mod_check = true;
@@ -369,5 +368,5 @@ int main(void)
 }
 
 #undef NUM_GROUP_TOXES
-#undef TEST_GROUP_NAME
-
+#undef GROUP_NAME
+#undef GROUP_NAME_LEN
