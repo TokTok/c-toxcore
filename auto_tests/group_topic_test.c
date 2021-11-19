@@ -39,7 +39,7 @@ typedef struct State {
 static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t name_length, uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
-          // make sure we got an invite
+        // make sure we got an invite
         if (tox_group_get_name_size(toxes[i], 0, nullptr) != name_length) {
             return false;
         }
