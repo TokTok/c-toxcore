@@ -61,9 +61,6 @@ static void group_announce_test(Tox **toxes, State *state)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 2, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
-    tox_self_set_name(toxes[0], (const uint8_t *)"a", 1, nullptr);
-    tox_self_set_name(toxes[1], (const uint8_t *)"b", 1, nullptr);
-
     tox_callback_group_join_fail(toxes[1], group_join_fail_handler);
     tox_callback_group_peer_join(toxes[1], group_peer_join_handler);
     tox_callback_group_message(toxes[0], group_message_handler);
@@ -74,6 +71,8 @@ static void group_announce_test(Tox **toxes, State *state)
                                           strlen(TEST_GROUP_NAME), (const uint8_t *)PEER0_NICK, strlen(PEER0_NICK),
                                           &err_new);
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
+
+    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
     // get the chat id of the new group.
     TOX_ERR_GROUP_STATE_QUERIES err_id;

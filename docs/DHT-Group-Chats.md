@@ -67,7 +67,7 @@ Groups can have two types: private and public. The type can be set on creation, 
 
 ### Public
 
-Anyone may join the group using the Chat ID. If the group is public, information about peers inside the group, including their IP addresses and group public keys (but not their Tox ID's) is visible to anyone with access to a node storing their DHT announcement. See the [DHT Announcements](#DHT Announcements) section for details.
+Anyone may join the group using the Chat ID. If the group is public, information about peers inside the group, including their IP addresses and group public keys (but not their Tox ID's) is visible to anyone with access to a node storing their DHT announcement.
 
 <a name="Private" />
 
@@ -137,7 +137,7 @@ When the founder modifies the shared state, he increments the shared state versi
 
 ## Moderation
 
-The founder has the ability to promote other peers to the moderator role. Moderators have all the privileges of normal users. In addition, they have the power to kick peers whose role is below moderator, as well as set their roles to anything below moderator (see the [Group roles](#Group roles) section). Moderators may also modify the group topic when it is locked. Moderators have no power over one another; only the founder can kick or change the role of a moderator.
+The founder has the ability to promote other peers to the moderator role. Moderators have all the privileges of normal users. In addition, they have the power to kick peers whose role is below moderator, as well as set their roles to anything below moderator (see the [Group roles](#Group_roles) section). Moderators may also modify the group topic when it is locked. Moderators have no power over one another; only the founder can kick or change the role of a moderator.
 
 <a name="Kicks" />
 
