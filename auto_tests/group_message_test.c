@@ -128,9 +128,6 @@ static void group_message_test(Tox **toxes, State *state)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 2, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
-    tox_self_set_name(toxes[0], (const uint8_t *)"a", 1, nullptr);
-    tox_self_set_name(toxes[1], (const uint8_t *)"b", 1, nullptr);
-
     tox_callback_group_invite(toxes[1], group_invite_handler);
     tox_callback_group_join_fail(toxes[1], group_join_fail_handler);
     tox_callback_group_peer_join(toxes[1], group_peer_join_handler);
@@ -171,11 +168,11 @@ static void group_message_test(Tox **toxes, State *state)
     for (size_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
         char m[10];
         snprintf(m, sizeof(m), "%zu", i);
+
         TOX_ERR_GROUP_SEND_MESSAGE err_send;
         tox_group_send_message(toxes[0], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, strlen(m), &err_send);
 
         // fprintf(stderr, "Send: %zu\n", i);
-
         ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
     }
 

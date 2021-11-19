@@ -1,6 +1,6 @@
 /*
- * Tests that we can successfully change the group state and that all peers in the group
- * receive the correct state changes.
+ * Tests that we can successfully change the group topic, that all peers receive topic changes
+ * and that the topic lock works as intended.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -13,6 +13,8 @@
 #include <stdint.h>
 
 #include "../toxcore/tox.h"
+#include "../toxcore/group_chats.h"
+
 #include "check_compat.h"
 
 #define NUM_GROUP_TOXES 3
@@ -34,7 +36,22 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
+static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t name_length, uint32_t peer_limit)
+{
+    for (uint32_t i = 0; i < tox_count; ++i) {
+          // make sure we got an invite
+        if (tox_group_get_name_size(toxes[i], 0, nullptr) != name_length) {
+            return false;
+        }
 
+        // make sure we got a sync response
+        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], 0, nullptr) != peer_limit) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
@@ -138,45 +155,36 @@ static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, co
     fprintf(stderr, "All peers saw topic: %s\n", topic);
 }
 
+/* All peers attempt to set the topic.
+ *
+ * Returns the number of peers who succeeeded.
+ */
+static uint32_t set_topic_all_peers(Tox **toxes, State *state, size_t num_peers, uint32_t groupnumber)
+{
+    uint32_t change_count = 0;
+
+    for (size_t i = 0; i < num_peers; ++i) {
+        char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
+        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic", i);
+        size_t length = strlen(new_topic);
+
+        if (set_topic(toxes[i], groupnumber, new_topic, length) == 0) {
+            wait_state_topic(toxes, state, groupnumber, new_topic, length);
+            ++change_count;
+        } else {
+            fprintf(stderr, "Peer %zu couldn't set the topic\n", i);
+        }
+    }
+
+    return change_count;
+}
+
 static void group_topic_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
-    time_t cur_time = time(nullptr);
-
     ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        char name[16];
-        snprintf(name, sizeof(name), "test-%zu", i);
-        tox_self_set_name(toxes[i], (const uint8_t *)name, strlen(name), nullptr);
-
-        uint8_t dht_key[TOX_PUBLIC_KEY_SIZE];
-        tox_self_get_dht_id(toxes[0], dht_key);
-        const uint16_t dht_port = tox_self_get_udp_port(toxes[0], nullptr);
-        tox_bootstrap(toxes[i], "localhost", dht_port, dht_key, nullptr);
-
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-    }
-
     tox_callback_group_peer_join(toxes[0], group_peer_join_handler);
-
-    uint32_t num_connected = 0;
-
-    while (1) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (tox_self_get_connection_status(toxes[i])) {
-                ++num_connected;
-            }
-        }
-
-        if (num_connected == NUM_GROUP_TOXES) {
-            break;
-        }
-    }
-
-    printf("%u Tox instances connected after %u seconds!\n", num_connected, (unsigned)(time(nullptr) - cur_time));
 
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
@@ -185,6 +193,8 @@ static void group_topic_test(Tox **toxes, State *state)
                                          (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
+
+    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
     /* Founder sets group topic before anyone else joins */
     int s_ret = set_topic(toxes[0], groupnumber, TOPIC, TOPIC_LEN);
@@ -210,23 +220,7 @@ static void group_topic_test(Tox **toxes, State *state)
 
     fprintf(stderr, "Peers attempting to join group\n");
 
-    /* Keep checking if all instances have connected to the group until test times out */
-    while (1) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
-        uint32_t count = 0;
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (tox_group_get_name_size(toxes[i], 0, nullptr) == GROUP_NAME_LEN) { // if we have the name we're connected
-                ++count;
-            }
-        }
-
-        if (count == NUM_GROUP_TOXES) {
-            fprintf(stderr, "%u peers successfully joined\n", count);
-            break;
-        }
-    }
+    all_group_peers_connected(NUM_GROUP_TOXES, toxes, GROUP_NAME_LEN, MAX_GC_PEERS_DEFAULT);
 
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);
 
@@ -237,47 +231,28 @@ static void group_topic_test(Tox **toxes, State *state)
                   lock_set_err);
 
     fprintf(stderr, "Topic lock disabled\n");
+
+    /* make sure every peer sees the topic lock state change */
     wait_topic_lock(toxes, state, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     /* All peers should be able to change the topic now */
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
-        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic first time", i);
-        size_t length = strlen(new_topic);
+    uint32_t change_count = set_topic_all_peers(toxes, state, NUM_GROUP_TOXES, groupnumber);
 
-        int s2_ret = set_topic(toxes[i], groupnumber, new_topic, length);
-        ck_assert_msg(s2_ret == 0, "Peer %zu failed to set topic with topic lock disabled", i);
-
-        // make sure every peer can see every other peer's topic change
-        wait_state_topic(toxes, state, groupnumber, new_topic, length);
-    }
+    ck_assert_msg(change_count == NUM_GROUP_TOXES, "%u peers changed the topic with topic lock disabled", change_count);
 
     /* founder silences the last peer he saw join */
     TOX_ERR_GROUP_MOD_SET_ROLE merr;
     tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_id, TOX_GROUP_ROLE_OBSERVER, &merr);
     ck_assert_msg(merr == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set %u to observer role: %d", state[0].peer_id, merr);
 
-    fprintf(stderr, "Peer id %u set to observer\n", state[0].peer_id);
+    fprintf(stderr, "Random peer is set to observer\n");
 
     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
     /* All peers except one should now be able to change the topic */
-    uint32_t change_count = 0;
+    change_count = set_topic_all_peers(toxes, state, NUM_GROUP_TOXES, groupnumber);
 
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
-        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic second time", i);
-        size_t length = strlen(new_topic);
-
-        if (set_topic(toxes[i], groupnumber, new_topic, length) == 0) {
-            wait_state_topic(toxes, state, groupnumber, new_topic, length);
-            ++change_count;
-        } else {
-            fprintf(stderr, "Peer %zu couldn't set the topic\n", i);
-        }
-    }
-
-    ck_assert_msg(change_count == NUM_GROUP_TOXES - 1, "%u peers changed the topic", change_count);
+    ck_assert_msg(change_count == NUM_GROUP_TOXES - 1, "%u peers changed the topic with a silenced peer", change_count);
 
     /* Founder enables topic lock and sets topic back to original */
     tox_group_founder_set_topic_lock(toxes[0], groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED, &lock_set_err);
@@ -286,6 +261,7 @@ static void group_topic_test(Tox **toxes, State *state)
 
     fprintf(stderr, "Topic lock enabled\n");
 
+    /* Wait for all peers to get topic lock state change */
     wait_topic_lock(toxes, state, groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED);
 
     int s3_ret = set_topic(toxes[0], groupnumber, TOPIC, TOPIC_LEN);
@@ -293,12 +269,10 @@ static void group_topic_test(Tox **toxes, State *state)
 
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);
 
-    /* Other peers attempt to change topic */
-    for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
-        int s4_ret = set_topic(toxes[i], groupnumber, "test", strlen("test"));
-        ck_assert_msg(s4_ret != 0, "Peer %zu changed the topic with the topic lock on", i);
-        fprintf(stderr, "Peer %zu couldn't set the topic\n", i);
-    }
+    /* No peer excluding the founder should be able to set the topic */
+    change_count = set_topic_all_peers(&toxes[1], &state[1], NUM_GROUP_TOXES - 1, groupnumber);
+
+    ck_assert_msg(change_count == 0, "%u peers changed the topic with topic lock enabled", change_count);
 
     /* A final check that the topic is unchanged */
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);

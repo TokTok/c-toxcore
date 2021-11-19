@@ -36,6 +36,22 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
+static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t name_length, uint32_t peer_limit)
+{
+    for (uint32_t i = 0; i < tox_count; ++i) {
+          // make sure we got an invite
+        if (tox_group_get_name_size(toxes[i], 0, nullptr) != name_length) {
+            return false;
+        }
+
+        // make sure we got a sync response
+        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], 0, nullptr) != peer_limit) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 /* Returns 0 if group state is equal to the state passed to this function.
  * Returns negative integer if state is invalid.
@@ -128,40 +144,7 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
 static void group_state_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
-    time_t cur_time = time(nullptr);
-
     ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
-
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        char name[16];
-        snprintf(name, sizeof(name), "test-%zu", i);
-        tox_self_set_name(toxes[i], (const uint8_t *)name, strlen(name), nullptr);
-
-        uint8_t dht_key[TOX_PUBLIC_KEY_SIZE];
-        tox_self_get_dht_id(toxes[0], dht_key);
-        const uint16_t dht_port = tox_self_get_udp_port(toxes[0], nullptr);
-        tox_bootstrap(toxes[i], "localhost", dht_port, dht_key, nullptr);
-
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-    }
-
-    uint32_t num_connected = 0;
-
-    while (1) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (tox_self_get_connection_status(toxes[i])) {
-                ++num_connected;
-            }
-        }
-
-        if (num_connected == NUM_GROUP_TOXES) {
-            break;
-        }
-    }
-
-    printf("%u Tox instances connected after %u seconds!\n", num_connected, (unsigned)(time(nullptr) - cur_time));
 
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
@@ -213,13 +196,7 @@ static void group_state_test(Tox **toxes, State *state)
         }
     }
 
-    /* Check that all peers have the correct group state */
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-        int ret = check_group_state(toxes[i], 0, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD,
-                                    PASS_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
-        ck_assert_msg(ret == 0, "Invalid group state: %d", ret);
-    }
+    all_group_peers_connected(NUM_GROUP_TOXES, toxes, GROUP_NAME_LEN, PEER_LIMIT_1);
 
     /* Change group state and check that all peers received the changes */
     set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
