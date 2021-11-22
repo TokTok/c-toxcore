@@ -741,7 +741,10 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
 
     uint16_t packed_len = 0;
 
-    // founder pk is always first
+    //version is always first
+    net_pack_u32(data + packed_len, shared_state->version);
+    packed_len += sizeof(uint32_t);
+
     memcpy(data + packed_len, shared_state->founder_public_key, EXT_PUBLIC_KEY);
     packed_len += EXT_PUBLIC_KEY;
     net_pack_u32(data + packed_len, shared_state->maxpeers);
@@ -761,10 +764,6 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     memcpy(data + packed_len, &shared_state->topic_lock, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
 
-    //version is always last
-    net_pack_u32(data + packed_len, shared_state->version);
-    packed_len += sizeof(uint32_t);
-
     return packed_len;
 }
 
@@ -780,7 +779,10 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
 
     uint16_t len_processed = 0;
 
-    // founder pk is always first
+    // version is always first
+    net_unpack_u32(data + len_processed, &shared_state->version);
+    len_processed += sizeof(uint32_t);
+
     memcpy(shared_state->founder_public_key, data + len_processed, EXT_PUBLIC_KEY);
     len_processed += EXT_PUBLIC_KEY;
     net_unpack_u32(data + len_processed, &shared_state->maxpeers);
@@ -800,10 +802,6 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     len_processed += GC_MODERATION_HASH_SIZE;
     memcpy(&shared_state->topic_lock, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
-
-    // version is always last
-    net_unpack_u32(data + len_processed, &shared_state->version);
-    len_processed += sizeof(uint32_t);
 
     return len_processed;
 }
@@ -879,15 +877,16 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
 
     net_pack_u32(data, chat->self_public_key_hash);
     memcpy(data + HASH_ID_BYTES, chat->shared_state_sig, SIGNATURE_SIZE);
-    uint16_t packed_len = pack_gc_shared_state(data + HASH_ID_BYTES + SIGNATURE_SIZE,
-                          length - HASH_ID_BYTES - SIGNATURE_SIZE,
-                          &chat->shared_state);
+
+    size_t header_len = HASH_ID_BYTES + SIGNATURE_SIZE;
+
+    uint16_t packed_len = pack_gc_shared_state(data + header_len, length - header_len, &chat->shared_state);
 
     if (packed_len != GC_PACKED_SHARED_STATE_SIZE) {
         return -1;
     }
 
-    return HASH_ID_BYTES + SIGNATURE_SIZE + packed_len;
+    return header_len + packed_len;
 }
 
 /* Creates a signature for the group's shared state in packed form and increments the version.
@@ -2251,10 +2250,11 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
     }
 
     uint32_t version;
-    net_unpack_u32(data + length - sizeof(uint32_t), &version);
+    net_unpack_u32(ss_data, &version);  // version is the first 4 bytes of shared state data payload
 
     if (version == 0 || version < chat->shared_state.version) {
-        LOGGER_WARNING(m->log, "Invalid shared state version");
+        LOGGER_WARNING(m->log, "Invalid shared state version (got %u, expected >= %u)",
+                       version, chat->shared_state.version);
         return 0;
     }
 
