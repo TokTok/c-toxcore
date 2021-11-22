@@ -18,7 +18,7 @@
 #define NUM_GROUP_TOXES 5
 
 #define PEER_LIMIT_1 NUM_GROUP_TOXES
-#define PEER_LIMIT_2 1
+#define PEER_LIMIT_2 50
 
 #define PASSWORD "dadada"
 #define PASS_LEN (sizeof(PASSWORD) - 1)
