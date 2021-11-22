@@ -224,10 +224,10 @@ typedef struct GC_SharedState {
 } GC_SharedState;
 
 typedef struct GC_TopicInfo {
-    uint8_t     topic[MAX_GC_TOPIC_SIZE];
-    uint16_t    length;
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY];   /* Public signature key of the topic setter */
     uint32_t    version;
+    uint16_t    length;
+    uint8_t     topic[MAX_GC_TOPIC_SIZE];
+    uint8_t     public_sig_key[SIG_PUBLIC_KEY];   /* Public signature key of the topic setter */
 } GC_TopicInfo;
 
 typedef struct GC_Connection GC_Connection;
