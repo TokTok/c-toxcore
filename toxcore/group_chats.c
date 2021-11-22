@@ -819,14 +819,14 @@ static uint16_t pack_gc_topic_info(uint8_t *data, uint16_t length, const GC_Topi
 
     uint16_t packed_len = 0;
 
+    net_pack_u32(data + packed_len, topic_info->version);
+    packed_len += sizeof(uint32_t);
     net_pack_u16(data + packed_len, topic_info->length);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, topic_info->topic, topic_info->length);
     packed_len += topic_info->length;
     memcpy(data + packed_len, topic_info->public_sig_key, SIG_PUBLIC_KEY);
     packed_len += SIG_PUBLIC_KEY;
-    net_pack_u32(data + packed_len, topic_info->version);
-    packed_len += sizeof(uint32_t);
 
     return packed_len;
 }
@@ -844,8 +844,11 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
 
     uint16_t len_processed = 0;
 
+    net_unpack_u32(data + len_processed, &topic_info->version);
+    len_processed += sizeof(uint32_t);
     net_unpack_u16(data + len_processed, &topic_info->length);
     len_processed += sizeof(uint16_t);
+
     topic_info->length = min_u16(topic_info->length, MAX_GC_TOPIC_SIZE);
 
     if (length - sizeof(uint16_t) < topic_info->length + SIG_PUBLIC_KEY + sizeof(uint32_t)) {
@@ -856,8 +859,6 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
     len_processed += topic_info->length;
     memcpy(topic_info->public_sig_key, data + len_processed, SIG_PUBLIC_KEY);
     len_processed += SIG_PUBLIC_KEY;
-    net_unpack_u32(data + len_processed, &topic_info->version);
-    len_processed += sizeof(uint32_t);
 
     return len_processed;
 }
