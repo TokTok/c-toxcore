@@ -182,7 +182,7 @@ struct GC_Sanction_Creds {
 typedef struct GC_Moderation {
     struct GC_Sanction *sanctions;
     struct GC_Sanction_Creds sanctions_creds;
-    uint32_t    num_sanctions;
+    uint16_t    num_sanctions;
 
     uint8_t     **mod_list;  /* Array of public signature keys of all the mods */
     uint16_t    num_mods;
