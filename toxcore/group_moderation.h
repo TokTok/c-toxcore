@@ -10,7 +10,9 @@
 #ifndef GROUP_MODERATION_H
 #define GROUP_MODERATION_H
 
+/* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
 #define MAX_GC_SANCTIONS 12
+
 #define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_MODERATION_HASH_SIZE + SIG_PUBLIC_KEY + SIGNATURE_SIZE)
 
 typedef enum Group_Sanction_Type {
@@ -22,7 +24,7 @@ typedef struct GC_Sanction_Info {
     uint8_t     target_pk[ENC_PUBLIC_KEY];
 } GC_Sanction_Info;
 
-/* Holds data pertaining to a peer who has sanctioned. */
+/* Holds data pertaining to a peer who has been sanctioned. */
 struct GC_Sanction {
     uint8_t     public_sig_key[SIG_PUBLIC_KEY];
     uint64_t    time_set;
@@ -98,7 +100,7 @@ void mod_list_cleanup(GC_Chat *chat);
  * Returns -1 on failure.
  */
 int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanctions,
-                        const struct GC_Sanction_Creds *creds, uint32_t num_sanctions);
+                        const struct GC_Sanction_Creds *creds, uint16_t num_sanctions);
 
 /* Unpack max_sanctions sanctions from data into sanctions, and unpacks credentials into creds.
  * Put the length of the data processed in processed_data_len.
@@ -106,7 +108,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
  * Returns number of unpacked entries on success.
  * Returns -1 on failure.
  */
-int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds, uint32_t max_sanctions,
+int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds, uint16_t max_sanctions,
                           const uint8_t *data, uint16_t length, uint16_t *processed_data_len);
 
 /* Packs sanction list credentials into data.
@@ -137,7 +139,7 @@ int sanctions_list_make_creds(GC_Chat *chat);
  * Returns -1 if one or more entries are invalid.
  */
 int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds *creds,
-                                   struct GC_Sanction *sanctions, uint32_t num_sanctions);
+                                   struct GC_Sanction *sanctions, uint16_t num_sanctions);
 
 /* Adds an entry to the sanctions list. The entry is first validated and the resulting
  * new sanction list is compared against the new credentials.
@@ -176,7 +178,7 @@ int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, str
  *
  * Returns the number of entries re-signed.
  */
-uint32_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key);
+uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key);
 
 void sanctions_list_cleanup(GC_Chat *chat);
 

@@ -639,7 +639,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
     const GC_Sanction *sanction = nullptr;
     uint8_t target_pk[ENC_PUBLIC_KEY];
 
-    for (uint32_t i = 0; i < chat->moderation.num_sanctions; ++i) {
+    for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
         int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].info.target_pk, true);
 
         if (peer_number == -1) {
@@ -2386,11 +2386,11 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         return -1;
     }
 
-    uint32_t num_sanctions;
-    net_unpack_u32(data, &num_sanctions);
+    uint16_t num_sanctions;
+    net_unpack_u16(data, &num_sanctions);
 
     if (num_sanctions > MAX_GC_SANCTIONS) {
-        LOGGER_ERROR(chat->logger, "num_sanctions: %u exceeds maximum", num_sanctions);
+        LOGGER_ERROR(chat->logger, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MAX_GC_SANCTIONS);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
@@ -2402,8 +2402,8 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         return -1;
     }
 
-    int unpacked_num = sanctions_list_unpack(sanctions, &creds, num_sanctions, data + sizeof(uint32_t),
-                       length - sizeof(uint32_t), nullptr);
+    int unpacked_num = sanctions_list_unpack(sanctions, &creds, num_sanctions, data + sizeof(uint16_t),
+                       length - sizeof(uint16_t), nullptr);
 
     if (unpacked_num != num_sanctions) {
         LOGGER_ERROR(m->log, "sanctions_list_unpack failed in handle_gc_sanctions_list: %d", unpacked_num);
@@ -2499,13 +2499,13 @@ static int send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn)
  */
 static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uint32_t maxlen)
 {
-    if (maxlen < HASH_ID_BYTES + sizeof(uint32_t)) {
+    if (maxlen < HASH_ID_BYTES + sizeof(uint16_t)) {
         return -1;
     }
 
     net_pack_u32(data, chat->self_public_key_hash);
-    net_pack_u32(data + HASH_ID_BYTES, chat->moderation.num_sanctions);
-    uint32_t length = HASH_ID_BYTES + sizeof(uint32_t);
+    net_pack_u16(data + HASH_ID_BYTES, chat->moderation.num_sanctions);
+    uint32_t length = HASH_ID_BYTES + sizeof(uint16_t);
 
     int packed_len = sanctions_list_pack(data + length, maxlen - length, chat->moderation.sanctions,
                                          &chat->moderation.sanctions_creds, chat->moderation.num_sanctions);
