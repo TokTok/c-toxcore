@@ -1109,7 +1109,11 @@ static int send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn,
     return 0;
 }
 
-/* Sends a group sync request to peer. */
+/* Sends a group sync request to peer.
+ *
+ * Returns 0 on success.
+ * Returns -1 on failure.
+ */
 static int send_gc_sync_request(const GC_Chat *chat, GC_Connection *gconn, uint16_t sync_flags)
 {
     uint32_t length = HASH_ID_BYTES + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE;
@@ -1306,6 +1310,11 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
         return -1;
     }
 
+    if (!mono_time_is_timeout(chat->mono_time, gconn->last_sync_response, GC_SYNC_REQUEST_LIMIT)) {
+        LOGGER_DEBUG(m->log, "sync request rate limit for peer %d", peer_number);
+        return 0;
+    }
+
     uint16_t sync_flags;
     net_unpack_u16(data, &sync_flags);
 
@@ -1335,6 +1344,8 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
             LOGGER_ERROR(m->log, "Failed to send sanctions list");
             return -1;
         }
+
+        gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
     if (sync_flags & GF_TOPIC) {
@@ -1342,6 +1353,8 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
             LOGGER_ERROR(m->log, "Failed to send topic");
             return -1;
         }
+
+        gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
     if (!(sync_flags & GF_PEER_LIST)) {
@@ -1350,8 +1363,8 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
 
     uint8_t response[MAX_GC_PACKET_SIZE];
     memset(response, 0, sizeof(response));
-    uint32_t reseponse_len;
 
+    uint32_t reseponse_len;
     net_pack_u32(response, chat->self_public_key_hash);
 
     GC_Announce announce;
@@ -1397,6 +1410,8 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
 
         if (send_gc_sync_response(chat, gconn, response, reseponse_len) == -1) {
             LOGGER_ERROR(m->log, "Failed to send peer announce info");
+        } else {
+            gconn->last_sync_response = mono_time_get(chat->mono_time);
         }
     }
 
@@ -2216,13 +2231,23 @@ static int handle_gc_shared_state_error(Messenger *m, int group_number, uint32_t
         return -1;
     }
 
+    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+        return -1;
+    }
+
     GC_Connection *rand_gconn = gcc_random_connection(chat);
 
     if (rand_gconn == nullptr) {
         return -1;
     }
 
-    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
+    if (send_gc_sync_request(chat, rand_gconn, GF_STATE) != 0) {
+        return -1;
+    }
+
+    chat->last_sync_request = mono_time_get(chat->mono_time);
+
+    return 0;
 }
 
 /* Handles a shared state packet.
@@ -2357,13 +2382,23 @@ ON_ERROR:
         return -1;
     }
 
+    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+        return -1;
+    }
+
     GC_Connection *rand_gconn = gcc_random_connection(chat);
 
     if (rand_gconn == nullptr) {
         return -1;
     }
 
-    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
+    if (send_gc_sync_request(chat, rand_gconn, GF_STATE) != 0) {
+        return -1;
+    }
+
+    chat->last_sync_request = mono_time_get(chat->mono_time);
+
+    return 0;
 }
 
 static int handle_gc_sanctions_list_error(Messenger *m, int group_number, uint32_t peer_number, GC_Chat *chat)
@@ -2381,13 +2416,23 @@ static int handle_gc_sanctions_list_error(Messenger *m, int group_number, uint32
         return -1;
     }
 
+    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+        return -1;
+    }
+
     GC_Connection *rand_gconn = gcc_random_connection(chat);
 
     if (rand_gconn == nullptr) {
         return -1;
     }
 
-    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
+    if (send_gc_sync_request(chat, rand_gconn, GF_STATE) != 0) {
+        return -1;
+    }
+
+    chat->last_sync_request = mono_time_get(chat->mono_time);
+
+    return 0;
 }
 
 static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
