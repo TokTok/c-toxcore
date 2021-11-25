@@ -52,10 +52,14 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-static bool all_peers_connected(State *state)
+static bool all_peers_connected(Tox **toxes, State *state)
 {
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         if (state[i].num_peers != NUM_GROUP_TOXES - 1) {
+            return false;
+        }
+
+        if (!tox_group_is_connected(toxes[i], state[i].group_number, NULL)) {
             return false;
         }
     }
@@ -283,7 +287,7 @@ static void group_moderation_test(Tox **toxes, State *state)
     // make sure every peer sees every other peer before we continue
     do {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-    } while (!all_peers_connected(state));
+    } while (!all_peers_connected(toxes, state));
 
     // founder doesn't receive callbacks for mod events so we default these to true
     state[0].mod_check = true;
