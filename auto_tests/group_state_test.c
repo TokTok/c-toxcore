@@ -36,21 +36,64 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t name_length, uint32_t peer_limit)
+static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t groupnumber, size_t name_length,
+                                      uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
         // make sure we got an invite
-        if (tox_group_get_name_size(toxes[i], 0, nullptr) != name_length) {
+        if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != name_length) {
             return false;
         }
 
         // make sure we got a sync response
-        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], 0, nullptr) != peer_limit) {
+        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != peer_limit) {
+            return false;
+        }
+
+        // make sure we're actually connected
+        if (!tox_group_is_connected(toxes[i], groupnumber, NULL)) {
             return false;
         }
     }
 
     return true;
+}
+
+static void group_privacy_state_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_PRIVACY_STATE privacy_state,
+                                        void *user_data)
+{
+    TOX_ERR_GROUP_STATE_QUERIES err;
+    TOX_GROUP_PRIVACY_STATE current_pstate = tox_group_get_privacy_state(tox, groupnumber, &err);
+
+    ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert_msg(current_pstate == privacy_state, "privacy states don't match in callback");
+}
+
+static void group_peer_limit_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_limit, void *user_data)
+{
+    TOX_ERR_GROUP_STATE_QUERIES err;
+    uint32_t current_plimit = tox_group_get_peer_limit(tox, groupnumber, &err);
+
+    ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert_msg(peer_limit == current_plimit,
+                  "Peer limits don't match in callback: %u, %u\n", peer_limit, current_plimit);
+}
+
+static void group_password_handler(Tox *tox, uint32_t groupnumber, const uint8_t *password, size_t length,
+                                   void *user_data)
+{
+    TOX_ERR_GROUP_STATE_QUERIES err;
+    size_t curr_pwlength = tox_group_get_password_size(tox, groupnumber, &err);
+
+    ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert(length == curr_pwlength);
+
+    uint8_t current_password[TOX_GROUP_MAX_PASSWORD_SIZE];
+    tox_group_get_password(tox, groupnumber, current_password, &err);
+
+    ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert_msg(memcmp(current_password, password, length) == 0,
+                  "Passwords don't match: %s, %s", password, current_password);
 }
 
 /* Returns 0 if group state is equal to the state passed to this function.
@@ -146,6 +189,12 @@ static void group_state_test(Tox **toxes, State *state)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        tox_callback_group_privacy_state(toxes[i], group_privacy_state_handler);
+        tox_callback_group_peer_limit(toxes[i], group_peer_limit_handler);
+        tox_callback_group_password(toxes[i], group_password_handler);
+    }
+
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnum = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
@@ -197,7 +246,7 @@ static void group_state_test(Tox **toxes, State *state)
         }
     }
 
-    all_group_peers_connected(NUM_GROUP_TOXES, toxes, GROUP_NAME_LEN, PEER_LIMIT_1);
+    all_group_peers_connected(NUM_GROUP_TOXES, toxes, groupnum, GROUP_NAME_LEN, PEER_LIMIT_1);
 
     /* Change group state and check that all peers received the changes */
     set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
