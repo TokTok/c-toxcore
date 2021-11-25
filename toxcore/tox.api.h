@@ -3053,8 +3053,9 @@ namespace group {
   }
 
   /**
-   * Returns true if the group chat is currently disconnected and not attempting to connect to
-   * other peers in the group.
+   * Disconnects from a group chat while retaining the group state and credentials.
+   *
+   * Returns true if we successfully disconnect from the group.
    *
    * @param group_number The group number of the designated group.
    */
