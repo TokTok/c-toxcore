@@ -174,6 +174,7 @@ static void group_state_test(Tox **toxes, State *state)
         tox_group_join(toxes[i], chat_id, (const uint8_t *)nick, strlen(nick), (const uint8_t *)PASSWORD, PASS_LEN,
                        &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
+        c_sleep(100);
     }
 
     fprintf(stderr, "Peers attempting to join group\n");
