@@ -59,7 +59,8 @@ static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t 
     return true;
 }
 
-static void group_privacy_state_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_PRIVACY_STATE privacy_state, void *user_data)
+static void group_privacy_state_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_PRIVACY_STATE privacy_state,
+                                        void *user_data)
 {
     TOX_ERR_GROUP_STATE_QUERIES err;
     TOX_GROUP_PRIVACY_STATE current_pstate = tox_group_get_privacy_state(tox, groupnumber, &err);

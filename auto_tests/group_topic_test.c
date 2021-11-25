@@ -68,7 +68,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t pee
 }
 
 static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, const uint8_t *topic,
-                         size_t length, void *user_data)
+                                size_t length, void *user_data)
 {
     ck_assert(length <= TOX_GROUP_MAX_TOPIC_LENGTH);
 
