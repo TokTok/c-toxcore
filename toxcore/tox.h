@@ -3270,10 +3270,6 @@ uint32_t tox_group_chat_id_size(void);
 
 uint32_t tox_group_peer_public_key_size(void);
 
-#define TOX_GROUP_MAX_PEER_LENGTH      128
-
-uint32_t tox_group_max_peer_length(void);
-
 
 /*******************************************************************************
  *
