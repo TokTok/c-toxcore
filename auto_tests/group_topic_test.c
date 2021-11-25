@@ -36,16 +36,22 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t name_length, uint32_t peer_limit)
+static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t groupnumber, size_t name_length,
+                                      uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
         // make sure we got an invite
-        if (tox_group_get_name_size(toxes[i], 0, nullptr) != name_length) {
+        if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != name_length) {
             return false;
         }
 
         // make sure we got a sync response
-        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], 0, nullptr) != peer_limit) {
+        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != peer_limit) {
+            return false;
+        }
+
+        // make sure we're actually connected
+        if (!tox_group_is_connected(toxes[i], groupnumber, NULL)) {
             return false;
         }
     }
@@ -53,12 +59,37 @@ static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, size_t na
     return true;
 }
 
-static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
+static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, void *user_data)
 {
-    if (user_data) {
-        State *state = (State *)user_data;
-        state->peer_id = peer_id;
-    }
+    ck_assert(user_data != nullptr);
+
+    State *state = (State *)user_data;
+    state->peer_id = peer_id;
+}
+
+static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, const uint8_t *topic,
+                         size_t length, void *user_data)
+{
+    ck_assert(length <= TOX_GROUP_MAX_TOPIC_LENGTH);
+
+    TOX_ERR_GROUP_STATE_QUERIES query_err;
+    uint8_t topic2[TOX_GROUP_MAX_TOPIC_LENGTH];
+    tox_group_get_topic(tox, groupnumber, topic2, &query_err);
+    ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+
+    size_t topic_length = tox_group_get_topic_size(tox, groupnumber, &query_err);
+    ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert_msg(topic_length == length && memcmp(topic, topic2, length) == 0,
+                  "topic differs in callback: %s, %s", topic, topic2);
+}
+
+static void group_topic_lock_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_TOPIC_LOCK topic_lock, void *user_data)
+{
+    TOX_ERR_GROUP_STATE_QUERIES err;
+    TOX_GROUP_TOPIC_LOCK current_lock = tox_group_get_topic_lock(tox, groupnumber, &err);
+
+    ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+    ck_assert_msg(topic_lock == current_lock, "topic locks differ in callback");
 }
 
 /* Sets group topic.
@@ -186,6 +217,11 @@ static void group_topic_test(Tox **toxes, State *state)
 
     tox_callback_group_peer_join(toxes[0], group_peer_join_handler);
 
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        tox_callback_group_topic(toxes[i], group_topic_handler);
+        tox_callback_group_topic_lock(toxes[i], group_topic_lock_handler);
+    }
+
     /* Tox1 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
@@ -222,7 +258,7 @@ static void group_topic_test(Tox **toxes, State *state)
 
     fprintf(stderr, "Peers attempting to join group\n");
 
-    all_group_peers_connected(NUM_GROUP_TOXES, toxes, GROUP_NAME_LEN, MAX_GC_PEERS_DEFAULT);
+    all_group_peers_connected(NUM_GROUP_TOXES, toxes, groupnumber, GROUP_NAME_LEN, MAX_GC_PEERS_DEFAULT);
 
     wait_state_topic(toxes, state, groupnumber, TOPIC, TOPIC_LEN);
 
