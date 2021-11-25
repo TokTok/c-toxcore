@@ -2216,7 +2216,13 @@ static int handle_gc_shared_state_error(Messenger *m, int group_number, uint32_t
         return -1;
     }
 
-    return send_gc_sync_request(chat, &chat->gcc[1], GF_STATE);
+    GC_Connection *rand_gconn = gcc_random_connection(chat);
+
+    if (rand_gconn == nullptr) {
+        return -1;
+    }
+
+    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
 }
 
 /* Handles a shared state packet.
@@ -2351,7 +2357,13 @@ ON_ERROR:
         return -1;
     }
 
-    return send_gc_sync_request(chat, &chat->gcc[1], GF_STATE);
+    GC_Connection *rand_gconn = gcc_random_connection(chat);
+
+    if (rand_gconn == nullptr) {
+        return -1;
+    }
+
+    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
 }
 
 static int handle_gc_sanctions_list_error(Messenger *m, int group_number, uint32_t peer_number, GC_Chat *chat)
@@ -2369,7 +2381,13 @@ static int handle_gc_sanctions_list_error(Messenger *m, int group_number, uint32
         return -1;
     }
 
-    return send_gc_sync_request(chat, &chat->gcc[1], GF_STATE);
+    GC_Connection *rand_gconn = gcc_random_connection(chat);
+
+    if (rand_gconn == nullptr) {
+        return -1;
+    }
+
+    return send_gc_sync_request(chat, rand_gconn, GF_STATE);
 }
 
 static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,

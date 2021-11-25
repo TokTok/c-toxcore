@@ -41,6 +41,35 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number)
     return &chat->gcc[peer_number];
 }
 
+/* Returns a random group connection that isn't our own and isn't marked for deletion.
+ * Returns NULL if there are no available connections.
+ */
+GC_Connection *gcc_random_connection(const GC_Chat *chat)
+{
+    if (chat->numpeers <= 1) {
+        return nullptr;
+    }
+
+    uint32_t index = random_u32() % chat->numpeers;
+
+    if (index == 0) {
+        index = 1;
+    }
+
+    GC_Connection *rand_gconn = &chat->gcc[index];
+
+    do {
+        if (!rand_gconn->pending_delete) {
+            return rand_gconn;
+        }
+
+        index = (index + 1) % chat->numpeers;
+        rand_gconn = &chat->gcc[index];
+    } while (index != 0);
+
+    return nullptr;
+}
+
 /* Returns true if ary entry does not contain an active packet. */
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
 {
