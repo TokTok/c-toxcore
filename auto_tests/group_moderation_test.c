@@ -276,6 +276,8 @@ static void group_moderation_test(Tox **toxes, State *state)
                                                nullptr, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "Peer %s (%zu) failed to join group. error %d",
                       state[i].self_name, i, join_err);
+
+        c_sleep(100);
     }
 
     // make sure every peer sees every other peer before we continue
