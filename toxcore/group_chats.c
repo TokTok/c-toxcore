@@ -4032,10 +4032,16 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
         return -3;
     }
 
+    uint8_t packet[MAX_GC_MESSAGE_SIZE + HASH_ID_BYTES];
+    net_pack_u32(packet, chat->self_public_key_hash);
+
+    memcpy(packet + HASH_ID_BYTES, data, length);
+    size_t packet_len = length + HASH_ID_BYTES;
+
     if (lossless) {
-        send_gc_lossless_packet_all_peers(chat, data, length, GP_CUSTOM_PACKET);
+        send_gc_lossless_packet_all_peers(chat, packet, packet_len, GP_CUSTOM_PACKET);
     } else {
-        send_gc_lossy_packet_all_peers(chat, data, length, GP_CUSTOM_PACKET);
+        send_gc_lossy_packet_all_peers(chat, packet, packet_len, GP_CUSTOM_PACKET);
     }
 
     return 0;
@@ -4049,7 +4055,7 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
 static int handle_gc_custom_packet(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                                    uint32_t length)
 {
-    if (data == nullptr || length == 0 || length > MAX_GC_PACKET_SIZE) {
+    if (data == nullptr || length == 0 || length > MAX_GC_MESSAGE_SIZE) {
         return -1;
     }
 
