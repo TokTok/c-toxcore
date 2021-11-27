@@ -2572,7 +2572,7 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
 
 void tox_logmsg(const Tox *tox, Logger_Level level, const char *file, int line, const char *func, const char *fmt, ...)
 {
-    if (!tox) {
+    if (tox == nullptr) {
         return;
     }
 

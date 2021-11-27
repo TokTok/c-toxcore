@@ -133,7 +133,7 @@ static int toxav_friend_exists(const Tox *tox, int32_t friendnumber);
 
 MSISession *tox_av_msi_get(ToxAV *av)
 {
-    if (!av) {
+    if (av == nullptr) {
         return nullptr;
     }
 
@@ -1506,7 +1506,7 @@ static void call_kill_transmission(ToxAVCall *call)
 
 Mono_Time *toxav_get_av_mono_time(ToxAV *toxav)
 {
-    if (!toxav) {
+    if (toxav == nullptr) {
         return nullptr;
     }
 

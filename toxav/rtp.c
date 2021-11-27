@@ -250,7 +250,7 @@ static struct RTPMessage *process_frame(Tox *tox, struct RTPWorkBufferList *wkbl
 }
 
 /**
- * @param tox pointer to Tox
+ * @param tox A pointer to the Tox object.
  * @param wkbl The list of in-progress frames, i.e. all the slots.
  * @param slot_id The slot we want to fill the data into.
  * @param is_keyframe Whether the data is part of a key frame.

@@ -924,7 +924,7 @@ static void handle_pop(MSICall *call, const MSIMessage *msg)
     kill_call(call);
 }
 
-static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length2, void *object)
+static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length_with_pkt_id, void *object)
 {
     if (length2 < 2) {
         LOGGER_API_ERROR(tox, "MSI packet is less than 2 bytes in size");
@@ -933,7 +933,7 @@ static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *d
     }
 
     // Zoff: is this correct?
-    uint16_t length = (uint16_t)(length2 - 1);
+    uint16_t length = (uint16_t)(length_with_pkt_id - 1);
 
     // Zoff: do not show the first byte, its always "PACKET_ID_MSI"
     const uint8_t *data_strip_id_byte = (const uint8_t *)(data + 1);
