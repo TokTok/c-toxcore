@@ -81,7 +81,7 @@ static MSICall *new_call(MSISession *session, uint32_t friend_number);
 static void handle_init(MSICall *call, const MSIMessage *msg);
 static void handle_push(MSICall *call, const MSIMessage *msg);
 static void handle_pop(MSICall *call, const MSIMessage *msg);
-static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length2, void *object);
+static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length_with_pkt_id, void *object);
 
 
 /**
@@ -926,7 +926,7 @@ static void handle_pop(MSICall *call, const MSIMessage *msg)
 
 static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length_with_pkt_id, void *object)
 {
-    if (length2 < 2) {
+    if (length_with_pkt_id < 2) {
         LOGGER_API_ERROR(tox, "MSI packet is less than 2 bytes in size");
         // we need more than the ID byte for MSI messages
         return;
