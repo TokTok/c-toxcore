@@ -2219,9 +2219,7 @@ static void do_tcp(Net_Crypto *c, void *userdata)
             continue;
         }
 
-        pthread_mutex_lock(&c->tcp_mutex);
         set_tcp_connection_to_status(c->tcp_c, conn->connection_number_tcp, !direct_connected);
-        pthread_mutex_unlock(&c->tcp_mutex);
     }
 }
 
