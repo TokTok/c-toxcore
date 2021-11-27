@@ -932,7 +932,6 @@ static void handle_msi_packet(Tox *tox, uint32_t friend_number, const uint8_t *d
         return;
     }
 
-    // Zoff: is this correct?
     uint16_t length = (uint16_t)(length_with_pkt_id - 1);
 
     // Zoff: do not show the first byte, its always "PACKET_ID_MSI"
