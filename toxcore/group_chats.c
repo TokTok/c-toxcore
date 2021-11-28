@@ -4199,10 +4199,6 @@ int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id)
         return -3;
     }
 
-    if (PEER_NUMBER_IS_SELF(peer_number)) {
-        return -2;
-    }
-
     if (chat->group[peer_number].role == GR_MODERATOR || chat->group[peer_number].role == GR_OBSERVER) {
         /* this first removes peer from any lists they're on and broadcasts new lists to group */
         if (gc_set_peer_role(m, group_number, peer_id, GR_USER) < 0) {
