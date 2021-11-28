@@ -2748,6 +2748,7 @@ DHT *new_dht(const Logger *log, Mono_Time *mono_time, Networking_Core *net, bool
 void do_dht(DHT *dht)
 {
     const uint64_t cur_time = mono_time_get(dht->mono_time);
+
     if (dht->last_run == cur_time) {
         return;
     }
