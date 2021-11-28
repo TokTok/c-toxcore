@@ -15,7 +15,7 @@
 #include "group_announce.h"
 
 #define TIME_STAMP_SIZE (sizeof(uint64_t))
-#define HASH_ID_BYTES (sizeof(uint32_t))
+#define CHAT_ID_HASH_SIZE (sizeof(uint32_t))
 
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
@@ -315,7 +315,6 @@ typedef struct GC_Chat {
 
     uint8_t     self_public_key[EXT_PUBLIC_KEY];
     uint8_t     self_secret_key[EXT_SECRET_KEY];
-    uint32_t    self_public_key_hash;
 
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
