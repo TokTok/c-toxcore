@@ -87,7 +87,7 @@ struct Onion_Friend {
     uint32_t run_count;
 
     uint8_t gc_data[GCA_MAX_DATA_LENGTH];
-    uint8_t gc_public_key[ENC_PUBLIC_KEY];
+    uint8_t gc_public_key[ENC_PUBLIC_KEY_SIZE];
     int16_t gc_data_length;
 };
 
@@ -155,7 +155,7 @@ const uint8_t *onion_friend_get_gc_public_key(Onion_Friend *onion_friend)
 
 void onion_friend_set_gc_public_key(Onion_Friend *onion_friend, const uint8_t *public_key)
 {
-    memcpy(onion_friend->gc_public_key, public_key, ENC_PUBLIC_KEY);
+    memcpy(onion_friend->gc_public_key, public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
 
