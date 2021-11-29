@@ -16,7 +16,7 @@
 #define GCA_ANNOUNCE_SAVING_TIMEOUT 30
 #define GCA_MAX_ANNOUNCED_TCP_RELAYS 1
 #define GCA_MAX_SENT_ANNOUNCES 4
-#define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY + 2)
+#define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY_SIZE + 2)
 #define GCA_ANNOUNCE_MAX_SIZE (sizeof(GC_Announce))
 #define GCA_PUBLIC_ANNOUNCE_MAX_SIZE (sizeof(GC_Public_Announce))
 
@@ -32,7 +32,7 @@ struct GC_Announce {
     uint8_t tcp_relays_count;
     uint8_t ip_port_is_set;
     IP_Port ip_port;
-    uint8_t peer_public_key[ENC_PUBLIC_KEY];
+    uint8_t peer_public_key[ENC_PUBLIC_KEY_SIZE];
 };
 
 // Peer announce for specific group
@@ -44,7 +44,7 @@ struct GC_Peer_Announce {
 // Used for announces in public groups
 struct GC_Public_Announce {
     GC_Announce base_announce;
-    uint8_t chat_public_key[ENC_PUBLIC_KEY];
+    uint8_t chat_public_key[ENC_PUBLIC_KEY_SIZE];
 };
 
 struct GC_Announces {
