@@ -164,7 +164,7 @@ static bool public_key_valid(const uint8_t[CRYPTO_PUBLIC_KEY_SIZE] public_key);
 /**
  * Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
  * Used for group chats and group DHT announcements.
- * pk and sk must have room for at least EXT_PUBLIC_KEY bytes each.
+ * pk and sk must have room for at least EXT_PUBLIC_KEY_SIZE bytes each.
  */
 static int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk);
 

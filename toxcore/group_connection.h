@@ -44,8 +44,8 @@ struct GC_Connection {
 
     GC_PeerAddress   addr;   /* holds peer's extended real public key and ip_port */
     uint32_t    public_key_hash;   /* hash of peer's real encryption public key */
-    uint8_t     session_public_key[ENC_PUBLIC_KEY];   /* self session public key for this peer */
-    uint8_t     session_secret_key[ENC_SECRET_KEY];   /* self session secret key for this peer */
+    uint8_t     session_public_key[ENC_PUBLIC_KEY_SIZE];   /* self session public key for this peer */
+    uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
     uint8_t     shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
 
     int         tcp_connection_num;

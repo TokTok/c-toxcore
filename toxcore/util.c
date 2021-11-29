@@ -22,12 +22,12 @@
 #include <string.h>
 #include <time.h>
 
-// Need dht because of ENC_SECRET_KEY and ENC_PUBLIC_KEY
-#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
-#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
-#define SIG_PUBLIC_KEY CRYPTO_SIGN_PUBLIC_KEY_SIZE
-#define SIG_SECRET_KEY CRYPTO_SIGN_SECRET_KEY_SIZE
-#define CHAT_ID_SIZE SIG_PUBLIC_KEY
+// Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
+#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
+#define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
+#define SIG_SECRET_KEY_SIZE CRYPTO_SIGN_SECRET_KEY_SIZE
+#define CHAT_ID_SIZE SIG_PUBLIC_KEY_SIZE
 
 #include "crypto_core.h" /* for CRYPTO_PUBLIC_KEY_SIZE */
 #include "network.h" /* for current_time_monotonic */
@@ -45,27 +45,27 @@ const uint8_t *get_enc_key(const uint8_t *key)
 
 const uint8_t *get_sig_pk(const uint8_t *key)
 {
-    return key + ENC_PUBLIC_KEY;
+    return key + ENC_PUBLIC_KEY_SIZE;
 }
 
 void set_sig_pk(uint8_t *key, const uint8_t *sig_pk)
 {
-    memcpy(key + ENC_PUBLIC_KEY, sig_pk, SIG_PUBLIC_KEY);
+    memcpy(key + ENC_PUBLIC_KEY_SIZE, sig_pk, SIG_PUBLIC_KEY_SIZE);
 }
 
 const uint8_t *get_sig_sk(const uint8_t *key)
 {
-    return key + ENC_SECRET_KEY;
+    return key + ENC_SECRET_KEY_SIZE;
 }
 
 void set_sig_sk(uint8_t *key, const uint8_t *sig_sk)
 {
-    memcpy(key + ENC_SECRET_KEY, sig_sk, SIG_SECRET_KEY);
+    memcpy(key + ENC_SECRET_KEY_SIZE, sig_sk, SIG_SECRET_KEY_SIZE);
 }
 
 const uint8_t *get_chat_id(const uint8_t *key)
 {
-    return key + ENC_PUBLIC_KEY;
+    return key + ENC_PUBLIC_KEY_SIZE;
 }
 
 
@@ -77,7 +77,7 @@ bool id_equal(const uint8_t *dest, const uint8_t *src)
 
 int id_cmp(const uint8_t *first_id, const uint8_t *second_id)
 {
-    return memcmp(first_id, second_id, ENC_PUBLIC_KEY);
+    return memcmp(first_id, second_id, ENC_PUBLIC_KEY_SIZE);
 }
 
 bool chat_id_equal(const uint8_t *dest, const uint8_t *src)
