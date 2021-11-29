@@ -40,46 +40,46 @@
 #define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY + CHAT_ID_SIZE)
 
 typedef enum Self_UDP_Status {
-    SELF_UDP_STATUS_NONE,
-    SELF_UDP_STATUS_WAN,
-    SELF_UDP_STATUS_LAN,
+    SELF_UDP_STATUS_NONE = 0x00,
+    SELF_UDP_STATUS_WAN  = 0x01,
+    SELF_UDP_STATUS_LAN  = 0x02,
 } Self_UDP_Status;
 
 typedef enum Group_Privacy_State {
-    GI_PUBLIC,
-    GI_PRIVATE,
-    GI_INVALID,
+    GI_PUBLIC   = 0x00,
+    GI_PRIVATE  = 0x01,
+    GI_INVALID  = 0x02,
 } Group_Privacy_State;
 
 typedef enum Group_Topic_Lock {
-    TL_ENABLED,
-    TL_DISABLED,
-    TL_INVALID,
+    TL_ENABLED  = 0x00,
+    TL_DISABLED = 0x01,
+    TL_INVALID  = 0x02,
 } Group_Topic_Lock;
 
 typedef enum Group_Moderation_Event {
-    MV_KICK,
-    MV_OBSERVER,
-    MV_USER,
-    MV_MODERATOR,
-    MV_INVALID,
+    MV_KICK      = 0x00,
+    MV_OBSERVER  = 0x01,
+    MV_USER      = 0x02,
+    MV_MODERATOR = 0x03,
+    MV_INVALID   = 0x04,
 } Group_Moderation_Event;
 
 typedef enum Group_Exit_Type {
-    GC_EXIT_TYPE_QUIT,
-    GC_EXIT_TYPE_TIMEOUT,
-    GC_EXIT_TYPE_DISCONNECTED,
-    GC_EXIT_TYPE_SELF_DISCONNECTED,
-    GC_EXIT_TYPE_KICKED,
-    GC_EXIT_TYPE_SYNC_ERR,
-    GC_EXIT_TYPE_NO_CALLBACK,
-    GC_EXIT_TYPE_INVALID,
+    GC_EXIT_TYPE_QUIT              = 0x00,
+    GC_EXIT_TYPE_TIMEOUT           = 0x01,
+    GC_EXIT_TYPE_DISCONNECTED      = 0x02,
+    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,
+    GC_EXIT_TYPE_KICKED            = 0x04,
+    GC_EXIT_TYPE_SYNC_ERR          = 0x05,
+    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,
+    GC_EXIT_TYPE_INVALID           = 0x07,
 } Group_Exit_Type;
 
 typedef enum Group_Invite_Message_Type {
-    GROUP_INVITE,
-    GROUP_INVITE_ACCEPTED,
-    GROUP_INVITE_CONFIRMATION,
+    GROUP_INVITE              = 0x00,
+    GROUP_INVITE_ACCEPTED     = 0x01,
+    GROUP_INVITE_CONFIRMATION = 0x02,
 } Group_Invite_Message_Type;
 
 /* Group roles are hierarchical where each role has a set of privileges plus
@@ -92,85 +92,85 @@ typedef enum Group_Invite_Message_Type {
  * - OBSERVER cannot interact with the group but may observe.
  */
 typedef enum Group_Role {
-    GR_FOUNDER,
-    GR_MODERATOR,
-    GR_USER,
-    GR_OBSERVER,
-    GR_INVALID,
+    GR_FOUNDER   = 0x00,
+    GR_MODERATOR = 0x01,
+    GR_USER      = 0x02,
+    GR_OBSERVER  = 0x03,
+    GR_INVALID   = 0x04,
 } Group_Role;
 
 typedef enum Group_Peer_Status {
-    GS_NONE,
-    GS_AWAY,
-    GS_BUSY,
-    GS_INVALID,
+    GS_NONE    = 0x00,
+    GS_AWAY    = 0x01,
+    GS_BUSY    = 0x02,
+    GS_INVALID = 0x03,
 } Group_Peer_Status;
 
 typedef enum GC_Conn_State {
-    CS_NONE,
-    CS_DISCONNECTED,
-    CS_CONNECTING,
-    CS_CONNECTED,
-    CS_INVALID,
+    CS_NONE         = 0x00,
+    CS_DISCONNECTED = 0x01,
+    CS_CONNECTING   = 0x02,
+    CS_CONNECTED    = 0x03,
+    CS_INVALID      = 0x04,
 } GC_Conn_State;
 
 typedef enum Saved_GC_Conn_State {
-    SGCS_DISCONNECTED,
-    SGCS_CONNECTED,
+    SGCS_DISCONNECTED = 0x00,
+    SGCS_CONNECTED    = 0x01,
 } Saved_GC_Conn_State;
 
 typedef enum Group_Join_Rejected {
-    GJ_NICK_TAKEN,
-    GJ_GROUP_FULL,
-    GJ_INVALID_PASSWORD,
-    GJ_INVITE_FAILED,
-    GJ_INVALID,
+    GJ_NICK_TAKEN       = 0x00,
+    GJ_GROUP_FULL       = 0x01,
+    GJ_INVALID_PASSWORD = 0x02,
+    GJ_INVITE_FAILED    = 0x03,
+    GJ_INVALID          = 0x04,
 } Group_Join_Rejected;
 
 typedef enum Group_Broadcast_Type {
-    GM_STATUS,
-    GM_NICK,
-    GM_PLAIN_MESSAGE,
-    GM_ACTION_MESSAGE,
-    GM_PRIVATE_MESSAGE,
-    GM_PEER_EXIT,
-    GM_KICK_PEER,
-    GM_SET_MOD,
-    GM_SET_OBSERVER,
+    GM_STATUS          = 0x00,
+    GM_NICK            = 0x01,
+    GM_PLAIN_MESSAGE   = 0x02,
+    GM_ACTION_MESSAGE  = 0x03,
+    GM_PRIVATE_MESSAGE = 0x04,
+    GM_PEER_EXIT       = 0x05,
+    GM_KICK_PEER       = 0x06,
+    GM_SET_MOD         = 0x07,
+    GM_SET_OBSERVER    = 0x08,
 } Group_Broadcast_Type;
 
 typedef enum Group_Packet_Type {
     /* lossy packets (ID 0 is reserved) */
-    GP_PING                     = 1,
-    GP_MESSAGE_ACK              = 2,
-    GP_INVITE_RESPONSE_REJECT   = 3,
+    GP_PING                     = 0x01,
+    GP_MESSAGE_ACK              = 0x02,
+    GP_INVITE_RESPONSE_REJECT   = 0x03,
 
     /* lossless packets */
-    GP_TCP_RELAYS               = 241,
-    GP_CUSTOM_PACKET            = 242,
-    GP_BROADCAST                = 243,
-    GP_PEER_INFO_REQUEST        = 244,
-    GP_PEER_INFO_RESPONSE       = 245,
-    GP_INVITE_REQUEST           = 246,
-    GP_INVITE_RESPONSE          = 247,
-    GP_SYNC_REQUEST             = 248,
-    GP_SYNC_RESPONSE            = 249,
-    GP_TOPIC                    = 250,
-    GP_SHARED_STATE             = 251,
-    GP_MOD_LIST                 = 252,
-    GP_SANCTIONS_LIST           = 253,
-    GP_FRIEND_INVITE            = 254,
-    GP_HS_RESPONSE_ACK          = 255,
+    GP_TCP_RELAYS               = 0xf1,
+    GP_CUSTOM_PACKET            = 0xf2,
+    GP_BROADCAST                = 0xf3,
+    GP_PEER_INFO_REQUEST        = 0xf4,
+    GP_PEER_INFO_RESPONSE       = 0xf5,
+    GP_INVITE_REQUEST           = 0xf6,
+    GP_INVITE_RESPONSE          = 0xf7,
+    GP_SYNC_REQUEST             = 0xf8,
+    GP_SYNC_RESPONSE            = 0xf9,
+    GP_TOPIC                    = 0xfa,
+    GP_SHARED_STATE             = 0xfb,
+    GP_MOD_LIST                 = 0xfc,
+    GP_SANCTIONS_LIST           = 0xfd,
+    GP_FRIEND_INVITE            = 0xfe,
+    GP_HS_RESPONSE_ACK          = 0xff,
 } Group_Packet_Type;
 
 typedef enum Group_Handshake_Join_Type {
-    HJ_PUBLIC,
-    HJ_PRIVATE,
+    HJ_PUBLIC  = 0x00,
+    HJ_PRIVATE = 0x01,
 } Group_Handshake_Join_Type;
 
 typedef enum Group_Message_Type {
-    GC_MESSAGE_TYPE_NORMAL,
-    GC_MESSAGE_TYPE_ACTION,
+    GC_MESSAGE_TYPE_NORMAL = 0x00,
+    GC_MESSAGE_TYPE_ACTION = 0x01,
 } Group_Message_Type;
 
 struct GC_Sanction_Creds {
