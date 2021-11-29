@@ -1155,7 +1155,7 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
 
     ft->slots_allocated = 0;
 
-    ft->paused = FILE_PAUSE_NOT;
+    ft->paused = FILE_PAUSE_NONE;
 
     memcpy(ft->id, file_id, FILE_ID_LENGTH);
 
@@ -1468,7 +1468,6 @@ int file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uin
 static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userdata, uint32_t *free_slots)
 {
     Friend *const friendcon = &m->friendlist[friendnumber];
-    uint32_t num = friendcon->num_sending_files;
 
     bool any_active_fts = false;
 
@@ -1477,27 +1476,19 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
     for (uint32_t i = 0; i < MAX_CONCURRENT_FILE_PIPES; ++i) {
         struct File_Transfers *const ft = &friendcon->file_sending[i];
 
-        // Any status other than NONE means the file transfer is active.
-        if (ft->status != FILESTATUS_NONE) {
-            any_active_fts = true;
-            --num;
-
-            // If the file transfer is complete, we request a chunk of size 0.
-            if (ft->status == FILESTATUS_FINISHED && friend_received_packet(m, friendnumber, ft->last_packet_number) == 0) {
-                if (m->file_reqchunk) {
-                    m->file_reqchunk(m, friendnumber, i, ft->transferred, 0, userdata);
-                }
-
-                // Now it's inactive, we're no longer sending this.
-                ft->status = FILESTATUS_NONE;
-                --friendcon->num_sending_files;
+        // If the file transfer is complete, we request a chunk of size 0.
+        if (ft->status == FILESTATUS_FINISHED && friend_received_packet(m, friendnumber, ft->last_packet_number) == 0) {
+            if (m->file_reqchunk) {
+                m->file_reqchunk(m, friendnumber, i, ft->transferred, 0, userdata);
             }
 
-            // Decrease free slots by the number of slots this FT uses.
-            *free_slots = max_s32(0, (int32_t) * free_slots - ft->slots_allocated);
-        }
+            // Now it's inactive, we're no longer sending this.
+            ft->status = FILESTATUS_NONE;
 
-        if (ft->status == FILESTATUS_TRANSFERRING && ft->paused == FILE_PAUSE_NOT) {
+            // Must not underflow
+            assert(friendcon->num_sending_files > 0);
+            --friendcon->num_sending_files;
+        } else if (ft->status == FILESTATUS_TRANSFERRING && ft->paused == FILE_PAUSE_NONE) {
             if (max_speed_reached(m->net_crypto, friend_connection_crypt_connection_id(
                                       m->fr_c, friendcon->friendcon_id))) {
                 *free_slots = 0;
@@ -1518,6 +1509,8 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
                 continue;
             }
 
+            any_active_fts = true;
+
             // Allocate 1 slot to this file transfer.
             ++ft->slots_allocated;
 
@@ -1531,10 +1524,6 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
 
             // The allocated slot is no longer free.
             --*free_slots;
-        }
-
-        if (num == 0) {
-            continue;
         }
     }
 
@@ -2276,7 +2265,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             ft->status = FILESTATUS_NOT_ACCEPTED;
             ft->size = filesize;
             ft->transferred = 0;
-            ft->paused = FILE_PAUSE_NOT;
+            ft->paused = FILE_PAUSE_NONE;
             memcpy(ft->id, data + 1 + sizeof(uint32_t) + sizeof(uint64_t), FILE_ID_LENGTH);
 
             VLA(uint8_t, filename_terminated, filename_length + 1);

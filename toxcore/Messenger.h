@@ -143,7 +143,7 @@ typedef enum Filestatus {
 } Filestatus;
 
 typedef enum File_Pause {
-    FILE_PAUSE_NOT,
+    FILE_PAUSE_NONE,
     FILE_PAUSE_US,
     FILE_PAUSE_OTHER,
     FILE_PAUSE_BOTH,
