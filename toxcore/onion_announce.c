@@ -428,9 +428,12 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     get_shared_key(onion_a->mono_time, &onion_a->shared_keys_recv, shared_key, dht_get_self_secret_key(onion_a->dht),
                    packet_public_key);
 
+    uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE * 2 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH +
+                                     GCA_ANNOUNCE_MAX_SIZE];
+
     size_t minimal_size = ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE * 2 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
-    VLA(uint8_t, plain, minimal_size + GCA_ANNOUNCE_MAX_SIZE);
     size_t encrypted_size = minimal_size + length - ANNOUNCE_REQUEST_MIN_SIZE_RECV;
+
     int len = decrypt_data_symmetric(shared_key, packet + 1,
                                      packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
                                      encrypted_size + CRYPTO_MAC_SIZE, plain);
@@ -445,7 +448,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
-    int index;
+    int index = -1;
 
     uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 

@@ -103,25 +103,6 @@ char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
     return id_str;
 }
 
-void host_to_net(uint8_t *num, uint16_t numbytes)
-{
-#ifndef WORDS_BIGENDIAN
-    uint32_t i;
-    VLA(uint8_t, buff, numbytes);
-
-    for (i = 0; i < numbytes; ++i) {
-        buff[i] = num[numbytes - i - 1];
-    }
-
-    memcpy(num, buff, numbytes);
-#endif
-}
-
-void net_to_host(uint8_t *num, uint16_t numbytes)
-{
-    host_to_net(num, numbytes);
-}
-
 /* frees all pointers in a uint8_t pointer array, as well as the array itself. */
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items)
 {
@@ -129,9 +110,7 @@ void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items)
         return;
     }
 
-    size_t i;
-
-    for (i = 0; i < n_items; ++i) {
+    for (size_t i = 0; i < n_items; ++i) {
         if (ary[i] != nullptr) {
             free(ary[i]);
         }
