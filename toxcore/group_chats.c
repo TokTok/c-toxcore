@@ -3661,13 +3661,6 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock
         return 0;
     }
 
-    chat->shared_state.topic_lock = topic_lock;
-
-    if (sign_gc_shared_state(chat) == -1) {
-        chat->shared_state.topic_lock = old_topic_lock;
-        return -5;
-    }
-
     // If we're enabling the lock the founder needs to sign the current topic and re-broadcast it.
     // This needs to happen before we re-broadcast the shared state because if it fails we
     // don't want to enable the topic lock with an invalid topic signature.
@@ -3676,6 +3669,13 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock
             chat->shared_state.topic_lock = old_topic_lock;
             return -6;
         }
+    }
+
+    chat->shared_state.topic_lock = topic_lock;
+
+    if (sign_gc_shared_state(chat) == -1) {
+        chat->shared_state.topic_lock = old_topic_lock;
+        return -5;
     }
 
     if (broadcast_gc_shared_state(chat) == -1) {
