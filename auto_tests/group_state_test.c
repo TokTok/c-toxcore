@@ -52,7 +52,7 @@ static bool all_group_peers_connected(uint32_t tox_count, State *state, Tox **to
         }
 
         // make sure we're actually connected
-        if (!tox_group_is_connected(toxes[i], groupnumber, NULL)) {
+        if (!tox_group_is_connected(toxes[i], groupnumber, nullptr)) {
             return false;
         }
 
