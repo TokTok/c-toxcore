@@ -104,7 +104,7 @@ static void group_announce_test(Tox **toxes, State *state)
     tox_group_leave(toxes[1], group_number, nullptr, 0, &err_exit);
     ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
 
-    printf("All tests passed!");
+    printf("All tests passed!\n");
 #endif  // VANILLA_NACL
 }
 

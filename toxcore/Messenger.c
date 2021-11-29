@@ -2678,8 +2678,8 @@ static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *
         memcpy(&announce.base_announce.ip_port, &chat->self_ip_port, sizeof(IP_Port));
     }
 
-    memcpy(announce.base_announce.peer_public_key, chat->self_public_key, ENC_PUBLIC_KEY);
-    memcpy(announce.chat_public_key, get_chat_id(chat->chat_public_key), ENC_PUBLIC_KEY);
+    memcpy(announce.base_announce.peer_public_key, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
+    memcpy(announce.chat_public_key, get_chat_id(chat->chat_public_key), ENC_PUBLIC_KEY_SIZE);
 
     uint8_t gc_data[GCA_MAX_DATA_LENGTH];
     int length = gca_pack_public_announce(gc_data, GCA_MAX_DATA_LENGTH, &announce);
