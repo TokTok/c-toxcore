@@ -141,7 +141,7 @@ static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit
         return -5;
     }
 
-    if (my_pass_len) {
+    if (password != nullptr && my_pass_len > 0) {
         VLA(uint8_t, my_pass, my_pass_len + 1);
         tox_group_get_password(tox, groupnumber, my_pass, &query_err);
         my_pass[my_pass_len] = 0;
