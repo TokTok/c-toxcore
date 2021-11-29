@@ -29,7 +29,7 @@
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_PACKET_SIZE ((uint16_t) 1400)
 
-#define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY
+#define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
 #define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define GC_PING_TIMEOUT 12
@@ -37,7 +37,7 @@
 #define GC_CONFIRMED_PEER_TIMEOUT (GC_PING_TIMEOUT * 6 + 10)
 #define GC_UNCONFIRMED_PEER_TIMEOUT GC_PING_TIMEOUT
 
-#define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY + CHAT_ID_SIZE)
+#define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE)
 
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
@@ -176,7 +176,7 @@ typedef enum Group_Message_Type {
 struct GC_Sanction_Creds {
     uint32_t    version;
     uint8_t     hash[GC_SANCTION_HASH_SIZE];    /* hash of all sanctions list signatures + version */
-    uint8_t     sig_pk[SIG_PUBLIC_KEY];    /* Last mod to have modified the sanctions list*/
+    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    /* Last mod to have modified the sanctions list*/
     uint8_t     sig[SIGNATURE_SIZE];    /* signature of hash, signed by sig_pk */
 };
 
@@ -190,12 +190,12 @@ typedef struct GC_Moderation {
 } GC_Moderation;
 
 typedef struct GC_PeerAddress {
-    uint8_t     public_key[EXT_PUBLIC_KEY];
+    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
     IP_Port     ip_port;
 } GC_PeerAddress;
 
 typedef struct GC_SavedPeerInfo {
-    uint8_t     public_key[EXT_PUBLIC_KEY];
+    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
     Node_format tcp_relay;
     IP_Port     ip_port;
 } GC_SavedPeerInfo;
@@ -213,7 +213,7 @@ typedef struct GC_GroupPeer {
 
 typedef struct GC_SharedState {
     uint32_t    version;
-    uint8_t     founder_public_key[EXT_PUBLIC_KEY];
+    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
     uint32_t    maxpeers;
     uint16_t    group_name_len;
     uint8_t     group_name[MAX_GC_GROUP_NAME_SIZE];
@@ -228,7 +228,7 @@ typedef struct GC_TopicInfo {
     uint32_t    version;
     uint16_t    length;
     uint8_t     topic[MAX_GC_TOPIC_SIZE];
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY];   /* Public signature key of the topic setter */
+    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];   /* Public signature key of the topic setter */
 } GC_TopicInfo;
 
 typedef struct GC_Connection GC_Connection;
@@ -241,7 +241,7 @@ struct Saved_Group {
     /* Group shared state */
     uint32_t  shared_state_version;
     uint8_t   shared_state_signature[SIGNATURE_SIZE];
-    uint8_t   founder_public_key[EXT_PUBLIC_KEY];
+    uint8_t   founder_public_key[EXT_PUBLIC_KEY_SIZE];
     uint16_t  maxpeers;
     uint16_t  group_name_length;
     uint8_t   group_name[MAX_GC_GROUP_NAME_SIZE];
@@ -254,13 +254,13 @@ struct Saved_Group {
     /* Topic info */
     uint16_t  topic_length;
     uint8_t   topic[MAX_GC_TOPIC_SIZE];
-    uint8_t   topic_public_sig_key[SIG_PUBLIC_KEY];
+    uint8_t   topic_public_sig_key[SIG_PUBLIC_KEY_SIZE];
     uint32_t  topic_version;
     uint8_t   topic_signature[SIGNATURE_SIZE];
 
     /* Other group info */
-    uint8_t   chat_public_key[EXT_PUBLIC_KEY];
-    uint8_t   chat_secret_key[EXT_SECRET_KEY];
+    uint8_t   chat_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t   chat_secret_key[EXT_SECRET_KEY_SIZE];
     uint16_t  num_addrs;
     GC_SavedPeerInfo addrs[GROUP_SAVE_MAX_PEERS];
     uint16_t  num_mods;
@@ -268,8 +268,8 @@ struct Saved_Group {
     uint8_t   group_connection_state;
 
     /* self info */
-    uint8_t   self_public_key[EXT_PUBLIC_KEY];
-    uint8_t   self_secret_key[EXT_SECRET_KEY];
+    uint8_t   self_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t   self_secret_key[EXT_SECRET_KEY_SIZE];
     uint8_t   self_nick[MAX_GC_NICK_SIZE];
     uint16_t  self_nick_length;
     uint8_t   self_role;
@@ -310,12 +310,12 @@ typedef struct GC_Chat {
     uint32_t    base_peer_id;    /* An incrementing counter used to assign peers unique ID's */
     int         group_number;
 
-    uint8_t     chat_public_key[EXT_PUBLIC_KEY];    /* the chat_id is the sig portion */
-    uint8_t     chat_secret_key[EXT_SECRET_KEY];    /* only used by the founder */
+    uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];    /* the chat_id is the sig portion */
+    uint8_t     chat_secret_key[EXT_SECRET_KEY_SIZE];    /* only used by the founder */
     uint32_t    chat_id_hash;    /* 32-bit hash of the chat_id */
 
-    uint8_t     self_public_key[EXT_PUBLIC_KEY];
-    uint8_t     self_secret_key[EXT_SECRET_KEY];
+    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
 
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
@@ -799,7 +799,7 @@ int add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Ann
 
 /* Puts the encryption public key associated with `signature_key` in `public_key`.
  *
- * `public_key` must have room for at least ENC_PUBLIC_KEY bytes.
+ * `public_key` must have room for at least ENC_PUBLIC_KEY_SIZE bytes.
  *
  * Return 0 on success.
  * Return -1 if no peer associated with signature key is found.

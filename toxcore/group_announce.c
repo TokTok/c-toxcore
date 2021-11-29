@@ -115,7 +115,7 @@ int gca_get_announces(GC_Announces_List *gc_announces_list, GC_Announce *gc_anno
     for (int i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && gc_announces_count < max_nodes; ++i) {
         int index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
-        if (memcmp(except_public_key, &announces->announces[index].base_announce.peer_public_key, ENC_PUBLIC_KEY) == 0) {
+        if (memcmp(except_public_key, &announces->announces[index].base_announce.peer_public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             continue;
         }
 
@@ -124,7 +124,7 @@ int gca_get_announces(GC_Announces_List *gc_announces_list, GC_Announce *gc_anno
         for (int j = 0; j < gc_announces_count; ++j) {
             if (memcmp(&gc_announces[j].peer_public_key,
                        &announces->announces[index].base_announce.peer_public_key,
-                       ENC_PUBLIC_KEY) == 0) {
+                       ENC_PUBLIC_KEY_SIZE) == 0) {
                 already_added = true;
                 break;
             }
@@ -146,8 +146,8 @@ int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announc
     }
 
     uint16_t offset = 0;
-    memcpy(data + offset, announce->peer_public_key, ENC_PUBLIC_KEY);
-    offset += ENC_PUBLIC_KEY;
+    memcpy(data + offset, announce->peer_public_key, ENC_PUBLIC_KEY_SIZE);
+    offset += ENC_PUBLIC_KEY_SIZE;
 
     data[offset] = announce->ip_port_is_set;
     ++offset;
@@ -181,8 +181,8 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
     }
 
     uint16_t offset = 0;
-    memcpy(announce->peer_public_key, data + offset, ENC_PUBLIC_KEY);
-    offset += ENC_PUBLIC_KEY;
+    memcpy(announce->peer_public_key, data + offset, ENC_PUBLIC_KEY_SIZE);
+    offset += ENC_PUBLIC_KEY_SIZE;
 
     announce->ip_port_is_set = data[offset];
     ++offset;
@@ -240,7 +240,8 @@ int gca_unpack_public_announce(const uint8_t *data, uint16_t length, GC_Public_A
 
     memcpy(announce->chat_public_key, data, CHAT_ID_SIZE);
 
-    int base_announce_size = gca_unpack_announce(data + ENC_PUBLIC_KEY, length - ENC_PUBLIC_KEY, &announce->base_announce);
+    int base_announce_size = gca_unpack_announce(data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
+                             &announce->base_announce);
 
     if (base_announce_size == -1) {
         return -1;

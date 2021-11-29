@@ -115,7 +115,7 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
 int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
 {
     for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
-        if (memcmp(chat->moderation.mod_list[i], public_sig_key, SIG_PUBLIC_KEY) == 0) {
+        if (memcmp(chat->moderation.mod_list[i], public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
             return i;
         }
     }
@@ -126,12 +126,12 @@ int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
 /* Returns true if the public signature key belongs to a moderator or the founder */
 bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk)
 {
-    if (memcmp(get_sig_pk(chat->shared_state.founder_public_key), sig_pk, SIG_PUBLIC_KEY) == 0) {
+    if (memcmp(get_sig_pk(chat->shared_state.founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
         return true;
     }
 
     for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
-        if (memcmp(chat->moderation.mod_list[i], sig_pk, SIG_PUBLIC_KEY) == 0) {
+        if (memcmp(chat->moderation.mod_list[i], sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
             return true;
         }
     }
@@ -261,8 +261,8 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
     packed_len += sizeof(uint32_t);
     memcpy(data + packed_len, creds->hash, GC_SANCTION_HASH_SIZE);
     packed_len += GC_SANCTION_HASH_SIZE;
-    memcpy(data + packed_len, creds->sig_pk, SIG_PUBLIC_KEY);
-    packed_len += SIG_PUBLIC_KEY;
+    memcpy(data + packed_len, creds->sig_pk, SIG_PUBLIC_KEY_SIZE);
+    packed_len += SIG_PUBLIC_KEY_SIZE;
     memcpy(data + packed_len, creds->sig, SIGNATURE_SIZE);
     packed_len += SIGNATURE_SIZE;
 
@@ -281,26 +281,26 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
     uint32_t packed_len = 0;
 
     for (uint16_t i = 0; i < num_sanctions && i < MAX_GC_SANCTIONS; ++i) {
-        if (packed_len + sizeof(uint8_t) + SIG_PUBLIC_KEY + TIME_STAMP_SIZE > length) {
+        if (packed_len + sizeof(uint8_t) + SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE > length) {
             return -1;
         }
 
         memcpy(data + packed_len, &sanctions[i].type, sizeof(uint8_t));
         packed_len += sizeof(uint8_t);
-        memcpy(data + packed_len, sanctions[i].public_sig_key, SIG_PUBLIC_KEY);
-        packed_len += SIG_PUBLIC_KEY;
+        memcpy(data + packed_len, sanctions[i].public_sig_key, SIG_PUBLIC_KEY_SIZE);
+        packed_len += SIG_PUBLIC_KEY_SIZE;
         net_pack_u64(data + packed_len, sanctions[i].time_set);
         packed_len += TIME_STAMP_SIZE;
 
         uint8_t sanctions_type = sanctions[i].type;
 
         if (sanctions_type == SA_OBSERVER) {
-            if (packed_len + ENC_PUBLIC_KEY > length) {
+            if (packed_len + ENC_PUBLIC_KEY_SIZE > length) {
                 return -1;
             }
 
-            memcpy(data + packed_len, sanctions[i].info.target_pk, ENC_PUBLIC_KEY);
-            packed_len += ENC_PUBLIC_KEY;
+            memcpy(data + packed_len, sanctions[i].info.target_pk, ENC_PUBLIC_KEY_SIZE);
+            packed_len += ENC_PUBLIC_KEY_SIZE;
         } else {
             return -1;
         }
@@ -344,8 +344,8 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
     len_processed += sizeof(uint32_t);
     memcpy(creds->hash, data + len_processed, GC_SANCTION_HASH_SIZE);
     len_processed += GC_SANCTION_HASH_SIZE;
-    memcpy(creds->sig_pk, data + len_processed, SIG_PUBLIC_KEY);
-    len_processed += SIG_PUBLIC_KEY;
+    memcpy(creds->sig_pk, data + len_processed, SIG_PUBLIC_KEY_SIZE);
+    len_processed += SIG_PUBLIC_KEY_SIZE;
     memcpy(creds->sig, data + len_processed, SIGNATURE_SIZE);
     len_processed += SIGNATURE_SIZE;
 
@@ -365,24 +365,24 @@ int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Cred
     uint16_t len_processed = 0;
 
     while (num < max_sanctions && num < MAX_GC_SANCTIONS && len_processed < length) {
-        if (len_processed + sizeof(uint8_t) + SIG_PUBLIC_KEY + TIME_STAMP_SIZE > length) {
+        if (len_processed + sizeof(uint8_t) + SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE > length) {
             return -1;
         }
 
         memcpy(&sanctions[num].type, data + len_processed, sizeof(uint8_t));
         len_processed += sizeof(uint8_t);
-        memcpy(sanctions[num].public_sig_key, data + len_processed, SIG_PUBLIC_KEY);
-        len_processed += SIG_PUBLIC_KEY;
+        memcpy(sanctions[num].public_sig_key, data + len_processed, SIG_PUBLIC_KEY_SIZE);
+        len_processed += SIG_PUBLIC_KEY_SIZE;
         net_unpack_u64(data + len_processed, &sanctions[num].time_set);
         len_processed += TIME_STAMP_SIZE;
 
         if (sanctions[num].type == SA_OBSERVER) {
-            if (len_processed + ENC_PUBLIC_KEY > length) {
+            if (len_processed + ENC_PUBLIC_KEY_SIZE > length) {
                 return -1;
             }
 
-            memcpy(sanctions[num].info.target_pk, data + len_processed, ENC_PUBLIC_KEY);
-            len_processed += ENC_PUBLIC_KEY;
+            memcpy(sanctions[num].info.target_pk, data + len_processed, ENC_PUBLIC_KEY_SIZE);
+            len_processed += ENC_PUBLIC_KEY_SIZE;
         } else {
             return -1;
         }
@@ -502,7 +502,7 @@ int sanctions_list_make_creds(GC_Chat *chat)
 
     ++chat->moderation.sanctions_creds.version;
 
-    memcpy(chat->moderation.sanctions_creds.sig_pk, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY);
+    memcpy(chat->moderation.sanctions_creds.sig_pk, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
     uint8_t hash[GC_SANCTION_HASH_SIZE];
 
@@ -664,7 +664,7 @@ int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, str
             continue;
         }
 
-        if (memcmp(public_key, curr_sanction->info.target_pk, ENC_PUBLIC_KEY) == 0) {
+        if (memcmp(public_key, curr_sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE) == 0) {
             if (sanctions_list_remove_index(chat, i, creds) == -1) {
                 return -1;
             }
@@ -692,7 +692,7 @@ bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
             continue;
         }
 
-        if (memcmp(curr_sanction->info.target_pk, public_key, ENC_PUBLIC_KEY) == 0) {
+        if (memcmp(curr_sanction->info.target_pk, public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             return true;
         }
     }
@@ -703,7 +703,7 @@ bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
 /* Returns true if `signature key` is associated with an entry in the observer list. */
 bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key)
 {
-    uint8_t public_key[ENC_PUBLIC_KEY];
+    uint8_t public_key[ENC_PUBLIC_KEY_SIZE];
 
     if (gc_get_enc_pk_from_sig_pk(chat, public_key, public_sig_key) != 0) {
         return false;
@@ -822,12 +822,12 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
     memset(sanction, 0, sizeof(struct GC_Sanction));
 
     if (type == SA_OBSERVER) {
-        memcpy(sanction->info.target_pk, gconn->addr.public_key, ENC_PUBLIC_KEY);
+        memcpy(sanction->info.target_pk, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
     } else {
         return -1;
     }
 
-    memcpy(sanction->public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY);
+    memcpy(sanction->public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
     sanction->time_set = mono_time_get(chat->mono_time);
     sanction->type = type;
 
@@ -857,11 +857,11 @@ uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key
     uint16_t count = 0;
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        if (memcmp(chat->moderation.sanctions[i].public_sig_key, public_sig_key, SIG_PUBLIC_KEY) != 0) {
+        if (memcmp(chat->moderation.sanctions[i].public_sig_key, public_sig_key, SIG_PUBLIC_KEY_SIZE) != 0) {
             continue;
         }
 
-        memcpy(chat->moderation.sanctions[i].public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY);
+        memcpy(chat->moderation.sanctions[i].public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
         if (sanctions_list_sign_entry(chat, &chat->moderation.sanctions[i]) != -1) {
             ++count;
