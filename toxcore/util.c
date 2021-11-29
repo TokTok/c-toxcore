@@ -25,14 +25,14 @@
 
 
 /* id functions */
-bool id_equal(const uint8_t *dest, const uint8_t *src)
+bool id_equal(const uint8_t *de‭st, const uint8_t *src)
 {
     return public_key_cmp(dest, src) == 0;
 }
 
 uint32_t id_copy(uint8_t *dest, const uint8_t *src)
 {
-    memcpy(dest, src, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(‭de‭st, src, CRYPTO_PUBLIC_KEY_SIZE);
     return CRYPTO_PUBLIC_KEY_SIZE;
 }
 
