@@ -32,26 +32,32 @@
 typedef struct State {
     uint32_t index;
     uint64_t clock;
+    size_t  num_peers;
 } State;
 
 #include "run_auto_test.h"
 
-static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t groupnumber, size_t name_length,
-                                      uint32_t peer_limit)
+static bool all_group_peers_connected(uint32_t tox_count, State *state, Tox **toxes, uint32_t groupnumber,
+                                      size_t name_length, uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
-        // make sure we got an invite
+        // make sure we got an invite response
         if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != name_length) {
             return false;
         }
 
         // make sure we got a sync response
-        if (peer_limit != 0 && tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != peer_limit) {
+        if (tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != peer_limit) {
             return false;
         }
 
         // make sure we're actually connected
         if (!tox_group_is_connected(toxes[i], groupnumber, NULL)) {
+            return false;
+        }
+
+        // make sure all peers are connected to one another
+        if (state[i].num_peers < NUM_GROUP_TOXES - 1) {
             return false;
         }
     }
@@ -94,6 +100,16 @@ static void group_password_handler(Tox *tox, uint32_t groupnumber, const uint8_t
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
     ck_assert_msg(memcmp(current_password, password, length) == 0,
                   "Passwords don't match: %s, %s", password, current_password);
+}
+
+static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
+{
+    State *state = (State *)user_data;
+    ck_assert(state != nullptr);
+
+    ++state->num_peers;
+
+    ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
 
 /* Returns 0 if group state is equal to the state passed to this function.
@@ -193,6 +209,7 @@ static void group_state_test(Tox **toxes, State *state)
         tox_callback_group_privacy_state(toxes[i], group_privacy_state_handler);
         tox_callback_group_peer_limit(toxes[i], group_peer_limit_handler);
         tox_callback_group_password(toxes[i], group_password_handler);
+        tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
     }
 
     /* Tox1 creates a group and is the founder of a newly created group */
@@ -223,30 +240,14 @@ static void group_state_test(Tox **toxes, State *state)
         tox_group_join(toxes[i], chat_id, (const uint8_t *)nick, strlen(nick), (const uint8_t *)PASSWORD, PASS_LEN,
                        &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
-        c_sleep(100);
     }
 
     fprintf(stderr, "Peers attempting to join group\n");
 
     /* Keep checking if all instances have connected to the group until test times out */
-    while (1) {
+    while (!all_group_peers_connected(NUM_GROUP_TOXES, state, toxes, groupnum, GROUP_NAME_LEN, PEER_LIMIT_1)) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-
-        uint32_t count = 0;
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (tox_group_get_peer_limit(toxes[i], 0, nullptr) == PEER_LIMIT_1) {
-                ++count;
-            }
-        }
-
-        if (count == NUM_GROUP_TOXES) {
-            fprintf(stderr, "%u peers successfully joined\n", count);
-            break;
-        }
     }
-
-    all_group_peers_connected(NUM_GROUP_TOXES, toxes, groupnum, GROUP_NAME_LEN, PEER_LIMIT_1);
 
     /* Change group state and check that all peers received the changes */
     set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
