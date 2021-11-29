@@ -259,8 +259,8 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
 
     net_pack_u32(data + packed_len, creds->version);
     packed_len += sizeof(uint32_t);
-    memcpy(data + packed_len, creds->hash, GC_MODERATION_HASH_SIZE);
-    packed_len += GC_MODERATION_HASH_SIZE;
+    memcpy(data + packed_len, creds->hash, GC_SANCTION_HASH_SIZE);
+    packed_len += GC_SANCTION_HASH_SIZE;
     memcpy(data + packed_len, creds->sig_pk, SIG_PUBLIC_KEY);
     packed_len += SIG_PUBLIC_KEY;
     memcpy(data + packed_len, creds->sig, SIGNATURE_SIZE);
@@ -342,8 +342,8 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
 
     net_unpack_u32(data + len_processed, &creds->version);
     len_processed += sizeof(uint32_t);
-    memcpy(creds->hash, data + len_processed, GC_MODERATION_HASH_SIZE);
-    len_processed += GC_MODERATION_HASH_SIZE;
+    memcpy(creds->hash, data + len_processed, GC_SANCTION_HASH_SIZE);
+    len_processed += GC_SANCTION_HASH_SIZE;
     memcpy(creds->sig_pk, data + len_processed, SIG_PUBLIC_KEY);
     len_processed += SIG_PUBLIC_KEY;
     memcpy(creds->sig, data + len_processed, SIGNATURE_SIZE);
@@ -414,7 +414,7 @@ int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Cred
 /* Creates a new sanction list hash and puts it in hash.
  *
  * The hash is derived from the signature of all entries plus the version number.
- * hash must have room for at least GC_MODERATION_HASH_SIZE bytes.
+ * hash must have room for at least GC_SANCTION_HASH_SIZE bytes.
  *
  * If num_sanctions is 0 the hash is zeroed.
  *
@@ -425,7 +425,7 @@ static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_
                                     uint8_t *hash)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
-        memset(hash, 0, GC_MODERATION_HASH_SIZE);
+        memset(hash, 0, GC_SANCTION_HASH_SIZE);
         return 0;
     }
 
@@ -504,17 +504,17 @@ int sanctions_list_make_creds(GC_Chat *chat)
 
     memcpy(chat->moderation.sanctions_creds.sig_pk, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY);
 
-    uint8_t hash[GC_MODERATION_HASH_SIZE];
+    uint8_t hash[GC_SANCTION_HASH_SIZE];
 
     if (sanctions_list_make_hash(chat->moderation.sanctions, chat->moderation.sanctions_creds.version,
                                  chat->moderation.num_sanctions, hash) == -1) {
         return -1;
     }
 
-    memcpy(chat->moderation.sanctions_creds.hash, hash, GC_MODERATION_HASH_SIZE);
+    memcpy(chat->moderation.sanctions_creds.hash, hash, GC_SANCTION_HASH_SIZE);
 
     if (crypto_sign_detached(chat->moderation.sanctions_creds.sig, nullptr, chat->moderation.sanctions_creds.hash,
-                             GC_MODERATION_HASH_SIZE, get_sig_sk(chat->self_secret_key)) == -1) {
+                             GC_SANCTION_HASH_SIZE, get_sig_sk(chat->self_secret_key)) == -1) {
         memcpy(&chat->moderation.sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
         return -1;
     }
@@ -539,13 +539,13 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
         return -1;
     }
 
-    uint8_t hash[GC_MODERATION_HASH_SIZE];
+    uint8_t hash[GC_SANCTION_HASH_SIZE];
 
     if (sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash) == -1) {
         return -1;
     }
 
-    if (memcmp(hash, creds->hash, GC_MODERATION_HASH_SIZE) != 0) {
+    if (memcmp(hash, creds->hash, GC_SANCTION_HASH_SIZE) != 0) {
         LOGGER_ERROR(chat->logger, "Invalid credentials hash");
         return -1;
     }
@@ -556,7 +556,7 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
         return -1;
     }
 
-    if (crypto_sign_verify_detached(creds->sig, hash, GC_MODERATION_HASH_SIZE, creds->sig_pk) == -1) {
+    if (crypto_sign_verify_detached(creds->sig, hash, GC_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
         LOGGER_ERROR(chat->logger, "Invalid signature");
         return -1;
     }

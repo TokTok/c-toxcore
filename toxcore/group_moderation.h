@@ -13,7 +13,7 @@
 /* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
 #define MAX_GC_SANCTIONS 12
 
-#define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_MODERATION_HASH_SIZE + SIG_PUBLIC_KEY + SIGNATURE_SIZE)
+#define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_SANCTION_HASH_SIZE + SIG_PUBLIC_KEY + SIGNATURE_SIZE)
 
 typedef enum Group_Sanction_Type {
     SA_OBSERVER,

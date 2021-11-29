@@ -31,6 +31,7 @@
 
 #define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY
 #define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
+#define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define GC_PING_TIMEOUT 12
 #define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
 #define GC_CONFIRMED_PEER_TIMEOUT (GC_PING_TIMEOUT * 6 + 10)
@@ -174,7 +175,7 @@ typedef enum Group_Message_Type {
 
 struct GC_Sanction_Creds {
     uint32_t    version;
-    uint8_t     hash[GC_MODERATION_HASH_SIZE];    /* hash of all sanctions list signatures + version */
+    uint8_t     hash[GC_SANCTION_HASH_SIZE];    /* hash of all sanctions list signatures + version */
     uint8_t     sig_pk[SIG_PUBLIC_KEY];    /* Last mod to have modified the sanctions list*/
     uint8_t     sig[SIGNATURE_SIZE];    /* signature of hash, signed by sig_pk */
 };
