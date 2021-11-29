@@ -1876,11 +1876,11 @@ static int handle_gc_status(Messenger *m, int group_number, uint32_t peer_number
         return -1;
     }
 
+    chat->group[peer_number].status = status;
+
     if (c->status_change) {
         (*c->status_change)(m, group_number, chat->group[peer_number].peer_id, status, c->status_change_userdata);
     }
-
-    chat->group[peer_number].status = status;
 
     return 0;
 }
@@ -2753,6 +2753,8 @@ static int handle_gc_nick(Messenger *m, int group_number, uint32_t peer_number, 
         return 0;
     }
 
+    // callback should come before we change the nick so a nick query returns the old nick instead of
+    // the new one. TODO (jfreegman): should this behaviour be uniform for all callbacks?
     if (c->nick_change) {
         (*c->nick_change)(m, group_number, chat->group[peer_number].peer_id, nick, length, c->nick_change_userdata);
     }
