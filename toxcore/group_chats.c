@@ -113,8 +113,10 @@ static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, 
 
 
 /* Our own peer_number will always be 0 */
-#define PEER_NUMBER_IS_SELF(n)((n) == 0)
-
+static bool peer_number_is_self(int n)
+{
+    return n == 0;
+}
 
 static uint16_t gc_packet_padding_length(uint16_t length)
 {
@@ -428,7 +430,7 @@ static int validate_gc_peer_role(const GC_Chat *chat, uint32_t peer_number)
 
         case GR_OBSERVER: {
             /* Don't validate self as this is called when we don't have the sanctions list yet */
-            if (!sanctions_list_is_observer(chat, gconn->addr.public_key) && !PEER_NUMBER_IS_SELF(peer_number)) {
+            if (!sanctions_list_is_observer(chat, gconn->addr.public_key) && !peer_number_is_self(peer_number)) {
                 return -1;
             }
 
@@ -730,7 +732,7 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
 
     uint16_t packed_len = 0;
 
-    //version is always first
+    // version is always first
     net_pack_u32(data + packed_len, shared_state->version);
     packed_len += sizeof(uint32_t);
 
@@ -2833,7 +2835,7 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
         return 0;
     }
 
-    if (PEER_NUMBER_IS_SELF(peer_number)) {  // we cannot have a connection with ourselves
+    if (peer_number_is_self(peer_number)) {  // we cannot have a connection with ourselves
         return 0;
     }
 
@@ -3532,7 +3534,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uin
         return -2;
     }
 
-    if (PEER_NUMBER_IS_SELF(peer_number)) {
+    if (peer_number_is_self(peer_number)) {
         return -6;
     }
 
@@ -4053,7 +4055,7 @@ static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_num
         }
     }
 
-    if (PEER_NUMBER_IS_SELF(target_peer_number)) {
+    if (peer_number_is_self(target_peer_number)) {
         if (c->moderation) {
             (*c->moderation)(m, group_number, chat->group[peer_number].peer_id,
                              chat->group[target_peer_number].peer_id, mod_event, c->moderation_userdata);
@@ -4118,7 +4120,7 @@ int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id)
 
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (PEER_NUMBER_IS_SELF(peer_number)) {
+    if (peer_number_is_self(peer_number)) {
         return -6;
     }
 
@@ -4299,7 +4301,7 @@ int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore)
         return -1;
     }
 
-    if (PEER_NUMBER_IS_SELF(peer_number)) {
+    if (peer_number_is_self(peer_number)) {
         return -2;
     }
 
