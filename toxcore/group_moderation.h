@@ -13,7 +13,7 @@
 /* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
 #define MAX_GC_SANCTIONS 12
 
-#define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_SANCTION_HASH_SIZE + SIG_PUBLIC_KEY + SIGNATURE_SIZE)
+#define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_SANCTION_HASH_SIZE + SIG_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
 
 typedef enum Group_Sanction_Type {
     SA_OBSERVER = 0x00,
@@ -21,12 +21,12 @@ typedef enum Group_Sanction_Type {
 } Group_Sanction_Type;
 
 typedef struct GC_Sanction_Info {
-    uint8_t     target_pk[ENC_PUBLIC_KEY];
+    uint8_t     target_pk[ENC_PUBLIC_KEY_SIZE];
 } GC_Sanction_Info;
 
 /* Holds data pertaining to a peer who has been sanctioned. */
 struct GC_Sanction {
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY];
+    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];
     uint64_t    time_set;
 
     uint8_t     type;

@@ -11,9 +11,9 @@
 #include "crypto_core.h"
 
 #ifndef VANILLA_NACL
-// Need dht because of ENC_SECRET_KEY and ENC_PUBLIC_KEY
-#define ENC_PUBLIC_KEY CRYPTO_PUBLIC_KEY_SIZE
-#define ENC_SECRET_KEY CRYPTO_SECRET_KEY_SIZE
+// Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
+#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
 #endif
 
 #include <stdlib.h>
@@ -69,6 +69,26 @@ static_assert(CRYPTO_SHA512_SIZE == crypto_hash_sha512_BYTES,
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == 32,
               "CRYPTO_PUBLIC_KEY_SIZE is required to be 32 bytes for public_key_cmp to work");
 //!TOKSTYLE+
+
+#ifndef VANILLA_NACL
+/* Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
+ * Used for group chats and group DHT announcements.
+ * pk and sk must have room for at least EXT_PUBLIC_KEY bytes each.
+ */
+int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk)
+{
+    /* create signature key pair */
+    crypto_sign_keypair(pk + ENC_PUBLIC_KEY, sk + ENC_SECRET_KEY);
+
+    /* convert public signature key to public encryption key */
+    int result = crypto_sign_ed25519_pk_to_curve25519(pk, pk + ENC_PUBLIC_KEY);
+
+    /* convert secret signature key to secret encryption key */
+    crypto_sign_ed25519_sk_to_curve25519(sk, sk + ENC_SECRET_KEY);
+
+    return result;
+}
+#endif
 
 static uint8_t *crypto_malloc(size_t bytes)
 {
