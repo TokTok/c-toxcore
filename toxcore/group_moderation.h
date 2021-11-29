@@ -16,8 +16,8 @@
 #define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_SANCTION_HASH_SIZE + SIG_PUBLIC_KEY + SIGNATURE_SIZE)
 
 typedef enum Group_Sanction_Type {
-    SA_OBSERVER,
-    SA_INVALID,
+    SA_OBSERVER = 0x00,
+    SA_INVALID  = 0x01,
 } Group_Sanction_Type;
 
 typedef struct GC_Sanction_Info {

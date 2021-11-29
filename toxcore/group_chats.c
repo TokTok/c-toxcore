@@ -81,13 +81,13 @@
 
 
 typedef enum Group_Handshake_Packet_Type {
-    GH_REQUEST,
-    GH_RESPONSE,
+    GH_REQUEST  = 0x00,
+    GH_RESPONSE = 0x01,
 } Group_Handshake_Packet_Type;
 
 typedef enum Group_Handshake_Request_Type {
-    HS_INVITE_REQUEST,
-    HS_PEER_INFO_EXCHANGE,
+    HS_INVITE_REQUEST     = 0x00,
+    HS_PEER_INFO_EXCHANGE = 0x01,
 } Group_Handshake_Request_Type;
 
 /* These flags determine what info a peer wants in a sync response */
