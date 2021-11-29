@@ -196,16 +196,21 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
     peer_name[peer_name_len] = 0;
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
 
+    TOX_GROUP_ROLE role = tox_group_peer_get_role(tox, group_number, target_peer_id, &q_err);
+    ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
+
     switch (event) {
         case TOX_GROUP_MOD_EVENT_MODERATOR: {
             ck_assert(memcmp(peer_name, state->mod_name, peer_name_len) == 0);
             state->mod_check = true;
+            ck_assert(role == TOX_GROUP_ROLE_MODERATOR);
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_OBSERVER: {
             ck_assert(memcmp(peer_name, state->observer_name, peer_name_len) == 0);
             state->observer_check = true;
+            ck_assert(role == TOX_GROUP_ROLE_OBSERVER);
             break;
         }
 
@@ -217,6 +222,8 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
                 ck_assert(memcmp(peer_name, state->observer_name, peer_name_len) == 0); // we promoted the observer back to user
                 state->user_check = true;
             }
+
+            ck_assert(role == TOX_GROUP_ROLE_USER);
 
             break;
         }
@@ -300,6 +307,19 @@ static void group_moderation_test(Tox **toxes, State *state)
         memcpy(state[i].observer_name, state[0].peers[1].name, sizeof(state[i].observer_name));
     }
 
+    /* founder checks his own role */
+    TOX_ERR_GROUP_SELF_QUERY sq_err;
+    TOX_GROUP_ROLE self_role = tox_group_self_get_role(toxes[0], state[0].group_number, &sq_err);
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+    ck_assert(self_role == TOX_GROUP_ROLE_FOUNDER);
+
+    /* all peers should be user role except founder */
+    for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
+        self_role = tox_group_self_get_role(toxes[i], state[i].group_number, &sq_err);
+        ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+        ck_assert(self_role == TOX_GROUP_ROLE_USER);
+    }
+
     /* founder sets first peer to moderator */
     fprintf(stderr, "Founder setting %s to moderator\n", state[0].peers[0].name);
 
@@ -311,6 +331,18 @@ static void group_moderation_test(Tox **toxes, State *state)
 
     fprintf(stderr, "All peers successfully received mod event\n");
 
+    /* moderator checks self role */
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        uint32_t self_peer_id = tox_group_self_get_peer_id(toxes[i], state[i].group_number, &sq_err);
+        ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+        if (self_peer_id == state[0].peers[0].peer_id) {
+            self_role = tox_group_self_get_role(toxes[i], state[i].group_number, &sq_err);
+            ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+            ck_assert(self_role == TOX_GROUP_ROLE_MODERATOR);
+        }
+    }
+
     /* founder sets second peer to observer */
     fprintf(stderr, "Founder setting %s to observer\n", state[0].peers[1].name);
 
@@ -320,6 +352,18 @@ static void group_moderation_test(Tox **toxes, State *state)
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_OBSERVER);
 
     fprintf(stderr, "All peers successfully received observer event\n");
+
+    /* observer checks self role */
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        uint32_t self_peer_id = tox_group_self_get_peer_id(toxes[i], state[i].group_number, &sq_err);
+        ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+        if (self_peer_id == state[0].peers[1].peer_id) {
+            self_role = tox_group_self_get_role(toxes[i], state[i].group_number, &sq_err);
+            ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+            ck_assert(self_role == TOX_GROUP_ROLE_OBSERVER);
+        }
+    }
 
     /* New moderator promotes second peer back to user */
     uint32_t idx = get_state_index_by_nick(state, NUM_GROUP_TOXES, state[0].peers[0].name, state[0].peers[0].name_length);
