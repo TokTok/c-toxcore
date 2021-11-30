@@ -286,7 +286,6 @@ struct Messenger {
     m_conference_invite_cb *conference_invite;
 
     m_group_invite_cb *group_invite;
-    void *group_invite_userdata;
 
     m_file_recv_cb *file_sendrequest;
     m_file_recv_control_cb *file_filecontrol;
@@ -588,7 +587,7 @@ void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function
 
 /* Set the callback for group invites.
  */
-void m_callback_group_invite(Messenger *m, m_group_invite_cb *function, void *userdata);
+void m_callback_group_invite(Messenger *m, m_group_invite_cb *function);
 
 /* Send a conference invite packet.
  *
