@@ -341,7 +341,7 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
  * Return -1 on failure.
  */
 static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int group_number, uint32_t peer_number,
-                                        GC_Message_Array_Entry *array_entry)
+                                        GC_Message_Array_Entry *array_entry, void *userdata)
 {
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
@@ -350,7 +350,7 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
     }
 
     int ret = handle_gc_lossless_helper(m, group_number, peer_number, array_entry->data, array_entry->data_length,
-                                        array_entry->message_id, array_entry->packet_type);
+                                        array_entry->message_id, array_entry->packet_type, userdata);
     clear_array_entry(array_entry);
 
     if (ret == -1) {
@@ -370,7 +370,7 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number)
+int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number, void *userdata)
 {
     GC_Chat *chat = gc_get_group(m->group_handler, group_number);
 
@@ -388,7 +388,7 @@ int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_numbe
     GC_Message_Array_Entry *array_entry = &gconn->received_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        return process_received_array_entry(chat, m, group_number, peer_number, array_entry);
+        return process_received_array_entry(chat, m, group_number, peer_number, array_entry, userdata);
     }
 
     return 0;

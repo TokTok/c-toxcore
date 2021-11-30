@@ -47,10 +47,10 @@ typedef struct State {
 #define IGNORE_MESSAGE "Am I bothering you?"
 #define IGNORE_MESSAGE_LEN (sizeof(IGNORE_MESSAGE) - 1)
 
-#define PEER0_NICK "Victor"
+#define PEER0_NICK "Thomas"
 #define PEER0_NICK_LEN (sizeof(PEER0_NICK) - 1)
 
-#define PEER1_NICK "George"
+#define PEER1_NICK "Winslow"
 #define PEER1_NICK_LEN (sizeof(PEER1_NICK) - 1)
 
 static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,

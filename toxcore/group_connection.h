@@ -154,7 +154,7 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node);
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number);
+int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number, void *userdata);
 
 void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number);
 

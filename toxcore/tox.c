@@ -348,121 +348,125 @@ static void tox_friend_lossless_packet_handler(Messenger *m, uint32_t friend_num
 static void tox_group_peer_name_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *name,
                                         size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_peer_name_callback != nullptr) {
-        tox->group_peer_name_callback(tox, group_number, peer_id, name, length, tox->non_const_user_data);
+    if (tox_data->tox->group_peer_name_callback != nullptr) {
+        tox_data->tox->group_peer_name_callback(tox_data->tox, group_number, peer_id, name, length, tox_data->user_data);
     }
 }
 
 static void tox_group_peer_status_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int status,
         void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_peer_status_callback != nullptr) {
-        tox->group_peer_status_callback(tox, group_number, peer_id, (Tox_User_Status)status, tox->non_const_user_data);
+    if (tox_data->tox->group_peer_status_callback != nullptr) {
+        tox_data->tox->group_peer_status_callback(tox_data->tox, group_number, peer_id, (Tox_User_Status)status,
+                tox_data->user_data);
     }
 }
 
 static void tox_group_topic_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *topic,
                                     size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_topic_callback != nullptr) {
-        tox->group_topic_callback(tox, group_number, peer_id, topic, length, tox->non_const_user_data);
-    }
-}
-
-static void tox_group_privacy_state_handler(Messenger *m, uint32_t group_number, unsigned int privacy_state,
-        void *user_data)
-{
-    Tox *tox = (Tox *)user_data;
-
-    if (tox->group_privacy_state_callback != nullptr) {
-        tox->group_privacy_state_callback(tox, group_number, (Tox_Group_Privacy_State)privacy_state, tox->non_const_user_data);
+    if (tox_data->tox->group_topic_callback != nullptr) {
+        tox_data->tox->group_topic_callback(tox_data->tox, group_number, peer_id, topic, length, tox_data->user_data);
     }
 }
 
 static void tox_group_topic_lock_handler(Messenger *m, uint32_t group_number, unsigned int topic_lock,
         void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_topic_lock_callback != nullptr) {
-        tox->group_topic_lock_callback(tox, group_number, (Tox_Group_Topic_Lock)topic_lock, tox->non_const_user_data);
+    if (tox_data->tox->group_topic_lock_callback != nullptr) {
+        tox_data->tox->group_topic_lock_callback(tox_data->tox, group_number, (Tox_Group_Topic_Lock)topic_lock,
+                tox_data->user_data);
     }
 }
 
 static void tox_group_peer_limit_handler(Messenger *m, uint32_t group_number, uint32_t peer_limit, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_peer_limit_callback != nullptr) {
-        tox->group_peer_limit_callback(tox, group_number, peer_limit, tox->non_const_user_data);
+    if (tox_data->tox->group_peer_limit_callback != nullptr) {
+        tox_data->tox->group_peer_limit_callback(tox_data->tox, group_number, peer_limit, tox_data->user_data);
+    }
+}
+
+static void tox_group_privacy_state_handler(Messenger *m, uint32_t group_number, unsigned int privacy_state,
+        void *user_data)
+{
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
+
+    if (tox_data->tox->group_privacy_state_callback != nullptr) {
+        tox_data->tox->group_privacy_state_callback(tox_data->tox, group_number, (Tox_Group_Privacy_State)privacy_state,
+                tox_data->user_data);
     }
 }
 
 static void tox_group_password_handler(Messenger *m, uint32_t group_number, const uint8_t *password, size_t length,
                                        void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_password_callback != nullptr) {
-        tox->group_password_callback(tox, group_number, password, length, tox->non_const_user_data);
+    if (tox_data->tox->group_password_callback != nullptr) {
+        tox_data->tox->group_password_callback(tox_data->tox, group_number, password, length, tox_data->user_data);
     }
 }
 
 static void tox_group_message_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
                                       const uint8_t *message, size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_message_callback != nullptr) {
-        tox->group_message_callback(tox, group_number, peer_id, (Tox_Message_Type)type, message, length,
-                                    tox->non_const_user_data);
+    if (tox_data->tox->group_message_callback != nullptr) {
+        tox_data->tox->group_message_callback(tox_data->tox, group_number, peer_id, (Tox_Message_Type)type, message, length,
+                                              tox_data->user_data);
     }
 }
 
 static void tox_group_private_message_handler(Messenger *m, uint32_t group_number, uint32_t peer_id,
         unsigned int type, const uint8_t *message, size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_private_message_callback != nullptr) {
-        tox->group_private_message_callback(tox, group_number, peer_id, (Tox_Message_Type)type, message, length,
-                                            tox->non_const_user_data);
+    if (tox_data->tox->group_private_message_callback != nullptr) {
+        tox_data->tox->group_private_message_callback(tox_data->tox, group_number, peer_id, (Tox_Message_Type)type, message,
+                length,
+                tox_data->user_data);
     }
 }
 
 static void tox_group_custom_packet_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
         size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_custom_packet_callback != nullptr) {
-        tox->group_custom_packet_callback(tox, group_number, peer_id, data, length, tox->non_const_user_data);
+    if (tox_data->tox->group_custom_packet_callback != nullptr) {
+        tox_data->tox->group_custom_packet_callback(tox_data->tox, group_number, peer_id, data, length, tox_data->user_data);
     }
 }
 
 static void tox_group_invite_handler(Messenger *m, uint32_t friend_number, const uint8_t *invite_data, size_t length,
                                      const uint8_t *group_name, size_t group_name_length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_invite_callback != nullptr) {
-        tox->group_invite_callback(tox, friend_number, invite_data, length, group_name, group_name_length,
-                                   tox->non_const_user_data);
+    if (tox_data->tox->group_invite_callback != nullptr) {
+        tox_data->tox->group_invite_callback(tox_data->tox, friend_number, invite_data, length, group_name, group_name_length,
+                                             tox_data->user_data);
     }
 }
 
 static void tox_group_peer_join_handler(Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_peer_join_callback != nullptr) {
-        tox->group_peer_join_callback(tox, group_number, peer_id, tox->non_const_user_data);
+    if (tox_data->tox->group_peer_join_callback != nullptr) {
+        tox_data->tox->group_peer_join_callback(tox_data->tox, group_number, peer_id, tox_data->user_data);
     }
 }
 
@@ -470,40 +474,43 @@ static void tox_group_peer_exit_handler(Messenger *m, uint32_t group_number, uin
                                         unsigned int exit_type, const uint8_t *name, size_t name_length,
                                         const uint8_t *part_message, size_t length, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_peer_exit_callback != nullptr) {
-        tox->group_peer_exit_callback(tox, group_number, peer_id, (Tox_Group_Exit_Type) exit_type, name, name_length,
-                                      part_message, length, tox->non_const_user_data);
+    if (tox_data->tox->group_peer_exit_callback != nullptr) {
+        tox_data->tox->group_peer_exit_callback(tox_data->tox, group_number, peer_id, (Tox_Group_Exit_Type) exit_type, name,
+                                                name_length,
+                                                part_message, length, tox_data->user_data);
     }
 }
 
 static void tox_group_self_join_handler(Messenger *m, uint32_t group_number, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_self_join_callback != nullptr) {
-        tox->group_self_join_callback(tox, group_number, tox->non_const_user_data);
+    if (tox_data->tox->group_self_join_callback != nullptr) {
+        tox_data->tox->group_self_join_callback(tox_data->tox, group_number, tox_data->user_data);
     }
 }
 
 static void tox_group_join_fail_handler(Messenger *m, uint32_t group_number, unsigned int fail_type, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_join_fail_callback != nullptr) {
-        tox->group_join_fail_callback(tox, group_number, (Tox_Group_Join_Fail)fail_type, tox->non_const_user_data);
+    if (tox_data->tox->group_join_fail_callback != nullptr) {
+        tox_data->tox->group_join_fail_callback(tox_data->tox, group_number, (Tox_Group_Join_Fail)fail_type,
+                                                tox_data->user_data);
     }
 }
 
 static void tox_group_moderation_handler(Messenger *m, uint32_t group_number, uint32_t source_peer_number,
         uint32_t target_peer_number, unsigned int mod_type, void *user_data)
 {
-    Tox *tox = (Tox *)user_data;
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox->group_moderation_callback != nullptr) {
-        tox->group_moderation_callback(tox, group_number, source_peer_number, target_peer_number, (Tox_Group_Mod_Event)mod_type,
-                                       tox->non_const_user_data);
+    if (tox_data->tox->group_moderation_callback != nullptr) {
+        tox_data->tox->group_moderation_callback(tox_data->tox, group_number, source_peer_number, target_peer_number,
+                (Tox_Group_Mod_Event)mod_type,
+                tox_data->user_data);
     }
 }
 #endif
@@ -785,22 +792,22 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     custom_lossless_packet_registerhandler(tox->m, tox_friend_lossless_packet_handler);
 
 #ifndef VANILLA_NACL
-    m_callback_group_invite(tox->m, tox_group_invite_handler, tox);
-    gc_callback_message(tox->m, tox_group_message_handler, tox);
-    gc_callback_private_message(tox->m, tox_group_private_message_handler, tox);
-    gc_callback_custom_packet(tox->m, tox_group_custom_packet_handler, tox);
-    gc_callback_moderation(tox->m, tox_group_moderation_handler, tox);
-    gc_callback_nick_change(tox->m, tox_group_peer_name_handler, tox);
-    gc_callback_status_change(tox->m, tox_group_peer_status_handler, tox);
-    gc_callback_topic_change(tox->m, tox_group_topic_handler, tox);
-    gc_callback_privacy_state(tox->m, tox_group_privacy_state_handler, tox);
-    gc_callback_topic_lock(tox->m, tox_group_topic_lock_handler, tox);
-    gc_callback_peer_limit(tox->m, tox_group_peer_limit_handler, tox);
-    gc_callback_password(tox->m, tox_group_password_handler, tox);
-    gc_callback_peer_join(tox->m, tox_group_peer_join_handler, tox);
-    gc_callback_peer_exit(tox->m, tox_group_peer_exit_handler, tox);
-    gc_callback_self_join(tox->m, tox_group_self_join_handler, tox);
-    gc_callback_rejected(tox->m, tox_group_join_fail_handler, tox);
+    m_callback_group_invite(tox->m, tox_group_invite_handler);
+    gc_callback_message(tox->m, tox_group_message_handler);
+    gc_callback_private_message(tox->m, tox_group_private_message_handler);
+    gc_callback_custom_packet(tox->m, tox_group_custom_packet_handler);
+    gc_callback_moderation(tox->m, tox_group_moderation_handler);
+    gc_callback_nick_change(tox->m, tox_group_peer_name_handler);
+    gc_callback_status_change(tox->m, tox_group_peer_status_handler);
+    gc_callback_topic_change(tox->m, tox_group_topic_handler);
+    gc_callback_peer_limit(tox->m, tox_group_peer_limit_handler);
+    gc_callback_privacy_state(tox->m, tox_group_privacy_state_handler);
+    gc_callback_topic_lock(tox->m, tox_group_topic_lock_handler);
+    gc_callback_password(tox->m, tox_group_password_handler);
+    gc_callback_peer_join(tox->m, tox_group_peer_join_handler);
+    gc_callback_peer_exit(tox->m, tox_group_peer_exit_handler);
+    gc_callback_self_join(tox->m, tox_group_self_join_handler);
+    gc_callback_rejected(tox->m, tox_group_join_fail_handler);
 #endif
 
     tox_options_free(default_options);
