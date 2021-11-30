@@ -376,35 +376,20 @@ typedef struct GC_Session {
     uint32_t     num_chats;
 
     gc_message_cb *message;
-    void *message_userdata;
     gc_private_message_cb *private_message;
-    void *private_message_userdata;
     gc_custom_packet_cb *custom_packet;
-    void *custom_packet_userdata;
     gc_moderation_cb *moderation;
-    void *moderation_userdata;
     gc_nick_change_cb *nick_change;
-    void *nick_change_userdata;
     gc_status_change_cb *status_change;
-    void *status_change_userdata;
     gc_topic_change_cb *topic_change;
-    void *topic_change_userdata;
     gc_topic_lock_cb *topic_lock;
-    void *topic_lock_userdata;
     gc_peer_limit_cb *peer_limit;
-    void *peer_limit_userdata;
     gc_privacy_state_cb *privacy_state;
-    void *privacy_state_userdata;
     gc_password_cb *password;
-    void *password_userdata;
     gc_peer_join_cb *peer_join;
-    void *peer_join_userdata;
     gc_peer_exit_cb *peer_exit;
-    void *peer_exit_userdata;
     gc_self_join_cb *self_join;
-    void *self_join_userdata;
     gc_rejected_cb *rejected;
-    void *rejected_userdata;
 } GC_Session;
 
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached_value);
@@ -645,21 +630,21 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest);
 
 
 /* Group callbacks */
-void gc_callback_message(Messenger *m, gc_message_cb *function, void *userdata);
-void gc_callback_private_message(Messenger *m, gc_private_message_cb *function, void *userdata);
-void gc_callback_custom_packet(Messenger *m, gc_custom_packet_cb *function, void *userdata);
-void gc_callback_moderation(Messenger *m, gc_moderation_cb *function, void *userdata);
-void gc_callback_nick_change(Messenger *m, gc_nick_change_cb *function, void *userdata);
-void gc_callback_status_change(Messenger *m, gc_status_change_cb *function, void *userdata);
-void gc_callback_topic_change(Messenger *m, gc_topic_change_cb *function, void *userdata);
-void gc_callback_peer_limit(Messenger *m, gc_peer_limit_cb *function, void *userdata);
-void gc_callback_privacy_state(Messenger *m, gc_privacy_state_cb *function, void *userdata);
-void gc_callback_topic_lock(Messenger *m, gc_topic_lock_cb *function, void *userdata);
-void gc_callback_password(Messenger *m, gc_password_cb *function, void *userdata);
-void gc_callback_peer_join(Messenger *m, gc_peer_join_cb *function, void *userdata);
-void gc_callback_peer_exit(Messenger *m, gc_peer_exit_cb *function, void *userdata);
-void gc_callback_self_join(Messenger *m, gc_self_join_cb *function, void *userdata);
-void gc_callback_rejected(Messenger *m, gc_rejected_cb *function, void *userdata);
+void gc_callback_message(Messenger *m, gc_message_cb *function);
+void gc_callback_private_message(Messenger *m, gc_private_message_cb *function);
+void gc_callback_custom_packet(Messenger *m, gc_custom_packet_cb *function);
+void gc_callback_moderation(Messenger *m, gc_moderation_cb *function);
+void gc_callback_nick_change(Messenger *m, gc_nick_change_cb *function);
+void gc_callback_status_change(Messenger *m, gc_status_change_cb *function);
+void gc_callback_topic_change(Messenger *m, gc_topic_change_cb *function);
+void gc_callback_peer_limit(Messenger *m, gc_peer_limit_cb *function);
+void gc_callback_privacy_state(Messenger *m, gc_privacy_state_cb *function);
+void gc_callback_topic_lock(Messenger *m, gc_topic_lock_cb *function);
+void gc_callback_password(Messenger *m, gc_password_cb *function);
+void gc_callback_peer_join(Messenger *m, gc_peer_join_cb *function);
+void gc_callback_peer_exit(Messenger *m, gc_peer_exit_cb *function);
+void gc_callback_self_join(Messenger *m, gc_self_join_cb *function);
+void gc_callback_rejected(Messenger *m, gc_rejected_cb *function);
 
 /* The main loop. */
 void do_gc(GC_Session *c, void *userdata);
@@ -784,7 +769,7 @@ uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t
 int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t read_id, uint64_t request_id);
 
 int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
-                              uint16_t length, uint64_t message_id, uint8_t packet_type);
+                              uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata);
 
 int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
