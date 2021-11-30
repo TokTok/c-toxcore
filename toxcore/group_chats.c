@@ -6084,6 +6084,10 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     }
 
     if (!is_active_chat) {
+        if (chat->save != nullptr) {
+            free(chat->save);
+        }
+
         chat->save = (Saved_Group *)malloc(sizeof(Saved_Group));
 
         if (chat->save == nullptr) {
@@ -6257,6 +6261,10 @@ int gc_disconnect_from_group(GC_Session *c, GC_Chat *chat)
 
     GC_Conn_State previous_state = chat->connection_state;
     chat->connection_state = CS_DISCONNECTED;
+
+    if (chat->save != nullptr) {
+        free(chat->save);
+    }
 
     chat->save = (Saved_Group *)malloc(sizeof(Saved_Group));
 
@@ -6702,6 +6710,11 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
     if (chat->group) {
         free(chat->group);
         chat->group = nullptr;
+    }
+
+    if (chat->save) {
+        free(chat->save);
+        chat->save = nullptr;
     }
 }
 
