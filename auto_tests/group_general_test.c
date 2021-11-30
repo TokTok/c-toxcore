@@ -1,6 +1,7 @@
 /*
  * Tests that we can connect to a public group chat through the DHT and make basic queries
- * about the group, other peers, and ourselves.
+ * about the group, other peers, and ourselves. We also make sure we can disconnect and
+ * reconnect to a group while retaining our credentials.
  */
 
 #ifdef HAVE_CONFIG_H
@@ -14,9 +15,9 @@
 typedef struct State {
     uint32_t index;
     uint64_t clock;
-    bool peer_joined;
-    bool self_joined;
-    bool peer_exited;
+    size_t peer_joined_count;
+    size_t self_joined_count;
+    size_t peer_exit_count;
     bool peer_nick;
     bool peer_status;
     uint32_t peer_id;
@@ -82,14 +83,14 @@ static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t pee
     ck_assert(connection_status != TOX_CONNECTION_NONE);
 
     state->peer_id = peer_id;
-    state->peer_joined = true;
+    ++state->peer_joined_count;
 }
 
 static void group_peer_self_join_handler(Tox *tox, uint32_t groupnumber, void *user_data)
 {
     State *state = (State *)user_data;
     ck_assert(state != nullptr);
-    state->self_joined = true;
+    ++state->self_joined_count;
 }
 
 static void group_peer_exit_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_GROUP_EXIT_TYPE exit_type,
@@ -98,9 +99,13 @@ static void group_peer_exit_handler(Tox *tox, uint32_t groupnumber, uint32_t pee
 {
     State *state = (State *)user_data;
     ck_assert(state != nullptr);
-    ck_assert(length == EXIT_MESSAGE_LEN);
-    ck_assert(memcmp(part_message, EXIT_MESSAGE, length) == 0);
-    state->peer_exited = true;
+    ++state->peer_exit_count;
+
+    // first exit is a disconnect. second is a real exit with a part message
+    if (state->peer_exit_count == 2) {
+        ck_assert(length == EXIT_MESSAGE_LEN);
+        ck_assert(memcmp(part_message, EXIT_MESSAGE, length) == 0);
+    }
 }
 
 static void group_peer_name_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, const uint8_t *name,
@@ -171,16 +176,13 @@ static void group_announce_test(Tox **toxes, State *state)
     ck_assert(err_join == TOX_ERR_GROUP_JOIN_OK);
 
     // peers see each other and themselves join
-    while (!state[0].peer_joined && !state[1].peer_joined && !state[0].self_joined && !state[1].self_joined) {
+    while (!state[0].peer_joined_count && !state[1].peer_joined_count && !state[0].self_joined_count
+            && !state[1].self_joined_count) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
     // wait for group syncing to finish
     while (!all_group_peers_connected(NUM_GROUP_TOXES, toxes, groupnumber, GROUP_NAME_LEN)) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
-    }
-
-    for (size_t i = 0; i < 200; ++i) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
@@ -233,16 +235,70 @@ static void group_announce_test(Tox **toxes, State *state)
     ck_assert(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK);
     ck_assert(memcmp(tox0_pk_query, tox0_self_pk, TOX_GROUP_PEER_PUBLIC_KEY_SIZE) == 0);
 
+    fprintf(stderr, "Peer 0 disconnecting...\n");
+    // tox 0 disconnects then reconnects
+    TOX_ERR_GROUP_DISCONNECT d_err;
+    tox_group_disconnect(toxes[0], groupnumber, &d_err);
+    ck_assert(d_err == TOX_ERR_GROUP_DISCONNECT_OK);
+
+    while (state[1].peer_exit_count != 1) {
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    }
+
+    fprintf(stderr, "Peer 0 reconnecting...\n");
+    TOX_ERR_GROUP_RECONNECT r_err;
+    tox_group_reconnect(toxes[0], groupnumber, &r_err);
+    ck_assert(d_err == TOX_ERR_GROUP_RECONNECT_OK);
+
+    while (state[1].peer_joined_count != 2 && state[0].self_joined_count == 2) {
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    }
+
+    for (size_t i = 0; i < 100; ++i) {  // if we don't do this the exit packet never arrives
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    }
+
+    while (!all_group_peers_connected(NUM_GROUP_TOXES, toxes, groupnumber, GROUP_NAME_LEN))  {
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    }
+
+    // tox 0 should have the same public key and still be founder
+    uint8_t tox0_self_pk2[TOX_GROUP_PEER_PUBLIC_KEY_SIZE];
+    tox_group_self_get_public_key(toxes[0], groupnumber, tox0_self_pk2, &sq_err);
+
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+    ck_assert(memcmp(tox0_self_pk2, tox0_self_pk, TOX_GROUP_PEER_PUBLIC_KEY_SIZE) == 0);
+
+    TOX_GROUP_ROLE self_role = tox_group_self_get_role(toxes[0], groupnumber, &sq_err);
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    TOX_GROUP_ROLE other_role = tox_group_peer_get_role(toxes[1], groupnumber, state[1].peer_id, &pq_err);
+    ck_assert(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK);
+
+    ck_assert(self_role == other_role && self_role == TOX_GROUP_ROLE_FOUNDER);
+
+    uint32_t num_groups1 = tox_group_get_number_groups(toxes[0]);
+    uint32_t num_groups2 = tox_group_get_number_groups(toxes[1]);
+
+    ck_assert((num_groups1 == num_groups2) && (num_groups2 == 1));
+
+    fprintf(stderr, "Both peers exiting group...\n");
+
     TOX_ERR_GROUP_LEAVE err_exit;
     tox_group_leave(toxes[0], groupnumber, (const uint8_t *)EXIT_MESSAGE, EXIT_MESSAGE_LEN, &err_exit);
     ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
 
-    while (!state[1].peer_exited) {
+    while (state[1].peer_exit_count != 2) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
     tox_group_leave(toxes[1], groupnumber, nullptr, 0, &err_exit);
     ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
+
+    num_groups1 = tox_group_get_number_groups(toxes[0]);
+    num_groups2 = tox_group_get_number_groups(toxes[1]);
+
+    ck_assert((num_groups1 == num_groups2) && (num_groups2 == 0));
 
     printf("All tests passed!\n");
 #endif  // VANILLA_NACL
@@ -253,6 +309,7 @@ int main(void)
     setvbuf(stdout, nullptr, _IONBF, 0);
 
     run_auto_test(NUM_GROUP_TOXES, group_announce_test, false);
+
     return 0;
 }
 
