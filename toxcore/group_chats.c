@@ -1533,7 +1533,8 @@ static int handle_gc_invite_response(const Messenger *m, int group_number, GC_Co
     return send_gc_sync_request(chat, gconn, sync_flags);
 }
 
-static int handle_gc_invite_response_reject(Messenger *m, int group_number, const uint8_t *data, uint32_t length, void *userdata)
+static int handle_gc_invite_response_reject(Messenger *m, int group_number, const uint8_t *data, uint32_t length,
+        void *userdata)
 {
     if (length != sizeof(uint8_t)) {
         return -1;
@@ -1858,7 +1859,8 @@ int gc_set_self_status(const Messenger *m, int group_number, uint8_t status)
     return 0;
 }
 
-static int handle_gc_status(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data, uint32_t length, void *userdata)
+static int handle_gc_status(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data, uint32_t length,
+                            void *userdata)
 {
     if (length != sizeof(uint8_t)) {
         return -1;
@@ -2097,7 +2099,8 @@ static int broadcast_gc_shared_state(const GC_Chat *chat)
  *
  * The initial retrieval of the shared state on group join will be ignored by this function.
  */
-static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const GC_SharedState *old_shared_state, void *userdata)
+static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const GC_SharedState *old_shared_state,
+                                       void *userdata)
 {
     /* Max peers changed */
     if (chat->shared_state.maxpeers != old_shared_state->maxpeers) {
@@ -5571,7 +5574,8 @@ static void do_peer_delete(Messenger *m, int group_number, void *userdata)
         if (gconn->pending_delete) {
             GC_Exit_Info *exit_info = &gconn->exit_info;
 
-            if (gc_peer_delete(m, group_number, i, exit_info->exit_type, exit_info->part_message, exit_info->length, userdata) == -1) {
+            if (gc_peer_delete(m, group_number, i, exit_info->exit_type, exit_info->part_message, exit_info->length,
+                               userdata) == -1) {
                 LOGGER_ERROR(m->log, "Failed to delete peer %u", i);
             }
 
