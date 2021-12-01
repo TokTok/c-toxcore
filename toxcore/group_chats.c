@@ -221,14 +221,9 @@ static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_
     }
 }
 
-void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached_value)
+/* Packs group info for `chat` into `temp`. */
+void pack_group_info(const GC_Chat *chat, Saved_Group *temp)
 {
-    // copy info from cached save struct if possible (for disconnected groups only)
-    if (can_use_cached_value && chat->save) {
-        memcpy(temp, chat->save, sizeof(Saved_Group));
-        return;
-    }
-
     memset(temp, 0, sizeof(Saved_Group));
 
     temp->shared_state_version = net_htonl(chat->shared_state.version);
@@ -5975,6 +5970,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     Messenger *m = c->messenger;
     GC_Chat *chat = &c->chats[group_number];
+
     bool is_active_chat = save->group_connection_state != SGCS_DISCONNECTED;
 
     chat->group_number = group_number;
@@ -6048,18 +6044,6 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     }
 
     if (!is_active_chat) {
-        if (chat->save != nullptr) {
-            free(chat->save);
-        }
-
-        chat->save = (Saved_Group *)malloc(sizeof(Saved_Group));
-
-        if (chat->save == nullptr) {
-            return -1;
-        }
-
-        memcpy(chat->save, save, sizeof(Saved_Group));
-
         return group_number;
     }
 
@@ -6223,22 +6207,9 @@ int gc_disconnect_from_group(GC_Session *c, GC_Chat *chat)
         return -1;
     }
 
-    GC_Conn_State previous_state = chat->connection_state;
     chat->connection_state = CS_DISCONNECTED;
 
-    if (chat->save != nullptr) {
-        free(chat->save);
-    }
-
-    chat->save = (Saved_Group *)malloc(sizeof(Saved_Group));
-
-    if (chat->save == nullptr) {
-        chat->connection_state = previous_state;
-        return -2;
-    }
-
     send_gc_broadcast_message(chat, nullptr, 0, GM_PEER_EXIT);
-    pack_group_info(chat, chat->save, false);
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
         gcc_mark_for_deletion(&chat->gcc[i], chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
@@ -6286,7 +6257,6 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
 
     return 0;
 }
-
 
 bool check_group_invite(const GC_Session *c, const uint8_t *data, uint32_t length)
 {
@@ -6345,7 +6315,7 @@ static int send_gc_invite_accepted_packet(Messenger *m, const GC_Chat *chat, uin
         return -2;
     }
 
-    uint8_t packet[MAX_GC_PACKET_SIZE];
+    uint8_t packet[1 + 1 + CHAT_ID_SIZE + ENC_PUBLIC_KEY_SIZE];
     packet[0] = GP_FRIEND_INVITE;
     packet[1] = GROUP_INVITE_ACCEPTED;
 
@@ -6674,11 +6644,6 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
     if (chat->group) {
         free(chat->group);
         chat->group = nullptr;
-    }
-
-    if (chat->save) {
-        free(chat->save);
-        chat->save = nullptr;
     }
 }
 
