@@ -4026,7 +4026,7 @@ static int handle_gc_custom_packet(Messenger *m, int group_number, uint32_t peer
 static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                                uint32_t length, void *userdata)
 {
-    if (length < 1 + ENC_PUBLIC_KEY_SIZE) {
+    if (length < ENC_PUBLIC_KEY_SIZE) {
         return -1;
     }
 
@@ -4041,14 +4041,8 @@ static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_num
         return -1;
     }
 
-    uint8_t mod_event = data[0];
-
-    if (mod_event != MV_KICK) {
-        return -1;
-    }
-
     uint8_t target_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(target_pk, data + 1, ENC_PUBLIC_KEY_SIZE);
+    memcpy(target_pk, data, ENC_PUBLIC_KEY_SIZE);
 
     int target_peer_number = get_peer_number_of_enc_pk(chat, target_pk, false);
 
@@ -4061,7 +4055,7 @@ static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_num
     if (peer_number_is_self(target_peer_number)) {
         if (c->moderation) {
             (*c->moderation)(m, group_number, chat->group[peer_number].peer_id,
-                             chat->group[target_peer_number].peer_id, mod_event, userdata);
+                             chat->group[target_peer_number].peer_id, MV_KICK, userdata);
         }
 
         for (uint32_t i = 1; i < chat->numpeers; ++i) {
@@ -4079,7 +4073,7 @@ static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_num
 
     if (c->moderation) {
         (*c->moderation)(m, group_number, chat->group[peer_number].peer_id, chat->group[target_peer_number].peer_id,
-                         mod_event, userdata);
+                         MV_KICK, userdata);
     }
 
     gcc_mark_for_deletion(&chat->gcc[target_peer_number], chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
@@ -4094,12 +4088,10 @@ static int handle_gc_kick_peer(Messenger *m, int group_number, uint32_t peer_num
  */
 static int send_gc_kick_peer(const GC_Chat *chat, GC_Connection *gconn)
 {
-    uint32_t length = 1 + ENC_PUBLIC_KEY_SIZE;
-    uint8_t packet[MAX_GC_PACKET_SIZE];
-    packet[0] = MV_KICK;
-    memcpy(packet + 1, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
+    uint8_t packet[ENC_PUBLIC_KEY_SIZE];
+    memcpy(packet, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
 
-    return send_gc_broadcast_message(chat, packet, length, GM_KICK_PEER);
+    return send_gc_broadcast_message(chat, packet, ENC_PUBLIC_KEY_SIZE, GM_KICK_PEER);
 }
 
 /* Instructs all peers to remove peer_id from their peerlist.
