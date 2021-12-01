@@ -55,7 +55,7 @@
 #define GC_MESSAGE_ID_BYTES (sizeof(uint64_t))
 
 /* Size of a lossless ack packet */
-#define GC_LOSSLESS_ACK_SIZE (GC_MESSAGE_ID_BYTES + 1)
+#define GC_LOSSLESS_ACK_PACKET_SIZE (GC_MESSAGE_ID_BYTES + 1)
 
 /* Smallest possible size of a lossless group packet (includes plaintext header) */
 #define GC_MIN_LOSSLESS_PACKET_SIZE (sizeof(uint8_t) + GC_MESSAGE_ID_BYTES + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE\
@@ -4191,12 +4191,12 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
         gconn->last_requested_packet_time = tm;
     }
 
-    uint8_t data[GC_LOSSLESS_ACK_SIZE];
+    uint8_t data[GC_LOSSLESS_ACK_PACKET_SIZE];
 
     data[0] = type;
     net_pack_u64(data + 1, message_id);
 
-    int ret = send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_SIZE, GP_MESSAGE_ACK);
+    int ret = send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_PACKET_SIZE, GP_MESSAGE_ACK);
 
     return ret;
 }
@@ -4209,7 +4209,7 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
  */
 static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint32_t length)
 {
-    if (length != GC_LOSSLESS_ACK_SIZE) {
+    if (length != GC_LOSSLESS_ACK_PACKET_SIZE) {
         return -1;
     }
 
