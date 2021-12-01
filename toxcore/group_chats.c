@@ -5695,7 +5695,7 @@ static void do_self_connection(Messenger *m, GC_Chat *chat)
     // TODO (Jfreegman): This should be flagged when the tcp relay count changes at all. However
     // Doing this now on the testnet is pointless and causes spam due to a TCP implementation bug.
     if (((chat->self_udp_status != self_udp_status) && (self_udp_status != SELF_UDP_STATUS_NONE))
-            ||  (tcp_connections > 0 && tcp_connections > chat->tcp_connections)) {
+            || (tcp_connections > 0 && tcp_connections > chat->tcp_connections)) {
         chat->update_self_announces = true;
     }
 
