@@ -173,6 +173,13 @@ typedef enum Group_Message_Type {
     GC_MESSAGE_TYPE_ACTION = 0x01,
 } Group_Message_Type;
 
+/* Lossless message ack types */
+typedef enum Group_Message_Ack_Type {
+    GR_ACK_RECV    = 0x00,  // Indicates a message has been received
+    GR_ACK_REQ     = 0x01,  // Indicates a message needs to be re-sent
+    GR_ACK_INVALID = 0x02,
+} Group_Message_Ack_Type;
+
 struct GC_Sanction_Creds {
     uint32_t    version;
     uint8_t     hash[GC_SANCTION_HASH_SIZE];    /* hash of all sanctions list signatures + version */
@@ -763,10 +770,17 @@ GC_Chat *gc_get_group(const GC_Session *c, int group_number);
  */
 uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t max_addrs);
 
-/* If read_id is non-zero sends a read-receipt for ack_id's packet.
- * If request_id is non-zero sends a request for the respective id's packet.
+/* Sends a lossless message acknowledgement to peer associated with `gconn`.
+ *
+ * If `type` is GR_ACK_RECV we send a read-receipt for read_id's packet. If `type` is GR_ACK_REQ
+ * we send a request for the respective id's packet.
+ *
+ * requests are limited to one per second per peer.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
  */
-int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t read_id, uint64_t request_id);
+int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type);
 
 int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata);
