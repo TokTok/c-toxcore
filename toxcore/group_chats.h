@@ -342,8 +342,6 @@ typedef struct GC_Chat {
 
     uint8_t     m_group_public_key[CRYPTO_PUBLIC_KEY_SIZE];    /* Public key for group's messenger friend connection */
     int         friend_connection_id;   /* Identifier for group's messenger friend connection */
-
-    Saved_Group *save;
 } GC_Chat;
 
 #ifndef MESSENGER_DEFINED
@@ -399,7 +397,8 @@ typedef struct GC_Session {
     gc_rejected_cb *rejected;
 } GC_Session;
 
-void pack_group_info(const GC_Chat *chat, Saved_Group *temp, bool can_use_cached_value);
+/* Packs group info for `chat` into `temp`. */
+void pack_group_info(const GC_Chat *chat, Saved_Group *temp);
 
 /* Sends a plain message or an action, depending on type.
  *
