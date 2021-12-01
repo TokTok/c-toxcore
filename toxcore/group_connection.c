@@ -354,11 +354,11 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
     clear_array_entry(array_entry);
 
     if (ret == -1) {
-        gc_send_message_ack(chat, gconn, 0, array_entry->message_id);
+        gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_REQ);
         return -1;
     }
 
-    gc_send_message_ack(chat, gconn, array_entry->message_id, 0);
+    gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_RECV);
     ++gconn->received_message_id;
 
     return 0;
