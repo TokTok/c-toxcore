@@ -45,57 +45,68 @@ typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_LAN  = 0x02,
 } Self_UDP_Status;
 
+/* Group privacy states. */
 typedef enum Group_Privacy_State {
-    GI_PUBLIC   = 0x00,
-    GI_PRIVATE  = 0x01,
+    GI_PUBLIC   = 0x00,  // Anyone with the chat ID may join the group
+    GI_PRIVATE  = 0x01,  // Peers may only join the group via a friend invite
     GI_INVALID  = 0x02,
 } Group_Privacy_State;
 
+/* Group topic lock states. */
 typedef enum Group_Topic_Lock {
-    TL_ENABLED  = 0x00,
-    TL_DISABLED = 0x01,
+    TL_ENABLED  = 0x00,  // Only the Founder and moderators may set the topic
+    TL_DISABLED = 0x01,  // Anyone except Observers may set the topic
     TL_INVALID  = 0x02,
 } Group_Topic_Lock;
 
+/* Group moderation events. */
 typedef enum Group_Moderation_Event {
-    MV_KICK      = 0x00,
-    MV_OBSERVER  = 0x01,
-    MV_USER      = 0x02,
-    MV_MODERATOR = 0x03,
+    MV_KICK      = 0x00,  // A peer has been kicked
+    MV_OBSERVER  = 0x01,  // A peer has been demoted to Observer
+    MV_USER      = 0x02,  // A peer has been demoted or promoted to User
+    MV_MODERATOR = 0x03,  // A peer has been promoted to or demoted from Moderator
     MV_INVALID   = 0x04,
 } Group_Moderation_Event;
 
+/* Group exit types. */
 typedef enum Group_Exit_Type {
-    GC_EXIT_TYPE_QUIT              = 0x00,
-    GC_EXIT_TYPE_TIMEOUT           = 0x01,
-    GC_EXIT_TYPE_DISCONNECTED      = 0x02,
-    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,
-    GC_EXIT_TYPE_KICKED            = 0x04,
-    GC_EXIT_TYPE_SYNC_ERR          = 0x05,
-    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,
+    GC_EXIT_TYPE_QUIT              = 0x00,  // Peer left the group
+    GC_EXIT_TYPE_TIMEOUT           = 0x01,  // Peer connection timed out
+    GC_EXIT_TYPE_DISCONNECTED      = 0x02,  // Peer diconnected from group
+    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,  // Self disconnected from group
+    GC_EXIT_TYPE_KICKED            = 0x04,  // Peer was kicked from the group
+    GC_EXIT_TYPE_SYNC_ERR          = 0x05,  // Peer failed to sync with the group
+    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,  // The peer exit callback should not be triggered
     GC_EXIT_TYPE_INVALID           = 0x07,
 } Group_Exit_Type;
 
+/* Messenger level group invite types */
 typedef enum Group_Invite_Message_Type {
-    GROUP_INVITE              = 0x00,
-    GROUP_INVITE_ACCEPTED     = 0x01,
-    GROUP_INVITE_CONFIRMATION = 0x02,
+    GROUP_INVITE              = 0x00,  // Peer has initiated an invite
+    GROUP_INVITE_ACCEPTED     = 0x01,  // Peer has accepted the invite
+    GROUP_INVITE_CONFIRMATION = 0x02,  // Peer has confirmed the accepted invite
 } Group_Invite_Message_Type;
 
-/* Group roles are hierarchical where each role has a set of privileges plus
+/*
+ * Group roles. Roles are hierarchical in that each role has a set of privileges plus
  * all the privileges of the roles below it.
- *
- * - FOUNDER is all-powerful. Cannot be demoted or kicked.
- * - MODERATOR may promote or demote peers below them to any role below them.
- *             May also kick peers below them and set the topic.
- * - USER may interact normally with the group.
- * - OBSERVER cannot interact with the group but may observe.
  */
 typedef enum Group_Role {
+    /* Group creator. All-powerful. Cannot be demoted or kicked. */
     GR_FOUNDER   = 0x00,
+
+    /*
+     * May promote or demote peers below them to any role below them.
+     * May also kick peers below them and set the topic.
+     */
     GR_MODERATOR = 0x01,
+
+    /* may interact normally with the group. */
     GR_USER      = 0x02,
+
+    /* May not interact with the group but may observe. */
     GR_OBSERVER  = 0x03,
+
     GR_INVALID   = 0x04,
 } Group_Role;
 
@@ -106,18 +117,30 @@ typedef enum Group_Peer_Status {
     GS_INVALID = 0x03,
 } Group_Peer_Status;
 
+/* Group connection states. */
 typedef enum GC_Conn_State {
-    CS_NONE         = 0x00,
-    CS_DISCONNECTED = 0x01,
-    CS_CONNECTING   = 0x02,
-    CS_CONNECTED    = 0x03,
+    CS_NONE         = 0x00,  // Indicates a group is not initialized
+    CS_DISCONNECTED = 0x01,  // Not receiving or sending any packets
+    CS_CONNECTING   = 0x02,  // Attempting to establish a connection with peers in the group
+    CS_CONNECTED    = 0x03,  // Has successfully received a sync response from a peer in the group
     CS_INVALID      = 0x04,
 } GC_Conn_State;
 
+/*
+ * Group save connection state.
+ *
+ * Used to determine whether or not a group should auto-connect the next time it's loaded.
+ */
 typedef enum Saved_GC_Conn_State {
-    SGCS_DISCONNECTED = 0x00,
-    SGCS_CONNECTED    = 0x01,
+    SGCS_DISCONNECTED = 0x00,  // The saved group is currently disconnected
+    SGCS_CONNECTED    = 0x01,  // The saved group is currently connected
 } Saved_GC_Conn_State;
+
+/* Handshake join types. */
+typedef enum Group_Handshake_Join_Type {
+    HJ_PUBLIC  = 0x00,  // Indicates the group was joined via the DHT
+    HJ_PRIVATE = 0x01,  // Indicates the group was joined via a friend invite
+} Group_Handshake_Join_Type;
 
 typedef enum Group_Join_Rejected {
     GJ_NICK_TAKEN       = 0x00,
@@ -139,6 +162,11 @@ typedef enum Group_Broadcast_Type {
     GM_SET_OBSERVER    = 0x08,
 } Group_Broadcast_Type;
 
+/*
+ * Group packet types.
+ *
+ * For a detailed spec, see docs/DHT_Group_Chats_Packet_Spec.md
+ */
 typedef enum Group_Packet_Type {
     /* lossy packets (ID 0 is reserved) */
     GP_PING                     = 0x01,
@@ -163,17 +191,7 @@ typedef enum Group_Packet_Type {
     GP_HS_RESPONSE_ACK          = 0xff,
 } Group_Packet_Type;
 
-typedef enum Group_Handshake_Join_Type {
-    HJ_PUBLIC  = 0x00,
-    HJ_PRIVATE = 0x01,
-} Group_Handshake_Join_Type;
-
-typedef enum Group_Message_Type {
-    GC_MESSAGE_TYPE_NORMAL = 0x00,
-    GC_MESSAGE_TYPE_ACTION = 0x01,
-} Group_Message_Type;
-
-/* Lossless message ack types */
+/* Lossless message acknowledgement types. */
 typedef enum Group_Message_Ack_Type {
     GR_ACK_RECV    = 0x00,  // Indicates a message has been received
     GR_ACK_REQ     = 0x01,  // Indicates a message needs to be re-sent
@@ -327,7 +345,8 @@ typedef struct GC_Chat {
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
     uint64_t    last_sync_request;
-    uint8_t     join_type;    /* How we joined the group (invite or DHT) */
+
+    Group_Handshake_Join_Type join_type;
 
     /* keeps track of frequency of new inbound connections */
     uint8_t     connection_O_metre;
@@ -508,14 +527,14 @@ uint32_t gc_get_self_peer_id(const GC_Chat *chat);
 /* Copies self public key to `public_key`. If `public_key` is null this function has no effect. */
 void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key);
 
-/* Copies peer_id's nick to name.
+/* Copies nick designated by `peer_id` to `name` buffer.
  *
  * Returns 0 on success.
  * Returns -1 if peer_id is invalid.
  */
 int gc_get_peer_nick(const GC_Chat *chat, uint32_t peer_id, uint8_t *name);
 
-/* Returns peer_id's nick length.
+/* Returns the nick length of peer designated by `peer_id`.
  * Returns -1 if peer_id is invalid.
  */
 int gc_get_peer_nick_size(const GC_Chat *chat, uint32_t peer_id);
@@ -547,13 +566,13 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
  */
 int gc_set_self_status(const Messenger *m, int group_number, uint8_t status);
 
-/* Returns peer_id's status.
+/* Returns the status of peer designated by `peer_id`.
  * Returns (uint8_t) -1 on failure.
  */
 uint8_t gc_get_status(const GC_Chat *chat, uint32_t peer_id);
 
-/* Returns peer_id's group role.
- * Returns (uint8_t) -1 on failure.
+/* Returns the group role of peer designated by `peer_id`.
+ * Returns (uint8_t)-1 on failure.
  */
 uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id);
 
@@ -781,17 +800,35 @@ uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t
  */
 int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type);
 
+/* Helper function for handle_gc_lossless_packet().
+ *
+ * Return 0 if packet is successfully handled.
+ * Return -1 on failure.
+ */
 int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata);
 
+/* Handles an invite accept packet.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
 int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
 bool check_group_invite(const GC_Session *c, const uint8_t *data, uint32_t length);
 
 int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
+/* Returns the group designated by `public_key`.
+ * Returns null if group does not exist.
+ */
 GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_key);
 
+/* Attempts to add peers from `announces` to our peer list and initiate an invite request.
+ *
+ * Returns the number of peers added on success.
+ * Returns -1 on failure.
+ */
 int add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
                              uint8_t gc_announces_count);
 
