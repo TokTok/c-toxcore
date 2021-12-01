@@ -54,6 +54,9 @@
 /* Size of a group packet message ID */
 #define GC_MESSAGE_ID_BYTES (sizeof(uint64_t))
 
+/* Size of a lossless ack packet */
+#define GC_LOSSLESS_ACK_SIZE (GC_MESSAGE_ID_BYTES + 1)
+
 /* Smallest possible size of a lossless group packet (includes plaintext header) */
 #define GC_MIN_LOSSLESS_PACKET_SIZE (sizeof(uint8_t) + GC_MESSAGE_ID_BYTES + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE\
                                      + CRYPTO_NONCE_SIZE + sizeof(uint8_t) + CRYPTO_MAC_SIZE)
@@ -4158,33 +4161,27 @@ int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id)
     return 0;
 }
 
-/*
- * Returns true if the ack contained either a read_id or a request_id but not both.
- */
-static bool valid_gc_message_ack(uint64_t read_id, uint64_t request_id)
-{
-    return (read_id || request_id) && (read_id == 0 || request_id == 0);
-}
-
-/* If read_id is non-zero we send a read-receipt for read_id's packet.
+/* Sends a lossless message acknowledgement to peer associated with `gconn`.
  *
- * If request_id is non-zero we send a request for the respective id's packet.
+ * If `type` is GR_ACK_RECV we send a read-receipt for read_id's packet. If `type` is GR_ACK_REQ
+ * we send a request for the respective id's packet.
+ *
  * requests are limited to one per second per peer.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t read_id, uint64_t request_id)
+int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type)
 {
     if (gconn->pending_delete) {
         return 0;
     }
 
-    if (!valid_gc_message_ack(read_id, request_id)) {
+    if (type >= GR_ACK_INVALID) {
         return -1;
     }
 
-    if (request_id > 0) {
+    if (type == GR_ACK_REQ) {
         uint64_t tm = mono_time_get(chat->mono_time);
 
         if (gconn->last_requested_packet_time == tm) {
@@ -4194,58 +4191,51 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t read
         gconn->last_requested_packet_time = tm;
     }
 
-    uint32_t length = GC_MESSAGE_ID_BYTES * 2;
-    uint8_t *data = (uint8_t *)malloc(length);
+    uint8_t data[GC_LOSSLESS_ACK_SIZE];
 
-    if (data == nullptr) {
-        return -1;
-    }
+    data[0] = type;
+    net_pack_u64(data + 1, message_id);
 
-    net_pack_u64(data, read_id);
-    net_pack_u64(data + GC_MESSAGE_ID_BYTES, request_id);
-
-    int ret = send_lossy_group_packet(chat, gconn, data, length, GP_MESSAGE_ACK);
-
-    free(data);
+    int ret = send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_SIZE, GP_MESSAGE_ACK);
 
     return ret;
 }
 
-/* If packet contains a non-zero request_id we try to resend its respective packet.
- * If packet contains a non-zero read_id we remove the packet from our send array.
+/* Handles a lossless message acknowledgement. If the type is of GR_ACK_RECV we remove the packet from our
+ * send array. If the type is of GR_ACK_REQ we re-send the packet associated with the requested message_id.
  *
  * Returns non-negative value on success.
  * Return -1 if error or we fail to send a packet in case of a request response.
  */
 static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint32_t length)
 {
-    if (length != GC_MESSAGE_ID_BYTES * 2) {
+    if (length != GC_LOSSLESS_ACK_SIZE) {
         return -1;
     }
 
-    uint64_t read_id;
-    uint64_t request_id;
-    net_unpack_u64(data, &read_id);
-    net_unpack_u64(data + GC_MESSAGE_ID_BYTES, &request_id);
+    uint8_t type = data[0];
 
-    if (!valid_gc_message_ack(read_id, request_id)) {
+    if (type >= GR_ACK_INVALID) {
         return -1;
     }
 
-    if (read_id > 0) {
-        return gcc_handle_ack(gconn, read_id);
+    uint64_t message_id;
+    net_unpack_u64(data + 1, &message_id);
+
+    if (type == GR_ACK_RECV) {
+        return gcc_handle_ack(gconn, message_id);
     }
 
     uint64_t tm = mono_time_get(chat->mono_time);
-    uint16_t idx = gcc_get_array_index(request_id);
+    uint16_t idx = gcc_get_array_index(message_id);
 
     /* re-send requested packet */
-    if (gconn->send_array[idx].message_id == request_id) {
+    if (gconn->send_array[idx].message_id == message_id) {
         int ret = gcc_send_group_packet(chat, gconn, gconn->send_array[idx].data, gconn->send_array[idx].data_length);
 
         if (ret == 0) {
             gconn->send_array[idx].last_send_try = tm;
-            LOGGER_ERROR(chat->logger, "Re-sent requested packet %lu", request_id);
+            LOGGER_ERROR(chat->logger, "Re-sent requested packet %lu", message_id);
         }
 
         return ret;
@@ -4986,14 +4976,14 @@ static int handle_gc_lossless_message(Messenger *m, const GC_Chat *chat, const u
     /* Duplicate packet */
     if (lossless_ret == 0) {
         // LOGGER_DEBUG(m->log, "got duplicate packet from peer %u. ID: %lu, type: %u)", peer_number, message_id, packet_type);
-        return gc_send_message_ack(chat, gconn, message_id, 0);
+        return gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
 
     /* request missing packet */
     if (lossless_ret == 1) {
         LOGGER_DEBUG(m->log, "received out of order packet from peer %u. expected %lu, got %lu", peer_number,
                      gconn->received_message_id + 1, message_id);
-        return gc_send_message_ack(chat, gconn, 0, gconn->received_message_id + 1);
+        return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
     }
 
     int ret = handle_gc_lossless_helper(m, chat->group_number, peer_number, data, len, message_id, packet_type, userdata);
@@ -5008,7 +4998,7 @@ static int handle_gc_lossless_message(Messenger *m, const GC_Chat *chat, const u
     gconn = gcc_get_connection(chat, peer_number);
 
     if (gconn != nullptr && lossless_ret == 2) {
-        gc_send_message_ack(chat, gconn, message_id, 0);
+        gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
 
     return ret;
