@@ -6,10 +6,10 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
 ## Table of Contents
 - [Full Packet Structure](#headers)
 - [Lossy Packet Payloads](#lossy_packets)
-  - [PING_(0x01)](#ping)
+  - [PING (0x01)](#ping)
   - [MESSAGE_ACK (0x02)](#message_ack)
   - [INVITE_RESPONSE_REJECT (0x03)](#invite_response_reject)
-- [Lossless Packets Payloads](#lossless_packets)
+- [Lossless Packet Payloads](#lossless_packets)
   - [TCP_RELAYS (0xf1)](#tcp_relays)
   - [CUSTOM_PACKET (0xf2)](#custom_packet)
   - [BROADCAST (0xf3)](#broadcast)
