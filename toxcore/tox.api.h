@@ -4088,11 +4088,6 @@ namespace group {
    */
   enum class JOIN_FAIL {
     /**
-     * You are using the same nickname as someone who is already in the group.
-     */
-    NAME_TAKEN,
-
-    /**
      * The group peer limit has been reached.
      */
     PEER_LIMIT,

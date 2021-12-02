@@ -143,11 +143,10 @@ typedef enum Group_Handshake_Join_Type {
 } Group_Handshake_Join_Type;
 
 typedef enum Group_Join_Rejected {
-    GJ_NICK_TAKEN       = 0x00,
-    GJ_GROUP_FULL       = 0x01,
-    GJ_INVALID_PASSWORD = 0x02,
-    GJ_INVITE_FAILED    = 0x03,
-    GJ_INVALID          = 0x04,
+    GJ_GROUP_FULL       = 0x00,
+    GJ_INVALID_PASSWORD = 0x01,
+    GJ_INVITE_FAILED    = 0x02,
+    GJ_INVALID          = 0x03,
 } Group_Join_Rejected;
 
 typedef enum Group_Broadcast_Type {
