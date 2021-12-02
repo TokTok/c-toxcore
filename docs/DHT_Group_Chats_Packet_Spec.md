@@ -118,10 +118,9 @@ If the type is `GR_ACK_RECV`, this indicates that the packet with the given id h
 Alerts a peer that their invite request has been rejected. The reason for the rejection is specified by the `type` field.
 
 Rejection types are defined by an enumerator beginning at zero as follows:  
-`NICK_TAKEN = 0`  
-`GROUP_FULL = 1`  
-`INVALID_PASSWORD = 2`  
-`INVITE_FAILED = 3`  
+`GROUP_FULL = 0`  
+`INVALID_PASSWORD = 1`  
+`INVITE_FAILED = 2`  
 
 <a name="lossless_packets"/>
 
@@ -287,9 +286,7 @@ Supplies information about ourselves to a peer. This is sent as a response to a 
 ### INVITE_REQUEST (0xf6)
 
 #### Structure
-`2 bytes: name length`  
-`name_length bytes: name`  
-`32 bytes: group password`  
+`32 bytes: password`  (Optional: Only if group is password protected)
 
 #### Description
 Requests an invite to the group.
