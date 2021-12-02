@@ -59,7 +59,7 @@ GC_Connection *gcc_random_connection(const GC_Chat *chat)
     GC_Connection *rand_gconn = &chat->gcc[index];
 
     do {
-        if (!rand_gconn->pending_delete) {
+        if (!rand_gconn->pending_delete && rand_gconn->confirmed) {
             return rand_gconn;
         }
 
