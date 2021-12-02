@@ -115,7 +115,6 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 static int peer_update(Messenger *m, int group_number, GC_GroupPeer *peer, uint32_t peer_number);
 static int group_delete(GC_Session *c, GC_Chat *chat);
 static void group_cleanup(GC_Session *c, GC_Chat *chat);
-static int get_nick_peer_number(const GC_Chat *chat, const uint8_t *nick, uint16_t length);
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 static void add_tcp_relays_to_chat(Messenger *m, GC_Chat *chat);
 static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
@@ -1533,26 +1532,21 @@ static int handle_gc_tcp_relays(const Messenger *m, int group_number, GC_Connect
     return 0;
 }
 
-/* Send invite request to peer_number. Invite packet contains your nick and the group password.
- * If no group password is necessary the password field will be ignored by the invitee.
+/* Send invite request to peer_number. If the group requires a password, the packet will
+ * contain the password supplied by the invite requestor.
  *
- * Return -1 if fail
- * Return 0 if success
+ * Return 0 on success.
+ * Return -1 on failure.
  */
 static int send_gc_invite_request(const GC_Chat *chat, GC_Connection *gconn)
 {
-    uint8_t data[MAX_GC_PACKET_SIZE];
+    uint16_t length = 0;
+    uint8_t data[MAX_GC_PASSWORD_SIZE];
 
-    uint16_t self_nick_length = gc_get_self_nick_size(chat);
-
-    net_pack_u16(data, self_nick_length);
-    uint32_t length = sizeof(uint16_t);
-
-    gc_get_self_nick(chat, data + length);
-    length += self_nick_length;
-
-    memcpy(data + length, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
-    length += MAX_GC_PASSWORD_SIZE;
+    if (chat->shared_state.password_length > 0) {
+        memcpy(data, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
+        length = MAX_GC_PASSWORD_SIZE;
+    }
 
     return send_lossless_group_packet(chat, gconn, data, length, GP_INVITE_REQUEST);
 }
@@ -1648,10 +1642,8 @@ static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gc
     return send_lossy_group_packet(chat, gconn, data, 1, GP_INVITE_RESPONSE_REJECT);
 }
 
-/* Handles an invite request.
- *
- * Verifies that the invitee's nick is not already taken, and that the correct password has
- * been supplied if the group is password protected.
+/* Handles an invite request and verifies that the correct password has been supplied
+ * if the group is password protected.
  *
  * Return 0 on succss.
  * Return -1 if packet is invalid size.
@@ -1659,22 +1651,23 @@ static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gc
  * Return -3 if peer number is invalid.
  * Return -4 if our shared state is invalid (this means we aren't synced with the group yet)
  * Return -5 if the group is full.
- * Return -6 if the packet contains invalid info.
- * Return -7 if the supplied password is invalid.
- * Return -8 if we fail to send an invite response.
+ * Return -6 if the supplied password is invalid.
+ * Return -7 if we fail to send an invite response.
  */
 static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                                     uint32_t length)
 {
-    if (length <= sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE) {
-        return -1;
-    }
-
     const GC_Session *c = m->group_handler;
     const GC_Chat *chat = gc_get_group(c, group_number);
 
     if (chat == nullptr) {
         return -2;
+    }
+
+    const bool password_protected = chat->shared_state.password_length > 0;
+
+    if (password_protected && length != MAX_GC_PASSWORD_SIZE) {
+        return -1;
     }
 
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
@@ -1690,54 +1683,25 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
     int ret = -5;
 
     uint8_t invite_error = GJ_INVITE_FAILED;
-    uint8_t nick[MAX_GC_NICK_SIZE] = {0};
-    uint16_t nick_len;
-
-    int peer_number_by_nick = 0;
 
     if (get_gc_confirmed_numpeers(chat) >= chat->shared_state.maxpeers) {
         invite_error = GJ_GROUP_FULL;
         goto FAILED_INVITE;
     }
 
-    net_unpack_u16(data, &nick_len);
-
-    ret = -6;
-
-    if (nick_len > MAX_GC_NICK_SIZE) {
-        goto FAILED_INVITE;
-    }
-
-    if (length - sizeof(uint16_t) < nick_len) {
-        goto FAILED_INVITE;
-    }
-
-    memcpy(nick, data + sizeof(uint16_t), nick_len);
-
-    peer_number_by_nick = get_nick_peer_number(chat, nick, nick_len);
-
-    if (peer_number_by_nick != -1 && peer_number_by_nick != peer_number) { // in case of duplicate invite
-        invite_error = GJ_NICK_TAKEN;
-        goto FAILED_INVITE;
-    }
-
-    if (length - sizeof(uint16_t) - nick_len < MAX_GC_PASSWORD_SIZE) {
-        goto FAILED_INVITE;
-    }
-
-    if (chat->shared_state.password_length > 0) {
+    if (password_protected) {
         uint8_t password[MAX_GC_PASSWORD_SIZE];
-        memcpy(password, data + sizeof(uint16_t) + nick_len, MAX_GC_PASSWORD_SIZE);
+        memcpy(password, data, MAX_GC_PASSWORD_SIZE);
 
         if (memcmp(chat->shared_state.password, password, chat->shared_state.password_length) != 0) {
             invite_error = GJ_INVALID_PASSWORD;
-            ret = -7;
+            ret = -6;
             goto FAILED_INVITE;
         }
     }
 
     if (send_gc_invite_response(chat, gconn) != 0) {
-        return -8;
+        return -7;
     }
 
     return 0;
@@ -2853,10 +2817,6 @@ int gc_set_self_nick(const Messenger *m, int group_number, const uint8_t *nick, 
         return -3;
     }
 
-    if (get_nick_peer_number(chat, nick, length) != -1) {
-        return -4;
-    }
-
     if (self_gc_set_nick(chat, nick, length) == -1) {
         return -2;
     }
@@ -2918,9 +2878,9 @@ static int handle_gc_nick(Messenger *m, int group_number, uint32_t peer_number, 
     }
 
     /* If this happens malicious behaviour is highly suspect */
-    if (length == 0 || length > MAX_GC_NICK_SIZE || get_nick_peer_number(chat, nick, length) != -1) {
+    if (length == 0 || length > MAX_GC_NICK_SIZE) {
         gcc_mark_for_deletion(&chat->gcc[peer_number], chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
-        LOGGER_ERROR(chat->logger, "Failed to validate nick: %s", nick);
+        LOGGER_ERROR(chat->logger, "Invalid nick length for nick: %s (%u)", nick, length);
         return 0;
     }
 
@@ -5604,13 +5564,6 @@ static int peer_update(Messenger *m, int group_number, GC_GroupPeer *peer, uint3
         return -1;
     }
 
-    int nick_num = get_nick_peer_number(chat, peer->nick, peer->nick_length);
-
-    if (nick_num != -1 && nick_num != peer_number) {   /* duplicate nick */
-        gcc_mark_for_deletion(&chat->gcc[peer_number], chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
-        return -1;
-    }
-
     GC_GroupPeer *curr_peer = &chat->group[peer_number];
     curr_peer->role = peer->role;
     curr_peer->status = peer->status;
@@ -7061,24 +7014,6 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
     }
 
     return nullptr;
-}
-
-/* Return peer_number of peer with nick if nick is taken.
- * Return -1 if nick is not taken.
- */
-static int get_nick_peer_number(const GC_Chat *chat, const uint8_t *nick, uint16_t length)
-{
-    if (length == 0) {
-        return -1;
-    }
-
-    for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        if (chat->group[i].nick_length == length && memcmp(chat->group[i].nick, nick, length) == 0) {
-            return i;
-        }
-    }
-
-    return -1;
 }
 
 /* Return True if chat_id exists in the session chat array */

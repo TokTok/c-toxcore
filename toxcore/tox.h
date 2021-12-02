@@ -4730,11 +4730,6 @@ void tox_callback_group_self_join(Tox *tox, tox_group_self_join_cb *callback);
 typedef enum TOX_GROUP_JOIN_FAIL {
 
     /**
-     * You are using the same nickname as someone who is already in the group.
-     */
-    TOX_GROUP_JOIN_FAIL_NAME_TAKEN,
-
-    /**
      * The group peer limit has been reached.
      */
     TOX_GROUP_JOIN_FAIL_PEER_LIMIT,
