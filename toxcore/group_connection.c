@@ -25,7 +25,7 @@
 
 #ifndef VANILLA_NACL
 
-/* The time before the direct UDP connection is considered dead */
+/* Seconds since last direct UDP packet was received before the connection is considered dead */
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
 
