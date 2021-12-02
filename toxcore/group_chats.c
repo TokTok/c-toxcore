@@ -2281,6 +2281,14 @@ static int validate_gc_shared_state(const GC_SharedState *state)
         return -1;
     }
 
+    if (state->topic_lock >= TL_INVALID) {
+        return -1;
+    }
+
+    if (state->privacy_state >= GI_INVALID) {
+        return -1;
+    }
+
     return 0;
 }
 
