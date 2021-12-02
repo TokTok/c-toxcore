@@ -1657,7 +1657,7 @@ static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gc
  * Return -1 if packet is invalid size.
  * Return -2 if group number is invalid.
  * Return -3 if peer number is invalid.
- * Return -4 if shared state is invalid.
+ * Return -4 if our shared state is invalid (this means we aren't synced with the group yet)
  * Return -5 if the group is full.
  * Return -6 if the packet contains invalid info.
  * Return -7 if the supplied password is invalid.
@@ -6093,6 +6093,30 @@ static int init_gc_tcp_connection(Messenger *m, GC_Chat *chat)
     return 0;
 }
 
+/* Initializes default shared state values. */
+static void init_gc_shared_state(GC_Chat *chat)
+{
+    chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
+    chat->shared_state.privacy_state = GI_PRIVATE;
+    chat->shared_state.topic_lock = TL_ENABLED;
+}
+
+/* Initializes the group shared state for the founder.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+static int init_gc_shared_state_founder(GC_Chat *chat, uint8_t privacy_state, const uint8_t *group_name,
+                                        uint16_t name_length)
+{
+    memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->shared_state.group_name, group_name, name_length);
+    chat->shared_state.group_name_len = name_length;
+    chat->shared_state.privacy_state = privacy_state;
+
+    return sign_gc_shared_state(chat);
+}
+
 static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_length, bool founder)
 {
     if (nick == nullptr || nick_length == 0) {
@@ -6144,24 +6168,9 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     self_gc_set_confirmed(chat, true);
     self_gc_set_ext_public_key(chat, chat->self_public_key);
 
+    init_gc_shared_state(chat);
+
     return group_number;
-}
-
-/* Initializes group shared state and creates a signature for it using the chat secret key.
- *
- * Return 0 on success.
- * Return -1 on failure.
- */
-static int init_gc_shared_state(GC_Chat *chat, uint8_t privacy_state, const uint8_t *group_name, uint16_t name_length)
-{
-    memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->shared_state.group_name, group_name, name_length);
-    chat->shared_state.group_name_len = name_length;
-    chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
-    chat->shared_state.privacy_state = privacy_state;
-    chat->shared_state.topic_lock = TL_ENABLED;
-
-    return sign_gc_shared_state(chat);
 }
 
 /* Inits the sanctions list credentials. This should be called by the group founder on creation.
@@ -6376,7 +6385,7 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
 
     create_extended_keypair(chat->chat_public_key, chat->chat_secret_key);
 
-    if (init_gc_shared_state(chat, privacy_state, group_name, group_name_length) == -1) {
+    if (init_gc_shared_state_founder(chat, privacy_state, group_name, group_name_length) == -1) {
         group_delete(c, chat);
         return -5;
     }
@@ -6452,7 +6461,6 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
     chat->chat_id_hash = get_chat_id_hash(get_chat_id(chat->chat_public_key));
     chat->join_type = HJ_PUBLIC;
     chat->connection_state = CS_CONNECTING;
-    chat->shared_state.topic_lock = TL_ENABLED;
 
     if (passwd != nullptr && passwd_len > 0) {
         if (set_gc_password_local(chat, passwd, passwd_len) == -1) {
@@ -6713,6 +6721,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
     return 0;
 }
 
+/* Return true if we have a pending sent invite for our friend designated by `friend_number`. */
 static bool friend_was_invited(GC_Chat *chat, int friend_number)
 {
     for (size_t i = 0; i < MAX_GC_SAVED_INVITES; ++i) {
@@ -6870,8 +6879,6 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
 
     chat->chat_id_hash = get_chat_id_hash(get_chat_id(chat->chat_public_key));
     chat->join_type = HJ_PRIVATE;
-    chat->shared_state.privacy_state = GI_PRIVATE;
-    chat->shared_state.topic_lock = TL_ENABLED;
 
     if (passwd != nullptr && passwd_len > 0) {
         if (set_gc_password_local(chat, passwd, passwd_len) == -1) {
