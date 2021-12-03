@@ -108,7 +108,6 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
     ck_assert(state != nullptr);
 
     ++state->num_peers;
-
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
 
@@ -216,7 +215,7 @@ static void group_state_test(Tox **toxes, State *state)
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
     }
 
-    /* Tox1 creates a group and is the founder of a newly created group */
+    /* Tox 0 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnum = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
                                       (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
