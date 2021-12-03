@@ -142,7 +142,9 @@ static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit
     }
 
     if (password != nullptr && my_pass_len > 0) {
-        VLA(uint8_t, my_pass, my_pass_len + 1);
+        ck_assert(my_pass_len <= TOX_GROUP_MAX_PASSWORD_SIZE);
+
+        uint8_t my_pass[TOX_GROUP_MAX_PASSWORD_SIZE];
         tox_group_get_password(tox, groupnumber, my_pass, &query_err);
         my_pass[my_pass_len] = 0;
         ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "Failed to get password: %d", query_err);
@@ -160,7 +162,9 @@ static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit
         return -7;
     }
 
-    VLA(uint8_t, my_gname, my_gname_len + 1);
+    ck_assert(my_gname_len <= TOX_GROUP_MAX_GROUP_NAME_LENGTH);
+
+    uint8_t my_gname[TOX_GROUP_MAX_GROUP_NAME_LENGTH];
     tox_group_get_name(tox, groupnumber, my_gname, &query_err);
     my_gname[my_gname_len] = 0;
 
