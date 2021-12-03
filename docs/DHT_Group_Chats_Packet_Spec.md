@@ -272,24 +272,26 @@ Requests a peer to send us information about themselves.
 ### PEER_INFO_RESPONSE (0xf5)
 
 #### Structure
-`32 bytes: group password`  
+`2 bytes: password length` (Optional)  
+`32 bytes: group password` (Optional)  
 `2 bytes: name length`  
 `128 bytes: name`  
 `1 byte: status`  
 `1 byte: role`  
 
 #### Description
-Supplies information about ourselves to a peer. This is sent as a response to a `PEER_INFO_REQUEST` or `HS_PEER_INFO_EXCHANGE` packet as part of the handshake protocol.
+Supplies information about ourselves to a peer. This is sent as a response to a `PEER_INFO_REQUEST` or `HS_PEER_INFO_EXCHANGE` packet as part of the handshake protocol. A password and length of password must be included in the packet if the group is password protected.
 
 <a name="invite_request"/>
 
 ### INVITE_REQUEST (0xf6)
 
 #### Structure
-`32 bytes: password`  (Optional: Only if group is password protected)
+`2 bytes: password length` (Optional)  
+`32 bytes: password` (Optional)  
 
 #### Description
-Requests an invite to the group.
+Requests an invite to the group. A password and length of password must be included in the packet if the group is password protected.
 
 <a name="invite_response"/>
 
@@ -309,10 +311,11 @@ Before sending this packet we first attempt to validate the invite request. If v
 
 #### Structure
 `2 bytes: sync flags`  
-`32 bytes: group password`  
+`2 bytes: password length` (Optional)  
+`32 bytes: group password` (Optional)  
 
 #### Description
-Asks a peer to send us state information about the group chat. The specific information being requested is specified via the `sync_flags` field.
+Asks a peer to send us state information about the group chat. The specific information being requested is specified via the `sync_flags` field. A password and length of password must be included in the packet if the group is password protected.
 
 `sync_flags` is a bitfield defined as a 16-bit unsigned integer which may have the bits set for the respective values depending on what information is being requested:  
 `PEER_LIST = 0`  
