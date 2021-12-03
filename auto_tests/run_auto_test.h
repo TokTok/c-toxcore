@@ -1,5 +1,4 @@
 #include <stdlib.h>  // calloc, free
-#include <string.h>  // strlen
 
 #include "check_compat.h"
 #include "../testing/misc_tools.h"
@@ -71,11 +70,6 @@ static void run_auto_test(uint32_t tox_count, void test(Tox **toxes, State *stat
         state[i].index = i;
         toxes[i] = tox_new_log(nullptr, nullptr, &state[i].index);
         ck_assert_msg(toxes[i], "failed to create %u tox instances", i + 1);
-
-        char name[TOX_MAX_NAME_LENGTH];
-        snprintf(name, sizeof(name), "Toxicle-%u", i);
-        tox_self_set_name(toxes[i], (const uint8_t *)name, strlen(name), nullptr);
-
         set_mono_time_callback(toxes[i], &state[i]);
     }
 
