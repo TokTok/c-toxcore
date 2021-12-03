@@ -285,6 +285,12 @@ static bool is_public_chat(const GC_Chat *chat)
     return chat->shared_state.privacy_state == GI_PUBLIC;
 }
 
+/* Returns true if group is password protected */
+static bool password_protected(const GC_Chat *chat)
+{
+    return chat->shared_state.password_length > 0;
+}
+
 /* Returns the group chat associated with `hash`, or null if hash is not found. */
 static GC_Chat *get_chat_by_hash(const GC_Session *c, uint32_t hash)
 {
@@ -1355,7 +1361,7 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
     uint16_t sync_flags;
     net_unpack_u16(data, &sync_flags);
 
-    if (chat->shared_state.password_length > 0) {
+    if (password_protected(chat)) {
         uint8_t password[MAX_GC_PASSWORD_SIZE];
         memcpy(password, data + sizeof(uint16_t), MAX_GC_PASSWORD_SIZE);
 
@@ -1543,7 +1549,7 @@ static int send_gc_invite_request(const GC_Chat *chat, GC_Connection *gconn)
     uint16_t length = 0;
     uint8_t data[MAX_GC_PASSWORD_SIZE];
 
-    if (chat->shared_state.password_length > 0) {
+    if (password_protected(chat)) {
         memcpy(data, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
         length = MAX_GC_PASSWORD_SIZE;
     }
@@ -1664,12 +1670,6 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
         return -2;
     }
 
-    const bool password_protected = chat->shared_state.password_length > 0;
-
-    if (password_protected && length != MAX_GC_PASSWORD_SIZE) {
-        return -1;
-    }
-
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
     if (gconn == nullptr) {
@@ -1689,13 +1689,15 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
         goto FAILED_INVITE;
     }
 
-    if (password_protected) {
-        uint8_t password[MAX_GC_PASSWORD_SIZE];
-        memcpy(password, data, MAX_GC_PASSWORD_SIZE);
+    if (password_protected(chat)) {
+        invite_error = GJ_INVALID_PASSWORD;
+        ret = -6;
 
-        if (memcmp(chat->shared_state.password, password, chat->shared_state.password_length) != 0) {
-            invite_error = GJ_INVALID_PASSWORD;
-            ret = -6;
+        if (length != MAX_GC_PASSWORD_SIZE) {
+            goto FAILED_INVITE;
+        }
+
+        if (memcmp(chat->shared_state.password, data, chat->shared_state.password_length) != 0) {
             goto FAILED_INVITE;
         }
     }
@@ -2097,7 +2099,7 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         return -4;
     }
 
-    if (chat->shared_state.password_length > 0) {
+    if (password_protected(chat)) {
         uint8_t password[MAX_GC_PASSWORD_SIZE];
         memcpy(password, data, sizeof(password));
 
