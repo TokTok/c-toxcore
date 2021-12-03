@@ -50,6 +50,7 @@ static void group_join_fail_handler(Tox *tox, uint32_t group_number, TOX_GROUP_J
         }
 
         case TOX_GROUP_JOIN_FAIL_UNKNOWN:
+
         // intentional fallthrough
         default: {
             ck_assert_msg(false, "Got unknown join fail");
@@ -78,7 +79,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
 static void group_invite_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
-ck_assert_msg(NUM_GROUP_TOXES >= 7, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
+    ck_assert_msg(NUM_GROUP_TOXES >= 7, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
@@ -148,7 +149,7 @@ ck_assert_msg(NUM_GROUP_TOXES >= 7, "NUM_GROUP_TOXES is too small: %d", NUM_GROU
     tox_group_join(toxes[4], chat_id, (const uint8_t *)"Test", 4, (uint8_t *)PASSWORD, PASS_LEN, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while(!state[4].peer_limit_fail) {
+    while (!state[4].peer_limit_fail) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
