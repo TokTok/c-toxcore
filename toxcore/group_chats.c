@@ -4560,7 +4560,7 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
     free(message);
 
     if (ret < 0) {
-        LOGGER_ERROR(m->log, "Broadcast handle error %d: type: %u, peernumber: %u", ret, broadcast_type, peer_number);
+        LOGGER_WARNING(m->log, "Broadcast handle error %d: type: %u, peernumber: %u", ret, broadcast_type, peer_number);
         return -1;
     }
 
@@ -5111,7 +5111,7 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
     }
 
     if (ret < 0) {
-        LOGGER_ERROR(m->log, "Lossless packet handle error %d: type %d, peernumber: %d", ret, packet_type, peer_number);
+        LOGGER_WARNING(m->log, "Lossless packet handle error %d: type %d, peernumber: %d", ret, packet_type, peer_number);
         return -1;
     }
 
