@@ -182,8 +182,6 @@ static void wait_state_topic(Tox **toxes, State *state, uint32_t groupnumber, co
             break;
         }
     }
-
-    fprintf(stderr, "All peers saw topic: %s\n", topic);
 }
 
 /* All peers attempt to set the topic.
@@ -197,7 +195,7 @@ static uint32_t set_topic_all_peers(Tox **toxes, State *state, size_t num_peers,
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
         snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic", i);
-        size_t length = strlen(new_topic);
+        size_t length = sizeof(new_topic);
 
         if (set_topic(toxes[i], groupnumber, new_topic, length) == 0) {
             wait_state_topic(toxes, state, groupnumber, new_topic, length);
@@ -247,10 +245,8 @@ static void group_topic_test(Tox **toxes, State *state)
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
-        char nick[TOX_MAX_NAME_LENGTH + 1];
-        snprintf(nick, sizeof(nick), "Follower%zu", i);
         TOX_ERR_GROUP_JOIN join_err;
-        tox_group_join(toxes[i], chat_id, (const uint8_t *)nick, strlen(nick), NULL, 0, &join_err);
+        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, NULL, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
 
         c_sleep(100);
