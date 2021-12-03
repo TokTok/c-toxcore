@@ -245,13 +245,15 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 static void group_moderation_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
-    ck_assert_msg(NUM_GROUP_TOXES >= NUM_GROUP_TOXES, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
+    ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
+    ck_assert_msg(NUM_GROUP_TOXES < 10, "NUM_GROUP_TOXES is too big: %d", NUM_GROUP_TOXES);
+
+    uint16_t name_length = 6;
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        size_t name_length = tox_self_get_name_size(toxes[i]);
-        tox_self_get_name(toxes[i], (uint8_t *)state[i].self_name);
-        state[i].self_name[name_length] = 0;
         state[i].self_name_length = name_length;
+        snprintf(state[i].self_name, sizeof(state[i].self_name), "peer_%zu", i);
+        state[i].self_name[name_length] = 0;
 
         tox_callback_group_join_fail(toxes[i], group_join_fail_handler);
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
