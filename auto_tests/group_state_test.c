@@ -234,10 +234,8 @@ static void group_state_test(Tox **toxes, State *state)
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
-        char nick[TOX_MAX_NAME_LENGTH + 1];
-        snprintf(nick, sizeof(nick), "Follower%zu", i);
         TOX_ERR_GROUP_JOIN join_err;
-        tox_group_join(toxes[i], chat_id, (const uint8_t *)nick, strlen(nick), (const uint8_t *)PASSWORD, PASS_LEN,
+        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN,
                        &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
     }

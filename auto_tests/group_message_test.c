@@ -314,10 +314,10 @@ static void group_message_test(Tox **toxes, State *state)
     state[1].last_msg_recv = -1;
 
     for (size_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
-        char m[10];
+        char m[10] = {0};
         snprintf(m, sizeof(m), "%zu", i);
 
-        tox_group_send_message(toxes[0], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, strlen(m), &err_send);
+        tox_group_send_message(toxes[0], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, sizeof(m), &err_send);
 
         // fprintf(stderr, "Send: %zu\n", i);
         ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
