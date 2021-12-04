@@ -88,7 +88,6 @@ bool cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
 
     if (announces) {
         remove_announces(gc_announces_list, announces);
-
         return true;
     }
 
