@@ -819,7 +819,9 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
         return -1;
     }
 
-    memset(sanction, 0, sizeof(struct GC_Sanction));
+    *sanction = (struct GC_Sanction) {
+        0
+    };
 
     if (type == SA_OBSERVER) {
         memcpy(sanction->info.target_pk, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
