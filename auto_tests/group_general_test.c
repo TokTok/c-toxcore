@@ -248,7 +248,7 @@ static void group_announce_test(Tox **toxes, State *state)
     fprintf(stderr, "Peer 0 reconnecting...\n");
     TOX_ERR_GROUP_RECONNECT r_err;
     tox_group_reconnect(toxes[0], groupnumber, &r_err);
-    ck_assert(d_err == TOX_ERR_GROUP_RECONNECT_OK);
+    ck_assert(r_err == TOX_ERR_GROUP_RECONNECT_OK);
 
     while (state[1].peer_joined_count != 2 && state[0].self_joined_count == 2) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
