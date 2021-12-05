@@ -52,7 +52,7 @@
 #define GC_BROADCAST_ENC_HEADER_SIZE (1 + TIME_STAMP_SIZE)
 
 /* Size of a group packet message ID */
-#define GC_MESSAGE_ID_BYTES (sizeof(uint64_t))
+#define GC_MESSAGE_ID_BYTES sizeof(uint64_t)
 
 /* Size of a lossless ack packet */
 #define GC_LOSSLESS_ACK_PACKET_SIZE (GC_MESSAGE_ID_BYTES + 1)
