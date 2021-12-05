@@ -147,7 +147,7 @@ endif()
 #
 ################################################################################
 
-# toxcore_PKGCONFIG_LIBS is what's added to the Libs: line in toxcore.pc. It
+# toxcore_PKGCONFIG_LIBS is what's added to the Lrecvmsgibs: line in toxcore.pc. It
 # needs to contain all the libraries a program using toxcore should link against
 # if it's statically linked. If it's dynamically linked, there is no need to
 # explicitly link against all the dependencies, but it doesn't harm much(*)
@@ -537,8 +537,22 @@ if (BUILD_MISC_TESTS)
   if(OpenMP_C_FOUND)
       target_link_libraries(cracker OpenMP::OpenMP_C)
   endif()
-
-  add_executable(afl_toxsave
-    testing/afl_toxsave.c)
-  target_link_modules(afl_toxsave toxcore)
 endif()
+
+option(BUILD_FUZZ_TESTS "Build fuzzing harnesses" OFF)
+if (BUILD_FUZZ_TESTS)
+    # For coverage tests
+    target_compile_definitions(toxcore_static PUBLIC "FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION")
+
+    # Override network functions
+    add_library(network_adapter testing/fuzzing/network_adapter.c)
+
+    # Fuzzes the toxsave API
+    add_executable(toxsave_fuzzer testing/fuzzing/toxsave_harness.cc)
+    target_link_libraries(toxsave_fuzzer toxcore_static network_adapter -fsanitize=fuzzer)
+
+    # Fuzzes the bootstrap process
+    add_executable(bootstrap_fuzzer testing/fuzzing/bootstrap_harness.cc)
+    target_link_libraries(bootstrap_fuzzer toxcore_static network_adapter -fsanitize=fuzzer)
+endif()
+
