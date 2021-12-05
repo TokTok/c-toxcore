@@ -238,9 +238,7 @@ static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_
 /* Packs group info for `chat` into `temp`. */
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp)
 {
-    *temp = (Saved_Group) {
-        0
-    };
+    memset(temp, 0, sizeof(Saved_Group));
 
     temp->shared_state_version = net_htonl(chat->shared_state.version);
     memcpy(temp->shared_state_signature, chat->shared_state_sig, SIGNATURE_SIZE);
@@ -1186,9 +1184,8 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
 static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint32_t group_number, const uint8_t *data,
                                    const uint32_t length)
 {
-    GC_Announce announce = (GC_Announce) {
-        0
-    };
+    GC_Announce announce;
+    memset(&announce, 0, sizeof(GC_Announce));
 
     int unpacked_announces = gca_unpack_announces_list(chat->logger, data, length, &announce, 1, nullptr);
 
@@ -1427,7 +1424,9 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
         return 0;
     }
 
-    uint8_t response[MAX_GC_PACKET_SIZE] = {0};
+    uint8_t response[MAX_GC_PACKET_SIZE];
+    memset(response, 0, sizeof(response));
+
     uint32_t reseponse_len = 0;
 
     GC_Announce announce;
@@ -1444,9 +1443,7 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
             continue;
         }
 
-        announce = (GC_Announce) {
-            0
-        };
+        memset(&announce, 0, sizeof(GC_Announce));
 
         if (!create_sync_announce(chat, peer_gconn, i, &announce)) {
             continue;
@@ -1901,9 +1898,8 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
     }
 
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
-        IP_Port ip_port = (IP_Port) {
-            0
-        };
+        IP_Port ip_port;
+        memset(&ip_port, 0, sizeof(IP_Port));
 
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE, length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
@@ -2160,9 +2156,8 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         }
     }
 
-    GC_GroupPeer peer = (GC_GroupPeer) {
-        0
-    };
+    GC_GroupPeer peer;
+    memset(&peer, 0, sizeof(GC_GroupPeer));
 
     if (length <= unpacked_len) {
         return -1;
@@ -4766,7 +4761,8 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
         return -1;
     }
 
-    Node_format node[GCA_MAX_ANNOUNCED_TCP_RELAYS] = {0};
+    Node_format node[GCA_MAX_ANNOUNCED_TCP_RELAYS];
+    memset(node, 0, sizeof(node));
 
     gcc_copy_tcp_relay(node, gconn);
 
@@ -4813,7 +4809,8 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
         return -1;
     }
 
-    Node_format node[1] = {0};
+    Node_format node[1];
+    memset(node, 0, sizeof(node));
 
     if (gcc_copy_tcp_relay(node, gconn) == -1) {
         LOGGER_ERROR(chat->logger, "Failed to copy TCP relay");
@@ -5707,9 +5704,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 /* Copies own peer data to `peer`. */
 static void copy_self(const GC_Chat *chat, GC_GroupPeer *peer)
 {
-    *peer = (GC_GroupPeer) {
-        0
-    };
+    memset(peer, 0, sizeof(GC_GroupPeer));
 
     gc_get_self_nick(chat, peer->nick);
     peer->nick_length = gc_get_self_nick_size(chat);
