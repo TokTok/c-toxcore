@@ -14,8 +14,8 @@
 #include "TCP_connection.h"
 #include "group_announce.h"
 
-#define TIME_STAMP_SIZE (sizeof(uint64_t))
-#define CHAT_ID_HASH_SIZE (sizeof(uint32_t))
+#define TIME_STAMP_SIZE sizeof(uint64_t)
+#define CHAT_ID_HASH_SIZE sizeof(uint32_t)
 
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
@@ -27,7 +27,7 @@
 #define MAX_GC_MODERATORS 30
 #define MAX_GC_SAVED_INVITES 50
 #define MAX_GC_PEERS_DEFAULT 100
-#define MAX_GC_PACKET_SIZE ((uint16_t) 1400)
+#define MAX_GC_PACKET_SIZE (uint16_t) 1400
 
 #define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
 #define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
