@@ -17,8 +17,8 @@
 #define GCA_MAX_ANNOUNCED_TCP_RELAYS 1
 #define GCA_MAX_SENT_ANNOUNCES 4
 #define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY_SIZE + 2)
-#define GCA_ANNOUNCE_MAX_SIZE (sizeof(GC_Announce))
-#define GCA_PUBLIC_ANNOUNCE_MAX_SIZE (sizeof(GC_Public_Announce))
+#define GCA_ANNOUNCE_MAX_SIZE sizeof(GC_Announce)
+#define GCA_PUBLIC_ANNOUNCE_MAX_SIZE sizeof(GC_Public_Announce)
 
 typedef struct GC_Announce GC_Announce;
 typedef struct GC_Peer_Announce GC_Peer_Announce;
