@@ -87,9 +87,7 @@ static void clear_array_entry(GC_Message_Array_Entry *array_entry)
         free(array_entry->data);
     }
 
-    *array_entry = (GC_Message_Array_Entry) {
-        0
-    };
+    memset(array_entry, 0, sizeof(GC_Message_Array_Entry));
 }
 
 /* Returns ary index for message_id */
@@ -517,9 +515,7 @@ void gcc_peer_cleanup(GC_Connection *gconn)
         }
     }
 
-    *gconn = (GC_Connection) {
-        0
-    };
+    memset(gconn, 0, sizeof(GC_Connection));
 }
 
 /* called on group exit */
