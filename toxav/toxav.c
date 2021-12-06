@@ -1344,6 +1344,7 @@ static bool call_prepare_transmission(ToxAVCall *call)
             goto FAILURE;
         }
     }
+
     {   /* Prepare video */
         call->video = vc_new(av->toxav_mono_time, av->m->log, av, call->friend_number, av->vcb, av->vcb_user_data);
 
