@@ -85,22 +85,26 @@ int main(int argc, char *argv[])
         free(secret_key);
 
         if (smlen - size != crypto_sign_ed25519_BYTES) {
+            free(sm);
             goto fail;
         }
 
         FILE *f = fopen(argv[4], "wb");
 
         if (f == nullptr) {
+            free(sm);
             goto fail;
         }
 
         memcpy(sm + smlen, sm, crypto_sign_ed25519_BYTES); // Move signature from beginning to end of file.
 
         if (fwrite(sm + (smlen - size), 1, smlen, f) != smlen) {
+            free(sm);
             goto fail;
         }
 
         fclose(f);
+        free(sm);
         printf("Signed successfully.\n");
     }
 
@@ -122,9 +126,13 @@ int main(int argc, char *argv[])
 
         if (crypto_sign_ed25519_open(m, &mlen, signe, size, public_key) == -1) {
             printf("Failed checking sig.\n");
+            free(m);
+            free(signe);
             goto fail;
         }
 
+        free(m);
+        free(signe);
         printf("Checked successfully.\n");
     }
 
