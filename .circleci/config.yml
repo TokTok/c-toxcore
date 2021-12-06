@@ -41,3 +41,13 @@ jobs:
       - checkout
       - run: *apt_install
       - run: CC=clang .circleci/cmake-tsan
+
+  infer:
+    working_directory: ~/work
+    docker:
+      - image: toxchat/infer
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: other/analysis/run-infer
