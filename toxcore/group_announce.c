@@ -8,7 +8,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mono_time.h"
 #include "util.h"
+
+/* Minimum size of an announce. */
+#define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY_SIZE + 2)
 
 /**
  * Removes `announces` from `gc_announces_list`.
@@ -398,6 +402,12 @@ void kill_gca(GC_Announces_List *announces_list)
     free(announces_list);
 }
 
+/* How long we save a peer's announce before we consider it stale and remove it. */
+#define GCA_ANNOUNCE_SAVE_TIMEOUT 30
+
+/* How often we run do_gca() */
+#define DO_GCA_INTERVAL 2
+
 /**
  * Main loop for group announcements.
  */
@@ -407,10 +417,16 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
         return;
     }
 
+    if (!mono_time_is_timeout(mono_time, gc_announces_list->last_timeout_check, DO_GCA_INTERVAL)) {
+        return;
+    }
+
+    gc_announces_list->last_timeout_check = mono_time_get(mono_time);
+
     GC_Announces *announces = gc_announces_list->announces;
 
     while (announces) {
-        if (announces->last_announce_received_timestamp <= mono_time_get(mono_time) - GCA_ANNOUNCE_SAVING_TIMEOUT) {
+        if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
             GC_Announces *announces_to_delete = announces;
             announces = announces->next_announce;
             remove_announces(gc_announces_list, announces_to_delete);
