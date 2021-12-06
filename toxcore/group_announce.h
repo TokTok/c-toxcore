@@ -12,14 +12,20 @@
 #include "DHT.h"
 #include "stdbool.h"
 
-#define GCA_MAX_SAVED_ANNOUNCES_PER_GC 100
-#define GCA_ANNOUNCE_SAVING_TIMEOUT 30
+/* The maximum number of announces to save for a particular group chat. */
+#define GCA_MAX_SAVED_ANNOUNCES_PER_GC 16
+
+/* Maximum number of TCP relays that can be in an annoucne. */
 #define GCA_MAX_ANNOUNCED_TCP_RELAYS 1
+
+/* Maximum number of announces we can send in an announce response. */
 #define GCA_MAX_SENT_ANNOUNCES 4
-#define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY_SIZE + 2)
+
+/* Maximum size of an announce. */
 #define GCA_ANNOUNCE_MAX_SIZE sizeof(GC_Announce)
+
+/* Maximum size of a public announce. */
 #define GCA_PUBLIC_ANNOUNCE_MAX_SIZE sizeof(GC_Public_Announce)
-#define GCA_ITERATE 5
 
 typedef struct GC_Announce GC_Announce;
 typedef struct GC_Peer_Announce GC_Peer_Announce;
@@ -64,6 +70,7 @@ struct GC_Announces {
 struct GC_Announces_List {
     GC_Announces *announces;
     size_t announces_count;
+    uint64_t last_timeout_check;
 };
 
 
@@ -99,7 +106,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
                       const uint8_t *chat_id, const uint8_t *except_public_key);
 
 /**
- * Adds `announce` to list of announces for a group.
+ * Adds `public_announce` to list of announces for a group.
  *
  * Returns the peer announce on success.
  * Returns null on failure.
