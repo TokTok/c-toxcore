@@ -1449,7 +1449,7 @@ bool tox_file_control(Tox *tox, uint32_t friend_number, uint32_t file_number, To
             return 0;
 
         case -4:
-             /* can't happen (this code is returned if `control` is invalid type) */
+            /* can't happen (this code is returned if `control` is invalid type) */
             LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
             assert(false);
             return 0;
