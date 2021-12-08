@@ -5,6 +5,7 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
 
 ## Table of Contents
 - [Full Packet Structure](#headers)
+- [Handshake Packet Paylods](#handshake_packets)
 - [Lossy Packet Payloads](#lossy_packets)
   - [PING (0x01)](#ping)
   - [MESSAGE_ACK (0x02)](#message_ack)
@@ -64,9 +65,41 @@ The plaintext header contains a `toxcore packet identifier` which identifies the
 
 The `chat id hash` is a `jenkins_one_at_a_time_hash` of the group's chat ID. This is used to identify which group a particular message is intended for. The `sender public encryption key` is used to identify the peer who sent the packet, and the `nonce` is used for decryption.
 
-The encrypted header contains between 0 and 8 bytes of empty padding, which is used to mitigate certain types of cryptography attacks. The `group packet identifier` is used to identify the type of group packet, and the `message id` is a unique packet identifier which is used for the lossless UDP implementation. 
+The encrypted header for lossless and lossy packets contains between 0 and 8 bytes of empty padding, which is used to mitigate certain types of cryptography attacks. The `group packet identifier` is used to identify the type of group packet, and the `message id` is a unique packet identifier which is used for the lossless UDP implementation.
 
 The encrypted payload contains arbitrary data specific to the respective group packet identifier. The length may range from zero to the maximum packet size (minus the headers). These payloads will be the focus of the remainder of this document.
+
+<a name="handshake_packets"/>
+
+## Handshake Packet Payloads
+### REQUEST (0x00)
+### RESPONSE (0x01)
+
+#### Structure
+`32 bytes: public session key`  
+`32 bytes: public signature key`  
+`1 byte: request type`  
+`1 byte: join type`  
+`variable bytes: 1 packed TCP relay`  
+
+#### Description
+Used to initiate a secure connection with a peer.
+
+The `public session key` is a temporary key unique to this peer which, along with its secret counterpart, will be used to create a shared session encryption key. This keypair is used for all further communication for the current session. It must only be used for a single peer, and must be discarded of once the connection with the peer is severed.
+
+The `public signature key` is our own permanent signature key for this group chat. 
+
+The `request type` is an identifier for the type of handshake being initiated, defined as an enumorator starting at zero as follows:
+`HANDSHAKE_INVITE_REQUEST = 0`  
+`HANDSHAKE_PEER_INFO_EXCHANGE = 1`  
+
+If the request type is an invite request, the receiving peer must respond with a `INVITE_REQUEST` packet. If the request type is a peer info exchange, the receiving peer must respond with a `PEER_INFO_RESPONSE` packet followed immediately by a `PEER_INFO_REQUEST` packet.
+
+The `join_type` indicates whether the initiator of a handshake is joining via the public DHT or a private friend invite, and is defined as an enumorator beginning at zero as follows:
+`PUBLIC = 0`  
+`PRIVATE = 1`  
+
+The packed TCP relay contains a TCP relay that the sender may be connected through by the receiver.
 
 <a name="lossy_packets"/>
 
@@ -77,7 +110,6 @@ The encrypted payload contains arbitrary data specific to the respective group p
 ### PING (0x01)
 
 #### Structure
-
 `2 bytes: peerlist checksum`  
 `2 bytes: confirmed peer count`  
 `2 bytes: shared state version`  
