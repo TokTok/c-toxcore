@@ -329,6 +329,12 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
         return -1;
     }
 
+    Friend_Conn *connection = get_conn(m->fr_c, friendcon_id);
+
+    if (connection == nullptr) {
+        return -1;
+    }
+
     chat->friend_connection_id = friendcon_id;
 
     friend_connection_callbacks(m->fr_c, friendcon_id, MESSENGER_CALLBACK_INDEX, &m_handle_status, &m_handle_packet,
@@ -337,8 +343,6 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
     if (friend_con_connected(m->fr_c, friendcon_id) == FRIENDCONN_STATUS_CONNECTED) {
         send_online_packet(m, friendcon_id);
     }
-
-    Friend_Conn *connection = get_conn(m->fr_c, friendcon_id);
 
     int onion_friend_number = friend_conn_get_onion_friendnum(connection);
     Onion_Friend *onion_friend = onion_get_friend(m->onion_c, onion_friend_number);
