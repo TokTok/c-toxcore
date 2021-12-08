@@ -59,7 +59,7 @@ static bool all_peers_connected(Tox **toxes, State *state)
             return false;
         }
 
-        if (!tox_group_is_connected(toxes[i], state[i].group_number, NULL)) {
+        if (!tox_group_is_connected(toxes[i], state[i].group_number, nullptr)) {
             return false;
         }
     }

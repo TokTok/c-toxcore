@@ -113,7 +113,7 @@ static void group_invite_test(Tox **toxes, State *state)
 
     // founder sets a password
     TOX_ERR_GROUP_FOUNDER_SET_PASSWORD pass_set_err;
-    tox_group_founder_set_password(toxes[0], groupnumber, (uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
+    tox_group_founder_set_password(toxes[0], groupnumber, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "%d", pass_set_err);
 
     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
@@ -129,7 +129,7 @@ static void group_invite_test(Tox **toxes, State *state)
     printf("Peer 2 successfully blocked with no password\n");
 
     // peer 3 attempts to join with invalid password
-    tox_group_join(toxes[3], chat_id, (const uint8_t *)"Test", 4, (uint8_t *)WRONG_PASS, WRONG_PASS_LEN, &join_err);
+    tox_group_join(toxes[3], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)WRONG_PASS, WRONG_PASS_LEN, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
     while (!state[3].password_fail) {
@@ -146,7 +146,7 @@ static void group_invite_test(Tox **toxes, State *state)
     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
 
     // peer 4 attempts to join with correct password
-    tox_group_join(toxes[4], chat_id, (const uint8_t *)"Test", 4, (uint8_t *)PASSWORD, PASS_LEN, &join_err);
+    tox_group_join(toxes[4], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
     while (!state[4].peer_limit_fail) {
