@@ -78,13 +78,13 @@ static_assert(CRYPTO_PUBLIC_KEY_SIZE == 32,
 int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk)
 {
     /* create signature key pair */
-    crypto_sign_keypair(pk + ENC_PUBLIC_KEY, sk + ENC_SECRET_KEY);
+    crypto_sign_keypair(pk + ENC_PUBLIC_KEY_SIZE, sk + ENC_SECRET_KEY_SIZE);
 
     /* convert public signature key to public encryption key */
-    int result = crypto_sign_ed25519_pk_to_curve25519(pk, pk + ENC_PUBLIC_KEY);
+    int result = crypto_sign_ed25519_pk_to_curve25519(pk, pk + ENC_PUBLIC_KEY_SIZE);
 
     /* convert secret signature key to secret encryption key */
-    crypto_sign_ed25519_sk_to_curve25519(sk, sk + ENC_SECRET_KEY);
+    crypto_sign_ed25519_sk_to_curve25519(sk, sk + ENC_SECRET_KEY_SIZE);
 
     return result;
 }
