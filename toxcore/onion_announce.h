@@ -113,7 +113,8 @@ int send_data_request(Networking_Core *net, const Onion_Path *path, IP_Port dest
                       const uint8_t *encrypt_public_key, const uint8_t *nonce, const uint8_t *data, uint16_t length);
 
 
-Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht, GC_Announces_List *gc_announces_list);
+Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht,
+                                   GC_Announces_List *gc_announces_list);
 
 void kill_onion_announce(Onion_Announce *onion_a);
 
