@@ -1670,6 +1670,10 @@ static int handle_gc_invite_response_reject(Messenger *m, int group_number, cons
  */
 static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gconn, uint8_t type)
 {
+    if (type >= GJ_INVALID) {
+        return -1;
+    }
+
     uint8_t data[1];
     data[0] = type;
 
@@ -1710,7 +1714,7 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
 
     int ret = -5;
 
-    uint8_t invite_error = GJ_INVITE_FAILED;
+    uint8_t invite_error;
 
     if (get_gc_confirmed_numpeers(chat) >= chat->shared_state.maxpeers) {
         invite_error = GJ_GROUP_FULL;
