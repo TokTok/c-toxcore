@@ -35,20 +35,6 @@
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
 #endif
 
-#ifndef VANILLA_NACL
-#if CRYPTO_SIGNATURE_SIZE != crypto_sign_BYTES
-#error "CRYPTO_SIGNATURE_SIZE should be equal to crypto_sign_BYTES"
-#endif
-
-#if CRYPTO_SIGN_PUBLIC_KEY_SIZE != crypto_sign_PUBLICKEYBYTES
-#error "CRYPTO_SIGN_PUBLIC_KEY_SIZE should be equal to crypto_sign_PUBLICKEYBYTES"
-#endif
-
-#if CRYPTO_SIGN_SECRET_KEY_SIZE != crypto_sign_SECRETKEYBYTES
-#error "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES"
-#endif
-#endif /* VANILLA_NACL */
-
 //!TOKSTYLE-
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
               "CRYPTO_PUBLIC_KEY_SIZE should be equal to crypto_box_PUBLICKEYBYTES");
@@ -68,6 +54,15 @@ static_assert(CRYPTO_SHA512_SIZE == crypto_hash_sha512_BYTES,
               "CRYPTO_SHA512_SIZE should be equal to crypto_hash_sha512_BYTES");
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == 32,
               "CRYPTO_PUBLIC_KEY_SIZE is required to be 32 bytes for public_key_cmp to work");
+
+#ifndef VANILLA_NACL
+static_assert(CRYPTO_SIGNATURE_SIZE == crypto_sign_BYTES,
+              "CRYPTO_SIGNATURE_SIZE should be equal to crypto_sign_BYTES");
+static_assert(CRYPTO_SIGN_PUBLIC_KEY_SIZE == crypto_sign_PUBLICKEYBYTES,
+              "CRYPTO_SIGN_PUBLIC_KEY_SIZE should be equal to crypto_sign_PUBLICKEYBYTES");
+static_assert(CRYPTO_SIGN_SECRET_KEY_SIZE == crypto_sign_SECRETKEYBYTES,
+              "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES");
+#endif /* VANILLA_NACL */
 //!TOKSTYLE+
 
 #ifndef VANILLA_NACL
