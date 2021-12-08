@@ -51,7 +51,7 @@ static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t 
         }
 
         // make sure we're actually connected
-        if (!tox_group_is_connected(toxes[i], groupnumber, NULL)) {
+        if (!tox_group_is_connected(toxes[i], groupnumber, nullptr)) {
             return false;
         }
     }
@@ -246,7 +246,7 @@ static void group_topic_test(Tox **toxes, State *state)
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
         TOX_ERR_GROUP_JOIN join_err;
-        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, NULL, 0, &join_err);
+        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
 
         c_sleep(100);
