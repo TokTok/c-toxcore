@@ -2857,6 +2857,8 @@ uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const ui
     }
 
     /* can't happen */
+    assert(false);
+
     return UINT32_MAX;
 }
 
@@ -2897,6 +2899,8 @@ uint32_t tox_group_join(Tox *tox, const uint8_t *chat_id, const uint8_t *name, s
     }
 
     /* can't happen */
+    assert(false);
+
     return UINT32_MAX;
 }
 
@@ -2945,6 +2949,8 @@ bool tox_group_disconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Disconn
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -2974,6 +2980,8 @@ bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnec
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3008,6 +3016,8 @@ bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *partmessage
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3043,6 +3053,8 @@ bool tox_group_self_set_name(Tox *tox, uint32_t group_number, const uint8_t *nam
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3097,6 +3109,8 @@ bool tox_group_self_set_status(Tox *tox, uint32_t group_number, Tox_User_Status 
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3322,6 +3336,8 @@ bool tox_group_set_topic(Tox *tox, uint32_t group_number, const uint8_t *topic, 
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3512,6 +3528,8 @@ bool tox_group_send_message(Tox *tox, uint32_t group_number, Tox_Message_Type ty
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3563,6 +3581,8 @@ bool tox_group_send_private_message(Tox *tox, uint32_t group_number, uint32_t pe
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3602,6 +3622,8 @@ bool tox_group_send_custom_packet(Tox *tox, uint32_t group_number, bool lossless
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3647,6 +3669,8 @@ bool tox_group_invite_friend(Tox *tox, uint32_t group_number, uint32_t friend_nu
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3693,6 +3717,8 @@ uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t
     }
 
     /* can't happen */
+    assert(false);
+
     return UINT32_MAX;
 }
 
@@ -3736,6 +3762,8 @@ bool tox_group_founder_set_password(Tox *tox, uint32_t group_number, const uint8
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3775,6 +3803,8 @@ bool tox_group_founder_set_privacy_state(Tox *tox, uint32_t group_number, Tox_Gr
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3814,6 +3844,8 @@ bool tox_group_founder_set_topic_lock(Tox *tox, uint32_t group_number, Tox_Group
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3853,6 +3885,8 @@ bool tox_group_founder_set_peer_limit(Tox *tox, uint32_t group_number, uint32_t 
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3883,6 +3917,8 @@ bool tox_group_toggle_ignore(Tox *tox, uint32_t group_number, uint32_t peer_id, 
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3922,6 +3958,8 @@ bool tox_group_mod_set_role(Tox *tox, uint32_t group_number, uint32_t peer_id, T
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
@@ -3960,6 +3998,8 @@ bool tox_group_mod_kick_peer(Tox *tox, uint32_t group_number, uint32_t peer_id, 
     }
 
     /* can't happen */
+    assert(false);
+
     return 0;
 }
 
