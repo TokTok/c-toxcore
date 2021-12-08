@@ -666,14 +666,15 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
     }
 
     const GC_Sanction *sanction = nullptr;
-    uint8_t target_pk[ENC_PUBLIC_KEY_SIZE];
+    uint8_t target_ext_pk[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
         int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].info.target_pk, true);
 
         if (peer_number == -1) {
             sanction = &chat->moderation.sanctions[i];
-            memcpy(target_pk, sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE);
+            memcpy(target_ext_pk, sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE);
+            memcpy(target_ext_pk + ENC_PUBLIC_KEY_SIZE, sanction->public_sig_key, SIG_PUBLIC_KEY_SIZE);
             break;
         }
     }
@@ -695,7 +696,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return -1;
     }
 
-    if (send_gc_set_observer(chat, target_pk, data, length, false) == -1) {
+    if (send_gc_set_observer(chat, target_ext_pk, data, length, false) == -1) {
         return -1;
     }
 
@@ -3622,7 +3623,7 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, const uint8_t *sanction_data,
+static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_pk, const uint8_t *sanction_data,
                                 uint32_t length, bool add_obs)
 {
     uint32_t packet_len = 1 + EXT_PUBLIC_KEY_SIZE + length;
@@ -3633,7 +3634,7 @@ static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, c
     }
 
     packet[0] = add_obs ? 1 : 0;
-    memcpy(packet + 1, target_pk, EXT_PUBLIC_KEY_SIZE);
+    memcpy(packet + 1, target_ext_pk, EXT_PUBLIC_KEY_SIZE);
     memcpy(packet + 1 + EXT_PUBLIC_KEY_SIZE, sanction_data, length);
 
     if (send_gc_broadcast_message(chat, packet, packet_len, GM_SET_OBSERVER) == -1) {
