@@ -1643,6 +1643,10 @@ static int handle_gc_invite_response_reject(Messenger *m, int group_number, cons
         return 0;
     }
 
+    if (gc_get_self_role(chat) == GR_FOUNDER) {
+        return 0;
+    }
+
     uint8_t type = data[0];
 
     if (type >= GJ_INVALID) {
