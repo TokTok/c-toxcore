@@ -784,7 +784,8 @@ static int handle_data_request(void *object, IP_Port source, const uint8_t *pack
     return 0;
 }
 
-Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht, GC_Announces_List *gc_announces_list)
+Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht,
+                                   GC_Announces_List *gc_announces_list)
 {
     if (dht == nullptr) {
         return nullptr;
