@@ -77,7 +77,7 @@ struct GC_Connection {
     uint64_t    last_key_rotation;  /* the last time we rotated session keys for this peer */
     bool        pending_key_rotation_request;
 
-    bool    pending_delete;  /* true if this peer has been marked for deletion */
+    bool        pending_delete;  /* true if this peer has been marked for deletion */
     GC_Exit_Info exit_info;
 };
 
