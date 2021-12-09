@@ -319,14 +319,15 @@ static void msg_init(MSIMessage *dest, MSIRequest request)
 static bool check_size(const Logger *log, const uint8_t *bytes, int *constraint, uint8_t size)
 {
     *constraint -= 2 + size;
+
     if (*constraint < 1) {
-      LOGGER_ERROR(log, "Read over length!");
-      return false;
+        LOGGER_ERROR(log, "Read over length!");
+        return false;
     }
 
     if (bytes[1] != size) {
-      LOGGER_ERROR(log, "Invalid data size!");
-      return false;
+        LOGGER_ERROR(log, "Invalid data size!");
+        return false;
     }
 
     return true;
@@ -339,6 +340,7 @@ static bool check_enum_high(const Logger *log, const uint8_t *bytes, uint8_t enu
         LOGGER_ERROR(log, "Failed enum high limit!");
         return false;
     }
+
     return true;
 }
 
@@ -363,9 +365,10 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
         switch (*it) {
             case ID_REQUEST:
                 if (!check_size(log, it, &size_constraint, 1) ||
-                    !check_enum_high(log, it, REQU_POP)) {
+                        !check_enum_high(log, it, REQU_POP)) {
                     return -1;
                 }
+
                 dest->request.value = (MSIRequest)it[2];
                 dest->request.exists = true;
                 it += 3;
@@ -373,9 +376,10 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
 
             case ID_ERROR:
                 if (!check_size(log, it, &size_constraint, 1) ||
-                    !check_enum_high(log, it, MSI_E_UNDISCLOSED)) {
+                        !check_enum_high(log, it, MSI_E_UNDISCLOSED)) {
                     return -1;
                 }
+
                 dest->error.value = (MSIError)it[2];
                 dest->error.exists = true;
                 it += 3;
@@ -385,6 +389,7 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
                 if (!check_size(log, it, &size_constraint, 1)) {
                     return -1;
                 }
+
                 dest->capabilities.value = it[2];
                 dest->capabilities.exists = true;
                 it += 3;

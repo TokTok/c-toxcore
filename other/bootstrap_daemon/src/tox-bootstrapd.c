@@ -42,8 +42,9 @@
 #include "log.h"
 
 
-static void sleep_milliseconds(uint32_t ms) {
-  usleep(1000 * ms);
+static void sleep_milliseconds(uint32_t ms)
+{
+    usleep(1000 * ms);
 }
 
 // Uses the already existing key or creates one if it didn't exist
