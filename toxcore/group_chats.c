@@ -82,6 +82,9 @@
 /* How often we try to handshake with an unconfirmed peer */
 #define GC_SEND_HANDSHAKE_INTERVAL 3
 
+/* How often we rotate session encryption keys with a peer */
+#define GC_KEY_ROTATION_TIMEOUT (60 * 10)
+
 
 /* Types of broadcast messages. */
 typedef enum Group_Message_Type {
@@ -959,20 +962,30 @@ static int sign_gc_shared_state(GC_Chat *chat)
  * Returns -1 on decryption failure.
  * Returns -2 if length is invalid.
  */
-static int unwrap_group_packet(const Logger *logger, const uint8_t *shared_key, uint8_t *data, uint64_t *message_id,
+static int unwrap_group_packet(const Logger *logger, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
     uint8_t plain[MAX_GC_PACKET_SIZE];
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     memcpy(nonce, packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
 
-    int plain_len = decrypt_data_symmetric(shared_key, nonce,
+    int plain_len = decrypt_data_symmetric(gconn->shared_key, nonce,
                                            packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                            length - (sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                                            plain);
 
     if (plain_len <= 0) {
-        return -1;
+        // attempt to decrypt with previous shared key
+        plain_len = decrypt_data_symmetric(gconn->prev_shared_key, nonce,
+                                           packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                                           length - (sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
+                                           plain);
+
+        if (plain_len <= 0) {
+            return -1;
+        }
+
+        LOGGER_DEBUG(logger, "Decryption failed with current shared key but succeeded with previous key\n");
     }
 
     int min_plain_len = message_id != nullptr ? 1 + GC_MESSAGE_ID_BYTES : 1;
@@ -3100,6 +3113,41 @@ static int send_peer_topic(const GC_Chat *chat, GC_Connection *gconn)
     return 0;
 }
 
+/*
+ * Initiates a session key rotation with peer designated by `gconn`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+static int send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *gconn)
+{
+    // Only the peer closest to the chat_id sends requests. This is to prevent both peers from sending
+    // requests at the same time and ending up with a different resulting shared key
+    if (!gconn->self_is_closer) {
+        // if this peer hasn't sent us a rotation request in a reasonable timeframe we drop their connection
+        if (mono_time_is_timeout(chat->mono_time, gconn->last_key_rotation, GC_KEY_ROTATION_TIMEOUT + GC_PING_TIMEOUT)) {
+            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
+        }
+
+        return 0;
+    }
+
+    uint8_t packet[1 + ENC_PUBLIC_KEY_SIZE];
+    packet[0] = 0;  // request type
+
+    // create new session key pair
+    crypto_box_keypair(gconn->session_public_key, gconn->session_secret_key);
+
+    // copy new session public key to packet
+    memcpy(packet + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
+
+    if (send_lossless_group_packet(chat, gconn, packet, sizeof(packet), GP_KEY_ROTATION) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
 /* Sends the group topic to all group members.
  *
  * Returns 0 on success.
@@ -3302,6 +3350,68 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
         uint32_t peer_id = setter_peer_number >= 0 ? chat->group[setter_peer_number].peer_id : 0;
         (*c->topic_change)(m, group_number, peer_id, topic_info.topic, topic_info.length, userdata);
     }
+
+    return 0;
+}
+
+/* Handles a key exchange packet.
+ *
+ * Return 0 on success.
+ * Return -1 if length is invalid.
+ * Return -2 if group_number is invalid.
+ * Return -3 if packet type is invalid.
+ * Return -4 if response packet fails to send.
+ */
+static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection *gconn, const uint8_t *data,
+                                  uint32_t length)
+{
+    if (length != 1 + ENC_PUBLIC_KEY_SIZE) {
+        return -1;
+    }
+
+    const GC_Session *c = m->group_handler;
+    GC_Chat *chat = gc_get_group(c, group_number);
+
+    if (chat == nullptr) {
+        return -2;
+    }
+
+    uint8_t is_response = data[0];
+
+    if (is_response > 1) {
+        return -3;
+    }
+
+    uint8_t sender_public_session_key[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_public_session_key, data + 1, ENC_PUBLIC_KEY_SIZE);
+
+    if (is_response) {
+        // now that we have response we can compute our new shared key and begin using it
+        memcpy(gconn->prev_shared_key, gconn->shared_key, CRYPTO_SHARED_KEY_SIZE);
+        encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+        return 0;
+    }
+
+    uint8_t response[1 + ENC_PUBLIC_KEY_SIZE];
+    response[0] = 1;
+
+    // create new session key pair
+    crypto_box_keypair(gconn->session_public_key, gconn->session_secret_key);
+
+    // copy new session public key to response packet
+    memcpy(response + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
+
+    // TODO (Jfreegman): handle this better? If this occurs it will currently just break the connection
+    if (send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION) != 0) {
+        return -4;
+    }
+
+    memcpy(gconn->prev_shared_key, gconn->shared_key, CRYPTO_SHARED_KEY_SIZE);
+
+    // compute new shared key AFTER sending reponse packet with old key
+    encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+
+    gconn->last_key_rotation = mono_time_get(chat->mono_time);
 
     return 0;
 }
@@ -5164,6 +5274,10 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
             ret = handle_gc_tcp_relays(m, group_number, gconn, data, length);
             break;
 
+        case GP_KEY_ROTATION:
+            ret = handle_gc_key_exchange(m, group_number, gconn, data, length);
+            break;
+
         case GP_CUSTOM_PACKET:
             ret = handle_gc_custom_packet(m, group_number, peer_number, data, length, userdata);
             break;
@@ -5212,7 +5326,7 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     uint8_t packet_type;
     uint64_t message_id;
 
-    int len = unwrap_group_packet(m->log, gconn->shared_key, data, &message_id, &packet_type, packet, length);
+    int len = unwrap_group_packet(m->log, gconn, data, &message_id, &packet_type, packet, length);
 
     if (len < 0) {
         LOGGER_DEBUG(m->log, "Failed to unwrap lossless packet: %d", len);
@@ -5306,7 +5420,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
     uint8_t data[MAX_GC_PACKET_SIZE];
     uint8_t packet_type;
 
-    int len = unwrap_group_packet(m->log, gconn->shared_key, data, nullptr, &packet_type, packet, length);
+    int len = unwrap_group_packet(m->log, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
         LOGGER_DEBUG(m->log, "Failed to unwrap lossy packet");
@@ -5337,7 +5451,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
             return -1;
     }
 
-    if (ret != -1 && direct_conn) {
+    if (ret >= 0 && direct_conn) {
         gconn->last_received_direct_time = mono_time_get(m->mono_time);
     }
 
@@ -5703,10 +5817,13 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     gcc_set_send_message_id(gconn, 1);
     gconn->public_key_hash = get_peer_key_hash(public_key);
     gconn->last_received_ping_time = tm;
+    gconn->last_key_rotation = tm;
     gconn->tcp_connection_num = tcp_connection_num;
     gconn->last_sent_ip_time = tm;
     gconn->last_sent_ping_time = tm + (peer_number % (GC_PING_TIMEOUT / 2));
-
+    gconn->self_is_closer = id_closest(get_enc_key(chat->self_public_key),
+                                       get_enc_key(gconn->addr.public_key),
+                                       get_sig_pk(chat->chat_public_key)) == 1;
     return peer_number;
 }
 
@@ -5859,8 +5976,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
     net_pack_u16(data, chat->peers_checksum);
     net_pack_u16(data + sizeof(uint16_t), (uint16_t) get_gc_confirmed_numpeers(chat));
     net_pack_u32(data + (sizeof(uint16_t) * 2), chat->shared_state.version);
-    net_pack_u32(data + (sizeof(uint16_t) * 2) + sizeof(uint32_t),
-                 chat->moderation.sanctions_creds.version);
+    net_pack_u32(data + (sizeof(uint16_t) * 2) + sizeof(uint32_t), chat->moderation.sanctions_creds.version);
     net_pack_u32(data + (sizeof(uint16_t) * 2) + (sizeof(uint32_t) * 2), chat->topic_info.version);
 
     uint32_t real_length = GC_PING_PACKET_MIN_DATA_SIZE;
@@ -5886,13 +6002,15 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
 }
 
 /*
- * Sends a ping packet to peers that haven't been pinged in at least GC_PING_TIMEOUT seconds.
+ * Sends a ping packet to peers that haven't been pinged in at least GC_PING_TIMEOUT seconds, and
+ * a key rotation request to peers with whom we haven't refreshed keys in at least GC_KEY_ROTATION_TIMEOUT
+ * seconds.
  *
- * Packet always includes your confirmed peer count, a peer list checksum, your shared state and sanctions
+ * Ping packet always includes your confirmed peer count, a peer list checksum, your shared state and sanctions
  * list version for syncing purposes. We also occasionally try to send our own IP info to peers that we
  * do not have a direct connection with.
  */
-static void do_gc_pings(const Messenger *m, GC_Chat *chat)
+static void do_gc_ping_and_key_rotation(const Messenger *m, GC_Chat *chat)
 {
     if (!mono_time_is_timeout(chat->mono_time, chat->last_ping_interval, GC_DO_PINGS_INTERVAL)) {
         return;
@@ -5907,12 +6025,16 @@ static void do_gc_pings(const Messenger *m, GC_Chat *chat)
             continue;
         }
 
-        if (!mono_time_is_timeout(chat->mono_time, gconn->last_sent_ping_time, GC_PING_TIMEOUT)) {
-            continue;
+        if (mono_time_is_timeout(chat->mono_time, gconn->last_sent_ping_time, GC_PING_TIMEOUT)) {
+            if (ping_peer(chat, gconn) >= 0) {
+                gconn->last_sent_ping_time = tm;
+            }
         }
 
-        if (ping_peer(chat, gconn) >= 0) {
-            gconn->last_sent_ping_time = tm;
+        if (mono_time_is_timeout(chat->mono_time, gconn->last_key_rotation, GC_KEY_ROTATION_TIMEOUT)) {
+            if (send_peer_key_rotation_request(chat, gconn) == 0) {
+                gconn->last_key_rotation = tm;
+            }
         }
     }
 
@@ -6014,7 +6136,7 @@ void do_gc(GC_Session *c, void *userdata)
         }
 
         if (chat->connection_state == CS_CONNECTED) {
-            do_gc_pings(c->messenger, chat);
+            do_gc_ping_and_key_rotation(c->messenger, chat);
             do_new_connection_cooldown(chat);
         }
     }
@@ -6243,10 +6365,13 @@ static void gc_load_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *a
             memcpy(gconn->oob_relay_pk, addrs[i].tcp_relay.public_key, CRYPTO_PUBLIC_KEY_SIZE);
         }
 
+        uint64_t tm = mono_time_get(chat->mono_time);
+
         gconn->is_oob_handshake = add_tcp_result == 0;
         gconn->is_pending_handshake_response = false;
         gconn->pending_handshake_type = HS_INVITE_REQUEST;
-        gconn->last_received_ping_time = mono_time_get(chat->mono_time);
+        gconn->last_received_ping_time = tm;
+        gconn->last_key_rotation = tm;
     }
 }
 
