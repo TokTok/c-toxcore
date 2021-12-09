@@ -3145,6 +3145,8 @@ static int send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *gc
         return -1;
     }
 
+    gconn->pending_key_rotation_request = true;
+
     return 0;
 }
 
@@ -3386,9 +3388,16 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     memcpy(sender_public_session_key, data + 1, ENC_PUBLIC_KEY_SIZE);
 
     if (is_response) {
+        if (!gconn->pending_key_rotation_request) {
+            return 0;
+        }
+
         // now that we have response we can compute our new shared key and begin using it
         memcpy(gconn->prev_shared_key, gconn->shared_key, CRYPTO_SHARED_KEY_SIZE);
         encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+
+        gconn->pending_key_rotation_request = false;
+
         return 0;
     }
 
