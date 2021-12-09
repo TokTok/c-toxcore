@@ -48,7 +48,10 @@ struct GC_Connection {
     uint8_t     session_public_key[ENC_PUBLIC_KEY_SIZE];   /* self session public key for this peer */
     uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
     uint8_t     shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
-    uint8_t     prev_shared_key[CRYPTO_SHARED_KEY_SIZE];  /* previous shared key from before last rotation */
+
+    // previous shared key from before last rotation. Should only be used for decryption.
+    // TODO (Jfreegman): Remove this eventually
+    uint8_t     prev_shared_key[CRYPTO_SHARED_KEY_SIZE];
 
     int         tcp_connection_num;
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
@@ -72,6 +75,7 @@ struct GC_Connection {
     bool        self_is_closer; /* true if we're "closer" to the chat_id than this peer (uses real pk's) */
 
     uint64_t    last_key_rotation;  /* the last time we rotated session keys for this peer */
+    bool        pending_key_rotation_request;
 
     bool    pending_delete;  /* true if this peer has been marked for deletion */
     GC_Exit_Info exit_info;
