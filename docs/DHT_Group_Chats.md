@@ -99,9 +99,11 @@ This encryption keypair is not used for any encryption operations except for the
 
 ### Session keypair/shared symmetric key
 
-When two peers establish a connection they each generate a session encryption keypair and share one another's resulting public key. With their own session secret key and the other's session public key, they will both generate the same symmetric encryption key. This symmetric key will be used for all further encryption operations between them for the duration of the session.
+When two peers establish a connection they each generate an ephemeral session encryption keypair and share one another's resulting public key. With their own session secret key and the other's session public key, they will both generate the same symmetric encryption key. This symmetric key, which must not be exposed to anyone else, will be used for all further encryption and decryption operations between the two peers for the duration of the session.
 
 The purpose of this extra key exchange is to prevent an adversary from decrypting messages from previous sessions in event that a secret encryption key becomes compromised. This is known as forward secrecy.
+
+Session keys are periodically rotated to further reduce the potential damage in the event of a security breach, as well as to mitigate certain types of data-based cryptography attacks.
 
 <a name="Group_keypairs" />
 
