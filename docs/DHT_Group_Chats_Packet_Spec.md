@@ -11,6 +11,7 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
   - [MESSAGE_ACK (0x02)](#message_ack)
   - [INVITE_RESPONSE_REJECT (0x03)](#invite_response_reject)
 - [Lossless Packet Payloads](#lossless_packets)
+  - [KEY_ROTATION (0xf0)](#key_rotation)
   - [TCP_RELAYS (0xf1)](#tcp_relays)
   - [CUSTOM_PACKET (0xf2)](#custom_packet)
   - [BROADCAST (0xf3)](#broadcast)
@@ -157,6 +158,21 @@ Rejection types are defined by an enumerator beginning at zero as follows:
 <a name="lossless_packets"/>
 
 ## Lossless Packet Payloads
+
+<a name="key_rotation"/>
+
+### KEY_ROTATION (0xf0)
+
+#### Structure
+`1 byte: is_response`  
+`32 bytes: public encryption key`  
+
+#### Description
+Used to rotate session encryption keys with a peer. If `is_response` is false, the packet initiates a public key exchange. Otherwise the packet is a response to a previously initiated exchange.
+
+The public encryption key must be a brand new, unused key, which takes the place of the previously used session key. The resulting shared session key is generated using the same protocol as the initial handshake, and must be kept secret.
+
+Request packets should only be sent by the peer whose permanent public encryption key for the given group is closer to the group's chat ID.
 
 <a name="tcp_relays"/>
 
@@ -479,4 +495,5 @@ Invite types are defined as an enumerator beginning at zero as follows:
 
 #### Description
 Used to send acknowledgement that a lower level toxcore `NET_PACKET_GC_HANDSHAKE` packet has been received, which is the first step in the group handshake protocol. This packet will initiate an invite request via the `INVITE_REQUEST` packet.
+
 
