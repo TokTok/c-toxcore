@@ -15,12 +15,13 @@
 #include <string.h>
 
 #include "DHT.h"
+#include "Messenger.h"
+#include "crypto_core.h"
+#include "group_chats.h"
+#include "group_connection.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
-#include "group_connection.h"
-#include "group_chats.h"
-#include "Messenger.h"
 #include "util.h"
 
 #ifndef VANILLA_NACL
@@ -514,6 +515,10 @@ void gcc_peer_cleanup(GC_Connection *gconn)
             free(gconn->received_array[i].data);
         }
     }
+
+    crypto_memzero(gconn->shared_key, sizeof(gconn->shared_key));
+    crypto_memzero(gconn->prev_shared_key, sizeof(gconn->prev_shared_key));
+    crypto_memzero(gconn->session_secret_key, sizeof(gconn->session_secret_key));
 
     memset(gconn, 0, sizeof(GC_Connection));
 }

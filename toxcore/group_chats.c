@@ -985,7 +985,7 @@ static int unwrap_group_packet(const Logger *logger, const GC_Connection *gconn,
             return -1;
         }
 
-        LOGGER_DEBUG(logger, "Decryption failed with current shared key but succeeded with previous key\n");
+        LOGGER_DEBUG(logger, "Decryption failed with current shared key but succeeded with previous key");
     }
 
     int min_plain_len = message_id != nullptr ? 1 + GC_MESSAGE_ID_BYTES : 1;
@@ -7085,6 +7085,11 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
         free(chat->group);
         chat->group = nullptr;
     }
+
+    crypto_memzero(chat->self_secret_key, sizeof(chat->self_secret_key));
+    crypto_memzero(chat->chat_secret_key, sizeof(chat->chat_secret_key));
+    crypto_memzero(chat->shared_state.password, sizeof(chat->shared_state.password));
+    crypto_memzero(&chat->shared_state.password_length, sizeof(chat->shared_state.password_length));
 }
 
 /* Deletes chat from group chat array and cleans up.
