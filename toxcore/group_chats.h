@@ -173,6 +173,7 @@ typedef enum Group_Packet_Type {
     GP_INVITE_RESPONSE_REJECT   = 0x03,
 
     /* lossless packets */
+    GP_KEY_ROTATION             = 0xf0,
     GP_TCP_RELAYS               = 0xf1,
     GP_CUSTOM_PACKET            = 0xf2,
     GP_BROADCAST                = 0xf3,
