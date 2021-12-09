@@ -3073,28 +3073,23 @@ static bool groupchat_freeze_timedout(Group_Chats *g_c, uint32_t groupnumber, vo
 /* Push non-empty slots to start. */
 static void squash_connections(Group_c *g)
 {
-    uint16_t i = 0;
+    uint16_t num_connected = 0;
 
-    for (uint16_t j = 0; j < MAX_GROUP_CONNECTIONS; ++j) {
-        if (g->connections[j].type != GROUPCHAT_CONNECTION_NONE) {
-            g->connections[i] = g->connections[j];
-            ++i;
+    for (uint16_t i = 0; i < MAX_GROUP_CONNECTIONS; ++i) {
+        if (g->connections[i].type != GROUPCHAT_CONNECTION_NONE) {
+            g->connections[num_connected] = g->connections[i];
+            ++num_connected;
         }
     }
 
-    for (; i < MAX_GROUP_CONNECTIONS; ++i) {
+    for (uint16_t i = num_connected; i < MAX_GROUP_CONNECTIONS; ++i) {
         g->connections[i].type = GROUPCHAT_CONNECTION_NONE;
     }
 }
 
 #define MIN_EMPTY_CONNECTIONS (1 + MAX_GROUP_CONNECTIONS / 10)
 
-/* Remove old connections as necessary to ensure we have space for new
- * connections. This invalidates connections array indices (which is
- * why we do this periodically rather than on adding a connection).
- */
-static void clean_connections(Group_Chats *g_c, Group_c *g)
-{
+static uint16_t empty_connection_count(Group_c *g) {
     uint16_t to_clear = MIN_EMPTY_CONNECTIONS;
 
     for (uint16_t i = 0; i < MAX_GROUP_CONNECTIONS; ++i) {
@@ -3107,7 +3102,16 @@ static void clean_connections(Group_Chats *g_c, Group_c *g)
         }
     }
 
-    for (; to_clear > 0; --to_clear) {
+    return to_clear;
+}
+
+/* Remove old connections as necessary to ensure we have space for new
+ * connections. This invalidates connections array indices (which is
+ * why we do this periodically rather than on adding a connection).
+ */
+static void clean_connections(Group_Chats *g_c, Group_c *g)
+{
+    for (uint16_t to_clear = empty_connection_count(g); to_clear > 0; --to_clear) {
         // Remove a connection. Prefer non-closest connections, and given
         // that prefer non-online connections, and given that prefer earlier
         // slots.
