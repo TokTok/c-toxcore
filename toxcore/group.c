@@ -3089,7 +3089,8 @@ static void squash_connections(Group_c *g)
 
 #define MIN_EMPTY_CONNECTIONS (1 + MAX_GROUP_CONNECTIONS / 10)
 
-static uint16_t empty_connection_count(Group_c *g) {
+static uint16_t empty_connection_count(Group_c *g)
+{
     uint16_t to_clear = MIN_EMPTY_CONNECTIONS;
 
     for (uint16_t i = 0; i < MAX_GROUP_CONNECTIONS; ++i) {
