@@ -42,7 +42,9 @@
 #include "log.h"
 
 
-#define SLEEP_MILLISECONDS(MS) usleep(1000*MS)
+static void sleep_milliseconds(uint32_t ms) {
+  usleep(1000 * ms);
+}
 
 // Uses the already existing key or creates one if it didn't exist
 //
@@ -514,7 +516,7 @@ int main(int argc, char *argv[])
             waiting_for_dht_connection = 0;
         }
 
-        SLEEP_MILLISECONDS(30);
+        sleep_milliseconds(30);
     }
 
     switch (caught_signal) {
