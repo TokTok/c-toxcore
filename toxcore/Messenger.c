@@ -3249,7 +3249,14 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
         memcpy(data, temp, sizeof(Saved_Group));
         data += sizeof(Saved_Group);
+
+
     }
+
+    crypto_memzero(temp->chat_secret_key, sizeof(temp->chat_secret_key));
+    crypto_memzero(temp->self_secret_key, sizeof(temp->self_secret_key));
+    crypto_memzero(&temp->password_length, sizeof(temp->password_length));
+    crypto_memzero(temp->password, sizeof(temp->password));
 
     free(temp);
 
