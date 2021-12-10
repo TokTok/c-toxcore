@@ -734,7 +734,7 @@ CLEAR_CONTAINER:
     free(call);
     session->calls = nullptr;
 }
-<<<<<<< HEAD
+
 static void on_peer_status(Messenger *m, uint32_t friend_number, uint8_t status, void *data)
 {
     if (status != 0) {
@@ -757,10 +757,7 @@ static void on_peer_status(Messenger *m, uint32_t friend_number, uint8_t status,
     kill_call(call);
     pthread_mutex_unlock(session->mutex);
 }
-=======
 
-
->>>>>>> make ToxAV independent of toxcore internals.
 static void handle_init(MSICall *call, const MSIMessage *msg)
 {
     assert(call);
