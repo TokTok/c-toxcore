@@ -141,7 +141,7 @@ static int create_array_entry(const Logger *logger, const Mono_Time *mono_time,
     return 0;
 }
 
-/* Adds data of length to gconn's send_array.
+/* Adds plaintext payload `data` of size `length` to send array associated with `gconn`.
  *
  * Returns 0 on success and increments gconn's send_message_id.
  * Returns -1 on failure.
@@ -149,13 +149,9 @@ static int create_array_entry(const Logger *logger, const Mono_Time *mono_time,
 int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
                           uint32_t length, uint8_t packet_type)
 {
-    if (length == 0 || data == nullptr) {
-        return -1;
-    }
-
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
-        LOGGER_DEBUG(logger, "Send array is full");
+        LOGGER_DEBUG(logger, "Send array overflow");
         return -1;
     }
 
@@ -163,10 +159,12 @@ int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_C
     GC_Message_Array_Entry *array_entry = &gconn->send_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
+        LOGGER_DEBUG(logger, "Send array entry isn't empty");
         return -1;
     }
 
     if (create_array_entry(logger, mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
+        LOGGER_WARNING(logger, "Failed to create array entry");
         return -1;
     }
 
@@ -317,10 +315,12 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
         GC_Message_Array_Entry *ary_entry = &gconn->received_array[idx];
 
         if (!array_entry_is_empty(ary_entry)) {
+            LOGGER_DEBUG(chat->logger, "Recv array is not empty");
             return -1;
         }
 
         if (create_array_entry(chat->logger, chat->mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
+            LOGGER_DEBUG(chat->logger, "Failed to create array entry");
             return -1;
         }
 
@@ -423,7 +423,8 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
 
         /* if this occurrs less than once per second this won't be reliable */
         if (delta > 1 && is_power_of_2(delta)) {
-            gcc_send_group_packet(chat, gconn, array_entry->data, array_entry->data_length);
+            gcc_encrypt_and_send_lossless_packet(chat, gconn, array_entry->data, array_entry->data_length,
+                                                 array_entry->message_id, array_entry->packet_type);
             continue;
         }
 
@@ -439,7 +440,7 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int gcc_send_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
+int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
 {
     if (packet == nullptr || length == 0) {
         return -1;
@@ -468,6 +469,33 @@ int gcc_send_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const
     }
 
     return -1;
+}
+
+/* Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key associated with
+ * `gconn` and sends a lossless packet.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+        uint16_t length,
+        uint64_t message_id, uint8_t packet_type)
+{
+    uint8_t packet[MAX_GC_PACKET_SIZE];
+    int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
+                                    length, message_id, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSLESS);
+
+    if (enc_len == -1) {
+        LOGGER_WARNING(chat->logger, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
+        return -1;
+    }
+
+    if (gcc_send_packet(chat, gconn, packet, enc_len) == -1) {
+        LOGGER_WARNING(chat->logger, "Failed to send packet (type: %u, enc_len: %d)", packet_type, enc_len);
+        return -1;
+    }
+
+    return 0;
 }
 
 /* Returns true if we have a direct connection with this peer. */
@@ -516,11 +544,7 @@ void gcc_peer_cleanup(GC_Connection *gconn)
         }
     }
 
-    crypto_memzero(gconn->shared_key, sizeof(gconn->shared_key));
-    crypto_memzero(gconn->prev_shared_key, sizeof(gconn->prev_shared_key));
-    crypto_memzero(gconn->session_secret_key, sizeof(gconn->session_secret_key));
-
-    memset(gconn, 0, sizeof(GC_Connection));
+    crypto_memzero(gconn, sizeof(GC_Connection));
 }
 
 /* called on group exit */
