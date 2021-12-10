@@ -19,14 +19,14 @@
  */
 static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *announces)
 {
-    if (announces == nullptr) {
+    if (announces == nullptr || gc_announces_list == nullptr) {
         return;
     }
 
     if (announces->prev_announce) {
         announces->prev_announce->next_announce = announces->next_announce;
     } else {
-        gc_announces_list->announces = announces->next_announce;
+        gc_announces_list->root_announces = announces->next_announce;
     }
 
     if (announces->next_announce) {
@@ -34,10 +34,6 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
     }
 
     free(announces);
-
-    if (gc_announces_list->announces_count != 0) {
-        --gc_announces_list->announces_count;
-    }
 }
 
 /**
@@ -46,7 +42,7 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
  */
 static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announces_list,  const uint8_t *chat_id)
 {
-    GC_Announces *announces = gc_announces_list->announces;
+    GC_Announces *announces = gc_announces_list->root_announces;
 
     while (announces) {
         if (memcmp(announces->chat_id, chat_id, CHAT_ID_SIZE) == 0) {
@@ -339,17 +335,15 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
             return nullptr;
         }
 
-        ++gc_announces_list->announces_count;
-
         announces->index = 0;
         announces->prev_announce = nullptr;
 
-        if (gc_announces_list->announces) {
-            gc_announces_list->announces->prev_announce = announces;
+        if (gc_announces_list->root_announces) {
+            gc_announces_list->root_announces->prev_announce = announces;
         }
 
-        announces->next_announce = gc_announces_list->announces;
-        gc_announces_list->announces = announces;
+        announces->next_announce = gc_announces_list->root_announces;
+        gc_announces_list->root_announces = announces;
         memcpy(announces->chat_id, public_announce->chat_public_key, CHAT_ID_SIZE);
     }
 
@@ -398,7 +392,11 @@ GC_Announces_List *new_gca_list(void)
  */
 void kill_gca(GC_Announces_List *announces_list)
 {
-    GC_Announces *root = announces_list->announces;
+    if (announces_list == nullptr) {
+        return;
+    }
+
+    GC_Announces *root = announces_list->root_announces;
 
     while (root) {
         GC_Announces *next = root->next_announce;
@@ -430,7 +428,7 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 
     gc_announces_list->last_timeout_check = mono_time_get(mono_time);
 
-    GC_Announces *announces = gc_announces_list->announces;
+    GC_Announces *announces = gc_announces_list->root_announces;
 
     while (announces) {
         if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
