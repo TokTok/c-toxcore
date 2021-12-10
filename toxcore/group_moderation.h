@@ -44,7 +44,7 @@ typedef struct GC_Sanction GC_Sanction;
  * Returns length of unpacked data on success.
  * Returns -1 on failure.
  */
-int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint32_t num_mods);
+int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_t num_mods);
 
 /* Packs moderator list into data.
  * data must have room for `num_mods * GC_MOD_LIST_ENTRY_SIZE` bytes.
