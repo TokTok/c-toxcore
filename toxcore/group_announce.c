@@ -77,7 +77,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         return 0;
     }
 
-    // TODO: add proper selection (Jfreegman: what does that mean?)
+    // TODO(Jfreegman): add proper selection (what does that mean?)
     size_t added_count = 0;
 
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
@@ -363,7 +363,6 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
 
     ++announces->index;
 
-    // TODO; lock (Jfreegman: Lock what? Why? What a useless comment)
     return gc_peer_announce;
 }
 

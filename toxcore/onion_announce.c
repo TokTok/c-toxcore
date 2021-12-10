@@ -20,7 +20,7 @@
 #define ANNOUNCE_REQUEST_MIN_SIZE_RECV (ONION_ANNOUNCE_REQUEST_MIN_SIZE + ONION_RETURN_3)
 #define ANNOUNCE_REQUEST_MAX_SIZE_RECV (ONION_ANNOUNCE_REQUEST_MAX_SIZE + ONION_RETURN_3)
 
-/* TODO: DEPRECATE */
+/* TODO(Jfreegman): DEPRECATE */
 #define ANNOUNCE_REQUEST_SIZE_RECV (ONION_ANNOUNCE_REQUEST_SIZE + ONION_RETURN_3)
 
 #define DATA_REQUEST_MIN_SIZE ONION_DATA_REQUEST_MIN_SIZE
@@ -108,7 +108,7 @@ int create_announce_request(uint8_t *packet, uint16_t max_packet_length, const u
 
 #ifndef VANILLA_NACL
 
-// TODO: params - to struct
+// TODO(Jfreegman): params - to struct
 int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
                                 const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id,
                                 const uint8_t *client_id, const uint8_t *data_public_key, uint64_t sendback_data,
@@ -652,7 +652,7 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
     return 0;
 }
 
-/* TODO: DEPRECATE */
+/* TODO(Jfreegman): DEPRECATE */
 static int handle_announce_request_old(void *object, IP_Port source, const uint8_t *packet, uint16_t length,
                                        void *userdata)
 {
