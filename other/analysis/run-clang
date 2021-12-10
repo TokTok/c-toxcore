@@ -23,4 +23,3 @@ clang++ -o /dev/null amalgamation.cc \
   -Wno-unreachable-code-return \
   -Wno-unused-parameter \
   -Wno-used-but-marked-unused
-
