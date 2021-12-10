@@ -113,8 +113,11 @@ static int connect_sock_to(Socket sock, IP_Port ip_port, const TCP_Proxy_Info *p
         ip_port = proxy_info->ip_port;
     }
 
-    /* nonblocking socket, connect will never return success */
-    net_connect(sock, ip_port);
+    /* nonblocking socket, connect should never return success */
+    if (net_connect(sock, ip_port) == 0) {
+        return 0;
+    }
+
     return 1;
 }
 
