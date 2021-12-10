@@ -49,10 +49,6 @@ struct GC_Connection {
     uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
     uint8_t     shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
 
-    // previous shared key from before last rotation. Should only be used for decryption.
-    // TODO (Jfreegman): Remove this eventually
-    uint8_t     prev_shared_key[CRYPTO_SHARED_KEY_SIZE];
-
     int         tcp_connection_num;
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
     uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
@@ -170,12 +166,22 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
 /* Return true if we have a direct connection with this peer. */
 bool gcc_connection_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
 
-/* Sends a packet to the peer associated with gconn.
+/* Sends a lossless packet to the peer associated with gconn.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gcc_send_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
+int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
+
+/* Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key associated with
+ * `gconn` and sends lossless packet.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+        uint16_t length,
+        uint64_t message_id, uint8_t gp_packet_type);
 
 /* called when a peer leaves the group */
 void gcc_peer_cleanup(GC_Connection *gconn);
