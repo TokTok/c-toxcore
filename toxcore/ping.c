@@ -66,7 +66,7 @@ void ping_send_request(Ping *ping, IP_Port ipp, const uint8_t *public_key)
     ping_id = ping_array_add(ping->ping_array, ping->mono_time, data, sizeof(data));
 
     if (ping_id == 0) {
-	    crypto_memzero(shared_key, sizeof(shared_key));
+        crypto_memzero(shared_key, sizeof(shared_key));
         return;
     }
 
