@@ -498,22 +498,22 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
                            uint32_t *message_id)
 {
     if (type > MESSAGE_ACTION) {
-        LOGGER_ERROR(m->log, "Message type %d is invalid", type);
+        LOGGER_WARNING(m->log, "Message type %d is invalid", type);
         return -5;
     }
 
     if (!friend_is_valid(m, friendnumber)) {
-        LOGGER_ERROR(m->log, "Friend number %d is invalid", friendnumber);
+        LOGGER_WARNING(m->log, "Friend number %d is invalid", friendnumber);
         return -1;
     }
 
     if (length >= MAX_CRYPTO_DATA_SIZE) {
-        LOGGER_ERROR(m->log, "Message length %u is too large", length);
+        LOGGER_WARNING(m->log, "Message length %u is too large", length);
         return -2;
     }
 
     if (m->friendlist[friendnumber].status != FRIEND_ONLINE) {
-        LOGGER_ERROR(m->log, "Friend %d is not online", friendnumber);
+        LOGGER_WARNING(m->log, "Friend %d is not online", friendnumber);
         return -3;
     }
 
@@ -528,8 +528,8 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
                                            m->friendlist[friendnumber].friendcon_id), packet, length + 1, 0);
 
     if (packet_num == -1) {
-        LOGGER_ERROR(m->log, "Failed to write crypto packet for message of length %d to friend %d",
-                     length, friendnumber);
+        LOGGER_WARNING(m->log, "Failed to write crypto packet for message of length %d to friend %d",
+                       length, friendnumber);
         return -4;
     }
 
@@ -2488,7 +2488,7 @@ static char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
     }
 
     for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE; ++i) {
-        sprintf(&id_str[i * 2], "%02X", pk[i]);
+        sprintf(&id_str[i * 2], "%02X", (unsigned int)pk[i]);
     }
 
     id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = 0;
@@ -2878,7 +2878,8 @@ static State_Load_Status load_nospam_keys(Messenger *m, const uint8_t *data, uin
 static uint8_t *save_nospam_keys(const Messenger *m, uint8_t *data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_NOSPAMKEYS);
-    assert(sizeof(get_nospam(m->fr)) == sizeof(uint32_t));
+    static_assert(sizeof(get_nospam(m->fr)) == sizeof(uint32_t),
+                  "type of get_nospam is not 4 bytes long");
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_NOSPAMKEYS);
     uint32_t nospam = get_nospam(m->fr);
     host_to_lendian_bytes32(data, nospam);

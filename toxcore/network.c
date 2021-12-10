@@ -504,7 +504,9 @@ uint16_t net_port(const Networking_Core *net)
 int sendpacket(Networking_Core *net, IP_Port ip_port, const uint8_t *data, uint16_t length)
 {
     if (net_family_is_unspec(net->family)) { /* Socket not initialized */
-        LOGGER_ERROR(net->log, "attempted to send message of length %u on uninitialised socket", (unsigned)length);
+        // TODO(iphydf): Make this an error. Currently, the onion client calls
+        // this via DHT getnodes.
+        LOGGER_WARNING(net->log, "attempted to send message of length %u on uninitialised socket", (unsigned)length);
         return -1;
     }
 
@@ -552,6 +554,8 @@ int sendpacket(Networking_Core *net, IP_Port ip_port, const uint8_t *data, uint1
         addr6->sin6_flowinfo = 0;
         addr6->sin6_scope_id = 0;
     } else {
+        // TODO(iphydf): Make this an error. Currently this fails sometimes when
+        // called from DHT.c:do_ping_and_sendnode_requests.
         LOGGER_WARNING(net->log, "unknown address type: %d", ip_port.ip.family.value);
         return -1;
     }
@@ -655,12 +659,15 @@ void networking_poll(Networking_Core *net, void *userdata)
             continue;
         }
 
-        if (!(net->packethandlers[data[0]].function)) {
+        packet_handler_cb *const cb = net->packethandlers[data[0]].function;
+        void *const object = net->packethandlers[data[0]].object;
+
+        if (!cb) {
             LOGGER_WARNING(net->log, "[%02u] -- Packet has no handler", data[0]);
             continue;
         }
 
-        net->packethandlers[data[0]].function(net->packethandlers[data[0]].object, ip_port, data, length, userdata);
+        cb(object, ip_port, data, length, userdata);
     }
 }
 
@@ -845,6 +852,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
 
     if (net_family_is_ipv4(temp->family)) {
         struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
+        // static_assert(sizeof(*addr4) <= sizeof(addr), "sockaddr_in is too large");
 
         addrsize = sizeof(struct sockaddr_in);
         addr4->sin_family = AF_INET;
@@ -854,6 +862,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
         portptr = &addr4->sin_port;
     } else if (net_family_is_ipv6(temp->family)) {
         struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr;
+        // static_assert(sizeof(*addr6) <= sizeof(addr), "sockaddr_in6 is too large");
 
         addrsize = sizeof(struct sockaddr_in6);
         addr6->sin6_family = AF_INET6;
@@ -1153,7 +1162,7 @@ const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
             ip_str[len] = ']';
             ip_str[len + 1] = '\0';
         } else {
-            snprintf(ip_str, length, "(IP invalid, family %u)", ip->family.value);
+            snprintf(ip_str, length, "(IP invalid, family %u)", (unsigned int)ip->family.value);
         }
     } else {
         snprintf(ip_str, length, "(IP invalid: NULL)");
