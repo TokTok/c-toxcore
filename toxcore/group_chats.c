@@ -83,7 +83,7 @@
 #define GC_SEND_HANDSHAKE_INTERVAL 3
 
 /* How often we rotate session encryption keys with a peer */
-#define GC_KEY_ROTATION_TIMEOUT (60 * 10)
+#define GC_KEY_ROTATION_TIMEOUT (5 * 60)
 
 
 /* Types of broadcast messages. */
@@ -962,7 +962,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
  * Returns -1 on decryption failure.
  * Returns -2 if length is invalid.
  */
-static int unwrap_group_packet(const Logger *logger, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
+static int group_packet_unwrap(const Logger *logger, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
     uint8_t plain[MAX_GC_PACKET_SIZE];
@@ -975,17 +975,7 @@ static int unwrap_group_packet(const Logger *logger, const GC_Connection *gconn,
                                            plain);
 
     if (plain_len <= 0) {
-        // attempt to decrypt with previous shared key
-        plain_len = decrypt_data_symmetric(gconn->prev_shared_key, nonce,
-                                           packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
-                                           length - (sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
-                                           plain);
-
-        if (plain_len <= 0) {
-            return -1;
-        }
-
-        LOGGER_DEBUG(logger, "Decryption failed with current shared key but succeeded with previous key");
+        return -1;
     }
 
     int min_plain_len = message_id != nullptr ? 1 + GC_MESSAGE_ID_BYTES : 1;
@@ -1025,11 +1015,11 @@ static int unwrap_group_packet(const Logger *logger, const GC_Connection *gconn,
  * Returns length of encrypted packet on success.
  * Returns -1 on failure.
  */
-static int wrap_group_packet(const Logger *logger, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
-                             uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id, uint8_t packet_type,
-                             uint32_t chat_id_hash, uint8_t packet_id)
+int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+                      uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id, uint8_t gp_packet_type,
+                      uint32_t chat_id_hash, uint8_t net_packet_type)
 {
-    uint16_t padding_len = gc_packet_padding_length(length);
+    const uint16_t padding_len = gc_packet_padding_length(length);
 
     if (length + padding_len + CRYPTO_MAC_SIZE + 1 + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE >
             packet_size) {
@@ -1040,9 +1030,9 @@ static int wrap_group_packet(const Logger *logger, const uint8_t *self_pk, const
     memset(plain, 0, padding_len);
 
     uint32_t enc_header_len = sizeof(uint8_t);
-    plain[padding_len] = packet_type;
+    plain[padding_len] = gp_packet_type;
 
-    if (packet_id == NET_PACKET_GC_LOSSLESS) {
+    if (net_packet_type == NET_PACKET_GC_LOSSLESS) {
         net_pack_u64(plain + padding_len + sizeof(uint8_t), message_id);
         enc_header_len += GC_MESSAGE_ID_BYTES;
     }
@@ -1064,12 +1054,12 @@ static int wrap_group_packet(const Logger *logger, const uint8_t *self_pk, const
     int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
 
     if (enc_len != encrypt_buf_size) {
-        LOGGER_ERROR(logger, "encryption failed. packet type: %d, enc_len: %d", packet_type, enc_len);
+        LOGGER_ERROR(logger, "encryption failed. packet type: %d, enc_len: %d", gp_packet_type, enc_len);
         free(encrypt);
         return -1;
     }
 
-    packet[0] = packet_id;
+    packet[0] = net_packet_type;
     net_pack_u32(packet + sizeof(uint8_t), chat_id_hash);
     memcpy(packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE, self_pk, ENC_PUBLIC_KEY_SIZE);
     memcpy(packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
@@ -1098,15 +1088,15 @@ static int send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gco
     }
 
     uint8_t packet[MAX_GC_PACKET_SIZE];
-    int len = wrap_group_packet(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
+    int len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
                                 length, 0, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSY);
 
     if (len == -1) {
-        LOGGER_ERROR(chat->logger, "wrap_group_packet failed (type: %u, len: %d)", packet_type, len);
+        LOGGER_WARNING(chat->logger, "group_packet_wrap failed (type: %u, len: %d)", packet_type, len);
         return -1;
     }
 
-    if (gcc_send_group_packet(chat, gconn, packet, len) == -1) {
+    if (gcc_send_packet(chat, gconn, packet, len) == -1) {
         return -1;
     }
 
@@ -1125,23 +1115,14 @@ static int send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn,
         return -1;
     }
 
-    uint64_t message_id = gconn->send_message_id;
-    uint8_t packet[MAX_GC_PACKET_SIZE];
-    int len = wrap_group_packet(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
-                                length, message_id, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSLESS);
+    const uint64_t message_id = gconn->send_message_id;
 
-    if (len == -1) {
-        LOGGER_ERROR(chat->logger, "wrap_group_packet() failed (type: %u, len: %d)", packet_type, len);
+    if (gcc_add_to_send_array(chat->logger, chat->mono_time, gconn, data, length, packet_type) == -1) {
+        LOGGER_WARNING(chat->logger, "gcc_add_to_send_array() failed (type: %u, length: %d)", packet_type, length);
         return -1;
     }
 
-    if (gcc_add_to_send_array(chat->logger, chat->mono_time, gconn, packet, len, packet_type) == -1) {
-        LOGGER_ERROR(chat->logger, "gcc_add_to_send_array() failed (type: %u, len: %d)", packet_type, len);
-        return -1;
-    }
-
-    if (gcc_send_group_packet(chat, gconn, packet, len) == -1) {
-        LOGGER_ERROR(chat->logger, "gcc_send_group_packet() failed(type: %u, len: %d)", packet_type, len);
+    if (gcc_encrypt_and_send_lossless_packet(chat, gconn, data, length, message_id, packet_type) == -1) {
         return -1;
     }
 
@@ -3389,11 +3370,11 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
 
     if (is_response) {
         if (!gconn->pending_key_rotation_request) {
+            LOGGER_WARNING(m->log, "got unsolicited key rotation response from peer %u", gconn->public_key_hash);
             return 0;
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        memcpy(gconn->prev_shared_key, gconn->shared_key, CRYPTO_SHARED_KEY_SIZE);
         encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
 
         gconn->pending_key_rotation_request = false;
@@ -3414,8 +3395,6 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     if (send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION) != 0) {
         return -4;
     }
-
-    memcpy(gconn->prev_shared_key, gconn->shared_key, CRYPTO_SHARED_KEY_SIZE);
 
     // compute new shared key AFTER sending reponse packet with old key
     encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
@@ -4589,7 +4568,8 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
 
     /* re-send requested packet */
     if (gconn->send_array[idx].message_id == message_id) {
-        if (gcc_send_group_packet(chat, gconn, gconn->send_array[idx].data, gconn->send_array[idx].data_length) == 0) {
+        if (gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data, gconn->send_array[idx].data_length,
+                gconn->send_array[idx].message_id, gconn->send_array[idx].packet_type) == 0) {
             gconn->send_array[idx].last_send_try = tm;
             LOGGER_DEBUG(chat->logger, "Re-sent requested packet %lu", message_id);
         } else {
@@ -5335,7 +5315,7 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     uint8_t packet_type;
     uint64_t message_id;
 
-    int len = unwrap_group_packet(m->log, gconn, data, &message_id, &packet_type, packet, length);
+    int len = group_packet_unwrap(m->log, gconn, data, &message_id, &packet_type, packet, length);
 
     if (len < 0) {
         LOGGER_DEBUG(m->log, "Failed to unwrap lossless packet: %d", len);
@@ -5364,7 +5344,8 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (lossless_ret == -1) {
-        LOGGER_ERROR(m->log, "failed to handle packet %llu (type %u)", (unsigned long long)message_id, packet_type);
+        LOGGER_ERROR(m->log, "failed to handle packet %llu (type %u, id %lu)", (unsigned long long)message_id, packet_type,
+                     message_id);
         return -1;
     }
 
@@ -5429,7 +5410,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
     uint8_t data[MAX_GC_PACKET_SIZE];
     uint8_t packet_type;
 
-    int len = unwrap_group_packet(m->log, gconn, data, nullptr, &packet_type, packet, length);
+    int len = group_packet_unwrap(m->log, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
         LOGGER_DEBUG(m->log, "Failed to unwrap lossy packet");
@@ -5830,9 +5811,10 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     gconn->tcp_connection_num = tcp_connection_num;
     gconn->last_sent_ip_time = tm;
     gconn->last_sent_ping_time = tm + (peer_number % (GC_PING_TIMEOUT / 2));
-    gconn->self_is_closer = id_closest(get_enc_key(chat->self_public_key),
-                                       get_enc_key(gconn->addr.public_key),
-                                       get_sig_pk(chat->chat_public_key)) == 1;
+
+    gconn->self_is_closer = id_closest(get_chat_id(chat->chat_public_key),
+                                       get_enc_key(chat->self_public_key),
+                                       get_enc_key(gconn->addr.public_key)) == 1;
     return peer_number;
 }
 
