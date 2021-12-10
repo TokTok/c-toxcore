@@ -253,7 +253,7 @@ int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
 /* Saves tcp_node to gconn's list of connected tcp relays. If relays list is full a
  * random node is overwritten with the new node.
  *
- * TODO: we never test these after they're set.
+ * TODO(Jfreegman): we never test these after they're set.
  *
  * Return 0 on success.
  * Return -1 on failure.

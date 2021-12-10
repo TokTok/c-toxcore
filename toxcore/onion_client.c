@@ -981,13 +981,13 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
 
 #endif
 
-    // TODO: LAN vs non LAN ips?, if we are connected only to LAN, are we offline?
+    // TODO(irungentoo): LAN vs non LAN ips?, if we are connected only to LAN, are we offline?
     onion_c->last_packet_recv = mono_time_get(onion_c->mono_time);
 
     return 0;
 }
 
-/* TODO: DEPRECATE */
+/* TODO(jfreegman): DEPRECATE */
 static int handle_announce_response_old(void *object, IP_Port source, const uint8_t *packet, uint16_t length,
                                         void *userdata)
 {

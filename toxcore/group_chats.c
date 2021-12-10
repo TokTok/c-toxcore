@@ -14,17 +14,17 @@
 #include <string.h>
 
 #include "DHT.h"
-#include "mono_time.h"
-#include "network.h"
+#include "LAN_discovery.h"
+#include "Messenger.h"
 #include "TCP_connection.h"
-#include "group_chats.h"
+#include "friend_connection.h"
 #include "group_announce.h"
+#include "group_chats.h"
 #include "group_connection.h"
 #include "group_moderation.h"
-#include "LAN_discovery.h"
+#include "mono_time.h"
+#include "network.h"
 #include "util.h"
-#include "Messenger.h"
-#include "friend_connection.h"
 
 #ifndef VANILLA_NACL
 
@@ -4715,8 +4715,8 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
             break;
 
         default:
-            LOGGER_ERROR(m->log, "Received an invalid broadcast type %u", broadcast_type);
-            return -1;
+            LOGGER_DEBUG(m->log, "Received an invalid broadcast type %u", broadcast_type);
+            break;
     }
 
     free(message);
@@ -5469,10 +5469,15 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
         return -1;
     }
 
+    Messenger *m = (Messenger *)object;
+
+    if (m == nullptr) {
+        return -1;
+    }
+
     uint32_t chat_id_hash;
     net_unpack_u32(packet + 1, &chat_id_hash);
 
-    Messenger *m = (Messenger *)object;
     const GC_Session *c = m->group_handler;
     const GC_Chat *chat = get_chat_by_hash(c, chat_id_hash);
 
@@ -5504,10 +5509,15 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
         return -1;
     }
 
+    Messenger *m = (Messenger *)object;
+
+    if (m == nullptr) {
+        return -1;
+    }
+
     uint32_t chat_id_hash;
     net_unpack_u32(packet + 1, &chat_id_hash);
 
-    Messenger *m = (Messenger *)object;
     const GC_Session *c = m->group_handler;
     GC_Chat *chat = get_chat_by_hash(c, chat_id_hash);
 
