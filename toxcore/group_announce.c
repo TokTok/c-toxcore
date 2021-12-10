@@ -19,6 +19,10 @@
  */
 static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *announces)
 {
+    if (announces == nullptr) {
+        return;
+    }
+
     if (announces->prev_announce) {
         announces->prev_announce->next_announce = announces->next_announce;
     } else {
@@ -390,12 +394,16 @@ GC_Announces_List *new_gca_list(void)
 }
 
 /**
- * Frees all dynamically allocated memroy associated with `announces_list`.
+ * Frees all dynamically allocated memory associated with `announces_list`.
  */
 void kill_gca(GC_Announces_List *announces_list)
 {
-    while (announces_list->announces) {
-        remove_announces(announces_list, announces_list->announces);
+    GC_Announces *root = announces_list->announces;
+
+    while (root) {
+        GC_Announces *next = root->next_announce;
+        free(root);
+        root = next;
     }
 
     free(announces_list);
@@ -446,8 +454,5 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
     }
 
     GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, chat_id);
-
-    if (announces) {
-        remove_announces(gc_announces_list, announces);
-    }
+    remove_announces(gc_announces_list, announces);
 }

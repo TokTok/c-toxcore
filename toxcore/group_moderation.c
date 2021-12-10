@@ -12,11 +12,11 @@
 #endif
 
 #include "DHT.h"
-#include "mono_time.h"
-#include "network.h"
 #include "group_chats.h"
 #include "group_connection.h"
 #include "group_moderation.h"
+#include "mono_time.h"
+#include "network.h"
 #include "util.h"
 
 #include <string.h>
