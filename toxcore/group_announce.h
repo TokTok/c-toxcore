@@ -68,8 +68,7 @@ struct GC_Announces {
 
 /* A list of all announces. */
 struct GC_Announces_List {
-    GC_Announces *announces;
-    size_t announces_count;
+    GC_Announces *root_announces;
     uint64_t last_timeout_check;
 };
 
