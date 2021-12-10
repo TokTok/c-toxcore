@@ -12,9 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "TCP_client.h"
 #include "mono_time.h"
 #include "util.h"
-#include "TCP_client.h"
 
 struct TCP_Connections {
     Mono_Time *mono_time;

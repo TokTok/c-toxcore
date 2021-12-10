@@ -11,6 +11,7 @@
 #define GROUP_CHATS_H
 
 #include <stdbool.h>
+
 #include "TCP_connection.h"
 #include "group_announce.h"
 
