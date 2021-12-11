@@ -712,6 +712,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
         root[i].port = net_htons(port);
 
         onion_add_bs_path_node(tox->m->onion_c, root[i], public_key);
+
         if (!tox->m->options.udp_disabled) {
             dht_bootstrap(tox->m->dht, root[i], public_key);
         }
