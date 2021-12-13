@@ -3228,6 +3228,8 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
     Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
 
+    crypto_memlock(temp, sizeof(Saved_Group));
+
     if (temp == nullptr) {
         LOGGER_ERROR(m->log, "Failed to allocate memory for saved group");
         return data;
@@ -3253,10 +3255,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
     }
 
-    crypto_memzero(temp->chat_secret_key, sizeof(temp->chat_secret_key));
-    crypto_memzero(temp->self_secret_key, sizeof(temp->self_secret_key));
-    crypto_memzero(&temp->password_length, sizeof(temp->password_length));
-    crypto_memzero(temp->password, sizeof(temp->password));
+    crypto_memunlock(temp, sizeof(Saved_Group));
 
     free(temp);
 

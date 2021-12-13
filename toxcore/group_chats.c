@@ -238,6 +238,19 @@ static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_
     }
 }
 
+/*
+ * Uses public encryption key `sender_pk` and secret encryption key `self_sk` to generate
+ * a shared key that can be used by the owners of both keys for symmetric encryption and decryption.
+ *
+ * Puts the result in `shared_key`, which must have room for CRYPTO_SHARED_KEY_SIZE bytes. This
+ * resulting shared key should be treated as a secret key.
+ */
+static void make_gc_shared_key(const uint8_t *sender_pk, const uint8_t *self_sk, uint8_t *shared_key)
+{
+    encrypt_precompute(sender_pk, self_sk, shared_key);
+    crypto_memlock(shared_key, CRYPTO_SHARED_KEY_SIZE);
+}
+
 /* Packs group info for `chat` into `temp`. */
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp)
 {
@@ -527,6 +540,7 @@ static int set_gc_password_local(GC_Chat *chat, const uint8_t *passwd, uint16_t 
     } else {
         chat->shared_state.password_length = length;
         memcpy(chat->shared_state.password, passwd, length);
+        crypto_memlock(chat->shared_state.password, sizeof(chat->shared_state.password));
     }
 
     return 0;
@@ -3379,14 +3393,14 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+        make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
 
         gconn->pending_key_rotation_request = false;
 
         return 0;
     }
 
-    // encrypt_precompute() is pretty cpu intensive so we make sure a peer can't DOS us by spamming requests
+    // key generation is pretty cpu intensive so we make sure a peer can't DOS us by spamming requests
     if (!mono_time_is_timeout(m->mono_time, gconn->last_key_rotation, GC_KEY_ROTATION_TIMEOUT / 2)) {
         return 0;
     }
@@ -3400,6 +3414,8 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     // create new session key pair and copy pk to reponse packet
     crypto_new_keypair(new_session_pk, new_session_sk);
 
+    crypto_memlock(new_session_sk, sizeof(new_session_sk));
+
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
     if (send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION) != 0) {
@@ -3410,9 +3426,9 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     memcpy(gconn->session_secret_key, new_session_sk, sizeof(gconn->session_secret_key));
 
-    encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
 
-    crypto_memzero(new_session_sk, sizeof(new_session_sk));
+    crypto_memunlock(new_session_sk, sizeof(new_session_sk));
 
     gconn->last_key_rotation = mono_time_get(chat->mono_time);
 
@@ -4996,7 +5012,7 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
 
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
-    encrypt_precompute(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
 
     set_sig_pk(gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
     uint8_t request_type = data[EXT_PUBLIC_KEY_SIZE];
@@ -5141,7 +5157,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
 
-    encrypt_precompute(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
 
     set_sig_pk(gconn->addr.public_key, public_sig_key);
 
@@ -6330,6 +6346,8 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
 
     create_extended_keypair(chat->self_public_key, chat->self_secret_key);
 
+    crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
+
     if (init_gc_tcp_connection(m, chat) == -1) {
         group_delete(c, chat);
         return -1;
@@ -6579,6 +6597,8 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
     }
 
     create_extended_keypair(chat->chat_public_key, chat->chat_secret_key);
+
+    crypto_memlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
 
     if (init_gc_shared_state_founder(chat, privacy_state, group_name, group_name_length) == -1) {
         group_delete(c, chat);
@@ -7130,10 +7150,9 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
         chat->group = nullptr;
     }
 
-    crypto_memzero(chat->self_secret_key, sizeof(chat->self_secret_key));
-    crypto_memzero(chat->chat_secret_key, sizeof(chat->chat_secret_key));
-    crypto_memzero(chat->shared_state.password, sizeof(chat->shared_state.password));
-    crypto_memzero(&chat->shared_state.password_length, sizeof(chat->shared_state.password_length));
+    crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
+    crypto_memunlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
+    crypto_memunlock(chat->shared_state.password, sizeof(chat->shared_state.password));
 }
 
 /* Deletes chat from group chat array and cleans up.
