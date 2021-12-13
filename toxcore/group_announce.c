@@ -200,7 +200,8 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_public_announce(uint8_t *data, uint16_t length, const GC_Public_Announce *public_announce)
+int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t length,
+                             const GC_Public_Announce *public_announce)
 {
     if (public_announce == nullptr || data == nullptr || length < CHAT_ID_SIZE) {
         return -1;
@@ -211,6 +212,7 @@ int gca_pack_public_announce(uint8_t *data, uint16_t length, const GC_Public_Ann
     int packed_size = gca_pack_announce(data + CHAT_ID_SIZE, length - CHAT_ID_SIZE, &public_announce->base_announce);
 
     if (packed_size < 0) {
+        LOGGER_ERROR(logger, "Failed to pack public group announce");
         return -1;
     }
 
@@ -297,7 +299,7 @@ int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_
         int unpacked_length = gca_unpack_announce(data + offset, length - offset, &announces[i]);
 
         if (unpacked_length == -1) {
-            LOGGER_ERROR(logger, "unpack error: %d %d", length, offset);
+            LOGGER_WARNING(logger, "Failed to unpack group announce: %d %d", length, offset);
             return -1;
         }
 
