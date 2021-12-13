@@ -494,6 +494,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
         nodes_length = pack_nodes(pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, num_nodes);
 
         if (nodes_length <= 0) {
+            LOGGER_WARNING(onion_a->log, "Failed to pack nodes");
             return 1;
         }
     }
@@ -507,12 +508,14 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
                         &public_announce);
 
     if (unpack_result == -1) {
+        LOGGER_WARNING(onion_a->log, "Failed to unpck public group announce");
         return 1;
     }
 
     GC_Peer_Announce *new_announce = gca_add_announce(onion_a->mono_time, gc_announces_list, &public_announce);
 
     if (new_announce == nullptr) {
+        LOGGER_ERROR(onion_a->log, "Failed to add group announce");
         return 1;
     }
 
@@ -527,6 +530,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
                            &announces_length);
 
     if (packed_announces != num_ann) {
+        LOGGER_WARNING(onion_a->log, "Failed to pack group announces list");
         return -1;
     }
 
@@ -537,6 +541,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
                                  data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE);
 
     if (len != offset + CRYPTO_MAC_SIZE) {
+        LOGGER_ERROR(onion_a->log, "Failed to encrypt announce response");
         return 1;
     }
 
