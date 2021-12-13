@@ -4692,42 +4692,53 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
     int ret = 0;
 
     switch (broadcast_type) {
-        case GM_STATUS:
+        case GM_STATUS: {
             ret = handle_gc_status(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        case GM_NICK:
+        case GM_NICK: {
             ret = handle_gc_nick(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        case GM_ACTION_MESSAGE:  // intentional fallthrough
-        case GM_PLAIN_MESSAGE:
+        case GM_ACTION_MESSAGE:
+
+        // intentional fallthrough
+        case GM_PLAIN_MESSAGE: {
             ret = handle_gc_message(m, group_number, peer_number, message, m_len, broadcast_type, userdata);
             break;
+        }
 
-        case GM_PRIVATE_MESSAGE:
+        case GM_PRIVATE_MESSAGE: {
             ret = handle_gc_private_message(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        case GM_PEER_EXIT:
+        case GM_PEER_EXIT: {
             ret = handle_gc_peer_exit(m, group_number, peer_number, message, m_len);
             break;
+        }
 
-        case GM_KICK_PEER:
+        case GM_KICK_PEER: {
             ret = handle_gc_kick_peer(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        case GM_SET_MOD:
+        case GM_SET_MOD: {
             ret = handle_gc_set_mod(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        case GM_SET_OBSERVER:
+        case GM_SET_OBSERVER: {
             ret = handle_gc_set_observer(m, group_number, peer_number, message, m_len, userdata);
             break;
+        }
 
-        default:
+        default: {
             LOGGER_DEBUG(m->log, "Received an invalid broadcast type %u", broadcast_type);
             break;
+        }
     }
 
     free(message);
@@ -4991,17 +5002,20 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
     int ret;
 
     switch (request_type) {
-        case HS_INVITE_REQUEST:
+        case HS_INVITE_REQUEST: {
             ret = send_gc_invite_request(chat, gconn);
             break;
+        }
 
-        case HS_PEER_INFO_EXCHANGE:
+        case HS_PEER_INFO_EXCHANGE: {
             ret = send_gc_peer_exchange(m->group_handler, chat, gconn);
             break;
+        }
 
-        default:
+        default: {
             LOGGER_ERROR(m->log, "Received invalid request type in handle_gc_handshake_response: %d", request_type);
             return -1;
+        }
     }
 
     if (ret == -1) {
@@ -5222,69 +5236,85 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
     int ret = -1;
 
     switch (packet_type) {
-        case GP_BROADCAST:
+        case GP_BROADCAST: {
             ret = handle_gc_broadcast(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        case GP_PEER_INFO_REQUEST:
+        case GP_PEER_INFO_REQUEST: {
             ret = handle_gc_peer_info_request(m, group_number, gconn);
             break;
+        }
 
-        case GP_PEER_INFO_RESPONSE:
+        case GP_PEER_INFO_RESPONSE: {
             ret = handle_gc_peer_info_response(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        case GP_SYNC_REQUEST:
+        case GP_SYNC_REQUEST: {
             ret = handle_gc_sync_request(m, group_number, peer_number, gconn, data, length);
             break;
+        }
 
-        case GP_SYNC_RESPONSE:
+        case GP_SYNC_RESPONSE: {
             ret = handle_gc_sync_response(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        case GP_INVITE_REQUEST:
+        case GP_INVITE_REQUEST: {
             ret = handle_gc_invite_request(m, group_number, peer_number, data, length);
             break;
+        }
 
-        case GP_INVITE_RESPONSE:
+        case GP_INVITE_RESPONSE: {
             ret = handle_gc_invite_response(m, group_number, gconn, data, length);
             break;
+        }
 
-        case GP_TOPIC:
+        case GP_TOPIC: {
             ret = handle_gc_topic(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        case GP_SHARED_STATE:
+        case GP_SHARED_STATE: {
             ret = handle_gc_shared_state(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        case GP_MOD_LIST:
+        case GP_MOD_LIST: {
             ret = handle_gc_mod_list(m, group_number, peer_number, data, length);
             break;
+        }
 
-        case GP_SANCTIONS_LIST:
+        case GP_SANCTIONS_LIST: {
             ret = handle_gc_sanctions_list(m, group_number, peer_number, data, length);
             break;
+        }
 
-        case GP_HS_RESPONSE_ACK:
+        case GP_HS_RESPONSE_ACK: {
             ret = handle_gc_hs_response_ack(m, group_number, gconn);
             break;
+        }
 
-        case GP_TCP_RELAYS:
+        case GP_TCP_RELAYS: {
             ret = handle_gc_tcp_relays(m, group_number, gconn, data, length);
             break;
+        }
 
-        case GP_KEY_ROTATION:
+        case GP_KEY_ROTATION: {
             ret = handle_gc_key_exchange(m, group_number, gconn, data, length);
             break;
+        }
 
-        case GP_CUSTOM_PACKET:
+        case GP_CUSTOM_PACKET: {
             ret = handle_gc_custom_packet(m, group_number, peer_number, data, length, userdata);
             break;
+        }
 
-        default:
+        default: {
             LOGGER_WARNING(m->log, "Handling invalid lossless group packet type %u", packet_type);
             return -1;
+        }
     }
 
     if (ret < 0) {
@@ -5431,25 +5461,30 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
     int ret = -1;
 
     switch (packet_type) {
-        case GP_MESSAGE_ACK:
+        case GP_MESSAGE_ACK: {
             ret = handle_gc_message_ack(chat, gconn, data, len);
             break;
+        }
 
-        case GP_PING:
+        case GP_PING: {
             ret = handle_gc_ping(m, chat->group_number, gconn, data, len);
             break;
+        }
 
-        case GP_INVITE_RESPONSE_REJECT:
+        case GP_INVITE_RESPONSE_REJECT: {
             ret = handle_gc_invite_response_reject(m, chat->group_number, data, len, userdata);
             break;
+        }
 
-        case GP_CUSTOM_PACKET:
+        case GP_CUSTOM_PACKET: {
             ret = handle_gc_custom_packet(m, chat->group_number, peer_number, data, len, userdata);
             break;
+        }
 
-        default:
+        default: {
             LOGGER_ERROR(m->log, "Warning: handling invalid lossy group packet type %u", packet_type);
             return -1;
+        }
     }
 
     if (ret >= 0 && direct_conn) {
