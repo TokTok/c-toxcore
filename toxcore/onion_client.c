@@ -961,6 +961,7 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
                         onion_c->friends_list[num - 1].gc_public_key);
 
         if (!chat) {
+            LOGGER_WARNING(onion_c->logger, "Couldn't find group associated with public key in announce response");
             return 1;
         }
 
