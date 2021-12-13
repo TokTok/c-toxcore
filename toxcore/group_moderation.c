@@ -535,7 +535,7 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
                                     uint16_t num_sanctions)
 {
     if (!mod_list_verify_sig_pk(chat, creds->sig_pk)) {
-        LOGGER_ERROR(chat->logger, "Invalid credentials signature pk");
+        LOGGER_WARNING(chat->logger, "Invalid credentials signature pk");
         return -1;
     }
 
@@ -546,18 +546,18 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
     }
 
     if (memcmp(hash, creds->hash, GC_SANCTION_HASH_SIZE) != 0) {
-        LOGGER_ERROR(chat->logger, "Invalid credentials hash");
+        LOGGER_WARNING(chat->logger, "Invalid credentials hash");
         return -1;
     }
 
     if ((creds->version < chat->moderation.sanctions_creds.version)
             && !(creds->version == 0 && chat->moderation.sanctions_creds.version == UINT32_MAX)) {
-        LOGGER_ERROR(chat->logger, "Invalid version");
+        LOGGER_WARNING(chat->logger, "Invalid version");
         return -1;
     }
 
     if (crypto_sign_verify_detached(creds->sig, hash, GC_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
-        LOGGER_ERROR(chat->logger, "Invalid signature");
+        LOGGER_WARNING(chat->logger, "Invalid signature");
         return -1;
     }
 
@@ -574,7 +574,7 @@ int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
         if (sanctions_list_validate_entry(chat, &sanctions[i]) != 0) {
-            LOGGER_ERROR(chat->logger, "Invalid entry");
+            LOGGER_WARNING(chat->logger, "Invalid entry");
             return -1;
         }
     }
@@ -735,15 +735,17 @@ static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sa
 int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds)
 {
     if (chat->moderation.num_sanctions >= MAX_GC_SANCTIONS) {
-        LOGGER_ERROR(chat->logger, "num_sanctions %d exceeds maximum", chat->moderation.num_sanctions);
+        LOGGER_WARNING(chat->logger, "num_sanctions %d exceeds maximum", chat->moderation.num_sanctions);
         return -1;
     }
 
     if (sanctions_list_validate_entry(chat, sanction) < 0) {
+        LOGGER_ERROR(chat->logger, "Failed to validate sanction");
         return -1;
     }
 
     if (sanctions_list_entry_exists(chat, sanction)) {
+        LOGGER_WARNING(chat->logger, "Attempted to add duplicate sanction");
         return -1;
     }
 
@@ -771,6 +773,7 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
 
     if (creds) {
         if (sanctions_creds_validate(chat, new_list, creds, index + 1) == -1) {
+            LOGGER_WARNING(chat->logger, "Failed to validate credentials");
             free(new_list);
             return -1;
         }
@@ -824,6 +827,7 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
     if (type == SA_OBSERVER) {
         memcpy(sanction->info.target_pk, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
     } else {
+        LOGGER_ERROR(chat->logger, "Tried to create sanction with invalid type: %u", type);
         return -1;
     }
 
@@ -832,15 +836,16 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
     sanction->type = type;
 
     if (sanctions_list_sign_entry(chat, sanction) == -1) {
+        LOGGER_ERROR(chat->logger, "Failed to sign sanction");
         return -1;
     }
 
     if (sanctions_list_add_entry(chat, sanction, nullptr) == -1) {
-        LOGGER_ERROR(chat->logger, "sanctions_list_add_entry failed in sanctions_list_make_entry");
         return -1;
     }
 
     if (sanctions_list_make_creds(chat) == -1) {
+        LOGGER_ERROR(chat->logger, "Failed to make credentials for new sanction");
         return -1;
     }
 
