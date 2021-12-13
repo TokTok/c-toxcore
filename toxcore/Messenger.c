@@ -3228,12 +3228,12 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
     Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
 
-    crypto_memlock(temp, sizeof(Saved_Group));
-
     if (temp == nullptr) {
         LOGGER_ERROR(m->log, "Failed to allocate memory for saved group");
         return data;
     }
+
+    crypto_memlock(temp, sizeof(Saved_Group));
 
     const GC_Session *c = m->group_handler;
 
