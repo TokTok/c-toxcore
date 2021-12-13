@@ -3117,7 +3117,7 @@ static int send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *gc
     packet[0] = 0;  // request type
 
     // create new session key pair
-    crypto_box_keypair(gconn->session_public_key, gconn->session_secret_key);
+    crypto_new_keypair(gconn->session_public_key, gconn->session_secret_key);
 
     // copy new session public key to packet
     memcpy(packet + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -3382,22 +3382,33 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
         return 0;
     }
 
+    // encrypt_precompute() is pretty cpu intensive so we make sure a peer can't DOS us by spamming requests
+    if (!mono_time_is_timeout(m->mono_time, gconn->last_key_rotation, GC_KEY_ROTATION_TIMEOUT / 2)) {
+        return 0;
+    }
+
     uint8_t response[1 + ENC_PUBLIC_KEY_SIZE];
+    uint8_t new_session_pk[ENC_PUBLIC_KEY_SIZE];
+    uint8_t new_session_sk[ENC_SECRET_KEY_SIZE];
+
     response[0] = 1;
 
-    // create new session key pair
-    crypto_box_keypair(gconn->session_public_key, gconn->session_secret_key);
+    // create new session key pair and copy pk to reponse packet
+    crypto_new_keypair(new_session_pk, new_session_sk);
 
-    // copy new session public key to response packet
-    memcpy(response + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
+    memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
-    // TODO (Jfreegman): handle this better? If this occurs it will currently just break the connection
     if (send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION) != 0) {
         return -4;
     }
 
-    // compute new shared key AFTER sending reponse packet with old key
+    // save new keys and compute new shared key AFTER sending reponse packet with old key
+    memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
+    memcpy(gconn->session_secret_key, new_session_sk, sizeof(gconn->session_secret_key));
+
     encrypt_precompute(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+
+    crypto_memzero(new_session_sk, sizeof(new_session_sk));
 
     gconn->last_key_rotation = mono_time_get(chat->mono_time);
 
@@ -5809,7 +5820,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     chat->group[peer_number].peer_id = get_new_peer_id(chat);
     chat->group[peer_number].ignore = false;
 
-    crypto_box_keypair(gconn->session_public_key, gconn->session_secret_key);
+    crypto_new_keypair(gconn->session_public_key, gconn->session_secret_key);
     memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  /* we get the sig key in the handshake */
 
     uint64_t tm = mono_time_get(chat->mono_time);
