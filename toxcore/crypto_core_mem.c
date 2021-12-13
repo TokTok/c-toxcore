@@ -48,3 +48,38 @@ bool crypto_memunlock(void *data, size_t length)
     return false;
 #endif
 }
+
+#ifndef VANILLA_NACL
+/**
+ * Locks `length` bytes of memory pointed to by `data`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memlock(void *data, size_t length)
+{
+    if (sodium_mlock(data, length) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Unlocks `length` bytes of memory pointed to by `data`.
+ *
+ * This function call has the side effect of zeroing the specified memory chunk
+ * whether or not it succeeds.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memunlock(void *data, size_t length)
+{
+    if (sodium_munlock(data, length) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+#endif  // VANILLA_NACL
