@@ -482,7 +482,8 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
         uint64_t message_id, uint8_t packet_type)
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
-    int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
+    int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet, sizeof(packet),
+                                    data,
                                     length, message_id, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len == -1) {
@@ -545,7 +546,7 @@ void gcc_peer_cleanup(GC_Connection *gconn)
     }
 
     crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
-    crypto_memunlock(gconn->shared_key, sizeof(gconn->shared_key));
+    crypto_memunlock(gconn->session_shared_key, sizeof(gconn->session_shared_key));
     crypto_memzero(gconn, sizeof(GC_Connection));
 }
 
