@@ -986,7 +986,7 @@ static int group_packet_unwrap(const Logger *logger, const GC_Connection *gconn,
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     memcpy(nonce, packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
 
-    int plain_len = decrypt_data_symmetric(gconn->shared_key, nonce,
+    int plain_len = decrypt_data_symmetric(gconn->session_shared_key, nonce,
                                            packet + sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                            length - (sizeof(uint8_t) + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                                            plain);
@@ -1105,7 +1105,8 @@ static int send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gco
     }
 
     uint8_t packet[MAX_GC_PACKET_SIZE];
-    int len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->shared_key, packet, sizeof(packet), data,
+    int len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet, sizeof(packet),
+                                data,
                                 length, 0, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSY);
 
     if (len == -1) {
@@ -3393,7 +3394,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+        make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->session_shared_key);
 
         gconn->pending_key_rotation_request = false;
 
@@ -3426,7 +3427,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     memcpy(gconn->session_secret_key, new_session_sk, sizeof(gconn->session_secret_key));
 
-    make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_public_session_key, gconn->session_secret_key, gconn->session_shared_key);
 
     crypto_memunlock(new_session_sk, sizeof(new_session_sk));
 
@@ -5012,7 +5013,7 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
 
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
-    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->session_shared_key);
 
     set_sig_pk(gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
     uint8_t request_type = data[EXT_PUBLIC_KEY_SIZE];
@@ -5157,7 +5158,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
 
-    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->shared_key);
+    make_gc_shared_key(sender_session_pk, gconn->session_secret_key, gconn->session_shared_key);
 
     set_sig_pk(gconn->addr.public_key, public_sig_key);
 
