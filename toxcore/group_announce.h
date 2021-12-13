@@ -157,7 +157,8 @@ int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t length, const GC_Public_Announce *public_announce);
+int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t length,
+                             const GC_Public_Announce *public_announce);
 
 /**
  * Unpacks a public announce from `data` buffer of size `length` into `public_announce`.
