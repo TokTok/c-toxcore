@@ -687,6 +687,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
     }
 
     if (sanctions_list_remove_observer(chat, sanction->info.target_pk, nullptr) == -1) {
+        LOGGER_WARNING(chat->logger, "Failed to remove entry from observer list");
         return -1;
     }
 
@@ -696,10 +697,12 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
     uint16_t length = sanctions_creds_pack(&chat->moderation.sanctions_creds, data, sizeof(data));
 
     if (length != GC_SANCTIONS_CREDENTIALS_SIZE) {
+        LOGGER_ERROR(chat->logger, "Failed to pack credentials (invlaid length: %u)", length);
         return -1;
     }
 
     if (send_gc_set_observer(chat, target_ext_pk, data, length, false) == -1) {
+        LOGGER_WARNING(chat->logger, "Failed to broadcast set observer");
         return -1;
     }
 
@@ -1185,7 +1188,7 @@ static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint
     int unpacked_announces = gca_unpack_announces_list(chat->logger, data, length, &announce, 1, nullptr);
 
     if (unpacked_announces <= 0) {
-        LOGGER_ERROR(chat->logger, "Failed to unpack announces: %d", unpacked_announces);
+        LOGGER_WARNING(chat->logger, "Failed to unpack announces: %d", unpacked_announces);
         return -1;
     }
 
@@ -1195,7 +1198,7 @@ static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint
     }
 
     if (!gca_is_valid_announce(&announce)) {
-        LOGGER_ERROR(chat->logger, "invalid announce");
+        LOGGER_WARNING(chat->logger, "got invalid announce");
         return -1;
     }
 
@@ -1236,7 +1239,7 @@ static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint
 
         if (!announce.ip_port_is_set && added_tcp_relays == 0) {
             gcc_mark_for_deletion(new_gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
-            LOGGER_ERROR(chat->logger, "Sync error: Invalid peer connection info");
+            LOGGER_WARNING(chat->logger, "Sync error: Invalid peer connection info");
             return -1;
         }
 
@@ -1357,7 +1360,7 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
     }
 
     if (chat->shared_state.version == 0) {
-        LOGGER_ERROR(m->log, "Invalid state or version number");
+        LOGGER_WARNING(m->log, "Invalid state or version number");
         return -4;
     }
 
@@ -1795,6 +1798,7 @@ static uint32_t make_gc_broadcast_header(const GC_Chat *chat, const uint8_t *dat
 static int send_gc_broadcast_message(const GC_Chat *chat, const uint8_t *data, uint32_t length, uint8_t bc_type)
 {
     if (length + GC_BROADCAST_ENC_HEADER_SIZE > MAX_GC_PACKET_SIZE) {
+        LOGGER_ERROR(chat->logger, "Failed to broadcast message: invalid length %u", length);
         return -1;
     }
 
@@ -2167,18 +2171,18 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
     }
 
     if (unpack_gc_peer(&peer, data + unpacked_len, length - unpacked_len) == -1) {
-        LOGGER_ERROR(m->log, "unpack_gc_peer() failed");
+        LOGGER_WARNING(m->log, "unpack_gc_peer() failed");
         return -6;
     }
 
     if (peer_update(m, group_number, &peer, peer_number) == -1) {
-        LOGGER_ERROR(m->log, "peer_update() failed");
+        LOGGER_WARNING(m->log, "peer_update() failed");
         return -6;
     }
 
     if (validate_gc_peer_role(chat, peer_number) == -1) {
         gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
-        LOGGER_ERROR(m->log, "failed to validate peer role");
+        LOGGER_WARNING(m->log, "failed to validate peer role");
         return -7;
     }
 
@@ -2383,7 +2387,7 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
 
     if (crypto_sign_verify_detached(signature, ss_data, GC_PACKED_SHARED_STATE_SIZE,
                                     get_sig_pk(chat->chat_public_key)) == -1) {
-        LOGGER_ERROR(m->log, "Failed to verify shared state signature");
+        LOGGER_WARNING(m->log, "Failed to validate shared state signature");
         return handle_gc_shared_state_error(m, group_number, peer_number, chat);
     }
 
@@ -2391,8 +2395,8 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
     net_unpack_u32(ss_data, &version);  // version is the first 4 bytes of shared state data payload
 
     if (version == 0 || version < chat->shared_state.version) {
-        LOGGER_WARNING(m->log, "Invalid shared state version (got %u, expected >= %u)",
-                       version, chat->shared_state.version);
+        LOGGER_DEBUG(m->log, "Invalid shared state version (got %u, expected >= %u)",
+                     version, chat->shared_state.version);
         return 0;
     }
 
@@ -2401,12 +2405,12 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
     memcpy(&old_shared_state, &chat->shared_state, sizeof(GC_SharedState));
 
     if (unpack_gc_shared_state(&new_shared_state, ss_data, ss_length) == 0) {
-        LOGGER_ERROR(m->log, "Failed to unpack shared state");
+        LOGGER_WARNING(m->log, "Failed to unpack shared state");
         return -2;
     }
 
     if (validate_gc_shared_state(&new_shared_state) == -1) {
-        LOGGER_ERROR(m->log, "Failed to validate shared state");
+        LOGGER_WARNING(m->log, "Failed to validate shared state");
         return -3;
     }
 
@@ -2459,7 +2463,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
     }
 
     if (mod_list_unpack(chat, data + sizeof(uint16_t), length - sizeof(uint16_t), num_mods) == -1) {
-        LOGGER_ERROR(chat->logger, "failed to unpack mod list");
+        LOGGER_WARNING(chat->logger, "failed to unpack mod list");
         ret = -4;
         goto ON_ERROR;
     }
@@ -2472,7 +2476,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
     }
 
     if (memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) != 0) {
-        LOGGER_ERROR(chat->logger, "failed to validate mod list hash");
+        LOGGER_WARNING(chat->logger, "failed to validate mod list hash");
         ret = -5;
         goto ON_ERROR;
     }
@@ -2582,7 +2586,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     net_unpack_u16(data, &num_sanctions);
 
     if (num_sanctions > MAX_GC_SANCTIONS) {
-        LOGGER_ERROR(chat->logger, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MAX_GC_SANCTIONS);
+        LOGGER_WARNING(chat->logger, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MAX_GC_SANCTIONS);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
@@ -2598,13 +2602,13 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
                        length - sizeof(uint16_t), nullptr);
 
     if (unpacked_num != num_sanctions) {
-        LOGGER_ERROR(m->log, "sanctions_list_unpack failed in handle_gc_sanctions_list: %d", unpacked_num);
+        LOGGER_WARNING(m->log, "sanctions_list_unpack failed in handle_gc_sanctions_list: %d", unpacked_num);
         free(sanctions);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
     if (sanctions_list_check_integrity(chat, &creds, sanctions, num_sanctions) == -1) {
-        LOGGER_ERROR(m->log, "sanctions_list_check_integrity failed");
+        LOGGER_WARNING(m->log, "sanctions_list_check_integrity failed");
         free(sanctions);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
@@ -2937,7 +2941,7 @@ static int handle_gc_nick(Messenger *m, int group_number, uint32_t peer_number, 
     /* If this happens malicious behaviour is highly suspect */
     if (length == 0 || length > MAX_GC_NICK_SIZE) {
         gcc_mark_for_deletion(&chat->gcc[peer_number], chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
-        LOGGER_ERROR(chat->logger, "Invalid nick length for nick: %s (%u)", nick, length);
+        LOGGER_WARNING(chat->logger, "Invalid nick length for nick: %s (%u)", nick, length);
         return 0;
     }
 
@@ -3292,19 +3296,19 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
     int unpacked_len = unpack_gc_topic_info(&topic_info, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE);
 
     if (unpacked_len == -1) {
-        LOGGER_ERROR(chat->logger, "failed to unpack topic");
+        LOGGER_WARNING(chat->logger, "failed to unpack topic");
         return -3;
     }
 
     // only check if topic was set by founder/mod if topic lock is enabled
     if (chat->shared_state.topic_lock == TL_ENABLED && !mod_list_verify_sig_pk(chat, topic_info.public_sig_key)) {
-        LOGGER_ERROR(chat->logger, "Invalid topic signature (bad credentials)");
+        LOGGER_WARNING(chat->logger, "Invalid topic signature (bad credentials)");
         return -4;
     }
 
     // make sure topic wasn't set by an observer
     if (chat->shared_state.topic_lock == TL_DISABLED && sanctions_list_is_observer_sig(chat, topic_info.public_sig_key)) {
-        LOGGER_ERROR(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
+        LOGGER_WARNING(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
         return -4;
     }
 
@@ -3313,7 +3317,7 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
 
     if (crypto_sign_verify_detached(signature, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE,
                                     topic_info.public_sig_key) == -1) {
-        LOGGER_ERROR(chat->logger, "failed to verify topic signature");
+        LOGGER_WARNING(chat->logger, "failed to verify topic signature");
         return -4;
     }
 
@@ -4760,6 +4764,7 @@ static int unwrap_group_handshake_packet(const Logger *logger, const uint8_t *se
         uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
 {
     if (plain_size < length - 1 - CHAT_ID_HASH_SIZE - ENC_PUBLIC_KEY_SIZE - CRYPTO_NONCE_SIZE - CRYPTO_MAC_SIZE) {
+        LOGGER_WARNING(logger, "failed to unwrap packet: invalid plaintext length %zu", plain_size);
         return -1;
     }
 
@@ -4772,7 +4777,7 @@ static int unwrap_group_handshake_packet(const Logger *logger, const uint8_t *se
                                  length - (1 + CHAT_ID_HASH_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE), plain);
 
     if (plain_len != plain_size) {
-        LOGGER_ERROR(logger, "decrypt handshake request failed: len: %d, size: %zu", plain_len, plain_size);
+        LOGGER_WARNING(logger, "decrypt handshake request failed: len: %d, size: %zu", plain_len, plain_size);
         return -1;
     }
 
@@ -4808,7 +4813,7 @@ static int wrap_group_handshake_packet(const Logger *logger, const uint8_t *self
     int enc_len = encrypt_data(sender_pk, self_sk, nonce, data, length, encrypt);
 
     if (enc_len != encrypt_buf_size) {
-        LOGGER_ERROR(logger, "encrypt handshake request failed (len: %d)", enc_len);
+        LOGGER_ERROR(logger, "Failed to wrap group handshake packet (len: %d)", enc_len);
         free(encrypt);
         return -1;
     }
@@ -4913,7 +4918,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
     int ret2 = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
 
     if (ret1 == -1 && ret2 == -1) {
-        LOGGER_ERROR(chat->logger, "Send handshake packet failed. Type %u", request_type);
+        LOGGER_WARNING(chat->logger, "Send handshake packet failed. Type %u", request_type);
         return -1;
     }
 
@@ -4943,7 +4948,7 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
     memset(node, 0, sizeof(node));
 
     if (gcc_copy_tcp_relay(node, gconn) == -1) {
-        LOGGER_ERROR(chat->logger, "Failed to copy TCP relay");
+        LOGGER_WARNING(chat->logger, "Failed to copy TCP relay");
         return -1;
     }
 
@@ -4952,6 +4957,7 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
                                           sizeof(packet), node);
 
     if (length == -1) {
+        LOGGER_WARNING(chat->logger, "Failed to make handshake packet");
         return -1;
     }
 
@@ -5013,7 +5019,7 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
         }
 
         default: {
-            LOGGER_ERROR(m->log, "Received invalid request type in handle_gc_handshake_response: %d", request_type);
+            LOGGER_WARNING(m->log, "Received invalid request type in handle_gc_handshake_response: %d", request_type);
             return -1;
         }
     }
@@ -5110,7 +5116,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
     if (nodes_count <= 0 && ipp == nullptr) {
         if (is_new_peer) {
-            LOGGER_ERROR(m->log, "broken tcp relay for new peer");
+            LOGGER_WARNING(m->log, "broken tcp relay for new peer");
             gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
         }
 
@@ -5122,7 +5128,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
                              node->ip_port, node->public_key);
 
         if (add_tcp_result < 0 && is_new_peer && ipp == nullptr) {
-            LOGGER_ERROR(m->log, "broken tcp relay for new peer");
+            LOGGER_WARNING(m->log, "broken tcp relay for new peer");
             gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_QUIT, nullptr, 0);
             return -1;
         }
@@ -5364,7 +5370,7 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (!gconn->handshaked && (packet_type != GP_HS_RESPONSE_ACK && packet_type != GP_INVITE_REQUEST)) {
-        LOGGER_ERROR(m->log, "Got lossless packet type %d from unconfirmed peer", packet_type);
+        LOGGER_DEBUG(m->log, "Got lossless packet type %d from unconfirmed peer", packet_type);
         return -1;
     }
 
@@ -5385,8 +5391,8 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (lossless_ret == -1) {
-        LOGGER_ERROR(m->log, "failed to handle packet %llu (type %u, id %lu)", (unsigned long long)message_id, packet_type,
-                     message_id);
+        LOGGER_WARNING(m->log, "failed to handle packet %llu (type %u, id %lu)", (unsigned long long)message_id, packet_type,
+                       message_id);
         return -1;
     }
 
@@ -5444,7 +5450,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
     }
 
     if (!gconn->handshaked || gconn->pending_delete) {
-        LOGGER_ERROR(m->log, "Got lossy packet from invalid peer");
+        LOGGER_WARNING(m->log, "Got lossy packet from invalid peer");
         return -1;
     }
 
@@ -5482,7 +5488,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
         }
 
         default: {
-            LOGGER_ERROR(m->log, "Warning: handling invalid lossy group packet type %u", packet_type);
+            LOGGER_WARNING(m->log, "Warning: handling invalid lossy group packet type %u", packet_type);
             return -1;
         }
     }
@@ -5599,7 +5605,7 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
     const GC_Chat *chat = get_chat_by_hash(m->group_handler, chat_id_hash);
 
     if (chat == nullptr) {
-        LOGGER_ERROR(m->log, "get_chat_by_hash failed in handle_gc_udp_packet (type %u)", packet[0]);
+        LOGGER_WARNING(m->log, "get_chat_by_hash failed in handle_gc_udp_packet (type %u)", packet[0]);
         return -1;
     }
 
@@ -6799,7 +6805,7 @@ static int send_gc_invite_accepted_packet(Messenger *m, const GC_Chat *chat, uin
     length += ENC_PUBLIC_KEY_SIZE;
 
     if (send_group_invite_packet(m, friend_number, packet, length) == -1) {
-        LOGGER_ERROR(m->log, "send_gc_invite_accepted_packet error");
+        LOGGER_ERROR(m->log, "Failed to send group invite packet.");
         return -3;
     }
 
@@ -6901,7 +6907,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
     }
 
     if (tcp_relays_added == 0 && !copy_ip_port_result) {
-        LOGGER_ERROR(chat->logger, "Got invalid connection info from peer");
+        LOGGER_WARNING(chat->logger, "Got invalid connection info from peer");
         return -1;
     }
 
@@ -6993,7 +6999,7 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
         }
 
         if (added_tcp_relays == 0 && !copy_ip_port_result) {
-            LOGGER_ERROR(chat->logger, "Got invalid connection info from peer");
+            LOGGER_WARNING(chat->logger, "Got invalid connection info from peer");
             return -1;
         }
 
