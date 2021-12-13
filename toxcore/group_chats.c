@@ -4703,6 +4703,7 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
         }
 
         case GM_ACTION_MESSAGE:
+
         // intentional fallthrough
         case GM_PLAIN_MESSAGE: {
             ret = handle_gc_message(m, group_number, peer_number, message, m_len, broadcast_type, userdata);
