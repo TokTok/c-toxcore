@@ -247,6 +247,27 @@ void increment_nonce_number(uint8_t *nonce, uint32_t increment);
  */
 void new_symmetric_key(uint8_t *key);
 
+#ifndef VANILLA_NACL
+/**
+ * Locks `length` bytes of memory pointed to by `data`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memlock(void *data, size_t length);
+
+/**
+ * Unlocks `length` bytes of memory pointed to by `data`.
+ *
+ * This function call has the side effect of zeroing the specified memory chunk
+ * whether or not it succeeds.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memunlock(void *data, size_t length);
+#endif  // VANILLA_NACL
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

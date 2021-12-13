@@ -544,6 +544,8 @@ void gcc_peer_cleanup(GC_Connection *gconn)
         }
     }
 
+    crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
+    crypto_memunlock(gconn->shared_key, sizeof(gconn->shared_key));
     crypto_memzero(gconn, sizeof(GC_Connection));
 }
 

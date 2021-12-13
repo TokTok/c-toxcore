@@ -93,3 +93,38 @@ int32_t crypto_memcmp(const uint8_t *p1, const uint8_t *p2, size_t length)
     return (1 & ((d - 1) >> 8)) - 1;
 #endif
 }
+
+#ifndef VANILLA_NACL
+/**
+ * Locks `length` bytes of memory pointed to by `data`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memlock(void *data, size_t length)
+{
+    if (sodium_mlock(data, length) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
+ * Unlocks `length` bytes of memory pointed to by `data`.
+ *
+ * This function call has the side effect of zeroing the specified memory chunk
+ * whether or not it succeeds.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int crypto_memunlock(void *data, size_t length)
+{
+    if (sodium_munlock(data, length) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+#endif  // VANILLA_NACL
