@@ -2675,7 +2675,7 @@ static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *
     memcpy(announce.chat_public_key, get_chat_id(chat->chat_public_key), ENC_PUBLIC_KEY_SIZE);
 
     uint8_t gc_data[GCA_MAX_DATA_LENGTH];
-    int length = gca_pack_public_announce(gc_data, GCA_MAX_DATA_LENGTH, &announce);
+    int length = gca_pack_public_announce(m->log, gc_data, GCA_MAX_DATA_LENGTH, &announce);
 
     if (length <= 0) {
         onion_friend_set_gc_data(onion_friend, nullptr, -1);
