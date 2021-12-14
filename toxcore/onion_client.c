@@ -138,28 +138,27 @@ struct Onion_Client {
     bool udp_connected;
 };
 
-uint16_t onion_get_friend_count(Onion_Client *onion_c)
+uint16_t onion_get_friend_count(const Onion_Client *const onion_c)
 {
     return onion_c->num_friends;
 }
 
-Onion_Friend *onion_get_friend(Onion_Client *onion_c, uint16_t friend_num)
+Onion_Friend *onion_get_friend(const Onion_Client *const onion_c, uint16_t friend_num)
 {
     return &onion_c->friends_list[friend_num];
 }
 
-const uint8_t *onion_friend_get_gc_public_key(Onion_Friend *onion_friend)
+const uint8_t *onion_friend_get_gc_public_key(const Onion_Friend *const onion_friend)
 {
     return onion_friend->gc_public_key;
 }
 
-void onion_friend_set_gc_public_key(Onion_Friend *onion_friend, const uint8_t *public_key)
+void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint8_t *public_key)
 {
     memcpy(onion_friend->gc_public_key, public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
-
-void onion_friend_set_gc_data(Onion_Friend *onion_friend, const uint8_t *gc_data, int16_t gc_data_length)
+void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, int16_t gc_data_length)
 {
     if (gc_data_length >= 0) {
         memcpy(onion_friend->gc_data, gc_data, gc_data_length);
@@ -168,7 +167,7 @@ void onion_friend_set_gc_data(Onion_Friend *onion_friend, const uint8_t *gc_data
     onion_friend->gc_data_length = gc_data_length;
 }
 
-int16_t onion_friend_gc_data_length(Onion_Friend *onion_friend)
+int16_t onion_friend_gc_data_length(const Onion_Friend *const onion_friend)
 {
     return onion_friend->gc_data_length;
 }

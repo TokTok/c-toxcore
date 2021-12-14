@@ -184,12 +184,11 @@ unsigned int onion_connection_status(const Onion_Client *onion_c);
 
 typedef struct Onion_Friend Onion_Friend;
 
-uint16_t onion_get_friend_count(Onion_Client *onion_c);
-Onion_Friend *onion_get_friend(Onion_Client *onion_c, uint16_t friend_num);
-const uint8_t *onion_friend_get_gc_public_key(Onion_Friend *onion_friend);
-void onion_friend_set_gc_public_key(Onion_Friend *onion_friend, const uint8_t *public_key);
-
-void onion_friend_set_gc_data(Onion_Friend *onion_friend, const uint8_t *gc_data, int16_t gc_data_length);
-int16_t onion_friend_gc_data_length(Onion_Friend *onion_friend);
+uint16_t onion_get_friend_count(const Onion_Client *const onion_c);
+Onion_Friend *onion_get_friend(const Onion_Client *const onion_c, uint16_t friend_num);
+const uint8_t *onion_friend_get_gc_public_key(const Onion_Friend *const onion_friend);
+void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint8_t *public_key);
+void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, int16_t gc_data_length);
+int16_t onion_friend_gc_data_length(const Onion_Friend *const onion_friend);
 
 #endif
