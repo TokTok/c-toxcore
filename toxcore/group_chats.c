@@ -43,8 +43,8 @@
                                      + sizeof(uint8_t) + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE\
                                      + GC_MODERATION_HASH_SIZE + sizeof(uint8_t) + sizeof(uint32_t))
 
-/* Minimum size of a topic packet; includes topic length, public signature key, and the topic version */
-#define GC_MIN_PACKED_TOPIC_INFO_SIZE (sizeof(uint16_t) + SIG_PUBLIC_KEY_SIZE + sizeof(uint32_t))
+/* Minimum size of a topic packet; includes topic length, public signature key, topic version and checksum */
+#define GC_MIN_PACKED_TOPIC_INFO_SIZE (sizeof(uint16_t) + SIG_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t))
 
 #define GC_SHARED_STATE_ENC_PACKET_SIZE (SIGNATURE_SIZE + GC_PACKED_SHARED_STATE_SIZE)
 
@@ -69,9 +69,9 @@
 
 /*
  * Min size of a ping packet, which contains the peer count, peer list checksum, shared state version, sanctions list
- * version and topic version
+ * version, topic version, and topic checksum
  */
-#define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 2) + (sizeof(uint32_t) * 3))
+#define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 3) + (sizeof(uint32_t) * 3))
 
 /* How often we check which peers needs to be pinged */
 #define GC_DO_PINGS_INTERVAL 2
@@ -366,6 +366,18 @@ static void set_gc_peerlist_checksum(GC_Chat *chat)
     }
 
     chat->peers_checksum = sum;
+}
+
+/* Sets the sum of the topic. Must be called every time the topic is changed. */
+static void set_gc_topic_checksum(GC_Chat *chat)
+{
+    uint16_t sum = 0;
+
+    for (uint16_t i = 0; i < chat->topic_info.length; ++i) {
+        sum += chat->topic_info.topic[i];
+    }
+
+    chat->topic_info.checksum = sum;
 }
 
 /* Check if peer with the public encryption key is in peer list.
@@ -873,6 +885,8 @@ static uint16_t pack_gc_topic_info(uint8_t *data, uint16_t length, const GC_Topi
     packed_len += sizeof(uint32_t);
     net_pack_u16(data + packed_len, topic_info->length);
     packed_len += sizeof(uint16_t);
+    net_pack_u16(data + packed_len, topic_info->checksum);
+    packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, topic_info->topic, topic_info->length);
     packed_len += topic_info->length;
     memcpy(data + packed_len, topic_info->public_sig_key, SIG_PUBLIC_KEY_SIZE);
@@ -881,14 +895,14 @@ static uint16_t pack_gc_topic_info(uint8_t *data, uint16_t length, const GC_Topi
     return packed_len;
 }
 
-/* Unpacks topic info into topic_info.
+/* Unpacks topic info into `topic_info`.
  *
  * Returns -1 on failure.
- * Returns the length of the processed data.
+ * Returns the length of the processed data on success.
  */
 static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, uint16_t length)
 {
-    if (length < sizeof(uint16_t)) {
+    if (length < sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t)) {
         return -1;
     }
 
@@ -898,10 +912,14 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
     len_processed += sizeof(uint32_t);
     net_unpack_u16(data + len_processed, &topic_info->length);
     len_processed += sizeof(uint16_t);
+    net_unpack_u16(data + len_processed, &topic_info->checksum);
+    len_processed += sizeof(uint16_t);
 
-    topic_info->length = min_u16(topic_info->length, MAX_GC_TOPIC_SIZE);
+    if (topic_info->length > MAX_GC_TOPIC_SIZE) {
+        topic_info->length = MAX_GC_TOPIC_SIZE;
+    }
 
-    if (length - sizeof(uint16_t) < topic_info->length + SIG_PUBLIC_KEY_SIZE + sizeof(uint32_t)) {
+    if (length - len_processed < topic_info->length + SIG_PUBLIC_KEY_SIZE) {
         return -1;
     }
 
@@ -1851,11 +1869,32 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     uint32_t sstate_version;
     uint32_t screds_version;
     uint32_t topic_version;
+    uint16_t topic_checksum;
+
+    size_t unpacked_len = 0;
+
     net_unpack_u16(sync_data, &peers_checksum);
-    net_unpack_u16(sync_data + sizeof(uint16_t), &peer_count);
-    net_unpack_u32(sync_data + (sizeof(uint16_t) * 2), &sstate_version);
-    net_unpack_u32(sync_data + (sizeof(uint16_t) * 2) + sizeof(uint32_t), &screds_version);
-    net_unpack_u32(sync_data + (sizeof(uint16_t) * 2) + (sizeof(uint32_t) * 2), &topic_version);
+    unpacked_len += sizeof(uint16_t);
+
+    net_unpack_u16(sync_data + unpacked_len, &peer_count);
+    unpacked_len += sizeof(uint16_t);
+
+    net_unpack_u32(sync_data + unpacked_len, &sstate_version);
+    unpacked_len += sizeof(uint32_t);
+
+    net_unpack_u32(sync_data + unpacked_len, &screds_version);
+    unpacked_len += sizeof(uint32_t);
+
+    net_unpack_u32(sync_data + unpacked_len, &topic_version);
+    unpacked_len += sizeof(uint32_t);
+
+    net_unpack_u16(sync_data + unpacked_len, &topic_checksum);
+    unpacked_len += sizeof(uint16_t);
+
+    if (unpacked_len != GC_PING_PACKET_MIN_DATA_SIZE) {
+        LOGGER_FATAL(chat->logger, "Unpacked length is impossible");
+        return false;
+    }
 
     uint16_t sync_flags = 0;
 
@@ -1869,7 +1908,8 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
         sync_flags |= GF_STATE;
     }
 
-    if (topic_version > chat->topic_info.version) {
+    if (topic_version > chat->topic_info.version ||
+            (topic_version == chat->topic_info.version && topic_checksum > chat->topic_info.checksum)) {
         sync_flags |= GF_TOPIC;
     }
 
@@ -3205,14 +3245,18 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     memcpy(&old_topic_info, &chat->topic_info, sizeof(GC_TopicInfo));
     memcpy(old_topic_sig, chat->topic_sig, SIGNATURE_SIZE);
 
-    if (chat->topic_info.version !=
-            UINT32_MAX) {   /* TODO (jfreegman) improbable, but an overflow would break everything */
-        ++chat->topic_info.version;
+    /* TODO (jfreegman) improbable, but an overflow would break everything */
+    if (chat->topic_info.version == UINT32_MAX) {
+        return -3;
     }
+
+    ++chat->topic_info.version;
 
     chat->topic_info.length = length;
     memcpy(chat->topic_info.topic, topic, length);
     memcpy(chat->topic_info.public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+
+    set_gc_topic_checksum(chat);
 
     size_t packet_buf_size = length + GC_MIN_PACKED_TOPIC_INFO_SIZE;
     uint8_t *packed_topic = (uint8_t *)malloc(packet_buf_size);
@@ -3340,7 +3384,13 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
         return 0;
     }
 
-    /* Prevents sync issues from triggering the callback needlessly. */
+    // two peers tried to change topic at the same time; ignore the one with the smaller checksum
+    if (topic_info.version == chat->topic_info.version && topic_info.checksum <= chat->topic_info.checksum) {
+        LOGGER_DEBUG(chat->logger, "Got same topic version; discarding.");
+        return 0;
+    }
+
+    // prevents sync issues from triggering the callback needlessly
     bool skip_callback = chat->topic_info.length == topic_info.length
                          && memcmp(chat->topic_info.topic, topic_info.topic, topic_info.length) == 0;
 
@@ -3348,8 +3398,8 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
     memcpy(chat->topic_sig, signature, SIGNATURE_SIZE);
 
     if (!skip_callback && chat->connection_state == CS_CONNECTED && c->topic_change) {
-        int setter_peer_number = get_peer_number_of_sig_pk(chat, topic_info.public_sig_key);
-        uint32_t peer_id = setter_peer_number >= 0 ? chat->group[setter_peer_number].peer_id : 0;
+        const int setter_peer_number = get_peer_number_of_sig_pk(chat, topic_info.public_sig_key);
+        const uint32_t peer_id = setter_peer_number >= 0 ? chat->group[setter_peer_number].peer_id : 0;
         (*c->topic_change)(m, group_number, peer_id, topic_info.topic, topic_info.length, userdata);
     }
 
@@ -6043,13 +6093,29 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
         return -1;
     }
 
-    net_pack_u16(data, chat->peers_checksum);
-    net_pack_u16(data + sizeof(uint16_t), (uint16_t) get_gc_confirmed_numpeers(chat));
-    net_pack_u32(data + (sizeof(uint16_t) * 2), chat->shared_state.version);
-    net_pack_u32(data + (sizeof(uint16_t) * 2) + sizeof(uint32_t), chat->moderation.sanctions_creds.version);
-    net_pack_u32(data + (sizeof(uint16_t) * 2) + (sizeof(uint32_t) * 2), chat->topic_info.version);
+    uint32_t packed_len = 0;
 
-    uint32_t real_length = GC_PING_PACKET_MIN_DATA_SIZE;
+    net_pack_u16(data, chat->peers_checksum);
+    packed_len += sizeof(uint16_t);
+
+    net_pack_u16(data + packed_len, (uint16_t) get_gc_confirmed_numpeers(chat));
+    packed_len += sizeof(uint16_t);
+
+    net_pack_u32(data + packed_len, chat->shared_state.version);
+    packed_len += sizeof(uint32_t);
+
+    net_pack_u32(data + packed_len, chat->moderation.sanctions_creds.version);
+    packed_len += sizeof(uint32_t);
+
+    net_pack_u32(data + packed_len, chat->topic_info.version);
+    packed_len += sizeof(uint32_t);
+
+    net_pack_u16(data + packed_len, chat->topic_info.checksum);
+    packed_len += sizeof(uint16_t);
+
+    if (packed_len != GC_PING_PACKET_MIN_DATA_SIZE) {
+        LOGGER_FATAL(chat->logger, "Packed length is impossible");
+    }
 
     if (chat->self_udp_status == SELF_UDP_STATUS_WAN && !gcc_connection_is_direct(chat->mono_time, gconn)
             && mono_time_is_timeout(chat->mono_time, gconn->last_sent_ip_time, GC_SEND_IP_PORT_INTERVAL)) {
@@ -6057,11 +6123,11 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
         int packed_ipp_len = pack_ip_port(data + buf_size - sizeof(IP_Port), sizeof(IP_Port), &chat->self_ip_port);
 
         if (packed_ipp_len > 0) {
-            real_length += packed_ipp_len;
+            packed_len += packed_ipp_len;
         }
     }
 
-    if (send_lossy_group_packet(chat, gconn, data, real_length, GP_PING) == 0) {
+    if (send_lossy_group_packet(chat, gconn, data, packed_len, GP_PING) == 0) {
         free(data);
         return 0;
     }
@@ -6493,6 +6559,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     memcpy(chat->topic_info.public_sig_key, save->topic_public_sig_key, SIG_PUBLIC_KEY_SIZE);
     chat->topic_info.version = net_ntohl(save->topic_version);
     memcpy(chat->topic_sig, save->topic_signature, SIGNATURE_SIZE);
+
+    set_gc_topic_checksum(chat);
 
     memcpy(chat->chat_public_key, save->chat_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(chat->chat_secret_key, save->chat_secret_key, EXT_SECRET_KEY_SIZE);

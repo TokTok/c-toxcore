@@ -194,16 +194,16 @@ typedef enum Group_Packet_Type {
 
 /* Lossless message acknowledgement types. */
 typedef enum Group_Message_Ack_Type {
-    GR_ACK_RECV    = 0x00,  // Indicates a message has been received
-    GR_ACK_REQ     = 0x01,  // Indicates a message needs to be re-sent
+    GR_ACK_RECV    = 0x00,  // indicates a message has been received
+    GR_ACK_REQ     = 0x01,  // indicates a message needs to be re-sent
     GR_ACK_INVALID = 0x02,
 } Group_Message_Ack_Type;
 
 struct GC_Sanction_Creds {
     uint32_t    version;
-    uint8_t     hash[GC_SANCTION_HASH_SIZE];    /* hash of all sanctions list signatures + version */
-    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    /* Last mod to have modified the sanctions list*/
-    uint8_t     sig[SIGNATURE_SIZE];    /* signature of hash, signed by sig_pk */
+    uint8_t     hash[GC_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
+    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    // Last mod to have modified the sanctions list
+    uint8_t     sig[SIGNATURE_SIZE];    // signature of hash, signed by sig_pk
 };
 
 typedef struct GC_Moderation {
@@ -211,7 +211,7 @@ typedef struct GC_Moderation {
     struct GC_Sanction_Creds sanctions_creds;
     uint16_t    num_sanctions;
 
-    uint8_t     **mod_list;  /* Array of public signature keys of all the mods */
+    uint8_t     **mod_list;  // array of public signature keys of all the mods
     uint16_t    num_mods;
 } GC_Moderation;
 
@@ -233,7 +233,7 @@ typedef struct GC_GroupPeer {
     uint8_t     status;
 
     /* Below variables are not sent to other peers */
-    uint32_t    peer_id;    /* Permanent ID (used for the public API) */
+    uint32_t    peer_id;    // permanent ID (used for the public API)
     bool        ignore;
 } GC_GroupPeer;
 
@@ -243,7 +243,7 @@ typedef struct GC_SharedState {
     uint32_t    maxpeers;
     uint16_t    group_name_len;
     uint8_t     group_name[MAX_GC_GROUP_NAME_SIZE];
-    uint8_t     privacy_state;   /* GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only) */
+    uint8_t     privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)
     uint16_t    password_length;
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
     uint8_t     mod_list_hash[GC_MODERATION_HASH_SIZE];
@@ -253,8 +253,9 @@ typedef struct GC_SharedState {
 typedef struct GC_TopicInfo {
     uint32_t    version;
     uint16_t    length;
+    uint16_t    checksum;  // used for syncing problems. the checksum with the highest value gets priority.
     uint8_t     topic[MAX_GC_TOPIC_SIZE];
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];   /* Public signature key of the topic setter */
+    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];  // Public signature key of the topic setter
 } GC_TopicInfo;
 
 typedef struct GC_Connection GC_Connection;
@@ -326,19 +327,19 @@ typedef struct GC_Chat {
     GC_Conn_State   connection_state;
 
     GC_SharedState  shared_state;
-    uint8_t         shared_state_sig[SIGNATURE_SIZE];    /* Signed by founder using the chat secret key */
+    uint8_t         shared_state_sig[SIGNATURE_SIZE];  // signed by founder using the chat secret key
 
     GC_TopicInfo    topic_info;
-    uint8_t         topic_sig[SIGNATURE_SIZE];    /* Signed by a moderator or the founder */
+    uint8_t         topic_sig[SIGNATURE_SIZE];  // signed by the peer who set the current topic
 
-    uint16_t    peers_checksum;   /* A sum of the public key hash of every confirmed peer in the group */
+    uint16_t    peers_checksum;  // a sum of the public key hash of every confirmed peer in the group
     uint32_t    numpeers;
-    uint32_t    base_peer_id;    /* An incrementing counter used to assign peers unique ID's */
+    uint32_t    base_peer_id;  // an incrementing counter used to assign peers unique ID's
     int         group_number;
 
-    uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];    /* the chat_id is the sig portion */
-    uint8_t     chat_secret_key[EXT_SECRET_KEY_SIZE];    /* only used by the founder */
-    uint32_t    chat_id_hash;    /* 32-bit hash of the chat_id */
+    uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];  // the chat_id is the sig portion
+    uint8_t     chat_secret_key[EXT_SECRET_KEY_SIZE];  // only used by the founder
+    uint32_t    chat_id_hash;    // 32-bit hash of the chat_id
 
     uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
     uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
@@ -357,11 +358,11 @@ typedef struct GC_Chat {
     int32_t     saved_invites[MAX_GC_SAVED_INVITES];
     uint8_t     saved_invites_index;
 
-    bool        update_self_announces;     /* true if we should try to update our announcements */
-    uint64_t    last_self_announce_check;  /* the last time we checked if we should update our announcements */
+    bool        update_self_announces;  // true if we should try to update our announcements
+    uint64_t    last_self_announce_check;  // the last time we checked if we should update our announcements
 
-    uint8_t     m_group_public_key[CRYPTO_PUBLIC_KEY_SIZE];    /* Public key for group's messenger friend connection */
-    int         friend_connection_id;   /* Identifier for group's messenger friend connection */
+    uint8_t     m_group_public_key[CRYPTO_PUBLIC_KEY_SIZE];  // public key for group's messenger friend connection
+    int         friend_connection_id;  // identifier for group's messenger friend connection
 } GC_Chat;
 
 #ifndef MESSENGER_DEFINED
