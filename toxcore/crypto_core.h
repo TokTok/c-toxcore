@@ -242,7 +242,6 @@ void increment_nonce_number(uint8_t *nonce, uint32_t increment);
  */
 void new_symmetric_key(uint8_t *key);
 
-#ifndef VANILLA_NACL
 /**
  * Locks `length` bytes of memory pointed to by `data`. This will attempt to prevent
  * the specified memory region from being swapped to disk.
@@ -262,7 +261,6 @@ bool crypto_memlock(void *data, size_t length);
  * Returns true on success.
  */
 bool crypto_memunlock(void *data, size_t length);
-#endif  // VANILLA_NACL
 
 #ifdef __cplusplus
 }  // extern "C"
