@@ -244,23 +244,24 @@ void new_symmetric_key(uint8_t *key);
 
 #ifndef VANILLA_NACL
 /**
- * Locks `length` bytes of memory pointed to by `data`.
+ * Locks `length` bytes of memory pointed to by `data`. This will attempt to prevent
+ * the specified memory region from being swapped to disk.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Returns true on success.
  */
-int crypto_memlock(void *data, size_t length);
+bool crypto_memlock(void *data, size_t length);
 
 /**
- * Unlocks `length` bytes of memory pointed to by `data`.
+ * Unlocks `length` bytes of memory pointed to by `data`. This allows the specified
+ * memory region to be swapped to disk.
  *
- * This function call has the side effect of zeroing the specified memory chunk
- * whether or not it succeeds.
+ * This function call has the side effect of zeroing the specified memory region
+ * whether or not it succeeds. Therefore it should only be used once the memory
+ * is no longer in use.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Returns true on success.
  */
-int crypto_memunlock(void *data, size_t length);
+bool crypto_memunlock(void *data, size_t length);
 #endif  // VANILLA_NACL
 
 #ifdef __cplusplus
