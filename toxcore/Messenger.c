@@ -3274,6 +3274,8 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
         return STATE_LOAD_STATUS_ERROR;
     }
 
+    crypto_memlock(temp, sizeof(Saved_Group));
+
     const uint32_t num = length / sizeof(Saved_Group);
 
     for (uint32_t i = 0; i < num; ++i) {
@@ -3281,10 +3283,12 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
 
         int group_number = gc_group_load(m->group_handler, temp, -1);
 
-        if (group_number == -1) {
-            LOGGER_WARNING(m->log, "Failed to join group");
+        if (group_number < 0) {
+            LOGGER_WARNING(m->log, "Failed to join group (%d)", group_number);
         }
     }
+
+    crypto_memunlock(temp, sizeof(Saved_Group));
 
     free(temp);
 
