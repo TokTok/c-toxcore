@@ -69,9 +69,9 @@
 
 /*
  * Min size of a ping packet, which contains the peer count, peer list checksum, shared state version, sanctions list
- * version, topic version, and topic checksum
+ * version, sanctions list checksum, topic version, and topic checksum
  */
-#define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 3) + (sizeof(uint32_t) * 3))
+#define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 4) + (sizeof(uint32_t) * 3))
 
 /* How often we check which peers needs to be pinged */
 #define GC_DO_PINGS_INTERVAL 2
@@ -1868,6 +1868,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     uint16_t peer_count;
     uint32_t sstate_version;
     uint32_t screds_version;
+    uint16_t screds_checksum;
     uint32_t topic_version;
     uint16_t topic_checksum;
 
@@ -1884,6 +1885,9 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
 
     net_unpack_u32(sync_data + unpacked_len, &screds_version);
     unpacked_len += sizeof(uint32_t);
+
+    net_unpack_u16(sync_data + unpacked_len, &screds_checksum);
+    unpacked_len += sizeof(uint16_t);
 
     net_unpack_u32(sync_data + unpacked_len, &topic_version);
     unpacked_len += sizeof(uint32_t);
@@ -1904,7 +1908,9 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
         }
     }
 
-    if (sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version) {
+    if ((sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version)
+            || (screds_version == chat->moderation.sanctions_creds.version
+                && screds_checksum > chat->moderation.sanctions_creds.checksum)) {
         sync_flags |= GF_STATE;
     }
 
@@ -2666,6 +2672,14 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         LOGGER_WARNING(m->log, "sanctions_list_check_integrity failed");
         free(sanctions);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
+    }
+
+    // this may occur if two mods change the sanctions list at the exact same time
+    if (creds.version == chat->moderation.sanctions_creds.version
+            && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
+        LOGGER_DEBUG(m->log, "Got same version sanctions list version; discarding");
+        free(sanctions);
+        return 0;
     }
 
     sanctions_list_cleanup(chat);
@@ -3772,6 +3786,13 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
             return -4;
         }
 
+        // this may occur if two mods change the sanctions list at the exact same time
+        if (creds.version == chat->moderation.sanctions_creds.version
+                && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
+            LOGGER_DEBUG(m->log, "Got same sanctions list version; discarding");
+            return 0;
+        }
+
         if (sanctions_list_add_entry(chat, &sanction, &creds) == -1) {
             return -4;
         }
@@ -3781,6 +3802,12 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         if (sanctions_creds_unpack(&creds, data + 1 + EXT_PUBLIC_KEY_SIZE, length - 1 - EXT_PUBLIC_KEY_SIZE)
                 != GC_SANCTIONS_CREDENTIALS_SIZE) {
             return -4;
+        }
+
+        if (creds.version == chat->moderation.sanctions_creds.version
+                && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
+            LOGGER_DEBUG(m->log, "Got same sanctions list version; discarding");
+            return 0;
         }
 
         if (sanctions_list_remove_observer(chat, public_key, &creds) == -1) {
@@ -6106,6 +6133,9 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
 
     net_pack_u32(data + packed_len, chat->moderation.sanctions_creds.version);
     packed_len += sizeof(uint32_t);
+
+    net_pack_u16(data + packed_len, chat->moderation.sanctions_creds.checksum);
+    packed_len += sizeof(uint16_t);
 
     net_pack_u32(data + packed_len, chat->topic_info.version);
     packed_len += sizeof(uint32_t);
