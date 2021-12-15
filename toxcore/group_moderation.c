@@ -493,17 +493,6 @@ static int sanctions_list_validate_entry(const GC_Chat *chat, struct GC_Sanction
     return 0;
 }
 
-static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
-{
-    uint16_t sum = 0;
-
-    for (size_t i = 0; i < GC_SANCTION_HASH_SIZE; ++i) {
-        sum += creds->hash[i];
-    }
-
-    creds->checksum = sum;
-}
-
 static uint16_t sanctions_creds_get_checksum(const struct GC_Sanction_Creds *creds)
 {
     uint16_t sum = 0;
@@ -513,6 +502,11 @@ static uint16_t sanctions_creds_get_checksum(const struct GC_Sanction_Creds *cre
     }
 
     return sum;
+}
+
+static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
+{
+    creds->checksum = sanctions_creds_get_checksum(creds);
 }
 
 /* Updates sanction list credentials: increment version, replace sig_pk with your own,
