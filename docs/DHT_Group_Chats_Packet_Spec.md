@@ -115,7 +115,9 @@ The packed TCP relay contains a TCP relay that the sender may be connected throu
 `2 bytes: confirmed peer count`  
 `2 bytes: shared state version`  
 `2 bytes: sanctions credentials version`  
+`2 bytes: sanctions credentials checksum`  
 `2 bytes: topic version`  
+`2 bytes: topic checksum`  
 `variable bytes: packed IP address and port of sender` (Optional)  
 
 #### Description
@@ -396,6 +398,7 @@ When responding to a sync request, one separate sync response will be sent for e
 `64 bytes: topic signature`  
 `4 bytes: topic version`  
 `2 bytes: topic length`  
+`2 bytes: topic checksum`  
 `topic_length bytes: topic`  
 `32 bytes: public signature key`  
 
@@ -460,6 +463,7 @@ This packet must always be sent after a `SHARED_STATE` packet, as the moderator 
 ###### Sanctions credentials
 `4 bytes: version`  
 `32 bytes: sha256 hash`  
+`2 bytes: checksum`  
 `32 bytes: public signature key`  
 `64 bytes: signature`  
 
