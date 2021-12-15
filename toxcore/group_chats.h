@@ -202,6 +202,7 @@ typedef enum Group_Message_Ack_Type {
 struct GC_Sanction_Creds {
     uint32_t    version;
     uint8_t     hash[GC_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
+    uint16_t    checksum;  // a sum of the hash
     uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    // Last mod to have modified the sanctions list
     uint8_t     sig[SIGNATURE_SIZE];    // signature of hash, signed by sig_pk
 };

@@ -33,7 +33,6 @@ bool is_power_of_2(uint64_t x)
     return x != 0 && (x & (~x + 1)) == x;
 }
 
-
 const uint8_t *get_enc_key(const uint8_t *key)
 {
     return key;

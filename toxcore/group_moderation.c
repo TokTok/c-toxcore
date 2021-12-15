@@ -261,6 +261,8 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
     packed_len += sizeof(uint32_t);
     memcpy(data + packed_len, creds->hash, GC_SANCTION_HASH_SIZE);
     packed_len += GC_SANCTION_HASH_SIZE;
+    net_pack_u16(data + packed_len, creds->checksum);
+    packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, creds->sig_pk, SIG_PUBLIC_KEY_SIZE);
     packed_len += SIG_PUBLIC_KEY_SIZE;
     memcpy(data + packed_len, creds->sig, SIGNATURE_SIZE);
@@ -344,6 +346,8 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
     len_processed += sizeof(uint32_t);
     memcpy(creds->hash, data + len_processed, GC_SANCTION_HASH_SIZE);
     len_processed += GC_SANCTION_HASH_SIZE;
+    net_unpack_u16(data + len_processed, &creds->checksum);
+    len_processed += sizeof(uint16_t);
     memcpy(creds->sig_pk, data + len_processed, SIG_PUBLIC_KEY_SIZE);
     len_processed += SIG_PUBLIC_KEY_SIZE;
     memcpy(creds->sig, data + len_processed, SIGNATURE_SIZE);
@@ -489,8 +493,30 @@ static int sanctions_list_validate_entry(const GC_Chat *chat, struct GC_Sanction
     return 0;
 }
 
+static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
+{
+    uint16_t sum = 0;
+
+    for (size_t i = 0; i < GC_SANCTION_HASH_SIZE; ++i) {
+        sum += creds->hash[i];
+    }
+
+    creds->checksum = sum;
+}
+
+static uint16_t sanctions_creds_get_checksum(const struct GC_Sanction_Creds *creds)
+{
+    uint16_t sum = 0;
+
+    for (size_t i = 0; i < GC_SANCTION_HASH_SIZE; ++i) {
+        sum += creds->hash[i];
+    }
+
+    return sum;
+}
+
 /* Updates sanction list credentials: increment version, replace sig_pk with your own,
- * update hash to reflect new sanction list, and sign new hash signature.
+ * update hash and checksum to reflect new sanction list, and sign new hash signature.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
@@ -513,6 +539,8 @@ int sanctions_list_make_creds(GC_Chat *chat)
 
     memcpy(chat->moderation.sanctions_creds.hash, hash, GC_SANCTION_HASH_SIZE);
 
+    sanctions_creds_set_checksum(&chat->moderation.sanctions_creds);
+
     if (crypto_sign_detached(chat->moderation.sanctions_creds.sig, nullptr, chat->moderation.sanctions_creds.hash,
                              GC_SANCTION_HASH_SIZE, get_sig_sk(chat->self_secret_key)) == -1) {
         memcpy(&chat->moderation.sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
@@ -526,6 +554,7 @@ int sanctions_list_make_creds(GC_Chat *chat)
  * - the public signature key belongs to a mod or the founder
  * - the signature for the hash was made by the owner of the public signature key.
  * - the received hash matches our own hash of the new sanctions list
+ * - the received checksum matches the received hash
  * - the new version is >= our current version
  *
  * Returns 0 on success.
@@ -547,6 +576,11 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
 
     if (memcmp(hash, creds->hash, GC_SANCTION_HASH_SIZE) != 0) {
         LOGGER_WARNING(chat->logger, "Invalid credentials hash");
+        return -1;
+    }
+
+    if (creds->checksum != sanctions_creds_get_checksum(creds)) {
+        LOGGER_WARNING(chat->logger, "Invalid credentials checksum");
         return -1;
     }
 
