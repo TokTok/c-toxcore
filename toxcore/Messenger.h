@@ -12,6 +12,7 @@
 
 #include "friend_connection.h"
 #include "friend_requests.h"
+#include "group_chats.h"
 #include "logger.h"
 #include "net_crypto.h"
 #include "state.h"
@@ -32,7 +33,11 @@ typedef enum Message_Type {
     MESSAGE_ACTION,
 } Message_Type;
 
+// TODO(Jfreegman, Iphy): Remove this before merge
+#ifndef MESSENGER_DEFINED
+#define MESSENGER_DEFINED
 typedef struct Messenger Messenger;
+#endif  // MESSENGER_DEFINED
 
 // Returns the size of the data
 typedef uint32_t m_state_size_cb(const Messenger *m);

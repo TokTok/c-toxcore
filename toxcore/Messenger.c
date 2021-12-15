@@ -16,7 +16,6 @@
 
 #include "DHT.h"
 #include "friend_connection.h"
-#include "group_chats.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
