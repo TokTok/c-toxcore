@@ -368,16 +368,25 @@ static void set_gc_peerlist_checksum(GC_Chat *chat)
     chat->peers_checksum = sum;
 }
 
-/* Sets the sum of the topic. Must be called every time the topic is changed. */
-static void set_gc_topic_checksum(GC_Chat *chat)
+/* Returns a checksum of the topic currently set in `topic_info`. */
+static uint16_t get_gc_topic_checksum(const GC_TopicInfo *topic_info)
 {
     uint16_t sum = 0;
 
-    for (uint16_t i = 0; i < chat->topic_info.length; ++i) {
-        sum += chat->topic_info.topic[i];
+    for (uint16_t i = 0; i < topic_info->length; ++i) {
+        sum += topic_info->topic[i];
     }
 
-    chat->topic_info.checksum = sum;
+    return sum;
+}
+
+/* Sets the checksum of the topic currently set in `topic_info`.
+ *
+ * This must be called every time the topic is changed.
+ */
+static void set_gc_topic_checksum(GC_TopicInfo *topic_info)
+{
+    topic_info->checksum = get_gc_topic_checksum(topic_info);
 }
 
 /* Check if peer with the public encryption key is in peer list.
@@ -3270,7 +3279,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     memcpy(chat->topic_info.topic, topic, length);
     memcpy(chat->topic_info.public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
-    set_gc_topic_checksum(chat);
+    set_gc_topic_checksum(&chat->topic_info);
 
     size_t packet_buf_size = length + GC_MIN_PACKED_TOPIC_INFO_SIZE;
     uint8_t *packed_topic = (uint8_t *)malloc(packet_buf_size);
@@ -3391,6 +3400,11 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
     if (crypto_sign_verify_detached(signature, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE,
                                     topic_info.public_sig_key) == -1) {
         LOGGER_WARNING(chat->logger, "failed to verify topic signature");
+        return -4;
+    }
+
+    if (topic_info.checksum != get_gc_topic_checksum(&topic_info)) {
+        LOGGER_WARNING(chat->logger, "received invalid topic checksum");
         return -4;
     }
 
@@ -6590,7 +6604,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     chat->topic_info.version = net_ntohl(save->topic_version);
     memcpy(chat->topic_sig, save->topic_signature, SIGNATURE_SIZE);
 
-    set_gc_topic_checksum(chat);
+    set_gc_topic_checksum(&chat->topic_info);
 
     memcpy(chat->chat_public_key, save->chat_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(chat->chat_secret_key, save->chat_secret_key, EXT_SECRET_KEY_SIZE);
