@@ -4,6 +4,14 @@ cc_binary(
     name = "cracker",
     srcs = ["cracker.c"],
     deps = [
+        "@libsodium",
+    ],
+)
+
+cc_binary(
+    name = "cracker_simple",
+    srcs = ["cracker_simple.c"],
+    deps = [
         "//c-toxcore/testing:misc_tools",
         "@libsodium",
     ],
