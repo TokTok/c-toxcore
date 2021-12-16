@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     uint8_t pub_key[KEY_LEN], priv_key[KEY_LEN], c_key[KEY_LEN];
 
     if (len > KEY_LEN) {
-        printf("%d characters given, truncating to: %d\n", len*2, KEY_LEN*2);
+        printf("%d characters given, truncating to: %d\n", len * 2, KEY_LEN * 2);
         len = KEY_LEN;
     }
 
