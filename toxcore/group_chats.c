@@ -888,9 +888,9 @@ static uint16_t pack_gc_topic_info(uint8_t *data, uint16_t length, const GC_Topi
 
     net_pack_u32(data + packed_len, topic_info->version);
     packed_len += sizeof(uint32_t);
-    net_pack_u16(data + packed_len, topic_info->length);
-    packed_len += sizeof(uint16_t);
     net_pack_u16(data + packed_len, topic_info->checksum);
+    packed_len += sizeof(uint16_t);
+    net_pack_u16(data + packed_len, topic_info->length);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, topic_info->topic, topic_info->length);
     packed_len += topic_info->length;
@@ -915,9 +915,9 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
 
     net_unpack_u32(data + len_processed, &topic_info->version);
     len_processed += sizeof(uint32_t);
-    net_unpack_u16(data + len_processed, &topic_info->length);
-    len_processed += sizeof(uint16_t);
     net_unpack_u16(data + len_processed, &topic_info->checksum);
+    len_processed += sizeof(uint16_t);
+    net_unpack_u16(data + len_processed, &topic_info->length);
     len_processed += sizeof(uint16_t);
 
     if (topic_info->length > MAX_GC_TOPIC_SIZE) {
