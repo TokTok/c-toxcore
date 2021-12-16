@@ -20,11 +20,12 @@
 #include "../../testing/misc_tools.h"
 #include "../../toxcore/ccompat.h"
 
-static void print_key(uint8_t *client_id)
-{
-    uint32_t j;
+// Secret key and public key length
+#define KEY_LEN 32
 
-    for (j = 0; j < 32; j++) {
+static void print_key(const uint8_t *client_id)
+{
+    for (int j = 0; j < KEY_LEN; ++j) {
         printf("%02X", client_id[j]);
     }
 }
@@ -39,21 +40,21 @@ int main(int argc, char *argv[])
 
     long long unsigned int num_tries = 0;
 
-    uint32_t len = strlen(argv[1]) / 2;
+    size_t len = strlen(argv[1]) / 2;
     unsigned char *key = hex_string_to_bin(argv[1]);
-    uint8_t pub_key[32], priv_key[32], c_key[32];
+    uint8_t pub_key[KEY_LEN], priv_key[KEY_LEN], c_key[KEY_LEN];
 
-    if (len > 32) {
-        len = 32;
+    if (len > KEY_LEN) {
+        printf("%d characters given, truncating to: %d\n", len*2, KEY_LEN*2);
+        len = KEY_LEN;
     }
 
     memcpy(c_key, key, len);
     free(key);
-    randombytes(priv_key, 32);
+    randombytes(priv_key, KEY_LEN);
 
     while (1) {
         crypto_scalarmult_curve25519_base(pub_key, priv_key);
-        uint32_t i;
 
         if (memcmp(c_key, pub_key, len) == 0) {
             break;
@@ -63,7 +64,7 @@ int main(int argc, char *argv[])
          * We can't use the first and last bytes because they are masked in
          * curve25519. Using them would generate duplicate keys.
          */
-        for (i = 31; i > 1; --i) {
+        for (int i = (KEY_LEN - 1); i > 1; --i) {
             priv_key[i - 1] += 1;
 
             if (priv_key[i - 1] != 0) {
