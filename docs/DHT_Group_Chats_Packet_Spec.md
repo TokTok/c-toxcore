@@ -52,14 +52,14 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
 ###### Encrypted Header
 `0-8 bytes: padding`  
 `1 byte: group packet identifier`  
-`1 byte: message id` (Optional: lossless only)  
+`8 bytes: message id` (Optional: lossless only)  
 
 #### Encrypted Payload
 `variable bytes: payload`  
 
 #### Description
 
-The plaintext header contains a `toxcore packet identifier` which identifies the toxcore networking level packet type. These types are:  
+The plaintext header contains a `Toxcore Network Packet Kind` which identifies the toxcore networking level packet type. These types are:
 `NET_PACKET_GC_HANDSHAKE = 0x5a`  
 `NET_PACKET_GC_LOSSLESS = 0x5b`  
 `NET_PACKET_GC_LOSSY = 0x5c`  
@@ -90,13 +90,13 @@ The `public session key` is a temporary key unique to this peer which, along wit
 
 The `public signature key` is our own permanent signature key for this group chat. 
 
-The `request type` is an identifier for the type of handshake being initiated, defined as an enumorator starting at zero as follows:
+The `request type` is an identifier for the type of handshake being initiated, defined as an enumerator starting at zero as follows:
 `HANDSHAKE_INVITE_REQUEST = 0`  
 `HANDSHAKE_PEER_INFO_EXCHANGE = 1`  
 
 If the request type is an invite request, the receiving peer must respond with a `INVITE_REQUEST` packet. If the request type is a peer info exchange, the receiving peer must respond with a `PEER_INFO_RESPONSE` packet followed immediately by a `PEER_INFO_REQUEST` packet.
 
-The `join_type` indicates whether the initiator of a handshake is joining via the public DHT or a private friend invite, and is defined as an enumorator beginning at zero as follows:
+The `join_type` indicates whether the initiator of a handshake is joining via the public DHT or a private friend invite, and is defined as an enumerator beginning at zero as follows:
 `PUBLIC = 0`  
 `PRIVATE = 1`  
 
@@ -113,10 +113,10 @@ The packed TCP relay contains a TCP relay that the sender may be connected throu
 #### Structure
 `2 bytes: peerlist checksum`  
 `2 bytes: confirmed peer count`  
-`2 bytes: shared state version`  
-`2 bytes: sanctions credentials version`  
+`4 bytes: shared state version`  
+`4 bytes: sanctions credentials version`  
 `2 bytes: sanctions credentials checksum`  
-`2 bytes: topic version`  
+`4 bytes: topic version`  
 `2 bytes: topic checksum`  
 `variable bytes: packed IP address and port of sender` (Optional)  
 
@@ -174,7 +174,7 @@ Used to rotate session encryption keys with a peer. If `is_response` is false, t
 
 The public encryption key must be a brand new, unused key, which takes the place of the previously used session key. The resulting shared session key is generated using the same protocol as the initial handshake, and must be kept secret.
 
-Request packets should only be sent by the peer whose permanent public encryption key for the given group is closer to the group's chat ID.
+Request packets should only be sent by the peer whose permanent public encryption key for the given group is closer to the group's chat ID according to the Toxcore DHT distance metric.
 
 <a name="tcp_relays"/>
 
@@ -260,7 +260,7 @@ Contains an arbitrary action message. An action message must be greater than 0 b
 `variable bytes: arbitarary data`  
 
 ###### Description
-Contains an arbitrary message which only the intended peer receives. A private message must be greater than 0 bytes, and may not exceed `TOX_MAX_MESSAGE_LENGTH` bytes.
+Contains an arbitrary message which is only sent to the intended peer. A private message must be greater than 0 bytes, and may not exceed `TOX_MAX_MESSAGE_LENGTH` bytes.
 
 <a name="peer_exit"/>
 
@@ -270,7 +270,7 @@ Contains an arbitrary message which only the intended peer receives. A private m
 `variable bytes: arbitrary data` (Optional)  
 
 ###### Description
-Indicates that a peer is leaving the group. Contains an optional part message which may not exceed `TOX_GROUP_MAX_PART_LENGTH`.
+Indicates that a peer is leaving the group. Contains an optional parting message which may not exceed `TOX_GROUP_MAX_PART_LENGTH`.
 
 <a name="peer_kick"/>
 
@@ -368,7 +368,7 @@ Before sending this packet we first attempt to validate the invite request. If v
 Asks a peer to send us state information about the group chat. The specific information being requested is specified via the `sync_flags` field. A password and length of password must be included in the packet if the group is password protected.
 
 `sync_flags` is a bitfield defined as a 16-bit unsigned integer which may have the bits set for the respective values depending on what information is being requested:  
-`PEER_LIST = 0`  
+`PEER_LIST = 1`  
 `TOPIC = 2`  
 `STATE = 4`  
 
@@ -403,7 +403,7 @@ When responding to a sync request, one separate sync response will be sent for e
 `32 bytes: public signature key`  
 
 #### Description
-Contains a topic as well as information used to validate the topic. Sent when the topic changes, or in response to a `SYNC_REQUEST` in which the topic flag is set. A topic must be greater than 0 bytes in length, and may not exceed `TOX_GROUP_MAX_TOPIC_LENGTH` bytes.
+Contains a topic as well as information used to validate the topic. Sent when the topic changes, or in response to a `SYNC_REQUEST` in which the topic flag is set. A topic may not exceed `TOX_GROUP_MAX_TOPIC_LENGTH` bytes in length.
 
 For further information on topic validation see: `docs/DHT-Group-Chats.md`
 
@@ -421,7 +421,7 @@ For further information on topic validation see: `docs/DHT-Group-Chats.md`
 `1 byte: privacy state`  
 `2 bytes: group password length`  
 `32 bytes: group password`  
-`32 bytes: moderation list sha256 hash`  
+`32 bytes: moderator list hash (Sha256)`  
 `1 byte: topic lock state`  
 
 #### Description
@@ -434,13 +434,13 @@ For further information on shared state validation see: `docs/DHT-Group-Chats.md
 ### MOD_LIST (0xfc)
 
 #### Structure
-`2 bytes: number of moderator list entries`  
+`2 bytes: moderator count`  
 `variable bytes: moderator list`  
 
 #### Description
 Contains information about the moderator list, including the number of moderators and a list of public signature keys of all current moderators. Sent to all peers by the group founder after the moderator list has been modified. Also sent in response to a `SYNC_REQUEST` in which the `state` flag is set.
 
-The `moderator list` is comprised of a series of 32 byte public signature keys.
+The `moderator list` is comprised of one or more 32 byte public signature keys.
 
 This packet must always be sent after a `SHARED_STATE` packet, as the moderator list is validated using data contained within the shared state. For further information on moderator list validation see: `docs/DHT-Group-Chats.md`
 
@@ -456,13 +456,13 @@ This packet must always be sent after a `SHARED_STATE` packet, as the moderator 
 ###### Sanctions list entry
 ` 1 byte: type`  
 `32 bytes: public signature key`  
-`8 bytes: timestamp`  
+`8 bytes: unix timestamp`  
 `32 bytes: public encryption key`  
 `64 bytes: signature`  
 
 ###### Sanctions credentials
 `4 bytes: version`  
-`32 bytes: sha256 hash`  
+`32 bytes: hash (Sha256)`  
 `2 bytes: checksum`  
 `32 bytes: public signature key`  
 `64 bytes: signature`  
