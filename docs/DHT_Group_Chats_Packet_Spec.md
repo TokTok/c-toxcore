@@ -397,8 +397,8 @@ When responding to a sync request, one separate sync response will be sent for e
 #### Structure
 `64 bytes: topic signature`  
 `4 bytes: topic version`  
-`2 bytes: topic length`  
 `2 bytes: topic checksum`  
+`2 bytes: topic length`  
 `topic_length bytes: topic`  
 `32 bytes: public signature key`  
 
