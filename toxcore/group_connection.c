@@ -7,10 +7,6 @@
  * An implementation of massive text only group chats.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 
