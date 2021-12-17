@@ -530,14 +530,21 @@ static int get_peer_number_of_peer_id(const GC_Chat *chat, uint32_t peer_id)
 }
 
 /* Returns a unique peer ID.
+ * Returns UINT32_MAX if all possible peer ID's are taken.
  *
  * These ID's are permanently assigned to a peer when they join the group and should be
  * considered arbitrary values.
+ *
  */
 static uint32_t get_new_peer_id(GC_Chat *chat)
 {
-    ++chat->base_peer_id;
-    return chat->base_peer_id;
+    for (uint32_t i = 0; i < UINT32_MAX - 1; ++i) {
+        if (get_peer_number_of_peer_id(chat, i) == -1) {
+            return i;
+        }
+    }
+
+    return UINT32_MAX;
 }
 
 /* Sets the password for the group (locally only).
@@ -5937,6 +5944,13 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
         return -2;
     }
 
+    uint32_t peer_id = get_new_peer_id(chat);
+
+    if (peer_id == UINT32_MAX) {
+        LOGGER_WARNING(chat->logger, "Failed to add peer: all peer ID's are taken?");
+        return -1;
+    }
+
     int peer_number = chat->numpeers;
     int tcp_connection_num = -1;
 
@@ -5974,7 +5988,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 
     gcc_set_ip_port(gconn, ipp);
     chat->group[peer_number].role = GR_INVALID;
-    chat->group[peer_number].peer_id = get_new_peer_id(chat);
+    chat->group[peer_number].peer_id = peer_id;
     chat->group[peer_number].ignore = false;
 
     crypto_new_keypair(gconn->session_public_key, gconn->session_secret_key);

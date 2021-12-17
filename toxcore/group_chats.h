@@ -334,7 +334,6 @@ typedef struct GC_Chat {
 
     uint16_t    peers_checksum;  // a sum of the public key hash of every confirmed peer in the group
     uint32_t    numpeers;
-    uint32_t    base_peer_id;  // an incrementing counter used to assign peers unique ID's
     int         group_number;
 
     uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];  // the chat_id is the sig portion
