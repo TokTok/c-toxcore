@@ -64,8 +64,8 @@
 #define GC_MAX_PACKET_PADDING 8
 
 /*
- * Min size of a ping packet, which contains the peer count, peer list checksum, shared state version, sanctions list
- * version, sanctions list checksum, topic version, and topic checksum
+ * Minimum size of a ping packet, which contains the peer count, peer list checksum, shared state version,
+ * sanctions list version, sanctions list checksum, topic version, and topic checksum
  */
 #define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 4) + (sizeof(uint32_t) * 3))
 
@@ -73,7 +73,7 @@
 #define GC_DO_PINGS_INTERVAL 2
 
 /* How often we can send a group sync request packet */
-#define GC_SYNC_REQUEST_LIMIT 5
+#define GC_SYNC_REQUEST_LIMIT 2
 
 /* How often we try to handshake with an unconfirmed peer */
 #define GC_SEND_HANDSHAKE_INTERVAL 3
@@ -1461,8 +1461,6 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
     }
 
     uint8_t response[MAX_GC_PACKET_SIZE];
-    memset(response, 0, sizeof(response));
-
     uint32_t reseponse_len = 0;
 
     GC_Announce announce;
@@ -1503,12 +1501,14 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
     }
 
     if (num_announces == 0) {
-        if (send_gc_sync_response(chat, gconn, nullptr, 0) == -1) {   // TODO (Jfreegman): why do we send an empty response?
+        // we send an empty sync response even if we didn't send any peers as an acknowledgement
+        if (send_gc_sync_response(chat, gconn, nullptr, 0) == -1) {
             LOGGER_ERROR(m->log, "Failed to send peer announce info");
-        } else {
-            gconn->last_sync_response = mono_time_get(chat->mono_time);
+            return -6;
         }
     }
+
+    gconn->last_sync_response = mono_time_get(chat->mono_time);
 
     return 0;
 }
