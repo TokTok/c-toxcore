@@ -5180,19 +5180,23 @@ typedef enum TOX_GROUP_MOD_EVENT {
 
 /**
  * @param group_number The group number of the group the event is intended for.
- * @param source_peer_number The ID of the peer who initiated the event.
- * @param target_peer_number The ID of the peer who is the target of the event.
+ * @param source_peer_id The ID of the peer who initiated the event.
+ * @param target_peer_id The ID of the peer who is the target of the event.
  * @param mod_type The type of event.
  */
-typedef void tox_group_moderation_cb(Tox *tox, uint32_t group_number, uint32_t source_peer_number,
-                                     uint32_t target_peer_number, TOX_GROUP_MOD_EVENT mod_type, void *user_data);
+typedef void tox_group_moderation_cb(Tox *tox, uint32_t group_number, uint32_t source_peer_id,
+                                     uint32_t target_peer_id, TOX_GROUP_MOD_EVENT mod_type, void *user_data);
 
 
 /**
  * Set the callback for the `group_moderation` event. Pass NULL to unset.
  *
- * This event is triggered when a moderator or founder executes a moderation event, with the exception
- * of the peer who initiates the event.
+ * This event is triggered when a moderator or founder executes a moderation event, with
+ * the exception of the peer who initiates the event. It is also triggered when the
+ * observer and moderator lists are silently modified (this may occur during group syncing).
+ *
+ * If either peer id does not designate a valid peer in the group chat, the should manually
+ * update all peer roles.
  */
 void tox_callback_group_moderation(Tox *tox, tox_group_moderation_cb *callback);
 

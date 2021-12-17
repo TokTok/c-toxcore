@@ -64,7 +64,7 @@ typedef enum Group_Moderation_Event {
     MV_KICK      = 0x00,  // A peer has been kicked
     MV_OBSERVER  = 0x01,  // A peer has been demoted to Observer
     MV_USER      = 0x02,  // A peer has been demoted or promoted to User
-    MV_MODERATOR = 0x03,  // A peer has been promoted to or demoted from Moderator
+    MV_MOD       = 0x03,  // A peer has been promoted to or demoted from Moderator
     MV_INVALID   = 0x04,
 } Group_Moderation_Event;
 

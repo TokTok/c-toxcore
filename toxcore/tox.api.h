@@ -4431,17 +4431,21 @@ namespace group {
   }
 
   /**
-   * This event is triggered when a moderator or founder executes a moderation event, with the exception
-   * of the peer who initiates the event.
+   * This event is triggered when a moderator or founder executes a moderation event, with
+   * the exception of the peer who initiates the event. It is also triggered when the
+   * observer and moderator lists are silently modified (this may occur during group syncing).
+   *
+   * If either peer id does not designate a valid peer in the group chat, the client should
+   * manually update all peer roles.
    */
   event moderation const {
     /**
      * @param group_number The group number of the group the event is intended for.
-     * @param source_peer_number The ID of the peer who initiated the event.
-     * @param target_peer_number The ID of the peer who is the target of the event.
+     * @param source_peer_id The ID of the peer who initiated the event.
+     * @param target_peer_id The ID of the peer who is the target of the event.
      * @param mod_type The type of event.
      */
-    typedef void(uint32_t group_number, uint32_t source_peer_number, uint32_t target_peer_number, MOD_EVENT mod_type);
+    typedef void(uint32_t group_number, uint32_t source_peer_id, uint32_t target_peer_id, MOD_EVENT mod_type);
   }
 }
 
