@@ -1857,8 +1857,7 @@ static int send_gc_broadcast_message(const GC_Chat *chat, const uint8_t *data, u
  *
  * Returns true if a sync request packet is successfully sent.
  */
-static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uint8_t *sync_data,
-                                  const uint32_t length)
+static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uint8_t *sync_data, const uint32_t length)
 {
     if (length < GC_PING_PACKET_MIN_DATA_SIZE) {
         return false;
@@ -2476,7 +2475,7 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
     }
 
     memcpy(&chat->shared_state, &new_shared_state, sizeof(GC_SharedState));
-    memcpy(chat->shared_state_sig, signature, SIGNATURE_SIZE);
+    memcpy(chat->shared_state_sig, signature, sizeof(chat->shared_state_sig));
 
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
 
@@ -2495,7 +2494,7 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
  * Return -5 if mod list validation failed.
  */
 static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
-                              uint32_t length)
+                              uint32_t length, void *userdata)
 {
     if (length < sizeof(uint16_t)) {
         return -1;
@@ -2508,7 +2507,8 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         return -2;
     }
 
-    if (self_gc_is_founder(chat)) {  // only the founder can modify the list so this should never happen
+    // only the founder can modify the list so he can never be out of sync
+    if (self_gc_is_founder(chat)) {
         return 0;
     }
 
@@ -2536,15 +2536,22 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         goto ON_ERROR;
     }
 
+    // we make sure that this mod list's hash matches the one we got in our last shared state update
     if (memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) != 0) {
         LOGGER_WARNING(chat->logger, "failed to validate mod list hash");
         ret = -5;
         goto ON_ERROR;
     }
 
-    /* Validate our own role */
+    // Validate our own role
     if (validate_gc_peer_role(chat, 0) == -1) {
         self_gc_set_role(chat, GR_USER);
+    }
+
+    if (chat->connection_state == CS_CONNECTED && c->moderation) {
+        if (mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
+        }
     }
 
     return 0;
@@ -2630,7 +2637,7 @@ static int handle_gc_sanctions_list_error(Messenger *m, int group_number, uint32
  * Return -3 if group number is invalid.
  */
 static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
-                                    uint32_t length)
+                                    uint32_t length, void *userdata)
 {
     if (length < sizeof(uint32_t)) {
         return -2;
@@ -2674,6 +2681,10 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
+    if (creds.version < chat->moderation.sanctions_creds.version) {
+        return 0;
+    }
+
     // this may occur if two mods change the sanctions list at the exact same time
     if (creds.version == chat->moderation.sanctions_creds.version
             && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
@@ -2692,6 +2703,12 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     if (gc_get_self_role(chat) == GR_OBSERVER) {
         if (!sanctions_list_is_observer(chat, chat->self_public_key)) {
             self_gc_set_role(chat, GR_USER);
+        }
+    }
+
+    if (chat->connection_state == CS_CONNECTED && c->moderation) {
+        if (mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
         }
     }
 
@@ -3648,7 +3665,7 @@ static int handle_gc_set_mod(Messenger *m, int group_number, uint32_t peer_numbe
 
     if (c->moderation) {
         (*c->moderation)(m, group_number, chat->group[peer_number].peer_id, chat->group[target_peer_number].peer_id,
-                         add_mod ? MV_MODERATOR : MV_USER, userdata);
+                         add_mod ? MV_MOD : MV_USER, userdata);
     }
 
     return 0;
@@ -5387,12 +5404,12 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
         }
 
         case GP_MOD_LIST: {
-            ret = handle_gc_mod_list(m, group_number, peer_number, data, length);
+            ret = handle_gc_mod_list(m, group_number, peer_number, data, length, userdata);
             break;
         }
 
         case GP_SANCTIONS_LIST: {
-            ret = handle_gc_sanctions_list(m, group_number, peer_number, data, length);
+            ret = handle_gc_sanctions_list(m, group_number, peer_number, data, length, userdata);
             break;
         }
 
