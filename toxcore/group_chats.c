@@ -2530,6 +2530,9 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         goto ON_ERROR;
     }
 
+    uint8_t old_mod_list_hash[GC_MODERATION_HASH_SIZE];
+    memcpy(old_mod_list_hash, chat->shared_state.mod_list_hash, sizeof(old_mod_list_hash));
+
     if (mod_list_unpack(chat, data + sizeof(uint16_t), length - sizeof(uint16_t), num_mods) == -1) {
         LOGGER_WARNING(chat->logger, "failed to unpack mod list");
         ret = -4;
@@ -2550,15 +2553,18 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         goto ON_ERROR;
     }
 
+    // we already had this mod list so we don't need to do anything else
+    if (memcmp(old_mod_list_hash, mod_list_hash, GC_MODERATION_HASH_SIZE) == 0) {
+        return 0;
+    }
+
     // Validate our own role
     if (validate_gc_peer_role(chat, 0) == -1) {
         self_gc_set_role(chat, GR_USER);
     }
 
     if (chat->connection_state == CS_CONNECTED && c->moderation) {
-        if (mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
-            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
-        }
+        (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
     }
 
     return 0;
@@ -2714,9 +2720,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     }
 
     if (chat->connection_state == CS_CONNECTED && c->moderation) {
-        if (mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
-            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
-        }
+        (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
     }
 
     return 0;
