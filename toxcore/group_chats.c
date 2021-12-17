@@ -44,8 +44,8 @@
 
 #define GC_SHARED_STATE_ENC_PACKET_SIZE (SIGNATURE_SIZE + GC_PACKED_SHARED_STATE_SIZE)
 
-/* Header information attached to all broadcast messages: broadcast_type and a timestamp */
-#define GC_BROADCAST_ENC_HEADER_SIZE (1 + TIME_STAMP_SIZE)
+/* Header information attached to all broadcast messages: broadcast_type */
+#define GC_BROADCAST_ENC_HEADER_SIZE 1
 
 /* Size of a group packet message ID */
 #define GC_MESSAGE_ID_BYTES sizeof(uint64_t)
@@ -1815,15 +1815,10 @@ static void send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *d
 static uint32_t make_gc_broadcast_header(const GC_Chat *chat, const uint8_t *data, uint32_t length, uint8_t *packet,
         uint8_t bc_type)
 {
-    uint32_t header_len = 0;
-    packet[header_len] = bc_type;
-    header_len += sizeof(uint8_t);
-    net_pack_u64(packet + header_len, mono_time_get(chat->mono_time));
-    header_len += TIME_STAMP_SIZE;
+    packet[0] = bc_type;
+    uint32_t header_len = sizeof(uint8_t);
 
-    if (length > 0) {
-        memcpy(packet + header_len, data, length);
-    }
+    memcpy(packet + header_len, data, length);
 
     return length + header_len;
 }
@@ -4764,7 +4759,7 @@ int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore)
 static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                                uint32_t length, void *userdata)
 {
-    if (length < 1 + TIME_STAMP_SIZE) {
+    if (length < GC_BROADCAST_ENC_HEADER_SIZE) {
         return -1;
     }
 
@@ -4788,14 +4783,14 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
         return -1;
     }
 
-    uint32_t m_len = length - (1 + TIME_STAMP_SIZE);
+    uint32_t m_len = length - 1;
     uint8_t *message = (uint8_t *)malloc(m_len);
 
     if (message == nullptr) {
         return -1;
     }
 
-    memcpy(message, data + 1 + TIME_STAMP_SIZE, m_len);
+    memcpy(message, data + 1, m_len);
 
     int ret = 0;
 

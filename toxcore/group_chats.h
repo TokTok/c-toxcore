@@ -15,7 +15,6 @@
 #include "TCP_connection.h"
 #include "group_announce.h"
 
-#define TIME_STAMP_SIZE sizeof(uint64_t)
 #define CHAT_ID_HASH_SIZE sizeof(uint32_t)
 
 #define MAX_GC_NICK_SIZE 128
