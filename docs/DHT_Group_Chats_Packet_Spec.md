@@ -204,7 +204,6 @@ Used to send arbitrary data to another peer. This packet may be used for client-
 
 #### Structure
 `1 byte: type`  
-`8 bytes: timestamp`  
 `variable bytes: broadcast payload`  
 
 #### Description
