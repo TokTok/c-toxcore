@@ -4790,7 +4790,7 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
         return -1;
     }
 
-    memcpy(message, data + 1 , m_len);
+    memcpy(message, data + 1, m_len);
 
     int ret = 0;
 
