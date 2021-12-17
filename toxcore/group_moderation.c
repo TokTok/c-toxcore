@@ -21,6 +21,8 @@
 
 #include <sodium.h>
 
+#define TIME_STAMP_SIZE sizeof(uint64_t)
+
 /* Unpacks data into the moderator list.
  * data should contain num_mods entries of size GC_MOD_LIST_ENTRY_SIZE.
  *
