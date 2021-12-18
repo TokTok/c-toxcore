@@ -84,7 +84,9 @@ static void clear_array_entry(GC_Message_Array_Entry *array_entry)
         free(array_entry->data);
     }
 
-    memset(array_entry, 0, sizeof(GC_Message_Array_Entry));
+    *array_entry = (GC_Message_Array_Entry) {
+        nullptr
+    };
 }
 
 /* Returns ary index for message_id */

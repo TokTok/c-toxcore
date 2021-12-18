@@ -250,7 +250,9 @@ static void make_gc_shared_key(const uint8_t *sender_pk, const uint8_t *self_sk,
 /* Packs group info for `chat` into `temp`. */
 void pack_group_info(const GC_Chat *chat, Saved_Group *temp)
 {
-    memset(temp, 0, sizeof(Saved_Group));
+    *temp = (Saved_Group) {
+        0
+    };
 
     temp->shared_state_version = net_htonl(chat->shared_state.version);
     memcpy(temp->shared_state_signature, chat->shared_state_sig, SIGNATURE_SIZE);
@@ -1073,8 +1075,7 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
         return -1;
     }
 
-    uint8_t plain[MAX_GC_PACKET_SIZE];
-    memset(plain, 0, padding_len);
+    uint8_t plain[MAX_GC_PACKET_SIZE] = {0};
 
     uint32_t enc_header_len = sizeof(uint8_t);
     plain[padding_len] = gp_packet_type;
@@ -1227,8 +1228,9 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
 static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint32_t group_number, const uint8_t *data,
                                    const uint32_t length)
 {
-    GC_Announce announce;
-    memset(&announce, 0, sizeof(GC_Announce));
+    GC_Announce announce = (GC_Announce) {
+        0
+    };
 
     int unpacked_announces = gca_unpack_announces_list(chat->logger, data, length, &announce, 1, nullptr);
 
@@ -1484,7 +1486,9 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
             continue;
         }
 
-        memset(&announce, 0, sizeof(GC_Announce));
+        announce = (GC_Announce) {
+            0
+        };
 
         if (!create_sync_announce(chat, peer_gconn, i, &announce)) {
             continue;
@@ -1972,8 +1976,7 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
     }
 
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
-        IP_Port ip_port;
-        memset(&ip_port, 0, sizeof(IP_Port));
+        IP_Port ip_port = {0};
 
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE, length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
@@ -2230,8 +2233,9 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         }
     }
 
-    GC_GroupPeer peer;
-    memset(&peer, 0, sizeof(GC_GroupPeer));
+    GC_GroupPeer peer = (GC_GroupPeer) {
+        0
+    };
 
     if (length <= unpacked_len) {
         return -1;
@@ -5023,8 +5027,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
         return -1;
     }
 
-    Node_format node[GCA_MAX_ANNOUNCED_TCP_RELAYS];
-    memset(node, 0, sizeof(node));
+    Node_format node[GCA_MAX_ANNOUNCED_TCP_RELAYS] = {0};
 
     gcc_copy_tcp_relay(node, gconn);
 
@@ -5071,8 +5074,7 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
         return -1;
     }
 
-    Node_format node[1];
-    memset(node, 0, sizeof(node));
+    Node_format node[1] = {0};
 
     if (gcc_copy_tcp_relay(node, gconn) == -1) {
         LOGGER_WARNING(chat->logger, "Failed to copy TCP relay");
@@ -5974,6 +5976,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     }
 
     memset(&tmp_gcc[peer_number], 0, sizeof(GC_Connection));
+
     chat->gcc = tmp_gcc;
 
     GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, sizeof(GC_GroupPeer) * (chat->numpeers + 1));
@@ -5986,6 +5989,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     ++chat->numpeers;
 
     memset(&tmp_group[peer_number], 0, sizeof(GC_GroupPeer));
+
     chat->group = tmp_group;
 
     GC_Connection *gconn = &chat->gcc[peer_number];
@@ -6017,7 +6021,9 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 /* Copies own peer data to `peer`. */
 static void copy_self(const GC_Chat *chat, GC_GroupPeer *peer)
 {
-    memset(peer, 0, sizeof(GC_GroupPeer));
+    *peer = (GC_GroupPeer) {
+        0
+    };
 
     gc_get_self_nick(chat, peer->nick);
     peer->nick_length = gc_get_self_nick_size(chat);
@@ -6388,8 +6394,12 @@ static int get_new_group_index(GC_Session *c)
     }
 
     int new_index = c->num_chats;
-    memset(&(c->chats[new_index]), 0, sizeof(GC_Chat));
-    memset(&(c->chats[new_index].saved_invites), -1, MAX_GC_SAVED_INVITES * sizeof(uint32_t));
+
+    c->chats[new_index] = (GC_Chat) {
+        nullptr
+    };
+
+    memset(&(c->chats[new_index].saved_invites), -1, sizeof(c->chats[new_index].saved_invites));
 
     ++c->num_chats;
 
@@ -7307,7 +7317,9 @@ static int group_delete(GC_Session *c, GC_Chat *chat)
 
     group_cleanup(c, chat);
 
-    memset(&(c->chats[chat->group_number]), 0, sizeof(GC_Chat));
+    c->chats[chat->group_number] = (GC_Chat) {
+        nullptr
+    };
 
     uint32_t i;
 
