@@ -1,4 +1,4 @@
-#include "network_adapter.h"
+#include "fuzz_adapter.h"
 
 struct fuzz_buf {
     const uint8_t *cur;
@@ -29,7 +29,6 @@ ssize_t fuzz_send (int __fd, const void *__buf, size_t __n, int __flags)
 {
     return __n;
 }
-
 
 static ssize_t recv_common(void *buf, size_t n) {
     if (data.cur + 2 >= data.end) {
@@ -72,4 +71,15 @@ ssize_t fuzz_recvfrom (int __fd, void *__restrict __buf, size_t __n,
 ssize_t fuzz_recv (int __fd, void *__buf, size_t __n, int __flags)
 {
     return recv_common(__buf, __n);
+}
+
+void fuzz_random_bytes(uint8_t *rnd, size_t length)
+{
+    // Amount of data is limited
+    size_t available = data.end - data.cur;
+    size_t rd = length > available ? available : length;
+    // Initialize everything to make MSAN and others happy
+    memset(rnd, 0, length);
+    memcpy(rnd, data.cur, rd);
+    data.cur += rd;
 }

@@ -2,8 +2,8 @@
  * Copyright © 2021 The TokTok team.
  */
 
-#ifndef C_TOXCORE_TESTING_FUZZING_NETWORK_ADAPTER_H
-#define C_TOXCORE_TESTING_FUZZING_NETWORK_ADAPTER_H
+#ifndef C_TOXCORE_TESTING_FUZZING_FUZZ_ADAPTER_H
+#define C_TOXCORE_TESTING_FUZZING_FUZZ_ADAPTER_H
 
 #include <stdint.h>
 #include <arpa/inet.h>
@@ -34,9 +34,11 @@ ssize_t fuzz_recvfrom (int __fd, void *__restrict __buf, size_t __n,
 
 ssize_t fuzz_recv (int __fd, void *__buf, size_t __n, int __flags);
 
+/* The followig functions intercept generation of random data */
+void fuzz_random_bytes(uint8_t *rnd, size_t length);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // C_TOXCORE_TESTING_FUZZING_NETWORK_ADAPTER_H
+#endif // C_TOXCORE_TESTING_FUZZING_FUZZ_ADAPTER_H

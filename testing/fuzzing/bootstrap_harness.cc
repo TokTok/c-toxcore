@@ -1,5 +1,5 @@
 #include "../../toxcore/tox.h"
-#include "network_adapter.h"
+#include "fuzz_adapter.h"
 
 #include <cstring>
 #include <cassert>

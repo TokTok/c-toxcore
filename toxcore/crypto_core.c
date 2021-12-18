@@ -29,6 +29,10 @@
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
 #endif
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "../testing/fuzzing/fuzz_adapter.h"
+#endif
+
 //!TOKSTYLE-
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
               "CRYPTO_PUBLIC_KEY_SIZE should be equal to crypto_box_PUBLICKEYBYTES");
@@ -321,11 +325,7 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
 void random_bytes(uint8_t *data, size_t length)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    extern uint64_t fuzz_rnd_cnt;
-    // generate deterministic yet different values
-    memset(data, 0, length);
-    memcpy(data, &fuzz_rnd_cnt, length < sizeof(uint64_t) ? length : sizeof (uint64_t));
-    ++fuzz_rnd_cnt;
+    fuzz_random_bytes(data, length);
 #else
     randombytes(data, length);
 #endif

@@ -78,7 +78,7 @@
 #endif
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-#include "../testing/fuzzing/network_adapter.h"
+#include "../testing/fuzzing/fuzz_adapter.h"
 #endif
 
 #define TOX_EWOULDBLOCK EWOULDBLOCK

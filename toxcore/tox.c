@@ -376,18 +376,9 @@ static int tox_load(Tox *tox, const uint8_t *data, uint32_t length)
                       length - cookie_len, STATE_COOKIE_TYPE);
 }
 
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-// Need to have state for the "RNG" somewhere
-uint64_t fuzz_rnd_cnt = 0;
-#endif
-
 Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 {
     Tox *tox = (Tox *)calloc(1, sizeof(Tox));
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Explicit init needed, AFL doesn't initialize static variables
-    fuzz_rnd_cnt = 0;
-#endif
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
