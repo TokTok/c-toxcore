@@ -55,9 +55,7 @@ FIND_QUERY="$FIND_QUERY -and -not -name av_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -name dht_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -name trace.cc"
 FIND_QUERY="$FIND_QUERY -and -not -name version_test.c"
-FIND_QUERY="$FIND_QUERY -and -not -name bootstrap_harness.cc"
-FIND_QUERY="$FIND_QUERY -and -not -name toxsave_harness.cc"
-FIND_QUERY="$FIND_QUERY -and -not -name network_adapter.c"
+FIND_QUERY="$FIND_QUERY -and -not -wholename './testing/fuzzing/*'"
 
 readarray -t FILES <<<"$(eval "$FIND_QUERY")"
 
