@@ -7489,10 +7489,13 @@ static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *send
 /* Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`.
  *
  * This function additionally updates the session jenkins hash for the self_session_public_key_hash
- * associated with `gconn`.
+ * associated with `gconn`, which is used as a group identifier for inbound packets. We therefore
+ * must make sure that the hash is unique for the GC_Session.
  *
  * Return 0 on success.
- * Return -1 on failure.
+ * Return -1 if we fail to generate a key or if we fail to generate a key with a unique hash.
+ *  This error would probably indicate that something is wrong with the RNG and should
+ *  be treated as fatal.
  */
 static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key,
                                      uint8_t *secret_key)
@@ -7501,13 +7504,17 @@ static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, 
     uint32_t self_session_pk_hash;
 
     do {
-        crypto_new_keypair(public_key, secret_key);
-        self_session_pk_hash = get_public_key_hash(public_key);
-        ++tries;
-
-        if (tries >= 5) {
+        if (tries > 3) {
             return -1;
         }
+
+        ++tries;
+
+        if (crypto_new_keypair(public_key, secret_key) != 0) {
+            return -1;
+        }
+
+        self_session_pk_hash = get_public_key_hash(public_key);
     } while (get_chat_by_hash(c, self_session_pk_hash) != nullptr);  // hash collision check
 
     gconn->self_session_public_key_hash = self_session_pk_hash;
@@ -7518,10 +7525,14 @@ static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, 
 /* Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
  * and `self_secret_key` buffers.
  *
- * This function additionally updates the jenkins hash for `self_public_key`.
+ * This function additionally updates the jenkins hash for `self_public_key`, which is used
+ * as a group identifier for inbound handshake packets. We therefore must make sure that
+ * the hash is unique for the GC_Session.
  *
  * Return 0 on success.
- * Return -1 on failure.
+ * Return -1 if we fail to generate a key or if we fail to generate a key with a unique hash.
+ *  This error would probably indicate that something is wrong with the RNG and should
+ *  be treated as fatal.
  */
 static int create_new_chat_ext_keypair(GC_Session *c, GC_Chat *chat)
 {
@@ -7529,14 +7540,17 @@ static int create_new_chat_ext_keypair(GC_Session *c, GC_Chat *chat)
     uint32_t self_pk_hash;
 
     do {
-        create_extended_keypair(chat->self_public_key, chat->self_secret_key);
-        self_pk_hash = get_public_key_hash(chat->self_public_key);
-
-        ++tries;
-
         if (tries > 3) {
             return -1;
         }
+
+        ++tries;
+
+        if (create_extended_keypair(chat->self_public_key, chat->self_secret_key) != 0) {
+            return -1;
+        }
+
+        self_pk_hash = get_public_key_hash(chat->self_public_key);
     } while (get_chat_by_hash(c, self_pk_hash) != nullptr);  // hash collision check
 
     chat->self_public_key_hash = self_pk_hash;
