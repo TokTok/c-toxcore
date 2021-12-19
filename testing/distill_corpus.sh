@@ -5,7 +5,6 @@ COV_BIN="../_cov_build/bootstrap_fuzzer"
 # move to repo root
 cd ../
 
-
 cd _afl_out/
 
 # Perform corpus minimization
@@ -21,8 +20,7 @@ rm corpus-tmin/*
 # afl-tmin is VERY slow
 # massive parallel bash piping for the rescue
 find corpus-cmin/ -maxdepth 1 -type f |
-parallel --bar --joblog ./parallel.log afl-tmin -i ./corpus-cmin/{/} -o ./corpus-tmin/{/} -- "$HARNESS_BIN"
-
+  parallel --bar --joblog ./parallel.log afl-tmin -i ./corpus-cmin/{/} -o ./corpus-tmin/{/} -- "$HARNESS_BIN"
 
 # in case the tmin-process was aborted, just copy non-minimized files
 cp -n ./corpus-cmin/* ./corpus-tmin

@@ -94,13 +94,11 @@ cmake --build ./ --target bootstrap_fuzzer
 # back to repo root
 cd ../
 
-
 # Create fuzzer working directory
 
 mkdir -p _afl_out
 
 AFL_ARGS='-i testing/afl_testdata/tox_bootstraps/ -o _afl_out'
-
 
 export AFL_IMPORT_FIRST=1
 export AFL_AUTORESUME=1
