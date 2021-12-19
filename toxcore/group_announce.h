@@ -95,7 +95,7 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list);
 void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
 
 /**
- * Adds a maximum of `max_nodes` announces to `gc_announces` for the group associated with `chat_id`.
+ * Adds a maximum of `max_nodes` announces to `gc_announces` for the group designated by `chat_id`.
  *
  * Announces from the peer designated by `except_public_key` are ignored.
  *
@@ -137,13 +137,11 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
 /**
  * Unpacks a maximum of `max_count` announces from `data` buffer of size `length` and puts them in `annoucnes`.
  *
- * The size of the unpacked data is put in `processed`.
- *
  * Returns the number of unpacked announces on success.
  * Returns -1 on failure.
  */
 int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
-                              uint8_t max_count, size_t *processed);
+                              uint8_t max_count);
 
 /**
  * Packs `public_announce` into `data` buffer of size `length`.
