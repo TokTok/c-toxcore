@@ -38,6 +38,27 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number)
     return &chat->gcc[peer_number];
 }
 
+/* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
+ * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
+ * encryption and decryption.
+ *
+ * Puts the result in the shared session key buffer for `gconn`, which must have room for
+ * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
+ *
+ * This functiona additionally updates the session jenkins hash for both public keys.
+ *
+ * WARNING: Do not call this function if the session public and secret keys have not been set for gconn.
+ */
+void gcc_make_encrypted_session(GC_Connection *gconn, const uint8_t *sender_pk)
+{
+    encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
+
+    crypto_memlock(gconn->session_shared_key, CRYPTO_SHARED_KEY_SIZE);
+
+    gconn->self_session_public_key_hash = get_public_key_hash(gconn->session_public_key);
+    gconn->other_session_public_key_hash = get_public_key_hash(sender_pk);
+}
+
 /* Returns a random group connection that isn't our own and isn't marked for deletion.
  * Returns NULL if there are no available connections.
  */
@@ -481,8 +502,8 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
     int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet, sizeof(packet),
-                                    data,
-                                    length, message_id, packet_type, chat->chat_id_hash, NET_PACKET_GC_LOSSLESS);
+                                    data, length, message_id, packet_type, gconn->other_session_public_key_hash,
+                                    NET_PACKET_GC_LOSSLESS);
 
     if (enc_len == -1) {
         LOGGER_WARNING(chat->logger, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
