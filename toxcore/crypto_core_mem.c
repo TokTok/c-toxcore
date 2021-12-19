@@ -30,6 +30,7 @@ void crypto_memzero(void *data, size_t length)
 bool crypto_memlock(void *data, size_t length)
 {
 #ifndef VANILLA_NACL
+
     if (sodium_mlock(data, length) != 0) {
         return false;
     }
@@ -54,6 +55,7 @@ bool crypto_memlock(void *data, size_t length)
 bool crypto_memunlock(void *data, size_t length)
 {
 #ifndef VANILLA_NACL
+
     if (sodium_munlock(data, length) != 0) {
         return false;
     }
