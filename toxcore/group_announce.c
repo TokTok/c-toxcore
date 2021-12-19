@@ -3,11 +3,11 @@
  * Copyright © 2015 Tox project.
  */
 #include "group_announce.h"
-#include "LAN_discovery.h"
 
 #include <stdlib.h>
 #include <string.h>
 
+#include "LAN_discovery.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -55,14 +55,6 @@ static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announ
     return nullptr;
 }
 
-/**
- * Adds a maximum of `max_nodes` announces to `gc_announces` for the group designated by `chat_id`.
- *
- * Announces from the peer designated by `except_public_key` are ignored.
- *
- * Returns the number of added nodes on success.
- * Returns -1 on failure.
- */
 int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
                       const uint8_t *chat_id, const uint8_t *except_public_key)
 {
@@ -106,12 +98,6 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     return added_count;
 }
 
-/**
- * Packs `announce` into `data` buffer of size `length`.
- *
- * Returns the size of the packed data on success.
- * Returns -1 on failure.
- */
 int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce)
 {
     if (length < GCA_ANNOUNCE_MAX_SIZE) {
@@ -220,12 +206,6 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     return offset + nodes_length;
 }
 
-/**
- * Packs `public_announce` into `data` buffer of size `length`.
- *
- * Returns the size of the packed data on success.
- * Returns -1 on failure.
- */
 int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
                              const GC_Public_Announce *public_announce)
 {
@@ -245,12 +225,6 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
     return packed_size + CHAT_ID_SIZE;
 }
 
-/**
- * Unpacks a public announce from `data` buffer of size `length` into `public_announce`.
- *
- * Returns the size of the unpacked data on success.
- * Returns -1 on failure.
- */
 int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
                                GC_Public_Announce *public_announce)
 {
@@ -281,14 +255,6 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
     return base_announce_size + CHAT_ID_SIZE;
 }
 
-/**
- * Packs `announces_count` announces from `announces` array into `data` buffer of size `length`.
- *
- * The size of the packed data is put in `processed`.
- *
- * Returns the number of packed announces on success.
- * Returns -1 on failure.
- */
 int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
                             uint8_t announces_count,
                             size_t *processed)
@@ -323,16 +289,8 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
     return announces_count;
 }
 
-/**
- * Unpacks a maximum of `max_count` announces from `data` buffer of size `length` and puts them in `annoucnes`.
- *
- * The size of the unpacked data is put in `processed`.
- *
- * Returns the number of unpacked announces on success.
- * Returns -1 on failure.
- */
 int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
-                              uint8_t max_count, size_t *processed)
+                              uint8_t max_count)
 {
     if (data == nullptr) {
         LOGGER_ERROR(log, "data is null");
@@ -359,19 +317,9 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
         ++announces_count;
     }
 
-    if (processed) {
-        *processed = offset;
-    }
-
     return announces_count;
 }
 
-/**
- * Adds `public_announce` to list of announces for a group.
- *
- * Returns the peer announce on success.
- * Returns null on failure.
- */
 GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list,
                                    const GC_Public_Announce *public_announce)
 {
@@ -409,7 +357,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
 
     GC_Peer_Announce *gc_peer_announce = &announces->announces[index];
 
-    memcpy(&gc_peer_announce->base_announce, &public_announce->base_announce, sizeof(GC_Announce));
+    gc_peer_announce->base_announce = public_announce->base_announce;
 
     gc_peer_announce->timestamp = cur_time;
 
@@ -418,11 +366,6 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
     return gc_peer_announce;
 }
 
-/**
- * Return true if `announce` is valid.
- *
- * An announce is considered valid if either there is at least one TCP relay, or the ip_port is set.
- */
 bool gca_is_valid_announce(const GC_Announce *announce)
 {
     if (announce == nullptr) {
@@ -432,18 +375,12 @@ bool gca_is_valid_announce(const GC_Announce *announce)
     return announce->tcp_relays_count > 0 || announce->ip_port_is_set;
 }
 
-/**
- * Returns a new group announces list.
- */
 GC_Announces_List *new_gca_list(void)
 {
     GC_Announces_List *announces_list = (GC_Announces_List *)calloc(1, sizeof(GC_Announces_List));
     return announces_list;
 }
 
-/**
- * Frees all dynamically allocated memory associated with `announces_list`.
- */
 void kill_gca(GC_Announces_List *announces_list)
 {
     if (announces_list == nullptr) {
@@ -467,9 +404,6 @@ void kill_gca(GC_Announces_List *announces_list)
 /* How often we run do_gca() */
 #define DO_GCA_INTERVAL 2
 
-/**
- * Main loop for group announcements.
- */
 void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 {
     if (gc_announces_list == nullptr) {
@@ -496,9 +430,6 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
     }
 }
 
-/**
- * Frees all dynamically allocated memory for the entry in `gc_announces_list` designated by `chat_id`.
- */
 void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
 {
     if (gc_announces_list == nullptr || chat_id == nullptr) {

@@ -1240,7 +1240,7 @@ static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint
         0
     };
 
-    int unpacked_announces = gca_unpack_announces_list(chat->logger, data, length, &announce, 1, nullptr);
+    int unpacked_announces = gca_unpack_announces_list(chat->logger, data, length, &announce, 1);
 
     if (unpacked_announces <= 0) {
         LOGGER_WARNING(chat->logger, "Failed to unpack announces: %d", unpacked_announces);
