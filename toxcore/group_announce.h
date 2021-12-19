@@ -120,15 +120,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announce);
-
-/**
- * Unpacks `announce` into `data` buffer of size `length`.
- *
- * Returns the size of the unpacked data on success.
- * Returns -1 on failure.
- */
-int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *announce);
+int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce);
 
 /**
  * Packs `announces_count` announces from `announces` array into `data` buffer of size `length`.
@@ -138,7 +130,8 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
  * Returns the number of packed announces on success.
  * Returns -1 on failure.
  */
-int gca_pack_announces_list(uint8_t *data, uint16_t length, const GC_Announce *announces, uint8_t announces_count,
+int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
+                            uint8_t announces_count,
                             size_t *processed);
 
 /**
@@ -149,7 +142,7 @@ int gca_pack_announces_list(uint8_t *data, uint16_t length, const GC_Announce *a
  * Returns the number of unpacked announces on success.
  * Returns -1 on failure.
  */
-int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_t length, GC_Announce *announces,
+int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
                               uint8_t max_count, size_t *processed);
 
 /**
@@ -158,7 +151,7 @@ int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t length,
+int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
                              const GC_Public_Announce *public_announce);
 
 /**
@@ -167,7 +160,8 @@ int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t lengt
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
-int gca_unpack_public_announce(const uint8_t *data, uint16_t length, GC_Public_Announce *public_announce);
+int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
+                               GC_Public_Announce *public_announce);
 
 /**
  * Return true if `announce` is valid.

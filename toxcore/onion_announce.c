@@ -503,7 +503,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
 
     GC_Announces_List *gc_announces_list = onion_a->gc_announces_list;
     GC_Public_Announce public_announce;
-    int unpack_result = gca_unpack_public_announce(plain + minimal_size,
+    int unpack_result = gca_unpack_public_announce(onion_a->log, plain + minimal_size,
                         length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
                         &public_announce);
 
@@ -526,7 +526,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
                       new_announce->base_announce.peer_public_key);
     size_t announces_length = 0;
     int offset = 2 + ONION_PING_ID_SIZE + nodes_length;
-    int packed_announces = gca_pack_announces_list(pl + offset, sizeof(pl) - offset, gc_announces, num_ann,
+    int packed_announces = gca_pack_announces_list(onion_a->log, pl + offset, sizeof(pl) - offset, gc_announces, num_ann,
                            &announces_length);
 
     if (packed_announces != num_ann) {

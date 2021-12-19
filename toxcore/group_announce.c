@@ -112,9 +112,20 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announce)
+int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce)
 {
-    if (data == nullptr || announce == nullptr || length < GCA_ANNOUNCE_MAX_SIZE) {
+    if (length < GCA_ANNOUNCE_MAX_SIZE) {
+        LOGGER_ERROR(log, "Invalid announce length: %u", length);
+        return -1;
+    }
+
+    if (data == nullptr) {
+        LOGGER_ERROR(log, "data is null");
+        return -1;
+    }
+
+    if (announce == nullptr) {
+        LOGGER_ERROR(log, "announce is null");
         return -1;
     }
 
@@ -132,6 +143,7 @@ int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announc
         int ip_port_length = pack_ip_port(data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
+            LOGGER_ERROR(log, "Failed to pack ip_port");
             return -1;
         }
 
@@ -141,6 +153,7 @@ int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announc
     int nodes_length = pack_nodes(data + offset, length - offset, announce->tcp_relays, announce->tcp_relays_count);
 
     if (nodes_length == -1) {
+        LOGGER_ERROR(log, "Failed to pack TCP nodes");
         return -1;
     }
 
@@ -153,9 +166,20 @@ int gca_pack_announce(uint8_t *data, uint16_t length, const GC_Announce *announc
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
-int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *announce)
+static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announce)
 {
-    if (data == nullptr || announce == nullptr || length < GCA_ANNOUNCE_MIN_SIZE) {
+    if (length < GCA_ANNOUNCE_MIN_SIZE) {
+        LOGGER_ERROR(log, "Invalid announce length: %u", length);
+        return -1;
+    }
+
+    if (data == nullptr) {
+        LOGGER_ERROR(log, "data is null");
+        return -1;
+    }
+
+    if (announce == nullptr) {
+        LOGGER_ERROR(log, "announce is null");
         return -1;
     }
 
@@ -177,6 +201,7 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
         int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
 
         if (ip_port_length == -1) {
+            LOGGER_ERROR(log, "Failed to unpack ip_port");
             return -1;
         }
 
@@ -188,6 +213,7 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
                                    data + offset, length - offset, 1);
 
     if (nodes_count != announce->tcp_relays_count) {
+        LOGGER_ERROR(log, "Failed to unpack TCP nodes");
         return -1;
     }
 
@@ -200,7 +226,7 @@ int gca_unpack_announce(const uint8_t *data, uint16_t length, GC_Announce *annou
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
-int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t length,
+int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
                              const GC_Public_Announce *public_announce)
 {
     if (public_announce == nullptr || data == nullptr || length < CHAT_ID_SIZE) {
@@ -209,10 +235,10 @@ int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t lengt
 
     memcpy(data, public_announce->chat_public_key, CHAT_ID_SIZE);
 
-    int packed_size = gca_pack_announce(data + CHAT_ID_SIZE, length - CHAT_ID_SIZE, &public_announce->base_announce);
+    int packed_size = gca_pack_announce(log, data + CHAT_ID_SIZE, length - CHAT_ID_SIZE, &public_announce->base_announce);
 
     if (packed_size < 0) {
-        LOGGER_ERROR(logger, "Failed to pack public group announce");
+        LOGGER_ERROR(log, "Failed to pack public group announce");
         return -1;
     }
 
@@ -225,18 +251,30 @@ int gca_pack_public_announce(const Logger *logger, uint8_t *data, uint16_t lengt
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
-int gca_unpack_public_announce(const uint8_t *data, uint16_t length, GC_Public_Announce *public_announce)
+int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
+                               GC_Public_Announce *public_announce)
 {
-    if (length < CHAT_ID_SIZE || public_announce == nullptr || data == nullptr) {
+    if (length < CHAT_ID_SIZE) {
+        LOGGER_ERROR(log, "invalid public announce length: %u", length);
+    }
+
+    if (data == nullptr) {
+        LOGGER_ERROR(log, "data is null");
+        return -1;
+    }
+
+    if (public_announce == nullptr) {
+        LOGGER_ERROR(log, "public_announce is null");
         return -1;
     }
 
     memcpy(public_announce->chat_public_key, data, CHAT_ID_SIZE);
 
-    int base_announce_size = gca_unpack_announce(data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
+    int base_announce_size = gca_unpack_announce(log, data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
                              &public_announce->base_announce);
 
     if (base_announce_size == -1) {
+        LOGGER_ERROR(log, "Failed to unpack group announce");
         return -1;
     }
 
@@ -251,19 +289,27 @@ int gca_unpack_public_announce(const uint8_t *data, uint16_t length, GC_Public_A
  * Returns the number of packed announces on success.
  * Returns -1 on failure.
  */
-int gca_pack_announces_list(uint8_t *data, uint16_t length, const GC_Announce *announces, uint8_t announces_count,
+int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
+                            uint8_t announces_count,
                             size_t *processed)
 {
-    if (data == nullptr || announces == nullptr) {
+    if (data == nullptr) {
+        LOGGER_ERROR(log, "data is null");
+        return -1;
+    }
+
+    if (announces == nullptr) {
+        LOGGER_ERROR(log, "announces is null");
         return -1;
     }
 
     uint16_t offset = 0;
 
     for (size_t i = 0; i < announces_count; ++i) {
-        int packed_length = gca_pack_announce(data + offset, length - offset, &announces[i]);
+        int packed_length = gca_pack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (packed_length < 0) {
+            LOGGER_ERROR(log, "Failed to pack group announce");
             return -1;
         }
 
@@ -285,10 +331,16 @@ int gca_pack_announces_list(uint8_t *data, uint16_t length, const GC_Announce *a
  * Returns the number of unpacked announces on success.
  * Returns -1 on failure.
  */
-int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_t length, GC_Announce *announces,
+int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
                               uint8_t max_count, size_t *processed)
 {
-    if (data == nullptr || announces == nullptr) {
+    if (data == nullptr) {
+        LOGGER_ERROR(log, "data is null");
+        return -1;
+    }
+
+    if (announces == nullptr) {
+        LOGGER_ERROR(log, "announces is null");
         return -1;
     }
 
@@ -296,10 +348,10 @@ int gca_unpack_announces_list(const Logger *logger, const uint8_t *data, uint16_
     int announces_count = 0;
 
     for (size_t i = 0; i < max_count && length > offset; ++i) {
-        int unpacked_length = gca_unpack_announce(data + offset, length - offset, &announces[i]);
+        int unpacked_length = gca_unpack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (unpacked_length == -1) {
-            LOGGER_WARNING(logger, "Failed to unpack group announce: %d %d", length, offset);
+            LOGGER_WARNING(log, "Failed to unpack group announce: %d %d", length, offset);
             return -1;
         }
 
