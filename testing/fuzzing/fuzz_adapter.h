@@ -34,8 +34,12 @@ ssize_t fuzz_recvfrom (int __fd, void *__restrict __buf, size_t __n,
 
 ssize_t fuzz_recv (int __fd, void *__buf, size_t __n, int __flags);
 
-/* The followig functions intercept generation of random data */
+/* The following functions intercept generation of random data */
 void fuzz_random_bytes(uint8_t *rnd, size_t length);
+
+/* The following function replaces all time bases with a monotonic counter */
+
+uint64_t fuzz_get_cnt();
 
 #ifdef __cplusplus
 }

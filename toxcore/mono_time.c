@@ -29,6 +29,10 @@
 
 #include "ccompat.h"
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "../testing/fuzzing/fuzz_adapter.h"
+#endif
+
 /* don't call into system billions of times for no reason */
 struct Mono_Time {
     uint64_t time;
@@ -97,20 +101,14 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
 
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-static uint64_t fuzz_time = 0;
 static uint64_t current_time_monotonic_dummy(Mono_Time *mono_time, void *user_data)
 {
-    return fuzz_time++;
+    return fuzz_get_cnt();
 }
-
 #endif
 
 Mono_Time *mono_time_new(void)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    fuzz_time = 0;
-#endif
-
     Mono_Time *mono_time = (Mono_Time *)malloc(sizeof(Mono_Time));
 
     if (mono_time == nullptr) {
@@ -194,6 +192,7 @@ void mono_time_update(Mono_Time *mono_time)
 uint64_t mono_time_get(const Mono_Time *mono_time)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // Fuzzing is only single thread for now, no locking needed */
     return mono_time->time;
 #else
     uint64_t time = 0;
