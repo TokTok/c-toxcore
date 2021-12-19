@@ -15,8 +15,6 @@
 #include "TCP_connection.h"
 #include "group_announce.h"
 
-#define CHAT_ID_HASH_SIZE sizeof(uint32_t)
-
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
 #define MAX_GC_GROUP_NAME_SIZE 48
@@ -338,10 +336,11 @@ typedef struct GC_Chat {
 
     uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];  // the chat_id is the sig portion
     uint8_t     chat_secret_key[EXT_SECRET_KEY_SIZE];  // only used by the founder
-    uint32_t    chat_id_hash;    // 32-bit hash of the chat_id
 
     uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
     uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
+
+    uint32_t    self_public_key_hash;  // Jenkins one at a time hash of our self public encryption key
 
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
@@ -416,6 +415,10 @@ typedef struct GC_Session {
     gc_self_join_cb *self_join;
     gc_rejected_cb *rejected;
 } GC_Session;
+
+
+/* Returns the jenkins hash of a 32 byte public encryption key. */
+uint32_t get_public_key_hash(const uint8_t *public_key);
 
 /* Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
