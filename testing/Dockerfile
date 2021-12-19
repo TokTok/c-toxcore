@@ -2,6 +2,8 @@
 
 FROM ubuntu:20.04 AS toxcore-fuzz
 
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ARG DEBIAN_FRONTEND=noninteractive
 
 env NO_ARCH_OPT 1
@@ -24,7 +26,8 @@ RUN apt-get update && \
     cmake \
     parallel \
     libsodium-dev \
-    ninja-build
+    ninja-build\
+    && rm -rf /var/lib/apt/lists/*
 
 RUN echo "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main" >> /etc/apt/sources.list && \
     wget -qO - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
@@ -51,13 +54,14 @@ ENV AFL_TRY_AFFINITY=1
 ENV AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1
 
 RUN git clone --depth=1 https://github.com/vanhauser-thc/afl-cov /afl-cov
-RUN cd /afl-cov && make install && cd ..
+WORKDIR /afl-cov
+RUN make install
 
 RUN git clone --depth=1 https://github.com/AFLplusplus/AFLplusplus /AFLplusplus
-RUN cd /AFLplusplus && export CC=gcc-10 && export CXX=g++-10 && make && make install
+WORKDIR /AFLplusplus
+RUN export CC=gcc-10 && export CXX=g++-10 && make install
 
 RUN echo '. /etc/bash_completion' >> ~/.bashrc
 RUN echo 'alias joe="joe --wordwrap --joe_state -nobackup"' >> ~/.bashrc
-RUN echo "export PS1='"'[afl++ \h] \w$(__git_ps1) \$ '"'" >> ~/.bashrc
 ENV IS_DOCKER="1"
 ENV CMAKE_GENERATOR=Ninja

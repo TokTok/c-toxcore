@@ -1,5 +1,7 @@
 # c-toxcore Clusterfuzzlite build environment
 
+# We want to use the latest tools always
+# hadolint ignore=DL3006
 FROM gcr.io/oss-fuzz-base/base-builder
 
 RUN apt-get update && \
@@ -7,7 +9,8 @@ RUN apt-get update && \
     cmake libtool autoconf automake pkg-config
 
 RUN git clone --depth 1 --branch 1.0.18 https://github.com/jedisct1/libsodium libsodium
-RUN cd libsodium && ./autogen.sh && ./configure --enable-shared=no && make && make install
+WORKDIR libsodium
+RUN ./autogen.sh && ./configure --enable-shared=no && make install
 
 # Copy your project's source code.
 COPY . $SRC/c-toxcore
