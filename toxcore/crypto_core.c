@@ -10,19 +10,13 @@
  */
 #include "crypto_core.h"
 
-#ifndef VANILLA_NACL
-// Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
-#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
-#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
-#endif
-
 #include <stdlib.h>
 #include <string.h>
 
 #include "ccompat.h"
 
 #ifndef VANILLA_NACL
-/* We use libsodium by default. */
+// We use libsodium by default.
 #include <sodium.h>
 #else
 #include <crypto_box.h>
@@ -35,7 +29,12 @@
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
 #endif
 
-//!TOKSTYLE-
+#ifndef VANILLA_NACL
+// Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
+#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
+#endif
+
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
               "CRYPTO_PUBLIC_KEY_SIZE should be equal to crypto_box_PUBLICKEYBYTES");
 static_assert(CRYPTO_SECRET_KEY_SIZE == crypto_box_SECRETKEYBYTES,
@@ -63,7 +62,6 @@ static_assert(CRYPTO_SIGN_PUBLIC_KEY_SIZE == crypto_sign_PUBLICKEYBYTES,
 static_assert(CRYPTO_SIGN_SECRET_KEY_SIZE == crypto_sign_SECRETKEYBYTES,
               "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES");
 #endif /* VANILLA_NACL */
-//!TOKSTYLE+
 
 #ifndef VANILLA_NACL
 /* Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
@@ -102,6 +100,11 @@ static void crypto_free(uint8_t *ptr, size_t bytes)
 int32_t public_key_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
     return crypto_verify_32(pk1, pk2);
+}
+
+int32_t crypto_sha512_cmp(const uint8_t *cksum1, const uint8_t *cksum2)
+{
+    return crypto_verify_64(cksum1, cksum2);
 }
 
 uint8_t random_u08(void)

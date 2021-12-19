@@ -190,4 +190,4 @@ void gcc_peer_cleanup(GC_Connection *gconn);
 /* called on group exit */
 void gcc_cleanup(GC_Chat *chat);
 
-#endif  /* GROUP_CONNECTION_H */
+#endif  // GROUP_CONNECTION_H

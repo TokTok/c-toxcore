@@ -10,6 +10,36 @@
 
 #include <string.h>
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+// The mingw32/64 Windows library warns about including winsock2.h after
+// windows.h even though with the above it's a valid thing to do. So, to make
+// mingw32 headers happy, we include winsock2.h first.
+#include <winsock2.h>
+
+#include <windows.h>
+#include <ws2tcpip.h>
+
+#include <iphlpapi.h>
+#endif
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
+
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#ifdef __linux__
+#include <linux/netdevice.h>
+#endif
+
+#if defined(__FreeBSD__) || defined(__DragonFly__)
+#include <net/if.h>
+#endif
+
+#endif
+
 #include "util.h"
 
 #define MAX_INTERFACES 16
@@ -24,17 +54,6 @@ static IP_Port broadcast_ip_ports[MAX_INTERFACES];
 //!TOKSTYLE+
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-
-// The mingw32/64 Windows library warns about including winsock2.h after
-// windows.h even though with the above it's a valid thing to do. So, to make
-// mingw32 headers happy, we include winsock2.h first.
-#include <winsock2.h>
-
-#include <windows.h>
-#include <ws2tcpip.h>
-
-#include <iphlpapi.h>
-
 static void fetch_broadcast_info(uint16_t port)
 {
     IP_ADAPTER_INFO *pAdapterInfo = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
@@ -103,20 +122,6 @@ static void fetch_broadcast_info(uint16_t port)
 }
 
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
-
-#include <netinet/in.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#ifdef __linux__
-#include <linux/netdevice.h>
-#endif
-
-#if defined(__FreeBSD__) || defined(__DragonFly__)
-#include <net/if.h>
-#endif
 
 static void fetch_broadcast_info(uint16_t port)
 {

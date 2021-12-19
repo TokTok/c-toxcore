@@ -184,4 +184,4 @@ uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key
 
 void sanctions_list_cleanup(GC_Chat *chat);
 
-#endif /* GROUP_MODERATION_H */
+#endif // GROUP_MODERATION_H

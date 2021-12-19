@@ -80,17 +80,6 @@ uint32_t crypto_sign_secret_key_size(void);
 #define CRYPTO_SHA512_SIZE             64
 
 /**
- * A `memcmp`-like function whose running time does not depend on the input
- * bytes, only on the input length. Useful to compare sensitive data where
- * timing attacks could reveal that data.
- *
- * This means for instance that comparing "aaaa" and "aaaa" takes 4 time, and
- * "aaaa" and "baaa" also takes 4 time. With a regular `memcmp`, the latter may
- * take 1 time, because it immediately knows that the two strings are not equal.
- */
-int32_t crypto_memcmp(const uint8_t *p1, const uint8_t *p2, size_t length);
-
-/**
  * A `bzero`-like function which won't be optimised away by the compiler. Some
  * compilers will inline `bzero` or `memset` if they can prove that there will
  * be no reads to the written data. Use this function if you want to be sure the
@@ -115,6 +104,14 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length);
  * @return 0 if both mem locations of length are equal, -1 if they are not.
  */
 int32_t public_key_cmp(const uint8_t *pk1, const uint8_t *pk2);
+
+/**
+ * Compare 2 SHA512 checksums of length CRYPTO_SHA512_SIZE, not vulnerable to
+ * timing attacks.
+ *
+ * @return 0 if both mem locations of length are equal, -1 if they are not.
+ */
+int32_t crypto_sha512_cmp(const uint8_t *cksum1, const uint8_t *cksum2);
 
 /**
  * Return a random 8 bit integer.

@@ -60,9 +60,10 @@ apidsl_curl() {
 
 # Check if apidsl generated sources are up to date.
 set +x
-"$APIDSL" toxcore/tox.api.h >toxcore/tox.h &
-"$APIDSL" toxav/toxav.api.h >toxav/toxav.h &
-"$APIDSL" toxencryptsave/toxencryptsave.api.h >toxencryptsave/toxencryptsave.h &
+# TODO(iphydf): Re-enable when apidsl has caught up with requirements.
+#"$APIDSL" toxcore/tox.api.h >toxcore/tox.h &
+#"$APIDSL" toxav/toxav.api.h >toxav/toxav.h &
+#"$APIDSL" toxencryptsave/toxencryptsave.api.h >toxencryptsave/toxencryptsave.h &
 set -x
 
 wait

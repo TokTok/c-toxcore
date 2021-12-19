@@ -52,7 +52,9 @@ message("SOVERSION: ${SOVERSION}")
 #
 ################################################################################
 
-include(ApiDsl)
+# TODO(iphydf): Re-enable once apidsl has caught up with requirements. Also
+# re-enable the commented out calls further down in this file.
+#include(ApiDsl)
 include(CTest)
 include(ModulePackage)
 include(StrictAbi)
@@ -253,7 +255,7 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
 
 # LAYER 9: Public API
 # -------------------
-apidsl(toxcore/tox.api.h)
+#apidsl(toxcore/tox.api.h)
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/tox_api.c
   toxcore/tox.c
@@ -268,7 +270,7 @@ set(toxcore_API_HEADERS ${toxcore_API_HEADERS} ${toxcore_SOURCE_DIR}/toxcore/tox
 ################################################################################
 
 if(BUILD_TOXAV)
-  apidsl(toxav/toxav.api.h)
+  #apidsl(toxav/toxav.api.h)
   set(toxcore_SOURCES ${toxcore_SOURCES}
     toxav/audio.c
     toxav/audio.h
@@ -299,7 +301,7 @@ endif()
 #
 ################################################################################
 
-apidsl(toxencryptsave/toxencryptsave.api.h)
+#apidsl(toxencryptsave/toxencryptsave.api.h)
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxencryptsave/toxencryptsave.c
   toxencryptsave/toxencryptsave.h)

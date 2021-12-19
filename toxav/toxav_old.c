@@ -6,7 +6,6 @@
 /*
  * This file contains the group chats code for the backwards compatibility.
  */
-
 #include "toxav.h"
 
 #include "groupav.h"

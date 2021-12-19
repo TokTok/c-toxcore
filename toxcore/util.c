@@ -18,15 +18,15 @@
 #include <string.h>
 #include <time.h>
 
+#include "crypto_core.h" // for CRYPTO_PUBLIC_KEY_SIZE
+#include "network.h" // for current_time_monotonic
+
 // Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
 #define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
 #define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
 #define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
 #define SIG_SECRET_KEY_SIZE CRYPTO_SIGN_SECRET_KEY_SIZE
 #define CHAT_ID_SIZE SIG_PUBLIC_KEY_SIZE
-
-#include "crypto_core.h" /* for CRYPTO_PUBLIC_KEY_SIZE */
-#include "network.h" /* for current_time_monotonic */
 
 bool is_power_of_2(uint64_t x)
 {
