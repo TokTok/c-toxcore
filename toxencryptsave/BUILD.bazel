@@ -34,16 +34,11 @@ cc_library(
     deps = ["//c-toxcore/toxcore:crypto_core"],
 )
 
-CIMPLE_SRCS = glob(
-    [
-        "*.c",
-        "*.h",
-    ],
-    exclude = ["*.api.h"],
-)
-
 sh_library(
     name = "cimple_files",
-    srcs = CIMPLE_SRCS,
+    srcs = glob([
+        "*.c",
+        "*.h",
+    ]),
     visibility = ["//c-toxcore/testing:__pkg__"],
 )
