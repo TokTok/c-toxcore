@@ -1502,7 +1502,8 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
             continue;
         }
 
-        int packed_length = gca_pack_announce(response + reseponse_len, sizeof(response) - reseponse_len, &announce);
+        int packed_length = gca_pack_announce(chat->logger, response + reseponse_len, sizeof(response) - reseponse_len,
+                                              &announce);
 
         if (packed_length < 0) {
             LOGGER_WARNING(m->log, "Failed to pack announce: %d", packed_length);
