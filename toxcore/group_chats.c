@@ -122,7 +122,8 @@ static void add_tcp_relays_to_chat(Messenger *m, GC_Chat *chat);
 static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
                           const uint8_t *data, uint16_t length, void *userdata);
 static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
-static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key, uint8_t *secret_key);
+static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key,
+                                     uint8_t *secret_key);
 
 
 /* Return true if `peer_number` is our own. */
@@ -7492,7 +7493,8 @@ static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *send
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key, uint8_t *secret_key)
+static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key,
+                                     uint8_t *secret_key)
 {
     size_t tries = 0;
     uint32_t self_session_pk_hash;
