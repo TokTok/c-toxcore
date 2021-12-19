@@ -426,7 +426,7 @@ bool set_socket_reuseaddr(Socket sock)
 bool set_socket_dualstack(Socket sock)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-return false;
+    return false;
 #else
     int ipv6only = 0;
     socklen_t optsize = sizeof(ipv6only);
@@ -841,6 +841,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
     if (setsockopt(temp->sock.socket, SOL_SOCKET, SO_SNDBUF, (const char *)&n, sizeof(n)) != 0) {
         LOGGER_WARNING(log, "Failed to set socket option %d", SO_SNDBUF);
     }
+
 #endif
 
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
@@ -850,6 +851,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
     if (setsockopt(temp->sock.socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0) {
         LOGGER_WARNING(log, "Failed to set socket option %d", SO_BROADCAST);
     }
+
 #endif
 
     /* iOS UDP sockets are weird and apparently can SIGPIPE */
@@ -908,6 +910,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
     }
 
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+
     if (net_family_is_ipv6(ip.family)) {
         const int is_dualstack = set_socket_dualstack(temp->sock);
         LOGGER_DEBUG(log, "Dual-stack socket: %s",
@@ -933,6 +936,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
 
         net_kill_strerror(strerror);
     }
+
 #endif
 
     /* A hanging program or a different user might block the standard port.
@@ -957,7 +961,7 @@ Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from,
 
     for (tries = port_from; tries <= port_to; ++tries) {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-int res = 0;
+        int res = 0;
 #else
         int res = bind(temp->sock.socket, (struct sockaddr *)&addr, addrsize);
 #endif
@@ -1270,6 +1274,7 @@ int addr_resolve(const char *address, IP *to, IP *extra)
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return false;
 #else
+
     if (!address || !to) {
         return 0;
     }
@@ -1513,6 +1518,7 @@ bool bind_to_port(Socket sock, Family family, uint16_t port)
     } else {
         return false;
     }
+
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return true;
 #else
@@ -1575,7 +1581,7 @@ Socket net_accept(Socket sock)
 size_t net_socket_data_recv_buffer(Socket sock)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-return 0;
+    return 0;
 #else
 
 #ifdef OS_WIN32

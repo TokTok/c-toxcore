@@ -5,7 +5,8 @@
 #include <cassert>
 
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size)
+{
     network_adapter_init(Data, Size);
 
     Tox_Err_New error_new;

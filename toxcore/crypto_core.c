@@ -135,7 +135,7 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     memcpy(encrypted, plain, length); // Don't encrypt anything
-    memset(encrypted+length, 0, crypto_box_MACBYTES); // Zero MAC to avoid false alarms of uninitialized memory
+    memset(encrypted + length, 0, crypto_box_MACBYTES); // Zero MAC to avoid false alarms of uninitialized memory
 #else
 
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;

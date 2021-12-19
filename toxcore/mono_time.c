@@ -129,7 +129,7 @@ Mono_Time *mono_time_new(void)
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-mono_time->current_time_callback = current_time_monotonic_dummy;
+    mono_time->current_time_callback = current_time_monotonic_dummy;
 #else
     mono_time->current_time_callback = current_time_monotonic_default;
 #endif
