@@ -121,6 +121,8 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 static void add_tcp_relays_to_chat(Messenger *m, GC_Chat *chat);
 static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
                           const uint8_t *data, uint16_t length, void *userdata);
+static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
+static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key, uint8_t *secret_key);
 
 
 /* Return true if `peer_number` is our own. */
@@ -3209,7 +3211,7 @@ static int send_peer_topic(const GC_Chat *chat, GC_Connection *gconn)
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *gconn)
+static int send_peer_key_rotation_request(const GC_Session *c, const GC_Chat *chat, GC_Connection *gconn)
 {
     // Only the peer closest to the chat_id sends requests. This is to prevent both peers from sending
     // requests at the same time and ending up with a different resulting shared key
@@ -3225,8 +3227,10 @@ static int send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *gc
     uint8_t packet[1 + ENC_PUBLIC_KEY_SIZE];
     packet[0] = 0;  // request type
 
-    // create new session key pair
-    crypto_new_keypair(gconn->session_public_key, gconn->session_secret_key);
+    if (create_gc_session_keypair(c, gconn, gconn->session_public_key, gconn->session_secret_key) != 0) {
+        LOGGER_FATAL(chat->logger, "Failed to create session keypair");
+        return -1;
+    }
 
     // copy new session public key to packet
     memcpy(packet + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -3499,7 +3503,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        gcc_make_encrypted_session(gconn, sender_public_session_key);
+        make_gc_session_shared_key(gconn, sender_public_session_key);
 
         gconn->pending_key_rotation_request = false;
 
@@ -3517,8 +3521,10 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
 
     response[0] = 1;
 
-    // create new session key pair and copy pk to reponse packet
-    crypto_new_keypair(new_session_pk, new_session_sk);
+    if (create_gc_session_keypair(c, gconn, new_session_pk, new_session_sk) != 0) {
+        LOGGER_FATAL(chat->logger, "Failed to create session keypair");
+        return -4;
+    }
 
     crypto_memlock(new_session_sk, sizeof(new_session_sk));
 
@@ -3532,7 +3538,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     memcpy(gconn->session_secret_key, new_session_sk, sizeof(gconn->session_secret_key));
 
-    gcc_make_encrypted_session(gconn, sender_public_session_key);
+    make_gc_session_shared_key(gconn, sender_public_session_key);
 
     crypto_memunlock(new_session_sk, sizeof(new_session_sk));
 
@@ -5130,7 +5136,7 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
 
-    gcc_make_encrypted_session(gconn, sender_session_pk);
+    make_gc_session_shared_key(gconn, sender_session_pk);
 
     set_sig_pk(gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
 
@@ -5277,7 +5283,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
     uint8_t sender_session_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_session_pk, data, ENC_PUBLIC_KEY_SIZE);
 
-    gcc_make_encrypted_session(gconn, sender_session_pk);
+    make_gc_session_shared_key(gconn, sender_session_pk);
 
     set_sig_pk(gconn->addr.public_key, public_sig_key);
 
@@ -6006,7 +6012,13 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     chat->group[peer_number].peer_id = peer_id;
     chat->group[peer_number].ignore = false;
 
-    crypto_new_keypair(gconn->session_public_key, gconn->session_secret_key);
+    if (create_gc_session_keypair(c, gconn, gconn->session_public_key, gconn->session_secret_key) != 0) {
+        LOGGER_FATAL(chat->logger, "Failed to create session keypair");
+        return -1;
+    }
+
+    crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
+
     memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  /* we get the sig key in the handshake */
 
     uint64_t tm = mono_time_get(chat->mono_time);
@@ -6251,7 +6263,7 @@ static void do_gc_ping_and_key_rotation(const Messenger *m, GC_Chat *chat)
         }
 
         if (mono_time_is_timeout(chat->mono_time, gconn->last_key_rotation, GC_KEY_ROTATION_TIMEOUT)) {
-            if (send_peer_key_rotation_request(chat, gconn) == 0) {
+            if (send_peer_key_rotation_request(m->group_handler, chat, gconn) == 0) {
                 gconn->last_key_rotation = tm;
             }
         }
@@ -6479,6 +6491,8 @@ static int init_gc_shared_state_founder(GC_Chat *chat, uint8_t privacy_state, co
     return sign_gc_shared_state(chat);
 }
 
+static int create_new_chat_ext_keypair(GC_Session *c, GC_Chat *chat);
+
 static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_length, bool founder)
 {
     if (nick == nullptr || nick_length == 0) {
@@ -6498,7 +6512,13 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     Messenger *m = c->messenger;
     GC_Chat *chat = &c->chats[group_number];
 
-    create_extended_keypair(chat->self_public_key, chat->self_secret_key);
+    chat->logger = m->log;
+
+    if (create_new_chat_ext_keypair(c, chat) != 0) {
+        LOGGER_ERROR(chat->logger, "Failed to create extended keypair");
+        group_delete(c, chat);
+        return -1;
+    }
 
     crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
 
@@ -6509,13 +6529,11 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
 
     uint64_t tm = mono_time_get(m->mono_time);
 
-    chat->self_public_key_hash = get_public_key_hash(chat->self_public_key);
     chat->group_number = group_number;
     chat->numpeers = 0;
     chat->connection_state = CS_CONNECTING;
     chat->net = m->net;
     chat->mono_time = m->mono_time;
-    chat->logger = m->log;
     chat->last_ping_interval = tm;
 
     if (peer_add(m, group_number, nullptr, chat->self_public_key) != 0) {    /* you are always peer_number/index 0 */
@@ -7449,6 +7467,78 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
     }
 
     return false;
+}
+
+/* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
+ * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
+ * encryption and decryption.
+ *
+ * Puts the result in the shared session key buffer for `gconn`, which must have room for
+ * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
+ *
+ * This function additionally updates the session jenkins hash for `sender_pk`.
+ */
+static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
+{
+    encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
+    gconn->other_session_public_key_hash = get_public_key_hash(sender_pk);
+}
+
+/* Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`.
+ *
+ * This function additionally updates the session jenkins hash for the self_session_public_key_hash
+ * associated with `gconn`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key, uint8_t *secret_key)
+{
+    size_t tries = 0;
+    uint32_t self_session_pk_hash;
+
+    do {
+        crypto_new_keypair(public_key, secret_key);
+        self_session_pk_hash = get_public_key_hash(public_key);
+        ++tries;
+
+        if (tries >= 5) {
+            return -1;
+        }
+    } while (get_chat_by_hash(c, self_session_pk_hash) != nullptr);  // hash collision check
+
+    gconn->self_session_public_key_hash = self_session_pk_hash;
+
+    return 0;
+}
+
+/* Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
+ * and `self_secret_key` buffers.
+ *
+ * This functiona additionally updates the jenkins hash for `self_public_key`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+static int create_new_chat_ext_keypair(GC_Session *c, GC_Chat *chat)
+{
+    size_t tries = 0;
+    uint32_t self_pk_hash;
+
+    do {
+        create_extended_keypair(chat->self_public_key, chat->self_secret_key);
+        self_pk_hash = get_public_key_hash(chat->self_public_key);
+
+        ++tries;
+
+        if (tries > 3) {
+            return -1;
+        }
+    } while (get_chat_by_hash(c, self_pk_hash) != nullptr);  // hash collision check
+
+    chat->self_public_key_hash = self_pk_hash;
+
+    return 0;
 }
 
 /* Attempts to add peers from `announces` to our peer list and initiate an invite request.

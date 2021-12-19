@@ -90,19 +90,6 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number);
  */
 GC_Connection *gcc_random_connection(const GC_Chat *chat);
 
-/* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
- * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
- * encryption and decryption.
- *
- * Puts the result in the shared session key buffer for `gconn`, which must have room for
- * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
- *
- * This functiona additionally updates the session jenkins hash for both public keys.
- *
- * WARNING: Do not call this function if the session public and secret keys have not been set for gconn.
- */
-void gcc_make_encrypted_session(GC_Connection *gconn, const uint8_t *sender_pk);
-
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
                            const uint8_t *part_message, size_t length);
