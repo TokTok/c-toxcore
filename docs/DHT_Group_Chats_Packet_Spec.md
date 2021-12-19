@@ -45,7 +45,7 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
 
 ###### Plaintext Header
 `1 byte: toxcore packet identifier`  
-`4 bytes: chat id hash`  
+`4 bytes: public key hash`  
 `32 bytes: sender permanent public encryption key`  
 `24 bytes: nonce`  
 
@@ -64,7 +64,10 @@ The plaintext header contains a `Toxcore Network Packet Kind` which identifies t
 `NET_PACKET_GC_LOSSLESS = 0x5b`  
 `NET_PACKET_GC_LOSSY = 0x5c`  
 
-The `chat id hash` is a `jenkins_one_at_a_time_hash` of the group's chat ID. This is used to identify which group a particular message is intended for. The `sender public encryption key` is used to identify the peer who sent the packet, and the `nonce` is used for decryption.
+The `public key hash` is a `jenkins_one_at_a_time_hash` of the recipient's permanent public encryption key for `HANDSHAKE_REQUEST` and `HANDSHAKE_RESPONSE` packets, or their public session key for all other packet types. This
+hash is used to identify the group that a message is intended for. Hash collitions with other groups must be handled upon creation of any key used as a group identifier.
+
+The sender's `public encryption key` is used to identify the peer who sent the packet, and the `nonce` is used for decryption.
 
 The encrypted header for lossless and lossy packets contains between 0 and 8 bytes of empty padding, which is used to mitigate certain types of cryptography attacks. The `group packet identifier` is used to identify the type of group packet, and the `message id` is a unique packet identifier which is used for the lossless UDP implementation.
 
@@ -73,8 +76,8 @@ The encrypted payload contains arbitrary data specific to the respective group p
 <a name="handshake_packets"/>
 
 ## Handshake Packet Payloads
-### REQUEST (0x00)
-### RESPONSE (0x01)
+### HANDSHAKE_REQUEST (0x00)
+### HANDSHAKE_RESPONSE (0x01)
 
 #### Structure
 `32 bytes: public session key`  
@@ -304,7 +307,7 @@ Indicates that the peer associated with the public signature key has either been
 `132 bytes: packed sanctions list credentials`  
 
 ###### Description
-Indicates that the peer associated with the given public keys has either been demoted to or promoted from the `Observer` role by the group founder or a modreator. If `flag` is non-zero, the peer should be demoted and added to the sanctions list. Otherwise they should be promoted to the `User` role and removed from the sanctions list.
+Indicates that the peer associated with the given public keys has either been demoted to or promoted from the `Observer` role by the group founder or a moderator. If `flag` is non-zero, the peer should be demoted and added to the sanctions list. Otherwise they should be promoted to the `User` role and removed from the sanctions list.
 
 <a name="peer_info_request"/>
 
