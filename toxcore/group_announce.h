@@ -168,4 +168,4 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
  */
 bool gca_is_valid_announce(const GC_Announce *announce);
 
-#endif /* GROUP_ANNOUNCE_H */
+#endif // GROUP_ANNOUNCE_H

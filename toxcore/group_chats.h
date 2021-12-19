@@ -857,4 +857,4 @@ int add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Ann
  */
 int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *signature_key);
 
-#endif  /* GROUP_CHATS_H */
+#endif  // GROUP_CHATS_H

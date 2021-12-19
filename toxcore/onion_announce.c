@@ -452,8 +452,8 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
 
     uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
-    if (crypto_memcmp(ping_id1, plain, ONION_PING_ID_SIZE) == 0
-            || crypto_memcmp(ping_id2, plain, ONION_PING_ID_SIZE) == 0) {
+    if (onion_ping_id_eq(ping_id1, plain)
+            || onion_ping_id_eq(ping_id2, plain)) {
         index = add_to_entries(onion_a, source, packet_public_key, data_public_key,
                                packet + (length - ONION_RETURN_3));
     } else {
@@ -591,8 +591,8 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
 
     uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
-    if (crypto_memcmp(ping_id1, plain, ONION_PING_ID_SIZE) == 0
-            || crypto_memcmp(ping_id2, plain, ONION_PING_ID_SIZE) == 0) {
+    if (onion_ping_id_eq(ping_id1, plain)
+            || onion_ping_id_eq(ping_id2, plain)) {
         index = add_to_entries(onion_a, source, packet_public_key, data_public_key,
                                packet + (length - ONION_RETURN_3));
     } else {
