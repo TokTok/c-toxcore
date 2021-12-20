@@ -3529,7 +3529,7 @@ Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_num
     }
 
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_OK);
-    uint8_t topic_lock = gc_get_topic_lock(chat);
+    Group_Topic_Lock topic_lock = gc_get_topic_lock_state(chat);
     return (Tox_Group_Topic_Lock)topic_lock;
 }
 
@@ -3913,7 +3913,7 @@ bool tox_group_founder_set_privacy_state(Tox *tox, uint32_t group_number, Tox_Gr
 {
     assert(tox != nullptr);
 
-    int ret = gc_founder_set_privacy_state(tox->m, group_number, privacy_state);
+    int ret = gc_founder_set_privacy_state(tox->m, group_number, (Group_Privacy_State) privacy_state);
 
     switch (ret) {
         case 0: {
@@ -3963,7 +3963,7 @@ bool tox_group_founder_set_topic_lock(Tox *tox, uint32_t group_number, Tox_Group
 {
     assert(tox != nullptr);
 
-    int ret = gc_founder_set_topic_lock(tox->m, group_number, topic_lock);
+    int ret = gc_founder_set_topic_lock(tox->m, group_number, (Group_Topic_Lock) topic_lock);
 
     switch (ret) {
         case 0: {

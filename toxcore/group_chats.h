@@ -54,7 +54,6 @@ typedef enum Group_Privacy_State {
 typedef enum Group_Topic_Lock {
     TL_ENABLED  = 0x00,  // Only the Founder and moderators may set the topic
     TL_DISABLED = 0x01,  // Anyone except Observers may set the topic
-    TL_INVALID  = 0x02,
 } Group_Topic_Lock;
 
 /* Group moderation events. */
@@ -245,7 +244,7 @@ typedef struct GC_SharedState {
     uint16_t    password_length;
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
     uint8_t     mod_list_hash[GC_MODERATION_HASH_SIZE];
-    uint8_t     topic_lock;
+    uint32_t    topic_lock; // non-zero value when lock is enabled
 } GC_SharedState;
 
 typedef struct GC_TopicInfo {
@@ -505,10 +504,10 @@ void gc_get_password(const GC_Chat *chat, uint8_t *password);
 uint16_t gc_get_password_size(const GC_Chat *chat);
 
 /* Returns group privacy state. */
-uint8_t gc_get_privacy_state(const GC_Chat *chat);
+Group_Privacy_State gc_get_privacy_state(const GC_Chat *chat);
 
 /* Returns the group's topic lock state. */
-uint8_t gc_get_topic_lock(const GC_Chat *chat);
+Group_Topic_Lock gc_get_topic_lock_state(const GC_Chat *chat);
 
 /* Returns the group peer limit. */
 uint32_t gc_get_max_peers(const GC_Chat *chat);
@@ -628,7 +627,7 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
  * Returns -5 if the topic lock could not be set.
  * Returns -6 if the packet failed to send.
  */
-int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock);
+int gc_founder_set_topic_lock(Messenger *m, int group_number, Group_Topic_Lock topic_lock);
 
 /* Sets the group privacy state and distributes the new shared state to the group.
  *
@@ -641,7 +640,7 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, uint8_t topic_lock
  * Returns -4 if the privacy state fails to set.
  * Returns -5 if the packet fails to send.
  */
-int gc_founder_set_privacy_state(Messenger *m, int group_number, uint8_t new_privacy_state);
+int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_State new_privacy_state);
 
 /* Sets the peer limit to maxpeers and distributes the new shared state to the group.
  *
