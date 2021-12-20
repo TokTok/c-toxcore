@@ -92,7 +92,7 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
         return 0;
     }
 
-    size_t data_buf_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    const size_t data_buf_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
     uint8_t *data = (uint8_t *)malloc(data_buf_size);
 
     if (data == nullptr) {
@@ -189,7 +189,7 @@ int mod_list_remove_entry(GC_Chat *chat, const uint8_t *public_sig_key)
         return -1;
     }
 
-    int idx = mod_list_index_of_sig_pk(chat, public_sig_key);
+    const int idx = mod_list_index_of_sig_pk(chat, public_sig_key);
 
     if (idx == -1) {
         return -1;
@@ -292,7 +292,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
         net_pack_u64(data + packed_len, sanctions[i].time_set);
         packed_len += TIME_STAMP_SIZE;
 
-        uint8_t sanctions_type = sanctions[i].type;
+        const uint8_t sanctions_type = sanctions[i].type;
 
         if (sanctions_type == SA_OBSERVER) {
             if (packed_len + ENC_PUBLIC_KEY_SIZE > length) {
@@ -318,7 +318,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
         return packed_len;
     }
 
-    uint16_t cred_len = sanctions_creds_pack(creds, data + packed_len, length - packed_len);
+    const uint16_t cred_len = sanctions_creds_pack(creds, data + packed_len, length - packed_len);
 
     if (cred_len != GC_SANCTIONS_CREDENTIALS_SIZE) {
         return -1;
@@ -399,7 +399,7 @@ int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Cred
         ++num;
     }
 
-    uint16_t creds_len = sanctions_creds_unpack(creds, data + len_processed, length - len_processed);
+    const uint16_t creds_len = sanctions_creds_unpack(creds, data + len_processed, length - len_processed);
 
     if (creds_len != GC_SANCTIONS_CREDENTIALS_SIZE) {
         return -1;
@@ -431,8 +431,8 @@ static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_
         return 0;
     }
 
-    size_t sig_data_size = num_sanctions * SIGNATURE_SIZE;
-    size_t data_buf_size = sig_data_size + sizeof(uint32_t);
+    const size_t sig_data_size = num_sanctions * SIGNATURE_SIZE;
+    const size_t data_buf_size = sig_data_size + sizeof(uint32_t);
 
     // check for integer overflower
     if (data_buf_size < num_sanctions) {
@@ -477,7 +477,7 @@ static int sanctions_list_validate_entry(const GC_Chat *chat, struct GC_Sanction
     }
 
     uint8_t packed_data[sizeof(struct GC_Sanction)];
-    int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
+    const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
         return -1;
@@ -619,11 +619,11 @@ int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds
  */
 static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_Sanction_Creds *creds)
 {
-    if (index >= chat->moderation.num_sanctions) {
+    if (index >= chat->moderation.num_sanctions || chat->moderation.num_sanctions == 0) {
         return -1;
     }
 
-    uint16_t new_num = chat->moderation.num_sanctions - 1;
+    const uint16_t new_num = chat->moderation.num_sanctions - 1;
 
     if (new_num == 0) {
         if (creds) {
@@ -639,7 +639,7 @@ static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
+    const size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
     struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
@@ -776,7 +776,7 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
+    const size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
     struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
@@ -787,7 +787,7 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
         memcpy(sanctions_copy, chat->moderation.sanctions, old_size);
     }
 
-    uint16_t index = chat->moderation.num_sanctions;
+    const uint16_t index = chat->moderation.num_sanctions;
     struct GC_Sanction *new_list = (struct GC_Sanction *)realloc(sanctions_copy, sizeof(struct GC_Sanction) * (index + 1));
 
     if (new_list == nullptr) {
@@ -823,7 +823,7 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
 static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sanction)
 {
     uint8_t packed_data[sizeof(struct GC_Sanction)];
-    int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
+    const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
         return -1;

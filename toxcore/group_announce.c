@@ -73,7 +73,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     size_t added_count = 0;
 
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
-        size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
+        const size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
         if (memcmp(except_public_key, &announces->announces[index].base_announce.peer_public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             continue;
@@ -126,7 +126,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
     ++offset;
 
     if (announce->ip_port_is_set) {
-        int ip_port_length = pack_ip_port(data + offset, length - offset, &announce->ip_port);
+        const int ip_port_length = pack_ip_port(data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to pack ip_port");
@@ -136,7 +136,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
         offset += ip_port_length;
     }
 
-    int nodes_length = pack_nodes(data + offset, length - offset, announce->tcp_relays, announce->tcp_relays_count);
+    const int nodes_length = pack_nodes(data + offset, length - offset, announce->tcp_relays, announce->tcp_relays_count);
 
     if (nodes_length == -1) {
         LOGGER_ERROR(log, "Failed to pack TCP nodes");
@@ -184,7 +184,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     }
 
     if (announce->ip_port_is_set) {
-        int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
+        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to unpack ip_port");
@@ -195,8 +195,8 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     }
 
     uint16_t nodes_length;
-    int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count, &nodes_length,
-                                   data + offset, length - offset, 1);
+    const int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count, &nodes_length,
+                                         data + offset, length - offset, 1);
 
     if (nodes_count != announce->tcp_relays_count) {
         LOGGER_ERROR(log, "Failed to unpack TCP nodes");
@@ -215,7 +215,8 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
 
     memcpy(data, public_announce->chat_public_key, CHAT_ID_SIZE);
 
-    int packed_size = gca_pack_announce(log, data + CHAT_ID_SIZE, length - CHAT_ID_SIZE, &public_announce->base_announce);
+    const int packed_size = gca_pack_announce(log, data + CHAT_ID_SIZE, length - CHAT_ID_SIZE,
+                            &public_announce->base_announce);
 
     if (packed_size < 0) {
         LOGGER_ERROR(log, "Failed to pack public group announce");
@@ -244,8 +245,8 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
 
     memcpy(public_announce->chat_public_key, data, CHAT_ID_SIZE);
 
-    int base_announce_size = gca_unpack_announce(log, data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
-                             &public_announce->base_announce);
+    const int base_announce_size = gca_unpack_announce(log, data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
+                                   &public_announce->base_announce);
 
     if (base_announce_size == -1) {
         LOGGER_ERROR(log, "Failed to unpack group announce");
@@ -272,7 +273,7 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
     uint16_t offset = 0;
 
     for (size_t i = 0; i < announces_count; ++i) {
-        int packed_length = gca_pack_announce(log, data + offset, length - offset, &announces[i]);
+        const int packed_length = gca_pack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (packed_length < 0) {
             LOGGER_ERROR(log, "Failed to pack group announce");
@@ -349,11 +350,11 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
         memcpy(announces->chat_id, public_announce->chat_public_key, CHAT_ID_SIZE);
     }
 
-    uint64_t cur_time = mono_time_get(mono_time);
+    const uint64_t cur_time = mono_time_get(mono_time);
 
     announces->last_announce_received_timestamp = cur_time;
 
-    uint64_t index = announces->index % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
+    const uint64_t index = announces->index % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
     GC_Peer_Announce *gc_peer_announce = &announces->announces[index];
 

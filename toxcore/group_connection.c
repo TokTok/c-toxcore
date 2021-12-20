@@ -128,7 +128,7 @@ static int create_array_entry(const Logger *logger, const Mono_Time *mono_time,
         memcpy(array_entry->data, data, length);
     }
 
-    uint64_t tm = mono_time_get(mono_time);
+    const uint64_t tm = mono_time_get(mono_time);
 
     array_entry->data_length = length;
     array_entry->packet_type = packet_type;
@@ -193,7 +193,7 @@ int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
 
     /* Put send_array_start in proper position */
     if (idx == gconn->send_array_start) {
-        uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
+        const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
 
         while (array_entry_is_empty(&gconn->send_array[idx]) && gconn->send_array_start != end) {
             gconn->send_array_start = (gconn->send_array_start + 1) % GCC_BUFFER_SIZE;
@@ -237,7 +237,7 @@ int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
         return -1;
     }
 
-    uint32_t rand_idx = random_u32() % gconn->tcp_relays_count;
+    const uint32_t rand_idx = random_u32() % gconn->tcp_relays_count;
 
     if (!ipport_isset(&gconn->connected_tcp_relays[rand_idx].ip_port)) {
         return -1;
@@ -309,7 +309,7 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
 
     /* we're missing an older message from this peer so we store it in received_array */
     if (message_id > gconn->received_message_id + 1) {
-        uint16_t idx = gcc_get_array_index(message_id);
+        const uint16_t idx = gcc_get_array_index(message_id);
         GC_Message_Array_Entry *ary_entry = &gconn->received_array[idx];
 
         if (!array_entry_is_empty(ary_entry)) {
@@ -348,8 +348,8 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
         return -1;
     }
 
-    int ret = handle_gc_lossless_helper(m, group_number, peer_number, array_entry->data, array_entry->data_length,
-                                        array_entry->message_id, array_entry->packet_type, userdata);
+    const int ret = handle_gc_lossless_helper(m, group_number, peer_number, array_entry->data, array_entry->data_length,
+                    array_entry->message_id, array_entry->packet_type, userdata);
     clear_array_entry(array_entry);
 
     if (ret == -1) {
@@ -383,7 +383,7 @@ int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_numbe
         return -1;
     }
 
-    uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
+    const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
     GC_Message_Array_Entry *array_entry = &gconn->received_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
@@ -401,9 +401,9 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
         return;
     }
 
-    uint64_t tm = mono_time_get(m->mono_time);
-    uint16_t start = gconn->send_array_start;
-    uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
+    const uint64_t tm = mono_time_get(m->mono_time);
+    const uint16_t start = gconn->send_array_start;
+    const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
 
     for (uint16_t i = start; i != end; i = (i + 1) % GCC_BUFFER_SIZE) {
         GC_Message_Array_Entry *array_entry = &gconn->send_array[i];
@@ -460,7 +460,7 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
         }
     }
 
-    int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
+    const int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
 
     if (ret == 0 || direct_send_attempt) {
         return 0;
@@ -476,13 +476,13 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
  * Return -1 on failure.
  */
 int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
-        uint16_t length,
-        uint64_t message_id, uint8_t packet_type)
+        uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
-    int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet, sizeof(packet),
-                                    data, length, message_id, packet_type, gconn->other_session_public_key_hash,
-                                    NET_PACKET_GC_LOSSLESS);
+    const int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet,
+                                          sizeof(packet),
+                                          data, length, message_id, packet_type, gconn->other_session_public_key_hash,
+                                          NET_PACKET_GC_LOSSLESS);
 
     if (enc_len == -1) {
         LOGGER_WARNING(chat->logger, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
