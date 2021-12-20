@@ -7517,19 +7517,20 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
  * Puts the result in the shared session key buffer for `gconn`, which must have room for
  * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
  *
- * This function additionally updates the session jenkins hash for `sender_pk`.
+ * This function additionally updates the session jenkins hash for both session public keys.
  */
 static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 {
     encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
     gconn->other_session_public_key_hash = get_public_key_hash(sender_pk);
+    gconn->self_session_public_key_hash = get_public_key_hash(gconn->session_public_key);
 }
 
 /* Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`.
  *
- * This function additionally updates the session jenkins hash for the self_session_public_key_hash
- * associated with `gconn`, which is used as a group identifier for inbound packets. We therefore
- * must make sure that the hash is unique for the GC_Session.
+ *
+ * The hash made from the newly generated public key is is used as a group identifier for inbound
+ * packets. We therefore must make sure that the hash is unique for the GC_Session.
  *
  * Return 0 on success.
  * Return -1 if we fail to generate a key or if we fail to generate a key with a unique hash.
@@ -7540,7 +7541,6 @@ static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, 
                                      uint8_t *secret_key)
 {
     size_t tries = 0;
-    uint32_t self_session_pk_hash;
 
     do {
         if (tries > 3) {
@@ -7553,10 +7553,7 @@ static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, 
             return -1;
         }
 
-        self_session_pk_hash = get_public_key_hash(public_key);
-    } while (get_chat_by_hash(c, self_session_pk_hash) != nullptr);  // hash collision check
-
-    gconn->self_session_public_key_hash = self_session_pk_hash;
+    } while (get_chat_by_hash(c, get_public_key_hash(public_key)) != nullptr);  // hash collision check
 
     return 0;
 }
