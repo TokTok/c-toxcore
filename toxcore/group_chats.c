@@ -4129,7 +4129,7 @@ static bool group_topic_lock_enabled(const GC_Chat *chat)
 /* Returns group privacy state. */
 Group_Privacy_State gc_get_privacy_state(const GC_Chat *chat)
 {
-    return chat->shared_state.privacy_state;
+    return (Group_Privacy_State) chat->shared_state.privacy_state;
 }
 
 /* Returns the group's topic lock state. */
@@ -7529,7 +7529,7 @@ static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *send
 /* Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`.
  *
  *
- * The hash made from the newly generated public key is is used as a group identifier for inbound
+ * The hash made from the newly generated public key is used as a group identifier for inbound
  * packets. We therefore must make sure that the hash is unique for the GC_Session.
  *
  * Return 0 on success.
