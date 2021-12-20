@@ -32,3 +32,11 @@ cimple_task:
         --config=release
         --
         //c-toxcore/...
+
+freebsd_task:
+  container:
+    image: toxchat/freebsd:latest
+    cpu: 2
+    memory: 4G
+  test_all_script:
+    - /work/cmake-freebsd-stage2
