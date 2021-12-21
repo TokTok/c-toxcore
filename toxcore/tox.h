@@ -3385,11 +3385,6 @@ typedef enum Tox_Err_Group_New {
     TOX_ERR_GROUP_NEW_EMPTY,
 
     /**
-     * Tox_Group_Privacy_State is an invalid type.
-     */
-    TOX_ERR_GROUP_NEW_PRIVACY,
-
-    /**
      * The group instance failed to initialize.
      */
     TOX_ERR_GROUP_NEW_INIT,
@@ -3747,11 +3742,6 @@ typedef enum Tox_Err_Group_Self_Status_Set {
      * The group number passed did not designate a valid group.
      */
     TOX_ERR_GROUP_SELF_STATUS_SET_GROUP_NOT_FOUND,
-
-    /**
-     * An invalid type was passed to the set function.
-     */
-    TOX_ERR_GROUP_SELF_STATUS_SET_INVALID,
 
     /**
      * The packet failed to send.
@@ -4895,11 +4885,6 @@ typedef enum Tox_Err_Group_Founder_Set_Privacy_State {
      * The group number passed did not designate a valid group.
      */
     TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_GROUP_NOT_FOUND,
-
-    /**
-     * Tox_Group_Privacy_State is an invalid type.
-     */
-    TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_INVALID,
 
     /**
      * The caller does not have the required permissions to set the privacy state.

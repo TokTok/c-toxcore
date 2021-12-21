@@ -2820,7 +2820,8 @@ uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const ui
 {
     assert(tox != nullptr);
 
-    int ret = gc_group_add(tox->m->group_handler, privacy_state, group_name, group_name_length, name, name_length);
+    int ret = gc_group_add(tox->m->group_handler, (Group_Privacy_State) privacy_state, group_name, group_name_length, name,
+                           name_length);
 
     if (ret >= 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_OK);
@@ -2839,21 +2840,16 @@ uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const ui
         }
 
         case -3: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_PRIVACY);
-            return UINT32_MAX;
-        }
-
-        case -4: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_INIT);
             return UINT32_MAX;
         }
 
-        case -5: {
+        case -4: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_STATE);
             return UINT32_MAX;
         }
 
-        case -6: {
+        case -5: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_ANNOUNCE);
             return UINT32_MAX;
         }
@@ -3131,7 +3127,7 @@ bool tox_group_self_set_status(Tox *tox, uint32_t group_number, Tox_User_Status 
 {
     assert(tox != nullptr);
 
-    int ret = gc_set_self_status(tox->m, group_number, status);
+    int ret = gc_set_self_status(tox->m, group_number, (Group_Peer_Status) status);
 
     switch (ret) {
         case 0: {
@@ -3145,11 +3141,6 @@ bool tox_group_self_set_status(Tox *tox, uint32_t group_number, Tox_User_Status 
         }
 
         case -2: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_STATUS_SET_INVALID);
-            return 0;
-        }
-
-        case -3: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_STATUS_SET_FAIL_SEND);
             return 0;
         }
@@ -3927,26 +3918,21 @@ bool tox_group_founder_set_privacy_state(Tox *tox, uint32_t group_number, Tox_Gr
         }
 
         case -2: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_INVALID);
-            return 0;
-        }
-
-        case -3: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_PERMISSIONS);
             return 0;
         }
 
-        case -4: {
+        case -3: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_DISCONNECTED);
             return 0;
         }
 
-        case -5: {
+        case -4: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_FAIL_SET);
             return 0;
         }
 
-        case -6: {
+        case -5: {
             SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_FAIL_SEND);
             return 0;
         }
@@ -4097,7 +4083,7 @@ bool tox_group_mod_set_role(Tox *tox, uint32_t group_number, uint32_t peer_id, T
 {
     assert(tox != nullptr);
 
-    int ret = gc_set_peer_role(tox->m, group_number, peer_id, role);
+    int ret = gc_set_peer_role(tox->m, group_number, peer_id, (Group_Role) role);
 
     switch (ret) {
         case 0: {

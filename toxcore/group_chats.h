@@ -47,7 +47,6 @@ typedef enum Self_UDP_Status {
 typedef enum Group_Privacy_State {
     GI_PUBLIC   = 0x00,  // Anyone with the chat ID may join the group
     GI_PRIVATE  = 0x01,  // Peers may only join the group via a friend invite
-    GI_INVALID  = 0x02,
 } Group_Privacy_State;
 
 /* Group topic lock states. */
@@ -62,7 +61,6 @@ typedef enum Group_Moderation_Event {
     MV_OBSERVER  = 0x01,  // A peer has been demoted to Observer
     MV_USER      = 0x02,  // A peer has been demoted or promoted to User
     MV_MOD       = 0x03,  // A peer has been promoted to or demoted from Moderator
-    MV_INVALID   = 0x04,
 } Group_Moderation_Event;
 
 /* Group exit types. */
@@ -74,7 +72,6 @@ typedef enum Group_Exit_Type {
     GC_EXIT_TYPE_KICKED            = 0x04,  // Peer was kicked from the group
     GC_EXIT_TYPE_SYNC_ERR          = 0x05,  // Peer failed to sync with the group
     GC_EXIT_TYPE_NO_CALLBACK       = 0x06,  // The peer exit callback should not be triggered
-    GC_EXIT_TYPE_INVALID           = 0x07,
 } Group_Exit_Type;
 
 /* Messenger level group invite types */
@@ -103,15 +100,12 @@ typedef enum Group_Role {
 
     /* May not interact with the group but may observe. */
     GR_OBSERVER  = 0x03,
-
-    GR_INVALID   = 0x04,
 } Group_Role;
 
 typedef enum Group_Peer_Status {
     GS_NONE    = 0x00,
     GS_AWAY    = 0x01,
     GS_BUSY    = 0x02,
-    GS_INVALID = 0x03,
 } Group_Peer_Status;
 
 /* Group connection states. */
@@ -120,7 +114,6 @@ typedef enum GC_Conn_State {
     CS_DISCONNECTED = 0x01,  // Not receiving or sending any packets
     CS_CONNECTING   = 0x02,  // Attempting to establish a connection with peers in the group
     CS_CONNECTED    = 0x03,  // Has successfully received a sync response from a peer in the group
-    CS_INVALID      = 0x04,
 } GC_Conn_State;
 
 /*
@@ -192,7 +185,6 @@ typedef enum Group_Packet_Type {
 typedef enum Group_Message_Ack_Type {
     GR_ACK_RECV    = 0x00,  // indicates a message has been received
     GR_ACK_REQ     = 0x01,  // indicates a message needs to be re-sent
-    GR_ACK_INVALID = 0x02,
 } Group_Message_Ack_Type;
 
 struct GC_Sanction_Creds {
@@ -224,7 +216,7 @@ typedef struct GC_SavedPeerInfo {
 } GC_SavedPeerInfo;
 
 typedef struct GC_GroupPeer {
-    uint8_t     role;
+    Group_Role  role;
     uint8_t     nick[MAX_GC_NICK_SIZE];
     uint16_t    nick_length;
     uint8_t     status;
@@ -240,7 +232,7 @@ typedef struct GC_SharedState {
     uint32_t    maxpeers;
     uint16_t    group_name_len;
     uint8_t     group_name[MAX_GC_GROUP_NAME_SIZE];
-    uint8_t     privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)
+    Group_Privacy_State privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)
     uint16_t    password_length;
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
     uint8_t     mod_list_hash[GC_MODERATION_HASH_SIZE];
@@ -531,7 +523,7 @@ void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick);
 uint16_t gc_get_self_nick_size(const GC_Chat *chat);
 
 /* Return your own group role */
-uint8_t gc_get_self_role(const GC_Chat *chat);
+Group_Role gc_get_self_role(const GC_Chat *chat);
 
 /* Return your own status */
 uint8_t gc_get_self_status(const GC_Chat *chat);
@@ -576,10 +568,9 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
  *
  * Returns 0 on success.
  * Returns -1 if the group_number is invalid.
- * Returns -2 if the status type is invalid.
- * Returns -3 if the packet failed to send.
+ * Returns -2 if the packet failed to send.
  */
-int gc_set_self_status(const Messenger *m, int group_number, uint8_t status);
+int gc_set_self_status(const Messenger *m, int group_number, Group_Peer_Status status);
 
 /* Returns the status of peer designated by `peer_id`.
  * Returns (uint8_t) -1 on failure.
@@ -601,7 +592,7 @@ uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id);
  * Returns -5 if the role failed to be set.
  * Returns -6 if the caller attempted to kick himself.
  */
-int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uint8_t role);
+int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Group_Role role);
 
 /* Sets the group password and distributes the new shared state to the group.
  *
@@ -635,10 +626,10 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, Group_Topic_Lock t
  *
  * Returns 0 on success.
  * Returns -1 if group_number is invalid.
- * Returns -2 if the privacy state is an invalid type.
- * Returns -3 if the caller does not have sufficient permissions for this action.
- * Returns -4 if the privacy state fails to set.
- * Returns -5 if the packet fails to send.
+ * Returns -2 if the caller does not have sufficient permissions for this action.
+ * Returns -3 if the group is disconnected.
+ * Returns -4 if the privacy state could not be set.
+ * Returns -5 if the packet failed to send.
  */
 int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_State new_privacy_state);
 
@@ -708,12 +699,12 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number);
  *
  * Return -1 if the nick or group name is too long.
  * Return -2 if the nick or group name is empty.
- * Return -3 if the privacy state is an invalid type.
- * Return -4 if the the group object fails to initialize.
- * Return -5 if the group state fails to initialize.
- * Return -6 if the Messenger friend connection fails to initialize.
+ * Return -3 if the the group object fails to initialize.
+ * Return -4 if the group state fails to initialize.
+ * Return -5 if the Messenger friend connection fails to initialize.
  */
-int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name, uint16_t group_name_length,
+int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t *group_name,
+                 uint16_t group_name_length,
                  const uint8_t *nick, size_t nick_length);
 
 /* Sends an invite request to a public group using the chat_id.
