@@ -1,78 +1,54 @@
 #!/bin/bash
+# Copyright (C) 2018-2021 nurupo
 
 # Toxcore building
 
-ACTION="$1"
-
 set -eux
 
-. .travis/cmake-freebsd-env.sh
+cd ..
+mv c-toxcore /
+mkdir c-toxcore
 
-travis_install() {
-  sudo apt-get update
-  sudo apt-get install -y qemu screen
+pushd /work
+. cmake-freebsd-env.sh
+popd
 
-  OLD_PWD="$PWD"
+# === Get VM ready to build the code ===
 
-  mkdir -p /opt/freebsd/cache
-  cd /opt/freebsd/cache
+start_vm
 
-  # Extract the cached image
-  tar -Sxzvf "$IMAGE_NAME.tgz"
+# Copy over toxcore code from Travis to qemu
+scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P "$SSH_PORT" -r /c-toxcore root@localhost:~
 
-  # Get the image we will be using out of the cached directory
-  mv "$IMAGE_NAME" ..
-  ls -lh
+RUN ls -lh
 
-  cd ..
+cd /c-toxcore
+CACHEDIR=/opt/cache
+mkdir "$CACHEDIR"
+. ".travis/flags-clang.sh"
 
-  ls -lh
+add_ld_flag -Wl,-z,defs
 
-  # === Get VM ready to build the code ===
+# Make compilation error on a warning
+add_flag -Werror
 
-  start_vm
+RUN 'cmake -B_build -Hc-toxcore \
+  -DCMAKE_C_FLAGS="$C_FLAGS" \
+  -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
+  -DCMAKE_EXE_LINKER_FLAGS="$LD_FLAGS" \
+  -DCMAKE_SHARED_LINKER_FLAGS="$LD_FLAGS" \
+  -DCMAKE_INSTALL_PREFIX:PATH="_install" \
+  -DMIN_LOGGER_LEVEL=TRACE \
+  -DMUST_BUILD_TOXAV=ON \
+  -DNON_HERMETIC_TESTS=ON \
+  -DSTRICT_ABI=ON \
+  -DTEST_TIMEOUT_SECONDS=300 \
+  -DUSE_IPV6=OFF \
+  -DAUTOTEST=ON'
 
-  cd "$OLD_PWD"
-
-  # Copy over toxcore code from Travis to qemu
-  scp -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -P "$SSH_PORT" -r ./* root@localhost:~
-
-  RUN ls -lh
-}
-
-travis_script() {
-  CACHEDIR="none"
-  . ".travis/flags-$CC.sh"
-
-  add_ld_flag -Wl,-z,defs
-
-  # Make compilation error on a warning
-  add_flag -Werror
-
-  RUN 'cmake -B_build -H. \
-    -DCMAKE_C_FLAGS="$C_FLAGS" \
-    -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
-    -DCMAKE_EXE_LINKER_FLAGS="$LD_FLAGS" \
-    -DCMAKE_SHARED_LINKER_FLAGS="$LD_FLAGS" \
-    -DCMAKE_INSTALL_PREFIX:PATH="_install" \
-    -DMIN_LOGGER_LEVEL=TRACE \
-    -DMUST_BUILD_TOXAV=ON \
-    -DNON_HERMETIC_TESTS=ON \
-    -DSTRICT_ABI=ON \
-    -DTEST_TIMEOUT_SECONDS=300 \
-    -DUSE_IPV6=OFF \
-    -DAUTOTEST=ON'
-
-  # We created the VM with the same number of cores as the host, so the host-ran `nproc` here is fine
-  RUN 'gmake "-j$NPROC" -k install -C_build'
-  RUN 'gmake "-j$NPROC" test ARGS="-j50" -C_build || \
-    gmake "-j1" -C_build test ARGS="-j1 --rerun-failed" || \
-    gmake "-j1" -C_build test ARGS="-j1 --rerun-failed" CTEST_OUTPUT_ON_FAILURE=1 || \
-    true'
-}
-
-if [ "-z" "$ACTION" ]; then
-  "travis_script"
-else
-  "travis_$ACTION"
-fi
+# We created the VM with the same number of cores as the host, so the host-ran `nproc` here is fine
+RUN 'gmake "-j$NPROC" -k install -C_build'
+RUN 'gmake "-j$NPROC" test ARGS="-j50" -C_build || \
+  gmake -j50 -C_build test ARGS="-j50 --rerun-failed" || \
+  gmake -j1 -C_build test ARGS="-j1 --rerun-failed" CTEST_OUTPUT_ON_FAILURE=1 || \
+  true'
