@@ -773,18 +773,15 @@ static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_GroupPeer *peer
         return -1;
     }
 
-    const uint8_t role = peer->role;
-    const uint8_t status = peer->status;
-
     uint32_t packed_len = 0;
 
     net_pack_u16(data + packed_len, peer->nick_length);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, peer->nick, MAX_GC_NICK_SIZE);
     packed_len += MAX_GC_NICK_SIZE;
-    memcpy(data + packed_len, &status, sizeof(uint8_t));
+    memcpy(data + packed_len, &peer->status, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
-    memcpy(data + packed_len, &role, sizeof(uint8_t));
+    memcpy(data + packed_len, &peer->role, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
 
     return packed_len;
@@ -808,17 +805,10 @@ static int unpack_gc_peer(GC_GroupPeer *peer, const uint8_t *data, uint16_t leng
     peer->nick_length = min_u16(MAX_GC_NICK_SIZE, peer->nick_length);
     memcpy(peer->nick, data + len_processed, MAX_GC_NICK_SIZE);
     len_processed += MAX_GC_NICK_SIZE;
-
-    uint8_t status;
-    memcpy(&status, data + len_processed, sizeof(uint8_t));
+    memcpy(&peer->status, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
-
-    uint8_t role;
-    memcpy(&role, data + len_processed, sizeof(uint8_t));
+    memcpy(&peer->role, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
-
-    peer->status = (Group_Peer_Status) status;
-    peer->role = (Group_Role) role;
 
     return len_processed;
 }
@@ -4122,6 +4112,8 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Gro
         }
 
         case GR_FOUNDER:
+
+        // Intentional fallthrough
         default: {
             return -4;
         }
