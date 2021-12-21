@@ -7,6 +7,8 @@
  * An implementation of massive text only group chats.
  */
 
+#include "group_chats.h"
+
 #include <string.h>
 
 #include "DHT.h"
@@ -15,7 +17,6 @@
 #include "TCP_connection.h"
 #include "friend_connection.h"
 #include "group_announce.h"
-#include "group_chats.h"
 #include "group_connection.h"
 #include "group_moderation.h"
 #include "mono_time.h"
@@ -3896,7 +3897,8 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         chat->group[target_peer_number].role = add_obs ? GR_OBSERVER : GR_USER;
 
         if (c->moderation) {
-            (*c->moderation)(m, group_number, chat->group[peer_number].peer_id, chat->group[target_peer_number].peer_id,
+            (*c->moderation)(m, group_number, chat->group[peer_number].peer_id,
+                             chat->group[target_peer_number].peer_id,
                              add_obs ? MV_OBSERVER : MV_USER, userdata);
         }
     }
@@ -5721,13 +5723,14 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
         return -1;
     }
 
+    const uint8_t packet_type = packet[0];
     int ret = -1;
 
-    if (packet[0] == NET_PACKET_GC_LOSSLESS) {
+    if (packet_type == NET_PACKET_GC_LOSSLESS) {
         ret = handle_gc_lossless_packet(m, chat, packet, length, false, userdata);
-    } else if (packet[0] == NET_PACKET_GC_LOSSY) {
+    } else if (packet_type == NET_PACKET_GC_LOSSY) {
         ret = handle_gc_lossy_packet(m, chat, packet, length, false, userdata);
-    } else if (packet[0] == NET_PACKET_GC_HANDSHAKE) {
+    } else if (packet_type == NET_PACKET_GC_HANDSHAKE) {
         ret = handle_gc_handshake_packet(m, chat, nullptr, packet, length, false, userdata);
     }
 
@@ -5761,7 +5764,9 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
         return -1;
     }
 
-    if (packet[0] != NET_PACKET_GC_HANDSHAKE) {
+    const uint8_t packet_type = packet[0];
+
+    if (packet_type != NET_PACKET_GC_HANDSHAKE) {
         return -1;
     }
 
@@ -5793,13 +5798,14 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
         return -1;
     }
 
+    const uint8_t packet_type = packet[0];
     int ret = -1;
 
-    if (packet[0] == NET_PACKET_GC_LOSSLESS) {
+    if (packet_type == NET_PACKET_GC_LOSSLESS) {
         ret = handle_gc_lossless_packet(m, chat, packet, length, true, userdata);
-    } else if (packet[0] == NET_PACKET_GC_LOSSY) {
+    } else if (packet_type == NET_PACKET_GC_LOSSY) {
         ret = handle_gc_lossy_packet(m, chat, packet, length, true, userdata);
-    } else if (packet[0] == NET_PACKET_GC_HANDSHAKE) {
+    } else if (packet_type == NET_PACKET_GC_HANDSHAKE) {
         ret = handle_gc_handshake_packet(m, chat, &ipp, packet, length, true, userdata);
     }
 

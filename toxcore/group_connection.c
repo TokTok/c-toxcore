@@ -7,6 +7,8 @@
  * An implementation of massive text only group chats.
  */
 
+#include "group_connection.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -14,7 +16,6 @@
 #include "Messenger.h"
 #include "crypto_core.h"
 #include "group_chats.h"
-#include "group_connection.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"

@@ -10,6 +10,8 @@
 #ifndef GROUP_MODERATION_H
 #define GROUP_MODERATION_H
 
+#include "group_chats.h"
+
 /* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
 #define MAX_GC_SANCTIONS 12
 

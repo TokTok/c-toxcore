@@ -7,15 +7,15 @@
  * An implementation of massive text only group chats.
  */
 
-#include "DHT.h"
-#include "group_chats.h"
-#include "group_connection.h"
 #include "group_moderation.h"
+
+#include <string.h>
+
+#include "DHT.h"
+#include "group_connection.h"
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
-
-#include <string.h>
 
 #ifndef VANILLA_NACL
 
