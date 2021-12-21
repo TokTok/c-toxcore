@@ -424,7 +424,7 @@ For further information on topic validation see: `docs/DHT-Group-Chats.md`
 `2 bytes: group password length`  
 `32 bytes: group password`  
 `32 bytes: moderator list hash (Sha256)`  
-`1 byte: topic lock state`  
+`4 byte: topic lock state`  
 
 #### Description
 Contains information about the group shared state. Sent to all peers by the group founder whenever the shared state has changed. Also sent in response to a `SYNC_REQUEST` in which the `state` flag is set.
