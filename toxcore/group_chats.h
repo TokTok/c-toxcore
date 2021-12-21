@@ -706,7 +706,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number);
  * Return -4 if the group state fails to initialize.
  * Return -5 if the Messenger friend connection fails to initialize.
  */
-int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t *group_name, uint16_t group_name_length,
+int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t *group_name,
+                 uint16_t group_name_length,
                  const uint8_t *nick, size_t nick_length);
 
 /* Sends an invite request to a public group using the chat_id.
