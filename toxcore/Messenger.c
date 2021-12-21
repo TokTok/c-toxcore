@@ -3240,7 +3240,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     for (uint32_t i = 0; i < c->num_chats; ++i) {
         const GC_Chat *chat = &c->chats[i];
 
-        if (chat->connection_state <= CS_NONE || chat->connection_state >= CS_INVALID) {
+        if (chat->connection_state == CS_NONE) {
             continue;
         }
 

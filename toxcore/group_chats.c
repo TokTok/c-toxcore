@@ -180,9 +180,9 @@ uint8_t gc_get_self_role(const GC_Chat *chat)
 }
 
 /* Sets self role. If role is invalid this function has no effect. */
-static void self_gc_set_role(GC_Chat *chat, uint8_t role)
+static void self_gc_set_role(GC_Chat *chat, Group_Role role)
 {
-    if (role < GR_INVALID) {
+    if (role <= GR_OBSERVER) {
         chat->group[0].role = role;
     }
 }
@@ -194,9 +194,9 @@ uint8_t gc_get_self_status(const GC_Chat *chat)
 }
 
 /* Sets self status. If status is invalid this function has no effect. */
-static void self_gc_set_status(GC_Chat *chat, uint8_t status)
+static void self_gc_set_status(GC_Chat *chat, Group_Peer_Status status)
 {
-    if (status < GS_INVALID) {
+    if (status <= GS_BUSY) {
         chat->group[0].status = status;
     }
 }
@@ -475,11 +475,9 @@ static int validate_gc_peer_role(const GC_Chat *chat, uint32_t peer_number)
         return -1;
     }
 
-    if (chat->group[peer_number].role >= GR_INVALID) {
-        return -1;
-    }
+    const Group_Role role = chat->group[peer_number].role;
 
-    switch (chat->group[peer_number].role) {
+    switch (role) {
         case GR_FOUNDER: {
             if (memcmp(chat->shared_state.founder_public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE) != 0) {
                 return -1;
@@ -514,6 +512,7 @@ static int validate_gc_peer_role(const GC_Chat *chat, uint32_t peer_number)
         }
 
         default: {
+            LOGGER_WARNING(chat->logger, "Got invalid role %u from peer %u\n", role, peer_number);
             return -1;
         }
     }
@@ -774,15 +773,18 @@ static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_GroupPeer *peer
         return -1;
     }
 
+    const uint8_t role = peer->role;
+    const uint8_t status = peer->status;
+
     uint32_t packed_len = 0;
 
     net_pack_u16(data + packed_len, peer->nick_length);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, peer->nick, MAX_GC_NICK_SIZE);
     packed_len += MAX_GC_NICK_SIZE;
-    memcpy(data + packed_len, &peer->status, sizeof(uint8_t));
+    memcpy(data + packed_len, &status, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
-    memcpy(data + packed_len, &peer->role, sizeof(uint8_t));
+    memcpy(data + packed_len, &role, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
 
     return packed_len;
@@ -806,10 +808,17 @@ static int unpack_gc_peer(GC_GroupPeer *peer, const uint8_t *data, uint16_t leng
     peer->nick_length = min_u16(MAX_GC_NICK_SIZE, peer->nick_length);
     memcpy(peer->nick, data + len_processed, MAX_GC_NICK_SIZE);
     len_processed += MAX_GC_NICK_SIZE;
-    memcpy(&peer->status, data + len_processed, sizeof(uint8_t));
+
+    uint8_t status;
+    memcpy(&status, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
-    memcpy(&peer->role, data + len_processed, sizeof(uint8_t));
+
+    uint8_t role;
+    memcpy(&role, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
+
+    peer->status = (Group_Peer_Status) status;
+    peer->role = (Group_Role) role;
 
     return len_processed;
 }
@@ -824,6 +833,7 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
         return 0;
     }
 
+    const uint8_t privacy_state = shared_state->privacy_state;
     uint16_t packed_len = 0;
 
     // version is always first
@@ -838,7 +848,7 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, shared_state->group_name, MAX_GC_GROUP_NAME_SIZE);
     packed_len += MAX_GC_GROUP_NAME_SIZE;
-    memcpy(data + packed_len, &shared_state->privacy_state, sizeof(uint8_t));
+    memcpy(data + packed_len, &privacy_state, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
     net_pack_u16(data + packed_len, shared_state->password_length);
     packed_len += sizeof(uint16_t);
@@ -877,8 +887,11 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     len_processed += sizeof(uint16_t);
     memcpy(shared_state->group_name, data + len_processed, MAX_GC_GROUP_NAME_SIZE);
     len_processed += MAX_GC_GROUP_NAME_SIZE;
-    memcpy(&shared_state->privacy_state, data + len_processed, sizeof(uint8_t));
+
+    uint8_t privacy_state;
+    memcpy(&privacy_state, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
+
     net_unpack_u16(data + len_processed, &shared_state->password_length);
     len_processed += sizeof(uint16_t);
     memcpy(shared_state->password, data + len_processed, MAX_GC_PASSWORD_SIZE);
@@ -887,6 +900,8 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     len_processed += GC_MODERATION_HASH_SIZE;
     net_unpack_u32(data + len_processed, &shared_state->topic_lock);
     len_processed += sizeof(uint32_t);
+
+    shared_state->privacy_state = (Group_Privacy_State) privacy_state;
 
     return len_processed;
 }
@@ -1706,7 +1721,7 @@ static int handle_gc_invite_response_reject(Messenger *m, int group_number, cons
 
     uint8_t type = data[0];
 
-    if (type >= GJ_INVALID) {
+    if (type > GJ_INVITE_FAILED) {
         type = GJ_INVITE_FAILED;
     }
 
@@ -1726,8 +1741,8 @@ static int handle_gc_invite_response_reject(Messenger *m, int group_number, cons
  */
 static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gconn, uint8_t type)
 {
-    if (type >= GJ_INVALID) {
-        return -1;
+    if (type > GJ_INVITE_FAILED) {
+        type = GJ_INVITE_FAILED;
     }
 
     uint8_t data[1];
@@ -2009,10 +2024,9 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
  *
  * Returns 0 on success.
  * Returns -1 if the group_number is invalid.
- * Returns -2 if the status type is invalid.
- * Returns -3 if the packet failed to send.
+ * Returns -2 if the packet failed to send.
  */
-int gc_set_self_status(const Messenger *m, int group_number, uint8_t status)
+int gc_set_self_status(const Messenger *m, int group_number, Group_Peer_Status status)
 {
     const GC_Session *c = m->group_handler;
     GC_Chat *chat = gc_get_group(c, group_number);
@@ -2021,14 +2035,10 @@ int gc_set_self_status(const Messenger *m, int group_number, uint8_t status)
         return -1;
     }
 
-    if (status >= GS_INVALID) {
-        return -2;
-    }
-
     self_gc_set_status(chat, status);
 
     uint8_t data[1];
-    data[0] = gc_get_self_status(chat);
+    data[0] = (uint8_t) gc_get_self_status(chat);
 
     if (send_gc_broadcast_message(chat, data, 1, GM_STATUS) == -1) {
         return -3;
@@ -2060,7 +2070,7 @@ static int handle_gc_status(Messenger *m, int group_number, uint32_t peer_number
 
     uint8_t status = data[0];
 
-    if (status >= GS_INVALID) {
+    if (status > GS_BUSY) {
         return -3;
     }
 
@@ -2081,7 +2091,7 @@ uint8_t gc_get_status(const GC_Chat *chat, uint32_t peer_id)
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
     if (!gc_peer_number_is_valid(chat, peer_number)) {
-        return -1;
+        return (uint8_t) -1;
     }
 
     return chat->group[peer_number].status;
@@ -2095,7 +2105,7 @@ uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id)
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
     if (!gc_peer_number_is_valid(chat, peer_number)) {
-        return -1;
+        return (uint8_t) -1;
     }
 
     return chat->group[peer_number].role;
@@ -2372,7 +2382,7 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
     /* topic lock state changed */
     if (chat->shared_state.topic_lock != old_shared_state->topic_lock) {
         if (c->topic_lock) {
-            Group_Topic_Lock lock_state = group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
+            const Group_Topic_Lock lock_state = group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
             (*c->topic_lock)(c->messenger, chat->group_number, lock_state, userdata);
         }
     }
@@ -2397,7 +2407,7 @@ static int validate_gc_shared_state(const GC_SharedState *state)
         return -1;
     }
 
-    if (state->privacy_state >= GI_INVALID) {
+    if (state->privacy_state > GI_PRIVATE) {
         return -1;
     }
 
@@ -4019,7 +4029,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
  * Returns -5 if the role failed to be set.
  * Returns -6 if the caller attempted to set their own role.
  */
-int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, uint8_t role)
+int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Group_Role role)
 {
     const GC_Session *c = m->group_handler;
     GC_Chat *chat = gc_get_group(c, group_number);
@@ -4209,11 +4219,10 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, Group_Topic_Lock n
  *
  * Returns 0 on success.
  * Returns -1 if group_number is invalid.
- * Returns -2 if the privacy state is an invalid type.
- * Returns -3 if the caller does not have sufficient permissions for this action.
- * Returns -4 if the group is disconnected.
- * Returns -5 if the privacy state could not be set.
- * Returns -6 if the packet failed to send.
+ * Returns -2 if the caller does not have sufficient permissions for this action.
+ * Returns -3 if the group is disconnected.
+ * Returns -4 if the privacy state could not be set.
+ * Returns -5 if the packet failed to send.
  */
 int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_State new_privacy_state)
 {
@@ -4224,16 +4233,12 @@ int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_S
         return -1;
     }
 
-    if (new_privacy_state >= GI_INVALID) {
+    if (!self_gc_is_founder(chat)) {
         return -2;
     }
 
-    if (!self_gc_is_founder(chat)) {
+    if (chat->connection_state == CS_DISCONNECTED || chat->connection_state == CS_NONE) {
         return -3;
-    }
-
-    if (chat->connection_state <= CS_DISCONNECTED) {
-        return -4;
     }
 
     const uint8_t old_privacy_state = chat->shared_state.privacy_state;
@@ -4246,7 +4251,7 @@ int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_S
 
     if (sign_gc_shared_state(chat) == -1) {
         chat->shared_state.privacy_state = old_privacy_state;
-        return -5;
+        return -4;
     }
 
     if (new_privacy_state == GI_PRIVATE) {
@@ -4259,7 +4264,7 @@ int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_S
     }
 
     if (broadcast_gc_shared_state(chat) == -1) {
-        return -6;
+        return -5;
     }
 
     return 0;
@@ -4700,10 +4705,6 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
         return 0;
     }
 
-    if (type >= GR_ACK_INVALID) {
-        return -1;
-    }
-
     if (type == GR_ACK_REQ) {
         const uint64_t tm = mono_time_get(chat->mono_time);
 
@@ -4712,16 +4713,16 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
         }
 
         gconn->last_requested_packet_time = tm;
+    } else if (type == GR_ACK_RECV) {
+        uint8_t data[GC_LOSSLESS_ACK_PACKET_SIZE];
+
+        data[0] = (uint8_t) type;
+        net_pack_u64(data + 1, message_id);
+
+        return send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_PACKET_SIZE, GP_MESSAGE_ACK);
     }
 
-    uint8_t data[GC_LOSSLESS_ACK_PACKET_SIZE];
-
-    data[0] = type;
-    net_pack_u64(data + 1, message_id);
-
-    const int ret = send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_PACKET_SIZE, GP_MESSAGE_ACK);
-
-    return ret;
+    return -1;
 }
 
 /* Handles a lossless message acknowledgement. If the type is of GR_ACK_RECV we remove the packet from our
@@ -4739,14 +4740,10 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
         return -1;
     }
 
-    const uint8_t type = data[0];
-
-    if (type >= GR_ACK_INVALID) {
-        return -2;
-    }
-
     uint64_t message_id;
     net_unpack_u64(data + 1, &message_id);
+
+    const uint8_t type = data[0];
 
     if (type == GR_ACK_RECV) {
         if (gcc_handle_ack(gconn, message_id) != 0) {
@@ -4754,6 +4751,10 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
         }
 
         return 0;
+    }
+
+    if (type != GR_ACK_REQ) {
+        return -2;
     }
 
     const uint64_t tm = mono_time_get(chat->mono_time);
@@ -5689,7 +5690,8 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
 
 static bool group_can_handle_packets(const GC_Chat *chat)
 {
-    return chat->connection_state > CS_DISCONNECTED && chat->connection_state < CS_INVALID;
+    const GC_Conn_State state = chat->connection_state;
+    return state == CS_CONNECTING || state == CS_CONNECTED;
 }
 
 /* Sends a group packet to appropriate handler function.
@@ -5961,7 +5963,7 @@ static int gc_peer_delete(Messenger *m, int group_number, uint32_t peer_number, 
     return 0;
 }
 
-/* Updates peer_number with info from `peer`.
+/* Updates peer_number with info from `peer` and validates peer data.
  *
  * Returns peer_number on success.
  * Returns -1 on failure.
@@ -5979,10 +5981,20 @@ static int peer_update(Messenger *m, int group_number, GC_GroupPeer *peer, uint3
         return -1;
     }
 
+    if (peer->status > GS_BUSY) {
+        return -1;
+    }
+
+    if (peer->role > GR_OBSERVER) {
+        return -1;
+    }
+
     GC_GroupPeer *curr_peer = &chat->group[peer_number];
+
     curr_peer->role = peer->role;
     curr_peer->status = peer->status;
     curr_peer->nick_length = peer->nick_length;
+
     memcpy(curr_peer->nick, peer->nick, peer->nick_length);
 
     return peer_number;
@@ -6052,7 +6064,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     GC_Connection *gconn = &chat->gcc[peer_number];
 
     gcc_set_ip_port(gconn, ipp);
-    chat->group[peer_number].role = GR_INVALID;
+    chat->group[peer_number].role = GR_USER;
     chat->group[peer_number].peer_id = peer_id;
     chat->group[peer_number].ignore = false;
 
@@ -6397,13 +6409,15 @@ void do_gc(GC_Session *c, void *userdata)
     for (uint32_t i = 0; i < c->num_chats; ++i) {
         GC_Chat *chat = &c->chats[i];
 
-        if (chat->connection_state == CS_NONE || chat->connection_state >= CS_INVALID) {
+        const GC_Conn_State state = chat->connection_state;
+
+        if (state == CS_NONE) {
             continue;
         }
 
         do_peer_delete(c->messenger, i, userdata);
 
-        if (chat->connection_state > CS_DISCONNECTED) {
+        if (state != CS_DISCONNECTED) {
             do_peer_connections(c->messenger, i, userdata);
             do_gc_tcp(c->messenger, chat, userdata);
             do_handshakes(c->messenger, i);
@@ -6776,12 +6790,12 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
  *
  * Return -1 if the nick or group name is too long.
  * Return -2 if the nick or group name is empty.
- * Return -3 if the privacy state is an invalid type.
- * Return -4 if the the group object fails to initialize.
- * Return -5 if the group state fails to initialize.
- * Return -6 if the Messenger friend connection fails to initialize.
+ * Return -3 if the the group object fails to initialize.
+ * Return -4 if the group state fails to initialize.
+ * Return -5 if the Messenger friend connection fails to initialize.
  */
-int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name, uint16_t group_name_length,
+int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t *group_name,
+                 uint16_t group_name_length,
                  const uint8_t *nick, size_t nick_length)
 {
     if (group_name_length > MAX_GC_GROUP_NAME_SIZE) {
@@ -6800,20 +6814,16 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
         return -2;
     }
 
-    if (privacy_state >= GI_INVALID) {
-        return -3;
-    }
-
     const int group_number = create_new_group(c, nick, nick_length, true);
 
     if (group_number == -1) {
-        return -4;
+        return -3;
     }
 
     GC_Chat *chat = gc_get_group(c, group_number);
 
     if (chat == nullptr) {
-        return -4;
+        return -3;
     }
 
     create_extended_keypair(chat->chat_public_key, chat->chat_secret_key);
@@ -6822,17 +6832,17 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
 
     if (init_gc_shared_state_founder(chat, privacy_state, group_name, group_name_length) == -1) {
         group_delete(c, chat);
-        return -5;
+        return -4;
     }
 
     if (init_gc_sanctions_creds(chat) == -1) {
         group_delete(c, chat);
-        return -5;
+        return -4;
     }
 
     if (gc_set_topic(chat, (const uint8_t *)"Welcome!", 8) != 0) {
         group_delete(c, chat);
-        return -5;
+        return -4;
     }
 
     chat->join_type = HJ_PRIVATE;
@@ -6842,7 +6852,7 @@ int gc_group_add(GC_Session *c, uint8_t privacy_state, const uint8_t *group_name
         if (m_create_group_connection(c->messenger, chat) < 0) {
             LOGGER_ERROR(chat->logger, "Failed to initialize group friend connection");
             group_delete(c, chat);
-            return -6;
+            return -5;
         }
     }
 
@@ -7470,7 +7480,7 @@ uint32_t gc_count_groups(const GC_Session *c)
     uint32_t count = 0;
 
     for (uint32_t i = 0; i < c->num_chats; ++i) {
-        if (c->chats[i].connection_state > CS_NONE && c->chats[i].connection_state < CS_INVALID) {
+        if (c->chats[i].connection_state != CS_NONE) {
             ++count;
         }
     }
