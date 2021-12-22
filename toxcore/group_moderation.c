@@ -15,7 +15,6 @@
 #include "group_connection.h"
 #include "mono_time.h"
 #include "network.h"
-#include "time.h"
 #include "util.h"
 
 #ifndef VANILLA_NACL

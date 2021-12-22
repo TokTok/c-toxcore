@@ -750,7 +750,7 @@ static int handle_announce_request_old(void *object, IP_Port source, const uint8
         return 1;
     }
 
-    data[0] = NET_PACKET_ANNOUNCE_RSPONSE_OLD;
+    data[0] = NET_PACKET_ANNOUNCE_RESPONSE_OLD;
     memcpy(data + 1, plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
            ONION_ANNOUNCE_SENDBACK_DATA_LENGTH);
     memcpy(data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH, nonce, CRYPTO_NONCE_SIZE);

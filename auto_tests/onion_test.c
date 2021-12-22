@@ -260,7 +260,7 @@ static void test_basic(void)
     Onion_Announce *onion1_a = new_onion_announce(log1, mono_time1, onion1->dht, &unused_var);
     Onion_Announce *onion2_a = new_onion_announce(log2, mono_time2, onion2->dht, &unused_var);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_test_3, onion1);
-    networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RSPONSE_OLD, &handle_test_3_old, onion1);
+    networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, &handle_test_3_old, onion1);
     ck_assert_msg((onion1_a != nullptr) && (onion2_a != nullptr), "Onion_Announce failed initializing.");
     uint8_t zeroes[64] = {0};
     random_bytes(sb_data, sizeof(sb_data));

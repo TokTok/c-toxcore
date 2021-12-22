@@ -959,7 +959,7 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         GC_Chat *chat = gc_get_group_by_public_key(onion_c->gc_session,
                         onion_c->friends_list[num - 1].gc_public_key);
 
-        if (!chat) {
+        if (chat == nullptr) {
             LOGGER_WARNING(onion_c->logger, "Couldn't find group associated with public key in announce response");
             return 1;
         }
@@ -1177,7 +1177,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
         return handle_announce_response(object, ip_port, data, length, userdata);
     }
 
-    if (data[0] == NET_PACKET_ANNOUNCE_RSPONSE_OLD) {
+    if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE_OLD) {
         return handle_announce_response_old(object, ip_port, data, length, userdata);
     }
 
@@ -2018,7 +2018,7 @@ void do_onion_client(Onion_Client *onion_c)
 
 Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_Crypto *c, GC_Session *gc_session)
 {
-    if (!c) {
+    if (c == nullptr) {
         return nullptr;
     }
 
@@ -2052,7 +2052,7 @@ Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_C
     new_symmetric_key(onion_c->secret_symmetric_key);
     crypto_new_keypair(onion_c->temp_public_key, onion_c->temp_secret_key);
     networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_announce_response, onion_c);
-    networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RSPONSE_OLD, &handle_announce_response_old, onion_c);
+    networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, &handle_announce_response_old, onion_c);
     networking_registerhandler(onion_c->net, NET_PACKET_ONION_DATA_RESPONSE, &handle_data_response, onion_c);
     oniondata_registerhandler(onion_c, ONION_DATA_DHTPK, &handle_dhtpk_announce, onion_c);
     cryptopacket_registerhandler(onion_c->dht, CRYPTO_PACKET_DHTPK, &handle_dht_dhtpk, onion_c);
@@ -2070,7 +2070,7 @@ void kill_onion_client(Onion_Client *onion_c)
     ping_array_kill(onion_c->announce_ping_array);
     realloc_onion_friends(onion_c, 0);
     networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RESPONSE, nullptr, nullptr);
-    networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RSPONSE_OLD, nullptr, nullptr);
+    networking_registerhandler(onion_c->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, nullptr, nullptr);
     networking_registerhandler(onion_c->net, NET_PACKET_ONION_DATA_RESPONSE, nullptr, nullptr);
     oniondata_registerhandler(onion_c, ONION_DATA_DHTPK, nullptr, nullptr);
     cryptopacket_registerhandler(onion_c->dht, CRYPTO_PACKET_DHTPK, nullptr, nullptr);

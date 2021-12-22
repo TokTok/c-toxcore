@@ -19,7 +19,6 @@
 #include <time.h>
 
 #include "crypto_core.h" // for CRYPTO_PUBLIC_KEY_SIZE
-#include "network.h" // for current_time_monotonic
 
 // Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
 #define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
@@ -84,22 +83,6 @@ uint32_t id_copy(uint8_t *dest, const uint8_t *src)
 {
     memcpy(dest, src, CRYPTO_PUBLIC_KEY_SIZE);
     return CRYPTO_PUBLIC_KEY_SIZE;
-}
-
-/* id_str should be of length at least IDSTRING_LEN */
-char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
-{
-    if (length < IDSTRING_LEN) {
-        snprintf(id_str, length, "Bad buf length");
-        return id_str;
-    }
-
-    for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE; ++i) {
-        sprintf(&id_str[i * 2], "%02X", pk[i]);
-    }
-
-    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = 0;
-    return id_str;
 }
 
 /* frees all pointers in a uint8_t pointer array, as well as the array itself. */
