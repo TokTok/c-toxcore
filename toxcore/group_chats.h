@@ -849,7 +849,7 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
  * Returns -1 on failure.
  */
 int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
-                             uint8_t gc_announces_count);
+                                uint8_t gc_announces_count);
 
 /* Puts the encryption public key associated with `signature_key` in `public_key`.
  *

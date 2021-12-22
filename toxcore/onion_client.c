@@ -965,8 +965,9 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         }
 
         const int offset = 2 + ONION_PING_ID_SIZE + len_nodes;
-        const int gc_announces_count = gca_unpack_announces_list(onion_c->logger, plain + offset, plain_size - offset, announces,
-                                 GCA_MAX_SENT_ANNOUNCES);
+        const int gc_announces_count = gca_unpack_announces_list(onion_c->logger, plain + offset, plain_size - offset,
+                                       announces,
+                                       GCA_MAX_SENT_ANNOUNCES);
 
         if (gc_announces_count == -1) {
             return 1;

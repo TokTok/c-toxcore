@@ -123,7 +123,7 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat);
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 static void add_tcp_relays_to_chat(Messenger *m, GC_Chat *chat);
 static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
-                          const uint8_t *data, uint16_t length, void *userdata);
+                       const uint8_t *data, uint16_t length, void *userdata);
 static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
 static int create_gc_session_keypair(const GC_Session *c, GC_Connection *gconn, uint8_t *public_key,
                                      uint8_t *secret_key);
@@ -5735,7 +5735,7 @@ void gc_callback_rejected(Messenger *m, gc_rejected_cb *function)
  * Return -1 on failure.
  */
 static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
-                          const uint8_t *data, uint16_t length, void *userdata)
+                       const uint8_t *data, uint16_t length, void *userdata)
 {
     const GC_Session *c = m->group_handler;
     GC_Chat *chat = gc_get_group(c, group_number);
@@ -6044,7 +6044,7 @@ static void do_peer_delete(Messenger *m, int group_number, void *userdata)
             GC_Exit_Info *exit_info = &gconn->exit_info;
 
             if (peer_delete(m, group_number, i, exit_info->exit_type, exit_info->part_message, exit_info->length,
-                               userdata) == -1) {
+                            userdata) == -1) {
                 LOGGER_ERROR(m->log, "Failed to delete peer %u", i);
             }
 
@@ -7385,7 +7385,7 @@ static int create_new_chat_ext_keypair(GC_Session *c, GC_Chat *chat)
 }
 
 int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
-                             uint8_t gc_announces_count)
+                                uint8_t gc_announces_count)
 {
     if (chat == nullptr || announces == nullptr || gc_session == nullptr) {
         return -1;
