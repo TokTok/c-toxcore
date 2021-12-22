@@ -494,7 +494,7 @@ static int validate_gc_peer_role(const GC_Chat *chat, uint32_t peer_number)
         }
 
         default: {
-            LOGGER_WARNING(chat->logger, "Got invalid role %u from peer %u\n", role, peer_number);
+            LOGGER_WARNING(chat->logger, "Got invalid role %u from peer %u", role, peer_number);
             return -1;
         }
     }

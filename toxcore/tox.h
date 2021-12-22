@@ -3403,6 +3403,8 @@ typedef enum Tox_Err_Group_New {
  *
  * This function creates a new group chat object and adds it to the chats array.
  *
+ * The caller of this function has Founder role privileges.
+ *
  * The client should initiate its peer list with self info after calling this function, as
  * the peer_join callback will not be triggered.
  *
@@ -3776,8 +3778,8 @@ uint32_t tox_group_self_get_peer_id(const Tox *tox, uint32_t group_number, Tox_E
  * Write the client's group public key designated by the given group number to a byte array.
  *
  * This key will be parmanently tied to the client's identity for this particular group until
- * the client explicitly leaves the group or gets kicked. This key is the only way for
- * other peers to reliably identify the client across client restarts.
+ * the client explicitly leaves the group. This key is the only way for other peers to reliably
+ * identify the client across client restarts.
  *
  * `public_key` should have room for at least TOX_GROUP_PEER_PUBLIC_KEY_SIZE bytes.
  *
