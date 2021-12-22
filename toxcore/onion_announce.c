@@ -65,7 +65,7 @@ void onion_announce_entry_set_time(Onion_Announce *onion_a, uint32_t entry, uint
     onion_a->entries[entry].time = time;
 }
 
-/* Create an onion announce request packet in packet of max_packet_length (recommended size ONION_ANNOUNCE_REQUEST_MIN_SIZE).
+/** Create an onion announce request packet in packet of max_packet_length (recommended size ONION_ANNOUNCE_REQUEST_MIN_SIZE).
  *
  * dest_client_id is the public key of the node the packet will be sent to.
  * public_key and secret_key is the kepair which will be used to encrypt the request.

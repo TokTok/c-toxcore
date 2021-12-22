@@ -37,7 +37,7 @@ bool id_equal(const uint8_t *dest, const uint8_t *src);
 
 int id_cmp(const uint8_t *first_id, const uint8_t *second_id);
 
-/* compares two group chat_id's */
+/** compares two group chat_id's */
 bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
 
 uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
