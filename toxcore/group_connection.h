@@ -49,9 +49,6 @@ struct GC_Connection {
     uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
     uint8_t     session_shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
 
-    uint32_t    self_session_public_key_hash;  /* Jenkins one at a time hash of self session public key */
-    uint32_t    other_session_public_key_hash;  /* Jenkins one at a time hash of peer's session public key */
-
     int         tcp_connection_num;
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
     uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
@@ -89,6 +86,14 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number);
  * Returns NULL if there are no available connections.
  */
 GC_Connection *gcc_random_connection(const GC_Chat *chat);
+
+/* Copies the encryption public key assoiciated with `gcc` to `public_key`.
+ *
+ * `public_key` must have room for ENC_PUBLIC_KEY_SIZE bytes. If `public_key` is
+ * null this function has no effect.
+ */
+void gcc_copy_enc_public_key(uint8_t *public_key, const GC_Connection *gcc);
+
 
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,

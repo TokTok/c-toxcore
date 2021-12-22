@@ -62,6 +62,12 @@ GC_Connection *gcc_random_connection(const GC_Chat *chat)
     return nullptr;
 }
 
+void gcc_copy_enc_public_key(uint8_t *public_key, const GC_Connection *gcc)
+{
+    if (public_key) {
+        memcpy(public_key, gcc->addr.public_key, ENC_PUBLIC_KEY_SIZE);
+    }
+}
 /* Returns true if ary entry does not contain an active packet. */
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
 {
@@ -414,10 +420,13 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
 int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
+
+    uint8_t target_pk[ENC_PUBLIC_KEY_SIZE];
+    gcc_copy_enc_public_key(target_pk, gconn);
+
     uint8_t packet[MAX_GC_PACKET_SIZE];
     const int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet,
-                                          sizeof(packet),
-                                          data, length, message_id, packet_type, gconn->other_session_public_key_hash,
+                                          sizeof(packet), data, length, message_id, packet_type, target_pk,
                                           NET_PACKET_GC_LOSSLESS);
 
     if (enc_len == -1) {

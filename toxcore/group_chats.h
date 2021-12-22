@@ -414,14 +414,16 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
 /* Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
  * Adds encrypted header consisting of: packet type, message_id (only for lossless packets).
- * Adds plaintext header consisting of: packet identifier, chat_id_hash, self public encryption key, nonce.
+ * Adds plaintext header consisting of: packet identifier, target public encryption key,
+ * self public encryption key, nonce.
  *
  * Returns length of encrypted packet on success.
  * Returns -1 on failure.
  */
+
 int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
-                      uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id, uint8_t gp_packet_type,
-                      uint32_t chat_id_hash, uint8_t net_packet_type);
+                      uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id,
+                      uint8_t gp_packet_type, const uint8_t *target_pk, uint8_t net_packet_type);
 
 /* Packs group info for `chat` into `temp`. */
 void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp);
