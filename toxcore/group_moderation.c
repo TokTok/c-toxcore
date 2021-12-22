@@ -19,8 +19,10 @@
 #include "util.h"
 
 #ifndef VANILLA_NACL
-
 #include <sodium.h>
+#endif // VANILLA_NACL
+
+#ifndef VANILLA_NACL
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 

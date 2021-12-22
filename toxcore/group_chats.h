@@ -821,8 +821,21 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
  */
 int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
-bool check_group_invite(const GC_Session *c, const uint8_t *data, uint32_t length);
+/* Return true if `chat_id` is not present in our group sessions array.
+ *
+ * `length` must be at least CHAT_ID_SIZE bytes in length.
+ */
+bool group_not_added(const GC_Session *c, const uint8_t *chat_id, uint32_t length);
 
+/* Handles an invite confirmed packet.
+ *
+ * Return 0 on success.
+ * Return -1 if length is invalid.
+ * Return -2 if data contains invalid chat_id.
+ * Return -3 if data contains invalid peer info.
+ * Return -4 if `friend_number` does not designate a valid friend.
+ * Return -5 if data contains invalid connection info.
+ */
 int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
 /* Returns the group designated by `public_key`.

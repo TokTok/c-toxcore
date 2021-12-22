@@ -24,8 +24,10 @@
 #include "util.h"
 
 #ifndef VANILLA_NACL
-
 #include <sodium.h>
+#endif  // VANILLA_NACL
+
+#ifndef VANILLA_NACL
 
 /* The minimum size of a plaintext group handshake packet */
 #define GC_MIN_PLAIN_HS_PACKET_SIZE (sizeof(uint8_t) + JENKINS_HASH_SIZE + EXT_PUBLIC_KEY_SIZE\
@@ -6973,13 +6975,14 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
     return 0;
 }
 
-bool check_group_invite(const GC_Session *c, const uint8_t *data, uint32_t length)
+/* Return true if `chat_id` is not present in our groupchats array. */
+bool group_not_added(const GC_Session *c, const uint8_t *chat_id, uint32_t length)
 {
-    if (length <= CHAT_ID_SIZE) {
+    if (length < CHAT_ID_SIZE) {
         return false;
     }
 
-    return !gc_get_group_by_public_key(c, data);
+    return !gc_get_group_by_public_key(c, chat_id);
 }
 
 /* Invites friendnumber to chat. Packet includes: Type, chat_id, node
@@ -7126,7 +7129,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
     const bool copy_ip_port_result = copy_friend_ip_port_to_gconn(c->messenger, friend_number, gconn);
 
     if (num_nodes <= 0 && !copy_ip_port_result) {
-        return -1;
+        return -5;
     }
 
     uint32_t tcp_relays_added = 0;
@@ -7144,7 +7147,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
 
     if (tcp_relays_added == 0 && !copy_ip_port_result) {
         LOGGER_WARNING(chat->logger, "Got invalid connection info from peer");
-        return -1;
+        return -5;
     }
 
     gconn->pending_handshake_type = HS_INVITE_REQUEST;
