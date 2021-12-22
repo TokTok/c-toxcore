@@ -157,7 +157,7 @@ int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, con
 }
 #endif  // VANILLA_NACL
 
-/* Create an onion data request packet in packet of max_packet_length (recommended size ONION_MAX_PACKET_SIZE).
+/** Create an onion data request packet in packet of max_packet_length (recommended size ONION_MAX_PACKET_SIZE).
  *
  * public_key is the real public key of the node which we want to send the data of length length to.
  * encrypt_public_key is the public key used to encrypt the data packet.
@@ -199,7 +199,7 @@ int create_data_request(uint8_t *packet, uint16_t max_packet_length, const uint8
     return DATA_REQUEST_MIN_SIZE + length;
 }
 
-/* Create and send an onion announce request packet.
+/** Create and send an onion announce request packet.
  *
  * path is the path the request will take before it is sent to dest.
  *
@@ -239,7 +239,7 @@ int send_announce_request(Networking_Core *net, const Onion_Path *path, Node_for
     return 0;
 }
 
-/* Create and send an onion data request packet.
+/** Create and send an onion data request packet.
  *
  * path is the path the request will take before it is sent to dest.
  * (if dest knows the person with the public_key they should
@@ -249,6 +249,8 @@ int send_announce_request(Networking_Core *net, const Onion_Path *path, Node_for
  * encrypt_public_key is the public key used to encrypt the data packet.
  *
  * nonce is the nonce to encrypt this packet with
+ *
+ * The maximum length of data is MAX_DATA_REQUEST_SIZE.
  *
  * return -1 on failure.
  * return 0 on success.
@@ -277,7 +279,7 @@ int send_data_request(Networking_Core *net, const Onion_Path *path, IP_Port dest
     return 0;
 }
 
-/* Generate a ping_id and put it in ping_id */
+/** Generate a ping_id and put it in ping_id */
 static void generate_ping_id(const Onion_Announce *onion_a, uint64_t time, const uint8_t *public_key,
                              IP_Port ret_ip_port, uint8_t *ping_id)
 {
@@ -290,7 +292,7 @@ static void generate_ping_id(const Onion_Announce *onion_a, uint64_t time, const
     crypto_sha256(ping_id, data, sizeof(data));
 }
 
-/* check if public key is in entries list
+/** check if public key is in entries list
  *
  * return -1 if no
  * return position in list if yes
@@ -373,7 +375,7 @@ static void sort_onion_announce_list(Onion_Announce_Entry *list, unsigned int le
     }
 }
 
-/* add entry to entries list
+/** add entry to entries list
  *
  * return -1 if failure
  * return position if added
@@ -838,4 +840,3 @@ void kill_onion_announce(Onion_Announce *onion_a)
     networking_registerhandler(onion_a->net, NET_PACKET_ONION_DATA_REQUEST, nullptr, nullptr);
     free(onion_a);
 }
-
