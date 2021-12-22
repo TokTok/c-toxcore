@@ -409,7 +409,7 @@ typedef struct GC_Session {
 
 
 /* Returns the jenkins hash of a 32 byte public encryption key. */
-uint32_t get_public_key_hash(const uint8_t *public_key);
+uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
 
 /* Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
@@ -424,7 +424,7 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
                       uint32_t chat_id_hash, uint8_t net_packet_type);
 
 /* Packs group info for `chat` into `temp`. */
-void pack_group_info(const GC_Chat *chat, Saved_Group *temp);
+void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp);
 
 /* Sends a plain message or an action, depending on type.
  *
@@ -848,7 +848,7 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
  * Returns the number of peers added on success.
  * Returns -1 on failure.
  */
-int add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
+int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
                              uint8_t gc_announces_count);
 
 /* Puts the encryption public key associated with `signature_key` in `public_key`.

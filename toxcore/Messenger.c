@@ -3260,7 +3260,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
             continue;
         }
 
-        pack_group_info(chat, temp);
+        gc_pack_group_info(chat, temp);
 
         memcpy(data, temp, sizeof(Saved_Group));
         data += sizeof(Saved_Group);

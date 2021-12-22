@@ -25,12 +25,6 @@
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 
-/* Unpacks data into the moderator list.
- * data should contain num_mods entries of size GC_MOD_LIST_ENTRY_SIZE.
- *
- * Returns length of unpacked data on success.
- * Returns -1 on failure.
- */
 int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_t num_mods)
 {
     if (length != num_mods * GC_MOD_LIST_ENTRY_SIZE) {
@@ -69,9 +63,6 @@ int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_
     return unpacked_len;
 }
 
-/* Packs moderator list into `data`.
- * data must have room for `num_mods * GC_MOD_LIST_ENTRY_SIZE` bytes.
- */
 void mod_list_pack(const GC_Chat *chat, uint8_t *data)
 {
     for (uint16_t i = 0; i < chat->moderation.num_mods && i < MAX_GC_MODERATORS; ++i) {
@@ -79,14 +70,6 @@ void mod_list_pack(const GC_Chat *chat, uint8_t *data)
     }
 }
 
-/* Creates a new moderator list hash and puts it in hash.
- * hash must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
- *
- * If num_mods is 0 the hash is zeroed.
- *
- * Returns 0 on sucess.
- * Returns -1 on failure;
- */
 int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
 {
     if (chat->moderation.num_mods == 0) {
@@ -109,9 +92,6 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
     return 0;
 }
 
-/* Returns moderator list index for public_sig_key.
- * Returns -1 if key is not in the list.
- */
 int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
 {
     for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
@@ -123,7 +103,6 @@ int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
     return -1;
 }
 
-/* Returns true if the public signature key belongs to a moderator or the founder */
 bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk)
 {
     if (memcmp(get_sig_pk(chat->shared_state.founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
@@ -139,11 +118,6 @@ bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk)
     return false;
 }
 
-/* Removes moderator at index-th position in the moderator list.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int mod_list_remove_index(GC_Chat *chat, size_t index)
 {
     if (index >= chat->moderation.num_mods) {
@@ -180,11 +154,6 @@ int mod_list_remove_index(GC_Chat *chat, size_t index)
     return 0;
 }
 
-/* Removes public_sig_key from the moderator list.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int mod_list_remove_entry(GC_Chat *chat, const uint8_t *public_sig_key)
 {
     if (chat->moderation.num_mods == 0) {
@@ -204,11 +173,6 @@ int mod_list_remove_entry(GC_Chat *chat, const uint8_t *public_sig_key)
     return 0;
 }
 
-/* Adds a mod to the moderator list. mod_data must be GC_MOD_LIST_ENTRY_SIZE bytes.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int mod_list_add_entry(GC_Chat *chat, const uint8_t *mod_data)
 {
     if (chat->moderation.num_mods >= MAX_GC_MODERATORS) {
@@ -236,7 +200,6 @@ int mod_list_add_entry(GC_Chat *chat, const uint8_t *mod_data)
     return 0;
 }
 
-/* Frees all memory associated with the moderator list and sets num_mods to 0. */
 void mod_list_cleanup(GC_Chat *chat)
 {
     free_uint8_t_pointer_array(chat->moderation.mod_list, chat->moderation.num_mods);
@@ -244,11 +207,6 @@ void mod_list_cleanup(GC_Chat *chat)
     chat->moderation.mod_list = nullptr;
 }
 
-/* Packs sanction list credentials into data.
- * data must have room for GC_SANCTIONS_CREDENTIALS_SIZE bytes.
- *
- * Returns length of packed data.
- */
 uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *data, uint16_t length)
 {
     if (GC_SANCTIONS_CREDENTIALS_SIZE > length) {
@@ -271,12 +229,6 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
     return packed_len;
 }
 
-/* Packs num_sanctions sanctions into data of maxlength length. Additionally packs the
- * sanction list credentials into creds if creds is non-null.
- *
- * Returns length of packed data on success.
- * Returns -1 on failure.
- */
 int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanctions,
                         const struct GC_Sanction_Creds *creds, uint16_t num_sanctions)
 {
@@ -329,11 +281,6 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
     return packed_len + cred_len;
 }
 
-/* Unpacks sanctions credentials into creds from data.
- * data must have room for GC_SANCTIONS_CREDENTIALS_SIZE bytes.
- *
- * Returns the length of the data processed.
- */
 uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *data, uint16_t length)
 {
     if (GC_SANCTIONS_CREDENTIALS_SIZE > length) {
@@ -356,12 +303,6 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
     return len_processed;
 }
 
-/* Unpack max_sanctions sanctions from data into sanctions, and unpacks credentials into creds.
- * Put the length of the data processed in processed_data_len.
- *
- * Returns number of unpacked entries on success.
- * Returns -1 on failure.
- */
 int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds, uint16_t max_sanctions,
                           const uint8_t *data, uint16_t length, uint16_t *processed_data_len)
 {
@@ -509,12 +450,6 @@ static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
     creds->checksum = sanctions_creds_get_checksum(creds);
 }
 
-/* Updates sanction list credentials: increment version, replace sig_pk with your own,
- * update hash and checksum to reflect new sanction list, and sign new hash signature.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int sanctions_list_make_creds(GC_Chat *chat)
 {
     struct GC_Sanction_Creds old_creds;
@@ -592,11 +527,6 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
     return 0;
 }
 
-/* Validates all sanction list entries as well as its credentials.
- *
- * Returns 0 if all entries are valid.
- * Returns -1 if the list contains an invalid entry or the credentials are invalid.
- */
 int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds *creds,
                                    struct GC_Sanction *sanctions, uint16_t num_sanctions)
 {
@@ -677,12 +607,6 @@ static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_
     return 0;
 }
 
-/* Removes observer entry for public key from sanction list.
- * If creds is NULL we make new credentials (this should only be done by a moderator or founder)
- *
- * Returns 0 on success.
- * Returns -1 on failure or if entry was not found.
- */
 int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, struct GC_Sanction_Creds *creds)
 {
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
@@ -708,9 +632,6 @@ int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, str
     return -1;
 }
 
-/* Returns true if public key is in the observer list.
- * All sanction list entries are assumed to be verified.
- */
 bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
 {
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
@@ -728,7 +649,6 @@ bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
     return false;
 }
 
-/* Returns true if `signature key` is associated with an entry in the observer list. */
 bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key)
 {
     uint8_t public_key[ENC_PUBLIC_KEY_SIZE];
@@ -752,14 +672,6 @@ static bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction 
 
 static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sanction);
 
-/* Adds an entry to the sanctions list. The entry is first validated and the resulting
- * new sanction list is compared against the new credentials if necessary.
- *
- * Entries must be unique.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds)
 {
     if (chat->moderation.num_sanctions >= MAX_GC_SANCTIONS) {
@@ -835,13 +747,6 @@ static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sa
                                 get_sig_sk(chat->self_secret_key));
 }
 
-/* Creates a new sanction entry for peer_number where type is one GROUP_SANCTION_TYPE.
- * New entry is signed and placed in the sanction list, and the sanction list credentials
- * are updated.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_Sanction *sanction, uint8_t type)
 {
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
@@ -882,11 +787,6 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
     return 0;
 }
 
-/* Replaces all sanction list signatures made by public_sig_key with the caller's.
- * This is called whenever the founder demotes a moderator.
- *
- * Returns the number of entries re-signed.
- */
 uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key)
 {
     uint16_t count = 0;
