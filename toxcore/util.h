@@ -42,9 +42,6 @@ bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
 
 uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
 
-void host_to_net(uint8_t *num, uint16_t numbytes);
-void net_to_host(uint8_t *num, uint16_t numbytes);
-
 /** frees all pointers in a uint8_t pointer array, as well as the array itself. */
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items);
 

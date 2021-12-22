@@ -22,21 +22,15 @@ extern "C" {
  */
 #define CRYPTO_SIGNATURE_SIZE          64
 
-uint32_t crypto_signature_size(void);
-
 /**
  * The number of bytes in a Tox public key used for signatures.
  */
 #define CRYPTO_SIGN_PUBLIC_KEY_SIZE    32
 
-uint32_t crypto_sign_public_key_size(void);
-
 /**
  * The number of bytes in a Tox secret key used for signatures.
  */
 #define CRYPTO_SIGN_SECRET_KEY_SIZE    64
-
-uint32_t crypto_sign_secret_key_size(void);
 
 /**
  * The number of bytes in a Tox public key used for encryption.
