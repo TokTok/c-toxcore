@@ -15,6 +15,7 @@
 #include "group_connection.h"
 #include "mono_time.h"
 #include "network.h"
+#include "time.h"
 #include "util.h"
 
 #ifndef VANILLA_NACL
@@ -860,7 +861,7 @@ int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_San
     }
 
     memcpy(sanction->public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
-    sanction->time_set = mono_time_get(chat->mono_time);
+    sanction->time_set = (uint64_t) time(nullptr);
     sanction->type = type;
 
     if (sanctions_list_sign_entry(chat, sanction) == -1) {
