@@ -27,9 +27,6 @@
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
 
-/* Returns group connection object for peer_number.
- * Returns NULL if peer_number is invalid.
- */
 GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number)
 {
     if (!gc_peer_number_is_valid(chat, peer_number)) {
@@ -39,9 +36,6 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number)
     return &chat->gcc[peer_number];
 }
 
-/* Returns a random group connection that isn't our own and isn't marked for deletion.
- * Returns NULL if there are no available connections.
- */
 GC_Connection *gcc_random_connection(const GC_Chat *chat)
 {
     if (chat->numpeers <= 1) {
@@ -90,16 +84,11 @@ static void clear_array_entry(GC_Message_Array_Entry *array_entry)
     };
 }
 
-/* Returns ary index for message_id */
 uint16_t gcc_get_array_index(uint64_t message_id)
 {
     return message_id % GCC_BUFFER_SIZE;
 }
 
-/*
- * Sets the send_message_id and send_array_start for gconn to id. This is used for the
- * initiation of peer connections.
- */
 void gcc_set_send_message_id(GC_Connection *gconn, uint16_t id)
 {
     gconn->send_message_id = id;
@@ -140,11 +129,6 @@ static int create_array_entry(const Logger *logger, const Mono_Time *mono_time,
     return 0;
 }
 
-/* Adds plaintext payload `data` of size `length` to send array associated with `gconn`.
- *
- * Returns 0 on success and increments gconn's send_message_id.
- * Returns -1 on failure.
- */
 int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
                           uint32_t length, uint8_t packet_type)
 {
@@ -172,11 +156,6 @@ int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_C
     return 0;
 }
 
-/* Removes send_array item with message_id.
- *
- * Returns 0 if success.
- * Returns -1 on failure.
- */
 int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
 {
     uint16_t idx = gcc_get_array_index(message_id);
@@ -205,17 +184,11 @@ int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
     return 0;
 }
 
-/*
- * Returns true if the ip_port is set for gconn.
- */
 bool gcc_ip_port_is_set(const GC_Connection *gconn)
 {
     return ipport_isset(&gconn->addr.ip_port);
 }
 
-/*
- * Sets the ip_port for gconn to ipp. If ipp is not set this function has no effect.
- */
 void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
 {
     if (ipport_isset(ipp)) {
@@ -223,11 +196,6 @@ void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
     }
 }
 
-/* Copies a random TCP relay node from gconn to tcp_node.
- *
- * Return 0 on success.
- * Return -1 on failure.
- */
 int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
@@ -249,15 +217,6 @@ int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
     return 0;
 }
 
-/* Saves tcp_node to gconn's list of connected tcp relays. If relays list is full a
- * random node is overwritten with the new node.
- *
- * TODO(Jfreegman): we never test these after they're set.
- *
- * Return 0 on success.
- * Return -1 on failure.
- * Return -2 if node is already in list.
- */
 int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
@@ -287,13 +246,6 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
     return 0;
 }
 
-/* Decides if message need to be put in received_array or immediately handled.
- *
- * Return 2 if message is in correct sequence and may be handled immediately.
- * Return 1 if packet is out of sequence and added to received_array.
- * Return 0 if message is a duplicate.
- * Return -1 on failure
- */
 int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const uint8_t *data, uint32_t length,
                                 uint8_t packet_type, uint64_t message_id, bool direct_conn)
 {
@@ -364,12 +316,6 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
     return 0;
 }
 
-/* Checks for and handles messages that are in proper sequence in gconn's received_array.
- * This should always be called after a new packet is handled in correct sequence.
- *
- * Return 0 on success.
- * Return -1 on failure.
- */
 int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number, void *userdata)
 {
     GC_Chat *chat = gc_get_group(m->group_handler, group_number);
@@ -434,11 +380,6 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
     }
 }
 
-/* Sends a packet to the peer associated with gconn.
- *
- * Returns 0 on success.
- * Returns -1 on failure.
- */
 int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
 {
     if (packet == nullptr || length == 0) {
@@ -470,12 +411,6 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
     return -1;
 }
 
-/* Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key associated with
- * `gconn` and sends a lossless packet.
- *
- * Return 0 on success.
- * Return -1 on failure.
- */
 int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
@@ -498,13 +433,11 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     return 0;
 }
 
-/* Returns true if we have a direct connection with this peer. */
 bool gcc_connection_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
     return ((GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time) > mono_time_get(mono_time));
 }
 
-/* Marks a peer for deletion. If gconn is null this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
                            const uint8_t *part_message, size_t length)
 {
@@ -527,7 +460,6 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
     }
 }
 
-/* called when a peer leaves the group */
 void gcc_peer_cleanup(GC_Connection *gconn)
 {
     for (size_t i = 0; i < GCC_BUFFER_SIZE; ++i) {
@@ -545,7 +477,6 @@ void gcc_peer_cleanup(GC_Connection *gconn)
     crypto_memzero(gconn, sizeof(GC_Connection));
 }
 
-/* called on group exit */
 void gcc_cleanup(GC_Chat *chat)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
