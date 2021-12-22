@@ -5,7 +5,7 @@
 
 set -eux
 
-if [ "$(pwd)" != "/work" ]; then
+if [ "$PWD" != "/work" ]; then
   cd ..
   mv c-toxcore /
   mkdir c-toxcore
