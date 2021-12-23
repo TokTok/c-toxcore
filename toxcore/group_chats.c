@@ -978,7 +978,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
     return ret;
 }
 
-/* Decrypts data using the shared key associated with `gconn`. The encrypted payload should
+/* Decrypts data using the shared key associated with `gconn`. The packet payload should
  * begin with a nonce.
  *
  * `message_id` should be set to NULL for lossy packets.
@@ -990,9 +990,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
 static int group_packet_unwrap(const Logger *logger, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
-    if (length <= CRYPTO_NONCE_SIZE) {
-        return -1;
-    }
+    assert(length > CRYPTO_NONCE_SIZE);
 
     uint8_t plain[MAX_GC_PACKET_SIZE];
     int plain_len = decrypt_data_symmetric(gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
@@ -3290,6 +3288,53 @@ static int update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key)
     return 0;
 }
 
+/* Validates `topic_info`.
+ *
+ * Return 1 if topic info is valid.
+ * Return 0 if topic info is valid but has an older version than the current topic.
+ * Return -1 if topic info is invalid.
+ */
+static int handle_gc_topic_validate(const GC_Chat *chat, uint32_t peer_number, const GC_TopicInfo *topic_info,
+                                    bool topic_lock_enabled)
+{
+    if (topic_info->checksum != get_gc_topic_checksum(topic_info)) {
+        LOGGER_WARNING(chat->logger, "received invalid topic checksum");
+        return -1;
+    }
+
+    if (topic_lock_enabled) {
+        if (!mod_list_verify_sig_pk(chat, topic_info->public_sig_key)) {
+            LOGGER_WARNING(chat->logger, "Invalid topic signature (bad credentials)");
+            return -1;
+        }
+
+        if (topic_info->version < chat->topic_info.version) {
+            return 0;
+        }
+    } else {
+        if (sanctions_list_is_observer_sig(chat, topic_info->public_sig_key)) {
+            LOGGER_WARNING(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
+            return -1;
+        }
+
+        // the topic version should never change when the topic lock is disabled except when
+        // the founder changes the topic prior to enabling the lock
+        if (topic_info->version == chat->shared_state.topic_lock) {
+            return 1;
+        }
+
+        const Group_Role role = chat->group[peer_number].role;
+
+        if (!(role == GR_FOUNDER && topic_info->version == chat->shared_state.topic_lock + 1)) {
+            LOGGER_ERROR(chat->logger, "topic version %u differs from topic lock %u", topic_info->version,
+                         chat->shared_state.topic_lock);
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
 /* Handles a topic packet.
  *
  * Return 0 on success.
@@ -3323,20 +3368,6 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
         return -3;
     }
 
-    const bool topic_lock_enabled = group_topic_lock_enabled(chat);
-
-    // only check if topic was set by founder/mod if topic lock is enabled
-    if (topic_lock_enabled && !mod_list_verify_sig_pk(chat, topic_info.public_sig_key)) {
-        LOGGER_WARNING(chat->logger, "Invalid topic signature (bad credentials)");
-        return -4;
-    }
-
-    // make sure topic wasn't set by an observer
-    if (!topic_lock_enabled && sanctions_list_is_observer_sig(chat, topic_info.public_sig_key)) {
-        LOGGER_WARNING(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
-        return -4;
-    }
-
     uint8_t signature[SIGNATURE_SIZE];
     memcpy(signature, data, SIGNATURE_SIZE);
 
@@ -3346,31 +3377,16 @@ static int handle_gc_topic(Messenger *m, int group_number, uint32_t peer_number,
         return -4;
     }
 
-    if (topic_info.checksum != get_gc_topic_checksum(&topic_info)) {
-        LOGGER_WARNING(chat->logger, "received invalid topic checksum");
+    const bool topic_lock_enabled = group_topic_lock_enabled(chat);
+
+    int valid = handle_gc_topic_validate(chat, peer_number, &topic_info, topic_lock_enabled);
+
+    if (valid == -1) {
         return -4;
     }
 
-    if (topic_lock_enabled) {
-        if (topic_info.version < chat->topic_info.version) {
-            return 0;
-        }
-
-        // two peers tried to change topic at the same time; ignore the one with the smaller checksum
-        if (topic_info.version == chat->topic_info.version && topic_info.checksum <= chat->topic_info.checksum) {
-            LOGGER_DEBUG(chat->logger, "Got same topic version; discarding.");
-            return 0;
-        }
-    } else {
-        // the topic version should never change when the topic lock is disabled except when
-        // the founder changes the topic prior to enabling the lock
-        if (topic_info.version != chat->shared_state.topic_lock) {
-            if (chat->group[peer_number].role != GR_FOUNDER) {
-                LOGGER_ERROR(chat->logger, "topic version %u differs from topic lock %u", topic_info.version,
-                             chat->shared_state.topic_lock);
-                return -4;
-            }
-        }
+    if (valid == 0) {
+        return 0;
     }
 
     // prevents sync issues from triggering the callback needlessly
@@ -4725,15 +4741,15 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
 
 /* Decrypts data of size `length` using self secret key and sender's public key.
  *
+ * The packet payload should begin with a nonce.
+ *
  * Returns length of plaintext data on success.
  * Returns -1 on failure.
  */
 static int unwrap_group_handshake_packet(const Logger *logger, const uint8_t *self_sk, const uint8_t *sender_pk,
         uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
 {
-    if (length <= CRYPTO_NONCE_SIZE) {
-        return -1;
-    }
+    assert(length > CRYPTO_NONCE_SIZE);
 
     const int plain_len = decrypt_data(sender_pk, self_sk, packet, packet + CRYPTO_NONCE_SIZE,
                                        length - CRYPTO_NONCE_SIZE, plain);
