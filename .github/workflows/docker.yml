@@ -23,7 +23,7 @@ jobs:
         run: .travis/tox-bootstrapd-docker local
       - name: Push latest image to DockerHub
         if: ${{ github.event_name == 'push' }}
-        run: docker push toxchat/bootstrap-node:latest
+        run: docker push toxchat/bootstrap-daemon:latest
       - name: Push versioned image to DockerHub
         if: ${{ github.event_name == 'push' && contains(github.ref, 'refs/tags/') }}
-        run: docker push toxchat/bootstrap-node:"$(other/print-version)"
+        run: docker push toxchat/bootstrap-daemon:"$(other/print-version)"

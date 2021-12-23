@@ -6,8 +6,8 @@ LOCAL="${1:-}"
 
 readarray -t FILES <<<"$(git ls-files)"
 
-tar c "${FILES[@]}" | docker build -f other/bootstrap_daemon/docker/Dockerfile -t toxchat/bootstrap-node -
-docker tag toxchat/bootstrap-node:latest toxchat/bootstrap-node:"$(other/print-version)"
+tar c "${FILES[@]}" | docker build -f other/bootstrap_daemon/docker/Dockerfile -t toxchat/bootstrap-daemon -
+docker tag toxchat/bootstrap-daemon:latest toxchat/bootstrap-daemon:"$(other/print-version)"
 
 sudo useradd \
   --home-dir /var/lib/tox-bootstrapd \
@@ -25,7 +25,7 @@ docker run -d --name tox-bootstrapd \
   -p 3389:3389 \
   -p 33445:33445 \
   -p 33445:33445/udp \
-  toxchat/bootstrap-node
+  toxchat/bootstrap-daemon
 
 sudo ls -lbh /var/lib/tox-bootstrapd
 
