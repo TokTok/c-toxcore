@@ -3,6 +3,12 @@
 . other/analysis/gen-file.sh
 
 echo "Running Clang static analyzer"
-clang++ --analyze amalgamation.cc \
-  "${CPPFLAGS[@]}" \
-  -std=c++11
+run() {
+  clang++ --analyze amalgamation.cc \
+    "${CPPFLAGS[@]}" \
+    "$@" \
+    -std=c++11
+}
+
+run
+run -DFUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
