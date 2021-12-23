@@ -45,14 +45,14 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
 
 ###### Plaintext Header
 `1 byte: toxcore packet identifier`  
-`4 bytes: public key hash`  
 `32 bytes: sender permanent public encryption key`  
+`32 bytes: receiver permanent public encryption key` (Optional: Handshake packets only)  
 `24 bytes: nonce`  
 
 ###### Encrypted Header
 `0-8 bytes: padding`  
 `1 byte: group packet identifier`  
-`8 bytes: message id` (Optional: lossless only)  
+`8 bytes: message id` (Optional: lossless packets only)  
 
 #### Encrypted Payload
 `variable bytes: payload`  
@@ -64,10 +64,11 @@ The plaintext header contains a `Toxcore Network Packet Kind` which identifies t
 `NET_PACKET_GC_LOSSLESS = 0x5b`  
 `NET_PACKET_GC_LOSSY = 0x5c`  
 
-The `public key hash` is a `jenkins_one_at_a_time_hash` of the recipient's permanent public encryption key for `HANDSHAKE_REQUEST` and `HANDSHAKE_RESPONSE` packets, or their public session key for all other packet types. This
-hash is used to identify the group that a message is intended for. Hash collitions with other groups must be handled upon creation of any key used as a group identifier.
+The sender's public encryption key is used to identify the peer who sent the packet, as well as to identify the group instance for which the packet is intended for all `NET_PACKET_GC_LOSSLESS` and `NET_PACKET_GC_LOSSY` packets. It is also used to establish a secure connection with the sender during the handshake protocol.
 
-The sender's `public encryption key` is used to identify the peer who sent the packet, and the `nonce` is used for decryption.
+The receiver's public encryption key is only sent in `NET_PACKET_GC_HANDSHAKE` packets, and is used to identify the group instance for which the packet is intended.
+
+The `nonce` is used for decryption.
 
 The encrypted header for lossless and lossy packets contains between 0 and 8 bytes of empty padding, which is used to mitigate certain types of cryptography attacks. The `group packet identifier` is used to identify the type of group packet, and the `message id` is a unique packet identifier which is used for the lossless UDP implementation.
 
