@@ -414,8 +414,7 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
 /* Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
  * Adds encrypted header consisting of: packet type, message_id (only for lossless packets).
- * Adds plaintext header consisting of: packet identifier, target public encryption key,
- * self public encryption key, nonce.
+ * Adds plaintext header consisting of: packet identifier, self public encryption key, nonce.
  *
  * Returns length of encrypted packet on success.
  * Returns -1 on failure.

@@ -30,14 +30,11 @@
 
 #ifndef VANILLA_NACL
 
-/* Size of a plaintext packet groupchat identifier. Don't change this unless you know what you're doing. */
-#define GC_PLAIN_HEADER_ID_SIZE ENC_PUBLIC_KEY_SIZE
-
 /* The minimum size of a plaintext group handshake packet */
 #define GC_MIN_HS_PACKET_PAYLOAD_SIZE (1 + ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1)
 
 /* The minimum size of an encrypted group handshake packet. */
-#define GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE (1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE +\
+#define GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE (1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE +\
                                           GC_MIN_HS_PACKET_PAYLOAD_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 
 /* Size of a group's shared state in packed format */
@@ -302,6 +299,8 @@ static bool validate_password(const GC_Chat *chat, const uint8_t *password, uint
     return true;
 }
 
+static int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed);
+
 /* Returns the chat object that contains a self_public_key equal to `id`.
  *
  * `id` must be at least ENC_PUBLIC_KEY_SIZE bytes in length.
@@ -316,6 +315,10 @@ static const GC_Chat *get_chat_by_id(const GC_Session *c, const uint8_t *id)
         const GC_Chat *chat = &c->chats[i];
 
         if (memcmp(id, chat->self_public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
+            return chat;
+        }
+
+        if (get_peer_number_of_enc_pk(chat, id, false) != -1) {
             return chat;
         }
     }
@@ -371,8 +374,9 @@ static void set_gc_topic_checksum(GC_TopicInfo *topic_info)
 
 /* Check if peer with the public encryption key is in peer list.
  *
- * Returns the peer number if peer is in the peer list. If `confirmed` is true the peer number will only
- * be returned if the peer is confirmed.
+ * Returns the peer number if peer is in the peer list.
+ *
+ * If `confirmed` is true the peer number will only be returned if the peer is confirmed.
  *
  * Returns -1 if peer is not in the peer list.
  */
@@ -1035,8 +1039,7 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
 {
     const uint16_t padding_len = group_packet_padding_length(length);
 
-    if (length + padding_len + CRYPTO_MAC_SIZE + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE\
-            + CRYPTO_NONCE_SIZE > packet_size) {
+    if (length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE > packet_size) {
         return -1;
     }
 
@@ -1073,14 +1076,13 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
     }
 
     packet[0] = net_packet_type;
-    memcpy(packet + 1, target_pk, GC_PLAIN_HEADER_ID_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE, self_pk, ENC_PUBLIC_KEY_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, encrypt, enc_len);
+    memcpy(packet + 1, self_pk, ENC_PUBLIC_KEY_SIZE);
+    memcpy(packet + 1 + ENC_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
+    memcpy(packet + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, encrypt, enc_len);
 
     free(encrypt);
 
-    return 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
+    return 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
 }
 
 /* Sends a lossy packet to peer_number in chat instance.
@@ -4795,14 +4797,14 @@ static int wrap_group_handshake_packet(const Logger *logger, const uint8_t *self
     }
 
     packet[0] = NET_PACKET_GC_HANDSHAKE;
-    memcpy(packet + 1, target_pk, GC_PLAIN_HEADER_ID_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE, self_pk, ENC_PUBLIC_KEY_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
-    memcpy(packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, encrypt, enc_len);
+    memcpy(packet + 1, self_pk, ENC_PUBLIC_KEY_SIZE);
+    memcpy(packet + 1 + ENC_PUBLIC_KEY_SIZE, target_pk, ENC_PUBLIC_KEY_SIZE);
+    memcpy(packet + 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
+    memcpy(packet + 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, encrypt, enc_len);
 
     free(encrypt);
 
-    return 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
+    return 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
 }
 
 /* Makes, wraps and encrypts a group handshake packet (both request and response are the same format).
@@ -5487,7 +5489,7 @@ static bool group_can_handle_packets(const GC_Chat *chat)
  */
 static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uint16_t length, void *userdata)
 {
-    if (length <= 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
+    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
         return -1;
     }
 
@@ -5512,13 +5514,13 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
         return -1;
     }
 
-    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, packet + 1 + GC_PLAIN_HEADER_ID_SIZE, ENC_PUBLIC_KEY_SIZE);
-
-    const uint8_t *payload = packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE;
-    const size_t payload_len = length - 1 - GC_PLAIN_HEADER_ID_SIZE - ENC_PUBLIC_KEY_SIZE;
-
     const uint8_t packet_type = packet[0];
+
+    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
+
+    const uint8_t *payload = packet + 1 + ENC_PUBLIC_KEY_SIZE;
+    size_t payload_len = length - 1 - ENC_PUBLIC_KEY_SIZE;
 
     switch (packet_type) {
         case NET_PACKET_GC_LOSSLESS: {
@@ -5538,6 +5540,14 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
         }
 
         case NET_PACKET_GC_HANDSHAKE: {
+            // handshake packets have an extra public key in plaintext header
+            if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
+                return -1;
+            }
+
+            payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
+            payload = payload + ENC_PUBLIC_KEY_SIZE;
+
             if (payload_len < GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
                 return -1;
             }
@@ -5554,7 +5564,7 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
 static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                                     const uint8_t *packet, uint16_t length, void *userdata)
 {
-    if (length <= 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
+    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
         return -1;
     }
 
@@ -5569,7 +5579,7 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
     }
 
     const GC_Session *c = m->group_handler;
-    const GC_Chat *chat = get_chat_by_id(c, packet + 1);
+    const GC_Chat *chat = get_chat_by_id(c, packet + 1 + ENC_PUBLIC_KEY_SIZE);
 
     if (chat == nullptr) {
         return -1;
@@ -5586,10 +5596,10 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
     }
 
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, packet + 1 + GC_PLAIN_HEADER_ID_SIZE, ENC_PUBLIC_KEY_SIZE);
+    memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
 
-    const uint8_t *payload = packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE;
-    const size_t payload_len = length - 1 - GC_PLAIN_HEADER_ID_SIZE - ENC_PUBLIC_KEY_SIZE;
+    const uint8_t *payload = packet + 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE;
+    const size_t payload_len = length - 1 - ENC_PUBLIC_KEY_SIZE - ENC_PUBLIC_KEY_SIZE;
 
     if (payload_len < GC_MIN_HS_PACKET_PAYLOAD_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
         return -1;
@@ -5604,7 +5614,7 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
 
 static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet, uint16_t length, void *userdata)
 {
-    if (length <= 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
+    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
         return -1;
     }
 
@@ -5618,11 +5628,22 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
         return -1;
     }
 
+    const uint8_t packet_type = packet[0];
+
+    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
+
     const GC_Session *c = m->group_handler;
-    const GC_Chat *chat = get_chat_by_id(c, packet + 1);
+
+    const GC_Chat *chat = nullptr;
+
+    if (packet_type == NET_PACKET_GC_HANDSHAKE) {
+        chat = get_chat_by_id(c, packet + 1 + ENC_PUBLIC_KEY_SIZE);
+    } else {
+        chat = get_chat_by_id(c, sender_pk);
+    }
 
     if (chat == nullptr) {
-        LOGGER_WARNING(m->log, "get_chat_by_id failed in handle_gc_udp_packet (type %u)", packet[0]);
         return -1;
     }
 
@@ -5630,13 +5651,8 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
         return -1;
     }
 
-    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, packet + 1 + GC_PLAIN_HEADER_ID_SIZE, ENC_PUBLIC_KEY_SIZE);
-
-    const uint8_t *payload = packet + 1 + GC_PLAIN_HEADER_ID_SIZE + ENC_PUBLIC_KEY_SIZE;
-    const size_t payload_len = length - 1 - GC_PLAIN_HEADER_ID_SIZE - ENC_PUBLIC_KEY_SIZE;
-
-    const uint8_t packet_type = packet[0];
+    const uint8_t *payload = packet + 1 + ENC_PUBLIC_KEY_SIZE;
+    size_t payload_len = length - 1 - ENC_PUBLIC_KEY_SIZE;
 
     switch (packet_type) {
         case NET_PACKET_GC_LOSSLESS: {
@@ -5656,6 +5672,14 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
         }
 
         case NET_PACKET_GC_HANDSHAKE: {
+            // handshake packets have an extra public key in plaintext header
+            if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
+                return -1;
+            }
+
+            payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
+            payload = payload + ENC_PUBLIC_KEY_SIZE;
+
             if (payload_len < GC_MIN_HS_PACKET_PAYLOAD_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
                 return -1;
             }
