@@ -87,14 +87,6 @@ GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number);
  */
 GC_Connection *gcc_random_connection(const GC_Chat *chat);
 
-/* Copies the encryption public key assoiciated with `gcc` to `public_key`.
- *
- * `public_key` must have room for ENC_PUBLIC_KEY_SIZE bytes. If `public_key` is
- * null this function has no effect.
- */
-void gcc_copy_enc_public_key(uint8_t *public_key, const GC_Connection *gcc);
-
-
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
                            const uint8_t *part_message, size_t length);
