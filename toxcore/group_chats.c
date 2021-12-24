@@ -5503,8 +5503,19 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
         return -1;
     }
 
+    const uint8_t packet_type = packet[0];
+
+    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
+
     const GC_Session *c = m->group_handler;
-    const GC_Chat *chat = get_chat_by_id(c, packet + 1);
+    const GC_Chat *chat = nullptr;
+
+    if (packet_type == NET_PACKET_GC_HANDSHAKE) {
+        chat = get_chat_by_id(c, packet + 1 + ENC_PUBLIC_KEY_SIZE);
+    } else {
+        chat = get_chat_by_id(c, sender_pk);
+    }
 
     if (chat == nullptr) {
         return -1;
@@ -5513,11 +5524,6 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
     if (!group_can_handle_packets(chat)) {
         return -1;
     }
-
-    const uint8_t packet_type = packet[0];
-
-    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
 
     const uint8_t *payload = packet + 1 + ENC_PUBLIC_KEY_SIZE;
     size_t payload_len = length - 1 - ENC_PUBLIC_KEY_SIZE;
@@ -5548,7 +5554,7 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
             payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
             payload = payload + ENC_PUBLIC_KEY_SIZE;
 
-            if (payload_len < GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
+            if (payload_len < GC_MIN_HS_PACKET_PAYLOAD_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
                 return -1;
             }
 
@@ -5634,7 +5640,6 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
     memcpy(sender_pk, packet + 1, ENC_PUBLIC_KEY_SIZE);
 
     const GC_Session *c = m->group_handler;
-
     const GC_Chat *chat = nullptr;
 
     if (packet_type == NET_PACKET_GC_HANDSHAKE) {
