@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define NUM_GROUP_TOXES 4
+#define NUM_GROUP_TOXES 3
 #define CODEWORD "RONALD MCDONALD"
 #define CODEWORD_LEN (sizeof(CODEWORD) - 1)
 
@@ -41,8 +41,22 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     ck_assert(length == CODEWORD_LEN);
     ck_assert(memcmp(CODEWORD, message, length) == 0);
 
-    printf("got code!", peer_id);
     state->got_code = true;
+}
+
+/*
+ * We need different constants to make TCP run smoothly. TODO(Jfreegman): is this because of the group
+ * implementation or just an autotest quirk?
+ */
+#define GROUP_ITERATION_INTERVAL 30
+static void iterate_group(Tox **toxes, uint32_t num_toxes, State *state)
+{
+    for (uint32_t i = 0; i < num_toxes; i++) {
+        tox_iterate(toxes[i], &state[i]);
+        state[i].clock += GROUP_ITERATION_INTERVAL;
+    }
+
+    c_sleep(20);
 }
 
 static void group_tcp_test(Tox **toxes, State *state)
@@ -59,7 +73,7 @@ static void group_tcp_test(Tox **toxes, State *state)
                                          (const uint8_t *)"test", 4, &new_err);
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    iterate_group(toxes, NUM_GROUP_TOXES, state);
 
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
@@ -67,16 +81,16 @@ static void group_tcp_test(Tox **toxes, State *state)
     tox_group_get_chat_id(toxes[0], groupnumber, chat_id, &id_err);
     ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", id_err);
 
+    printf("Tox 0 created new group...\n");
+
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         TOX_ERR_GROUP_JOIN jerr;
         tox_group_join(toxes[i], chat_id, (const uint8_t *)"test", 4, nullptr, 0, &jerr);
         ck_assert_msg(jerr == TOX_ERR_GROUP_JOIN_OK, "%d", jerr);
     }
 
-    printf("Tox 0 created new group...\n");
-
     while (true) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+        iterate_group(toxes, NUM_GROUP_TOXES, state);
 
         size_t count = 0;
 
@@ -102,7 +116,7 @@ static void group_tcp_test(Tox **toxes, State *state)
     }
 
     while (true) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+        iterate_group(toxes, NUM_GROUP_TOXES, state);
 
         size_t count = 0;
 
@@ -132,13 +146,15 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    struct Tox_Options *options = calloc(1, sizeof(struct Tox_Options));
+    struct Tox_Options *options = (struct Tox_Options *)calloc(1, sizeof(struct Tox_Options));
     ck_assert(options != nullptr);
 
     tox_options_default(options);
     tox_options_set_udp_enabled(options, false);
 
     run_auto_test(options, NUM_GROUP_TOXES, group_tcp_test, false);
+
+    tox_options_free(options);
 
     return 0;
 }

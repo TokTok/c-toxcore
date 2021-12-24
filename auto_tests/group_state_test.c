@@ -289,7 +289,7 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    run_auto_test(NUM_GROUP_TOXES, group_state_test, false);
+    run_auto_test(nullptr, NUM_GROUP_TOXES, group_state_test, false);
 
     return 0;
 }
