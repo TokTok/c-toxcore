@@ -392,8 +392,8 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
 
     bool direct_send_attempt = false;
 
-    if (!net_family_is_unspec(gconn->addr.ip_port.ip.family)) {
-        if (gcc_connection_is_direct(chat->mono_time, gconn)) {
+    if (gcc_direct_conn_is_possible(chat, gconn)) {
+        if (gcc_conn_is_direct(chat->mono_time, gconn)) {
             if ((uint16_t) sendpacket(chat->net, gconn->addr.ip_port, packet, length) == length) {
                 return 0;
             }
@@ -436,9 +436,14 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     return 0;
 }
 
-bool gcc_connection_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
+bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
     return ((GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time) > mono_time_get(mono_time));
+}
+
+bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn)
+{
+    return !net_family_is_unspec(gconn->addr.ip_port.ip.family) && !net_family_is_unspec(net_family(chat->net));
 }
 
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,

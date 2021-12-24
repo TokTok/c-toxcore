@@ -161,8 +161,11 @@ int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_numbe
 
 void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number);
 
-/* Return true if we have a direct connection with this peer. */
-bool gcc_connection_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+/* Return true if we have a direct connection with `gconn`. */
+bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+
+/* Return true if a direct UDP connection is possible with `gconn`. */
+bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn);
 
 /* Sends a lossless packet to the peer associated with gconn.
  *

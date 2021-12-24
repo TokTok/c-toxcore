@@ -3057,7 +3057,7 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
         return 0;
     }
 
-    if (gcc_connection_is_direct(chat->mono_time, gconn)) {
+    if (gcc_conn_is_direct(chat->mono_time, gconn)) {
         return 2;
     }
 
@@ -4883,17 +4883,17 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
         return -1;
     }
 
-    int ret1 = -1;
+    int ret = -1;
 
-    if (!net_family_is_unspec(gconn->addr.ip_port.ip.family)) {
-        ret1 = sendpacket(chat->net, gconn->addr.ip_port, packet, length);
+    if (gcc_direct_conn_is_possible(chat, gconn)) {
+        ret = sendpacket(chat->net, gconn->addr.ip_port, packet, length);
     }
 
-    int ret2 = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
-
-    if (ret1 == -1 && ret2 == -1) {
-        LOGGER_WARNING(chat->logger, "Send handshake packet failed. Type %u", request_type);
-        return -1;
+    if (ret != length) {
+        if (send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length) == -1) {
+            LOGGER_WARNING(chat->logger, "Send handshake packet failed. Type %u", request_type);
+            return -1;
+        }
     }
 
     if (request_type == HS_PEER_INFO_EXCHANGE) {
@@ -6156,7 +6156,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
         LOGGER_FATAL(chat->logger, "Packed length is impossible");
     }
 
-    if (chat->self_udp_status == SELF_UDP_STATUS_WAN && !gcc_connection_is_direct(chat->mono_time, gconn)
+    if (chat->self_udp_status == SELF_UDP_STATUS_WAN && !gcc_conn_is_direct(chat->mono_time, gconn)
             && mono_time_is_timeout(chat->mono_time, gconn->last_sent_ip_time, GC_SEND_IP_PORT_INTERVAL)) {
 
         const int packed_ipp_len = pack_ip_port(data + buf_size - sizeof(IP_Port), sizeof(IP_Port), &chat->self_ip_port);
@@ -6246,7 +6246,7 @@ static void do_gc_tcp(Messenger *m, GC_Chat *chat, void *userdata)
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
         GC_Connection *gconn = &chat->gcc[i];
-        const bool tcp_set = !gcc_connection_is_direct(chat->mono_time, gconn);
+        const bool tcp_set = !gcc_conn_is_direct(chat->mono_time, gconn);
         set_tcp_connection_to_status(chat->tcp_conn, gconn->tcp_connection_num, tcp_set);
     }
 
