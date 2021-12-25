@@ -1,7 +1,7 @@
 ## DHT-Groupchats Packet Protocol Specification
 This document specifies the use and structure of packets used by the DHT-Groupchats implementation.
 
-All packet fields are considred mandatory unless flagged as `optional`. The minimum size of a lossless packet is 86 bytes, and a lossy packet 78 bytes. The maximum size of a packet is 1400 bytes.
+All packet fields are considred mandatory unless flagged as `optional`. The minimum size of an encrypted packet is 83 bytes for lossless and 75 bytes for lossy. The maximum size of an encrypted packet is 1400 bytes.
 
 ## Table of Contents
 - [Full Packet Structure](#headers)
