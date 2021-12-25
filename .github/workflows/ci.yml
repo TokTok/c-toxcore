@@ -1,8 +1,6 @@
 name: ci
 
 on:
-  push:
-    branches: [master]
   pull_request:
     branches: [master]
 
@@ -39,7 +37,7 @@ jobs:
       - name: Cross compilation
         run: .travis/cmake-win64 script
 
-  freebsd:
+  build-freebsd:
     runs-on: ubuntu-latest
     container: toxchat/freebsd
     steps:

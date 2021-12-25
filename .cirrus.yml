@@ -19,7 +19,7 @@ cirrus-ci_task:
 
 cimple_task:
   container:
-    image: toxchat/toktok-stack:0.0.29-third_party
+    image: toxchat/toktok-stack:0.0.31-third_party
     cpu: 2
     memory: 4G
   configure_script:
