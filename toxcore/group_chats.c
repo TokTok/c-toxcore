@@ -1178,12 +1178,9 @@ static int send_gc_sync_response(const GC_Chat *chat, GC_Connection *gconn, cons
 }
 
 static int send_gc_peer_exchange(const GC_Session *c, const GC_Chat *chat, GC_Connection *gconn);
-
-static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, uint8_t handshake_type,
+static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, uint8_t handshake_type,
                                     uint8_t request_type, uint8_t join_type);
-
-static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_number, uint8_t handshake_type,
-                                        uint8_t request_type, uint8_t join_type);
+static int send_gc_oob_handshake_request(const GC_Chat *chat, GC_Connection *gconn);
 
 /* Unpacks a sync announce. If the announced peer is not already in our peer list, we attempt to
  * initiate a peer info exchange with them.
@@ -4857,16 +4854,16 @@ static int make_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
     return enc_len;
 }
 
-/* Sends a handshake packet where handshake_type is GH_REQUEST or GH_RESPONSE.
+/* Sends a handshake packet to `gconn`.
+ *
+ * Handshake_type should be is GH_REQUEST or GH_RESPONSE.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, uint8_t handshake_type,
+static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, uint8_t handshake_type,
                                     uint8_t request_type, uint8_t join_type)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
     if (gconn == nullptr) {
         return -1;
     }
@@ -4896,6 +4893,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
         }
     }
 
+
     if (request_type == HS_PEER_INFO_EXCHANGE) {
         gconn->handshaked = true;
     }
@@ -4909,16 +4907,13 @@ static int send_gc_handshake_packet(const GC_Chat *chat, uint32_t peer_number, u
     return 0;
 }
 
-/* Sends an out-of-band TCP handshake packet to peer designated by `peer_number`.
+/* Sends an out-of-band TCP handshake request packet to `gconn`.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_number, uint8_t handshake_type,
-                                        uint8_t request_type, uint8_t join_type)
+static int send_gc_oob_handshake_request(const GC_Chat *chat, GC_Connection *gconn)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
     if (gconn == nullptr) {
         return -1;
     }
@@ -4931,8 +4926,8 @@ static int send_gc_oob_handshake_packet(const GC_Chat *chat, uint32_t peer_numbe
     }
 
     uint8_t packet[GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format)];
-    const int length = make_gc_handshake_packet(chat, gconn, handshake_type, request_type, join_type, packet,
-                       sizeof(packet), node);
+    const int length = make_gc_handshake_packet(chat, gconn, GH_REQUEST, gconn->pending_handshake_type, chat->join_type,
+                       packet, sizeof(packet), node);
 
     if (length < 0) {
         LOGGER_WARNING(chat->logger, "Failed to make handshake packet");
@@ -5009,14 +5004,14 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
     return peer_number;
 }
 
-/* Sends a handshake response packet of type `request_type` to `peer_number`.
+/* Sends a handshake response packet of type `request_type` to `gconn`.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int send_gc_handshake_response(const GC_Chat *chat, uint32_t peer_number, uint8_t request_type)
+static int send_gc_handshake_response(const GC_Chat *chat, GC_Connection *gconn)
 {
-    if (send_gc_handshake_packet(chat, peer_number, GH_RESPONSE, request_type, 0) == -1) {
+    if (send_gc_handshake_packet(chat, gconn, GH_RESPONSE, gconn->pending_handshake_type, 0) == -1) {
         return -1;
     }
 
@@ -5998,7 +5993,9 @@ static bool peer_timed_out(const Mono_Time *mono_time, const GC_Chat *chat, cons
                                 : GC_UNCONFIRMED_PEER_TIMEOUT);
 }
 
-/* Sends a pending handshake packet to peer designated by `gconn`.
+/* Attempts to send pending handshake packets to peer designated by `gconn`.
+ *
+ * One request of each type can be sent per `GC_SEND_HANDSHAKE_INTERVAL` seconds.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -6009,25 +6006,27 @@ static int send_pending_handshake(const GC_Chat *chat, GC_Connection *gconn, uin
         return -1;
     }
 
-    gconn->last_handshake_attempt = mono_time_get(chat->mono_time);
-
-    int result = -1;
-
     if (gconn->is_pending_handshake_response) {
-        result = send_gc_handshake_response(chat, peer_number, gconn->pending_handshake_type);
-    } else if (gconn->is_oob_handshake) {
-        result = send_gc_oob_handshake_packet(chat, peer_number, GH_REQUEST,
-                                              gconn->pending_handshake_type, chat->join_type);
-    } else {
-        result = send_gc_handshake_packet(chat, peer_number, GH_REQUEST,
-                                          gconn->pending_handshake_type, chat->join_type);
+        if (!mono_time_is_timeout(chat->mono_time, gconn->last_handshake_response, GC_SEND_HANDSHAKE_INTERVAL)) {
+            return 0;
+        }
+
+        gconn->last_handshake_response = mono_time_get(chat->mono_time);
+
+        return send_gc_handshake_response(chat, gconn);
     }
 
-    if (result < 0) {
-        return -1;
+    if (!mono_time_is_timeout(chat->mono_time, gconn->last_handshake_request, GC_SEND_HANDSHAKE_INTERVAL)) {
+        return 0;
     }
 
-    return 0;
+    gconn->last_handshake_request = mono_time_get(chat->mono_time);
+
+    if (gconn->is_oob_handshake) {
+        return send_gc_oob_handshake_request(chat, gconn);
+    }
+
+    return send_gc_handshake_packet(chat, gconn, GH_REQUEST, gconn->pending_handshake_type, chat->join_type);
 }
 
 #define GC_TCP_RELAY_SEND_INTERVAL 120
@@ -6082,9 +6081,7 @@ static void do_handshakes(Messenger *m, int group_number)
             continue;
         }
 
-        if (mono_time_is_timeout(m->mono_time, gconn->last_handshake_attempt, GC_SEND_HANDSHAKE_INTERVAL)) {
-            send_pending_handshake(chat, gconn, i);
-        }
+        send_pending_handshake(chat, gconn, i);
     }
 }
 

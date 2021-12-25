@@ -61,14 +61,16 @@ struct GC_Connection {
     uint64_t    last_requested_packet_time;  /* The last time we requested a missing packet from this peer */
     uint64_t    last_sent_ping_time;
     uint64_t    last_sync_response;  /* the last time we sent this peer a sync response */
+    uint8_t     oob_relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
+    bool        self_is_closer; /* true if we're "closer" to the chat_id than this peer (uses real pk's) */
+
+    bool        confirmed;  /* true if this peer has given us their info */
     bool        handshaked;  /* true if we've successfully handshaked with this peer */
-    uint64_t    last_handshake_attempt;
+    uint64_t    last_handshake_request;
+    uint64_t    last_handshake_response;
     uint8_t     pending_handshake_type;
     bool        is_pending_handshake_response;
     bool        is_oob_handshake;
-    uint8_t     oob_relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    bool        confirmed;  /* true if this peer has given us their info */
-    bool        self_is_closer; /* true if we're "closer" to the chat_id than this peer (uses real pk's) */
 
     uint64_t    last_key_rotation;  /* the last time we rotated session keys for this peer */
     bool        pending_key_rotation_request;

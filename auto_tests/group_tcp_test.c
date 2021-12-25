@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#define NUM_GROUP_TOXES 3
+#define NUM_GROUP_TOXES 2
 #define CODEWORD "RONALD MCDONALD"
 #define CODEWORD_LEN (sizeof(CODEWORD) - 1)
 
@@ -37,6 +37,7 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
         const uint8_t *message, size_t length, void *user_data)
 {
     State *state = (State *)user_data;
+
     ck_assert(state != nullptr);
     ck_assert(length == CODEWORD_LEN);
     ck_assert(memcmp(CODEWORD, message, length) == 0);
@@ -48,20 +49,21 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
  * We need different constants to make TCP run smoothly. TODO(Jfreegman): is this because of the group
  * implementation or just an autotest quirk?
  */
-#define GROUP_ITERATION_INTERVAL 30
-static void iterate_group(Tox **toxes, uint32_t num_toxes, State *state)
+#define GROUP_ITERATION_INTERVAL 100
+static void iterate_group(Tox **toxes, uint32_t num_toxes, State *state, size_t interval)
 {
     for (uint32_t i = 0; i < num_toxes; i++) {
         tox_iterate(toxes[i], &state[i]);
-        state[i].clock += GROUP_ITERATION_INTERVAL;
+        state[i].clock += interval;
     }
 
-    c_sleep(20);
+    c_sleep(50);
 }
 
 static void group_tcp_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
+    ck_assert(NUM_GROUP_TOXES >= 2);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
@@ -73,7 +75,7 @@ static void group_tcp_test(Tox **toxes, State *state)
                                          (const uint8_t *)"test", 4, &new_err);
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
-    iterate_group(toxes, NUM_GROUP_TOXES, state);
+    iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
 
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
@@ -87,10 +89,11 @@ static void group_tcp_test(Tox **toxes, State *state)
         TOX_ERR_GROUP_JOIN jerr;
         tox_group_join(toxes[i], chat_id, (const uint8_t *)"test", 4, nullptr, 0, &jerr);
         ck_assert_msg(jerr == TOX_ERR_GROUP_JOIN_OK, "%d", jerr);
+        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL * 10);
     }
 
     while (true) {
-        iterate_group(toxes, NUM_GROUP_TOXES, state);
+        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
 
         size_t count = 0;
 
@@ -116,7 +119,7 @@ static void group_tcp_test(Tox **toxes, State *state)
     }
 
     while (true) {
-        iterate_group(toxes, NUM_GROUP_TOXES, state);
+        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
 
         size_t count = 0;
 
@@ -159,4 +162,7 @@ int main(void)
     return 0;
 }
 
+#undef NUM_GROUP_TOXES
+#undef CODEWORD_LEN
+#undef CODEWORD
 
