@@ -244,8 +244,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     temp->password_length = net_htons(chat->shared_state.password_length);
     memcpy(temp->password, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
     memcpy(temp->mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE);
-    temp->topic_lock = chat->shared_state.topic_lock;
-
+    temp->topic_lock = net_htonl(chat->shared_state.topic_lock);
     temp->topic_length = net_htons(chat->topic_info.length);
     memcpy(temp->topic, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
     memcpy(temp->topic_public_sig_key, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE);
@@ -1951,7 +1950,8 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
         IP_Port ip_port = {0};
 
-        if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE, length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
+        if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE,
+                           length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
         }
     }
@@ -6599,7 +6599,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     chat->shared_state.password_length = net_ntohs(save->password_length);
     memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
     memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, GC_MODERATION_HASH_SIZE);
-    chat->shared_state.topic_lock = save->topic_lock;
+    chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
 
     chat->topic_info.length = net_ntohs(save->topic_length);
     memcpy(chat->topic_info.topic, save->topic, MAX_GC_TOPIC_SIZE);
@@ -6824,8 +6824,13 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
         m_kill_group_connection(c->messenger, chat);
 
         if (m_create_group_connection(c->messenger, chat) == -1) {
+            LOGGER_WARNING(chat->logger, "Failed to create new messenger connection for group");
             return -2;
         }
+
+        chat->join_type = HJ_PUBLIC;
+    } else {
+        chat->join_type = HJ_PRIVATE;
     }
 
     load_gc_peers(c->messenger, chat, peers, num_addrs);

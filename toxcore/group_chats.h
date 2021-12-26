@@ -81,7 +81,7 @@ typedef enum Group_Invite_Message_Type {
     GROUP_INVITE_CONFIRMATION = 0x02,  // Peer has confirmed the accepted invite
 } Group_Invite_Message_Type;
 
-/*
+/**
  * Group roles. Roles are hierarchical in that each role has a set of privileges plus
  * all the privileges of the roles below it.
  */
@@ -116,7 +116,7 @@ typedef enum GC_Conn_State {
     CS_CONNECTED    = 0x03,  // Has successfully received a sync response from a peer in the group
 } GC_Conn_State;
 
-/*
+/**
  * Group save connection state.
  *
  * Used to determine whether or not a group should auto-connect the next time it's loaded.
@@ -132,6 +132,7 @@ typedef enum Group_Handshake_Join_Type {
     HJ_PRIVATE = 0x01,  // Indicates the group was joined via a friend invite
 } Group_Handshake_Join_Type;
 
+/* Group join rejection types. */
 typedef enum Group_Join_Rejected {
     GJ_GROUP_FULL       = 0x00,
     GJ_INVALID_PASSWORD = 0x01,
@@ -139,19 +140,20 @@ typedef enum Group_Join_Rejected {
     GJ_INVALID          = 0x03,
 } Group_Join_Rejected;
 
+/* Group broadcast packet types */
 typedef enum Group_Broadcast_Type {
-    GM_STATUS          = 0x00,
-    GM_NICK            = 0x01,
-    GM_PLAIN_MESSAGE   = 0x02,
-    GM_ACTION_MESSAGE  = 0x03,
-    GM_PRIVATE_MESSAGE = 0x04,
-    GM_PEER_EXIT       = 0x05,
-    GM_KICK_PEER       = 0x06,
-    GM_SET_MOD         = 0x07,
-    GM_SET_OBSERVER    = 0x08,
+    GM_STATUS          = 0x00,  // Peer changed their status
+    GM_NICK            = 0x01,  // Peer changed their nickname
+    GM_PLAIN_MESSAGE   = 0x02,  // Peer sent a normal message
+    GM_ACTION_MESSAGE  = 0x03,  // Peer sent an action message
+    GM_PRIVATE_MESSAGE = 0x04,  // Peer sent a private message
+    GM_PEER_EXIT       = 0x05,  // Peer left the group
+    GM_KICK_PEER       = 0x06,  // Peer was kicked from the group
+    GM_SET_MOD         = 0x07,  // Peer was promoted to or demoted from Moderator role
+    GM_SET_OBSERVER    = 0x08,  // Peer was demoted to or promoted from Observer role
 } Group_Broadcast_Type;
 
-/*
+/**
  * Group packet types.
  *
  * For a detailed spec, see docs/DHT_Group_Chats_Packet_Spec.md
