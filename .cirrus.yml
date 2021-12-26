@@ -16,6 +16,7 @@ cirrus-ci_task:
         --
         //c-toxcore/...
         -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
+        -//c-toxcore/auto_tests:group_tcp_test
 
 cimple_task:
   container:
