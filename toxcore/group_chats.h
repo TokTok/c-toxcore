@@ -267,7 +267,7 @@ struct Saved_Group {
     uint16_t  password_length;
     uint8_t   password[MAX_GC_PASSWORD_SIZE];
     uint8_t   mod_list_hash[GC_MODERATION_HASH_SIZE];
-    uint8_t   topic_lock;
+    uint32_t   topic_lock;
 
     /* Topic info */
     uint16_t  topic_length;

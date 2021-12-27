@@ -956,11 +956,13 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
 static int sign_gc_shared_state(GC_Chat *chat)
 {
     if (!self_gc_is_founder(chat)) {
+        LOGGER_ERROR(chat->logger, "Failed to sign shared state (invalid permission)");
         return -1;
     }
 
     if (chat->shared_state.version != UINT32_MAX) { /* improbable, but an overflow would break everything */
         ++chat->shared_state.version;
+        LOGGER_WARNING(chat->logger, "Shared state version wraparound");
     }
 
     uint8_t shared_state[GC_PACKED_SHARED_STATE_SIZE];
@@ -968,6 +970,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
 
     if (packed_len != GC_PACKED_SHARED_STATE_SIZE) {
         --chat->shared_state.version;
+        LOGGER_ERROR(chat->logger, "Failed to pack shared state");
         return -1;
     }
 
@@ -976,6 +979,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
 
     if (ret != 0) {
         --chat->shared_state.version;
+        LOGGER_ERROR(chat->logger, "Failed to sign shared state (%d)", ret);
     }
 
     return ret;
