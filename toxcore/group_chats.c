@@ -2294,10 +2294,14 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
         if (is_public_chat(chat)) {
             if (m_create_group_connection(c->messenger, chat) == -1) {
                 LOGGER_ERROR(chat->logger, "Failed to initialize group friend connection");
+            } else {
+                chat->update_self_announces = true;
+                chat->join_type = HJ_PUBLIC;
             }
-        } else if (chat->shared_state.privacy_state == GI_PRIVATE) {
+        } else {
             m_kill_group_connection(c->messenger, chat);
             cleanup_gca(c->announces_list, get_chat_id(chat->chat_public_key));
+            chat->join_type = HJ_PRIVATE;
         }
     }
 
@@ -2662,7 +2666,6 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     // this may occur if two mods change the sanctions list at the exact same time
     if (creds.version == chat->moderation.sanctions_creds.version
             && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
-        LOGGER_DEBUG(m->log, "Got same version sanctions list version; discarding");
         free(sanctions);
         return 0;
     }
@@ -4119,9 +4122,13 @@ int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_S
     if (new_privacy_state == GI_PRIVATE) {
         cleanup_gca(c->announces_list, get_chat_id(chat->chat_public_key));
         m_kill_group_connection(c->messenger, chat);
+        chat->join_type = HJ_PRIVATE;
     } else {
         if (m_create_group_connection(c->messenger, chat) == -1) {
             LOGGER_ERROR(chat->logger, "Failed to initialize group friend connection");
+        } else {
+            chat->update_self_announces = true;
+            chat->join_type = HJ_PUBLIC;
         }
     }
 
@@ -6440,7 +6447,7 @@ static int init_gc_tcp_connection(Messenger *m, GC_Chat *chat)
 static void init_gc_shared_state(GC_Chat *chat)
 {
     chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
-    chat->shared_state.privacy_state = GI_PRIVATE;
+    chat->shared_state.privacy_state = GI_PUBLIC;
     chat->shared_state.topic_lock = 0;
 }
 
@@ -6585,7 +6592,7 @@ static void load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *a
 
         gconn->is_oob_handshake = add_tcp_result == 0;
         gconn->is_pending_handshake_response = false;
-        gconn->pending_handshake_type = HS_INVITE_REQUEST;
+        gconn->pending_handshake_type = HS_PEER_INFO_EXCHANGE;
         gconn->last_received_ping_time = tm;
         gconn->last_key_rotation = tm;
     }
@@ -6609,7 +6616,6 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     chat->group_number = group_number;
     chat->numpeers = 0;
     chat->connection_state = is_active_chat ? CS_CONNECTING : CS_DISCONNECTED;
-    chat->join_type = HJ_PRIVATE;
     chat->net = m->net;
     chat->mono_time = m->mono_time;
     chat->logger = m->log;
@@ -6626,6 +6632,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
     memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, GC_MODERATION_HASH_SIZE);
     chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
+
+    chat->join_type = is_public_chat(chat) ? HJ_PUBLIC : HJ_PRIVATE;
 
     chat->topic_info.length = net_ntohs(save->topic_length);
     memcpy(chat->topic_info.topic, save->topic, MAX_GC_TOPIC_SIZE);
@@ -6854,9 +6862,7 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
             return -2;
         }
 
-        chat->join_type = HJ_PUBLIC;
-    } else {
-        chat->join_type = HJ_PRIVATE;
+        chat->update_self_announces = true;
     }
 
     load_gc_peers(c->messenger, chat, peers, num_addrs);
@@ -7435,7 +7441,7 @@ int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_
         return -1;
     }
 
-    if (gc_get_privacy_state(chat) == GI_PRIVATE) {
+    if (!is_public_chat(chat)) {
         return 0;
     }
 
@@ -7499,3 +7505,4 @@ int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_
 }
 
 #endif
+
