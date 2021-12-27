@@ -15,9 +15,8 @@ cirrus-ci_task:
         --config=release
         --
         //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
-        -//c-toxcore/auto_tests:group_tcp_test
-
+        -//c-toxcore/auto_tests:tcp_relay_test
+        -//c-toxcore/auto_tests:group_tcp_test # TODO(robinlinden): Why do these pass locally but not in Cirrus?
 cimple_task:
   container:
     image: toxchat/toktok-stack:0.0.31-third_party

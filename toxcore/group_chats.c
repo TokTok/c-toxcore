@@ -9,7 +9,6 @@
 
 #include "group_chats.h"
 
-#include <assert.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -104,11 +103,11 @@ typedef enum Group_Handshake_Request_Type {
     HS_PEER_INFO_EXCHANGE = 0x01,   // Requests a peer info exchange
 } Group_Handshake_Request_Type;
 
-/* These flags determine what group state info a peer is requesting in a sync request */
+/* Theses bitmasks determine what group state info a peer is requesting in a sync request */
 typedef enum Group_Sync_Flags {
-    GF_PEER_LIST  = (1 << 0),
-    GF_TOPIC      = (1 << 1),
-    GF_STATE      = (1 << 2),
+    GF_PEERS      = (1 << 0), // 1
+    GF_TOPIC      = (1 << 1), // 2
+    GF_STATE      = (1 << 2), // 4
 } Group_Sync_Flags;
 
 
@@ -962,6 +961,7 @@ static int sign_gc_shared_state(GC_Chat *chat)
 
     if (chat->shared_state.version != UINT32_MAX) { /* improbable, but an overflow would break everything */
         ++chat->shared_state.version;
+    } else {
         LOGGER_WARNING(chat->logger, "Shared state version wraparound");
     }
 
@@ -997,7 +997,10 @@ static int sign_gc_shared_state(GC_Chat *chat)
 static int group_packet_unwrap(const Logger *logger, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
-    assert(length > CRYPTO_NONCE_SIZE);
+    if (length <= CRYPTO_NONCE_SIZE) {
+        LOGGER_FATAL(logger, "Invalid packet length: %u", length);
+        return -1;
+    }
 
     uint8_t plain[MAX_GC_PACKET_SIZE];
     int plain_len = decrypt_data_symmetric(gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
@@ -1431,7 +1434,7 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if (!(sync_flags & GF_PEER_LIST)) {
+    if (!(sync_flags & GF_PEERS)) {
         return 0;
     }
 
@@ -1618,7 +1621,7 @@ static int handle_gc_invite_response(const Messenger *m, int group_number, GC_Co
         return -1;
     }
 
-    uint16_t sync_flags = GF_PEER_LIST;
+    uint16_t sync_flags = GF_PEERS;
 
     if (mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
         chat->last_sync_request = mono_time_get(chat->mono_time);
@@ -1876,7 +1879,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     unpacked_len += sizeof(uint16_t);
 
     if (unpacked_len != GC_PING_PACKET_MIN_DATA_SIZE) {
-        LOGGER_FATAL(chat->logger, "Unpacked length is impossible");
+        LOGGER_FATAL(chat->logger, "Unpacked length is impossible (%zu)", unpacked_len);
         return false;
     }
 
@@ -1884,7 +1887,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
 
     if (peers_checksum != chat->peers_checksum) {
         if (peer_count >= (uint16_t) get_gc_confirmed_numpeers(chat)) {
-            sync_flags |= GF_PEER_LIST;
+            sync_flags |= GF_PEERS;
         }
     }
 
@@ -4752,7 +4755,10 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
 static int unwrap_group_handshake_packet(const Logger *logger, const uint8_t *self_sk, const uint8_t *sender_pk,
         uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
 {
-    assert(length > CRYPTO_NONCE_SIZE);
+    if (length <= CRYPTO_NONCE_SIZE) {
+        LOGGER_FATAL(logger, "Invalid packet length %u", length);
+        return -1;
+    }
 
     const int plain_len = decrypt_data(sender_pk, self_sk, packet, packet + CRYPTO_NONCE_SIZE,
                                        length - CRYPTO_NONCE_SIZE, plain);
@@ -4777,7 +4783,10 @@ static int wrap_group_handshake_packet(const Logger *logger, const uint8_t *self
                                        const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
                                        const uint8_t *data, uint16_t length)
 {
-    assert(packet_size == GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format));
+    if (packet_size != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format)) {
+        LOGGER_FATAL(logger, "Invalid packet size: %u", packet_size);
+        return -1;
+    }
 
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
@@ -4820,7 +4829,10 @@ static int make_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
                                     uint8_t request_type, uint8_t join_type, uint8_t *packet, size_t packet_size,
                                     Node_format *node)
 {
-    assert(packet_size == GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format));
+    if (packet_size != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format)) {
+        LOGGER_FATAL(chat->logger, "invlaid packet size: %zu", packet_size);
+        return -1;
+    }
 
     if (chat == nullptr || gconn == nullptr || node == nullptr) {
         return -1;
@@ -4957,6 +4969,11 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
         return -1;
     }
 
+    if (length < ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1) {  // should be checked at lower level
+        LOGGER_FATAL(chat->logger, "Invlaid handshake response size (%u)", length);
+        return -1;
+    }
+
     const int peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
 
     if (peer_number == -1) {
@@ -4983,26 +5000,26 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
 
     const uint8_t request_type = data[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
-    int ret;
-
     switch (request_type) {
         case HS_INVITE_REQUEST: {
-            ret = send_gc_invite_request(chat, gconn);
+            if (send_gc_invite_request(chat, gconn) == -1) {
+                return -1;
+            }
+
             break;
         }
 
         case HS_PEER_INFO_EXCHANGE: {
-            ret = send_gc_peer_exchange(m->group_handler, chat, gconn);
+            if (send_gc_peer_exchange(m->group_handler, chat, gconn) == -1) {
+                return -1;
+            }
+
             break;
         }
 
         default: {
             return -1;
         }
-    }
-
-    if (ret == -1) {
-        return -1;
     }
 
     return peer_number;
@@ -5038,6 +5055,11 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
     GC_Chat *chat = gc_get_group(m->group_handler, group_number);
 
     if (chat == nullptr) {
+        return -1;
+    }
+
+    if (length < ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1) {  // should be checked at lower level
+        LOGGER_FATAL(chat->logger, "Invalid length (%u)", length);
         return -1;
     }
 
@@ -5092,7 +5114,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
     gcc_set_ip_port(gconn, ipp);
 
     Node_format node[GCA_MAX_ANNOUNCED_TCP_RELAYS];
-    int processed = ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1;
+    const int processed = ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1;
 
     const int nodes_count = unpack_nodes(node, GCA_MAX_ANNOUNCED_TCP_RELAYS, nullptr,
                                          data + processed, length - processed, 1);
