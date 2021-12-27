@@ -7435,6 +7435,10 @@ int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_
         return -1;
     }
 
+    if (gc_get_privacy_state(chat) == GI_PRIVATE) {
+        return 0;
+    }
+
     int added_peers = 0;
 
     for (uint8_t i = 0; i < gc_announces_count; ++i) {
