@@ -85,6 +85,13 @@
 /* How often we rotate session encryption keys with a peer */
 #define GC_KEY_ROTATION_TIMEOUT (5 * 60)
 
+/* How often we try to reconnect to peers that recently timed out */
+#define GC_TIMED_OUT_RECONN_TIMEOUT (GC_UNCONFIRMED_PEER_TIMEOUT * 3)
+
+/* How long before we stop trying to reconnect with a timed out peer */
+#define GC_TIMED_OUT_STALE_TIMEOUT (60 * 15)
+
+
 /* Types of broadcast messages. */
 typedef enum Group_Message_Type {
     GC_MESSAGE_TYPE_NORMAL = 0x00,
@@ -564,6 +571,14 @@ static int expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
     return ret;
 }
 
+/* Copies peer connect info from `gconn` to `addr`. */
+static void copy_gc_peer_addr(const GC_Connection *gconn, GC_SavedPeerInfo *addr)
+{
+    gcc_copy_tcp_relay(&addr->tcp_relay, gconn);
+    memcpy(&addr->ip_port, &gconn->addr.ip_port, sizeof(IP_Port));
+    memcpy(addr->public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
+}
+
 uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t max_addrs)
 {
     uint16_t num = 0;
@@ -572,9 +587,7 @@ uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t
         const GC_Connection *gconn = &chat->gcc[i];
 
         if (gconn->confirmed || chat->connection_state != CS_CONNECTED) {
-            gcc_copy_tcp_relay(&addrs[num].tcp_relay, gconn);
-            memcpy(&addrs[num].ip_port, &gconn->addr.ip_port, sizeof(IP_Port));
-            memcpy(addrs[num].public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
+            copy_gc_peer_addr(gconn, &addrs[num]);
             ++num;
         }
     }
@@ -5997,8 +6010,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     gconn->last_key_rotation = tm;
     gconn->tcp_connection_num = tcp_connection_num;
     gconn->last_sent_ip_time = tm;
-    gconn->last_sent_ping_time = tm + (peer_number % (GC_PING_TIMEOUT / 2));
-
+    gconn->last_sent_ping_time = (tm - GC_PING_TIMEOUT) + (3 + (peer_number % 3));
     gconn->self_is_closer = id_closest(get_chat_id(chat->chat_public_key),
                                        get_enc_key(chat->self_public_key),
                                        get_enc_key(gconn->addr.public_key)) == 1;
@@ -6086,7 +6098,9 @@ static void do_peer_connections(Messenger *m, int group_number, void *userdata)
         gcc_resend_packets(m, chat, i);
 
         if (chat->new_tcp_relay || (gconn->tcp_relays_count == 0 &&
-                                    mono_time_is_timeout(chat->mono_time, gconn->last_sent_tcp_relays_time, GC_TCP_RELAY_SEND_INTERVAL))) {
+                                    mono_time_is_timeout(chat->mono_time,
+                                            gconn->last_sent_tcp_relays_time,
+                                            GC_TCP_RELAY_SEND_INTERVAL))) {
             if (gconn->confirmed) {
                 send_gc_tcp_relays(m->mono_time, chat, gconn);
                 gconn->last_sent_tcp_relays_time = mono_time_get(chat->mono_time);
@@ -6118,6 +6132,19 @@ static void do_handshakes(Messenger *m, int group_number)
     }
 }
 
+/* Adds `gconn` to the group timeout list. */
+static void add_gc_peer_timeout_list(GC_Chat *chat, const GC_Connection *gconn)
+{
+    const size_t idx = chat->timeout_list_index;
+    const uint64_t tm = mono_time_get(chat->mono_time);
+
+    copy_gc_peer_addr(gconn, &chat->timeout_list[idx].addr);
+
+    chat->timeout_list[idx].last_seen = tm;
+    chat->timeout_list[idx].last_reconn_try = 0;
+    chat->timeout_list_index = (idx + 1) % MAX_GC_SAVED_TIMEOUTS;
+}
+
 static void do_peer_delete(Messenger *m, int group_number, void *userdata)
 {
     GC_Chat *chat = gc_get_group(m->group_handler, group_number);
@@ -6131,6 +6158,10 @@ static void do_peer_delete(Messenger *m, int group_number, void *userdata)
 
         if (gconn->pending_delete) {
             GC_Exit_Info *exit_info = &gconn->exit_info;
+
+            if (exit_info->exit_type == GC_EXIT_TYPE_TIMEOUT && gconn->confirmed) {
+                add_gc_peer_timeout_list(chat, gconn);
+            }
 
             if (peer_delete(m, group_number, i, exit_info->exit_type, exit_info->part_message, exit_info->length,
                             userdata) == -1) {
@@ -6318,6 +6349,47 @@ static void do_self_connection(Messenger *m, GC_Chat *chat)
     chat->last_self_announce_check = mono_time_get(chat->mono_time);
 }
 
+static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
+
+/* Attempts to initiate a new connection with peers in the timeout list.
+ *
+ * This function is not used for public groups as the DHT and group sync mechanism
+ * should automatically do this for us.
+ */
+static void do_timed_out_reconn(Messenger *m, GC_Chat *chat)
+{
+    if (is_public_chat(chat)) {
+        return;
+    }
+
+    const uint64_t curr_time = mono_time_get(chat->mono_time);
+
+    for (size_t i = 0; i < MAX_GC_SAVED_TIMEOUTS; ++i) {
+        GC_TimedOutPeer *timeout = &chat->timeout_list[i];
+
+        if (timeout->last_seen == 0 || timeout->last_seen == curr_time) {
+            continue;
+        }
+
+        if (mono_time_is_timeout(chat->mono_time, timeout->last_seen, GC_TIMED_OUT_STALE_TIMEOUT)
+                || get_peer_number_of_enc_pk(chat, timeout->addr.public_key, true) != -1) {
+            *timeout = (GC_TimedOutPeer) {
+                0,
+            };
+
+            continue;
+        }
+
+        if (mono_time_is_timeout(chat->mono_time, timeout->last_reconn_try, GC_TIMED_OUT_RECONN_TIMEOUT)) {
+            if (load_gc_peers(m, chat, &timeout->addr, 1) != 1) {
+                LOGGER_WARNING(chat->logger, "Failed to load timed out peer");
+            }
+
+            timeout->last_reconn_try = curr_time;
+        }
+    }
+}
+
 void do_gc(GC_Session *c, void *userdata)
 {
     if (c == nullptr) {
@@ -6345,6 +6417,7 @@ void do_gc(GC_Session *c, void *userdata)
         if (chat->connection_state == CS_CONNECTED) {
             do_gc_ping_and_key_rotation(chat);
             do_new_connection_cooldown(chat);
+            do_timed_out_reconn(c->messenger, chat);
         }
     }
 }
@@ -6548,9 +6621,13 @@ static int init_gc_sanctions_creds(GC_Chat *chat)
 
 /* Attempts to add `num_addrs` peers from `addrs` to our peerlist and initiate invite requests
  * for all of them.
+ *
+ * Returns the number of peers successfully loaded.
  */
-static void load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs)
+static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs)
 {
+    size_t count = 0;
+
     for (size_t i = 0; i < num_addrs && i < MAX_GC_PEER_ADDRS; ++i) {
         const bool ip_port_is_set = ipport_isset(&addrs[i].ip_port);
         const IP_Port *ip_port = ip_port_is_set ? &addrs[i].ip_port : nullptr;
@@ -6595,7 +6672,11 @@ static void load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *a
         gconn->pending_handshake_type = HS_PEER_INFO_EXCHANGE;
         gconn->last_received_ping_time = tm;
         gconn->last_key_rotation = tm;
+
+        ++count;
     }
+
+    return count;
 }
 
 int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)

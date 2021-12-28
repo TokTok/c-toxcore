@@ -26,7 +26,7 @@
 #define MAX_GC_SAVED_INVITES 50
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_PACKET_SIZE (uint16_t) 1400
-
+#define MAX_GC_SAVED_TIMEOUTS 12
 #define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
 #define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
@@ -212,10 +212,17 @@ typedef struct GC_PeerAddress {
 } GC_PeerAddress;
 
 typedef struct GC_SavedPeerInfo {
-    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     public_key[ENC_PUBLIC_KEY_SIZE];
     Node_format tcp_relay;
     IP_Port     ip_port;
 } GC_SavedPeerInfo;
+
+/* Holds info about peers who recently timed out */
+typedef struct GC_TimedOutPeer {
+    GC_SavedPeerInfo addr;
+    uint64_t    last_seen;  // the time the peer disconnected
+    uint64_t    last_reconn_try;  // the last time we tried to establish a new connection
+} GC_TimedOutPeer;
 
 typedef struct GC_GroupPeer {
     Group_Role  role;
@@ -348,6 +355,9 @@ typedef struct GC_Chat {
 
     int32_t     saved_invites[MAX_GC_SAVED_INVITES];
     uint8_t     saved_invites_index;
+
+    GC_TimedOutPeer timeout_list[MAX_GC_SAVED_TIMEOUTS];
+    size_t      timeout_list_index;
 
     bool        update_self_announces;  // true if we should try to update our announcements
     uint64_t    last_self_announce_check;  // the last time we checked if we should update our announcements
