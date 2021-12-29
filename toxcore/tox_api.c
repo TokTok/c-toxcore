@@ -92,13 +92,21 @@ struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
     }
 
     struct Tox_Options default_options = { 0 };
+
     *options = default_options;
+
     tox_options_set_ipv6_enabled(options, true);
+
     tox_options_set_udp_enabled(options, true);
+
     tox_options_set_proxy_type(options, TOX_PROXY_TYPE_NONE);
+
     tox_options_set_hole_punching_enabled(options, true);
+
     tox_options_set_local_discovery_enabled(options, true);
+
     tox_options_set_experimental_thread_safety(options, false);
+
     return options;
 }
 
