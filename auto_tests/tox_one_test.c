@@ -111,7 +111,10 @@ static void test_one(void)
     tox_self_get_secret_key(tox2, sk);
     tox_kill(tox2);
 
-    tox_options_default(options);
+    tox_options_free(options);
+    options = tox_options_new(nullptr);
+    ck_assert(options != nullptr);
+
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
     tox_options_set_savedata_data(options, sk, sizeof(sk));
     tox2 = tox_new_log(options, &err_n, &index[1]);
