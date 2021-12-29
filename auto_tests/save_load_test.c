@@ -12,7 +12,7 @@
 #include "../toxcore/util.h"
 #include "check_compat.h"
 
-/* The Travis-CI container responds poorly to ::1 as a localhost address
+/* The CI containers respond poorly to ::1 as a localhost address
  * You're encouraged to -D FORCE_TESTS_IPV6 on a local test  */
 #ifdef TOX_LOCALHOST
 #undef TOX_LOCALHOST
