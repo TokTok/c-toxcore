@@ -51,7 +51,8 @@ TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con);
 bool tcp_con_ev_is_active(TCP_Client_Connection *con);
 
 typedef void tcp_con_ev_listen_cb(struct ev_loop *dispatcher, ev_io *sock_listener, int events);
-void tcp_con_ev_listen(TCP_Client_Connection *con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback, void *data);
+void tcp_con_ev_listen(TCP_Client_Connection *con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback,
+                       void *data);
 #endif
 void tcp_con_ev_stop(TCP_Client_Connection *con);
 
