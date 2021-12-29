@@ -12,6 +12,10 @@
 #include "TCP_server.h"
 #include "crypto_core.h"
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #define TCP_CONNECTION_TIMEOUT 10
 
 typedef enum TCP_Proxy_Type {
@@ -42,6 +46,14 @@ const uint8_t *tcp_con_public_key(const TCP_Client_Connection *con);
 IP_Port tcp_con_ip_port(const TCP_Client_Connection *con);
 Socket tcp_con_sock(const TCP_Client_Connection *con);
 TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con);
+
+#ifdef HAVE_LIBEV
+bool tcp_con_ev_is_active(TCP_Client_Connection *con);
+
+typedef void tcp_con_ev_listen_cb(struct ev_loop *dispatcher, ev_io *sock_listener, int events);
+void tcp_con_ev_listen(TCP_Client_Connection *con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback, void *data);
+#endif
+void tcp_con_ev_stop(TCP_Client_Connection *con);
 
 void *tcp_con_custom_object(const TCP_Client_Connection *con);
 uint32_t tcp_con_custom_uint(const TCP_Client_Connection *con);

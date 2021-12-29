@@ -864,10 +864,10 @@ static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, 
     }
 
     Event_Arg *tmp = (Event_Arg *) listener->data;
-    Messenger *m = tmp->tox;
+    Messenger *m = tmp->tox->m;
 
-    if (ev_is_active(&m->net->sock_listener.listener) || ev_is_pending(&m->net->sock_listener.listener)) {
-        ev_io_stop(dispatcher, &m->net->sock_listener.listener);
+    if (net_ev_is_active(m->net)) {
+        net_ev_stop(m->net);
     }
 
     uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
@@ -875,9 +875,8 @@ static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, 
     for (uint32_t i = 0; i < len; ++i) {
         const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
 
-        if (ev_is_active(&conn->connection->sock_listener.listener)
-                || ev_is_pending(&conn->connection->sock_listener.listener)) {
-            ev_io_stop(dispatcher, &conn->connection->sock_listener.listener);
+        if (tcp_con_ev_is_active(conn->connection)) {
+            tcp_con_ev_stop(conn->connection);
         }
     }
 
@@ -893,7 +892,8 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
     }
 
     Event_Arg *tmp = (Event_Arg *)sock_listener->data;
-    Messenger *m = tmp->tox->m;
+    Tox *tox = tmp->tox;
+    Messenger *m = tox->m;
 
     if (tmp->tox->loop_begin_callback) {
         tmp->tox->loop_begin_callback(tmp->tox, tmp->user_data);
@@ -901,11 +901,8 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
 
     tox_iterate(tmp->tox, tmp->user_data);
 
-    if (!ev_is_active(&m->net->sock_listener.listener) && !ev_is_pending(&m->net->sock_listener.listener)) {
-        m->net->sock_listener.dispatcher = dispatcher;
-        ev_io_init(&m->net->sock_listener.listener, tox_do_iterate, net_sock(m->net), EV_READ);
-        m->net->sock_listener.listener.data = sock_listener->data;
-        ev_io_start(dispatcher, &m->net->sock_listener.listener);
+    if (!net_ev_is_active(m->net)) {
+        net_ev_listen(m->net, dispatcher, tox_do_iterate, tmp);
     }
 
     uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
@@ -913,17 +910,13 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
     for (uint32_t i = 0; i < len; ++i) {
         const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
 
-        if (!ev_is_active(&conn->connection->sock_listener.listener)
-                && !ev_is_pending(&conn->connection->sock_listener.listener)) {
-            conn->connection->sock_listener.dispatcher = dispatcher;
-            ev_io_init(&conn->connection->sock_listener.listener, tox_do_iterate, tcp_con_sock(conn->connection), EV_READ);
-            conn->connection->sock_listener.listener.data = sock_listener->data;
-            ev_io_start(m->dispatcher, &conn->connection->sock_listener.listener);
+        if (!tcp_con_ev_is_active(conn->connection)) {
+            tcp_con_ev_listen(conn->connection, dispatcher, tox_do_iterate, tmp);
         }
     }
 
-    if (m->loop_end_callback) {
-        m->loop_end_callback(m, tmp->user_data);
+    if (tox->loop_end_callback) {
+        tox->loop_end_callback(tox, tmp->user_data);
     }
 }
 #else
