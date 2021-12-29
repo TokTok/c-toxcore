@@ -11,6 +11,7 @@ clang++ -o /dev/null amalgamation.cc \
   -Weverything \
   -Wno-alloca \
   -Wno-c++98-compat-pedantic \
+  -Wno-c11-extensions \
   -Wno-c99-extensions \
   -Wno-conversion \
   -Wno-covered-switch-default \
