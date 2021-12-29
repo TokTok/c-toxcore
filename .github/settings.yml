@@ -12,6 +12,7 @@ branches:
     protection:
       required_status_checks:
         contexts:
+          - bazel-release
           - build-bootstrapd-docker
           - build-compcert
           - build-macos
@@ -26,7 +27,6 @@ branches:
           - "ci/circleci: static-analysis"
           - "ci/circleci: tsan"
           - cimple
-          - cirrus-ci
           - code-review/reviewable
           - continuous-integration/appveyor/pr
 

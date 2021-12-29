@@ -16,10 +16,6 @@
 #include "net_crypto.h"
 #include "state.h"
 
-#ifdef HAVE_LIBEV
-#include <ev.h>
-#endif
-
 #define MAX_NAME_LENGTH 128
 /* TODO(irungentoo): this must depend on other variable. */
 #define MAX_STATUSMESSAGE_LENGTH 1007
@@ -294,13 +290,6 @@ struct Messenger {
 
     m_self_connection_status_cb *core_connection_change;
     unsigned int last_connection_status;
-
-#ifdef HAVE_LIBEV
-    struct ev_loop *dispatcher;
-    ev_async stop_loop;
-#else
-    bool loop_run;
-#endif
 
     Messenger_Options options;
 };
