@@ -58,13 +58,6 @@ static_assert(TOX_MAX_NAME_LENGTH == MAX_NAME_LENGTH,
 static_assert(TOX_MAX_STATUS_MESSAGE_LENGTH == MAX_STATUSMESSAGE_LENGTH,
               "TOX_MAX_STATUS_MESSAGE_LENGTH is assumed to be equal to MAX_STATUSMESSAGE_LENGTH");
 
-#if defined(HAVE_LIBEV)
-typedef struct Event_Arg {
-    Tox *tox;
-    void *user_data;
-} Event_Arg;
-#endif
-
 struct Tox {
     // XXX: Messenger *must* be the first member, because toxav casts its
     // `Tox *` to `Messenger **`.
@@ -840,19 +833,13 @@ void tox_iterate(Tox *tox, void *user_data)
 
 void tox_callback_loop_begin(Tox *tox, tox_loop_begin_cb *callback)
 {
-    if (tox == nullptr) {
-        return;
-    }
-
+    assert(tox != nullptr);
     tox->loop_begin_callback = callback;
 }
 
 void tox_callback_loop_end(Tox *tox, tox_loop_end_cb *callback)
 {
-    if (tox == nullptr) {
-        return;
-    }
-
+    assert(tox != nullptr);
     tox->loop_end_callback = callback;
 }
 
@@ -863,11 +850,11 @@ static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, 
         return;
     }
 
-    Event_Arg *tmp = (Event_Arg *) listener->data;
-    Messenger *m = tmp->tox;
+    Tox_Userdata *tmp = (Tox_Userdata *)listener->data;
+    Messenger *m = tmp->tox->m;
 
-    if (ev_is_active(&m->net->sock_listener.listener) || ev_is_pending(&m->net->sock_listener.listener)) {
-        ev_io_stop(dispatcher, &m->net->sock_listener.listener);
+    if (net_ev_is_active(m->net)) {
+        net_ev_stop(m->net);
     }
 
     uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
@@ -875,9 +862,8 @@ static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, 
     for (uint32_t i = 0; i < len; ++i) {
         const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
 
-        if (ev_is_active(&conn->connection->sock_listener.listener)
-                || ev_is_pending(&conn->connection->sock_listener.listener)) {
-            ev_io_stop(dispatcher, &conn->connection->sock_listener.listener);
+        if (tcp_con_ev_is_active(conn->connection)) {
+            tcp_con_ev_stop(conn->connection);
         }
     }
 
@@ -892,8 +878,9 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
         return;
     }
 
-    Event_Arg *tmp = (Event_Arg *)sock_listener->data;
-    Messenger *m = tmp->tox->m;
+    Tox_Userdata *tmp = (Tox_Userdata *)sock_listener->data;
+    Tox *tox = tmp->tox;
+    Messenger *m = tox->m;
 
     if (tmp->tox->loop_begin_callback) {
         tmp->tox->loop_begin_callback(tmp->tox, tmp->user_data);
@@ -901,11 +888,8 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
 
     tox_iterate(tmp->tox, tmp->user_data);
 
-    if (!ev_is_active(&m->net->sock_listener.listener) && !ev_is_pending(&m->net->sock_listener.listener)) {
-        m->net->sock_listener.dispatcher = dispatcher;
-        ev_io_init(&m->net->sock_listener.listener, tox_do_iterate, net_sock(m->net), EV_READ);
-        m->net->sock_listener.listener.data = sock_listener->data;
-        ev_io_start(dispatcher, &m->net->sock_listener.listener);
+    if (!net_ev_is_active(m->net)) {
+        net_ev_listen(m->net, dispatcher, tox_do_iterate, tmp);
     }
 
     uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
@@ -913,17 +897,13 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
     for (uint32_t i = 0; i < len; ++i) {
         const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
 
-        if (!ev_is_active(&conn->connection->sock_listener.listener)
-                && !ev_is_pending(&conn->connection->sock_listener.listener)) {
-            conn->connection->sock_listener.dispatcher = dispatcher;
-            ev_io_init(&conn->connection->sock_listener.listener, tox_do_iterate, tcp_con_sock(conn->connection), EV_READ);
-            conn->connection->sock_listener.listener.data = sock_listener->data;
-            ev_io_start(m->dispatcher, &conn->connection->sock_listener.listener);
+        if (!tcp_con_ev_is_active(conn->connection)) {
+            tcp_con_ev_listen(conn->connection, dispatcher, tox_do_iterate, tmp);
         }
     }
 
-    if (m->loop_end_callback) {
-        m->loop_end_callback(m, tmp->user_data);
+    if (tox->loop_end_callback) {
+        tox->loop_end_callback(tox, tmp->user_data);
     }
 }
 #else
@@ -938,7 +918,8 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
  */
 static bool tox_fds(Messenger *m, Socket **sockets, uint32_t *sockets_num)
 {
-    if (m == nullptr || sockets == nullptr || sockets_num == nullptr) {
+    assert(m != nullptr);
+    if (sockets == nullptr || sockets_num == nullptr) {
         return false;
     }
 
@@ -981,11 +962,13 @@ static bool tox_fds(Messenger *m, Socket **sockets, uint32_t *sockets_num)
 
 bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
 {
+    assert(tox != nullptr);
+
     Messenger *m = tox->m;
 
 #ifdef HAVE_LIBEV
     bool ret = true;
-    Event_Arg *tmp = (Event_Arg *) calloc(1, sizeof(Event_Arg));
+    Tox_Userdata *tmp = (Tox_Userdata *) calloc(1, sizeof(Tox_Userdata));
 
     if (tmp == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_MALLOC);
@@ -1034,7 +1017,7 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
         Socket maxfd;
         fd_set readable;
 
-        if (tox->loop_begin_callback) {
+        if (tox->loop_begin_callback != nullptr) {
             tox->loop_begin_callback(tox, user_data);
         }
 
@@ -1050,7 +1033,7 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
         if (fdcount == 0 && !tox_fds(m, &fdlist, &fdcount)) {
             // We must stop because maxfd won't be set.
             // TODO(cleverca22): should we call loop_end_callback() on error?
-            if (tox->loop_end_callback) {
+            if (tox->loop_end_callback != nullptr) {
                 tox->loop_end_callback(tox, user_data);
             }
 
@@ -1103,9 +1086,7 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
 
 void tox_loop_stop(Tox *tox)
 {
-    if (tox == nullptr) {
-        return;
-    }
+    assert(tox != nullptr);
 
     Messenger *m = tox->m;
 
