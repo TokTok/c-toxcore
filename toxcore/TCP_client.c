@@ -102,6 +102,38 @@ TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con)
 {
     return con->status;
 }
+
+#ifdef HAVE_LIBEV
+static bool tcp_con_ev_is_active(TCP_Client_Connection *con)
+{
+    return ev_is_active(&con->sock_listener.listener)
+           || ev_is_pending(&con->sock_listener.listener);
+}
+
+void tcp_con_ev_listen(TCP_Client_Connection *con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback,
+                       void *data)
+{
+    if (tcp_con_ev_is_active(con)) {
+        return;
+    }
+
+    con->sock_listener.dispatcher = dispatcher;
+    con->sock_listener.listener.data = data;
+
+    ev_io_init(&con->sock_listener.listener, callback, con->sock.socket, EV_READ);
+    ev_io_start(dispatcher, &con->sock_listener.listener);
+}
+
+void tcp_con_ev_stop(TCP_Client_Connection *con)
+{
+    if (!tcp_con_ev_is_active(con)) {
+        return;
+    }
+
+    ev_io_stop(con->sock_listener.dispatcher, &con->sock_listener.listener);
+}
+#endif
+
 void *tcp_con_custom_object(const TCP_Client_Connection *con)
 {
     return con->custom_object;
