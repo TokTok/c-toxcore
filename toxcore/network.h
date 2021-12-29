@@ -322,6 +322,7 @@ typedef struct Networking_Core Networking_Core;
 
 Family net_family(const Networking_Core *net);
 uint16_t net_port(const Networking_Core *net);
+Socket net_sock(const Networking_Core *net);
 
 /** Run this before creating sockets.
  *

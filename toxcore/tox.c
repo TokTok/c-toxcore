@@ -21,8 +21,18 @@
 #include "group.h"
 #include "logger.h"
 #include "mono_time.h"
+#include "net_crypto.h"
 
 #include "../toxencryptsave/defines.h"
+
+#include <errno.h>
+#if !defined(HAVE_LIBEV)
+#if defined (WIN32) || defined(_WIN32) || defined(__WIN32__)
+#include <winsock2.h>
+#else
+#include <sys/select.h>
+#endif // WIN32 || _WIN32 || __WIN32__
+#endif // !HAVE_LIBEV
 
 #define SET_ERROR_PARAMETER(param, x) \
     do {                              \
@@ -47,6 +57,13 @@ static_assert(TOX_MAX_NAME_LENGTH == MAX_NAME_LENGTH,
               "TOX_MAX_NAME_LENGTH is assumed to be equal to MAX_NAME_LENGTH");
 static_assert(TOX_MAX_STATUS_MESSAGE_LENGTH == MAX_STATUSMESSAGE_LENGTH,
               "TOX_MAX_STATUS_MESSAGE_LENGTH is assumed to be equal to MAX_STATUSMESSAGE_LENGTH");
+
+#if defined(HAVE_LIBEV)
+typedef struct Event_Arg {
+    Tox *tox;
+    void *user_data;
+} Event_Arg;
+#endif
 
 struct Tox {
     // XXX: Messenger *must* be the first member, because toxav casts its
@@ -76,6 +93,9 @@ struct Tox {
     tox_conference_peer_list_changed_cb *conference_peer_list_changed_callback;
     tox_friend_lossy_packet_cb *friend_lossy_packet_callback_per_pktid[UINT8_MAX + 1];
     tox_friend_lossless_packet_cb *friend_lossless_packet_callback_per_pktid[UINT8_MAX + 1];
+
+    tox_loop_begin_cb *loop_begin_callback;
+    tox_loop_end_cb *loop_end_callback;
 
     void *toxav_object; // workaround to store a ToxAV object (setter and getter functions are available)
 };
@@ -612,6 +632,7 @@ void tox_kill(Tox *tox)
 
     lock(tox);
     LOGGER_ASSERT(tox->m->log, tox->m->msi_packet == nullptr, "Attempted to kill tox while toxav is still alive");
+    tox_loop_stop(tox);
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     mono_time_free(tox->mono_time);
@@ -815,6 +836,284 @@ void tox_iterate(Tox *tox, void *user_data)
     do_groupchats(tox->m->conferences_object, &tox_data);
 
     unlock(tox);
+}
+
+void tox_callback_loop_begin(Tox *tox, tox_loop_begin_cb *callback)
+{
+    if (tox == nullptr) {
+        return;
+    }
+
+    tox->loop_begin_callback = callback;
+}
+
+void tox_callback_loop_end(Tox *tox, tox_loop_end_cb *callback)
+{
+    if (tox == nullptr) {
+        return;
+    }
+
+    tox->loop_end_callback = callback;
+}
+
+#ifdef HAVE_LIBEV
+static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, int events)
+{
+    if (dispatcher == nullptr || listener == nullptr) {
+        return;
+    }
+
+    Event_Arg *tmp = (Event_Arg *) listener->data;
+    Messenger *m = tmp->tox;
+
+    if (ev_is_active(&m->net->sock_listener.listener) || ev_is_pending(&m->net->sock_listener.listener)) {
+        ev_io_stop(dispatcher, &m->net->sock_listener.listener);
+    }
+
+    uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
+
+    for (uint32_t i = 0; i < len; ++i) {
+        const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
+
+        if (ev_is_active(&conn->connection->sock_listener.listener)
+                || ev_is_pending(&conn->connection->sock_listener.listener)) {
+            ev_io_stop(dispatcher, &conn->connection->sock_listener.listener);
+        }
+    }
+
+    ev_async_stop(dispatcher, listener);
+
+    ev_break(dispatcher, EVBREAK_ALL);
+}
+
+static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int events)
+{
+    if (dispatcher == nullptr || sock_listener == nullptr) {
+        return;
+    }
+
+    Event_Arg *tmp = (Event_Arg *)sock_listener->data;
+    Messenger *m = tmp->tox->m;
+
+    if (tmp->tox->loop_begin_callback) {
+        tmp->tox->loop_begin_callback(tmp->tox, tmp->user_data);
+    }
+
+    tox_iterate(tmp->tox, tmp->user_data);
+
+    if (!ev_is_active(&m->net->sock_listener.listener) && !ev_is_pending(&m->net->sock_listener.listener)) {
+        m->net->sock_listener.dispatcher = dispatcher;
+        ev_io_init(&m->net->sock_listener.listener, tox_do_iterate, net_sock(m->net), EV_READ);
+        m->net->sock_listener.listener.data = sock_listener->data;
+        ev_io_start(dispatcher, &m->net->sock_listener.listener);
+    }
+
+    uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
+
+    for (uint32_t i = 0; i < len; ++i) {
+        const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
+
+        if (!ev_is_active(&conn->connection->sock_listener.listener)
+                && !ev_is_pending(&conn->connection->sock_listener.listener)) {
+            conn->connection->sock_listener.dispatcher = dispatcher;
+            ev_io_init(&conn->connection->sock_listener.listener, tox_do_iterate, tcp_con_sock(conn->connection), EV_READ);
+            conn->connection->sock_listener.listener.data = sock_listener->data;
+            ev_io_start(m->dispatcher, &conn->connection->sock_listener.listener);
+        }
+    }
+
+    if (m->loop_end_callback) {
+        m->loop_end_callback(m, tmp->user_data);
+    }
+}
+#else
+/**
+ * Gathers a list of every network file descriptor,
+ * where an activity is expected on.
+ *
+ * @param sockets a pointer to an array (the pointed array can be NULL).
+ * @param sockets_num the number of current known sockets (will be updated by the funciton).
+ *
+ * @return false if errors occurred, true otherwise.
+ */
+static bool tox_fds(Messenger *m, Socket **sockets, uint32_t *sockets_num)
+{
+    if (m == nullptr || sockets == nullptr || sockets_num == nullptr) {
+        return false;
+    }
+
+    Socket *tmp_sockets = *sockets;
+
+    uint32_t len = tcp_connections_length(nc_get_tcp_c(m->net_crypto));
+    uint32_t fdcount = 1 + len;
+
+    if (fdcount != *sockets_num || tmp_sockets == nullptr) {
+        tmp_sockets = (Socket *)realloc(*sockets, fdcount * sizeof(Socket));
+
+        if (tmp_sockets == nullptr) {
+            return false;
+        }
+
+        *sockets = tmp_sockets;
+        *sockets_num = fdcount;
+    }
+
+    tmp_sockets[0] = net_sock(m->net);
+
+    uint32_t i = 0;
+
+    while (i < fdcount - 1 && i < len) {
+        const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
+        ++i;
+
+        if (conn != nullptr) {
+            tmp_sockets[i] = tcp_con_sock(conn->connection);
+        } else {
+            tmp_sockets[i] = (Socket) {
+                0
+            };
+        }
+    }
+
+    return true;
+}
+#endif
+
+bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
+{
+    Messenger *m = tox->m;
+
+#ifdef HAVE_LIBEV
+    bool ret = true;
+    Event_Arg *tmp = (Event_Arg *) calloc(1, sizeof(Event_Arg));
+
+    if (tmp == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_MALLOC);
+
+        return false;
+    }
+
+    tmp->tox = tox;
+    tmp->user_data = user_data;
+
+    ev_async_init(&m->stop_loop, tox_stop_loop_async);
+    m->stop_loop.data = tmp;
+    ev_async_start(m->dispatcher, &m->stop_loop);
+
+    ev_io stub_listener;
+    ev_init(&stub_listener, tox_do_iterate);
+    stub_listener.data = tmp;
+    tox_do_iterate(m->dispatcher, &stub_listener, 0);
+
+    // TODO(Ansa89): travis states that "ev_run" returns "void",
+    // but "man 3 ev" states it returns "bool"
+#if 0
+    ret = !ev_run(m->dispatcher, 0);
+
+    if (ret) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_OK);
+    } else {
+        SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_BREAK);
+    }
+
+#endif
+
+    ev_run(m->dispatcher, 0);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_OK);
+
+    free(tmp);
+#else
+    bool ret = true;
+    uint32_t fdcount = 0;
+    Socket *fdlist = nullptr;
+
+    m->loop_run = true;
+
+    while (m->loop_run) {
+        Socket maxfd;
+        fd_set readable;
+
+        if (tox->loop_begin_callback) {
+            tox->loop_begin_callback(tox, user_data);
+        }
+
+        tox_iterate(tox, user_data);
+
+        maxfd = (Socket) {
+            0
+        };
+        FD_ZERO(&readable);
+
+        // TODO(cleverca22): is it a good idea to reuse previous fdlist when
+        //                   fdcount!=0 && tox_fds()==false?
+        if (fdcount == 0 && !tox_fds(m, &fdlist, &fdcount)) {
+            // We must stop because maxfd won't be set.
+            // TODO(cleverca22): should we call loop_end_callback() on error?
+            if (tox->loop_end_callback) {
+                tox->loop_end_callback(tox, user_data);
+            }
+
+            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_GET_FDS);
+
+            free(fdlist);
+
+            return false;
+        }
+
+        for (uint32_t i = 0; i < fdcount; ++i) {
+            if (fdlist[i].socket == 0) {
+                continue;
+            }
+
+            FD_SET(fdlist[i].socket, &readable);
+
+            if (fdlist[i].socket > maxfd.socket) {
+                maxfd = fdlist[i];
+            }
+        }
+
+        struct timeval timeout;
+
+        timeout.tv_sec = 0;
+
+        // TODO(cleverca22): use a longer timeout.
+        timeout.tv_usec = tox_iteration_interval(tox) * 1000 * 2;
+
+        if (tox->loop_end_callback) {
+            tox->loop_end_callback(tox, user_data);
+        }
+
+        if (select(maxfd.socket, &readable, nullptr, nullptr, &timeout) < 0 && errno != EBADF) {
+            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_SELECT);
+
+            free(fdlist);
+
+            return false;
+        }
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_OK);
+
+    free(fdlist);
+#endif
+
+    return ret;
+}
+
+void tox_loop_stop(Tox *tox)
+{
+    if (tox == nullptr) {
+        return;
+    }
+
+    Messenger *m = tox->m;
+
+#ifdef HAVE_LIBEV
+    ev_async_send(m->dispatcher, &m->stop_loop);
+#else
+    m->loop_run = false;
+#endif
 }
 
 void tox_self_get_address(const Tox *tox, uint8_t *address)

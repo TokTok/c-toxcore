@@ -12,6 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #include "mono_time.h"
 #include "util.h"
 
@@ -22,9 +26,19 @@ typedef struct TCP_Client_Conn {
     uint32_t number;
 } TCP_Client_Conn;
 
+#ifdef HAVE_LIBEV
+typedef struct TCP_Client_Socket_Listener {
+    ev_io listener;
+    struct ev_loop *dispatcher;
+} TCP_Client_Socket_Listener;
+#endif
+
 struct TCP_Client_Connection {
     TCP_Client_Status status;
     Socket sock;
+#ifdef HAVE_LIBEV
+    TCP_Client_Socket_Listener sock_listener;
+#endif
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* our public key */
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* public key of the server */
     IP_Port ip_port; /* The ip and port of the server */
@@ -77,6 +91,11 @@ const uint8_t *tcp_con_public_key(const TCP_Client_Connection *con)
 IP_Port tcp_con_ip_port(const TCP_Client_Connection *con)
 {
     return con->ip_port;
+}
+
+Socket tcp_con_sock(const TCP_Client_Connection *con)
+{
+    return con->sock;
 }
 
 TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con)
@@ -1052,6 +1071,11 @@ void kill_TCP_connection(TCP_Client_Connection *tcp_connection)
 
     wipe_priority_list(tcp_connection->priority_queue_start);
     kill_sock(tcp_connection->sock);
+
+#ifdef HAVE_LIBEV
+    ev_io_stop(tcp_connection->sock_listener.dispatcher, &tcp_connection->sock_listener.listener);
+#endif
+
     crypto_memzero(tcp_connection, sizeof(TCP_Client_Connection));
     free(tcp_connection);
 }
