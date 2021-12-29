@@ -70,6 +70,10 @@ typedef struct TCP_Connections TCP_Connections;
 
 const uint8_t *tcp_connections_public_key(const TCP_Connections *tcp_c);
 
+uint32_t tcp_connections_length(const TCP_Connections *tcp_c);
+
+const TCP_con *tcp_connections_connection_at(const TCP_Connections *tcp_c, uint32_t idx);
+
 uint32_t tcp_connections_count(const TCP_Connections *tcp_c);
 
 /** Returns the number of connected TCP relays */

@@ -86,6 +86,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#elif defined(HAVE_LIBEVENT)
+#include <event2/event.h>
+#endif
+
 #ifndef VANILLA_NACL
 // Used for sodium_init()
 #include <sodium.h>
@@ -490,6 +496,14 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+#ifdef HAVE_LIBEV
+    struct {
+        ev_io listener;
+        struct ev_loop *dispatcher;
+    } sock_listener;
+#elif defined(HAVE_LIBEVENT)
+    struct event *sock_listener;
+#endif
 };
 
 Family net_family(const Networking_Core *net)
@@ -500,6 +514,11 @@ Family net_family(const Networking_Core *net)
 uint16_t net_port(const Networking_Core *net)
 {
     return net->port;
+}
+
+Socket net_sock(const Networking_Core *net)
+{
+    return net->sock;
 }
 
 /* Basic network functions:
@@ -1002,6 +1021,17 @@ void kill_networking(Networking_Core *net)
         /* Socket is initialized, so we close it. */
         kill_sock(net->sock);
     }
+
+
+#ifdef HAVE_LIBEV
+    ev_io_stop(net->sock_listener.dispatcher, &net->sock_listener.listener);
+#elif defined(HAVE_LIBEVENT)
+
+    if (net->sock_listener) {
+        event_free(net->sock_listener);
+    }
+
+#endif
 
     free(net);
 }
