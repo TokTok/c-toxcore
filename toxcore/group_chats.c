@@ -5087,9 +5087,6 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
         return -1;
     }
 
-    uint8_t public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    memcpy(public_sig_key, data + ENC_PUBLIC_KEY_SIZE, SIG_PUBLIC_KEY_SIZE);
-
     if (chat->connection_O_metre >= GC_NEW_PEER_CONNECTION_LIMIT) {
         chat->block_handshakes = true;
         LOGGER_DEBUG(m->log, "Handshake overflow. Blocking handshakes.");
@@ -5098,20 +5095,22 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
     ++chat->connection_O_metre;
 
+    uint8_t public_sig_key[SIG_PUBLIC_KEY_SIZE];
+    memcpy(public_sig_key, data + ENC_PUBLIC_KEY_SIZE, SIG_PUBLIC_KEY_SIZE);
+
     const uint8_t request_type = data[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
     const uint8_t join_type = data[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1];
 
     int peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    bool is_new_peer = false;
+    const bool is_new_peer = peer_number < 0;
 
-    if (peer_number < 0) {
+    if (is_new_peer) {
         peer_number = peer_add(m, chat->group_number, ipp, sender_pk);
 
         if (peer_number < 0) {
+            LOGGER_WARNING(chat->logger, "Failed to add peer during handshake request");
             return -1;
         }
-
-        is_new_peer = true;
     } else  {
         GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
@@ -5121,7 +5120,14 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
         if (gconn->handshaked) {
             gconn->handshaked = false;
+            LOGGER_DEBUG(chat->logger, "Confirmed peer sent a handshake request");
             return -1;
+        }
+
+        // peers sent handshake request at same time so the closer peer becomes the requestor
+        // and ignores the request packet while further peer continues on with the response
+        if (gconn->self_is_closer) {
+            return 0;
         }
     }
 
@@ -5154,7 +5160,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
         if (add_tcp_result < 0 && is_new_peer && ipp == nullptr) {
             LOGGER_WARNING(m->log, "broken tcp relay for new peer");
-            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_QUIT, nullptr, 0);
+            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
             return -1;
         }
 
@@ -5337,14 +5343,14 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
         }
 
         default: {
-            LOGGER_WARNING(m->log, "Handling invalid lossless group packet type %u", packet_type);
+            LOGGER_DEBUG(m->log, "Handling invalid lossless group packet type %u", packet_type);
             return -1;
         }
     }
 
     if (ret < 0) {
-        LOGGER_WARNING(m->log, "Lossless packet handle error %d: type %d, peernumber: %d",
-                       ret, packet_type, peer_number);
+        LOGGER_DEBUG(m->log, "Lossless packet handle error %d: type %d, peernumber: %d",
+                     ret, packet_type, peer_number);
         return -1;
     }
 
@@ -6374,7 +6380,7 @@ static void do_timed_out_reconn(Messenger *m, GC_Chat *chat)
         if (mono_time_is_timeout(chat->mono_time, timeout->last_seen, GC_TIMED_OUT_STALE_TIMEOUT)
                 || get_peer_number_of_enc_pk(chat, timeout->addr.public_key, true) != -1) {
             *timeout = (GC_TimedOutPeer) {
-                0,
+                0
             };
 
             continue;
