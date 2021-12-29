@@ -960,7 +960,8 @@ static void tox_do_iterate(evutil_socket_t fd, short events, void *arg)
         const TCP_con *conn = tcp_connections_connection_at(nc_get_tcp_c(m->net_crypto), i);
 
         if (!conn->connection->sock_listener) {
-            conn->connection->sock_listener = event_new(m->dispatcher, tcp_con_sock(conn->connection), EV_READ | EV_PERSIST, tox_do_iterate,
+            conn->connection->sock_listener = event_new(m->dispatcher, tcp_con_sock(conn->connection), EV_READ | EV_PERSIST,
+                                              tox_do_iterate,
                                               arg);
         }
 
@@ -1012,7 +1013,9 @@ static bool tox_fds(Messenger *m, Socket **sockets, uint32_t *sockets_num)
         if (conn != NULL) {
             (*sockets)[i] = tcp_con_sock(conn->connection);
         } else {
-            (*sockets)[i] = (Socket){0};
+            (*sockets)[i] = (Socket) {
+                0
+            };
         }
     }
 
@@ -1097,7 +1100,9 @@ bool tox_loop(Tox *tox, void *user_data, TOX_ERR_LOOP *error)
 
         tox_iterate(tox, user_data);
 
-        maxfd = (Socket){0};
+        maxfd = (Socket) {
+            0
+        };
         FD_ZERO(&readable);
 
         // TODO(cleverca22): is it a good idea to reuse previous fdlist when
