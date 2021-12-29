@@ -178,6 +178,12 @@ endif()
 # We don't transfer floats over the network, so we disable this functionality.
 add_definitions(-DCMP_NO_FLOAT=1)
 
+# TODO(iphydf): Check whether this is actually true.
+option(USE_LIBEV "Whether to use libev for tox_loop" OFF)
+if(USE_LIBEV)
+  add_definitions(-DHAVE_LIBEV=1)
+endif()
+
 ################################################################################
 #
 # :: Tox Core Library

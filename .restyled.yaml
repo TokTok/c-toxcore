@@ -1,7 +1,6 @@
 ---
 exclude:
-  - "**/*.api.h"
-    # shfmt doesn't support this file
+  # shfmt doesn't support this file
   - "other/analysis/run-clang-tidy"
 
 restylers:

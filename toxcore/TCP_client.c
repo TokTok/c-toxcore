@@ -12,6 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #include "TCP_common.h"
 #include "ccompat.h"
 #include "mono_time.h"
@@ -24,9 +28,19 @@ typedef struct TCP_Client_Conn {
     uint32_t number;
 } TCP_Client_Conn;
 
+#ifdef HAVE_LIBEV
+typedef struct TCP_Client_Socket_Listener {
+    ev_io listener;
+    struct ev_loop *dispatcher;
+} TCP_Client_Socket_Listener;
+#endif
+
 struct TCP_Client_Connection {
     TCP_Connection con;
     TCP_Client_Status status;
+#ifdef HAVE_LIBEV
+    TCP_Client_Socket_Listener sock_listener;
+#endif
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* our public key */
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* public key of the server */
     IP_Port ip_port; /* The ip and port of the server */
@@ -79,6 +93,43 @@ TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con)
 {
     return con->status;
 }
+
+#ifdef HAVE_LIBEV
+static bool tcp_con_ev_is_active(TCP_Client_Connection *con)
+{
+    return ev_is_active(&con->sock_listener.listener)
+           || ev_is_pending(&con->sock_listener.listener);
+}
+
+void tcp_con_ev_listen(TCP_Client_Connection *con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback,
+                       void *data)
+{
+    if (tcp_con_ev_is_active(con)) {
+        return;
+    }
+
+    con->sock_listener.dispatcher = dispatcher;
+    con->sock_listener.listener.data = data;
+
+    ev_io_init(&con->sock_listener.listener, callback, con->con.sock.sock, EV_READ);
+    ev_io_start(dispatcher, &con->sock_listener.listener);
+}
+
+void tcp_con_ev_stop(TCP_Client_Connection *con)
+{
+    if (!tcp_con_ev_is_active(con)) {
+        return;
+    }
+
+    ev_io_stop(con->sock_listener.dispatcher, &con->sock_listener.listener);
+}
+#else
+Socket tcp_con_sock(const TCP_Client_Connection *con)
+{
+    return con->con.sock;
+}
+#endif
+
 void *tcp_con_custom_object(const TCP_Client_Connection *con)
 {
     return con->custom_object;
@@ -1000,6 +1051,11 @@ void kill_TCP_connection(TCP_Client_Connection *tcp_connection)
 
     wipe_priority_list(tcp_connection->con.priority_queue_start);
     kill_sock(tcp_connection->con.ns, tcp_connection->con.sock);
+
+#ifdef HAVE_LIBEV
+    ev_io_stop(tcp_connection->sock_listener.dispatcher, &tcp_connection->sock_listener.listener);
+#endif
+
     crypto_memzero(tcp_connection, sizeof(TCP_Client_Connection));
     free(tcp_connection);
 }

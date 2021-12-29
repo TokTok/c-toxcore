@@ -678,6 +678,7 @@ cc_library(
         ":group",
         ":logger",
         ":mono_time",
+        ":net_crypto",
         ":network",
         "//c-toxcore/toxencryptsave:defines",
     ],

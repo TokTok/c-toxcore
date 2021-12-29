@@ -203,7 +203,8 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 
 #endif
 
-/** @brief Send packet to all IPv4 broadcast addresses
+/**
+ * @brief Send packet to all IPv4 broadcast addresses
  *
  * @retval true if sent to at least one broadcast target.
  * @retval false on failure to find any valid broadcast target.

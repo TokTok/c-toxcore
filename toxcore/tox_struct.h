@@ -45,6 +45,16 @@ struct Tox {
     tox_friend_lossy_packet_cb *friend_lossy_packet_callback_per_pktid[UINT8_MAX + 1];
     tox_friend_lossless_packet_cb *friend_lossless_packet_callback_per_pktid[UINT8_MAX + 1];
 
+    tox_loop_begin_cb *loop_begin_callback;
+    tox_loop_end_cb *loop_end_callback;
+
+#ifdef HAVE_LIBEV
+    struct ev_loop *dispatcher;
+    ev_async stop_loop;
+#else
+    bool loop_run;
+#endif
+
     void *toxav_object; // workaround to store a ToxAV object (setter and getter functions are available)
 };
 
