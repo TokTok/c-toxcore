@@ -84,7 +84,6 @@ The encrypted payload contains arbitrary data specific to the respective group p
 `32 bytes: public session key`  
 `32 bytes: public signature key`  
 `1 byte: request type`  
-`1 byte: join type`  
 `variable bytes: 1 packed TCP relay`  
 
 #### Description
@@ -99,10 +98,6 @@ The `request type` is an identifier for the type of handshake being initiated, d
 `HANDSHAKE_PEER_INFO_EXCHANGE = 1`  
 
 If the request type is an invite request, the receiving peer must respond with a `INVITE_REQUEST` packet. If the request type is a peer info exchange, the receiving peer must respond with a `PEER_INFO_RESPONSE` packet followed immediately by a `PEER_INFO_REQUEST` packet.
-
-The `join_type` indicates whether the initiator of a handshake is joining via the public DHT or a private friend invite, and is defined as an enumerator beginning at zero as follows:
-`PUBLIC = 0`  
-`PRIVATE = 1`  
 
 The packed TCP relay contains a TCP relay that the sender may be connected through by the receiver.
 
