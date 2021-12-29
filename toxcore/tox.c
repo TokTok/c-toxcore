@@ -919,6 +919,7 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
 static bool tox_fds(Messenger *m, Socket **sockets, uint32_t *sockets_num)
 {
     assert(m != nullptr);
+
     if (sockets == nullptr || sockets_num == nullptr) {
         return false;
     }
