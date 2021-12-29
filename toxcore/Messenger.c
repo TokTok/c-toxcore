@@ -1880,15 +1880,31 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsig
 
     Messenger *m = (Messenger *)calloc(1, sizeof(Messenger));
 
-    if (!m) {
+    if (m == nullptr) {
         return nullptr;
     }
+
+
+#ifdef HAVE_LIBEV
+    m->dispatcher = ev_loop_new(0);
+#else
+    m->loop_run = false;
+#endif // HAVE_LIBEV
+
+#if defined(HAVE_LIBEV)
+
+    if (m->dispatcher == nullptr) {
+        free(m);
+        return nullptr;
+    }
+
+#endif // HAVE_LIBEV
 
     m->mono_time = mono_time;
 
     m->fr = friendreq_new();
 
-    if (!m->fr) {
+    if (m->fr == nullptr) {
         free(m);
         return nullptr;
     }
@@ -2033,6 +2049,10 @@ void kill_messenger(Messenger *m)
     for (uint32_t i = 0; i < m->numfriends; ++i) {
         clear_receipts(m, i);
     }
+
+#ifdef HAVE_LIBEV
+    ev_loop_destroy(m->dispatcher);
+#endif
 
     logger_kill(m->log);
     free(m->friendlist);

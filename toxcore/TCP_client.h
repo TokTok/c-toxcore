@@ -40,6 +40,7 @@ typedef struct TCP_Client_Connection TCP_Client_Connection;
 
 const uint8_t *tcp_con_public_key(const TCP_Client_Connection *con);
 IP_Port tcp_con_ip_port(const TCP_Client_Connection *con);
+Socket tcp_con_sock(const TCP_Client_Connection *con);
 TCP_Client_Status tcp_con_status(const TCP_Client_Connection *con);
 
 void *tcp_con_custom_object(const TCP_Client_Connection *con);
