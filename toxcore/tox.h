@@ -745,19 +745,6 @@ bool tox_options_get_experimental_thread_safety(const struct Tox_Options *option
 
 void tox_options_set_experimental_thread_safety(struct Tox_Options *options, bool thread_safety);
 
-/**
- * Initialises a Tox_Options object with the default options.
- *
- * The result of this function is independent of the original options. All
- * values will be overwritten, no values will be read (so it is permissible
- * to pass an uninitialised object).
- *
- * If options is NULL, this function has no effect.
- *
- * @param options An options object to be filled with default options.
- */
-void tox_options_default(struct Tox_Options *options);
-
 typedef enum Tox_Err_Options_New {
 
     /**
