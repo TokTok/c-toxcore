@@ -7,6 +7,7 @@ echo "Running GCC"
 g++ -O3 -o /dev/null amalgamation.cc \
   "${CPPFLAGS[@]}" \
   "${LDFLAGS[@]}" \
+  -D_Thread_local=thread_local \
   -std=c++11 \
   -fdiagnostics-color=always \
   -Wall \

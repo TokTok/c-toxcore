@@ -521,6 +521,35 @@ Socket net_sock(const Networking_Core *net)
     return net->sock;
 }
 
+#ifdef HAVE_LIBEV
+static bool net_ev_is_active(Networking_Core *net)
+{
+    return ev_is_active(&net->sock_listener.listener) || ev_is_pending(&net->sock_listener.listener);
+}
+
+void net_ev_listen(Networking_Core *net, struct ev_loop *dispatcher, net_ev_listen_cb *callback, void *data)
+{
+    if (net_ev_is_active(net)) {
+        return;
+    }
+
+    net->sock_listener.dispatcher = dispatcher;
+    net->sock_listener.listener.data = data;
+
+    ev_io_init(&net->sock_listener.listener, callback, net->sock.socket, EV_READ);
+    ev_io_start(dispatcher, &net->sock_listener.listener);
+}
+
+void net_ev_stop(Networking_Core *net)
+{
+    if (!net_ev_is_active(net)) {
+        return;
+    }
+
+    ev_io_stop(net->sock_listener.dispatcher, &net->sock_listener.listener);
+}
+#endif
+
 /* Basic network functions:
  */
 
@@ -1024,7 +1053,7 @@ void kill_networking(Networking_Core *net)
 
 
 #ifdef HAVE_LIBEV
-    ev_io_stop(net->sock_listener.dispatcher, &net->sock_listener.listener);
+    net_ev_stop(net);
 #endif
 
     free(net);
