@@ -126,12 +126,6 @@ typedef enum Saved_GC_Conn_State {
     SGCS_CONNECTED    = 0x01,  // The saved group is currently connected
 } Saved_GC_Conn_State;
 
-/* Handshake join types. */
-typedef enum Group_Handshake_Join_Type {
-    HJ_PUBLIC  = 0x00,  // Indicates the group was joined via the DHT
-    HJ_PRIVATE = 0x01,  // Indicates the group was joined via a friend invite
-} Group_Handshake_Join_Type;
-
 /* Group join rejection types. */
 typedef enum Group_Join_Rejected {
     GJ_GROUP_FULL       = 0x00,
@@ -345,8 +339,6 @@ typedef struct GC_Chat {
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
     uint64_t    last_sync_request;
-
-    Group_Handshake_Join_Type join_type;
 
     /* keeps track of frequency of new inbound connections */
     uint8_t     connection_O_metre;
