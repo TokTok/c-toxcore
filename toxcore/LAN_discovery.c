@@ -47,8 +47,8 @@
  * behaviour. Consider storing the data in per-instance variables instead. */
 //!TOKSTYLE-
 // No global mutable state in Tokstyle.
-static int     broadcast_count = -1;
-static IP_Port broadcast_ip_ports[MAX_INTERFACES];
+static _Thread_local int     broadcast_count = -1;
+static _Thread_local IP_Port broadcast_ip_ports[MAX_INTERFACES];
 //!TOKSTYLE+
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
@@ -209,7 +209,8 @@ static void fetch_broadcast_info(uint16_t port)
 
 #endif
 
-/* Send packet to all IPv4 broadcast addresses
+/**
+ * Send packet to all IPv4 broadcast addresses
  *
  *  return 1 if sent to at least one broadcast target.
  *  return 0 on failure to find any valid broadcast target.
@@ -233,7 +234,7 @@ static uint32_t send_broadcasts(Networking_Core *net, uint16_t port, const uint8
     return 1;
 }
 
-/* Return the broadcast ip. */
+/** Return the broadcast ip. */
 static IP broadcast_ip(Family family_socket, Family family_broadcast)
 {
     IP ip;
@@ -266,7 +267,9 @@ static bool ip4_is_local(IP4 ip4)
     return ip4.uint8[0] == 127;
 }
 
-/* Is IP a local ip or not. */
+/**
+ * Is IP a local ip or not.
+ */
 bool ip_is_local(IP ip)
 {
     if (net_family_is_ipv4(ip.family)) {
