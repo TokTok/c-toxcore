@@ -73,9 +73,6 @@
  */
 #define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 4) + (sizeof(uint32_t) * 3))
 
-/* How often we check which peers needs to be pinged */
-#define GC_DO_PINGS_INTERVAL 2
-
 /* How often we can send a group sync request packet */
 #define GC_SYNC_REQUEST_LIMIT 2
 
@@ -130,7 +127,7 @@ static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Gro
                        const uint8_t *data, uint16_t length, void *userdata);
 static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
 static int create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key);
-
+static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
 /* Return true if `peer_number` is our own. */
 static bool peer_number_is_self(int peer_number)
@@ -6240,6 +6237,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
  * list version for syncing purposes. We also occasionally try to send our own IP info to peers that we
  * do not have a direct connection with.
  */
+#define GC_DO_PINGS_INTERVAL 2
 static void do_gc_ping_and_key_rotation(GC_Chat *chat)
 {
     if (!mono_time_is_timeout(chat->mono_time, chat->last_ping_interval, GC_DO_PINGS_INTERVAL)) {
@@ -6343,16 +6341,20 @@ static void do_self_connection(Messenger *m, GC_Chat *chat)
     chat->last_self_announce_check = mono_time_get(chat->mono_time);
 }
 
-static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
 /* Attempts to initiate a new connection with peers in the timeout list.
  *
  * This function is not used for public groups as the DHT and group sync mechanism
  * should automatically do this for us.
  */
+#define TIMED_OUT_RECONN_INTERVAL 2
 static void do_timed_out_reconn(Messenger *m, GC_Chat *chat)
 {
     if (is_public_chat(chat)) {
+        return;
+    }
+
+    if (!mono_time_is_timeout(chat->mono_time, chat->last_timed_out_reconn_try, TIMED_OUT_RECONN_INTERVAL)) {
         return;
     }
 
@@ -6382,6 +6384,8 @@ static void do_timed_out_reconn(Messenger *m, GC_Chat *chat)
             timeout->last_reconn_try = curr_time;
         }
     }
+
+    chat->last_timed_out_reconn_try = curr_time;
 }
 
 void do_gc(GC_Session *c, void *userdata)
