@@ -8,6 +8,7 @@ add_flag -Wextra
 add_flag -Weverything
 
 # Disable specific warning flags for both C and C++.
+add_flag -Wno-c11-extensions
 
 # Very verbose, not very useful. This warns about things like int -> uint
 # conversions that change sign without a cast and narrowing conversions.

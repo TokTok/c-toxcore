@@ -15,6 +15,10 @@
 #include <stddef.h>     // size_t
 #include <stdint.h>     // uint*_t
 
+#ifdef HAVE_LIBEV
+#include <ev.h>     // uint*_t
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -323,6 +327,14 @@ typedef struct Networking_Core Networking_Core;
 Family net_family(const Networking_Core *net);
 uint16_t net_port(const Networking_Core *net);
 Socket net_sock(const Networking_Core *net);
+
+#ifdef HAVE_LIBEV
+bool net_ev_is_active(Networking_Core *net);
+
+typedef void net_ev_listen_cb(struct ev_loop *dispatcher, ev_io *sock_listener, int events);
+void net_ev_listen(Networking_Core *net, struct ev_loop *dispatcher, net_ev_listen_cb *callback, void *data);
+void net_ev_stop(Networking_Core *net);
+#endif
 
 /** Run this before creating sockets.
  *
