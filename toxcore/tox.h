@@ -1061,11 +1061,6 @@ typedef enum Tox_Err_Loop {
     TOX_ERR_LOOP_OK,
 
     /**
-     * Memory allocation failed when creating an event listener.
-     */
-    TOX_ERR_LOOP_MALLOC,
-
-    /**
      * Failed running events dispatcher.
      */
     TOX_ERR_LOOP_BREAK,

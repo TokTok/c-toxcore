@@ -298,8 +298,6 @@ struct Messenger {
 #ifdef HAVE_LIBEV
     struct ev_loop *dispatcher;
     ev_async stop_loop;
-#else
-    bool loop_run;
 #endif
 
     Messenger_Options options;

@@ -1895,11 +1895,6 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsig
 
 #ifdef HAVE_LIBEV
     m->dispatcher = ev_loop_new(0);
-#else
-    m->loop_run = false;
-#endif // HAVE_LIBEV
-
-#if defined(HAVE_LIBEV)
 
     if (m->dispatcher == nullptr) {
         free(m);
