@@ -6016,7 +6016,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     gconn->last_key_rotation = tm;
     gconn->tcp_connection_num = tcp_connection_num;
     gconn->last_sent_ip_time = tm;
-    gconn->last_sent_ping_time = (tm - GC_PING_TIMEOUT) + (3 + (peer_number % 3));
+    gconn->last_sent_ping_time = tm - (GC_PING_TIMEOUT / 2) + (peer_number % (GC_PING_TIMEOUT / 2));
     gconn->self_is_closer = id_closest(get_chat_id(chat->chat_public_key),
                                        get_enc_key(chat->self_public_key),
                                        get_enc_key(gconn->addr.public_key)) == 1;
@@ -6673,9 +6673,9 @@ static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo 
 
         const uint64_t tm = mono_time_get(chat->mono_time);
 
-        gconn->is_oob_handshake = add_tcp_result == 0;
+        gconn->is_oob_handshake = add_tcp_result == 0 && !ip_port_is_set;
         gconn->is_pending_handshake_response = false;
-        gconn->pending_handshake_type = HS_PEER_INFO_EXCHANGE;
+        gconn->pending_handshake_type = HS_INVITE_REQUEST;
         gconn->last_received_ping_time = tm;
         gconn->last_key_rotation = tm;
 
