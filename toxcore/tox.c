@@ -875,6 +875,7 @@ static void tox_stop_loop_async(struct ev_loop *dispatcher, ev_async *listener, 
     }
 
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)listener->data;
+
     Messenger *m = tox_data->tox->m;
 
     if (net_ev_is_active(m->net)) {
@@ -903,7 +904,9 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
     }
 
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)sock_listener->data;
+
     Tox *tox = tox_data->tox;
+
     Messenger *m = tox->m;
 
     if (tox_data->tox->loop_begin_callback) {
@@ -1002,7 +1005,7 @@ static bool tox_fds(const Messenger *m, Socket **sockets, uint32_t *sockets_num)
         const TCP_con *conn = tcp_connections_connection_at(tcp_c, i);
 
         tmp_sockets[i] = conn != nullptr ? tcp_con_sock(conn->connection) : (Socket) {
-          0
+            0
         };
     }
 
@@ -1066,6 +1069,7 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
         }
 
         Socket maxfd = {0};
+
         for (uint32_t i = 0; i < fdcount; ++i) {
             if (fdlist[i].socket == 0) {
                 continue;
