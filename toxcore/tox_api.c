@@ -70,7 +70,7 @@ ACCESSORS(bool,, experimental_thread_safety)
 
 //!TOKSTYLE+
 
-const char * tox_options_get_proxy_host(const struct Tox_Options *options)
+const char *tox_options_get_proxy_host(const struct Tox_Options *options)
 {
     return options->proxy_host;
 }
@@ -161,9 +161,10 @@ struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
 
 void tox_options_free(struct Tox_Options *options)
 {
-    if(options) {
+    if (options) {
         free(options->savedata_data);
         free(options->proxy_host);
     }
+
     free(options);
 }

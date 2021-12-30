@@ -76,6 +76,7 @@ static void reload_tox(Tox **tox, struct Tox_Options *const in_opts, void *user_
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     bool res = tox_options_set_savedata_data(options, buffer + extra, save_size1);
+
     ck_assert(res == true);
 
     *tox = tox_new_log(options, nullptr, user_data);
