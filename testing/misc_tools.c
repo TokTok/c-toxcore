@@ -174,9 +174,9 @@ void print_debug_log(Tox *m, Tox_Log_Level level, const char *file, uint32_t lin
     }
 }
 
-Tox *tox_new_log_lan(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data, bool lan_discovery)
+Tox *tox_new_log_lan(Tox_Options *options, Tox_Err_New *err, void *log_user_data, bool lan_discovery)
 {
-    struct Tox_Options *log_options = options;
+    Tox_Options *log_options = options;
 
     if (log_options == nullptr) {
         log_options = tox_options_new(nullptr);
@@ -198,7 +198,7 @@ Tox *tox_new_log_lan(struct Tox_Options *options, Tox_Err_New *err, void *log_us
     return tox;
 }
 
-Tox *tox_new_log(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data)
+Tox *tox_new_log(Tox_Options *options, Tox_Err_New *err, void *log_user_data)
 {
     return tox_new_log_lan(options, err, log_user_data, false);
 }

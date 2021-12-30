@@ -50,7 +50,7 @@ START_TEST(test_many_clients_tcp)
     uint32_t to_comp = 974536;
 
     for (i = 0; i < NUM_TOXES_TCP; ++i) {
-        struct Tox_Options *opts = tox_options_new(nullptr);
+        Tox_Options *opts = tox_options_new(nullptr);
 
         if (i == 0) {
             tox_options_set_tcp_port(opts, TCP_RELAY_PORT);
@@ -144,7 +144,7 @@ START_TEST(test_many_clients_tcp_b)
     uint32_t to_comp = 974536;
 
     for (i = 0; i < NUM_TOXES_TCP; ++i) {
-        struct Tox_Options *opts = tox_options_new(nullptr);
+        Tox_Options *opts = tox_options_new(nullptr);
 
         if (i < NUM_TCP_RELAYS) {
             tox_options_set_tcp_port(opts, TCP_RELAY_PORT + i);

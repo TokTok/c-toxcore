@@ -2,6 +2,7 @@
  * Copyright © 2016-2021 The TokTok team.
  */
 #include "tox.h"
+#include "tox_private.h"
 
 #include "ccompat.h"
 
@@ -44,11 +45,11 @@ CONST_FUNCTION(max_hostname_length, MAX_HOSTNAME_LENGTH)
 
 
 #define ACCESSORS(type, ns, name) \
-type tox_options_get_##ns##name(const struct Tox_Options *options) \
+type tox_options_get_##ns##name(const Tox_Options *options) \
 { \
     return options->ns##name; \
 } \
-void tox_options_set_##ns##name(struct Tox_Options *options, type name) \
+void tox_options_set_##ns##name(Tox_Options *options, type name) \
 { \
     options->ns##name = name; \
 }
@@ -71,27 +72,27 @@ ACCESSORS(bool,, experimental_thread_safety)
 
 //!TOKSTYLE+
 
-const uint8_t *tox_options_get_savedata_data(const struct Tox_Options *options)
+const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
     return options->savedata_data;
 }
 
-void tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length)
+void tox_options_set_savedata_data(Tox_Options *options, const uint8_t *data, size_t length)
 {
     options->savedata_data = data;
     options->savedata_length = length;
 }
 
-struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
+Tox_Options *tox_options_new(Tox_Err_Options_New *error)
 {
-    struct Tox_Options *options = (struct Tox_Options *)malloc(sizeof(struct Tox_Options));
+    Tox_Options *options = (Tox_Options *)malloc(sizeof(Tox_Options));
 
     if (options == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_MALLOC);
         return nullptr;
     }
 
-    struct Tox_Options default_options = { 0 };
+    Tox_Options default_options = { 0 };
 
     *options = default_options;
 
@@ -110,7 +111,7 @@ struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
     return options;
 }
 
-void tox_options_free(struct Tox_Options *options)
+void tox_options_free(Tox_Options *options)
 {
     free(options);
 }

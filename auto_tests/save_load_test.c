@@ -52,7 +52,7 @@ static void tox_connection_status(Tox *tox, Tox_Connection connection_status, vo
  * b) a saved state can be loaded back successfully
  * c) a second save is of equal size
  * d) the second save is of equal content */
-static void reload_tox(Tox **tox, struct Tox_Options *const in_opts, void *user_data)
+static void reload_tox(Tox **tox, Tox_Options *const in_opts, void *user_data)
 {
     const size_t extra = 64;
     const size_t save_size1 = tox_get_savedata_size(*tox);
@@ -71,7 +71,7 @@ static void reload_tox(Tox **tox, struct Tox_Options *const in_opts, void *user_
         ck_assert_msg(buffer[extra + save_size1 + i] == 0xCD, "Buffer overwritten from tox_get_savedata() @%u", (unsigned)i);
     }
 
-    struct Tox_Options *const options = (in_opts == nullptr) ? tox_options_new(nullptr) : in_opts;
+    Tox_Options *const options = (in_opts == nullptr) ? tox_options_new(nullptr) : in_opts;
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
@@ -108,20 +108,20 @@ static void test_few_clients(void)
     uint32_t index[] = { 1, 2, 3 };
     time_t con_time = 0, cur_time = time(nullptr);
 
-    struct Tox_Options *opts1 = tox_options_new(nullptr);
+    Tox_Options *opts1 = tox_options_new(nullptr);
     tox_options_set_tcp_port(opts1, TCP_RELAY_PORT);
     Tox_Err_New t_n_error;
     Tox *tox1 = tox_new_log(opts1, &t_n_error, &index[0]);
     ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
     tox_options_free(opts1);
 
-    struct Tox_Options *opts2 = tox_options_new(nullptr);
+    Tox_Options *opts2 = tox_options_new(nullptr);
     tox_options_set_udp_enabled(opts2, false);
     tox_options_set_local_discovery_enabled(opts2, false);
     Tox *tox2 = tox_new_log(opts2, &t_n_error, &index[1]);
     ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
 
-    struct Tox_Options *opts3 = tox_options_new(nullptr);
+    Tox_Options *opts3 = tox_options_new(nullptr);
     tox_options_set_local_discovery_enabled(opts3, false);
     Tox *tox3 = tox_new_log(opts3, &t_n_error, &index[2]);
     ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);

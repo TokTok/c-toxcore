@@ -25,7 +25,7 @@ static const char *savefile = "./save";
 
 static void save_data_encrypted(void)
 {
-    struct Tox_Options *options = tox_options_new(nullptr);
+    Tox_Options *options = tox_options_new(nullptr);
     Tox *t = tox_new_log(options, nullptr, nullptr);
     tox_options_free(options);
 
@@ -79,7 +79,7 @@ static void load_data_decrypted(void)
     ck_assert_msg(tox_pass_decrypt(cipher, size, (const uint8_t *)pphrase, strlen(pphrase), clear, &derr),
                   "Could not decrypt, error code %d.", derr);
 
-    struct Tox_Options *options = tox_options_new(nullptr);
+    Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
