@@ -989,9 +989,9 @@ static bool realloc_sockets(Socket **sockets_ptr, uint32_t *sockets_num, uint32_
  * @param sockets_ptr a pointer to an array (the pointed array can be NULL).
  * @param sockets_num the number of current known sockets (will be updated by the funciton).
  *
- * @return false on error, true on success.
+ * @return false on allocation error, true on success
  */
-static bool tox_fds(const Messenger *m, Socket **sockets_ptr, uint32_t *sockets_num)
+static bool tox_loop_get_fds(const Messenger *m, Socket **sockets_ptr, uint32_t *sockets_num)
 {
     assert(m != nullptr);
     assert(sockets_ptr != nullptr);
@@ -1037,6 +1037,34 @@ static void locked_set(const Tox *tox, bool *value, bool new_value)
     unlock(tox);
 }
 
+static bool tox_loop_select(Tox *tox, Socket *fdlist, uint32_t fdcount)
+{
+    fd_set readable;
+    FD_ZERO(&readable);
+
+    Socket maxfd = {0};
+
+    for (uint32_t i = 0; i < fdcount; ++i) {
+        if (fdlist[i].socket == 0) {
+            continue;
+        }
+
+        FD_SET(fdlist[i].socket, &readable);
+
+        if (fdlist[i].socket > maxfd.socket) {
+            maxfd = fdlist[i];
+        }
+    }
+
+    struct timeval timeout;
+
+    // TODO(cleverca22): use a longer timeout.
+    timeout.tv_sec = 0;
+    timeout.tv_usec = tox_iteration_interval(tox) * 1000 * 2;
+
+    return select(maxfd.socket, &readable, nullptr, nullptr, &timeout) >= 0 || errno == EBADF;
+}
+
 bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
 {
     assert(tox != nullptr);
@@ -1049,62 +1077,26 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
     locked_set(tox, &tox->loop_run, true);
 
     while (locked_get(tox, &tox->loop_run)) {
-        fd_set readable;
-
         if (tox->loop_begin_callback != nullptr) {
             tox->loop_begin_callback(tox, user_data);
         }
 
         tox_iterate(tox, user_data);
 
-        FD_ZERO(&readable);
-
-        // TODO(cleverca22): is it a good idea to reuse previous fdlist when
-        //                   fdcount!=0 && tox_fds()==false?
-        if (fdcount == 0 && !tox_fds(m, &fdlist, &fdcount)) {
-            // We must stop because maxfd won't be set.
-            // TODO(cleverca22): should we call loop_end_callback() on error?
-            if (tox->loop_end_callback != nullptr) {
-                tox->loop_end_callback(tox, user_data);
-            }
-
-            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_GET_FDS);
-
-            free(fdlist);
-
-            return false;
-        }
-
-        Socket maxfd = {0};
-
-        for (uint32_t i = 0; i < fdcount; ++i) {
-            if (fdlist[i].socket == 0) {
-                continue;
-            }
-
-            FD_SET(fdlist[i].socket, &readable);
-
-            if (fdlist[i].socket > maxfd.socket) {
-                maxfd = fdlist[i];
-            }
-        }
-
+        // TODO(cleverca22): should we call loop_end_callback() on error?
         if (tox->loop_end_callback) {
             tox->loop_end_callback(tox, user_data);
         }
 
-        struct timeval timeout;
-
-        timeout.tv_sec = 0;
-
-        // TODO(cleverca22): use a longer timeout.
-        timeout.tv_usec = tox_iteration_interval(tox) * 1000 * 2;
-
-        if (select(maxfd.socket, &readable, nullptr, nullptr, &timeout) < 0 && errno != EBADF) {
-            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_SELECT);
-
+        if (!tox_loop_get_fds(m, &fdlist, &fdcount)) {
+            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_GET_FDS);
             free(fdlist);
+            return false;
+        }
 
+        if (!tox_loop_select(tox, fdlist, fdcount)) {
+            SET_ERROR_PARAMETER(error, TOX_ERR_LOOP_SELECT);
+            free(fdlist);
             return false;
         }
     }

@@ -101,6 +101,7 @@ cc_library(
         "network.h",
         "util.h",
     ],
+    linkopts = ["-lev"],
     visibility = [
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/toxav:__pkg__",

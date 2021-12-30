@@ -62,6 +62,8 @@ bool unused_for_tokstyle(void);
 #define GNU_PRINTF(f, a)
 #endif
 
+//#define HAVE_LIBEV 1
+
 //!TOKSTYLE+
 
 #endif // C_TOXCORE_TOXCORE_CCOMPAT_H
