@@ -252,7 +252,7 @@ static void group_invite_test(Tox **toxes, State *state)
     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
     const uint32_t num_new_peers = NUM_GROUP_TOXES - 7;
-    printf("Connecting %d peers at the same time\n", num_new_peers);
+    printf("Connecting %u peers at the same time\n", num_new_peers);
 
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
         tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
