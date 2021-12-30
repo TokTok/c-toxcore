@@ -963,53 +963,66 @@ void tox_loop_stop(Tox *tox)
 
 #else  // !HAVE_LIBEV
 
+static bool realloc_sockets(Socket **sockets_ptr, uint32_t *sockets_num, uint32_t fd_count)
+{
+    if (*sockets_num == fd_count) {
+        // No need to resize.
+        return true;
+    }
+
+    Socket *new_sockets = (Socket *)realloc(*sockets_ptr, fd_count * sizeof(Socket));
+
+    if (new_sockets == nullptr) {
+        return false;
+    }
+
+    *sockets_ptr = new_sockets;
+    *sockets_num = fd_count;
+
+    return true;
+}
+
 /**
- * Gathers a list of every network file descriptor,
- * where an activity is expected on (the UDP socket and all TCP sockets).
+ * Gathers a list of every network file descriptor on which we expect
+ * I/O activity (the UDP socket and all TCP sockets).
  *
- * @param sockets a pointer to an array (the pointed array can be NULL).
+ * @param sockets_ptr a pointer to an array (the pointed array can be NULL).
  * @param sockets_num the number of current known sockets (will be updated by the funciton).
  *
- * @return false if errors occurred, true otherwise.
+ * @return false on error, true on success.
  */
-static bool tox_fds(const Messenger *m, Socket **sockets, uint32_t *sockets_num)
+static bool tox_fds(const Messenger *m, Socket **sockets_ptr, uint32_t *sockets_num)
 {
     assert(m != nullptr);
-    assert(sockets != nullptr);
+    assert(sockets_ptr != nullptr);
     assert(sockets_num != nullptr);
 
-    Socket *tmp_sockets = *sockets;
     const TCP_Connections *tcp_c = nc_get_tcp_c(m->net_crypto);
 
     const uint32_t tcp_count = tcp_connections_length(tcp_c);
     const uint32_t fd_count = tcp_count + 1;  // tcp_count TCP sockets + 1 UDP socket
 
-    if (fd_count != *sockets_num || tmp_sockets == nullptr) {
-        tmp_sockets = (Socket *)realloc(*sockets, fd_count * sizeof(Socket));
-
-        if (tmp_sockets == nullptr) {
-            return false;
-        }
-
-        *sockets = tmp_sockets;
-        *sockets_num = fd_count;
+    if (!realloc_sockets(sockets_ptr, sockets_num, fd_count)) {
+        return false;
     }
+
+    Socket *sockets = *sockets_ptr;
 
     // Add the TCP sockets.
     for (uint32_t i = 0; i < tcp_count; ++i) {
         const TCP_con *conn = tcp_connections_connection_at(tcp_c, i);
 
         assert(conn != nullptr);
-        tmp_sockets[i] = tcp_con_sock(conn->connection);
+        sockets[i] = tcp_con_sock(conn->connection);
     }
 
     // Add the one UDP socket.
-    tmp_sockets[fd_count - 1] = net_sock(m->net);
+    sockets[fd_count - 1] = net_sock(m->net);
 
     return true;
 }
 
-static bool locked(const Tox *tox, const bool *value)
+static bool locked_get(const Tox *tox, const bool *value)
 {
     lock(tox);
     bool res = *value;
@@ -1035,7 +1048,7 @@ bool tox_loop(Tox *tox, void *user_data, Tox_Err_Loop *error)
 
     locked_set(tox, &tox->loop_run, true);
 
-    while (locked(tox, &tox->loop_run)) {
+    while (locked_get(tox, &tox->loop_run)) {
         fd_set readable;
 
         if (tox->loop_begin_callback != nullptr) {
