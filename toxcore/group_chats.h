@@ -27,6 +27,7 @@
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_PACKET_SIZE (uint16_t) 1400
 #define MAX_GC_SAVED_TIMEOUTS 12
+#define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
 #define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
 #define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
@@ -253,7 +254,6 @@ typedef struct GC_TopicInfo {
 typedef struct GC_Connection GC_Connection;
 typedef struct GC_Exit_Info GC_Exit_Info;
 
-#define GROUP_SAVE_MAX_PEERS MAX_GC_PEER_ADDRS
 #define GROUP_SAVE_MAX_MODERATORS 128  // must be <= MAX_GC_MODERATORS (temporary fix to prevent save format breakage)
 
 struct Saved_Group {
@@ -280,11 +280,11 @@ struct Saved_Group {
     /* Other group info */
     uint8_t   chat_public_key[EXT_PUBLIC_KEY_SIZE];
     uint8_t   chat_secret_key[EXT_SECRET_KEY_SIZE];
-    uint16_t  num_addrs;
-    GC_SavedPeerInfo addrs[GROUP_SAVE_MAX_PEERS];
     uint16_t  num_mods;
     uint8_t   mod_list[GC_MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
     uint8_t   group_connection_state;
+
+    GC_SavedPeerInfo addrs[GC_MAX_SAVED_PEERS];
 
     /* self info */
     uint8_t   self_public_key[EXT_PUBLIC_KEY_SIZE];
@@ -347,6 +347,8 @@ typedef struct GC_Chat {
 
     int32_t     saved_invites[MAX_GC_SAVED_INVITES];
     uint8_t     saved_invites_index;
+
+    GC_SavedPeerInfo saved_peers[GC_MAX_SAVED_PEERS];
 
     GC_TimedOutPeer timeout_list[MAX_GC_SAVED_TIMEOUTS];
     size_t      timeout_list_index;
@@ -884,12 +886,6 @@ bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number);
  * Return NULL on failure
  */
 GC_Chat *gc_get_group(const GC_Session *c, int group_number);
-
-/* Copies up to max_addrs peer addresses from chat into addrs.
- *
- * Returns number of addresses copied.
- */
-uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t max_addrs);
 
 /* Sends a lossless message acknowledgement to peer associated with `gconn`.
  *

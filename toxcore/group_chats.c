@@ -88,7 +88,6 @@
 /* How long before we stop trying to reconnect with a timed out peer */
 #define GC_TIMED_OUT_STALE_TIMEOUT (60 * 15)
 
-
 /* Types of broadcast messages. */
 typedef enum Group_Message_Type {
     GC_MESSAGE_TYPE_NORMAL = 0x00,
@@ -257,8 +256,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     memcpy(temp->chat_public_key, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(temp->chat_secret_key, chat->chat_secret_key, EXT_SECRET_KEY_SIZE);  /* empty for non-founders */
 
-    uint16_t num_addrs = gc_copy_peer_addrs(chat, temp->addrs, GROUP_SAVE_MAX_PEERS);
-    temp->num_addrs = net_htons(num_addrs);
+    memcpy(temp->addrs, &chat->saved_peers, GC_MAX_SAVED_PEERS * sizeof(GC_SavedPeerInfo));
 
     temp->num_mods = net_htons(chat->moderation.num_mods);
     mod_list_pack(chat, temp->mod_list);
@@ -569,27 +567,81 @@ static int expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 }
 
 /* Copies peer connect info from `gconn` to `addr`. */
-static void copy_gc_peer_addr(const GC_Connection *gconn, GC_SavedPeerInfo *addr)
+static void copy_gc_saved_peer(const GC_Connection *gconn, GC_SavedPeerInfo *addr)
 {
     gcc_copy_tcp_relay(&addr->tcp_relay, gconn);
     memcpy(&addr->ip_port, &gconn->addr.ip_port, sizeof(IP_Port));
     memcpy(addr->public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
-uint16_t gc_copy_peer_addrs(const GC_Chat *chat, GC_SavedPeerInfo *addrs, size_t max_addrs)
+/* Return true if `saved_peer` has either a valid IP_Port or a valid TCP relay. */
+static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer)
 {
-    uint16_t num = 0;
+    return ipport_isset(&saved_peer->ip_port) || ipport_isset(&saved_peer->tcp_relay.ip_port);
+}
 
-    for (uint32_t i = 1; i < chat->numpeers && i < max_addrs; ++i) {
-        const GC_Connection *gconn = &chat->gcc[i];
+/* Return true if the saved peers list has an entry for `public_key`. */
+static bool saved_peer_exists(const GC_Chat *chat, const uint8_t *public_key)
+{
+    for (uint8_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
-        if (gconn->confirmed || chat->connection_state != CS_CONNECTED) {
-            copy_gc_peer_addr(gconn, &addrs[num]);
-            ++num;
+        if (memcmp(saved_peer->public_key, public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
+            return true;
         }
     }
 
-    return num;
+    return false;
+}
+
+/* Returns the index belonging to `public_key`. If an entry does not exist, the first vacant
+ * index will be returned.
+ *
+ * A vacant entry is an entry that does not have either an IP_port or tcp relay set,
+ * or an entry containing info on a peer that is not presently online.
+ *
+ * Returns -1 if there are no vacant indices.
+ */
+static int saved_peers_get_index(const GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint8_t num_addrs,
+                                 const uint8_t *public_key)
+{
+    for (uint8_t i = 0; i < num_addrs; ++i) {
+        if (saved_peer_exists(chat, public_key)) {
+            return i;
+        }
+
+        const GC_SavedPeerInfo *saved_peer = &addrs[i];
+
+        const int peernumber = get_peer_number_of_enc_pk(chat, saved_peer->public_key, true);
+
+        if (peernumber != -1) {
+            continue;
+        }
+
+        if (!saved_peer_is_valid(saved_peer)) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+/* Attempts to add `gconn` to the saved peer list. If an entry already exists it will
+ * be updated.
+ *
+ * Older peers will only be over-written if the peer is no longer
+ * present in the chat. This gives priority to more stable connections.
+ */
+static void update_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
+{
+    const int idx = saved_peers_get_index(chat, chat->saved_peers, GC_MAX_SAVED_PEERS, gconn->addr.public_key);
+
+    if (idx == -1) {
+        return;
+    }
+
+    GC_SavedPeerInfo *saved_peer = &chat->saved_peers[idx];
+    copy_gc_saved_peer(gconn, saved_peer);
 }
 
 /* Returns the number of confirmed peers in peerlist. */
@@ -2285,6 +2337,8 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
     }
 
     gconn->confirmed = true;
+
+    update_gc_saved_peers(chat, gconn);
 
     set_gc_peerlist_checksum(chat);
 
@@ -6205,7 +6259,7 @@ static void add_gc_peer_timeout_list(GC_Chat *chat, const GC_Connection *gconn)
     const size_t idx = chat->timeout_list_index;
     const uint64_t tm = mono_time_get(chat->mono_time);
 
-    copy_gc_peer_addr(gconn, &chat->timeout_list[idx].addr);
+    copy_gc_saved_peer(gconn, &chat->timeout_list[idx].addr);
 
     chat->timeout_list[idx].last_seen = tm;
     chat->timeout_list[idx].last_reconn_try = 0;
@@ -6702,9 +6756,14 @@ static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo 
 {
     size_t count = 0;
 
-    for (size_t i = 0; i < num_addrs && i < MAX_GC_PEER_ADDRS; ++i) {
+    for (size_t i = 0; i < num_addrs; ++i) {
+        if (!saved_peer_is_valid(&addrs[i])) {
+            continue;
+        }
+
         const bool ip_port_is_set = ipport_isset(&addrs[i].ip_port);
         const IP_Port *ip_port = ip_port_is_set ? &addrs[i].ip_port : nullptr;
+
         const int peer_number = peer_add(m, chat->group_number, ip_port, addrs[i].public_key);
 
         if (peer_number < 0) {
@@ -6840,6 +6899,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
+    memcpy(&chat->saved_peers, save->addrs, GC_MAX_SAVED_PEERS * sizeof(GC_SavedPeerInfo));
+
     if (!is_active_chat) {
         return group_number;
     }
@@ -6850,8 +6911,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         }
     }
 
-    const uint16_t num_addrs = net_ntohs(save->num_addrs);
-    load_gc_peers(m, chat, save->addrs, num_addrs);
+    load_gc_peers(m, chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
 
     return group_number;
 }
@@ -6997,9 +7057,6 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
         send_gc_self_exit(chat, nullptr, 0);
     }
 
-    GC_SavedPeerInfo peers[GROUP_SAVE_MAX_PEERS];
-    const uint16_t num_addrs = gc_copy_peer_addrs(chat, peers, GROUP_SAVE_MAX_PEERS);
-
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
         GC_Connection *gconn = &chat->gcc[i];
         gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
@@ -7016,7 +7073,8 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
         chat->update_self_announces = true;
     }
 
-    load_gc_peers(c->messenger, chat, peers, num_addrs);
+    load_gc_peers(c->messenger, chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
+
     chat->connection_state = CS_CONNECTING;
 
     return 0;
