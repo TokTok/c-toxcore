@@ -1656,7 +1656,7 @@ static int handle_gc_tcp_relays(const Messenger *m, int group_number, GC_Connect
     }
 
     const GC_Session *c = m->group_handler;
-    const GC_Chat *chat = gc_get_group(c, group_number);
+    GC_Chat *chat = gc_get_group(c, group_number);
 
     if (chat == nullptr) {
         return -2;
@@ -1672,8 +1672,13 @@ static int handle_gc_tcp_relays(const Messenger *m, int group_number, GC_Connect
     for (size_t i = 0; i < num_nodes; ++i) {
         Node_format *tcp_node = &tcp_relays[i];
 
-        if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, tcp_node->ip_port, tcp_node->public_key) == 0) {
+        if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, tcp_node->ip_port,
+                                     tcp_node->public_key) == 0) {
             gcc_save_tcp_relay(gconn, tcp_node);
+
+            if (gconn->tcp_relays_count == 1) {
+                update_gc_saved_peers(chat, gconn);  // make sure we save at least one tcp relay
+            }
         }
     }
 
@@ -2074,6 +2079,7 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE,
                            length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
+            update_gc_saved_peers(chat, gconn);
         }
     }
 
