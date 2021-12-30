@@ -1270,9 +1270,13 @@ static int unpack_gc_sync_announce(const Messenger *m, const GC_Chat *chat, uint
         }
 
         new_gconn->pending_handshake_type = HS_PEER_INFO_EXCHANGE;
+
+        return 0;
     }
 
-    return 0;  // shouldn't happen
+    LOGGER_WARNING(chat->logger, "got impossible return value %d", new_peer_number);
+
+    return -1;
 }
 
 /* Handles a sync response packet.
@@ -1538,7 +1542,6 @@ static int handle_gc_sync_request(const Messenger *m, int group_number, int peer
 
     return 0;
 }
-
 
 static void copy_self(const GC_Chat *chat, GC_GroupPeer *peer);
 static int send_gc_peer_info_request(const GC_Chat *chat, GC_Connection *gconn);

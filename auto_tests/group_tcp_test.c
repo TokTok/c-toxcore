@@ -19,10 +19,23 @@ typedef struct State {
     uint64_t clock;
     size_t   num_peers;
     bool     got_code;
+    bool     got_second_code;
     uint32_t peer_id[NUM_GROUP_TOXES - 1];
 } State;
 
 #include "run_auto_test.h"
+
+
+static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
+                                 const uint8_t *group_name, size_t group_name_length, void *user_data)
+{
+    printf("Accepting friend invite\n");
+
+    TOX_ERR_GROUP_INVITE_ACCEPT err_accept;
+    tox_group_invite_accept(tox, friend_number, invite_data, length, (const uint8_t *)"test", 4,
+                            nullptr, 0, &err_accept);
+    ck_assert(err_accept == TOX_ERR_GROUP_INVITE_ACCEPT_OK);
+}
 
 static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, void *user_data)
 {
@@ -37,12 +50,28 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
         const uint8_t *message, size_t length, void *user_data)
 {
     State *state = (State *)user_data;
-
     ck_assert(state != nullptr);
+
     ck_assert(length == CODEWORD_LEN);
     ck_assert(memcmp(CODEWORD, message, length) == 0);
 
+    printf("Codeword: %s\n", CODEWORD);
+
     state->got_code = true;
+}
+
+static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
+                                  const uint8_t *message, size_t length, void *user_data)
+{
+    State *state = (State *)user_data;
+    ck_assert(state != nullptr);
+
+    ck_assert(length == CODEWORD_LEN);
+    ck_assert(memcmp(CODEWORD, message, length) == 0);
+
+    printf("Codeword: %s\n", CODEWORD);
+
+    state->got_second_code = true;
 }
 
 /*
@@ -69,6 +98,9 @@ static void group_tcp_test(Tox **toxes, State *state)
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
         tox_callback_group_private_message(toxes[i], group_private_message_handler);
     }
+
+    tox_callback_group_message(toxes[1], group_message_handler);
+    tox_callback_group_invite(toxes[1], group_invite_handler);
 
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
@@ -108,7 +140,7 @@ static void group_tcp_test(Tox **toxes, State *state)
         }
     }
 
-    printf("%d peers connected\n", NUM_GROUP_TOXES);
+    printf("%d peers successfully joined. Waiting for code...\n", NUM_GROUP_TOXES);
     printf("Tox 0 sending secret code to all peers\n");
 
     for (size_t i = 0; i < NUM_GROUP_TOXES - 1; ++i) {
@@ -134,8 +166,39 @@ static void group_tcp_test(Tox **toxes, State *state)
         }
     }
 
+    TOX_ERR_GROUP_LEAVE err_exit;
+    tox_group_leave(toxes[1], groupnumber, nullptr, 0, &err_exit);
+    ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
+
+    iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
+
+    state[0].num_peers = 0;
+    state[1].num_peers = 0;
+
+    // now do a friend invite to make sure the TCP-specific logic for friend invites is okay
+
+    printf("Tox1 leaves group and Tox0 does a friend group invite for tox1\n");
+
+    TOX_ERR_GROUP_INVITE_FRIEND err_invite;
+    tox_group_invite_friend(toxes[0], groupnumber, 0, &err_invite);
+    ck_assert(err_invite == TOX_ERR_GROUP_INVITE_FRIEND_OK);
+
+    while (state[0].num_peers == 0 && state[1].num_peers == 0) {
+        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
+    }
+
+    printf("Tox 1 successfully joined. Waiting for code...\n");
+
+    TOX_ERR_GROUP_SEND_MESSAGE merr;
+    tox_group_send_message(toxes[0], groupnumber, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)CODEWORD, CODEWORD_LEN,
+                           &merr);
+    ck_assert(merr == TOX_ERR_GROUP_SEND_MESSAGE_OK);
+
+    while (!state[1].got_second_code) {
+        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
+    }
+
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
-        TOX_ERR_GROUP_LEAVE err_exit;
         tox_group_leave(toxes[i], groupnumber, nullptr, 0, &err_exit);
         ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }
