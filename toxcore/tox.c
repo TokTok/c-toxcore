@@ -1060,6 +1060,7 @@ static bool tox_loop_select(Tox *tox, Socket *fdlist, uint32_t fdcount)
 
     // TODO(cleverca22): use a longer timeout.
     timeout.tv_sec = 0;
+
     timeout.tv_usec = tox_iteration_interval(tox) * 1000 * 2;
 
     return select(maxfd.socket, &readable, nullptr, nullptr, &timeout) >= 0 || errno == EBADF;
