@@ -923,8 +923,11 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
         return -1;
     }
 
-    memcpy(topic_info->topic, data + len_processed, topic_info->length);
-    len_processed += topic_info->length;
+    if (topic_info->length > 0) {
+        memcpy(topic_info->topic, data + len_processed, topic_info->length);
+        len_processed += topic_info->length;
+    }
+
     memcpy(topic_info->public_sig_key, data + len_processed, SIG_PUBLIC_KEY_SIZE);
     len_processed += SIG_PUBLIC_KEY_SIZE;
 
@@ -1069,7 +1072,9 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
         enc_header_len += GC_MESSAGE_ID_BYTES;
     }
 
-    memcpy(plain + padding_len + enc_header_len, data, length);
+    if (length > 0 && data != nullptr) {
+        memcpy(plain + padding_len + enc_header_len, data, length);
+    }
 
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
@@ -3288,7 +3293,13 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     }
 
     chat->topic_info.length = length;
-    memcpy(chat->topic_info.topic, topic, length);
+
+    if (length > 0) {
+        memcpy(chat->topic_info.topic, topic, length);
+    } else {
+        memset(chat->topic_info.topic, 0, sizeof(chat->topic_info.topic));
+    }
+
     memcpy(chat->topic_info.public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
     set_gc_topic_checksum(&chat->topic_info);
