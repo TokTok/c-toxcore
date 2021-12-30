@@ -904,6 +904,7 @@ static void tox_do_iterate(struct ev_loop *dispatcher, ev_io *sock_listener, int
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)sock_listener->data;
 
     Tox *tox = tox_data->tox;
+
     const Messenger *m = tox->m;
 
     if (tox->loop_begin_callback) {
