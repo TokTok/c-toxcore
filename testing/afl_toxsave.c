@@ -29,7 +29,7 @@ int main(int argc, char **argv)
 
     Tox_Err_Options_New error_options;
 
-    struct Tox_Options *tox_options = tox_options_new(&error_options);
+    Tox_Options *tox_options = tox_options_new(&error_options);
 
     if (error_options != TOX_ERR_OPTIONS_NEW_OK) {
         free(buffer);

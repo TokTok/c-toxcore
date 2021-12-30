@@ -111,7 +111,7 @@ int main(void)
     VLA(uint8_t, savedata, save_size);
     tox_get_savedata(tox1, savedata);
 
-    struct Tox_Options *const options = tox_options_new(nullptr);
+    Tox_Options *const options = tox_options_new(nullptr);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
     tox_options_set_savedata_data(options, savedata, save_size);
 

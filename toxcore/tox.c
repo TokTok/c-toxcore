@@ -373,7 +373,7 @@ static int tox_load(Tox *tox, const uint8_t *data, uint32_t length)
 }
 
 
-Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
+Tox *tox_new(const Tox_Options *options, Tox_Err_New *error)
 {
     Tox *tox = (Tox *)calloc(1, sizeof(Tox));
 
@@ -387,7 +387,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     bool load_savedata_sk = false;
     bool load_savedata_tox = false;
 
-    struct Tox_Options *default_options = nullptr;
+    Tox_Options *default_options = nullptr;
 
     if (options == nullptr) {
         Tox_Err_Options_New err;
@@ -406,7 +406,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         }
     }
 
-    const struct Tox_Options *const opts = options != nullptr ? options : default_options;
+    const Tox_Options *const opts = options != nullptr ? options : default_options;
     assert(opts != nullptr);
 
     if (tox_options_get_savedata_type(opts) != TOX_SAVEDATA_TYPE_NONE) {

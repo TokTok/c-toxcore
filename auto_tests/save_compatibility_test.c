@@ -69,7 +69,7 @@ static uint8_t *read_save(const char *save_path, size_t *length)
 
 static void test_save_compatibility(const char *save_path)
 {
-    struct Tox_Options *options = tox_options_new(nullptr);
+    Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
 
     size_t size = 0;

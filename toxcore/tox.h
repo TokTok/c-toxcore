@@ -516,234 +516,77 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
 
 
 /**
- * This struct contains all the startup options for Tox. You must tox_options_new to
- * allocate an object of this type.
- *
- * WARNING: Although this struct happens to be visible in the API, it is
- * effectively private. Do not allocate this yourself or access members
- * directly, as it *will* break binary compatibility frequently.
- *
- * @deprecated The memory layout of this struct (size, alignment, and field
- * order) is not part of the ABI. To remain compatible, prefer to use tox_options_new to
- * allocate the object and accessor functions to set the members. The struct
- * will become opaque (i.e. the definition will become private) in v0.3.0.
+ * This struct contains all the startup options for Tox. You must use tox_options_new to
+ * allocate an object of this type and use tox_options_free to free it.
  */
-struct Tox_Options {
-
-    /**
-     * The type of socket to create.
-     *
-     * If this is set to false, an IPv4 socket is created, which subsequently
-     * only allows IPv4 communication.
-     * If it is set to true, an IPv6 socket is created, allowing both IPv4 and
-     * IPv6 communication.
-     */
-    bool ipv6_enabled;
-
-
-    /**
-     * Enable the use of UDP communication when available.
-     *
-     * Setting this to false will force Tox to use TCP only. Communications will
-     * need to be relayed through a TCP relay node, potentially slowing them down.
-     *
-     * If a proxy is enabled, UDP will be disabled if either toxcore or the
-     * proxy don't support proxying UDP messages.
-     */
-    bool udp_enabled;
-
-
-    /**
-     * Enable local network peer discovery.
-     *
-     * Disabling this will cause Tox to not look for peers on the local network.
-     */
-    bool local_discovery_enabled;
-
-
-    /**
-     * Pass communications through a proxy.
-     */
-    Tox_Proxy_Type proxy_type;
-
-
-    /**
-     * The IP address or DNS name of the proxy to be used.
-     *
-     * If used, this must be non-NULL and be a valid DNS name. The name must not
-     * exceed TOX_MAX_HOSTNAME_LENGTH characters, and be in a NUL-terminated C string
-     * format (TOX_MAX_HOSTNAME_LENGTH includes the NUL byte).
-     *
-     * This member is ignored (it can be NULL) if proxy_type is TOX_PROXY_TYPE_NONE.
-     *
-     * The data pointed at by this member is owned by the user, so must
-     * outlive the options object.
-     */
-    const char *proxy_host;
-
-
-    /**
-     * The port to use to connect to the proxy server.
-     *
-     * Ports must be in the range (1, 65535). The value is ignored if
-     * proxy_type is TOX_PROXY_TYPE_NONE.
-     */
-    uint16_t proxy_port;
-
-
-    /**
-     * The start port of the inclusive port range to attempt to use.
-     *
-     * If both start_port and end_port are 0, the default port range will be
-     * used: `[33445, 33545]`.
-     *
-     * If either start_port or end_port is 0 while the other is non-zero, the
-     * non-zero port will be the only port in the range.
-     *
-     * Having start_port > end_port will yield the same behavior as if start_port
-     * and end_port were swapped.
-     */
-    uint16_t start_port;
+#ifndef TOX_OPTIONS_DEFINED
+#define TOX_OPTIONS_DEFINED
+typedef struct Tox_Options Tox_Options;
+#endif /* TOX_OPTIONS_DEFINED */
 
+bool tox_options_get_ipv6_enabled(const Tox_Options *options);
 
-    /**
-     * The end port of the inclusive port range to attempt to use.
-     */
-    uint16_t end_port;
+void tox_options_set_ipv6_enabled(Tox_Options *options, bool ipv6_enabled);
 
+bool tox_options_get_udp_enabled(const Tox_Options *options);
 
-    /**
-     * The port to use for the TCP server (relay). If 0, the TCP server is
-     * disabled.
-     *
-     * Enabling it is not required for Tox to function properly.
-     *
-     * When enabled, your Tox instance can act as a TCP relay for other Tox
-     * instance. This leads to increased traffic, thus when writing a client
-     * it is recommended to enable TCP server only if the user has an option
-     * to disable it.
-     */
-    uint16_t tcp_port;
+void tox_options_set_udp_enabled(Tox_Options *options, bool udp_enabled);
 
+bool tox_options_get_local_discovery_enabled(const Tox_Options *options);
 
-    /**
-     * Enables or disables UDP hole-punching in toxcore. (Default: enabled).
-     */
-    bool hole_punching_enabled;
+void tox_options_set_local_discovery_enabled(Tox_Options *options, bool local_discovery_enabled);
 
+Tox_Proxy_Type tox_options_get_proxy_type(const Tox_Options *options);
 
-    /**
-     * The type of savedata to load from.
-     */
-    Tox_Savedata_Type savedata_type;
+void tox_options_set_proxy_type(Tox_Options *options, Tox_Proxy_Type type);
 
+const char *tox_options_get_proxy_host(const Tox_Options *options);
 
-    /**
-     * The savedata.
-     *
-     * The data pointed at by this member is owned by the user, so must
-     * outlive the options object.
-     */
-    const uint8_t *savedata_data;
+void tox_options_set_proxy_host(Tox_Options *options, const char *host);
 
+uint16_t tox_options_get_proxy_port(const Tox_Options *options);
 
-    /**
-     * The length of the savedata.
-     */
-    size_t savedata_length;
+void tox_options_set_proxy_port(Tox_Options *options, uint16_t port);
 
+uint16_t tox_options_get_start_port(const Tox_Options *options);
 
-    /**
-     * Logging callback for the new tox instance.
-     */
-    tox_log_cb *log_callback;
+void tox_options_set_start_port(Tox_Options *options, uint16_t start_port);
 
+uint16_t tox_options_get_end_port(const Tox_Options *options);
 
-    /**
-     * User data pointer passed to the logging callback.
-     */
-    void *log_user_data;
+void tox_options_set_end_port(Tox_Options *options, uint16_t end_port);
 
+uint16_t tox_options_get_tcp_port(const Tox_Options *options);
 
-    /**
-     * These options are experimental, so avoid writing code that depends on
-     * them. Options marked "experimental" may change their behaviour or go away
-     * entirely in the future, or may be renamed to something non-experimental
-     * if they become part of the supported API.
-     */
-    /**
-     * Make public API functions thread-safe using a per-instance lock.
-     *
-     * Default: false.
-     */
-    bool experimental_thread_safety;
+void tox_options_set_tcp_port(Tox_Options *options, uint16_t tcp_port);
 
-};
+bool tox_options_get_hole_punching_enabled(const Tox_Options *options);
 
+void tox_options_set_hole_punching_enabled(Tox_Options *options, bool hole_punching_enabled);
 
-bool tox_options_get_ipv6_enabled(const struct Tox_Options *options);
+Tox_Savedata_Type tox_options_get_savedata_type(const Tox_Options *options);
 
-void tox_options_set_ipv6_enabled(struct Tox_Options *options, bool ipv6_enabled);
+void tox_options_set_savedata_type(Tox_Options *options, Tox_Savedata_Type type);
 
-bool tox_options_get_udp_enabled(const struct Tox_Options *options);
+const uint8_t *tox_options_get_savedata_data(const Tox_Options *options);
 
-void tox_options_set_udp_enabled(struct Tox_Options *options, bool udp_enabled);
+void tox_options_set_savedata_data(Tox_Options *options, const uint8_t *data, size_t length);
 
-bool tox_options_get_local_discovery_enabled(const struct Tox_Options *options);
+size_t tox_options_get_savedata_length(const Tox_Options *options);
 
-void tox_options_set_local_discovery_enabled(struct Tox_Options *options, bool local_discovery_enabled);
+void tox_options_set_savedata_length(Tox_Options *options, size_t length);
 
-Tox_Proxy_Type tox_options_get_proxy_type(const struct Tox_Options *options);
+tox_log_cb *tox_options_get_log_callback(const Tox_Options *options);
 
-void tox_options_set_proxy_type(struct Tox_Options *options, Tox_Proxy_Type type);
+void tox_options_set_log_callback(Tox_Options *options, tox_log_cb *callback);
 
-const char *tox_options_get_proxy_host(const struct Tox_Options *options);
+void *tox_options_get_log_user_data(const Tox_Options *options);
 
-void tox_options_set_proxy_host(struct Tox_Options *options, const char *host);
+void tox_options_set_log_user_data(Tox_Options *options, void *user_data);
 
-uint16_t tox_options_get_proxy_port(const struct Tox_Options *options);
+bool tox_options_get_experimental_thread_safety(const Tox_Options *options);
 
-void tox_options_set_proxy_port(struct Tox_Options *options, uint16_t port);
-
-uint16_t tox_options_get_start_port(const struct Tox_Options *options);
-
-void tox_options_set_start_port(struct Tox_Options *options, uint16_t start_port);
-
-uint16_t tox_options_get_end_port(const struct Tox_Options *options);
-
-void tox_options_set_end_port(struct Tox_Options *options, uint16_t end_port);
-
-uint16_t tox_options_get_tcp_port(const struct Tox_Options *options);
-
-void tox_options_set_tcp_port(struct Tox_Options *options, uint16_t tcp_port);
-
-bool tox_options_get_hole_punching_enabled(const struct Tox_Options *options);
-
-void tox_options_set_hole_punching_enabled(struct Tox_Options *options, bool hole_punching_enabled);
-
-Tox_Savedata_Type tox_options_get_savedata_type(const struct Tox_Options *options);
-
-void tox_options_set_savedata_type(struct Tox_Options *options, Tox_Savedata_Type type);
-
-const uint8_t *tox_options_get_savedata_data(const struct Tox_Options *options);
-
-void tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length);
-
-size_t tox_options_get_savedata_length(const struct Tox_Options *options);
-
-void tox_options_set_savedata_length(struct Tox_Options *options, size_t length);
-
-tox_log_cb *tox_options_get_log_callback(const struct Tox_Options *options);
-
-void tox_options_set_log_callback(struct Tox_Options *options, tox_log_cb *callback);
-
-void *tox_options_get_log_user_data(const struct Tox_Options *options);
-
-void tox_options_set_log_user_data(struct Tox_Options *options, void *user_data);
-
-bool tox_options_get_experimental_thread_safety(const struct Tox_Options *options);
-
-void tox_options_set_experimental_thread_safety(struct Tox_Options *options, bool thread_safety);
+void tox_options_set_experimental_thread_safety(Tox_Options *options, bool thread_safety);
 
 typedef enum Tox_Err_Options_New {
 
@@ -770,7 +613,7 @@ typedef enum Tox_Err_Options_New {
  *
  * @return A new Tox_Options object with default options or NULL on failure.
  */
-struct Tox_Options *tox_options_new(Tox_Err_Options_New *error);
+Tox_Options *tox_options_new(Tox_Err_Options_New *error);
 
 /**
  * Releases all resources associated with an options objects.
@@ -778,7 +621,7 @@ struct Tox_Options *tox_options_new(Tox_Err_Options_New *error);
  * Passing a pointer that was not returned by tox_options_new results in
  * undefined behaviour.
  */
-void tox_options_free(struct Tox_Options *options);
+void tox_options_free(Tox_Options *options);
 
 
 /*******************************************************************************
@@ -868,7 +711,7 @@ typedef enum Tox_Err_New {
  *
  * @return A new Tox instance pointer on success or NULL on failure.
  */
-Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
+Tox *tox_new(const Tox_Options *options, Tox_Err_New *error);
 
 /**
  * Releases all resources associated with the Tox instance and disconnects from
