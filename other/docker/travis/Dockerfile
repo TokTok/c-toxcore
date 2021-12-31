@@ -4,7 +4,7 @@
 # tested, so it may get out of date. Send PRs if you use it and it's broken.
 #
 # For one, we use bionic, not xenial, because xenial's clang is way too old.
-FROM ubuntu:16.04
+FROM ubuntu:xenial-20210416
 
 # Travis environment.
 RUN apt-get update && apt-get install --no-install-recommends -y \
