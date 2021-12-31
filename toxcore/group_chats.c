@@ -5617,7 +5617,8 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
 
     /* Duplicate packet */
     if (lossless_ret == 0) {
-        // LOGGER_DEBUG(m->log, "got duplicate packet from peer %u. ID: %lu, type: %u)", peer_number, message_id, packet_type);
+        // LOGGER_DEBUG(m->log, "got duplicate packet from peer %u. ID: %lu, type: %u)",
+        //              peer_number, message_id, packet_type);
         return gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
 
@@ -7223,6 +7224,9 @@ static int send_gc_invite_accepted_packet(Messenger *m, const GC_Chat *chat, uin
  * `data` must contain the group's Chat ID, the sender's public encryption key,
  * and either the sender's packed IP_Port, or at least one  packed TCP node that
  * the sender can be connected through (or both).
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
  */
 static int send_gc_invite_confirmed_packet(Messenger *m, const GC_Chat *chat, uint32_t friend_number,
         const uint8_t *data, uint16_t length)
@@ -7232,7 +7236,7 @@ static int send_gc_invite_confirmed_packet(Messenger *m, const GC_Chat *chat, ui
     }
 
     if (chat == nullptr) {
-        return -2;
+        return -1;
     }
 
     uint8_t packet[MAX_GC_PACKET_SIZE];
@@ -7242,7 +7246,7 @@ static int send_gc_invite_confirmed_packet(Messenger *m, const GC_Chat *chat, ui
     memcpy(packet + 2, data, length);
 
     if (send_group_invite_packet(m, friend_number, packet, length + 2) == -1) {
-        return -3;
+        return -1;
     }
 
     return 0;
@@ -7342,12 +7346,12 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
 }
 
 /* Return true if we have a pending sent invite for our friend designated by `friend_number`. */
-static bool friend_was_invited(GC_Chat *chat, int friend_number)
+static bool friend_was_invited(const Messenger *m, GC_Chat *chat, int friend_number)
 {
     for (size_t i = 0; i < MAX_GC_SAVED_INVITES; ++i) {
         if (chat->saved_invites[i] == friend_number) {
             chat->saved_invites[i] = -1;
-            return true;
+            return friend_is_valid(m, friend_number);
         }
     }
 
@@ -7367,10 +7371,6 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
 
     Messenger *m = c->messenger;
 
-    if (!friend_is_valid(m, friend_number)) {
-        return -1;
-    }
-
     uint8_t chat_id[CHAT_ID_SIZE];
     uint8_t invite_chat_pk[ENC_PUBLIC_KEY_SIZE];
 
@@ -7383,13 +7383,9 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
         return -1;
     }
 
-    if (!friend_was_invited(chat, friend_number)) {
-        return -1;
-    }
-
     const int peer_number = peer_add(m, chat->group_number, nullptr, invite_chat_pk);
 
-    if (peer_number < 0) {
+    if (!friend_was_invited(m, chat, friend_number) || peer_number < 0) {
         return -1;
     }
 
@@ -7409,11 +7405,7 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
     }
 
     uint32_t len = GC_JOIN_DATA_LENGTH;
-    uint8_t send_data[MAX_GC_PACKET_SIZE];
-
-    if (len > MAX_GC_PACKET_SIZE) {
-        LOGGER_FATAL(chat->logger, "join data length exceeds max packet size");
-    }
+    uint8_t send_data[GC_JOIN_DATA_LENGTH + sizeof(tcp_relays)];
 
     memcpy(send_data, chat_id, CHAT_ID_SIZE);
     memcpy(send_data + CHAT_ID_SIZE, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -7435,11 +7427,7 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
         len += nodes_len;
     }
 
-    if (send_gc_invite_confirmed_packet(m, chat, friend_number, send_data, len)) {
-        return -1;
-    }
-
-    return 0;
+    return send_gc_invite_confirmed_packet(m, chat, friend_number, send_data, len);
 }
 
 int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, uint16_t length, const uint8_t *nick,
