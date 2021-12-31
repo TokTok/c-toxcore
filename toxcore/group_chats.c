@@ -67,8 +67,7 @@
 /* Maximum number of bytes to pad packets with */
 #define GC_MAX_PACKET_PADDING 8
 
-/*
- * Minimum size of a ping packet, which contains the peer count, peer list checksum, shared state version,
+/* Minimum size of a ping packet, which contains the peer count, peer list checksum, shared state version,
  * sanctions list version, sanctions list checksum, topic version, and topic checksum
  */
 #define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 4) + (sizeof(uint32_t) * 3))
@@ -87,6 +86,7 @@
 
 /* How long before we stop trying to reconnect with a timed out peer */
 #define GC_TIMED_OUT_STALE_TIMEOUT (60 * 15)
+
 
 /* Types of broadcast messages. */
 typedef enum Group_Message_Type {
@@ -580,45 +580,58 @@ static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer)
     return ipport_isset(&saved_peer->ip_port) || ipport_isset(&saved_peer->tcp_relay.ip_port);
 }
 
-/* Return true if the saved peers list has an entry for `public_key`. */
-static bool saved_peer_exists(const GC_Chat *chat, const uint8_t *public_key)
+/* Returns the index of the saved peers entry for `public_key`.
+ * Returns -1 if key is not found.
+ */
+static int saved_peer_index(const GC_Chat *chat, const uint8_t *public_key)
 {
-    for (uint8_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+    for (size_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
         const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
         if (memcmp(saved_peer->public_key, public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
-            return true;
+            return i;
         }
     }
 
-    return false;
+    return -1;
 }
 
-/* Returns the index belonging to `public_key`. If an entry does not exist, the first vacant
- * index will be returned.
+/* Returns the index of the first vacant entry in saved peers list. If `public_key` is non-null
+ * and already exists in the list, its index will be returned.
  *
- * A vacant entry is an entry that does not have either an IP_port or tcp relay set,
- * or an entry containing info on a peer that is not presently online.
+ * A vacant entry is an entry that does not have either an IP_port or tcp relay set (invalid),
+ * or an entry containing info on a peer that is not presently online (offline).
+ *
+ * Invalid entries are given priority over offline entries.
  *
  * Returns -1 if there are no vacant indices.
  */
-static int saved_peers_get_index(const GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint8_t num_addrs,
-                                 const uint8_t *public_key)
+static int saved_peers_get_new_index(const GC_Chat *chat, const uint8_t *public_key)
 {
-    for (uint8_t i = 0; i < num_addrs; ++i) {
-        if (saved_peer_exists(chat, public_key)) {
+    if (public_key != nullptr) {
+        int idx = saved_peer_index(chat, public_key);
+
+        if (idx != -1) {
+            return idx;
+        }
+    }
+
+    // first check for invalid spots
+    for (size_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
+
+        if (!saved_peer_is_valid(saved_peer)) {
             return i;
         }
+    }
 
-        const GC_SavedPeerInfo *saved_peer = &addrs[i];
+    // now look for entries with offline peers
+    for (size_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
         const int peernumber = get_peer_number_of_enc_pk(chat, saved_peer->public_key, true);
 
-        if (peernumber != -1) {
-            continue;
-        }
-
-        if (!saved_peer_is_valid(saved_peer)) {
+        if (peernumber < 0) {
             return i;
         }
     }
@@ -631,10 +644,12 @@ static int saved_peers_get_index(const GC_Chat *chat, const GC_SavedPeerInfo *ad
  *
  * Older peers will only be over-written if the peer is no longer
  * present in the chat. This gives priority to more stable connections.
+ *
+ * This function should be called every time a new peer joins the group.
  */
-static void update_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
+static void add_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
 {
-    const int idx = saved_peers_get_index(chat, chat->saved_peers, GC_MAX_SAVED_PEERS, gconn->addr.public_key);
+    const int idx = saved_peers_get_new_index(chat, gconn->addr.public_key);
 
     if (idx == -1) {
         return;
@@ -642,6 +657,38 @@ static void update_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
 
     GC_SavedPeerInfo *saved_peer = &chat->saved_peers[idx];
     copy_gc_saved_peer(gconn, saved_peer);
+}
+
+/* Finds the first vacant spot in the saved peers list and fills it with a present
+ * peer who isn't already in the list.
+ *
+ * This function should be called after a confirmed peer exits the group.
+ */
+static void refresh_gc_saved_peers(GC_Chat *chat)
+{
+    const int idx = saved_peers_get_new_index(chat, nullptr);
+
+    if (idx == -1) {
+        return;
+    }
+
+    for (uint32_t i = 1; i < chat->numpeers; ++i) {
+        const GC_Connection *gconn = gcc_get_connection(chat, i);
+
+        if (gconn == nullptr) {
+            continue;
+        }
+
+        if (!gconn->confirmed) {
+            continue;
+        }
+
+        if (saved_peer_index(chat, gconn->addr.public_key) == -1) {
+            GC_SavedPeerInfo *saved_peer = &chat->saved_peers[idx];
+            copy_gc_saved_peer(gconn, saved_peer);
+            return;
+        }
+    }
 }
 
 /* Returns the number of confirmed peers in peerlist. */
@@ -1677,7 +1724,7 @@ static int handle_gc_tcp_relays(const Messenger *m, int group_number, GC_Connect
             gcc_save_tcp_relay(gconn, tcp_node);
 
             if (gconn->tcp_relays_count == 1) {
-                update_gc_saved_peers(chat, gconn);  // make sure we save at least one tcp relay
+                add_gc_saved_peers(chat, gconn);  // make sure we save at least one tcp relay
             }
         }
     }
@@ -2079,7 +2126,7 @@ static int handle_gc_ping(const Messenger *m, int group_number, GC_Connection *g
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE,
                            length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
-            update_gc_saved_peers(chat, gconn);
+            add_gc_saved_peers(chat, gconn);
         }
     }
 
@@ -2344,7 +2391,7 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
 
     gconn->confirmed = true;
 
-    update_gc_saved_peers(chat, gconn);
+    add_gc_saved_peers(chat, gconn);
 
     set_gc_peerlist_checksum(chat);
 
@@ -5956,7 +6003,8 @@ void gc_callback_rejected(Messenger *m, gc_rejected_cb *function)
     c->rejected = function;
 }
 
-/* Deletes peer_number from group. `no_callback` should be set to true if the `peer_exit` callback should not be triggered.
+/* Deletes peer_number from group. `no_callback` should be set to true if the `peer_exit` callback
+ * should not be triggered.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -5977,8 +6025,10 @@ static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Gro
         return -1;
     }
 
-    /* Needs to occur before peer is removed*/
-    if (exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && gconn->confirmed) {
+    const bool peer_confirmed = gconn->confirmed;
+
+    /* Needs to occur before peer is removed */
+    if (exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && peer_confirmed) {
         (*c->peer_exit)(m, group_number, chat->group[peer_number].peer_id, exit_type, chat->group[peer_number].nick,
                         chat->group[peer_number].nick_length, data, length, userdata);
     }
@@ -6011,6 +6061,10 @@ static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Gro
 
     chat->gcc = tmp_gcc;
     set_gc_peerlist_checksum(chat);
+
+    if (peer_confirmed) {
+        refresh_gc_saved_peers(chat);
+    }
 
     return 0;
 }

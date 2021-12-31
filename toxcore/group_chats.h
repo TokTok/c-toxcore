@@ -348,6 +348,12 @@ typedef struct GC_Chat {
     int32_t     saved_invites[MAX_GC_SAVED_INVITES];
     uint8_t     saved_invites_index;
 
+    /* A list of recently seen peers in case we disconnect from a private group.
+     * Peers are added once they're confirmed, and only if there are vacant
+     * spots (older connections get priority). An entry is removed only when the list
+     * is full, its respective peer goes offline, and an online peer who isn't yet
+     * present in the list can be added.
+     */
     GC_SavedPeerInfo saved_peers[GC_MAX_SAVED_PEERS];
 
     GC_TimedOutPeer timeout_list[MAX_GC_SAVED_TIMEOUTS];
