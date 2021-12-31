@@ -5206,7 +5206,8 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
 
     set_sig_pk(gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
 
-    gconn->received_message_id = 2;  // handshake response is always second packet
+    gcc_set_recv_message_id(gconn, 2);  // handshake response is always second packet
+
     gconn->handshaked = true;
 
     send_gc_hs_response_ack(chat, gconn);
@@ -5368,7 +5369,8 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
     set_sig_pk(gconn->addr.public_key, public_sig_key);
 
-    gconn->received_message_id = 1;  // handshake request is always first packet
+    gcc_set_recv_message_id(gconn, 1);  // handshake request is always first packet
+
     gconn->is_pending_handshake_response = true;
     gconn->pending_handshake_type = request_type;
 

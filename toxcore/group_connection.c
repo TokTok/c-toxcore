@@ -95,13 +95,18 @@ void gcc_set_send_message_id(GC_Connection *gconn, uint16_t id)
     gconn->send_array_start = id % GCC_BUFFER_SIZE;
 }
 
+void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id)
+{
+    gconn->received_message_id = id;
+}
+
 /* Puts packet data in ary_entry.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int create_array_entry(const Logger *logger, const Mono_Time *mono_time,
-                              GC_Message_Array_Entry *array_entry, const uint8_t *data, uint32_t length, uint8_t packet_type,
+static int create_array_entry(const Logger *logger, const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry,
+                              const uint8_t *data, uint32_t length, uint8_t packet_type,
                               uint64_t message_id)
 {
     if (length > 0) {
@@ -282,7 +287,7 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
         gconn->last_received_direct_time = mono_time_get(chat->mono_time);
     }
 
-    ++gconn->received_message_id;
+    gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
 
     return 2;
 }
@@ -315,7 +320,7 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
 
     gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_RECV);
 
-    ++gconn->received_message_id;
+    gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
 
     return 0;
 }

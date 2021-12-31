@@ -121,11 +121,13 @@ uint16_t gcc_get_array_index(uint64_t message_id);
  */
 int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id);
 
-/*
- * Sets the send_message_id and send_array_start for gconn to id. This is used for the
- * initiation of peer connections.
+/* Sets the send_message_id and send_array_start for `gconn` to `id`. This
+ * should only be used to initialize a new lossless connection.
  */
 void gcc_set_send_message_id(GC_Connection *gconn, uint16_t id);
+
+/* Sets the received_message_id for `gconn` to `id`. */
+void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id);
 
 /*
  * Returns true if the ip_port is set for gconn.
