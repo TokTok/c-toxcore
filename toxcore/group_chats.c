@@ -5265,7 +5265,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
         if (gconn->handshaked) {
             gconn->handshaked = false;
-            LOGGER_DEBUG(chat->logger, "Confirmed peer sent a handshake request");
+            LOGGER_DEBUG(chat->logger, "Handshaked peer sent a handshake request");
             return -1;
         }
 
@@ -6806,7 +6806,7 @@ static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo 
 
         const uint64_t tm = mono_time_get(chat->mono_time);
 
-        gconn->is_oob_handshake = add_tcp_result == 0 && !ip_port_is_set;
+        gconn->is_oob_handshake = !gcc_direct_conn_is_possible(chat, gconn);
         gconn->is_pending_handshake_response = false;
         gconn->pending_handshake_type = HS_INVITE_REQUEST;
         gconn->last_received_ping_time = tm;
