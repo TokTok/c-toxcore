@@ -261,7 +261,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     temp->num_mods = net_htons(chat->moderation.num_mods);
     mod_list_pack(chat, temp->mod_list);
 
-    bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
+    const bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
     temp->group_connection_state = is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED;
 
     memcpy(temp->self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
@@ -4797,7 +4797,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
         if (gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data, gconn->send_array[idx].data_length,
                 gconn->send_array[idx].message_id, gconn->send_array[idx].packet_type) == 0) {
             gconn->send_array[idx].last_send_try = tm;
-            LOGGER_DEBUG(chat->logger, "Re-sent requested packet %lu", message_id);
+            LOGGER_DEBUG(chat->logger, "Re-sent requested packet %llu", (unsigned long long)message_id);
         } else {
             return -4;
         }
@@ -5610,8 +5610,8 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (lossless_ret < 0) {
-        LOGGER_WARNING(m->log, "failed to handle packet %llu (type %u, id %lu)",
-                       (unsigned long long)message_id, packet_type, message_id);
+        LOGGER_WARNING(m->log, "failed to handle packet %llu (type %u, id %llu)",
+                       (unsigned long long)message_id, packet_type, (unsigned long long)message_id);
         return -1;
     }
 
@@ -5624,8 +5624,8 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
 
     /* request missing packet */
     if (lossless_ret == 1) {
-        LOGGER_DEBUG(m->log, "received out of order packet from peer %u. expected %lu, got %lu", peer_number,
-                     gconn->received_message_id + 1, message_id);
+        LOGGER_DEBUG(m->log, "received out of order packet from peer %u. expected %llu, got %llu", peer_number,
+                     (unsigned long long)gconn->received_message_id + 1, (unsigned long long)message_id);
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
     }
 
