@@ -1438,7 +1438,7 @@ static int send_peer_topic(const GC_Chat *chat, GC_Connection *gconn);
  */
 static bool create_sync_announce(const GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number, GC_Announce *announce)
 {
-    if (chat == nullptr || gconn == nullptr || announce == nullptr) {
+    if (chat == nullptr || gconn == nullptr) {
         return false;
     }
 
@@ -1471,7 +1471,6 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
     uint8_t response[MAX_GC_PACKET_SIZE];
     uint32_t reseponse_len = 0;
 
-    GC_Announce announce;
     uint32_t num_announces = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
@@ -1485,7 +1484,7 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
             continue;
         }
 
-        announce = (GC_Announce) {
+        GC_Announce announce = (GC_Announce) {
             0
         };
 
