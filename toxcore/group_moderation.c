@@ -567,6 +567,7 @@ static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_
         }
 
         sanctions_list_cleanup(chat);
+
         return 0;
     }
 
