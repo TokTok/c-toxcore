@@ -413,6 +413,29 @@ static int add_to_entries(Onion_Announce *onion_a, IP_Port ret_ip_port, const ui
     return in_entries(onion_a, public_key);
 }
 
+static void make_announce_payload_helper(const Onion_Announce *onion_a, const uint8_t *ping_id2, uint8_t *pl, int index,
+        const uint8_t *packet_public_key, const uint8_t *data_public_key)
+{
+    if (index < 0) {
+        pl[0] = 0;
+        memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+        return;
+    }
+
+    if (public_key_cmp(onion_a->entries[index].public_key, packet_public_key) == 0) {
+        if (public_key_cmp(onion_a->entries[index].data_public_key, data_public_key) != 0) {
+            pl[0] = 0;
+            memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+        } else {
+            pl[0] = 2;
+            memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
+        }
+    } else {
+        pl[0] = 1;
+        memcpy(pl + 1, onion_a->entries[index].data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    }
+}
+
 static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, const uint8_t *packet, uint16_t length)
 {
     if (length > ANNOUNCE_REQUEST_MAX_SIZE_RECV || length <= ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
@@ -431,14 +454,12 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE * 2 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH +
                                      GCA_ANNOUNCE_MAX_SIZE];
 
-    size_t minimal_size = ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE * 2 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
-    size_t encrypted_size = minimal_size + length - ANNOUNCE_REQUEST_MIN_SIZE_RECV;
+    const size_t minimal_size = ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE * 2 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
+    const size_t encrypted_size = minimal_size + length - ANNOUNCE_REQUEST_MIN_SIZE_RECV;
 
-    int len = decrypt_data_symmetric(shared_key, packet + 1,
-                                     packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
-                                     encrypted_size + CRYPTO_MAC_SIZE, plain);
-
-    if ((uint32_t)len != encrypted_size) {
+    if ((uint32_t)decrypt_data_symmetric(shared_key, packet + 1,
+                                         packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
+                                         encrypted_size + CRYPTO_MAC_SIZE, plain) != encrypted_size) {
         return 1;
     }
 
@@ -450,7 +471,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
 
     int index;
 
-    uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+    const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
     if (onion_ping_id_eq(ping_id1, plain)
             || onion_ping_id_eq(ping_id2, plain)) {
@@ -460,33 +481,17 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
         index = in_entries(onion_a, plain + ONION_PING_ID_SIZE);
     }
 
-    /*Respond with a gc announce response packet*/
+    /* Respond with a gc announce response packet */
     Node_format nodes_list[MAX_SENT_NODES];
-    unsigned int num_nodes = get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec,
-                             ip_is_lan(source.ip));
+    const unsigned int num_nodes = get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list,
+                                   net_family_unspec, ip_is_lan(source.ip));
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
 
     GC_Announce gc_announces[GCA_MAX_SENT_ANNOUNCES];
     uint8_t pl[3 + ONION_PING_ID_SIZE + sizeof(nodes_list) + sizeof(gc_announces)];
 
-    if (index == -1) {
-        pl[0] = 0;
-        memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-    } else {
-        if (public_key_cmp(onion_a->entries[index].public_key, packet_public_key) == 0) {
-            if (public_key_cmp(onion_a->entries[index].data_public_key, data_public_key) != 0) {
-                pl[0] = 0;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            } else {
-                pl[0] = 2;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            }
-        } else {
-            pl[0] = 1;
-            memcpy(pl + 1, onion_a->entries[index].data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        }
-    }
+    make_announce_payload_helper(onion_a, ping_id2, pl, index, packet_public_key, data_public_key);
 
     int nodes_length = 0;
 
@@ -503,11 +508,10 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
 
     GC_Announces_List *gc_announces_list = onion_a->gc_announces_list;
     GC_Public_Announce public_announce;
-    int unpack_result = gca_unpack_public_announce(onion_a->log, plain + minimal_size,
-                        length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
-                        &public_announce);
 
-    if (unpack_result == -1) {
+    if (gca_unpack_public_announce(onion_a->log, plain + minimal_size,
+                                   length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
+                                   &public_announce) == -1) {
         LOGGER_WARNING(onion_a->log, "Failed to unpck public group announce");
         return 1;
     }
@@ -519,17 +523,17 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
         return 1;
     }
 
-    uint8_t num_ann = (uint8_t)gca_get_announces(gc_announces_list,
-                      gc_announces,
-                      GCA_MAX_SENT_ANNOUNCES,
-                      public_announce.chat_public_key,
-                      new_announce->base_announce.peer_public_key);
+    const uint8_t num_ann = (uint8_t)gca_get_announces(gc_announces_list,
+                            gc_announces,
+                            GCA_MAX_SENT_ANNOUNCES,
+                            public_announce.chat_public_key,
+                            new_announce->base_announce.peer_public_key);
+
     size_t announces_length = 0;
     int offset = 2 + ONION_PING_ID_SIZE + nodes_length;
-    int packed_announces = gca_pack_announces_list(onion_a->log, pl + offset, sizeof(pl) - offset, gc_announces, num_ann,
-                           &announces_length);
 
-    if (packed_announces != num_ann) {
+    if (gca_pack_announces_list(onion_a->log, pl + offset, sizeof(pl) - offset, gc_announces, num_ann,
+                                &announces_length) != num_ann) {
         LOGGER_WARNING(onion_a->log, "Failed to pack group announces list");
         return -1;
     }
@@ -537,8 +541,8 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     offset += announces_length;
 
     uint8_t data[ONION_ANNOUNCE_RESPONSE_MAX_SIZE];
-    len = encrypt_data_symmetric(shared_key, nonce, pl, offset,
-                                 data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE);
+    const int len = encrypt_data_symmetric(shared_key, nonce, pl, offset,
+                                           data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE);
 
     if (len != offset + CRYPTO_MAC_SIZE) {
         LOGGER_ERROR(onion_a->log, "Failed to encrypt announce response");
@@ -608,23 +612,7 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
 
     uint8_t pl[2 + ONION_PING_ID_SIZE + sizeof(nodes_list)];
 
-    if (index == -1) {
-        pl[0] = 0;
-        memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-    } else {
-        if (public_key_cmp(onion_a->entries[index].public_key, packet_public_key) == 0) {
-            if (public_key_cmp(onion_a->entries[index].data_public_key, data_public_key) != 0) {
-                pl[0] = 0;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            } else {
-                pl[0] = 2;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            }
-        } else {
-            pl[0] = 1;
-            memcpy(pl + 1, onion_a->entries[index].data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        }
-    }
+    make_announce_payload_helper(onion_a, ping_id2, pl, index, packet_public_key, data_public_key);
 
     int nodes_length = 0;
 
@@ -712,23 +700,7 @@ static int handle_announce_request_old(void *object, IP_Port source, const uint8
 
     uint8_t pl[1 + ONION_PING_ID_SIZE + sizeof(nodes_list)];
 
-    if (index == -1) {
-        pl[0] = 0;
-        memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-    } else {
-        if (public_key_cmp(onion_a->entries[index].public_key, packet_public_key) == 0) {
-            if (public_key_cmp(onion_a->entries[index].data_public_key, data_public_key) != 0) {
-                pl[0] = 0;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            } else {
-                pl[0] = 2;
-                memcpy(pl + 1, ping_id2, ONION_PING_ID_SIZE);
-            }
-        } else {
-            pl[0] = 1;
-            memcpy(pl + 1, onion_a->entries[index].data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        }
-    }
+    make_announce_payload_helper(onion_a, ping_id2, pl, index, packet_public_key, data_public_key);
 
     int nodes_length = 0;
 
