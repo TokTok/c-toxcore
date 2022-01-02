@@ -89,6 +89,44 @@ static void iterate_group(Tox **toxes, uint32_t num_toxes, State *state, size_t 
     c_sleep(50);
 }
 
+static bool all_peers_connected(Tox **toxes, State *state)
+{
+    iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
+
+    size_t count = 0;
+
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        if (state[i].num_peers == NUM_GROUP_TOXES - 1) {
+            ++count;
+        }
+    }
+
+    if (count == NUM_GROUP_TOXES) {
+        return true;
+    }
+
+    return false;
+}
+
+static bool all_peers_got_code(Tox **toxes, State *state)
+{
+    iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
+
+    size_t count = 0;
+
+    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        if (state[i].got_code) {
+            ++count;
+        }
+    }
+
+    if (count == NUM_GROUP_TOXES - 1) {
+        return true;
+    }
+
+    return false;
+}
+
 static void group_tcp_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
@@ -124,21 +162,8 @@ static void group_tcp_test(Tox **toxes, State *state)
         iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL * 10);
     }
 
-    while (true) {
-        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
-
-        size_t count = 0;
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (state[i].num_peers == NUM_GROUP_TOXES - 1) {
-                ++count;
-            }
-        }
-
-        if (count == NUM_GROUP_TOXES) {
-            break;
-        }
-    }
+    while (!all_peers_connected(toxes, state))
+        ;
 
     printf("%d peers successfully joined. Waiting for code...\n", NUM_GROUP_TOXES);
     printf("Tox 0 sending secret code to all peers\n");
@@ -150,21 +175,8 @@ static void group_tcp_test(Tox **toxes, State *state)
         ck_assert_msg(perr == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%d", perr);
     }
 
-    while (true) {
-        iterate_group(toxes, NUM_GROUP_TOXES, state, GROUP_ITERATION_INTERVAL);
-
-        size_t count = 0;
-
-        for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (state[i].got_code) {
-                ++count;
-            }
-        }
-
-        if (count == NUM_GROUP_TOXES - 1) {
-            break;
-        }
-    }
+    while (!all_peers_got_code(toxes, state))
+        ;
 
     TOX_ERR_GROUP_LEAVE err_exit;
     tox_group_leave(toxes[1], groupnumber, nullptr, 0, &err_exit);

@@ -194,6 +194,59 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
 
+static void handle_mod(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+{
+    if (state->mod_event_count == 0) {
+        ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
+    } else if (state->mod_event_count == 1) {
+        ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
+    } else {
+        ck_assert(false);
+    }
+
+    ++state->mod_event_count;
+    state->mod_check = true;
+    ck_assert(role == TOX_GROUP_ROLE_MODERATOR);
+}
+
+static void handle_observer(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+{
+    if (state->observer_event_count == 0) {
+        ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
+    } else if (state->observer_event_count == 1) {
+        ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
+    } else {
+        ck_assert(false);
+    }
+
+    ++state->observer_event_count;
+    state->observer_check = true;
+    ck_assert(role == TOX_GROUP_ROLE_OBSERVER);
+}
+
+static void handle_user(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+{
+    // event 1: observer1 gets promoted back to user
+    // event 2: observer2 gets promoted to moderator
+    // event 3: moderator 1 gets kicked
+    // event 4: moderator 2 gets demoted to moderator
+    if (state->user_event_count == 0) {
+        ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
+    } else if (state->user_event_count == 1) {
+        ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
+    } else if (state->user_event_count == 2) {
+        ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
+    } else if (state->user_event_count == 3) {
+        ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
+    } else {
+        ck_assert(false);
+    }
+
+    ++state->user_event_count;
+    state->user_check = true;
+    ck_assert(role == TOX_GROUP_ROLE_USER);
+}
+
 static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t source_peer_id, uint32_t target_peer_id,
                                     TOX_GROUP_MOD_EVENT event, void *user_data)
 {
@@ -219,58 +272,17 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 
     switch (event) {
         case TOX_GROUP_MOD_EVENT_MODERATOR: {
-            if (state->mod_event_count == 0) {
-                ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
-            } else if (state->mod_event_count == 1) {
-                ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
-            } else {
-                ck_assert(false);
-            }
-
-            ++state->mod_event_count;
-            state->mod_check = true;
-            ck_assert(role == TOX_GROUP_ROLE_MODERATOR);
-
+            handle_mod(state, peer_name, peer_name_len, role);
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_OBSERVER: {
-            if (state->observer_event_count == 0) {
-                ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
-            } else if (state->observer_event_count == 1) {
-                ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
-            } else {
-                ck_assert(false);
-            }
-
-            ++state->observer_event_count;
-            state->observer_check = true;
-            ck_assert(role == TOX_GROUP_ROLE_OBSERVER);
-
+            handle_observer(state, peer_name, peer_name_len, role);
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_USER: {
-            // event 1: observer1 gets promoted back to user
-            // event 2: observer2 gets promoted to moderator
-            // event 3: moderator 1 gets kicked
-            // event 4: moderator 2 gets demoted to moderator
-            if (state->user_event_count == 0) {
-                ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
-            } else if (state->user_event_count == 1) {
-                ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
-            } else if (state->user_event_count == 2) {
-                ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
-            } else if (state->user_event_count == 3) {
-                ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
-            } else {
-                ck_assert(false);
-            }
-
-            ++state->user_event_count;
-            state->user_check = true;
-            ck_assert(role == TOX_GROUP_ROLE_USER);
-
+            handle_user(state, peer_name, peer_name_len, role);
             break;
         }
 
