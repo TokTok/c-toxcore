@@ -4780,9 +4780,9 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
     /* re-send requested packet */
     if (gconn->send_array[idx].message_id == message_id) {
         if (gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data,
-                                                 gconn->send_array[idx].data_length,
-                                                 gconn->send_array[idx].message_id,
-                                                 gconn->send_array[idx].packet_type) == 0) {
+                gconn->send_array[idx].data_length,
+                gconn->send_array[idx].message_id,
+                gconn->send_array[idx].packet_type) == 0) {
             gconn->send_array[idx].last_send_try = tm;
             LOGGER_DEBUG(chat->logger, "Re-sent requested packet %llu", (unsigned long long)message_id);
         } else {
