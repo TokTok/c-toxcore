@@ -870,6 +870,50 @@ static int client_ping_nodes(Onion_Client *onion_c, uint32_t num, const Node_for
     return 0;
 }
 
+/* Handles a group announce onion response.
+ *
+ * Return 0 on success.
+ * Return 1 on failure.
+ */
+static int handle_gca_announce_response(const Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
+                                        const uint8_t *plain, size_t plain_size)
+{
+#ifdef VANILLA_NACL
+    return 1;
+#endif
+
+    if (sendback_num == 0) {  // TODO(Jfreegman): should/can this ever happen?
+        LOGGER_WARNING(onion_c->logger, "sendback_num is 0");
+        return 1;
+    }
+
+    GC_Announce announces[GCA_MAX_SENT_ANNOUNCES];
+    GC_Chat *chat = gc_get_group_by_public_key(onion_c->gc_session,
+                    onion_c->friends_list[sendback_num - 1].gc_public_key);
+
+    if (chat == nullptr) {
+        LOGGER_WARNING(onion_c->logger, "Couldn't find group associated with public key in announce response");
+        return 1;
+    }
+
+    const int offset = 2 + ONION_PING_ID_SIZE + len_nodes;
+    const int gc_announces_count = gca_unpack_announces_list(onion_c->logger, plain + offset, plain_size - offset,
+                                   announces,
+                                   GCA_MAX_SENT_ANNOUNCES);
+
+    if (gc_announces_count == -1) {
+        return 1;
+    }
+
+    const int added_peers = gc_add_peers_from_announces(onion_c->gc_session, chat, announces, gc_announces_count);
+
+    if (added_peers < 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
 static int handle_announce_response(void *object, IP_Port source, const uint8_t *packet, uint16_t length,
                                     void *userdata)
 {
@@ -939,35 +983,11 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         }
     }
 
-#ifndef VANILLA_NACL
-
     if (len_nodes + 1 < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE) {
-        GC_Announce announces[GCA_MAX_SENT_ANNOUNCES];
-        GC_Chat *chat = gc_get_group_by_public_key(onion_c->gc_session,
-                        onion_c->friends_list[num - 1].gc_public_key);
-
-        if (chat == nullptr) {
-            LOGGER_WARNING(onion_c->logger, "Couldn't find group associated with public key in announce response");
-            return 1;
-        }
-
-        const int offset = 2 + ONION_PING_ID_SIZE + len_nodes;
-        const int gc_announces_count = gca_unpack_announces_list(onion_c->logger, plain + offset, plain_size - offset,
-                                       announces,
-                                       GCA_MAX_SENT_ANNOUNCES);
-
-        if (gc_announces_count == -1) {
-            return 1;
-        }
-
-        const int added_peers = gc_add_peers_from_announces(onion_c->gc_session, chat, announces, gc_announces_count);
-
-        if (added_peers < 0) {
+        if (handle_gca_announce_response(onion_c, num, len_nodes, plain, plain_size) != 0) {
             return 1;
         }
     }
-
-#endif
 
     // TODO(irungentoo): LAN vs non LAN ips?, if we are connected only to LAN, are we offline?
     onion_c->last_packet_recv = mono_time_get(onion_c->mono_time);
