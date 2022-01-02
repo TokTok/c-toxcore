@@ -39,17 +39,20 @@ typedef struct State {
     uint32_t num_peers;
     Peer peers[NUM_GROUP_TOXES - 1];
 
-    bool mod_check1;
-    bool mod_check2;
+    bool mod_check;
+    size_t mod_event_count;
     char mod_name1[TOX_MAX_NAME_LENGTH];
     char mod_name2[TOX_MAX_NAME_LENGTH];
 
-    bool observer_check1;
-    bool observer_check2;
+
+    bool observer_check;
+    size_t observer_event_count;
     char observer_name1[TOX_MAX_NAME_LENGTH];
     char observer_name2[TOX_MAX_NAME_LENGTH];
 
-    bool user_check1; // observer gets promoted back to user
+    bool user_check;
+    size_t user_event_count;
+
     bool kick_check;  // moderater gets kicked
 } State;
 
@@ -83,27 +86,34 @@ static void check_mod_event(State *state, Tox **toxes, size_t num_peers, TOX_GRO
 
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
-        for (size_t i = 1; i < num_peers; ++i) {
+        for (size_t i = 0; i < num_peers; ++i) {
             bool check = false;
 
             switch (event) {
                 case TOX_GROUP_MOD_EVENT_MODERATOR: {
-                    check = state[i].mod_check1;
+                    if (state[i].mod_check) {
+                        check = true;
+                        state[i].mod_check = false;
+                    }
+
                     break;
                 }
 
                 case TOX_GROUP_MOD_EVENT_OBSERVER: {
-                    if (state[i].observer_check2) {
+                    if (state[i].observer_check) {
                         check = true;
-                    } else if (!state[i].observer_check2 && state[i].observer_check1) {
-                        check = true;
+                        state[i].observer_check = false;
                     }
 
                     break;
                 }
 
                 case TOX_GROUP_MOD_EVENT_USER: {
-                    check = true;
+                    if (state[i].user_check) {
+                        check = true;
+                        state[i].user_check = false;
+                    }
+
                     break;
                 }
 
@@ -209,57 +219,63 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 
     switch (event) {
         case TOX_GROUP_MOD_EVENT_MODERATOR: {
-            if (!state->mod_check1) {
+            if (state->mod_event_count == 0) {
                 ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
-                state->mod_check1 = true;
-            } else if (!state->mod_check2) {
+            } else if (state->mod_event_count == 1) {
                 ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
-                state->mod_check2 = true;
+            } else {
+                ck_assert(false);
             }
 
+            ++state->mod_event_count;
+            state->mod_check = true;
             ck_assert(role == TOX_GROUP_ROLE_MODERATOR);
 
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_OBSERVER: {
-            if (!state->observer_check1 && !state->observer_check2) {
+            if (state->observer_event_count == 0) {
                 ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
-                state->observer_check1 = true;
-            } else if (!state->observer_check2) {
+            } else if (state->observer_event_count == 1) {
                 ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
-                state->observer_check2 = true;
-                state->observer_check1 = false;
+            } else {
+                ck_assert(false);
             }
 
+            ++state->observer_event_count;
+            state->observer_check = true;
             ck_assert(role == TOX_GROUP_ROLE_OBSERVER);
 
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_USER: {
-            // mod is auto-demoted to user before being kicked, and observer is auto-promoted to
-            // user before being made moderator. We could do a more thorough check here but it
-            // gets complicated and this is probably fine.
-            if (state->user_check1) {
-                bool first_ret = memcmp(peer_name, state->mod_name1, peer_name_len) == 0;
-                bool second_ret = memcmp(peer_name, state->observer_name2, peer_name_len) == 0;
-
-                ck_assert(first_ret || second_ret);
-            } else {
-                // we promoted the observer back to user
+            // event 1: observer1 gets promoted back to user
+            // event 2: observer2 gets promoted to moderator
+            // event 3: moderator 1 gets kicked
+            // event 4: moderator 2 gets demoted to moderator
+            if (state->user_event_count == 0) {
                 ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
-                state->user_check1 = true;
+            } else if (state->user_event_count == 1) {
+                ck_assert(memcmp(peer_name, state->observer_name2, peer_name_len) == 0);
+            } else if (state->user_event_count == 2) {
+                ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
+            } else if (state->user_event_count == 3) {
+                ck_assert(memcmp(peer_name, state->mod_name2, peer_name_len) == 0);
+            } else {
+                ck_assert(false);
             }
 
+            ++state->user_event_count;
+            state->user_check = true;
             ck_assert(role == TOX_GROUP_ROLE_USER);
 
             break;
         }
 
         case TOX_GROUP_MOD_EVENT_KICK: {
-            ck_assert(memcmp(peer_name, state->mod_name1,
-                             peer_name_len) == 0);  // we kick the same peer we previously promoted to mod
+            ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
             state->kick_check = true;
             break;
         }
@@ -373,6 +389,9 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_set_role(toxes[0], state[0].group_number, state[0].peers[0].peer_id, TOX_GROUP_ROLE_MODERATOR, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set moderator. error: %d", role_err);
 
+    // manually flag the role setter because they don't get a callback
+    state[0].mod_check = true;
+    ++state[0].mod_event_count;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_MODERATOR);
 
     check_self_role(state, toxes, state[0].peers[0].peer_id, TOX_GROUP_ROLE_MODERATOR);
@@ -385,6 +404,8 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_set_role(toxes[0], state[0].group_number, state[0].peers[1].peer_id, TOX_GROUP_ROLE_OBSERVER, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set observer. error: %d", role_err);
 
+    state[0].observer_check = true;
+    ++state[0].observer_event_count;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_OBSERVER);
 
     fprintf(stderr, "All peers successfully received observer event 1\n");
@@ -394,6 +415,8 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_set_role(toxes[0], state[0].group_number, state[0].peers[2].peer_id, TOX_GROUP_ROLE_OBSERVER, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set observer. error: %d", role_err);
 
+    state[0].observer_check = true;
+    ++state[0].observer_event_count;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_OBSERVER);
 
     check_self_role(state, toxes, state[0].peers[1].peer_id, TOX_GROUP_ROLE_OBSERVER);
@@ -403,7 +426,6 @@ static void group_moderation_test(Tox **toxes, State *state)
     /* New moderator promotes second peer back to user */
     uint32_t idx = get_state_index_by_nick(state, NUM_GROUP_TOXES, state[0].peers[0].name, state[0].peers[0].name_length);
     uint32_t obs_peer_id = get_peer_id_by_nick(state[idx].peers, NUM_GROUP_TOXES - 1, state[idx].observer_name1);
-    state[idx].user_check1 = true;  // promoter doesn't receive a callback so default to true
 
     fprintf(stderr, "%s is promoting %s back to user\n", state[idx].self_name, state[0].peers[1].name);
 
@@ -411,6 +433,8 @@ static void group_moderation_test(Tox **toxes, State *state)
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to promote observer back to user. error: %d",
                   role_err);
 
+    state[idx].user_check = true;
+    ++state[idx].user_event_count;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_USER);
 
     fprintf(stderr, "All peers successfully received user event\n");
@@ -421,6 +445,8 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_set_role(toxes[0], state[0].group_number, state[0].peers[2].peer_id, TOX_GROUP_ROLE_MODERATOR, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set moderator. error: %d", role_err);
 
+    state[0].mod_check = true;
+    ++state[0].mod_event_count;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_MODERATOR);
 
     check_self_role(state, toxes, state[0].peers[2].peer_id, TOX_GROUP_ROLE_MODERATOR);
@@ -442,6 +468,7 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_kick_peer(toxes[0], state[0].group_number, state[0].peers[0].peer_id, &k_err);
     ck_assert_msg(k_err == TOX_ERR_GROUP_MOD_KICK_PEER_OK, "Failed to kick peer. error: %d", k_err);
 
+    state[0].kick_check = true;
     check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_KICK);
 
     fprintf(stderr, "All peers successfully received kick event\n");
@@ -451,6 +478,10 @@ static void group_moderation_test(Tox **toxes, State *state)
     tox_group_mod_set_role(toxes[0], state[0].group_number, state[0].peers[2].peer_id, TOX_GROUP_ROLE_USER, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to demote peer 3 to User. error: %d", role_err);
 
+    state[0].user_check = true;
+    ++state[0].user_event_count;
+
+    check_mod_event(state, toxes, NUM_GROUP_TOXES, TOX_GROUP_MOD_EVENT_USER);
     check_self_role(state, toxes, state[0].peers[2].peer_id, TOX_GROUP_ROLE_USER);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
