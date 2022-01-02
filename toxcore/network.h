@@ -16,7 +16,7 @@
 #include <stdint.h>     // uint*_t
 
 #ifdef HAVE_LIBEV
-#include <ev.h>     // uint*_t
+#include <ev.h>
 #endif
 
 #ifdef __cplusplus
