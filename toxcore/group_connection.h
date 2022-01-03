@@ -163,7 +163,17 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node);
  */
 int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number, void *userdata);
 
+/* Attempts to re-send lossless packets that have not yet received an ack. */
 void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number);
+
+/* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
+ * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
+ * encryption and decryption.
+ *
+ * Puts the result in the shared session key buffer for `gconn`, which must have room for
+ * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
+ */
+void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
 
 /* Return true if we have a direct connection with `gconn`. */
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);

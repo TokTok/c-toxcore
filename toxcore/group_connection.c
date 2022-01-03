@@ -441,6 +441,11 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     return 0;
 }
 
+void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
+{
+    encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
+}
+
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
     return ((GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time) > mono_time_get(mono_time));

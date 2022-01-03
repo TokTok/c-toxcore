@@ -124,7 +124,6 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 static void add_tcp_relays_to_chat(Messenger *m, GC_Chat *chat);
 static int peer_delete(Messenger *m, int group_number, uint32_t peer_number, Group_Exit_Type exit_type,
                        const uint8_t *data, uint16_t length, void *userdata);
-static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
 static int create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key);
 static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
@@ -375,10 +374,9 @@ static void set_gc_topic_checksum(GC_TopicInfo *topic_info)
 /* Check if peer with the public encryption key is in peer list.
  *
  * Returns the peer number if peer is in the peer list.
+ * Returns -1 if peer is not in the peer list.
  *
  * If `confirmed` is true the peer number will only be returned if the peer is confirmed.
- *
- * Returns -1 if peer is not in the peer list.
  */
 static int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed)
 {
@@ -1857,10 +1855,9 @@ static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gc
  * Return -1 if packet is invalid size.
  * Return -2 if group number is invalid.
  * Return -3 if peer number is invalid.
- * Return -4 if our shared state is invalid (this means we aren't synced with the group yet)
- * Return -5 if the group is full.
- * Return -6 if the supplied password is invalid.
- * Return -7 if we fail to send an invite response.
+ * Return -4 if the group is full.
+ * Return -5 if the supplied password is invalid.
+ * Return -6 if we fail to send an invite response.
  */
 static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
                                     uint32_t length)
@@ -1878,11 +1875,11 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
         return -3;
     }
 
-    if (chat->shared_state.version == 0) {
-        return -4;
+    if (chat->shared_state.version == 0) {  // we aren't synced yet; ignore request
+        return 0;
     }
 
-    int ret = -5;
+    int ret = -4;
 
     uint8_t invite_error;
 
@@ -1893,7 +1890,7 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
 
     if (chat_is_password_protected(chat)) {
         invite_error = GJ_INVALID_PASSWORD;
-        ret = -6;
+        ret = -5;
 
         if (length != sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE) {
             goto FAILED_INVITE;
@@ -1908,7 +1905,7 @@ static int handle_gc_invite_request(Messenger *m, int group_number, uint32_t pee
     }
 
     if (send_gc_invite_response(chat, gconn) != 0) {
-        return -7;
+        return -6;
     }
 
     return 0;
@@ -2889,7 +2886,7 @@ static int make_gc_mod_list_packet(const GC_Chat *chat, uint8_t *data, uint32_t 
  */
 static int send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn)
 {
-    size_t mod_list_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    const size_t mod_list_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
     const uint32_t length = sizeof(uint16_t) + mod_list_size;
     uint8_t *packet = (uint8_t *)malloc(length);
 
@@ -2925,8 +2922,8 @@ static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uin
     net_pack_u16(data, chat->moderation.num_sanctions);
     const uint32_t length = sizeof(uint16_t);
 
-    int packed_len = sanctions_list_pack(data + length, maxlen - length, chat->moderation.sanctions,
-                                         &chat->moderation.sanctions_creds, chat->moderation.num_sanctions);
+    const int packed_len = sanctions_list_pack(data + length, maxlen - length, chat->moderation.sanctions,
+                           &chat->moderation.sanctions_creds, chat->moderation.num_sanctions);
 
     if (packed_len < 0) {
         return -1;
@@ -3619,7 +3616,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        make_gc_session_shared_key(gconn, sender_public_session_key);
+        gcc_make_session_shared_key(gconn, sender_public_session_key);
 
         gconn->pending_key_rotation_request = false;
 
@@ -3654,7 +3651,7 @@ static int handle_gc_key_exchange(Messenger *m, int group_number, GC_Connection 
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     memcpy(gconn->session_secret_key, new_session_sk, sizeof(gconn->session_secret_key));
 
-    make_gc_session_shared_key(gconn, sender_public_session_key);
+    gcc_make_session_shared_key(gconn, sender_public_session_key);
 
     crypto_memunlock(new_session_sk, sizeof(new_session_sk));
 
@@ -5179,7 +5176,7 @@ static int handle_gc_handshake_response(const Messenger *m, int group_number, co
 
     const uint8_t *sender_session_pk = data;
 
-    make_gc_session_shared_key(gconn, sender_session_pk);
+    gcc_make_session_shared_key(gconn, sender_session_pk);
 
     set_sig_pk(gconn->addr.public_key, data + ENC_PUBLIC_KEY_SIZE);
 
@@ -5340,7 +5337,7 @@ static int handle_gc_handshake_request(Messenger *m, int group_number, const IP_
 
     const uint8_t *sender_session_pk = data;
 
-    make_gc_session_shared_key(gconn, sender_session_pk);
+    gcc_make_session_shared_key(gconn, sender_session_pk);
 
     set_sig_pk(gconn->addr.public_key, public_sig_key);
 
@@ -7562,9 +7559,7 @@ void kill_dht_groupchats(GC_Session *c)
     free(c);
 }
 
-/* Return 1 if group_number is a valid group chat index
- * Return 0 otherwise
- */
+/* Return true if `group_number` designates an active group in session `c`. */
 static bool group_number_valid(const GC_Session *c, int group_number)
 {
     if (group_number < 0 || group_number >= c->num_chats) {
@@ -7621,18 +7616,6 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
     }
 
     return false;
-}
-
-/* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
- * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
- * encryption and decryption.
- *
- * Puts the result in the shared session key buffer for `gconn`, which must have room for
- * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
- */
-static void make_gc_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
-{
-    encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
 }
 
 /* Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`.
