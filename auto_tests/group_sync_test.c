@@ -95,6 +95,7 @@ static bool all_peers_see_same_roles(Tox **toxes, State *state, uint32_t num_pee
         uint32_t checksum = get_peer_roles_checksum(toxes[i], &state[i], groupnumber);
 
         fprintf(stderr, "peer %llu: %u\n", (unsigned long long)i, checksum);
+
         if (checksum != expected_checksum) {
             //fprintf(stderr, "%i: %u - %u\n",i, checksum, expected_checksum);
             ret = false;
@@ -114,6 +115,7 @@ static void observer_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_
 
         iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
     }
+
     do {
         iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
     } while (!all_peers_see_same_roles(toxes, state, num_peers, groupnumber));
@@ -272,18 +274,18 @@ static void group_sync_test(Tox **toxes, State *state)
 
     topic_spam(toxes, state, NUM_GROUP_TOXES, groupnumber);
 
-/*     fprintf(stderr, "founder demotes peers 0 through 7 to user\n"); */
+    /*     fprintf(stderr, "founder demotes peers 0 through 7 to user\n"); */
 
-/*     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL * 20); */
+    /*     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL * 20); */
 
-/*     for (size_t i = 0; i < 7; ++i) { */
-/*         tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[i], TOX_GROUP_ROLE_USER, &role_err); */
-/*         ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set user. error: %d", role_err); */
-/*     } */
+    /*     for (size_t i = 0; i < 7; ++i) { */
+    /*         tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[i], TOX_GROUP_ROLE_USER, &role_err); */
+    /*         ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set user. error: %d", role_err); */
+    /*     } */
 
-/*     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL * 20); */
+    /*     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL * 20); */
 
-/*     observer_spam(toxes, state, NUM_GROUP_TOXES, groupnumber); */
+    /*     observer_spam(toxes, state, NUM_GROUP_TOXES, groupnumber); */
 
     fprintf(stderr, "test passed!\n");
 
