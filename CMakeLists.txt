@@ -406,6 +406,19 @@ function(auto_test target)
   endif()
 endfunction()
 
+function(auto_test_cc target)
+  if(AUTOTEST AND NOT (MSVC AND ARGV1 STREQUAL "MSVC_DONT_BUILD"))
+    add_executable(auto_${target}_test ${CPUFEATURES}
+      auto_tests/${target}_test.cc)
+    target_link_modules(auto_${target}_test toxcore misc_tools)
+    if(NOT ARGV1 STREQUAL "DONT_RUN")
+      add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} auto_${target}_test)
+      set_tests_properties(${target} PROPERTIES TIMEOUT "${TEST_TIMEOUT_SECONDS}")
+      set_property(TEST ${target} PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw")
+    endif()
+  endif()
+endfunction()
+
 auto_test(TCP)
 auto_test(conference)
 auto_test(conference_double_invite)
@@ -454,6 +467,7 @@ if(BUILD_TOXAV)
   auto_test(conference_av)
   auto_test(toxav_basic)
   auto_test(toxav_many)
+  auto_test_cc(toxav_mt)
 endif()
 
 ################################################################################
