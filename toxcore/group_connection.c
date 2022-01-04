@@ -45,18 +45,21 @@ GC_Connection *gcc_random_connection(const GC_Chat *chat)
     uint32_t index = random_u32() % chat->numpeers;
 
     if (index == 0) {
-        index = 1;
+        index = 1;  // random index doesn't need to be cryptographically secure
     }
 
-    GC_Connection *rand_gconn = &chat->gcc[index];
-
     do {
+        GC_Connection *rand_gconn = gcc_get_connection(chat, index);
+
+        if (rand_gconn == nullptr) {
+            return nullptr;
+        }
+
         if (!rand_gconn->pending_delete && rand_gconn->confirmed) {
             return rand_gconn;
         }
 
         index = (index + 1) % chat->numpeers;
-        rand_gconn = &chat->gcc[index];
     } while (index != 0);
 
     return nullptr;

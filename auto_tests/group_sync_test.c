@@ -296,7 +296,7 @@ static void group_sync_test(Tox **toxes, State *state)
 
     const unsigned int num_demoted = NUM_GROUP_TOXES / 2;
 
-    fprintf(stderr, "founder demoting %d moderators to user\n", num_demoted);
+    fprintf(stderr, "founder demoting %u moderators to user\n", num_demoted);
 
     for (size_t i = 0; i < num_demoted; ++i) {
         tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[i], TOX_GROUP_ROLE_USER, &role_err);
