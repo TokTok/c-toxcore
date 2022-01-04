@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 # Build-time environment variables
 ARG VERSION_SODIUM=1.0.18
@@ -15,6 +15,8 @@ ENV SUPPORT_TEST=${SUPPORT_TEST}
 ENV SUPPORT_ARCH_i686=${SUPPORT_ARCH_i686}
 ENV SUPPORT_ARCH_x86_64=${SUPPORT_ARCH_x86_64}
 ENV CROSS_COMPILE=${CROSS_COMPILE}
+
+WORKDIR /
 
 COPY get_packages.sh .
 RUN sh ./get_packages.sh

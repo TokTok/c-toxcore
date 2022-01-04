@@ -26,7 +26,7 @@ ci_script() {
   add_flag -gdwarf-2
 
   # Fix invalid register for .seh_savexmm error
-  add_flag -fno-asynchronous-unwind-tables
+  add_c_flag -fno-asynchronous-unwind-tables
 
   docker run \
     -e ALLOW_TEST_FAILURE=true \
