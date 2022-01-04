@@ -661,8 +661,7 @@ bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_s
     return sanctions_list_is_observer(chat, public_key);
 }
 
-/* Returns true if sanction already exists in the sanctions list. */
-static bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sanction)
+bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sanction)
 {
     if (sanction->type == SA_OBSERVER) {
         return sanctions_list_is_observer(chat, sanction->info.target_pk);

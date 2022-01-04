@@ -1551,7 +1551,7 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
         reseponse_len += packed_length;
 
         if (send_gc_sync_response(chat, gconn, response, reseponse_len) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send peer announce info");
+            LOGGER_WARNING(chat->logger, "Failed to send peer announce info");
             continue;
         }
 
@@ -1561,7 +1561,7 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
     if (num_announces == 0) {
         // we send an empty sync response even if we didn't send any peers as an acknowledgement
         if (send_gc_sync_response(chat, gconn, nullptr, 0) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send peer announce info");
+            LOGGER_WARNING(chat->logger, "Failed to send peer announce info");
             return -6;
         }
     }
@@ -1585,17 +1585,17 @@ static int sync_response_send_state(const GC_Chat *chat, uint32_t peer_number, u
     /* Do not change the order of these four send calls or else */
     if (sync_flags & GF_STATE) {
         if (send_peer_shared_state(chat, gconn) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send shared state");
+            LOGGER_WARNING(chat->logger, "Failed to send shared state");
             return -1;
         }
 
         if (send_peer_mod_list(chat, gconn) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send mod list");
+            LOGGER_WARNING(chat->logger, "Failed to send mod list");
             return -1;
         }
 
         if (send_peer_sanctions_list(chat, gconn) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send sanctions list");
+            LOGGER_WARNING(chat->logger, "Failed to send sanctions list");
             return -1;
         }
 
@@ -1604,7 +1604,7 @@ static int sync_response_send_state(const GC_Chat *chat, uint32_t peer_number, u
 
     if (sync_flags & GF_TOPIC) {
         if (send_peer_topic(chat, gconn) == -1) {
-            LOGGER_ERROR(chat->logger, "Failed to send topic");
+            LOGGER_WARNING(chat->logger, "Failed to send topic");
             return -1;
         }
 
@@ -2895,7 +2895,6 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     if (chat->connection_state == CS_CONNECTED) {
         if (update_gc_peer_roles(chat) != 0) {
             LOGGER_WARNING(chat->logger, "failed to update peer roles");
-            return -1;
         }
 
         if (c->moderation) {
@@ -3780,6 +3779,68 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
     return 0;
 }
 
+/* Validates change to moderator list and either adds or removes peer from our moderator list.
+ *
+ * Return target's peer number on success.
+ * Return -1 on failure.
+ * Return -2 if target peer is not online.
+ * Return -3 if target peer is not a valid role (probably indicates sync issues).
+ */
+static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const uint8_t *data, size_t length,
+                                      bool add_mod)
+{
+    int target_peer_number;
+    uint8_t mod_data[GC_MOD_LIST_ENTRY_SIZE];
+
+    if (add_mod) {
+        if (length < 1 + GC_MOD_LIST_ENTRY_SIZE) {
+            return -1;
+        }
+
+        memcpy(mod_data, data + 1, GC_MODERATION_HASH_SIZE);
+        target_peer_number = get_peer_number_of_sig_pk(chat, mod_data);
+
+        if (!gc_peer_number_is_valid(chat, target_peer_number)) {
+            return -2;
+        }
+
+        // moderators can only be promoted from the user role; probably a sync issue
+        if (chat->group[target_peer_number].role != GR_USER) {
+            return -3;
+        }
+
+        if (peer_number == target_peer_number) {
+            return -1;
+        }
+
+        if (mod_list_add_entry(chat, mod_data) == -1) {
+            return -1;
+        }
+    } else {
+        memcpy(mod_data, data + 1, SIG_PUBLIC_KEY_SIZE);
+        target_peer_number = get_peer_number_of_sig_pk(chat, mod_data);
+
+        if (!gc_peer_number_is_valid(chat, target_peer_number)) {
+            return -2;
+        }
+
+        // ignore packet if target peer isn't a moderator; probably a sync issue
+        if (chat->group[target_peer_number].role != GR_MODERATOR) {
+            return -3;
+        }
+
+        if (peer_number == target_peer_number) {
+            return -1;
+        }
+
+        if (mod_list_remove_entry(chat, mod_data) == -1) {
+            return -1;
+        }
+    }
+
+    return target_peer_number;
+}
+
 /* Handles a moderator set broadcast.
  *
  * Return 0 on succss.
@@ -3807,38 +3868,14 @@ static int handle_gc_set_mod(Messenger *m, int group_number, uint32_t peer_numbe
     }
 
     const bool add_mod = data[0] != 0;
-    uint8_t mod_data[GC_MOD_LIST_ENTRY_SIZE];
-    int target_peer_number;
 
-    if (add_mod) {
-        if (length < 1 + GC_MOD_LIST_ENTRY_SIZE) {
-            return -4;
-        }
+    int target_peer_number = validate_unpack_gc_set_mod(chat, peer_number, data, length, add_mod);
 
-        memcpy(mod_data, data + 1, GC_MODERATION_HASH_SIZE);
-        target_peer_number = get_peer_number_of_sig_pk(chat, mod_data);
-
-        if (peer_number == target_peer_number) {
-            return -4;
-        }
-
-        if (mod_list_add_entry(chat, mod_data) == -1) {
-            return -4;
-        }
-    } else {
-        memcpy(mod_data, data + 1, SIG_PUBLIC_KEY_SIZE);
-        target_peer_number = get_peer_number_of_sig_pk(chat, mod_data);
-
-        if (peer_number == target_peer_number) {
-            return -4;
-        }
-
-        if (mod_list_remove_entry(chat, mod_data) == -1) {
-            return -4;
-        }
+    if (target_peer_number == -1) {
+        return -1;
     }
 
-    if (!gc_peer_number_is_valid(chat, target_peer_number)) {
+    if (target_peer_number < 0) {
         return 0;
     }
 
@@ -3967,6 +4004,10 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
 
+        if (sanctions_list_entry_exists(chat, &sanction)) {
+            return 1;
+        }
+
         if (sanctions_list_add_entry(chat, &sanction, &creds) == -1) {
             return -1;
         }
@@ -3977,6 +4018,10 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
 
         if (creds.version == chat->moderation.sanctions_creds.version
                 && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
+            return 1;
+        }
+
+        if (!sanctions_list_is_observer(chat, public_key)) {
             return 1;
         }
 
@@ -4125,7 +4170,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         struct GC_Sanction sanction;
 
         if (sanctions_list_make_entry(chat, peer_number, &sanction, SA_OBSERVER) == -1) {
-            LOGGER_ERROR(chat->logger, "sanctions_list_make_entry failed in mod_gc_set_observer");
+            LOGGER_WARNING(chat->logger, "sanctions_list_make_entry failed in mod_gc_set_observer");
             return -1;
         }
 
@@ -4139,6 +4184,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         length += packed_len;
     } else {
         if (sanctions_list_remove_observer(chat, gconn->addr.public_key, nullptr) == -1) {
+            LOGGER_WARNING(chat->logger, "failed to remove sanction");
             return -1;
         }
 
