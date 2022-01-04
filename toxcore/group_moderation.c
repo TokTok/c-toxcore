@@ -611,7 +611,7 @@ static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_
 int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, struct GC_Sanction_Creds *creds)
 {
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
+        const struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
@@ -636,7 +636,7 @@ int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, str
 bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
 {
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
+        const struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
@@ -824,3 +824,4 @@ void sanctions_list_cleanup(GC_Chat *chat)
 }
 
 #endif /* VANILLA_NACL */
+

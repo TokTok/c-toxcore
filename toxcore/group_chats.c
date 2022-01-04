@@ -711,6 +711,53 @@ static int update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
 static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, const uint8_t *sanction_data,
                                 uint32_t length, bool add_obs);
 
+/* Iterates through the peerlist and updates group roles according to the
+ * current group state.
+ *
+ * Return 0 on success.
+ * Return -1 if there are conflicts.
+ */
+static int update_gc_peer_roles(GC_Chat *chat)
+{
+    for (uint32_t i = 0; i < chat->numpeers; ++i) {
+        GC_GroupPeer *peer = &chat->group[i];
+
+        if (peer->role == GR_FOUNDER) {  // founder's role can never change
+            continue;
+        }
+
+        const GC_Connection *gconn = gcc_get_connection(chat, i);
+
+        if (gconn == nullptr) {
+            continue;
+        }
+
+        if (sanctions_list_is_observer(chat, get_enc_key(gconn->addr.public_key))) {
+            // should have been removed from mod list first
+            if (mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key))) {
+                return -1;
+            }
+
+            peer->role = GR_OBSERVER;
+            continue;
+        }
+
+        if (mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key))) {
+            // should have been removed from sanctions list first
+            if (sanctions_list_is_observer(chat, get_enc_key(gconn->addr.public_key))) {
+                return -1;
+            }
+
+            peer->role = GR_MODERATOR;
+            continue;
+        }
+
+        peer->role = GR_USER;
+    }
+
+    return 0;
+}
+
 /* Removes the first found offline mod from the mod list.
  *
  * Broadcasts the shared state and moderator list on success, as well as the updated
@@ -2699,7 +2746,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         return 0;
     }
 
-    // unpack/validaiton failed: handle error
+    // unpack/validation failed: handle error
 
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
@@ -2842,8 +2889,15 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         }
     }
 
-    if (chat->connection_state == CS_CONNECTED && c->moderation) {
-        (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
+    if (chat->connection_state == CS_CONNECTED) {
+        if (update_gc_peer_roles(chat) != 0) {
+            LOGGER_WARNING(chat->logger, "failed to update peer roles");
+            return -1;
+        }
+
+        if (c->moderation) {
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
+        }
     }
 
     return 0;
@@ -6153,7 +6207,11 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
 
     crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
 
-    memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  /* we get the sig key in the handshake */
+    if (peer_number > 0) {
+        memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  /* we get the sig key in the handshake */
+    } else {
+        memcpy(gconn->addr.public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    }
 
     const uint64_t tm = mono_time_get(chat->mono_time);
 
@@ -6167,6 +6225,7 @@ static int peer_add(const Messenger *m, int group_number, const IP_Port *ipp, co
     gconn->self_is_closer = id_closest(get_chat_id(chat->chat_public_key),
                                        get_enc_key(chat->self_public_key),
                                        get_enc_key(gconn->addr.public_key)) == 1;
+
     return peer_number;
 }
 
