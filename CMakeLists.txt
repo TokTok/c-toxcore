@@ -393,10 +393,10 @@ endif()
 
 option(AUTOTEST "Enable autotests (mainly for CI)" OFF)
 
-function(auto_test target)
+function(auto_test_common target extension)
   if(AUTOTEST AND NOT (MSVC AND ARGV1 STREQUAL "MSVC_DONT_BUILD"))
     add_executable(auto_${target}_test ${CPUFEATURES}
-      auto_tests/${target}_test.c)
+      auto_tests/${target}_test.${extension})
     target_link_modules(auto_${target}_test toxcore misc_tools)
     if(NOT ARGV1 STREQUAL "DONT_RUN")
       add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} auto_${target}_test)
@@ -404,6 +404,14 @@ function(auto_test target)
       set_property(TEST ${target} PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw")
     endif()
   endif()
+endfunction()
+
+function(auto_test target)
+    auto_test_common(${target} "c" ${ARGN})
+endfunction()
+
+function(auto_test_cc target)
+  auto_test_common(${target} "cc" ${ARGN})
 endfunction()
 
 auto_test(TCP)
@@ -454,6 +462,7 @@ if(BUILD_TOXAV)
   auto_test(conference_av MSVC_DONT_BUILD)
   auto_test(toxav_basic)
   auto_test(toxav_many)
+  auto_test_cc(toxav_mt)
 endif()
 
 ################################################################################
