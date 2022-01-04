@@ -196,7 +196,7 @@ bool gcc_ip_port_is_set(const GC_Connection *gconn)
 
 void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
 {
-    if (ipport_isset(ipp)) {
+    if (ipp != nullptr && ipport_isset(ipp)) {
         memcpy(&gconn->addr.ip_port, ipp, sizeof(IP_Port));
     }
 }

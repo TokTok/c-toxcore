@@ -1994,7 +1994,9 @@ static uint32_t make_gc_broadcast_header(const GC_Chat *chat, const uint8_t *dat
     packet[0] = bc_type;
     const uint32_t header_len = sizeof(uint8_t);
 
-    memcpy(packet + header_len, data, length);
+    if (data != nullptr && length > 0) {
+        memcpy(packet + header_len, data, length);
+    }
 
     return length + header_len;
 }
