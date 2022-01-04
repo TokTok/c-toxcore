@@ -774,22 +774,23 @@ static int prune_gc_mod_list(GC_Chat *chat)
         return 0;
     }
 
-    const uint8_t *public_sig_key = nullptr;
+    uint8_t public_sig_key[SIG_PUBLIC_KEY_SIZE];
+    bool pruned_mod = false;
 
     for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
         if (get_peer_number_of_sig_pk(chat, chat->moderation.mod_list[i]) == -1) {
-            public_sig_key = chat->moderation.mod_list[i];
+            memcpy(public_sig_key, chat->moderation.mod_list[i], SIG_PUBLIC_KEY_SIZE);
 
             if (mod_list_remove_index(chat, i) == -1) {
-                public_sig_key = nullptr;
                 continue;
             }
 
+            pruned_mod = true;
             break;
         }
     }
 
-    if (public_sig_key == nullptr) {
+    if (!pruned_mod) {
         return -1;
     }
 
@@ -809,7 +810,7 @@ static int prune_gc_mod_list(GC_Chat *chat)
         return -1;
     }
 
-    if (update_gc_sanctions_list(chat,  public_sig_key) == -1) {
+    if (update_gc_sanctions_list(chat, public_sig_key) == -1) {
         return -1;
     }
 
