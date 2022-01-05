@@ -3518,7 +3518,7 @@ static int update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key)
  * Return true if topic info is valid.
  */
 static bool handle_gc_topic_validate(const GC_Chat *chat, uint32_t peer_number, const GC_TopicInfo *topic_info,
-                                    bool topic_lock_enabled)
+                                     bool topic_lock_enabled)
 {
     if (topic_info->checksum != get_gc_topic_checksum(topic_info)) {
         LOGGER_WARNING(chat->logger, "received invalid topic checksum");
