@@ -13,56 +13,106 @@
 #include <string.h>
 
 #include "../toxcore/tox.h"
+#include "../toxcore/util.h"
 
-#define NUM_GROUP_TOXES 6
-#define PEER_LIMIT 30
+// these should be kept relatively low so integration tests don't always flake out
+// but they can be increased for local stress testing
+#define NUM_GROUP_TOXES 8
+#define ROLE_SPAM_ITERATIONS 1
+#define TOPIC_SPAM_ITERATIONS 5
+
+typedef struct Peers {
+    uint32_t  num_peers;
+    int64_t   *peer_ids;
+} Peers;
 
 typedef struct State {
     uint32_t  index;
     uint64_t  clock;
-    uint32_t  num_peers;
-    uint32_t  peer_ids[NUM_GROUP_TOXES - 1];
     uint8_t   callback_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
     size_t    topic_length;
+    Peers     *peers;
 } State;
 
 #include "run_auto_test.h"
 
-static bool all_peers_connected(Tox **toxes, State *state, uint32_t groupnumber)
+
+static int add_peer(Peers *peers, uint32_t peer_id)
 {
-    for (uint32_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        // make sure we got an invite response
-        if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != 4) {
-            return false;
-        }
+    const uint32_t new_idx = peers->num_peers;
 
-        // make sure we got a sync response
-        if (tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != PEER_LIMIT) {
-            return false;
-        }
+    int64_t *tmp_list = (int64_t *)realloc(peers->peer_ids, sizeof(int64_t) * (peers->num_peers + 1));
 
-        // make sure we're actually connected
-        if (!tox_group_is_connected(toxes[i], groupnumber, nullptr)) {
-            return false;
-        }
+    if (tmp_list == nullptr) {
+        return -1;
+    }
 
-        // make sure all peers are connected to one another
-        if (state[i].num_peers == NUM_GROUP_TOXES - 1) {
-            return false;
+    ++peers->num_peers;
+
+    tmp_list[new_idx] = (int64_t)peer_id;
+
+    peers->peer_ids = tmp_list;
+
+    return 0;
+}
+
+static int del_peer(Peers *peers, uint32_t peer_id)
+{
+    int64_t i = -1;
+
+    for (i = 0; i < peers->num_peers; ++i) {
+        if (peers->peer_ids[i] == peer_id) {
+            break;
         }
     }
 
-    return true;
+    if (i == -1) {
+        return -1;
+    }
+
+    --peers->num_peers;
+
+    if (peers->num_peers != i) {
+        peers->peer_ids[i] = peers->peer_ids[peers->num_peers];
+    }
+
+    peers->peer_ids[peers->num_peers] = -1;
+
+    int64_t *tmp_list = (int64_t *)realloc(peers->peer_ids, sizeof(int64_t) * (peers->num_peers));
+
+    if (tmp_list == nullptr) {
+        return -1;
+    }
+
+    peers->peer_ids = tmp_list;
+
+    return 0;
+}
+
+static void peers_cleanup(Peers *peers)
+{
+    free(peers->peer_ids);
+    free(peers);
 }
 
 static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
     State *state = (State *)user_data;
+    ck_assert(state != nullptr);
 
-    ck_assert(state->num_peers < NUM_GROUP_TOXES);
+    ck_assert(add_peer(state->peers, peer_id) == 0);
 
-    state->peer_ids[state->num_peers] = peer_id;
-    ++state->num_peers;
+}
+
+static void group_peer_exit_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_GROUP_EXIT_TYPE exit_type,
+                                    const uint8_t *name, size_t name_length, const uint8_t *part_message,
+                                    size_t length, void *user_data)
+{
+    State *state = (State *)user_data;
+    ck_assert(state != nullptr);
+
+    ck_assert(del_peer(state->peers, peer_id) == 0);
+
 }
 
 static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, const uint8_t *topic,
@@ -76,13 +126,35 @@ static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id
     state->topic_length = length;
 }
 
+static bool all_peers_connected(Tox **toxes, State *state, uint32_t groupnumber)
+{
+    for (uint32_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+        // make sure we got an invite response
+        if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != 4) {
+            return false;
+        }
+
+        // make sure we're actually connected
+        if (!tox_group_is_connected(toxes[i], groupnumber, nullptr)) {
+            return false;
+        }
+
+        // make sure all peers are connected to one another
+        if (state[i].peers->num_peers == NUM_GROUP_TOXES - 1) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 static unsigned int get_peer_roles_checksum(Tox *tox, State *state, uint32_t groupnumber)
 {
     Tox_Group_Role role = tox_group_self_get_role(tox, groupnumber, nullptr);
     unsigned int checksum = (unsigned int)role;
 
-    for (size_t i = 0; i < NUM_GROUP_TOXES - 1; ++i) {
-        role = tox_group_peer_get_role(tox, groupnumber, state->peer_ids[i], nullptr);
+    for (size_t i = 0; i < state->peers->num_peers; ++i) {
+        role = tox_group_peer_get_role(tox, groupnumber, (uint32_t)state->peers->peer_ids[i], nullptr);
         checksum += (unsigned int)role;
     }
 
@@ -106,19 +178,36 @@ static bool all_peers_see_same_roles(Tox **toxes, State *state, uint32_t num_pee
 
 static void role_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_t num_demoted, uint32_t groupnumber)
 {
-    for (size_t iters = 0; iters < 1; ++iters) {
+    for (size_t iters = 0; iters < ROLE_SPAM_ITERATIONS; ++iters) {
         // founder randomly promotes or demotes one of the non-mods
-        size_t idx = random_u32() % num_demoted;
+        uint32_t idx = min_u32(random_u32() % num_demoted, state[0].peers->num_peers);
         Tox_Group_Role f_role = random_u32() % 2 == 0 ? TOX_GROUP_ROLE_MODERATOR : TOX_GROUP_ROLE_USER;
-        tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[idx], f_role, nullptr);
+        int64_t peer_id = state[0].peers->peer_ids[idx];
+
+        if (peer_id >= 0) {
+            tox_group_mod_set_role(toxes[0], groupnumber, (uint32_t)peer_id, f_role, nullptr);
+        }
 
         // mods randomly promote or demote one of the non-mods
-        for (size_t i = 1; i < num_demoted; ++i) {
-            for (size_t j = num_demoted; j < num_peers; ++j) {
+        for (uint32_t i = 1; i < num_peers; ++i) {
+            for (uint32_t j = num_demoted; j < num_peers; ++j) {
+                if (i >= state[i].peers->num_peers) {
+                    continue;
+                }
+
                 Tox_Group_Role role = random_u32() % 2 == 0 ? TOX_GROUP_ROLE_USER : TOX_GROUP_ROLE_OBSERVER;
-                tox_group_mod_set_role(toxes[j], groupnumber, state[j].peer_ids[i], role, nullptr);
+                peer_id = state[j].peers->peer_ids[i];
+
+                if (peer_id >= 0) {
+                    tox_group_mod_set_role(toxes[j], groupnumber, (uint32_t)peer_id, role, nullptr);
+                    fprintf(stderr, "setting peer to %d\n", role);
+                }
+
+                iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
             }
         }
+
+        iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
     }
 
     do {
@@ -204,7 +293,7 @@ static bool all_peers_have_same_topic(Tox **toxes, State *state, uint32_t num_pe
 
 static void topic_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_t groupnumber)
 {
-    for (size_t i = 0; i < 5; ++i) {
+    for (size_t i = 0; i < TOPIC_SPAM_ITERATIONS; ++i) {
         do {
             iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
         } while (!set_topic_all_peers(toxes, state, num_peers, groupnumber));
@@ -227,6 +316,11 @@ static void group_sync_test(Tox **toxes, State *state)
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
         tox_callback_group_topic(toxes[i], group_topic_handler);
+        tox_callback_group_peer_exit(toxes[i], group_peer_exit_handler);
+
+        state[i].peers = (Peers *)calloc(1, sizeof(Peers));
+
+        ck_assert(state[i].peers != nullptr);
     }
 
     TOX_ERR_GROUP_NEW err_new;
@@ -236,10 +330,6 @@ static void group_sync_test(Tox **toxes, State *state)
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
 
     fprintf(stderr, "tox0 creats new group and invites all his friends");
-
-    TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT limit_set_err;
-    tox_group_founder_set_peer_limit(toxes[0], groupnumber, PEER_LIMIT, &limit_set_err);
-    ck_assert(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK);
 
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
@@ -251,6 +341,7 @@ static void group_sync_test(Tox **toxes, State *state)
         TOX_ERR_GROUP_JOIN join_err;
         tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
+        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
     do {
@@ -270,6 +361,8 @@ static void group_sync_test(Tox **toxes, State *state)
 
     topic_spam(toxes, state, NUM_GROUP_TOXES, groupnumber);
 
+    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+
     tox_group_founder_set_topic_lock(toxes[0], groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED, &lock_set_err);
     ck_assert_msg(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to enable topic lock: %d",
                   lock_set_err);
@@ -277,12 +370,14 @@ static void group_sync_test(Tox **toxes, State *state)
     do {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     } while (!all_peers_have_same_topic(toxes, state, NUM_GROUP_TOXES, groupnumber)
-             && !all_peers_see_same_roles(toxes, state, NUM_GROUP_TOXES, groupnumber));
+             && !all_peers_see_same_roles(toxes, state, NUM_GROUP_TOXES, groupnumber)
+             && state[0].peers->num_peers != NUM_GROUP_TOXES - 1);
 
     TOX_ERR_GROUP_MOD_SET_ROLE role_err;
 
-    for (size_t i = 0; i < NUM_GROUP_TOXES - 1; ++i) {
-        tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[i], TOX_GROUP_ROLE_MODERATOR, &role_err);
+    for (size_t i = 0; i < state[0].peers->num_peers; ++i) {
+        tox_group_mod_set_role(toxes[0], groupnumber, (uint32_t)state[0].peers->peer_ids[i], TOX_GROUP_ROLE_MODERATOR,
+                               &role_err);
         ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set moderator. error: %d", role_err);
     }
 
@@ -294,12 +389,13 @@ static void group_sync_test(Tox **toxes, State *state)
 
     topic_spam(toxes, state, NUM_GROUP_TOXES, groupnumber);
 
-    const unsigned int num_demoted = NUM_GROUP_TOXES / 2;
+    const unsigned int num_demoted = state[0].peers->num_peers / 2;
 
     fprintf(stderr, "founder demoting %u moderators to user\n", num_demoted);
 
     for (size_t i = 0; i < num_demoted; ++i) {
-        tox_group_mod_set_role(toxes[0], groupnumber, state[0].peer_ids[i], TOX_GROUP_ROLE_USER, &role_err);
+        tox_group_mod_set_role(toxes[0], groupnumber, (uint32_t)state[0].peers->peer_ids[i], TOX_GROUP_ROLE_USER,
+                               &role_err);
         ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set user. error: %d", role_err);
     }
 
@@ -315,6 +411,7 @@ static void group_sync_test(Tox **toxes, State *state)
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
         tox_group_leave(toxes[i], groupnumber, nullptr, 0, nullptr);
+        peers_cleanup(state[i].peers);
     }
 
     fprintf(stderr, "All tests passed!\n");
@@ -332,5 +429,6 @@ int main(void)
 }
 
 #undef NUM_GROUP_TOXES
-#undef PEER_LIMIT
+#undef ROLE_SPAM_ITERATIONS
+#undef TOPIC_SPAM_ITERATIONS
 
