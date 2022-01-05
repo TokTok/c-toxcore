@@ -1,4 +1,4 @@
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
 # Build-time environment variables
 ARG VERSION_SODIUM=1.0.18
