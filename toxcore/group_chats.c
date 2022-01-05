@@ -714,23 +714,23 @@ static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, c
 /* Returns true if peer designated by `peer_number` is in the moderator list or is the founder. */
 static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
 {
-     const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
-     if (gconn == nullptr) {
+    if (gconn == nullptr) {
         return false;
-     }
+    }
 
-     return mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key));
+    return mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key));
 }
 
 /* Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 static bool peer_is_observer(const GC_Chat *chat, uint32_t peer_number)
 {
-     const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
-     if (gconn == nullptr) {
-         return false;
-     }
+    if (gconn == nullptr) {
+        return false;
+    }
 
     return sanctions_list_is_observer(chat, get_enc_key(gconn->addr.public_key));
 }
@@ -2791,7 +2791,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         LOGGER_WARNING(chat->logger, "Peer role update has conflicts");
         send_gc_random_sync_request(chat, GF_STATE);
         return 0;
-     }
+    }
 
     if (unpack_ret == 0) {
         if (chat->connection_state == CS_CONNECTED) {
@@ -2933,7 +2933,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
 
     if (chat->connection_state == CS_CONNECTED) {
         if (c->moderation) {
-            (*c->moderation)(m, group_number, (uint32_t)-1, (uint32_t)-1, MV_OBSERVER, userdata);
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_OBSERVER, userdata);
         }
     }
 
