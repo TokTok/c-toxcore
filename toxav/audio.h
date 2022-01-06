@@ -39,7 +39,7 @@
 typedef struct Tox Tox;
 #endif /* TOX_DEFINED */
 
-typedef struct ACSession_s {
+typedef struct ACSession {
     Mono_Time *mono_time;
 
     /* encoding */
