@@ -653,18 +653,6 @@ static int update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
 static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, const uint8_t *sanction_data,
                                 uint32_t length, bool add_obs);
 
-/* Returns true if peer designated by `peer_number` is in the moderator list or is the founder. */
-static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
-{
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return false;
-    }
-
-    return mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key));
-}
-
 /* Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 static bool peer_is_observer(const GC_Chat *chat, uint32_t peer_number)
 {
@@ -688,6 +676,22 @@ static bool peer_is_founder(const GC_Chat *chat, uint32_t peer_number)
     }
 
     return memcmp(chat->shared_state.founder_public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE) == 0;
+}
+
+/* Returns true if peer designated by `peer_number` is in the moderator list or is the founder. */
+static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
+{
+    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return false;
+    }
+
+    if (peer_is_founder(chat, peer_number)) {
+        return false;
+    }
+
+    return mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key));
 }
 
 /* Iterates through the peerlist and updates group roles according to the
@@ -723,7 +727,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
         }
 
         const uint8_t is_observer  = peer_is_observer(chat, i);
-        const uint8_t is_moderator = peer_is_moderator(chat, i) && !is_founder;
+        const uint8_t is_moderator = peer_is_moderator(chat, i);
         const uint8_t is_user      = !(is_founder || is_moderator || is_observer);
 
         if (is_observer && is_moderator) {
@@ -3766,9 +3770,9 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
             return -2;
         }
 
-        if (chat->group[target_peer_number].role == GR_FOUNDER
-                || peer_is_moderator(chat, target_peer_number)
-                || peer_is_observer(chat, target_peer_number)) {
+        const Group_Role target_role = chat->group[target_peer_number].role;
+
+        if (target_role != GR_USER) {
             return -3;
         }
 
@@ -3787,9 +3791,9 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
             return -2;
         }
 
-        if (chat->group[target_peer_number].role == GR_FOUNDER
-                || !peer_is_moderator(chat, target_peer_number)
-                || peer_is_observer(chat, target_peer_number)) {
+        const Group_Role target_role = chat->group[target_peer_number].role;
+
+        if (target_role != GR_MODERATOR) {
             return -3;
         }
 
@@ -3828,7 +3832,7 @@ static int handle_gc_set_mod(Messenger *m, int group_number, uint32_t peer_numbe
         return -2;
     }
 
-    if (!peer_is_founder(chat, peer_number)) {
+    if (chat->group[peer_number].role != GR_FOUNDER) {
         return 0;
     }
 
@@ -4019,7 +4023,9 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         return -2;
     }
 
-    if (!peer_is_moderator(chat, peer_number)) {
+    const Group_Role setter_role = chat->group[peer_number].role;
+
+    if (setter_role != GR_MODERATOR && setter_role != GR_FOUNDER) {
         LOGGER_DEBUG(chat->logger, "peer with insufficient permissions tried to modify sanctions list");
         return 0;
     }
@@ -4039,11 +4045,13 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         return -3;
     }
 
-    if (peer_is_founder(chat, target_peer_number) || peer_is_moderator(chat, target_peer_number)) {
+    const Group_Role target_role = chat->group[peer_number].role;
+
+    if (target_role == GR_FOUNDER || target_role == GR_MODERATOR) {
         return 0;
     }
 
-    const bool is_observer = peer_is_observer(chat, target_peer_number);
+    const bool is_observer = target_role == GR_OBSERVER;
 
     if ((add_obs && is_observer) || (!add_obs && !is_observer)) {
         return 0;
