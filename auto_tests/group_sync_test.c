@@ -200,10 +200,7 @@ static void role_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_t nu
 
                 if (peer_id >= 0) {
                     tox_group_mod_set_role(toxes[j], groupnumber, (uint32_t)peer_id, role, nullptr);
-                    fprintf(stderr, "setting peer to %d\n", role);
                 }
-
-                iterate_all_wait(num_peers, toxes, state, ITERATION_INTERVAL);
             }
         }
 
