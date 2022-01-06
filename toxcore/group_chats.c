@@ -2668,19 +2668,10 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
         return -1;
     }
 
-    uint8_t old_mod_list_hash[GC_MODERATION_HASH_SIZE];
-    memcpy(old_mod_list_hash, chat->shared_state.mod_list_hash, sizeof(old_mod_list_hash));
+    uint8_t mod_list_hash[GC_MODERATION_HASH_SIZE] = {0};
 
-    if (mod_list_unpack(chat, data, length, num_mods) == -1) {
-        LOGGER_WARNING(chat->logger, "failed to unpack mod list");
-        return -1;
-    }
-
-    uint8_t mod_list_hash[GC_MODERATION_HASH_SIZE];
-
-    if (mod_list_make_hash(chat, mod_list_hash) == -1) {
-        LOGGER_WARNING(chat->logger, "Failed to make mod list hash");
-        return -1;
+    if (length > 0) {
+        crypto_hash_sha256(mod_list_hash, data, length);
     }
 
     // we make sure that this mod list's hash matches the one we got in our last shared state update
@@ -2690,8 +2681,14 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
     }
 
     // we already had this mod list so we don't need to do anything else
-    if (memcmp(old_mod_list_hash, mod_list_hash, GC_MODERATION_HASH_SIZE) == 0) {
+    if (memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) == 0) {
+        LOGGER_DEBUG(chat->logger, "got duplicate mod list");
         return 1;
+    }
+
+    if (mod_list_unpack(chat, data, length, num_mods) == -1) {
+        LOGGER_WARNING(chat->logger, "failed to unpack mod list");
+        return -1;
     }
 
     return 0;
