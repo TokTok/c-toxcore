@@ -2414,13 +2414,14 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         return -6;
     }
 
+    const bool was_confirmed = gconn->confirmed;
+    gconn->confirmed = true;
+
     update_gc_peer_roles(chat);
 
-    if (c->peer_join && !gconn->confirmed) {
+    if (c->peer_join && !was_confirmed) {
         (*c->peer_join)(m, group_number, chat->group[peer_number].peer_id, userdata);
     }
-
-    gconn->confirmed = true;
 
     add_gc_saved_peers(chat, gconn);
 
