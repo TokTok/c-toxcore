@@ -429,64 +429,6 @@ int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const ui
     return -1;
 }
 
-/* Validates a peer's group role.
- *
- * Returns 0 if role is valid.
- * Returns -1 if role is invalid.
- */
-static int validate_gc_peer_role(const GC_Chat *chat, uint32_t peer_number)
-{
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return -1;
-    }
-
-    const Group_Role role = chat->group[peer_number].role;
-
-    switch (role) {
-        case GR_FOUNDER: {
-            if (memcmp(chat->shared_state.founder_public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE) != 0) {
-                return -1;
-            }
-
-            break;
-        }
-
-        case GR_MODERATOR: {
-            if (mod_list_index_of_sig_pk(chat, get_sig_pk(gconn->addr.public_key)) == -1) {
-                return -1;
-            }
-
-            break;
-        }
-
-        case GR_USER: {
-            if (sanctions_list_is_observer(chat, gconn->addr.public_key)) {
-                return -1;
-            }
-
-            break;
-        }
-
-        case GR_OBSERVER: {
-            /* Don't validate self as this is called when we don't have the sanctions list yet */
-            if (!sanctions_list_is_observer(chat, gconn->addr.public_key) && !peer_number_is_self(peer_number)) {
-                return -1;
-            }
-
-            break;
-        }
-
-        default: {
-            LOGGER_WARNING(chat->logger, "Got invalid role %u from peer %u", role, peer_number);
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
 bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number)
 {
     return peer_number >= 0 && peer_number < chat->numpeers;
@@ -750,7 +692,7 @@ static bool peer_is_founder(const GC_Chat *chat, uint32_t peer_number)
 
 /* Iterates through the peerlist and updates group roles according to the
  * current group state. This should be called every time the moderator list
- * or sanctions list changes.
+ * or sanctions list changes, after the change takes place.
  *
  * Return 0 on success.
  * Return -1 if there are conflicts.
@@ -771,28 +713,29 @@ static int update_gc_peer_roles(GC_Chat *chat)
         const uint8_t is_moderator = peer_is_moderator(chat, i) && !is_founder;
         const uint8_t is_user = !(is_founder || is_moderator || is_observer);
 
-        if (is_founder + is_observer + is_moderator + is_user != 1) {
+        if (is_observer && is_moderator) {
             conflicts = true;
         }
 
-        Group_Role role = chat->group[i].role;
-
-        // we allow multiple assignments because this may be called between state updates
-
-        if (is_observer && role != GR_OBSERVER) {
-            chat->group[i].role = GR_OBSERVER;
+        if (is_user) {
+            chat->group[i].role = GR_USER;
+            continue;
         }
 
-        if (is_moderator && role != GR_MODERATOR) {
+        if (is_founder) {
+            chat->group[i].role = GR_FOUNDER;
+            continue;
+        }
+
+        // it is possible for these two roles not to be mutually exclusive if we get
+        // multiple role changes simultaneously so we prioritize observer because
+        // conflicts seem to be resolved better this way
+        if (is_moderator && chat->group[i].role != GR_MODERATOR) {
             chat->group[i].role = GR_MODERATOR;
         }
 
-        if (is_user && role != GR_USER) {
-            chat->group[i].role = GR_USER;
-        }
-
-        if (is_founder && role != GR_FOUNDER) {
-            chat->group[i].role = GR_FOUNDER;
+        if (is_observer && chat->group[i].role != GR_OBSERVER) {
+            chat->group[i].role = GR_OBSERVER;
         }
     }
 
@@ -2455,7 +2398,7 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         return -6;
     }
 
-    if (validate_gc_peer_role(chat, peer_number) == -1) {
+    if (update_gc_peer_roles(chat) != 0) {
         LOGGER_WARNING(m->log, "failed to validate peer role");
         gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
         return -7;
@@ -2794,10 +2737,8 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
     }
 
     if (unpack_ret == 0) {
-        if (chat->connection_state == CS_CONNECTED) {
-            if (c->moderation) {
-                (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
-            }
+        if (chat->connection_state == CS_CONNECTED && c->moderation) {
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
         }
 
         return 0;
