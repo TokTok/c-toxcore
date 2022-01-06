@@ -740,21 +740,20 @@ static void update_gc_peer_roles(GC_Chat *chat)
             continue;
         }
 
-        // it is possible for these two roles not to be mutually exclusive if we get
-        // multiple role changes simultaneously so we prioritize observer because
-        // conflicts seem to be resolved better this way
         if (is_moderator) {
             chat->group[i].role = GR_MODERATOR;
             chat->roles_checksum += (GR_MODERATOR + first_byte);
+            continue;
         }
 
         if (is_observer) {
             chat->group[i].role = GR_OBSERVER;
             chat->roles_checksum += (GR_OBSERVER + first_byte);
+            continue;
         }
     }
 
-    if (conflicts) {
+    if (conflicts && !self_gc_is_founder(chat)) {
         chat->shared_state.version = 0;  // need a new shared state
     }
 }
@@ -4025,7 +4024,7 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
 
     const Group_Role setter_role = chat->group[peer_number].role;
 
-    if (setter_role != GR_MODERATOR && setter_role != GR_FOUNDER) {
+    if (setter_role > GR_MODERATOR) {
         LOGGER_DEBUG(chat->logger, "peer with insufficient permissions tried to modify sanctions list");
         return 0;
     }
@@ -4034,27 +4033,18 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
 
     const uint8_t *public_key = data + 1;
 
-    if (mod_list_verify_sig_pk(chat, get_sig_pk(public_key))) {
-        LOGGER_WARNING(chat->logger, "peer with moderator role is not in moderator list");
-        return 0;
-    }
-
     const int target_peer_number = get_peer_number_of_enc_pk(chat, public_key, false);
 
     if (target_peer_number == peer_number) {
         return -3;
     }
 
-    const Group_Role target_role = chat->group[peer_number].role;
+    if (target_peer_number >= 0) {
+        const Group_Role target_role = chat->group[target_peer_number].role;
 
-    if (target_role == GR_FOUNDER || target_role == GR_MODERATOR) {
-        return 0;
-    }
-
-    const bool is_observer = target_role == GR_OBSERVER;
-
-    if ((add_obs && is_observer) || (!add_obs && !is_observer)) {
-        return 0;
+        if ((add_obs && target_role != GR_USER) || (!add_obs && target_role != GR_OBSERVER)) {
+            return 0;
+        }
     }
 
     const int ret = validate_unpack_observer_entry(chat,
@@ -4066,11 +4056,11 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         return -3;
     }
 
+    update_gc_peer_roles(chat);
+
     if (ret == 1) {
         return 0;
     }
-
-    update_gc_peer_roles(chat);
 
     const GC_Connection *target_gconn = gcc_get_connection(chat, target_peer_number);
 
