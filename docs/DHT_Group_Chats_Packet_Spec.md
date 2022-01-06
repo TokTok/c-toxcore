@@ -114,7 +114,7 @@ The packed TCP relay contains a TCP relay that the sender may be connected throu
 `2 bytes: confirmed peer count`  
 `4 bytes: shared state version`  
 `4 bytes: sanctions credentials version`  
-`2 bytes: sanctions credentials checksum`  
+`2 bytes: peer roles checksum`  
 `4 bytes: topic version`  
 `2 bytes: topic checksum`  
 `variable bytes: packed IP address and port of sender` (Optional)  

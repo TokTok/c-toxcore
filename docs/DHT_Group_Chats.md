@@ -193,13 +193,14 @@ If the peer who set the current topic is kicked or demoted, or if the topic lock
 
 ## State syncing
 
-Peers send four unsigned 16-bit integers and three unsigned 32-bit integers along with their ping packets: Their peer count[1], a checksum of their peer list, their shared state version, their sanctions credentials version, their sanctions credentials checksum, their topic version, and their topic checksum. If a peer receives a ping in which any of the versions are greater than their own, or if their peer list checksum does not match and their peer count is not greater than the peer count received, this indicates that they may be out of sync with the rest of the group. In this case they will send a sync request to the respective peer, with the appropriate sync flags set to indicate what group information they need.
+Peers send four unsigned 16-bit integers and three unsigned 32-bit integers along with their ping packets: Their peer count[1], a checksum of their peer list, their shared state version, their sanctions credentials version, their peer roles checksum[2], their topic version, and their topic checksum. If a peer receives a ping in which any of the versions are greater than their own, or if their peer list checksum does not match and their peer count is not greater than the peer count received, this indicates that they may be out of sync with the rest of the group. In this case they will send a sync request to the respective peer, with the appropriate sync flags set to indicate what group information they need.
 
 In certain scenarios a peer may receive a topic version or sanctions credentials version that is equal to their own, but with a different checksum. This may occur if two or more peers in the group initiate an action at the exact same time. If such a conflict occurs, the peer will make the appropriate sync request if their checksum is a smaller value than the one they received.
 
 Peers that are connected to the DHT also occasionally append their IP and port number to their ping packets for peers with which they do not have a direct UDP connection established. This gives priority to direct connections and ensures that TCP relays are used only as a fall-back, or when a peer explicitly forces a TCP connection.
 
 [1] We use a "real" peer count, which is the number of confirmed peers in the peerlist (that is, peers who you have successfully handshaked and exchanged peer info with).
+[2] The peer roles checksum is calculated as follows: Make an unsigned 16-bit sum of each confirmed peer's role plus the first byte of their respective public key, then add to this an unsigned 16-bit sum of the sanctions credentials hash.
 
 <a name="DHT_Announcements" />
 
