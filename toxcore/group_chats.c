@@ -2026,7 +2026,7 @@ static bool group_topic_lock_enabled(const GC_Chat *chat);
  * sync flags for a sync request.
  */
 static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uint16_t peer_count,
-                               uint32_t sstate_version, uint32_t screds_version, uint16_t screds_checksum,
+                               uint32_t sstate_version, uint32_t screds_version, uint16_t roles_checksum,
                                uint32_t topic_version, uint16_t topic_checksum)
 {
     uint16_t sync_flags = 0;
@@ -2036,9 +2036,11 @@ static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uin
     }
 
     if (sstate_version > 0) {
+        const uint16_t self_roles_checksum = chat->moderation.sanctions_creds.checksum + chat->roles_checksum;
+
         if ((sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version)
                 || (screds_version == chat->moderation.sanctions_creds.version
-                    && screds_checksum > chat->moderation.sanctions_creds.checksum)) {
+                    && roles_checksum != self_roles_checksum)) {
             sync_flags |= GF_STATE;
         }
     }
@@ -2072,7 +2074,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     uint16_t peer_count;
     uint32_t sstate_version;
     uint32_t screds_version;
-    uint16_t screds_checksum;
+    uint16_t roles_checksum;
     uint32_t topic_version;
     uint16_t topic_checksum;
 
@@ -2090,7 +2092,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     net_unpack_u32(sync_data + unpacked_len, &screds_version);
     unpacked_len += sizeof(uint32_t);
 
-    net_unpack_u16(sync_data + unpacked_len, &screds_checksum);
+    net_unpack_u16(sync_data + unpacked_len, &roles_checksum);
     unpacked_len += sizeof(uint16_t);
 
     net_unpack_u32(sync_data + unpacked_len, &topic_version);
@@ -2105,7 +2107,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     }
 
     uint16_t sync_flags = get_sync_flags(chat, peers_checksum, peer_count, sstate_version, screds_version,
-                                         screds_checksum, topic_version, topic_checksum);
+                                         roles_checksum, topic_version, topic_checksum);
 
     if (sync_flags > 0) {
         if (send_gc_sync_request(chat, gconn, sync_flags) == 0) {
@@ -6426,6 +6428,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
         return -1;
     }
 
+    const uint16_t roles_checksum = chat->moderation.sanctions_creds.checksum + chat->roles_checksum;
     uint32_t packed_len = 0;
 
     net_pack_u16(data, chat->peers_checksum);
@@ -6440,7 +6443,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
     net_pack_u32(data + packed_len, chat->moderation.sanctions_creds.version);
     packed_len += sizeof(uint32_t);
 
-    net_pack_u16(data + packed_len, chat->moderation.sanctions_creds.checksum + chat->roles_checksum);
+    net_pack_u16(data + packed_len, roles_checksum);
     packed_len += sizeof(uint16_t);
 
     net_pack_u32(data + packed_len, chat->topic_info.version);
