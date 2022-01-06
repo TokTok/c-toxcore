@@ -325,7 +325,6 @@ Requests a peer to send us information about themselves.
 `2 bytes: name length`  
 `128 bytes: name`  
 `1 byte: status`  
-`1 byte: role`  
 
 #### Description
 Supplies information about ourselves to a peer. This is sent as a response to a `PEER_INFO_REQUEST` or `HS_PEER_INFO_EXCHANGE` packet as part of the handshake protocol. A password and length of password must be included in the packet if the group is password protected.

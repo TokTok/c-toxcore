@@ -859,9 +859,9 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
 }
 
 /* Size of peer data that we pack for transfer (nick length must be accounted for separately).
- * packed data includes: nick, nick length, status, role
+ * packed data includes: nick, nick length, and status.
  */
-#define PACKED_GC_PEER_SIZE (MAX_GC_NICK_SIZE + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define PACKED_GC_PEER_SIZE (MAX_GC_NICK_SIZE + sizeof(uint16_t) + sizeof(uint8_t))
 
 /* Packs peer info into data of maxlength length.
  *
@@ -881,8 +881,6 @@ static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_GroupPeer *peer
     memcpy(data + packed_len, peer->nick, MAX_GC_NICK_SIZE);
     packed_len += MAX_GC_NICK_SIZE;
     memcpy(data + packed_len, &peer->status, sizeof(uint8_t));
-    packed_len += sizeof(uint8_t);
-    memcpy(data + packed_len, &peer->role, sizeof(uint8_t));
     packed_len += sizeof(uint8_t);
 
     return packed_len;
@@ -907,8 +905,6 @@ static int unpack_gc_peer(GC_GroupPeer *peer, const uint8_t *data, uint16_t leng
     memcpy(peer->nick, data + len_processed, MAX_GC_NICK_SIZE);
     len_processed += MAX_GC_NICK_SIZE;
     memcpy(&peer->status, data + len_processed, sizeof(uint8_t));
-    len_processed += sizeof(uint8_t);
-    memcpy(&peer->role, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
 
     return len_processed;
