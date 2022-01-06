@@ -6148,7 +6148,6 @@ static int peer_update(Messenger *m, int group_number, GC_GroupPeer *peer, uint3
 
     GC_GroupPeer *curr_peer = &chat->group[peer_number];
 
-    curr_peer->role = peer->role;
     curr_peer->status = peer->status;
     curr_peer->nick_length = peer->nick_length;
 
