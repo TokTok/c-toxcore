@@ -2735,7 +2735,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
 
     if (unpack_ret == 0) {
         if (chat->connection_state == CS_CONNECTED && c->moderation) {
-            (*c->moderation)(m, group_number, (uint32_t)-1, (uint32_t)-1, MV_MOD, userdata);
+            (*c->moderation)(m, group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
         }
 
         return 0;
