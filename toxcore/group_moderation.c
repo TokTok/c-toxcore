@@ -513,10 +513,12 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
         return -1;
     }
 
-    if ((creds->version < chat->moderation.sanctions_creds.version)
-            && !(creds->version == 0 && chat->moderation.sanctions_creds.version == UINT32_MAX)) {
-        LOGGER_WARNING(chat->logger, "Invalid version");
-        return -1;
+    if (chat->shared_state.version > 0) {
+        if ((creds->version < chat->moderation.sanctions_creds.version)
+                && !(creds->version == 0 && chat->moderation.sanctions_creds.version == UINT32_MAX)) {
+            LOGGER_WARNING(chat->logger, "Invalid version");
+            return -1;
+        }
     }
 
     if (crypto_sign_verify_detached(creds->sig, hash, GC_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {

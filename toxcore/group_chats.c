@@ -691,14 +691,15 @@ static bool peer_is_founder(const GC_Chat *chat, uint32_t peer_number)
 }
 
 /* Iterates through the peerlist and updates group roles according to the
- * current group state. This should be called every time the moderator list
- * or sanctions list changes, after the change takes place.
+ * current group state. Also updates the roles checksum. If any role conflicts
+ * exist the checksum is set to zero in order to force a sync update.
  *
- * Return 0 on success.
- * Return -1 if there are conflicts.
+ * This should be called every time the moderator list or sanctions list changes,
+ * and after a new peer is marked as confirmed.
  */
-static int update_gc_peer_roles(GC_Chat *chat)
+static void update_gc_peer_roles(GC_Chat *chat)
 {
+    chat->roles_checksum = 0;
     bool conflicts = false;
 
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
@@ -708,10 +709,22 @@ static int update_gc_peer_roles(GC_Chat *chat)
             continue;
         }
 
+        if (!gconn->confirmed) {
+            continue;
+        }
+
+        const uint8_t first_byte = gconn->addr.public_key[0];
         const uint8_t is_founder = peer_is_founder(chat, i);
-        const uint8_t is_observer = peer_is_observer(chat, i);
+
+        if (is_founder) {
+            chat->group[i].role = GR_FOUNDER;
+            chat->roles_checksum += (GR_FOUNDER + first_byte);
+            continue;
+        }
+
+        const uint8_t is_observer  = peer_is_observer(chat, i);
         const uint8_t is_moderator = peer_is_moderator(chat, i) && !is_founder;
-        const uint8_t is_user = !(is_founder || is_moderator || is_observer);
+        const uint8_t is_user      = !(is_founder || is_moderator || is_observer);
 
         if (is_observer && is_moderator) {
             conflicts = true;
@@ -719,27 +732,27 @@ static int update_gc_peer_roles(GC_Chat *chat)
 
         if (is_user) {
             chat->group[i].role = GR_USER;
-            continue;
-        }
-
-        if (is_founder) {
-            chat->group[i].role = GR_FOUNDER;
+            chat->roles_checksum += (GR_USER + first_byte);
             continue;
         }
 
         // it is possible for these two roles not to be mutually exclusive if we get
         // multiple role changes simultaneously so we prioritize observer because
         // conflicts seem to be resolved better this way
-        if (is_moderator && chat->group[i].role != GR_MODERATOR) {
+        if (is_moderator) {
             chat->group[i].role = GR_MODERATOR;
+            chat->roles_checksum += (GR_MODERATOR + first_byte);
         }
 
-        if (is_observer && chat->group[i].role != GR_OBSERVER) {
+        if (is_observer) {
             chat->group[i].role = GR_OBSERVER;
+            chat->roles_checksum += (GR_OBSERVER + first_byte);
         }
     }
 
-    return conflicts ? -1 : 0;
+    if (conflicts) {
+        chat->shared_state.version = 0;  // need a new shared state
+    }
 }
 
 /* Removes the first found offline mod from the mod list.
@@ -1563,7 +1576,7 @@ static int sync_response_send_state(const GC_Chat *chat, uint32_t peer_number, u
     }
 
     /* Do not change the order of these four send calls or else */
-    if (sync_flags & GF_STATE) {
+    if ((sync_flags & GF_STATE) && chat->shared_state.version > 0) {
         if (send_peer_shared_state(chat, gconn) == -1) {
             LOGGER_WARNING(chat->logger, "Failed to send shared state");
             return -1;
@@ -1582,7 +1595,7 @@ static int sync_response_send_state(const GC_Chat *chat, uint32_t peer_number, u
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if (sync_flags & GF_TOPIC) {
+    if ((sync_flags & GF_TOPIC) && chat->topic_info.version > 0) {
         if (send_peer_topic(chat, gconn) == -1) {
             LOGGER_WARNING(chat->logger, "Failed to send topic");
             return -1;
@@ -2022,10 +2035,12 @@ static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uin
         sync_flags |= GF_PEERS;
     }
 
-    if ((sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version)
-            || (screds_version == chat->moderation.sanctions_creds.version
-                && screds_checksum > chat->moderation.sanctions_creds.checksum)) {
-        sync_flags |= GF_STATE;
+    if (sstate_version > 0) {
+        if ((sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version)
+                || (screds_version == chat->moderation.sanctions_creds.version
+                    && screds_checksum > chat->moderation.sanctions_creds.checksum)) {
+            sync_flags |= GF_STATE;
+        }
     }
 
     if (group_topic_lock_enabled(chat)) {
@@ -2394,11 +2409,7 @@ static int handle_gc_peer_info_response(Messenger *m, int group_number, uint32_t
         return -6;
     }
 
-    if (update_gc_peer_roles(chat) != 0) {
-        LOGGER_WARNING(m->log, "failed to validate peer role");
-        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
-        return -7;
-    }
+    update_gc_peer_roles(chat);
 
     if (c->peer_join && !gconn->confirmed) {
         (*c->peer_join)(m, group_number, chat->group[peer_number].peer_id, userdata);
@@ -2654,7 +2665,7 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
 /* Validates `data` containing a moderation list and unpacks it into the
  * shared state of `chat`.
  *
- * Return 1 if data is valid and we already have the same mod list.
+ * Return 1 if data is valid but mod list doesn't match shared state.
  * Return 0 if data is valid.
  * Return -1 if data is invalid.
  */
@@ -2671,14 +2682,9 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
     }
 
     // we make sure that this mod list's hash matches the one we got in our last shared state update
-    if (memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) != 0) {
+    if (chat->shared_state.version > 0
+            && memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) != 0) {
         LOGGER_WARNING(chat->logger, "failed to validate mod list hash");
-        return -1;
-    }
-
-    // we already had this mod list so we don't need to do anything else
-    if (memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) == 0) {
-        LOGGER_DEBUG(chat->logger, "got duplicate mod list");
         return 1;
     }
 
@@ -2723,10 +2729,8 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
 
     const int unpack_ret = validate_unpack_mod_list(chat, data + sizeof(uint16_t), length - sizeof(uint16_t), num_mods);
 
-    if (update_gc_peer_roles(chat) != 0) {
-        LOGGER_WARNING(chat->logger, "Peer role update has conflicts");
-        send_gc_random_sync_request(chat, GF_STATE);
-        return 0;
+    if (unpack_ret != -1) {
+        update_gc_peer_roles(chat);
     }
 
     if (unpack_ret == 0) {
@@ -2748,7 +2752,7 @@ static int handle_gc_mod_list(Messenger *m, int group_number, uint32_t peer_numb
         return -3;
     }
 
-    if (chat->numpeers <= 1 || !mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+    if (chat->numpeers <= 1) {
         return 0;
     }
 
@@ -2848,7 +2852,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
 
     // this may occur if two mods change the sanctions list at the exact same time
     if (creds.version == chat->moderation.sanctions_creds.version
-            && creds.checksum == chat->moderation.sanctions_creds.checksum) {
+            && creds.checksum <= chat->moderation.sanctions_creds.checksum) {
         free(sanctions);
         return 0;
     }
@@ -2859,11 +2863,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     chat->moderation.sanctions = sanctions;
     chat->moderation.num_sanctions = num_sanctions;
 
-    if (update_gc_peer_roles(chat) != 0) {
-        LOGGER_WARNING(chat->logger, "peer role update had conflicts");
-        send_gc_random_sync_request(chat, GF_STATE);
-        return 0;
-    }
+    update_gc_peer_roles(chat);
 
     if (chat->connection_state == CS_CONNECTED) {
         if (c->moderation) {
@@ -3799,9 +3799,7 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
         }
     }
 
-    if (update_gc_peer_roles(chat) == -1) {
-        return -3;
-    }
+    update_gc_peer_roles(chat);
 
     return target_peer_number;
 }
@@ -3843,10 +3841,7 @@ static int handle_gc_set_mod(Messenger *m, int group_number, uint32_t peer_numbe
         return 0;
     }
 
-    if (update_gc_peer_roles(chat) != 0) {
-        LOGGER_WARNING(chat->logger, "Failed to update peer roles");
-        return send_gc_random_sync_request(chat, GF_STATE);
-    }
+    update_gc_peer_roles(chat);
 
     if (c->moderation) {
         (*c->moderation)(m, group_number, chat->group[peer_number].peer_id, chat->group[target_peer_number].peer_id,
@@ -4064,11 +4059,7 @@ static int handle_gc_set_observer(Messenger *m, int group_number, uint32_t peer_
         return 0;
     }
 
-    if (update_gc_peer_roles(chat) != 0) {
-        LOGGER_WARNING(chat->logger, "Failed to update peer roles");
-        send_gc_random_sync_request(chat, GF_STATE);
-        return 0;
-    }
+    update_gc_peer_roles(chat);
 
     const GC_Connection *target_gconn = gcc_get_connection(chat, target_peer_number);
 
@@ -4180,10 +4171,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         length += packed_len;
     }
 
-    if (update_gc_peer_roles(chat) == -1) {
-        send_gc_random_sync_request(chat, GF_STATE);
-        return -1;
-    }
+    update_gc_peer_roles(chat);
 
     if (send_gc_set_observer(chat, gconn->addr.public_key, sanction_data, length, add_obs) == -1) {
         return -1;
@@ -4212,10 +4200,7 @@ static int apply_new_gc_role(GC_Chat *chat, uint32_t peer_number, Group_Role cur
                 return -1;
             }
 
-            if (update_gc_peer_roles(chat) == -1) {
-                send_gc_random_sync_request(chat, GF_STATE);
-                return -1;
-            }
+            update_gc_peer_roles(chat);
 
             if (new_role == GR_OBSERVER) {
                 return mod_gc_set_observer(chat, peer_number, true);
@@ -4229,10 +4214,7 @@ static int apply_new_gc_role(GC_Chat *chat, uint32_t peer_number, Group_Role cur
                 return -1;
             }
 
-            if (update_gc_peer_roles(chat) == -1) {
-                send_gc_random_sync_request(chat, GF_STATE);
-                return -1;
-            }
+            update_gc_peer_roles(chat);
 
             if (new_role == GR_MODERATOR) {
                 return founder_gc_set_moderator(chat, gconn, true);
@@ -4306,10 +4288,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Gro
         return -5;
     }
 
-    if (update_gc_peer_roles(chat) == -1) {
-        send_gc_random_sync_request(chat, GF_STATE);
-        return -5;
-    }
+    update_gc_peer_roles(chat);
 
     return 0;
 }
@@ -6461,7 +6440,7 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
     net_pack_u32(data + packed_len, chat->moderation.sanctions_creds.version);
     packed_len += sizeof(uint32_t);
 
-    net_pack_u16(data + packed_len, chat->moderation.sanctions_creds.checksum);
+    net_pack_u16(data + packed_len, chat->moderation.sanctions_creds.checksum + chat->roles_checksum);
     packed_len += sizeof(uint16_t);
 
     net_pack_u32(data + packed_len, chat->topic_info.version);
@@ -6477,7 +6456,8 @@ static int ping_peer(const GC_Chat *chat, GC_Connection *gconn)
     if (chat->self_udp_status == SELF_UDP_STATUS_WAN && !gcc_conn_is_direct(chat->mono_time, gconn)
             && mono_time_is_timeout(chat->mono_time, gconn->last_sent_ip_time, GC_SEND_IP_PORT_INTERVAL)) {
 
-        const int packed_ipp_len = pack_ip_port(data + buf_size - sizeof(IP_Port), sizeof(IP_Port), &chat->self_ip_port);
+        const int packed_ipp_len = pack_ip_port(data + buf_size - sizeof(IP_Port), sizeof(IP_Port),
+                                                &chat->self_ip_port);
 
         if (packed_ipp_len > 0) {
             packed_len += packed_ipp_len;
@@ -6945,6 +6925,8 @@ static size_t load_gc_peers(Messenger *m, GC_Chat *chat, const GC_SavedPeerInfo 
         ++count;
     }
 
+    update_gc_peer_roles(chat);
+
     return count;
 }
 
@@ -7113,6 +7095,8 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
         }
     }
 
+    update_gc_peer_roles(chat);
+
     return group_number;
 }
 
@@ -7160,6 +7144,8 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
     if (friend_number < 0) {
         return -6;
     }
+
+    update_gc_peer_roles(chat);
 
     return group_number;
 }
