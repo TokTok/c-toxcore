@@ -260,7 +260,11 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
     TOX_ERR_GROUP_PEER_QUERY q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, group_number, target_peer_id, &q_err);
 
-    ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
+    if (q_err == TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND) {  // may occurr on sync attempts
+        return;
+    }
+
+    ck_assert_msg(q_err == TOX_ERR_GROUP_PEER_QUERY_OK, "error %d", q_err);
     ck_assert(peer_name_len <= TOX_MAX_NAME_LENGTH);
 
     tox_group_peer_get_name(tox, group_number, target_peer_id, (uint8_t *) peer_name, &q_err);

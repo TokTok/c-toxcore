@@ -17,9 +17,9 @@
 
 // these should be kept relatively low so integration tests don't always flake out
 // but they can be increased for local stress testing
-#define NUM_GROUP_TOXES 8
+#define NUM_GROUP_TOXES 7
 #define ROLE_SPAM_ITERATIONS 1
-#define TOPIC_SPAM_ITERATIONS 5
+#define TOPIC_SPAM_ITERATIONS 3
 
 typedef struct Peers {
     uint32_t  num_peers;

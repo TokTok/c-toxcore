@@ -2847,6 +2847,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     }
 
     if (creds.version < chat->moderation.sanctions_creds.version) {
+        free(sanctions);
         return 0;
     }
 
