@@ -25,13 +25,13 @@
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 
-int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_t num_mods)
+int mod_list_unpack(GC_Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods)
 {
     if (length != num_mods * GC_MOD_LIST_ENTRY_SIZE) {
         return -1;
     }
 
-    mod_list_cleanup(chat);
+    mod_list_cleanup(moderation);
 
     if (num_mods == 0) {
         return 0;
@@ -57,16 +57,16 @@ int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_
         unpacked_len += GC_MOD_LIST_ENTRY_SIZE;
     }
 
-    chat->moderation.mod_list = tmp_list;
-    chat->moderation.num_mods = num_mods;
+    moderation->mod_list = tmp_list;
+    moderation->num_mods = num_mods;
 
     return unpacked_len;
 }
 
-void mod_list_pack(const GC_Chat *chat, uint8_t *data)
+void mod_list_pack(const GC_Moderation *moderation, uint8_t *data)
 {
-    for (uint16_t i = 0; i < chat->moderation.num_mods && i < MAX_GC_MODERATORS; ++i) {
-        memcpy(&data[i * GC_MOD_LIST_ENTRY_SIZE], chat->moderation.mod_list[i], GC_MOD_LIST_ENTRY_SIZE);
+    for (uint16_t i = 0; i < moderation->num_mods && i < MAX_GC_MODERATORS; ++i) {
+        memcpy(&data[i * GC_MOD_LIST_ENTRY_SIZE], moderation->mod_list[i], GC_MOD_LIST_ENTRY_SIZE);
     }
 }
 
@@ -75,21 +75,21 @@ void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_
     crypto_hash_sha256(hash, packed_mod_list, length);
 }
 
-int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
+int mod_list_make_hash(GC_Moderation *moderation, uint8_t *hash)
 {
-    if (chat->moderation.num_mods == 0) {
+    if (moderation->num_mods == 0) {
         memset(hash, 0, GC_MODERATION_HASH_SIZE);
         return 0;
     }
 
-    const size_t data_buf_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    const size_t data_buf_size = moderation->num_mods * GC_MOD_LIST_ENTRY_SIZE;
     uint8_t *data = (uint8_t *)malloc(data_buf_size);
 
     if (data == nullptr) {
         return -1;
     }
 
-    mod_list_pack(chat, data);
+    mod_list_pack(moderation, data);
 
     mod_list_get_data_hash(hash, data, data_buf_size);
 
@@ -98,10 +98,13 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
     return 0;
 }
 
-int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
+/* Returns moderator list index for public_sig_key.
+ * Returns -1 if key is not in the list.
+ */
+static int mod_list_index_of_sig_pk(const GC_Moderation *moderation, const uint8_t *public_sig_key)
 {
-    for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
-        if (memcmp(chat->moderation.mod_list[i], public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
+    for (uint16_t i = 0; i < moderation->num_mods; ++i) {
+        if (memcmp(moderation->mod_list[i], public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
             return i;
         }
     }
@@ -109,14 +112,14 @@ int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
     return -1;
 }
 
-bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk)
+bool mod_list_verify_sig_pk(const GC_Moderation *moderation, const uint8_t *sig_pk)
 {
-    if (memcmp(get_sig_pk(chat->shared_state.founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
+    if (memcmp(get_sig_pk(moderation->founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
         return true;
     }
 
-    for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
-        if (memcmp(chat->moderation.mod_list[i], sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
+    for (uint16_t i = 0; i < moderation->num_mods; ++i) {
+        if (memcmp(moderation->mod_list[i], sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
             return true;
         }
     }
@@ -124,93 +127,92 @@ bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk)
     return false;
 }
 
-int mod_list_remove_index(GC_Chat *chat, size_t index)
+int mod_list_remove_index(GC_Moderation *moderation, size_t index)
 {
-    if (index >= chat->moderation.num_mods) {
+    if (index >= moderation->num_mods) {
         return -1;
     }
 
-    if (chat->moderation.num_mods == 0) {
+    if (moderation->num_mods == 0) {
         return -1;
     }
 
-    if ((chat->moderation.num_mods - 1) == 0) {
-        mod_list_cleanup(chat);
+    if ((moderation->num_mods - 1) == 0) {
+        mod_list_cleanup(moderation);
         return 0;
     }
 
-    --chat->moderation.num_mods;
+    --moderation->num_mods;
 
-    if (index != chat->moderation.num_mods) {
-        memcpy(chat->moderation.mod_list[index], chat->moderation.mod_list[chat->moderation.num_mods],
+    if (index != moderation->num_mods) {
+        memcpy(moderation->mod_list[index], moderation->mod_list[moderation->num_mods],
                GC_MOD_LIST_ENTRY_SIZE);
     }
 
-    free(chat->moderation.mod_list[chat->moderation.num_mods]);
-    chat->moderation.mod_list[chat->moderation.num_mods] = nullptr;
+    free(moderation->mod_list[moderation->num_mods]);
+    moderation->mod_list[moderation->num_mods] = nullptr;
 
-    uint8_t **tmp_list = (uint8_t **)realloc(chat->moderation.mod_list, sizeof(uint8_t *) * chat->moderation.num_mods);
+    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, sizeof(uint8_t *) * moderation->num_mods);
 
     if (tmp_list == nullptr) {
         return -1;
     }
 
-    chat->moderation.mod_list = tmp_list;
+    moderation->mod_list = tmp_list;
 
     return 0;
 }
 
-int mod_list_remove_entry(GC_Chat *chat, const uint8_t *public_sig_key)
+int mod_list_remove_entry(GC_Moderation *moderation, const uint8_t *public_sig_key)
 {
-    if (chat->moderation.num_mods == 0) {
+    if (moderation->num_mods == 0) {
         return -1;
     }
 
-    const int idx = mod_list_index_of_sig_pk(chat, public_sig_key);
+    const int idx = mod_list_index_of_sig_pk(moderation, public_sig_key);
 
     if (idx == -1) {
         return -1;
     }
 
-    if (mod_list_remove_index(chat, idx) == -1) {
+    if (mod_list_remove_index(moderation, idx) == -1) {
         return -1;
     }
 
     return 0;
 }
 
-int mod_list_add_entry(GC_Chat *chat, const uint8_t *mod_data)
+int mod_list_add_entry(GC_Moderation *moderation, const uint8_t *mod_data)
 {
-    if (chat->moderation.num_mods >= MAX_GC_MODERATORS) {
+    if (moderation->num_mods >= MAX_GC_MODERATORS) {
         return -1;
     }
 
-    uint8_t **tmp_list = (uint8_t **)realloc(chat->moderation.mod_list,
-                         sizeof(uint8_t *) * (chat->moderation.num_mods + 1));
+    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, sizeof(uint8_t *) * (moderation->num_mods + 1));
 
     if (tmp_list == nullptr) {
         return -1;
     }
 
-    chat->moderation.mod_list = tmp_list;
+    moderation->mod_list = tmp_list;
 
-    tmp_list[chat->moderation.num_mods] = (uint8_t *)malloc(sizeof(uint8_t) * GC_MOD_LIST_ENTRY_SIZE);
+    tmp_list[moderation->num_mods] = (uint8_t *)malloc(sizeof(uint8_t) * GC_MOD_LIST_ENTRY_SIZE);
 
-    if (tmp_list[chat->moderation.num_mods] == nullptr) {
+    if (tmp_list[moderation->num_mods] == nullptr) {
         return -1;
     }
 
-    memcpy(tmp_list[chat->moderation.num_mods], mod_data, GC_MOD_LIST_ENTRY_SIZE);
-    ++chat->moderation.num_mods;
+    memcpy(tmp_list[moderation->num_mods], mod_data, GC_MOD_LIST_ENTRY_SIZE);
+    ++moderation->num_mods;
 
     return 0;
 }
 
-void mod_list_cleanup(GC_Chat *chat)
+void mod_list_cleanup(GC_Moderation *moderation)
 {
-    free_uint8_t_pointer_array(chat->moderation.mod_list, chat->moderation.num_mods);
-    chat->moderation.num_mods = 0;
-    chat->moderation.mod_list = nullptr;
+    free_uint8_t_pointer_array(moderation->mod_list, moderation->num_mods);
+    moderation->num_mods = 0;
+    moderation->mod_list = nullptr;
 }
 
 uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *data, uint16_t length)
@@ -413,7 +415,7 @@ static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_
  */
 static int sanctions_list_validate_entry(const GC_Chat *chat, struct GC_Sanction *sanction)
 {
-    if (!mod_list_verify_sig_pk(chat, sanction->public_sig_key)) {
+    if (!mod_list_verify_sig_pk(&chat->moderation, sanction->public_sig_key)) {
         return -1;
     }
 
@@ -499,7 +501,7 @@ int sanctions_list_make_creds(GC_Chat *chat)
 static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds,
                                     uint16_t num_sanctions)
 {
-    if (!mod_list_verify_sig_pk(chat, creds->sig_pk)) {
+    if (!mod_list_verify_sig_pk(&chat->moderation, creds->sig_pk)) {
         LOGGER_WARNING(chat->logger, "Invalid credentials signature pk");
         return -1;
     }

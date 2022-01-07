@@ -199,6 +199,8 @@ typedef struct GC_Moderation {
 
     uint8_t     **mod_list;  // array of public signature keys of all the mods
     uint16_t    num_mods;
+
+    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
 } GC_Moderation;
 
 typedef struct GC_PeerAddress {

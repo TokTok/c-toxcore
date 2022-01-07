@@ -48,12 +48,12 @@ typedef struct GC_Sanction GC_Sanction;
  * Returns length of unpacked data on success.
  * Returns -1 on failure.
  */
-int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_t num_mods);
+int mod_list_unpack(GC_Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods);
 
 /* Packs moderator list into data.
  * data must have room for `num_mods * GC_MOD_LIST_ENTRY_SIZE` bytes.
  */
-void mod_list_pack(const GC_Chat *chat, uint8_t *data);
+void mod_list_pack(const GC_Moderation *moderation, uint8_t *data);
 
 /* Creates a new moderator list hash and puts it in `hash`.
  *
@@ -64,7 +64,7 @@ void mod_list_pack(const GC_Chat *chat, uint8_t *data);
  * Returns 0 on sucess.
  * Returns -1 on failure;
  */
-int mod_list_make_hash(GC_Chat *chat, uint8_t *hash);
+int mod_list_make_hash(GC_Moderation *moderation, uint8_t *hash);
 
 /* Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
  *
@@ -72,37 +72,32 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash);
  */
 void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_t length);
 
-/* Returns moderator list index for public_sig_key.
- * Returns -1 if key is not in the list.
- */
-int mod_list_index_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key);
-
 /* Removes moderator at index-th position in the moderator list.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int mod_list_remove_index(GC_Chat *chat, size_t index);
+int mod_list_remove_index(GC_Moderation *moderation, size_t index);
 
 /* Removes public_sig_key from the moderator list.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int mod_list_remove_entry(GC_Chat *chat, const uint8_t *public_sig_key);
+int mod_list_remove_entry(GC_Moderation *moderation, const uint8_t *public_sig_key);
 
 /* Adds a mod to the moderator list. mod_data must be GC_MOD_LIST_ENTRY_SIZE bytes.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int mod_list_add_entry(GC_Chat *chat, const uint8_t *mod_data);
+int mod_list_add_entry(GC_Moderation *moderation, const uint8_t *mod_data);
 
 /* Returns true if the public signature key belongs to a moderator or the founder */
-bool mod_list_verify_sig_pk(const GC_Chat *chat, const uint8_t *sig_pk);
+bool mod_list_verify_sig_pk(const GC_Moderation *moderation, const uint8_t *sig_pk);
 
 /* Frees all memory associated with the moderator list and sets num_mods to 0. */
-void mod_list_cleanup(GC_Chat *chat);
+void mod_list_cleanup(GC_Moderation *moderation);
 
 /* Packs num_sanctions sanctions into data of maxlength length. Additionally packs the
  * sanctions list credentials into creds if creds is non-NULL.

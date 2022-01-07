@@ -258,7 +258,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     memcpy(temp->addrs, &chat->saved_peers, GC_MAX_SAVED_PEERS * sizeof(GC_SavedPeerInfo));
 
     temp->num_mods = net_htons(chat->moderation.num_mods);
-    mod_list_pack(chat, temp->mod_list);
+    mod_list_pack(&chat->moderation, temp->mod_list);
 
     const bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
     temp->group_connection_state = is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED;
@@ -691,7 +691,7 @@ static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
         return false;
     }
 
-    return mod_list_verify_sig_pk(chat, get_sig_pk(gconn->addr.public_key));
+    return mod_list_verify_sig_pk(&chat->moderation, get_sig_pk(gconn->addr.public_key));
 }
 
 /* Iterates through the peerlist and updates group roles according to the
@@ -781,7 +781,7 @@ static int prune_gc_mod_list(GC_Chat *chat)
         if (get_peer_number_of_sig_pk(chat, chat->moderation.mod_list[i]) == -1) {
             memcpy(public_sig_key, chat->moderation.mod_list[i], SIG_PUBLIC_KEY_SIZE);
 
-            if (mod_list_remove_index(chat, i) == -1) {
+            if (mod_list_remove_index(&chat->moderation, i) == -1) {
                 continue;
             }
 
@@ -794,7 +794,7 @@ static int prune_gc_mod_list(GC_Chat *chat)
         return -1;
     }
 
-    if (mod_list_make_hash(chat, chat->shared_state.mod_list_hash) == -1) {
+    if (mod_list_make_hash(&chat->moderation, chat->shared_state.mod_list_hash) == -1) {
         return -1;
     }
 
@@ -1456,7 +1456,10 @@ static int handle_gc_sync_response(Messenger *m, int group_number, int peer_numb
         return -2;
     }
 
-    chat->connection_state = CS_CONNECTED;
+    if (chat->connection_state != CS_CONNECTED) {
+        chat->connection_state = CS_CONNECTED;
+    }
+
     send_gc_peer_exchange(c, chat, gconn);
 
     if (c->self_join && chat->time_connected == 0) {
@@ -2521,6 +2524,11 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
             (*c->topic_lock)(c->messenger, chat->group_number, lock_state, userdata);
         }
     }
+
+    /* make sure we set founder PK on initial sync */
+    if (chat->connection_state != CS_CONNECTED) {
+        memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
+    }
 }
 
 /* Sends a sync request to a random peer in the group with the specificed sync flags.
@@ -2694,7 +2702,7 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
         return 1;
     }
 
-    if (mod_list_unpack(chat, data, length, num_mods) == -1) {
+    if (mod_list_unpack(&chat->moderation, data, length, num_mods) == -1) {
         LOGGER_WARNING(chat->logger, "failed to unpack mod list");
         return -1;
     }
@@ -2902,7 +2910,7 @@ static int make_gc_mod_list_packet(const GC_Chat *chat, uint8_t *data, uint32_t 
             return -1;
         }
 
-        mod_list_pack(chat, packed_mod_list);
+        mod_list_pack(&chat->moderation, packed_mod_list);
         memcpy(data + sizeof(uint16_t), packed_mod_list, mod_list_size);
 
         free(packed_mod_list);
@@ -3507,7 +3515,7 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, uint32_t peer_number, 
     }
 
     if (topic_lock_enabled) {
-        if (!mod_list_verify_sig_pk(chat, topic_info->public_sig_key)) {
+        if (!mod_list_verify_sig_pk(&chat->moderation, topic_info->public_sig_key)) {
             LOGGER_WARNING(chat->logger, "Invalid topic signature (bad credentials)");
             return false;
         }
@@ -3780,7 +3788,7 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
             return -1;
         }
 
-        if (mod_list_add_entry(chat, mod_data) == -1) {
+        if (mod_list_add_entry(&chat->moderation, mod_data) == -1) {
             return -4;
         }
     } else {
@@ -3801,7 +3809,7 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
             return -1;
         }
 
-        if (mod_list_remove_entry(chat, mod_data) == -1) {
+        if (mod_list_remove_entry(&chat->moderation, mod_data) == -1) {
             return -4;
         }
     }
@@ -3904,11 +3912,11 @@ static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool ad
             }
         }
 
-        if (mod_list_add_entry(chat, get_sig_pk(gconn->addr.public_key)) == -1) {
+        if (mod_list_add_entry(&chat->moderation, get_sig_pk(gconn->addr.public_key)) == -1) {
             return -1;
         }
     } else {
-        if (mod_list_remove_entry(chat, get_sig_pk(gconn->addr.public_key)) == -1) {
+        if (mod_list_remove_entry(&chat->moderation, get_sig_pk(gconn->addr.public_key)) == -1) {
             return -1;
         }
 
@@ -3924,7 +3932,7 @@ static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool ad
     uint8_t old_hash[GC_MODERATION_HASH_SIZE];
     memcpy(old_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE);
 
-    if (mod_list_make_hash(chat, chat->shared_state.mod_list_hash) == -1) {
+    if (mod_list_make_hash(&chat->moderation, chat->shared_state.mod_list_hash) == -1) {
         return -1;
     }
 
@@ -6777,6 +6785,7 @@ static int init_gc_shared_state_founder(GC_Chat *chat, Group_Privacy_State priva
                                         uint16_t name_length)
 {
     memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(chat->shared_state.group_name, group_name, name_length);
     chat->shared_state.group_name_len = name_length;
     chat->shared_state.privacy_state = privacy_state;
@@ -6978,9 +6987,11 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     const uint16_t num_mods = net_ntohs(save->num_mods);
 
-    if (mod_list_unpack(chat, save->mod_list, num_mods * GC_MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
+    if (mod_list_unpack(&chat->moderation, save->mod_list, num_mods * GC_MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
         return -1;
     }
+
+    memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
 
     memcpy(chat->self_public_key, save->self_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(chat->self_secret_key, save->self_secret_key, EXT_SECRET_KEY_SIZE);
@@ -7567,7 +7578,7 @@ GC_Session *new_dht_groupchats(Messenger *m)
 static void group_cleanup(GC_Session *c, GC_Chat *chat)
 {
     m_kill_group_connection(c->messenger, chat);
-    mod_list_cleanup(chat);
+    mod_list_cleanup(&chat->moderation);
     sanctions_list_cleanup(chat);
 
     if (chat->tcp_conn) {
