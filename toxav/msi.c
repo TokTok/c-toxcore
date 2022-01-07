@@ -5,11 +5,11 @@
 #include "msi.h"
 #include "toxav_hacks.h"
 
+#include "../toxcore/logger.h"
+#include "../toxcore/net_crypto.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_private.h"
-#include "../toxcore/logger.h"
 #include "../toxcore/util.h"
-#include "../toxcore/net_crypto.h"
 
 #include <assert.h>
 #include <stdbool.h>

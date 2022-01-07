@@ -14,8 +14,8 @@
 #include "tox_private.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "Messenger.h"

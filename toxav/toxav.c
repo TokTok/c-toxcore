@@ -12,9 +12,9 @@
 
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/util.h"
-#include "../toxcore/network.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/network.h"
+#include "../toxcore/util.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -366,9 +366,8 @@ static void iterate_common(ToxAV *av, bool audio)
     uint64_t start = current_time_monotonic(av->toxav_mono_time);
     int32_t frame_time = IDLE_ITERATION_INTERVAL_MS;
 
-    ToxAVCall *i = av->calls[av->calls_head];
 
-    for (i = av->calls[av->calls_head]; i; i = i->next) {
+    for (ToxAVCall *i = av->calls[av->calls_head]; i != nullptr; i = i->next) {
         if (!i->active) {
             continue;
         }

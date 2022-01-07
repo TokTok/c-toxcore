@@ -14,9 +14,9 @@
 
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/util.h"
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/tox_private.h"
+#include "../toxcore/util.h"
 
 static int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
 
