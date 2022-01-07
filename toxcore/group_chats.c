@@ -1232,7 +1232,7 @@ int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_
     const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
 
     if (enc_len != encrypt_buf_size) {
-        LOGGER_ERROR(logger, "encryption failed. packet type: %d, enc_len: %d", gp_packet_type, enc_len);
+        LOGGER_ERROR(logger, "encryption failed. packet type: 0x%02x, enc_len: %d", gp_packet_type, enc_len);
         free(encrypt);
         return -1;
     }
@@ -1269,7 +1269,7 @@ static int send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gco
                                       NET_PACKET_GC_LOSSY);
 
     if (len == -1) {
-        LOGGER_WARNING(chat->logger, "group_packet_wrap failed (type: %u, len: %d)", packet_type, len);
+        LOGGER_WARNING(chat->logger, "group_packet_wrap failed (type: 0x%02x, len: %d)", packet_type, len);
         return -1;
     }
 
@@ -1295,7 +1295,7 @@ static int send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn,
     const uint64_t message_id = gconn->send_message_id;
 
     if (gcc_add_to_send_array(chat->logger, chat->mono_time, gconn, data, length, packet_type) == -1) {
-        LOGGER_WARNING(chat->logger, "gcc_add_to_send_array() failed (type: %u, length: %d)", packet_type, length);
+        LOGGER_WARNING(chat->logger, "gcc_add_to_send_array() failed (type: 0x%02x, length: %d)", packet_type, length);
         return -1;
     }
 
@@ -5002,13 +5002,13 @@ static int handle_gc_broadcast(Messenger *m, int group_number, uint32_t peer_num
         }
 
         default: {
-            LOGGER_DEBUG(m->log, "Received an invalid broadcast type %u", broadcast_type);
+            LOGGER_DEBUG(m->log, "Received an invalid broadcast type 0x%02x", broadcast_type);
             break;
         }
     }
 
     if (ret < 0) {
-        LOGGER_WARNING(m->log, "Broadcast handle error %d: type: %u, peernumber: %u", ret, broadcast_type, peer_number);
+        LOGGER_WARNING(m->log, "Broadcast handle error %d: type: 0x%02x, peernumber: %u", ret, broadcast_type, peer_number);
         return -1;
     }
 
@@ -5172,7 +5172,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
 
     if (ret != length) {
         if (send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length) == -1) {
-            LOGGER_WARNING(chat->logger, "Send handshake packet failed. Type %u", request_type);
+            LOGGER_WARNING(chat->logger, "Send handshake packet failed. Type 0x%02x", request_type);
             return -1;
         }
     }
@@ -5589,13 +5589,13 @@ int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_numb
         }
 
         default: {
-            LOGGER_DEBUG(m->log, "Handling invalid lossless group packet type %u", packet_type);
+            LOGGER_DEBUG(m->log, "Handling invalid lossless group packet type 0x%02x", packet_type);
             return -1;
         }
     }
 
     if (ret < 0) {
-        LOGGER_DEBUG(m->log, "Lossless packet handle error %d: type %d, peernumber: %d",
+        LOGGER_DEBUG(m->log, "Lossless packet handle error %d: type: 0x%02x, peernumber: %d",
                      ret, packet_type, peer_number);
         return -1;
     }
@@ -5641,7 +5641,7 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (!gconn->handshaked && (packet_type != GP_HS_RESPONSE_ACK && packet_type != GP_INVITE_REQUEST)) {
-        LOGGER_DEBUG(m->log, "Got lossless packet type %d from unconfirmed peer", packet_type);
+        LOGGER_DEBUG(m->log, "Got lossless packet type 0x%02x from unconfirmed peer", packet_type);
         return -1;
     }
 
@@ -5650,7 +5650,7 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
 
     if (message_id == 3 && is_invite_packet && gconn->received_message_id <= 1) {
         // we missed initial handshake request. Drop this packet and wait for another handshake request.
-        LOGGER_WARNING(m->log, "Missed handshake packet, type: %d", packet_type);
+        LOGGER_WARNING(m->log, "Missed handshake packet, type: 0x%02x", packet_type);
         return -1;
     }
 
@@ -5662,15 +5662,13 @@ static int handle_gc_lossless_packet(Messenger *m, const GC_Chat *chat, const ui
     }
 
     if (lossless_ret < 0) {
-        LOGGER_WARNING(m->log, "failed to handle packet %llu (type %u, id %llu)",
+        LOGGER_WARNING(m->log, "failed to handle packet %llu (type: 0x%02x, id: %llu)",
                        (unsigned long long)message_id, packet_type, (unsigned long long)message_id);
         return -1;
     }
 
     /* Duplicate packet */
     if (lossless_ret == 0) {
-        // LOGGER_DEBUG(m->log, "got duplicate packet from peer %u. ID: %lu, type: %u)",
-        //              peer_number, message_id, packet_type);
         return gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
 
@@ -5760,7 +5758,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
         }
 
         default: {
-            LOGGER_WARNING(m->log, "Warning: handling invalid lossy group packet type %u", packet_type);
+            LOGGER_WARNING(m->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
             return -1;
         }
     }
@@ -5770,7 +5768,7 @@ static int handle_gc_lossy_packet(Messenger *m, const GC_Chat *chat, const uint8
     }
 
     if (ret < 0) {
-        LOGGER_WARNING(m->log, "Lossy packet handle error %d: type %d, peernumber %d", ret, packet_type, peer_number);
+        LOGGER_WARNING(m->log, "Lossy packet handle error %d: type: 0x%02x, peernumber %d", ret, packet_type, peer_number);
         return -1;
     }
 
