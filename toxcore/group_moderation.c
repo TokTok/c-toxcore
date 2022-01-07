@@ -463,6 +463,7 @@ int sanctions_list_make_creds(GC_Chat *chat)
 
     if (sanctions_list_make_hash(chat->moderation.sanctions, chat->moderation.sanctions_creds.version,
                                  chat->moderation.num_sanctions, hash) == -1) {
+        memcpy(&chat->moderation.sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
         return -1;
     }
 
