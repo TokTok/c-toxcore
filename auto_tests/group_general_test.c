@@ -15,12 +15,13 @@
 typedef struct State {
     uint32_t index;
     uint64_t clock;
-    size_t peer_joined_count;
-    size_t self_joined_count;
-    size_t peer_exit_count;
-    bool peer_nick;
-    bool peer_status;
+    size_t   peer_joined_count;
+    size_t   self_joined_count;
+    size_t   peer_exit_count;
+    bool     peer_nick;
+    bool     peer_status;
     uint32_t peer_id;
+    bool     is_founder;
 } State;
 
 #include "run_auto_test.h"
@@ -29,6 +30,9 @@ typedef struct State {
 
 #define GROUP_NAME "NASA Headquarters"
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
+
+#define TOPIC "Funny topic here"
+#define TOPIC_LEN (sizeof(TOPIC) - 1)
 
 #define PEER0_NICK "Lois"
 #define PEER0_NICK_LEN (sizeof(PEER0_NICK) - 1)
@@ -66,21 +70,58 @@ static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t 
     return true;
 }
 
-static void group_join_fail_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_JOIN_FAIL fail_type, void *user_data)
-{
-    fprintf(stderr, "Failed to join group: %d", fail_type);
-}
-
 static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, void *user_data)
 {
     State *state = (State *)user_data;
     ck_assert(state != nullptr);
 
-    // we also do a connection test here for fun
+    // we do a connection test here for fun
     TOX_ERR_GROUP_PEER_QUERY pq_err;
     TOX_CONNECTION connection_status = tox_group_peer_get_connection_status(tox, groupnumber, peer_id, &pq_err);
     ck_assert(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK);
     ck_assert(connection_status != TOX_CONNECTION_NONE);
+
+    Tox_Group_Role role = tox_group_peer_get_role(tox, groupnumber, peer_id, &pq_err);
+    ck_assert_msg(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK, "%d", pq_err);
+
+    Tox_User_Status status = tox_group_peer_get_status(tox, groupnumber, peer_id, &pq_err);
+    ck_assert_msg(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK, "%d", pq_err);
+
+    size_t peer_name_len = tox_group_peer_get_name_size(tox, groupnumber, peer_id, &pq_err);
+    char peer_name[TOX_MAX_NAME_LENGTH + 1];
+
+    ck_assert(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK);
+    ck_assert(peer_name_len <= TOX_MAX_NAME_LENGTH);
+
+    tox_group_peer_get_name(tox, groupnumber, peer_id, (uint8_t *) peer_name, &pq_err);
+    ck_assert(pq_err == TOX_ERR_GROUP_PEER_QUERY_OK);
+
+    peer_name[peer_name_len] = 0;
+
+    // make sure we see the correct peer state on join
+    if (!state->is_founder) {
+        ck_assert_msg(role == TOX_GROUP_ROLE_FOUNDER, "wrong role: %d", role);
+
+        if (state->peer_joined_count == 0) {
+            ck_assert_msg(status == TOX_USER_STATUS_NONE, "wrong status: %d", status);
+            ck_assert_msg(peer_name_len == PEER0_NICK_LEN, "wrong nick: %s", peer_name);
+            ck_assert(memcmp(peer_name, PEER0_NICK, peer_name_len) == 0);
+        } else {
+            ck_assert_msg(status == TOX_USER_STATUS_BUSY, "wrong status: %d", status);
+            ck_assert(peer_name_len == PEER0_NICK2_LEN);
+            ck_assert(memcmp(peer_name, PEER0_NICK2, peer_name_len) == 0);
+        }
+    } else {
+        ck_assert_msg(role == TOX_GROUP_ROLE_USER, "wrong role: %d", role);
+        ck_assert(peer_name_len == PEER1_NICK_LEN);
+        ck_assert(memcmp(peer_name, PEER1_NICK, peer_name_len) == 0);
+
+        if (state->peer_joined_count == 0) {
+            ck_assert_msg(status == TOX_USER_STATUS_NONE, "wrong status: %d", status);
+        } else {
+            ck_assert_msg(status == TOX_USER_STATUS_AWAY, "wrong status: %d", status);
+        }
+    }
 
     state->peer_id = peer_id;
     ++state->peer_joined_count;
@@ -90,6 +131,55 @@ static void group_peer_self_join_handler(Tox *tox, uint32_t groupnumber, void *u
 {
     State *state = (State *)user_data;
     ck_assert(state != nullptr);
+
+    // make sure we see our own correct peer state on join callback
+
+    TOX_ERR_GROUP_SELF_QUERY sq_err;
+    size_t self_length = tox_group_self_get_name_size(tox, groupnumber, &sq_err);
+
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    uint8_t self_name[TOX_MAX_NAME_LENGTH];
+    tox_group_self_get_name(tox, groupnumber, self_name, &sq_err);
+
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    TOX_USER_STATUS self_status = tox_group_self_get_status(tox, groupnumber, &sq_err);
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    TOX_GROUP_ROLE self_role = tox_group_self_get_role(tox, groupnumber, &sq_err);
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    if (state->is_founder) {
+        // founder doesn't get a self join callback on initial creation of group
+        ck_assert(self_length == PEER0_NICK2_LEN);
+        ck_assert(memcmp(self_name, PEER0_NICK2, self_length) == 0);
+        ck_assert(self_status == TOX_USER_STATUS_BUSY);
+        ck_assert(self_role == TOX_GROUP_ROLE_FOUNDER);
+    } else {
+        ck_assert(self_length == PEER1_NICK_LEN);
+        ck_assert(memcmp(self_name, PEER1_NICK, self_length) == 0);
+        ck_assert(self_role == TOX_GROUP_ROLE_USER);
+        ck_assert(self_status == TOX_USER_STATUS_NONE);
+    }
+
+    // make sure we see correct group state on join callback
+    uint8_t group_name[GROUP_NAME_LEN];
+    uint8_t topic[TOX_GROUP_MAX_TOPIC_LENGTH];
+
+    ck_assert(tox_group_get_peer_limit(tox, groupnumber, nullptr) == PEER_LIMIT);
+    ck_assert(tox_group_get_name_size(tox, groupnumber, nullptr) == GROUP_NAME_LEN);
+    ck_assert(tox_group_get_topic_size(tox, groupnumber, nullptr) == TOPIC_LEN);
+
+    TOX_ERR_GROUP_STATE_QUERIES query_err;
+    tox_group_get_name(tox, groupnumber, group_name, &query_err);
+    ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", query_err);
+    ck_assert(memcmp(group_name, GROUP_NAME, GROUP_NAME_LEN) == 0);
+
+    tox_group_get_topic(tox, groupnumber, topic, &query_err);
+    ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", query_err);
+    ck_assert(memcmp(topic, TOPIC, TOPIC_LEN) == 0);
+
     ++state->self_joined_count;
 }
 
@@ -142,7 +232,7 @@ static void group_announce_test(Tox **toxes, State *state)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES == 2, "NUM_GROUP_TOXES needs to be 2");
 
-    tox_callback_group_join_fail(toxes[0], group_join_fail_handler);
+    tox_callback_group_peer_join(toxes[0], group_peer_join_handler);
     tox_callback_group_peer_join(toxes[1], group_peer_join_handler);
     tox_callback_group_self_join(toxes[0], group_peer_self_join_handler);
     tox_callback_group_self_join(toxes[1], group_peer_self_join_handler);
@@ -157,12 +247,18 @@ static void group_announce_test(Tox **toxes, State *state)
                                          &err_new);
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
 
+    state[0].is_founder = true;
+
     iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
 
     // changes the state (for sync check purposes)
     TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT limit_set_err;
     tox_group_founder_set_peer_limit(toxes[0], groupnumber, PEER_LIMIT, &limit_set_err);
     ck_assert_msg(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK, "failed to set peer limit: %d", limit_set_err);
+
+    TOX_ERR_GROUP_TOPIC_SET tp_err;
+    tox_group_set_topic(toxes[0], groupnumber, (const uint8_t *)TOPIC, TOPIC_LEN, &tp_err);
+    ck_assert(tp_err == TOX_ERR_GROUP_TOPIC_SET_OK);
 
     // get the chat id of the new group.
     TOX_ERR_GROUP_STATE_QUERIES err_id;
@@ -176,8 +272,7 @@ static void group_announce_test(Tox **toxes, State *state)
     ck_assert(err_join == TOX_ERR_GROUP_JOIN_OK);
 
     // peers see each other and themselves join
-    while (!state[0].peer_joined_count && !state[1].peer_joined_count && !state[0].self_joined_count
-            && !state[1].self_joined_count) {
+    while (!state[1].peer_joined_count || !state[1].self_joined_count || !state[0].peer_joined_count) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
 
@@ -218,7 +313,7 @@ static void group_announce_test(Tox **toxes, State *state)
     ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
     ck_assert(self_status == TOX_USER_STATUS_BUSY);
 
-    fprintf(stderr, "Peer 0 successfully changed status\n");
+    fprintf(stderr, "Peer 0 successfully changed status to %d\n", self_status);
 
     while (!state[1].peer_nick && !state[1].peer_status) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
@@ -244,6 +339,10 @@ static void group_announce_test(Tox **toxes, State *state)
     while (state[1].peer_exit_count != 1) {
         iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
     }
+
+    // tox 1 changes status while alone in the group
+    tox_group_self_set_status(toxes[1], groupnumber, TOX_USER_STATUS_AWAY, &s_err);
+    ck_assert(s_err == TOX_ERR_GROUP_SELF_STATUS_SET_OK);
 
     fprintf(stderr, "Peer 0 reconnecting...\n");
     TOX_ERR_GROUP_RECONNECT r_err;
@@ -280,7 +379,7 @@ static void group_announce_test(Tox **toxes, State *state)
     uint32_t num_groups1 = tox_group_get_number_groups(toxes[0]);
     uint32_t num_groups2 = tox_group_get_number_groups(toxes[1]);
 
-    ck_assert((num_groups1 == num_groups2) && (num_groups2 == 1));
+    ck_assert(num_groups1 == num_groups2 && num_groups2 == 1);
 
     fprintf(stderr, "Both peers exiting group...\n");
 
@@ -298,7 +397,7 @@ static void group_announce_test(Tox **toxes, State *state)
     num_groups1 = tox_group_get_number_groups(toxes[0]);
     num_groups2 = tox_group_get_number_groups(toxes[1]);
 
-    ck_assert((num_groups1 == num_groups2) && (num_groups2 == 0));
+    ck_assert(num_groups1 == num_groups2 && num_groups2 == 0);
 
     printf("All tests passed!\n");
 #endif  // VANILLA_NACL
@@ -321,3 +420,6 @@ int main(void)
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN
 #undef PEER_LIMIT
+#undef TOPIC
+#undef TOPIC_LEN
+
