@@ -70,6 +70,11 @@ void mod_list_pack(const GC_Chat *chat, uint8_t *data)
     }
 }
 
+void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_t length)
+{
+    crypto_hash_sha256(hash, packed_mod_list, length);
+}
+
 int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
 {
     if (chat->moderation.num_mods == 0) {
@@ -85,7 +90,8 @@ int mod_list_make_hash(GC_Chat *chat, uint8_t *hash)
     }
 
     mod_list_pack(chat, data);
-    crypto_hash_sha256(hash, data, data_buf_size);
+
+    mod_list_get_data_hash(hash, data, data_buf_size);
 
     free(data);
 

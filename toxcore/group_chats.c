@@ -2684,7 +2684,7 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
     uint8_t mod_list_hash[GC_MODERATION_HASH_SIZE] = {0};
 
     if (length > 0) {
-        crypto_hash_sha256(mod_list_hash, data, length);
+        mod_list_get_data_hash(mod_list_hash, data, length);
     }
 
     // we make sure that this mod list's hash matches the one we got in our last shared state update

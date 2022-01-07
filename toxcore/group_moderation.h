@@ -55,8 +55,9 @@ int mod_list_unpack(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_
  */
 void mod_list_pack(const GC_Chat *chat, uint8_t *data);
 
-/* Creates a new moderator list hash and puts it in hash.
- * hash must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
+/* Creates a new moderator list hash and puts it in `hash`.
+ *
+ * `hash` must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
  *
  * If num_mods is 0 the hash is zeroed.
  *
@@ -64,6 +65,12 @@ void mod_list_pack(const GC_Chat *chat, uint8_t *data);
  * Returns -1 on failure;
  */
 int mod_list_make_hash(GC_Chat *chat, uint8_t *hash);
+
+/* Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
+ *
+ * `hash` must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
+ */
+void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_t length);
 
 /* Returns moderator list index for public_sig_key.
  * Returns -1 if key is not in the list.
