@@ -47,10 +47,10 @@ typedef struct VCSession {
     void *vcb_user_data;
 
     pthread_mutex_t queue_mutex[1];
-    Tox *tox;
+    Logger *log;
 } VCSession;
 
-VCSession *vc_new(Mono_Time *mono_time, Tox *tox, ToxAV *av, uint32_t friend_number,
+VCSession *vc_new(Logger *log, Mono_Time *mono_time, ToxAV *av, uint32_t friend_number,
                   toxav_video_receive_frame_cb *cb, void *cb_data);
 void vc_kill(VCSession *vc);
 void vc_iterate(VCSession *vc);

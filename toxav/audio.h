@@ -41,6 +41,7 @@ typedef struct Tox Tox;
 
 typedef struct ACSession {
     Mono_Time *mono_time;
+    const Logger *log;
 
     /* encoding */
     OpusEncoder *encoder;
@@ -68,7 +69,7 @@ typedef struct ACSession {
     Tox *tox;
 } ACSession;
 
-ACSession *ac_new(Mono_Time *mono_time, Tox *tox, ToxAV *av, uint32_t friend_number,
+ACSession *ac_new(const Logger *log, Mono_Time *mono_time, Tox *tox, ToxAV *av, uint32_t friend_number,
                   toxav_audio_receive_frame_cb *cb, void *cb_data);
 void ac_kill(ACSession *ac);
 void ac_iterate(ACSession *ac);

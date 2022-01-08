@@ -164,6 +164,7 @@ typedef struct RTPSession {
     struct RTPMessage *mp; /* Expected parted message */
     struct RTPWorkBufferList *work_buffer_list;
     uint8_t  first_packets_counter; /* dismiss first few lost video packets */
+    Logger *log;
     Tox *tox;
     ToxAV *toxav;
     uint32_t friend_number;
@@ -194,11 +195,11 @@ size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
  */
 size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header);
 
-RTPSession *rtp_new(int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
+RTPSession *rtp_new(Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb);
-void rtp_kill(Tox *tox, RTPSession *session);
-void rtp_allow_receiving_mark(Tox *tox, RTPSession *session);
-void rtp_stop_receiving_mark(Tox *tox, RTPSession *session);
+void rtp_kill(Logger *log, RTPSession *session);
+void rtp_allow_receiving_mark(RTPSession *session);
+void rtp_stop_receiving_mark(RTPSession *session);
 void rtp_allow_receiving(Tox *tox);
 void rtp_stop_receiving(Tox *tox);
 
@@ -211,7 +212,7 @@ void rtp_stop_receiving(Tox *tox);
  * @param is_keyframe Whether this video frame is a key frame. If it is an
  *   audio frame, this parameter is ignored.
  */
-int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
+int rtp_send_data(Logger *log, RTPSession *session, const uint8_t *data, uint32_t length,
                   bool is_keyframe);
 
 #ifdef __cplusplus

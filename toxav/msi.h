@@ -106,11 +106,11 @@ typedef struct MSISession {
 /**
  * Start the control session.
  */
-MSISession *msi_new(Tox *tox);
+MSISession *msi_new(const Logger *log, Tox *tox);
 /**
  * Terminate control session. NOTE: all calls will be freed
  */
-int msi_kill(Tox *tox, MSISession *session);
+int msi_kill(const Logger *log, Tox *tox, MSISession *session);
 /**
  * Callback setter.
  */
@@ -118,22 +118,21 @@ void msi_register_callback(MSISession *session, msi_action_cb *callback, MSICall
 /**
  * Send invite request to friend_number.
  */
-int msi_invite(MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities);
+int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities);
 /**
  * Hangup call. NOTE: `call` will be freed
  */
-int msi_hangup(MSICall *call);
+int msi_hangup(const Logger *log, MSICall *call);
 /**
  * Answer call request.
  */
-int msi_answer(MSICall *call, uint8_t capabilities);
+int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities);
 /**
  * Change capabilities of the call.
  */
-int msi_change_capabilities(MSICall *call, uint8_t capabilities);
+int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabilities);
 
-int invoke_callback(MSICall *call, MSICallbackID cb);
-void kill_call(MSICall *call);
-bool check_peer_offline_status(Tox *tox, MSISession *session, uint32_t friend_number);
+void kill_call(const Logger *log, MSICall *call);
+bool check_peer_offline_status(const Logger *log, Tox *tox, MSISession *session, uint32_t friend_number);
 
 #endif // C_TOXCORE_TOXAV_MSI_H

@@ -665,6 +665,16 @@ void tox_kill(Tox *tox)
     tox = nullptr;
 }
 
+void tox_get_options(Tox *tox, struct Tox_Options *options)
+{
+    tox_options_default(options);
+    const Messenger_Options *m_options = &tox->m->options;
+
+    // TODO(iphydf): Fill in the other options.
+    tox_options_set_log_callback(options, (tox_log_cb *)m_options->log_callback);
+    tox_options_set_log_user_data(options, m_options->log_user_data);
+}
+
 static uint32_t end_size(void)
 {
     return 2 * sizeof(uint32_t);
@@ -2561,20 +2571,4 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_NOT_BOUND);
     unlock(tox);
     return 0;
-}
-
-void tox_logmsg(const Tox *tox, Logger_Level level, const char *file, int line, const char *func, const char *fmt, ...)
-{
-    if (tox == nullptr) {
-        return;
-    }
-
-    lock(tox);
-    va_list args;
-    va_start(args, fmt);
-
-    logger_api_write(tox->m->log, level, file, line, func, fmt, args);
-
-    va_end(args);
-    unlock(tox);
 }

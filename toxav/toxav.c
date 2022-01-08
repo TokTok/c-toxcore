@@ -87,6 +87,7 @@ typedef struct DecodeTimeStats {
 } DecodeTimeStats;
 
 struct ToxAV {
+    Logger *log;
     Tox *tox;
     MSISession *msi;
 
@@ -209,6 +210,18 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
+    struct Tox_Options *opts = tox_options_new(nullptr);
+
+    if (opts == nullptr) {
+        rc = TOXAV_ERR_NEW_MALLOC;
+        goto RETURN;
+    }
+
+    tox_log_cb *log_callback = tox_options_get_log_callback(opts);
+    void *log_user_data = tox_options_get_log_user_data(opts);
+
+    tox_options_free(opts);
+
     av = (ToxAV *)calloc(sizeof(ToxAV), 1);
 
     if (av == nullptr) {
@@ -221,8 +234,16 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
+    av->log = logger_new();
+    logger_callback_log(av->log, (logger_cb *)log_callback, tox, log_user_data);
+
+    if (av->log == nullptr) {
+        rc = TOXAV_ERR_NEW_MALLOC;
+        goto RETURN;
+    }
+
     av->tox = tox;
-    av->msi = msi_new(av->tox);
+    av->msi = msi_new(av->log, av->tox);
 
     rtp_allow_receiving(av->tox);
     bwc_allow_receiving(av->tox);
@@ -280,7 +301,7 @@ void toxav_kill(ToxAV *av)
     bwc_stop_receiving(av->tox);
 
     /* To avoid possible deadlocks */
-    while (av->msi && msi_kill(av->tox, av->msi) != 0) {
+    while (av->msi && msi_kill(av->log, av->tox, av->msi) != 0) {
         pthread_mutex_unlock(av->mutex);
         pthread_mutex_lock(av->mutex);
     }
@@ -311,6 +332,11 @@ void toxav_kill(ToxAV *av)
 Tox *toxav_get_tox(const ToxAV *av)
 {
     return av->tox;
+}
+
+Logger *toxav_get_logger(ToxAV *av)
+{
+    return av->log;
 }
 
 uint32_t toxav_audio_iteration_interval(const ToxAV *av)
@@ -376,7 +402,7 @@ static void iterate_common(ToxAV *av, bool audio)
         pthread_mutex_unlock(av->mutex);
 
         uint32_t fid = i->friend_number;
-        bool is_offline = check_peer_offline_status(av->tox, i->msi_call->session, fid);
+        bool is_offline = check_peer_offline_status(av->log, av->tox, i->msi_call->session, fid);
 
         if (is_offline) {
             pthread_mutex_unlock(i->toxav_call_mutex);
@@ -461,7 +487,7 @@ bool toxav_call(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, uint
     call->previous_self_capabilities |= audio_bit_rate > 0 ? MSI_CAP_S_AUDIO : 0;
     call->previous_self_capabilities |= video_bit_rate > 0 ? MSI_CAP_S_VIDEO : 0;
 
-    if (msi_invite(av->msi, &call->msi_call, friend_number, call->previous_self_capabilities) != 0) {
+    if (msi_invite(av->log, av->msi, &call->msi_call, friend_number, call->previous_self_capabilities) != 0) {
         call_remove(call);
         rc = TOXAV_ERR_CALL_SYNC;
         goto RETURN;
@@ -542,7 +568,7 @@ bool toxav_answer(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, ui
     call->previous_self_capabilities |= audio_bit_rate > 0 ? MSI_CAP_S_AUDIO : 0;
     call->previous_self_capabilities |= video_bit_rate > 0 ? MSI_CAP_S_VIDEO : 0;
 
-    if (msi_answer(call->msi_call, call->previous_self_capabilities) != 0) {
+    if (msi_answer(av->log, call->msi_call, call->previous_self_capabilities) != 0) {
         rc = TOXAV_ERR_ANSWER_SYNC;
     }
 
@@ -588,14 +614,14 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
             if (call->msi_call->self_capabilities == 0 &&
                     call->previous_self_capabilities) {
 
-                if (msi_change_capabilities(call->msi_call,
+                if (msi_change_capabilities(av->log, call->msi_call,
                                             call->previous_self_capabilities) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_allow_receiving_mark(av->tox, call->audio_rtp);
-                rtp_allow_receiving_mark(av->tox, call->video_rtp);
+                rtp_allow_receiving_mark(call->audio_rtp);
+                rtp_allow_receiving_mark(call->video_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -609,13 +635,13 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
             if (call->msi_call->self_capabilities) {
                 call->previous_self_capabilities = call->msi_call->self_capabilities;
 
-                if (msi_change_capabilities(call->msi_call, 0) == -1) {
+                if (msi_change_capabilities(av->log, call->msi_call, 0) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_stop_receiving_mark(av->tox, call->audio_rtp);
-                rtp_stop_receiving_mark(av->tox, call->video_rtp);
+                rtp_stop_receiving_mark(call->audio_rtp);
+                rtp_stop_receiving_mark(call->video_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -628,7 +654,7 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
             /* Hang up */
             pthread_mutex_lock(call->toxav_call_mutex);
 
-            if (msi_hangup(call->msi_call) != 0) {
+            if (msi_hangup(av->log, call->msi_call) != 0) {
                 rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                 pthread_mutex_unlock(call->toxav_call_mutex);
                 goto RETURN;
@@ -646,13 +672,13 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
 
         case TOXAV_CALL_CONTROL_MUTE_AUDIO: {
             if (call->msi_call->self_capabilities & MSI_CAP_R_AUDIO) {
-                if (msi_change_capabilities(call->msi_call, call->
+                if (msi_change_capabilities(av->log, call->msi_call, call->
                                             msi_call->self_capabilities ^ MSI_CAP_R_AUDIO) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_stop_receiving_mark(av->tox, call->audio_rtp);
+                rtp_stop_receiving_mark(call->audio_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -663,13 +689,13 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
 
         case TOXAV_CALL_CONTROL_UNMUTE_AUDIO: {
             if (call->msi_call->self_capabilities ^ MSI_CAP_R_AUDIO) {
-                if (msi_change_capabilities(call->msi_call, call->
+                if (msi_change_capabilities(av->log, call->msi_call, call->
                                             msi_call->self_capabilities | MSI_CAP_R_AUDIO) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_allow_receiving_mark(av->tox, call->audio_rtp);
+                rtp_allow_receiving_mark(call->audio_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -680,13 +706,13 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
 
         case TOXAV_CALL_CONTROL_HIDE_VIDEO: {
             if (call->msi_call->self_capabilities & MSI_CAP_R_VIDEO) {
-                if (msi_change_capabilities(call->msi_call, call->
+                if (msi_change_capabilities(av->log, call->msi_call, call->
                                             msi_call->self_capabilities ^ MSI_CAP_R_VIDEO) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_stop_receiving_mark(av->tox, call->video_rtp);
+                rtp_stop_receiving_mark(call->video_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -697,13 +723,13 @@ bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control co
 
         case TOXAV_CALL_CONTROL_SHOW_VIDEO: {
             if (call->msi_call->self_capabilities ^ MSI_CAP_R_VIDEO) {
-                if (msi_change_capabilities(call->msi_call, call->
+                if (msi_change_capabilities(av->log, call->msi_call, call->
                                             msi_call->self_capabilities | MSI_CAP_R_VIDEO) == -1) {
                     rc = TOXAV_ERR_CALL_CONTROL_SYNC;
                     goto RETURN;
                 }
 
-                rtp_allow_receiving_mark(av->tox, call->video_rtp);
+                rtp_allow_receiving_mark(call->video_rtp);
             } else {
                 rc = TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
                 goto RETURN;
@@ -748,14 +774,14 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t audio_
         goto RETURN;
     }
 
-    LOGGER_API_DEBUG(av->tox, "Setting new audio bitrate to: %d", audio_bit_rate);
+    LOGGER_DEBUG(av->log, "Setting new audio bitrate to: %d", audio_bit_rate);
 
     if (call->audio_bit_rate == audio_bit_rate) {
-        LOGGER_API_DEBUG(av->tox, "Audio bitrate already set to: %d", audio_bit_rate);
+        LOGGER_DEBUG(av->log, "Audio bitrate already set to: %d", audio_bit_rate);
     } else if (audio_bit_rate == 0) {
-        LOGGER_API_DEBUG(av->tox, "Turned off audio sending");
+        LOGGER_DEBUG(av->log, "Turned off audio sending");
 
-        if (msi_change_capabilities(call->msi_call, call->msi_call->
+        if (msi_change_capabilities(av->log, call->msi_call, call->msi_call->
                                     self_capabilities ^ MSI_CAP_S_AUDIO) != 0) {
             pthread_mutex_unlock(av->mutex);
             rc = TOXAV_ERR_BIT_RATE_SET_SYNC;
@@ -768,10 +794,10 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t audio_
         pthread_mutex_lock(call->toxav_call_mutex);
 
         if (call->audio_bit_rate == 0) {
-            LOGGER_API_DEBUG(av->tox, "Turned on audio sending");
+            LOGGER_DEBUG(av->log, "Turned on audio sending");
 
             /* The audio has been turned off before this */
-            if (msi_change_capabilities(call->msi_call, call->
+            if (msi_change_capabilities(av->log, call->msi_call, call->
                                         msi_call->self_capabilities | MSI_CAP_S_AUDIO) != 0) {
                 pthread_mutex_unlock(call->toxav_call_mutex);
                 pthread_mutex_unlock(av->mutex);
@@ -779,7 +805,7 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t audio_
                 goto RETURN;
             }
         } else {
-            LOGGER_API_DEBUG(av->tox, "Set new audio bit rate %d", audio_bit_rate);
+            LOGGER_DEBUG(av->log, "Set new audio bit rate %d", audio_bit_rate);
         }
 
         call->audio_bit_rate = audio_bit_rate;
@@ -821,15 +847,15 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t video_
         goto RETURN;
     }
 
-    LOGGER_API_DEBUG(av->tox, "Setting new video bitrate to: %d", video_bit_rate);
+    LOGGER_DEBUG(av->log, "Setting new video bitrate to: %d", video_bit_rate);
 
     if (call->video_bit_rate == video_bit_rate) {
-        LOGGER_API_DEBUG(av->tox, "Video bitrate already set to: %d", video_bit_rate);
+        LOGGER_DEBUG(av->log, "Video bitrate already set to: %d", video_bit_rate);
     } else if (video_bit_rate == 0) {
-        LOGGER_API_DEBUG(av->tox, "Turned off video sending");
+        LOGGER_DEBUG(av->log, "Turned off video sending");
 
         /* Video sending is turned off; notify peer */
-        if (msi_change_capabilities(call->msi_call, call->msi_call->
+        if (msi_change_capabilities(av->log, call->msi_call, call->msi_call->
                                     self_capabilities ^ MSI_CAP_S_VIDEO) != 0) {
             pthread_mutex_unlock(av->mutex);
             rc = TOXAV_ERR_BIT_RATE_SET_SYNC;
@@ -841,10 +867,10 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t video_
         pthread_mutex_lock(call->toxav_call_mutex);
 
         if (call->video_bit_rate == 0) {
-            LOGGER_API_DEBUG(av->tox, "Turned on video sending");
+            LOGGER_DEBUG(av->log, "Turned on video sending");
 
             /* The video has been turned off before this */
-            if (msi_change_capabilities(call->msi_call, call->
+            if (msi_change_capabilities(av->log, call->msi_call, call->
                                         msi_call->self_capabilities | MSI_CAP_S_VIDEO) != 0) {
                 pthread_mutex_unlock(call->toxav_call_mutex);
                 pthread_mutex_unlock(av->mutex);
@@ -852,7 +878,7 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t video_
                 goto RETURN;
             }
         } else {
-            LOGGER_API_DEBUG(av->tox, "Set new video bit rate %d", video_bit_rate);
+            LOGGER_DEBUG(av->log, "Set new video bit rate %d", video_bit_rate);
         }
 
         call->video_bit_rate = video_bit_rate;
@@ -947,14 +973,14 @@ bool toxav_audio_send_frame(ToxAV *av, uint32_t friend_number, const int16_t *pc
                               dest + sizeof(sampling_rate), SIZEOF_VLA(dest) - sizeof(sampling_rate));
 
         if (vrc < 0) {
-            LOGGER_API_WARNING(av->tox, "Failed to encode frame %s", opus_strerror(vrc));
+            LOGGER_WARNING(av->log, "Failed to encode frame %s", opus_strerror(vrc));
             pthread_mutex_unlock(call->mutex_audio);
             rc = TOXAV_ERR_SEND_FRAME_INVALID;
             goto RETURN;
         }
 
-        if (rtp_send_data(call->audio_rtp, dest, vrc + sizeof(sampling_rate), false) != 0) {
-            LOGGER_API_WARNING(av->tox, "Failed to send audio packet");
+        if (rtp_send_data(av->log, call->audio_rtp, dest, vrc + sizeof(sampling_rate), false) != 0) {
+            LOGGER_WARNING(av->log, "Failed to send audio packet");
             rc = TOXAV_ERR_SEND_FRAME_RTP_FAILED;
         }
     }
@@ -988,13 +1014,14 @@ static Toxav_Err_Send_Frame send_frames(ToxAV *av, ToxAVCall *call)
         const uint32_t frame_length_in_bytes = pkt->data.frame.sz;
 
         const int res = rtp_send_data(
+                            av->log,
                             call->video_rtp,
                             (const uint8_t *)pkt->data.frame.buf,
                             frame_length_in_bytes,
                             is_keyframe);
 
         if (res < 0) {
-            LOGGER_API_WARNING(av->tox, "Could not send video frame: %s", strerror(errno));
+            LOGGER_WARNING(av->log, "Could not send video frame: %s", strerror(errno));
             return TOXAV_ERR_SEND_FRAME_RTP_FAILED;
         }
     }
@@ -1054,13 +1081,13 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
     if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
-        LOGGER_API_INFO(av->tox, "I_FRAME_FLAG:%d only-i-frame mode", call->video_rtp->ssrc);
+        LOGGER_INFO(av->log, "I_FRAME_FLAG:%d only-i-frame mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     } else if (call->video_rtp->ssrc == VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // normal keyframe placement
         vpx_encode_flags = 0;
-        LOGGER_API_INFO(av->tox, "I_FRAME_FLAG:%d normal mode", call->video_rtp->ssrc);
+        LOGGER_INFO(av->log, "I_FRAME_FLAG:%d normal mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     }
@@ -1089,7 +1116,7 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
 
         if (vrc != VPX_CODEC_OK) {
             pthread_mutex_unlock(call->mutex_video);
-            LOGGER_API_ERROR(av->tox, "Could not encode video frame: %s", vpx_codec_err_to_string(vrc));
+            LOGGER_ERROR(av->log, "Could not encode video frame: %s", vpx_codec_err_to_string(vrc));
             rc = TOXAV_ERR_SEND_FRAME_INVALID;
             goto RETURN;
         }
@@ -1143,7 +1170,7 @@ static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, 
     ToxAVCall *call = (ToxAVCall *)user_data;
     assert(call);
 
-    LOGGER_API_DEBUG(call->av->tox, "Reported loss of %f%%", (double)loss * 100);
+    LOGGER_DEBUG(call->av->log, "Reported loss of %f%%", (double)loss * 100);
 
     /* if less than 10% data loss we do nothing! */
     if (loss < 0.1f) {
@@ -1155,7 +1182,7 @@ static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, 
     if (call->video_bit_rate) {
         if (!call->av->vbcb) {
             pthread_mutex_unlock(call->av->mutex);
-            LOGGER_API_WARNING(call->av->tox, "No callback to report loss on");
+            LOGGER_WARNING(call->av->log, "No callback to report loss on");
             return;
         }
 
@@ -1165,7 +1192,7 @@ static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, 
     } else if (call->audio_bit_rate) {
         if (!call->av->abcb) {
             pthread_mutex_unlock(call->av->mutex);
-            LOGGER_API_WARNING(call->av->tox, "No callback to report loss on");
+            LOGGER_WARNING(call->av->log, "No callback to report loss on");
             return;
         }
 
@@ -1185,7 +1212,7 @@ static int callback_invite(void *toxav_inst, MSICall *call)
     ToxAVCall *av_call = call_new(toxav, call->friend_number, nullptr);
 
     if (av_call == nullptr) {
-        LOGGER_API_WARNING(toxav->tox, "Failed to initialize call...");
+        LOGGER_WARNING(toxav->log, "Failed to initialize call...");
         pthread_mutex_unlock(toxav->mutex);
         return -1;
     }
@@ -1273,15 +1300,15 @@ static int callback_capabilites(void *toxav_inst, MSICall *call)
     pthread_mutex_lock(toxav->mutex);
 
     if (call->peer_capabilities & MSI_CAP_S_AUDIO) {
-        rtp_allow_receiving_mark(toxav->tox, call->av_call->audio_rtp);
+        rtp_allow_receiving_mark(call->av_call->audio_rtp);
     } else {
-        rtp_stop_receiving_mark(toxav->tox, call->av_call->audio_rtp);
+        rtp_stop_receiving_mark(call->av_call->audio_rtp);
     }
 
     if (call->peer_capabilities & MSI_CAP_S_VIDEO) {
-        rtp_allow_receiving_mark(toxav->tox, call->av_call->video_rtp);
+        rtp_allow_receiving_mark(call->av_call->video_rtp);
     } else {
-        rtp_stop_receiving_mark(toxav->tox, call->av_call->video_rtp);
+        rtp_stop_receiving_mark(call->av_call->video_rtp);
     }
 
     invoke_call_state_callback(toxav, call->friend_number, call->peer_capabilities);
@@ -1482,7 +1509,7 @@ static bool call_prepare_transmission(ToxAVCall *call)
     }
 
     if (call->active) {
-        LOGGER_API_WARNING(av->tox, "Call already active!");
+        LOGGER_WARNING(av->log, "Call already active!");
         return true;
     }
 
@@ -1495,37 +1522,37 @@ static bool call_prepare_transmission(ToxAVCall *call)
     }
 
     /* Prepare bwc */
-    call->bwc = bwc_new(av->tox, call->friend_number, callback_bwc, call, av->toxav_mono_time);
+    call->bwc = bwc_new(av->log, av->tox, call->friend_number, callback_bwc, call, av->toxav_mono_time);
 
     { /* Prepare audio */
-        call->audio = ac_new(av->toxav_mono_time, av->tox, av, call->friend_number, av->acb, av->acb_user_data);
+        call->audio = ac_new(av->log, av->toxav_mono_time, av->tox, av, call->friend_number, av->acb, av->acb_user_data);
 
         if (call->audio == nullptr) {
-            LOGGER_API_ERROR(av->tox, "Failed to create audio codec session");
+            LOGGER_ERROR(av->log, "Failed to create audio codec session");
             goto FAILURE;
         }
 
-        call->audio_rtp = rtp_new(RTP_TYPE_AUDIO, av->tox, av, call->friend_number, call->bwc,
+        call->audio_rtp = rtp_new(av->log, RTP_TYPE_AUDIO, av->tox, av, call->friend_number, call->bwc,
                                   call->audio, ac_queue_message);
 
         if (!call->audio_rtp) {
-            LOGGER_API_ERROR(av->tox, "Failed to create audio rtp session");
+            LOGGER_ERROR(av->log, "Failed to create audio rtp session");
             goto FAILURE;
         }
     }
     { /* Prepare video */
-        call->video = vc_new(av->toxav_mono_time, av->tox, av, call->friend_number, av->vcb, av->vcb_user_data);
+        call->video = vc_new(av->log, av->toxav_mono_time, av, call->friend_number, av->vcb, av->vcb_user_data);
 
         if (call->video == nullptr) {
-            LOGGER_API_ERROR(av->tox, "Failed to create video codec session");
+            LOGGER_ERROR(av->log, "Failed to create video codec session");
             goto FAILURE;
         }
 
-        call->video_rtp = rtp_new(RTP_TYPE_VIDEO, av->tox, av, call->friend_number, call->bwc,
+        call->video_rtp = rtp_new(av->log, RTP_TYPE_VIDEO, av->tox, av, call->friend_number, call->bwc,
                                   call->video, vc_queue_message);
 
         if (call->video_rtp == nullptr) {
-            LOGGER_API_ERROR(av->tox, "Failed to create video rtp session");
+            LOGGER_ERROR(av->log, "Failed to create video rtp session");
             goto FAILURE;
         }
     }
@@ -1535,11 +1562,11 @@ static bool call_prepare_transmission(ToxAVCall *call)
 
 FAILURE:
     bwc_kill(call->bwc);
-    rtp_kill(av->tox, call->audio_rtp);
+    rtp_kill(av->log, call->audio_rtp);
     ac_kill(call->audio);
     call->audio_rtp = nullptr;
     call->audio = nullptr;
-    rtp_kill(av->tox, call->video_rtp);
+    rtp_kill(av->log, call->video_rtp);
     vc_kill(call->video);
     call->video_rtp = nullptr;
     call->video = nullptr;
@@ -1568,12 +1595,12 @@ static void call_kill_transmission(ToxAVCall *call)
 
     ToxAV *av = call->av;
 
-    rtp_kill(av->tox, call->audio_rtp);
+    rtp_kill(av->log, call->audio_rtp);
     ac_kill(call->audio);
     call->audio_rtp = nullptr;
     call->audio = nullptr;
 
-    rtp_kill(av->tox, call->video_rtp);
+    rtp_kill(av->log, call->video_rtp);
     vc_kill(call->video);
     call->video_rtp = nullptr;
     call->video = nullptr;

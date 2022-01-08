@@ -19,5 +19,6 @@ RTPSession *rtp_session_get(ToxAVCall *call, int payload_type);
 MSISession *tox_av_msi_get(ToxAV *av);
 BWController *bwc_controller_get(void *call);
 Mono_Time *toxav_get_av_mono_time(ToxAV *toxav);
+Logger *toxav_get_logger(ToxAV *toxav);
 
 #endif // C_TOXCORE_TOXAV_HACKS_H

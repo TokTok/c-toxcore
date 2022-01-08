@@ -42,6 +42,7 @@ struct BWController {
     m_cb *mcb;
     void *mcb_user_data;
     Tox *tox;
+    const Logger *log;
     uint32_t friend_number;
 
     BWCCycle cycle;
@@ -63,7 +64,7 @@ static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data
 static void send_update(BWController *bwc);
 
 
-BWController *bwc_new(Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data, Mono_Time *bwc_mono_time)
+BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data, Mono_Time *bwc_mono_time)
 {
     BWController *retu = (BWController *)calloc(sizeof(BWController), 1);
 
@@ -71,7 +72,7 @@ BWController *bwc_new(Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user
         return nullptr;
     }
 
-    LOGGER_API_DEBUG(tox, "Creating bandwidth controller");
+    LOGGER_DEBUG(log, "Creating bandwidth controller");
 
     retu->mcb = mcb;
     retu->mcb_user_data = mcb_user_data;
@@ -81,6 +82,7 @@ BWController *bwc_new(Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user
     retu->cycle.last_sent_timestamp = now;
     retu->cycle.last_refresh_timestamp = now;
     retu->tox = tox;
+    retu->log = log;
     retu->bwc_receive_active = true;
     retu->rcvpkt.rb = rb_new(BWC_AVG_PKT_COUNT);
     retu->cycle.lost = 0;
@@ -112,7 +114,7 @@ void bwc_add_lost(BWController *bwc, uint32_t bytes_lost)
     }
 
     if (bytes_lost > 0) {
-        LOGGER_API_DEBUG(bwc->tox, "BWC lost(1): %d", (int)bytes_lost);
+        LOGGER_DEBUG(bwc->log, "BWC lost(1): %d", (int)bytes_lost);
         bwc->cycle.lost += bytes_lost;
         send_update(bwc);
     }
@@ -136,7 +138,7 @@ static void send_update(BWController *bwc)
         bwc->packet_loss_counted_cycles = 0;
 
         if (bwc->cycle.lost) {
-            LOGGER_API_DEBUG(bwc->tox, "%p Sent update rcv: %u lost: %u percent: %f %%",
+            LOGGER_DEBUG(bwc->log, "%p Sent update rcv: %u lost: %u percent: %f %%",
                              (void *)bwc, bwc->cycle.recv, bwc->cycle.lost,
                              (((double) bwc->cycle.lost / (bwc->cycle.recv + bwc->cycle.lost)) * 100.0));
             uint8_t bwc_packet[sizeof(struct BWCMessage) + 1];
@@ -150,7 +152,7 @@ static void send_update(BWController *bwc)
             assert(offset == sizeof(bwc_packet));
 
             if (bwc_send_custom_lossy_packet(bwc->tox, bwc->friend_number, bwc_packet, sizeof(bwc_packet)) == -1) {
-                LOGGER_API_WARNING(bwc->tox, "BWC send failed");
+                LOGGER_WARNING(bwc->log, "BWC send failed");
             }
         }
 
@@ -162,11 +164,11 @@ static void send_update(BWController *bwc)
 
 static int on_update(BWController *bwc, const struct BWCMessage *msg)
 {
-    LOGGER_API_DEBUG(bwc->tox, "%p Got update from peer", (void *)bwc);
+    LOGGER_DEBUG(bwc->log, "%p Got update from peer", (void *)bwc);
 
     /* Peers sent update too soon */
     if (bwc->cycle.last_recv_timestamp + BWC_SEND_INTERVAL_MS > current_time_monotonic(bwc->bwc_mono_time)) {
-        LOGGER_API_INFO(bwc->tox, "%p Rejecting extra update", (void *)bwc);
+        LOGGER_INFO(bwc->log, "%p Rejecting extra update", (void *)bwc);
         return -1;
     }
 
@@ -176,7 +178,7 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
     const uint32_t lost = msg->lost;
 
     if (lost && bwc->mcb) {
-        LOGGER_API_DEBUG(bwc->tox, "recved: %u lost: %u percentage: %f %%", recv, lost,
+        LOGGER_DEBUG(bwc->log, "recved: %u lost: %u percentage: %f %%", recv, lost,
                          (((double) lost / (recv + lost)) * 100.0));
         bwc->mcb(bwc, bwc->friend_number,
                  ((float) lost / (recv + lost)),
@@ -188,23 +190,25 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
 
 static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data, size_t length, void *dummy)
 {
-    if (length - 1 != sizeof(struct BWCMessage)) {
-        LOGGER_API_ERROR(tox, "Actual data size and length argument do not match");
-        return;
-    }
-
     /* get BWController object from Tox and friend number */
     ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
 
     if (!toxav) {
-        LOGGER_API_ERROR(tox, "Could not get ToxAV object from Tox");
+        // LOGGER_ERROR(log, "Could not get ToxAV object from Tox");
+        return;
+    }
+
+    const Logger *log = toxav_get_logger(toxav);
+
+    if (length - 1 != sizeof(struct BWCMessage)) {
+        LOGGER_ERROR(log, "Actual data size and length argument do not match");
         return;
     }
 
     void *call = (void *)call_get(toxav, friendnumber);
 
     if (!call) {
-        LOGGER_API_ERROR(tox, "Could not get ToxAVCall object from ToxAV");
+        LOGGER_ERROR(log, "Could not get ToxAVCall object from ToxAV");
         return;
     }
 
@@ -212,12 +216,12 @@ static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data
     BWController *bwc = bwc_controller_get(call);
 
     if (!bwc) {
-        LOGGER_API_WARNING(tox, "No session!");
+        LOGGER_WARNING(log, "No session!");
         return;
     }
 
     if (!bwc->bwc_receive_active) {
-        LOGGER_API_WARNING(tox, "receiving not allowed!");
+        LOGGER_WARNING(log, "receiving not allowed!");
         return;
     }
 

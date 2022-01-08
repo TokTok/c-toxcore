@@ -7,6 +7,7 @@
 
 #include <stdint.h>
 
+#include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox.h"
 
@@ -14,8 +15,8 @@ typedef struct BWController BWController;
 
 typedef void m_cb(BWController *bwc, uint32_t friend_number, float todo, void *user_data);
 
-BWController *bwc_new(Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data,
-                      Mono_Time *bwc_mono_time);
+BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber,
+    m_cb *mcb, void *mcb_user_data, Mono_Time *bwc_mono_time);
 
 void bwc_kill(BWController *bwc);
 
