@@ -281,7 +281,7 @@ struct Saved_Group {
 typedef struct Saved_Group Saved_Group;
 
 typedef struct GC_Chat {
-    const Mono_Time *mono_time;
+    Mono_Time       *mono_time;
     const Logger    *logger;
 
     Self_UDP_Status self_udp_status;
@@ -686,7 +686,7 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
  * Returns -5 if the topic lock could not be set.
  * Returns -6 if the packet failed to send.
  */
-int gc_founder_set_topic_lock(Messenger *m, int group_number, Group_Topic_Lock topic_lock);
+int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_Lock topic_lock);
 
 /* Sets the group privacy state and distributes the new shared state to the group.
  *
@@ -702,7 +702,7 @@ int gc_founder_set_topic_lock(Messenger *m, int group_number, Group_Topic_Lock t
  * Returns -4 if the privacy state could not be set.
  * Returns -5 if the packet failed to send.
  */
-int gc_founder_set_privacy_state(Messenger *m, int group_number, Group_Privacy_State new_privacy_state);
+int gc_founder_set_privacy_state(const Messenger *m, int group_number, Group_Privacy_State new_privacy_state);
 
 /* Sets the peer limit to maxpeers and distributes the new shared state to the group.
  *
@@ -728,7 +728,7 @@ int gc_founder_set_max_peers(GC_Chat *chat, uint32_t max_peers);
  * Returns -5 if the packet failed to send.
  * Returns -6 if the caller attempted to kick himself.
  */
-int gc_kick_peer(Messenger *m, int group_number, uint32_t peer_id);
+int gc_kick_peer(const Messenger *m, int group_number, uint32_t peer_id);
 
 /* Copies the chat_id to dest. If dest is null this function has no effect.
  *
@@ -895,7 +895,7 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
  * Return 0 if packet is successfully handled.
  * Return -1 on failure.
  */
-int handle_gc_lossless_helper(Messenger *m, int group_number, uint32_t peer_number, const uint8_t *data,
+int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata);
 
 /* Handles an invite accept packet.
@@ -932,8 +932,7 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
  * Returns the number of peers added on success.
  * Returns -1 on failure.
  */
-int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
-                                uint8_t gc_announces_count);
+int gc_add_peers_from_announces(GC_Chat *chat, GC_Announce *announces, uint8_t gc_announces_count);
 
 #endif  // GROUP_CHATS_H
 

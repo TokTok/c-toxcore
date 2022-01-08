@@ -905,7 +905,7 @@ static int handle_gca_announce_response(const Onion_Client *onion_c, uint32_t se
         return 1;
     }
 
-    const int added_peers = gc_add_peers_from_announces(onion_c->gc_session, chat, announces, gc_announces_count);
+    const int added_peers = gc_add_peers_from_announces(chat, announces, gc_announces_count);
 
     if (added_peers < 0) {
         return 1;

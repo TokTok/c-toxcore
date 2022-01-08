@@ -302,7 +302,7 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int group_number, uint32_t peer_number,
+static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
                                         GC_Message_Array_Entry *array_entry, void *userdata)
 {
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
@@ -311,8 +311,8 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
         return -1;
     }
 
-    const int ret = handle_gc_lossless_helper(m, group_number, peer_number, array_entry->data,
-                    array_entry->data_length, array_entry->message_id, array_entry->packet_type, userdata);
+    const int ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
+                    array_entry->message_id, array_entry->packet_type, userdata);
 
     clear_array_entry(array_entry);
 
@@ -328,14 +328,8 @@ static int process_received_array_entry(const GC_Chat *chat, Messenger *m, int g
     return 0;
 }
 
-int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_number, void *userdata)
+int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata)
 {
-    GC_Chat *chat = gc_get_group(m->group_handler, group_number);
-
-    if (chat == nullptr) {
-        return -1;
-    }
-
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
     if (gconn == nullptr) {
@@ -346,13 +340,13 @@ int gcc_check_received_array(Messenger *m, int group_number, uint32_t peer_numbe
     GC_Message_Array_Entry *array_entry = &gconn->received_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        return process_received_array_entry(chat, m, group_number, peer_number, array_entry, userdata);
+        return process_received_array_entry(c, chat, peer_number, array_entry, userdata);
     }
 
     return 0;
 }
 
-void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
+void gcc_resend_packets(const GC_Chat *chat, uint32_t peer_number)
 {
     GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
@@ -360,7 +354,7 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
         return;
     }
 
-    const uint64_t tm = mono_time_get(m->mono_time);
+    const uint64_t tm = mono_time_get(chat->mono_time);
     const uint16_t start = gconn->send_array_start;
     const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
 
@@ -385,7 +379,7 @@ void gcc_resend_packets(Messenger *m, const GC_Chat *chat, uint32_t peer_number)
             continue;
         }
 
-        if (mono_time_is_timeout(m->mono_time, array_entry->time_added, GC_CONFIRMED_PEER_TIMEOUT)) {
+        if (mono_time_is_timeout(chat->mono_time, array_entry->time_added, GC_CONFIRMED_PEER_TIMEOUT)) {
             gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
             return;
         }
