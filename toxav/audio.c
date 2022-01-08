@@ -18,8 +18,10 @@ static void jbuf_clear(struct JitterBuffer *q);
 static void jbuf_free(struct JitterBuffer *q);
 static int jbuf_write(const Logger *log, Tox *tox, struct JitterBuffer *q, struct RTPMessage *m);
 static struct RTPMessage *jbuf_read(struct JitterBuffer *q, int32_t *success);
-static OpusEncoder *create_audio_encoder(const Logger *log, Tox *tox, int32_t bit_rate, int32_t sampling_rate, int32_t channel_count);
-static bool reconfigure_audio_encoder(const Logger *log, Tox *tox, OpusEncoder **e, int32_t new_br, int32_t new_sr, uint8_t new_ch, int32_t *old_br, int32_t *old_sr, int32_t *old_ch);
+static OpusEncoder *create_audio_encoder(const Logger *log, Tox *tox, int32_t bit_rate, int32_t sampling_rate,
+        int32_t channel_count);
+static bool reconfigure_audio_encoder(const Logger *log, Tox *tox, OpusEncoder **e, int32_t new_br, int32_t new_sr,
+                                      uint8_t new_ch, int32_t *old_br, int32_t *old_sr, int32_t *old_ch);
 static bool reconfigure_audio_decoder(ACSession *ac, int32_t sampling_rate, int8_t channels);
 
 
@@ -373,7 +375,8 @@ static struct RTPMessage *jbuf_read(struct JitterBuffer *q, int32_t *success)
     return nullptr;
 }
 
-static OpusEncoder *create_audio_encoder(const Logger *log, Tox *tox, int32_t bit_rate, int32_t sampling_rate, int32_t channel_count)
+static OpusEncoder *create_audio_encoder(const Logger *log, Tox *tox, int32_t bit_rate, int32_t sampling_rate,
+        int32_t channel_count)
 {
     int status = OPUS_OK;
     /*
@@ -466,7 +469,8 @@ FAILURE:
     return nullptr;
 }
 
-static bool reconfigure_audio_encoder(const Logger *log, Tox *tox, OpusEncoder **e, int32_t new_br, int32_t new_sr, uint8_t new_ch, int32_t *old_br, int32_t *old_sr, int32_t *old_ch)
+static bool reconfigure_audio_encoder(const Logger *log, Tox *tox, OpusEncoder **e, int32_t new_br, int32_t new_sr,
+                                      uint8_t new_ch, int32_t *old_br, int32_t *old_sr, int32_t *old_ch)
 {
     /* Values are checked in toxav.c */
     if (*old_sr != new_sr || *old_ch != new_ch) {

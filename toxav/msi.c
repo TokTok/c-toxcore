@@ -251,7 +251,7 @@ int msi_hangup(const Logger *log, MSICall *call)
     MSISession *session = call->session;
 
     LOGGER_DEBUG(log, "Session: %p Hanging up call with friend: %u", (void *)call->session,
-                     call->friend_number);
+                 call->friend_number);
 
     if (pthread_mutex_trylock(session->mutex) != 0) {
         LOGGER_ERROR(log, "Failed to acquire lock on msi mutex");
@@ -283,7 +283,7 @@ int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities)
     MSISession *session = call->session;
 
     LOGGER_DEBUG(log, "Session: %p Answering call from: %u", (void *)call->session,
-                     call->friend_number);
+                 call->friend_number);
 
     if (pthread_mutex_trylock(session->mutex) != 0) {
         LOGGER_ERROR(log, "Failed to acquire lock on msi mutex");
@@ -323,7 +323,7 @@ int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabiliti
     MSISession *session = call->session;
 
     LOGGER_DEBUG(log, "Session: %p Trying to change capabilities to friend %u", (void *)call->session,
-                     call->friend_number);
+                 call->friend_number);
 
     if (pthread_mutex_trylock(session->mutex) != 0) {
         LOGGER_ERROR(log, "Failed to acquire lock on msi mutex");
@@ -586,7 +586,7 @@ static int invoke_callback(const Logger *log, MSICall *call, MSICallbackID cb)
 
         if (call->session->callbacks[cb](call->session->av, call) != 0) {
             LOGGER_WARNING(log,
-                               "Callback state handling failed, sending error");
+                           "Callback state handling failed, sending error");
             goto FAILURE;
         }
 
@@ -715,7 +715,7 @@ static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg)
 {
     assert(call);
     LOGGER_DEBUG(log,
-                     "Session: %p Handling 'init' friend: %d", (void *)call->session, call->friend_number);
+                 "Session: %p Handling 'init' friend: %d", (void *)call->session, call->friend_number);
 
     if (!msg->capabilities.exists) {
         LOGGER_WARNING(log, "Session: %p Invalid capabilities on 'init'", (void *)call->session);
@@ -779,7 +779,7 @@ static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg)
     assert(call);
 
     LOGGER_DEBUG(log, "Session: %p Handling 'push' friend: %d", (void *)call->session,
-                     call->friend_number);
+                 call->friend_number);
 
     if (!msg->capabilities.exists) {
         LOGGER_WARNING(log, "Session: %p Invalid capabilities on 'push'", (void *)call->session);
@@ -835,7 +835,7 @@ static void handle_pop(const Logger *log, MSICall *call, const MSIMessage *msg)
     assert(call);
 
     LOGGER_DEBUG(log, "Session: %p Handling 'pop', friend id: %d", (void *)call->session,
-                     call->friend_number);
+                 call->friend_number);
 
     /* callback errors are ignored */
 

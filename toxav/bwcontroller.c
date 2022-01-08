@@ -64,7 +64,8 @@ static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data
 static void send_update(BWController *bwc);
 
 
-BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data, Mono_Time *bwc_mono_time)
+BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data,
+                      Mono_Time *bwc_mono_time)
 {
     BWController *retu = (BWController *)calloc(sizeof(BWController), 1);
 
@@ -139,8 +140,8 @@ static void send_update(BWController *bwc)
 
         if (bwc->cycle.lost) {
             LOGGER_DEBUG(bwc->log, "%p Sent update rcv: %u lost: %u percent: %f %%",
-                             (void *)bwc, bwc->cycle.recv, bwc->cycle.lost,
-                             (((double) bwc->cycle.lost / (bwc->cycle.recv + bwc->cycle.lost)) * 100.0));
+                         (void *)bwc, bwc->cycle.recv, bwc->cycle.lost,
+                         (((double) bwc->cycle.lost / (bwc->cycle.recv + bwc->cycle.lost)) * 100.0));
             uint8_t bwc_packet[sizeof(struct BWCMessage) + 1];
             size_t offset = 0;
 
@@ -179,7 +180,7 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
 
     if (lost && bwc->mcb) {
         LOGGER_DEBUG(bwc->log, "recved: %u lost: %u percentage: %f %%", recv, lost,
-                         (((double) lost / (recv + lost)) * 100.0));
+                     (((double) lost / (recv + lost)) * 100.0));
         bwc->mcb(bwc, bwc->friend_number,
                  ((float) lost / (recv + lost)),
                  bwc->mcb_user_data);
