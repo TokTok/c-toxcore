@@ -112,7 +112,7 @@ static int mod_list_index_of_sig_pk(const Moderation *moderation, const uint8_t 
 
 bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk)
 {
-    if (memcmp(get_sig_pk(moderation->founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
+    if (memcmp(moderation->founder_public_sig_key, sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
         return true;
     }
 
@@ -463,7 +463,7 @@ int sanctions_list_make_creds(Moderation *moderation)
 
     ++moderation->sanctions_creds.version;
 
-    memcpy(moderation->sanctions_creds.sig_pk, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(moderation->sanctions_creds.sig_pk, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
@@ -478,7 +478,7 @@ int sanctions_list_make_creds(Moderation *moderation)
     sanctions_creds_set_checksum(&moderation->sanctions_creds);
 
     if (crypto_sign_detached(moderation->sanctions_creds.sig, nullptr, moderation->sanctions_creds.hash,
-                             MOD_SANCTION_HASH_SIZE, get_sig_sk(moderation->self_secret_key)) == -1) {
+                             MOD_SANCTION_HASH_SIZE, moderation->self_secret_sig_key) == -1) {
         memcpy(&moderation->sanctions_creds, &old_creds, sizeof(Mod_Sanction_Creds));
         return -1;
     }
@@ -748,7 +748,7 @@ static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction 
     }
 
     return crypto_sign_detached(sanction->signature, nullptr, packed_data, packed_len - SIGNATURE_SIZE,
-                                get_sig_sk(moderation->self_secret_key));
+                                moderation->self_secret_sig_key);
 }
 
 int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
@@ -765,7 +765,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
         return -1;
     }
 
-    memcpy(sanction->public_sig_key, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(sanction->public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
     sanction->time_set = (uint64_t) time(nullptr);
     sanction->type = type;
@@ -796,7 +796,7 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
             continue;
         }
 
-        memcpy(moderation->sanctions[i].public_sig_key, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
+        memcpy(moderation->sanctions[i].public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
         if (sanctions_list_sign_entry(moderation, &moderation->sanctions[i]) != -1) {
             ++count;

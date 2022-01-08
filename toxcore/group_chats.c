@@ -2580,7 +2580,8 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, uint32_t p
 
     /* make sure we set founder PK on initial sync */
     if (chat->connection_state != CS_CONNECTED) {
-        memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
+        memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->shared_state.founder_public_key),
+               SIG_PUBLIC_KEY_SIZE);
     }
 
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
@@ -6544,7 +6545,7 @@ static int init_gc_shared_state_founder(GC_Chat *chat, Group_Privacy_State priva
                                         uint16_t name_length)
 {
     memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
     memcpy(chat->shared_state.group_name, group_name, name_length);
     chat->shared_state.group_name_len = name_length;
     chat->shared_state.privacy_state = privacy_state;
@@ -6754,9 +6755,10 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
-    memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_secret_key, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
+    memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->shared_state.founder_public_key),
+           SIG_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_secret_sig_key, get_sig_sk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
 
     if (peer_add(chat, nullptr, save->self_public_key) != 0) {
         return -1;
@@ -7355,7 +7357,7 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
     crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
     crypto_memunlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
     crypto_memunlock(chat->shared_state.password, sizeof(chat->shared_state.password));
-    crypto_memunlock(chat->moderation.self_secret_key, sizeof(chat->moderation.self_secret_key));
+    crypto_memunlock(chat->moderation.self_secret_sig_key, sizeof(chat->moderation.self_secret_sig_key));
 }
 
 /* Deletes chat from group chat array and cleans up.
@@ -7495,7 +7497,8 @@ static int create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key)
 }
 
 /* Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
- * and `self_secret_key` buffers.
+ * and `self_secret_key` buffers. The first 32-bytes of the generated keys are used for
+ * encryption, while the remaining 32-bytes are used for signing.
  *
  * Return 0 on success.
  * Return -1 if key generation fails.
@@ -7506,11 +7509,11 @@ static int create_new_chat_ext_keypair(GC_Chat *chat)
         return -1;
     }
 
-    memcpy(chat->moderation.self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_secret_key, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
+    memcpy(chat->moderation.self_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_secret_sig_key, get_sig_sk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
 
     crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
-    crypto_memlock(chat->moderation.self_secret_key, sizeof(chat->moderation.self_secret_key));
+    crypto_memlock(chat->moderation.self_secret_sig_key, sizeof(chat->moderation.self_secret_sig_key));
 
     return 0;
 }

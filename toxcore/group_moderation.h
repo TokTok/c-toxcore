@@ -67,9 +67,10 @@ typedef struct Moderation {
     uint8_t     **mod_list;  // array of public signature keys of all the mods
     uint16_t    num_mods;
 
-    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
+    uint8_t     founder_public_sig_key[SIG_PUBLIC_KEY_SIZE];
+
+    uint8_t     self_public_sig_key[SIG_PUBLIC_KEY_SIZE];
+    uint8_t     self_secret_sig_key[SIG_SECRET_KEY_SIZE];
 } Moderation;
 
 /* Unpacks data into the moderator list.
