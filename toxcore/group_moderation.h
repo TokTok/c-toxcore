@@ -137,15 +137,15 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int sanctions_list_make_creds(GC_Chat *chat);
+int sanctions_list_make_creds(GC_Moderation *moderation);
 
 /* Validates all sanctions list entries as well as the list itself.
  *
  * Returns 0 if all entries are valid.
  * Returns -1 if one or more entries are invalid.
  */
-int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds *creds,
-                                   struct GC_Sanction *sanctions, uint16_t num_sanctions);
+int sanctions_list_check_integrity(const GC_Moderation *moderation, struct GC_Sanction_Creds *creds,
+                                   struct GC_Sanction *sanctions, uint16_t num_sanctions, uint32_t shared_state_version);
 
 /* Adds an entry to the sanctions list. The entry is first validated and the resulting
  * new sanction list is compared against the new credentials.
@@ -155,24 +155,23 @@ int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds);
+int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds,
+                             uint32_t shared_state_version);
 
-/* Creates a new sanction entry for peer_number where type is one GROUP_SANCTION_TYPE.
+/* Creates a new sanction entry for `public_key` where type is one GROUP_SANCTION_TYPE.
  * New entry is signed and placed in the sanctions list.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_Sanction *sanction, uint8_t type);
+int sanctions_list_make_entry(GC_Moderation *moderation, const uint8_t *public_key, struct GC_Sanction *sanction,
+                              uint8_t type);
 
 /* Returns true if public key is in the observer list. */
-bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key);
-
-/* Returns true if `signature key` is associated with an entry in the observer list. */
-bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key);
+bool sanctions_list_is_observer(const GC_Moderation *moderation, const uint8_t *public_key);
 
 /* Returns true if sanction already exists in the sanctions list. */
-bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sanction);
+bool sanctions_list_entry_exists(const GC_Moderation *moderation, struct GC_Sanction *sanction);
 
 /* Removes observer entry for public key from sanction list.
  * If creds is NULL we make new credentials (this should only be done by a moderator or founder)
@@ -180,15 +179,16 @@ bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sancti
  * Returns 0 on success.
  * Returns -1 on failure or if entry was not found.
  */
-int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, struct GC_Sanction_Creds *creds);
+int sanctions_list_remove_observer(GC_Moderation *moderation, const uint8_t *public_key,
+                                   struct GC_Sanction_Creds *creds, uint32_t shared_state_version);
 
 /* Replaces all sanctions list signatures made by public_sig_key with the caller's.
  * This is called whenever the founder demotes a moderator.
  *
  * Returns the number of entries re-signed.
  */
-uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key);
+uint16_t sanctions_list_replace_sig(GC_Moderation *moderation, const uint8_t *public_sig_key);
 
-void sanctions_list_cleanup(GC_Chat *chat);
+void sanctions_list_cleanup(GC_Moderation *moderation);
 
 #endif // GROUP_MODERATION_H

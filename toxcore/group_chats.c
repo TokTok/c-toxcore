@@ -415,7 +415,7 @@ static int get_peer_number_of_sig_pk(const GC_Chat *chat, const uint8_t *public_
     return -1;
 }
 
-int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *public_sig_key)
+static int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *public_sig_key)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
         const uint8_t *full_pk = chat->gcc[i].addr.public_key;
@@ -662,7 +662,7 @@ static bool peer_is_observer(const GC_Chat *chat, uint32_t peer_number)
         return false;
     }
 
-    return sanctions_list_is_observer(chat, get_enc_key(gconn->addr.public_key));
+    return sanctions_list_is_observer(&chat->moderation, get_enc_key(gconn->addr.public_key));
 }
 
 /* Returns true if peer designated by `peer_number` is the group founder. */
@@ -851,7 +851,8 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return -1;
     }
 
-    if (sanctions_list_remove_observer(chat, sanction->info.target_pk, nullptr) == -1) {
+    if (sanctions_list_remove_observer(&chat->moderation, sanction->info.target_pk, nullptr,
+                                       chat->shared_state.version) == -1) {
         LOGGER_WARNING(chat->logger, "Failed to remove entry from observer list");
         return -1;
     }
@@ -2854,7 +2855,8 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
-    if (sanctions_list_check_integrity(chat, &creds, sanctions, num_sanctions) == -1) {
+    if (sanctions_list_check_integrity(&chat->moderation, &creds, sanctions, num_sanctions,
+                                       chat->shared_state.version) == -1) {
         LOGGER_WARNING(m->log, "Sanctions list failed integrity check");
         free(sanctions);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
@@ -2872,7 +2874,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
         return 0;
     }
 
-    sanctions_list_cleanup(chat);
+    sanctions_list_cleanup(&chat->moderation);
 
     memcpy(&chat->moderation.sanctions_creds, &creds, sizeof(struct GC_Sanction_Creds));
     chat->moderation.sanctions = sanctions;
@@ -3019,7 +3021,7 @@ static int broadcast_gc_sanctions_list(const GC_Chat *chat)
  */
 static int update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key)
 {
-    const uint32_t num_replaced = sanctions_list_replace_sig(chat, public_sig_key);
+    const uint32_t num_replaced = sanctions_list_replace_sig(&chat->moderation, public_sig_key);
 
     if (num_replaced == 0) {
         return 0;
@@ -3524,9 +3526,13 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, uint32_t peer_number, 
             return false;
         }
     } else {
-        if (sanctions_list_is_observer_sig(chat, topic_info->public_sig_key)) {
-            LOGGER_WARNING(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
-            return false;
+        uint8_t public_enc_key[ENC_PUBLIC_KEY_SIZE];
+
+        if (gc_get_enc_pk_from_sig_pk(chat, public_enc_key, topic_info->public_sig_key) == 0) {
+            if (sanctions_list_is_observer(&chat->moderation, public_enc_key)) {
+                LOGGER_WARNING(chat->logger, "Invalid topic signature (sanctioned peeer attempted to change topic)");
+                return false;
+            }
         }
 
         // the topic version should never change when the topic lock is disabled except when
@@ -3981,11 +3987,11 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
 
-        if (sanctions_list_entry_exists(chat, &sanction)) {
+        if (sanctions_list_entry_exists(&chat->moderation, &sanction)) {
             return 1;
         }
 
-        if (sanctions_list_add_entry(chat, &sanction, &creds) == -1) {
+        if (sanctions_list_add_entry(&chat->moderation, &sanction, &creds, chat->shared_state.version) == -1) {
             return 1;
         }
     } else {
@@ -3998,11 +4004,11 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
 
-        if (!sanctions_list_is_observer(chat, public_key)) {
+        if (!sanctions_list_is_observer(&chat->moderation, public_key)) {
             return 1;
         }
 
-        if (sanctions_list_remove_observer(chat, public_key, &creds) == -1) {
+        if (sanctions_list_remove_observer(&chat->moderation, public_key, &creds, chat->shared_state.version) == -1) {
             return 1;
         }
     }
@@ -4150,9 +4156,15 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
             }
         }
 
+        const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+
+        if (gconn == nullptr) {
+            return -1;
+        }
+
         struct GC_Sanction sanction;
 
-        if (sanctions_list_make_entry(chat, peer_number, &sanction, SA_OBSERVER) == -1) {
+        if (sanctions_list_make_entry(&chat->moderation, gconn->addr.public_key, &sanction, SA_OBSERVER) == -1) {
             LOGGER_WARNING(chat->logger, "sanctions_list_make_entry failed in mod_gc_set_observer");
             return -1;
         }
@@ -4166,7 +4178,8 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
 
         length += packed_len;
     } else {
-        if (sanctions_list_remove_observer(chat, gconn->addr.public_key, nullptr) == -1) {
+        if (sanctions_list_remove_observer(&chat->moderation, gconn->addr.public_key, nullptr,
+                                           chat->shared_state.version) == -1) {
             LOGGER_WARNING(chat->logger, "failed to remove sanction");
             return -1;
         }
@@ -6815,14 +6828,13 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     GC_Chat *chat = &c->chats[group_number];
 
     chat->logger = m->log;
+    chat->moderation.logger = m->log;
 
     if (create_new_chat_ext_keypair(chat) != 0) {
         LOGGER_ERROR(chat->logger, "Failed to create extended keypair");
         group_delete(c, chat);
         return -1;
     }
-
-    crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
 
     if (init_gc_tcp_connection(m, chat) == -1) {
         group_delete(c, chat);
@@ -6865,7 +6877,7 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
  */
 static int init_gc_sanctions_creds(GC_Chat *chat)
 {
-    if (sanctions_list_make_creds(chat) == -1) {
+    if (sanctions_list_make_creds(&chat->moderation) == -1) {
         return -1;
     }
 
@@ -6985,6 +6997,11 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     memcpy(chat->chat_public_key, save->chat_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(chat->chat_secret_key, save->chat_secret_key, EXT_SECRET_KEY_SIZE);
 
+    memcpy(chat->self_public_key, save->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->self_secret_key, save->self_secret_key, EXT_SECRET_KEY_SIZE);
+
+    chat->self_public_key_hash = gc_get_pk_jenkins_hash(chat->self_public_key);
+
     const uint16_t num_mods = net_ntohs(save->num_mods);
 
     if (mod_list_unpack(&chat->moderation, save->mod_list, num_mods * GC_MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
@@ -6992,11 +7009,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     }
 
     memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
-
-    memcpy(chat->self_public_key, save->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->self_secret_key, save->self_secret_key, EXT_SECRET_KEY_SIZE);
-
-    chat->self_public_key_hash = gc_get_pk_jenkins_hash(chat->self_public_key);
+    memcpy(chat->moderation.self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_secret_key, chat->self_secret_key, EXT_PUBLIC_KEY_SIZE);
 
     if (peer_add(m, group_number, nullptr, save->self_public_key) != 0) {
         return -1;
@@ -7579,7 +7593,7 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
 {
     m_kill_group_connection(c->messenger, chat);
     mod_list_cleanup(&chat->moderation);
-    sanctions_list_cleanup(chat);
+    sanctions_list_cleanup(&chat->moderation);
 
     if (chat->tcp_conn) {
         kill_tcp_connections(chat->tcp_conn);
@@ -7595,6 +7609,7 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
     crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
     crypto_memunlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
     crypto_memunlock(chat->shared_state.password, sizeof(chat->shared_state.password));
+    crypto_memunlock(chat->moderation.self_secret_key, sizeof(chat->moderation.self_secret_key));
 }
 
 /* Deletes chat from group chat array and cleans up.
@@ -7744,6 +7759,12 @@ static int create_new_chat_ext_keypair(GC_Chat *chat)
     if (create_extended_keypair(chat->self_public_key, chat->self_secret_key) != 0) {
         return -1;
     }
+
+    memcpy(chat->moderation.self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_secret_key, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
+
+    crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
+    crypto_memlock(chat->moderation.self_secret_key, sizeof(chat->moderation.self_secret_key));
 
     return 0;
 }

@@ -11,8 +11,6 @@
 
 #include <string.h>
 
-#include "DHT.h"
-#include "group_connection.h"
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
@@ -413,9 +411,9 @@ static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_validate_entry(const GC_Chat *chat, struct GC_Sanction *sanction)
+static int sanctions_list_validate_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction)
 {
-    if (!mod_list_verify_sig_pk(&chat->moderation, sanction->public_sig_key)) {
+    if (!mod_list_verify_sig_pk(moderation, sanction->public_sig_key)) {
         return -1;
     }
 
@@ -458,30 +456,30 @@ static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
     creds->checksum = sanctions_creds_get_checksum(creds);
 }
 
-int sanctions_list_make_creds(GC_Chat *chat)
+int sanctions_list_make_creds(GC_Moderation *moderation)
 {
     struct GC_Sanction_Creds old_creds;
-    memcpy(&old_creds, &chat->moderation.sanctions_creds, sizeof(struct GC_Sanction_Creds));
+    memcpy(&old_creds, &moderation->sanctions_creds, sizeof(struct GC_Sanction_Creds));
 
-    ++chat->moderation.sanctions_creds.version;
+    ++moderation->sanctions_creds.version;
 
-    memcpy(chat->moderation.sanctions_creds.sig_pk, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(moderation->sanctions_creds.sig_pk, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
     uint8_t hash[GC_SANCTION_HASH_SIZE];
 
-    if (sanctions_list_make_hash(chat->moderation.sanctions, chat->moderation.sanctions_creds.version,
-                                 chat->moderation.num_sanctions, hash) == -1) {
-        memcpy(&chat->moderation.sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
+    if (sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
+                                 moderation->num_sanctions, hash) == -1) {
+        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
         return -1;
     }
 
-    memcpy(chat->moderation.sanctions_creds.hash, hash, GC_SANCTION_HASH_SIZE);
+    memcpy(moderation->sanctions_creds.hash, hash, GC_SANCTION_HASH_SIZE);
 
-    sanctions_creds_set_checksum(&chat->moderation.sanctions_creds);
+    sanctions_creds_set_checksum(&moderation->sanctions_creds);
 
-    if (crypto_sign_detached(chat->moderation.sanctions_creds.sig, nullptr, chat->moderation.sanctions_creds.hash,
-                             GC_SANCTION_HASH_SIZE, get_sig_sk(chat->self_secret_key)) == -1) {
-        memcpy(&chat->moderation.sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
+    if (crypto_sign_detached(moderation->sanctions_creds.sig, nullptr, moderation->sanctions_creds.hash,
+                             GC_SANCTION_HASH_SIZE, get_sig_sk(moderation->self_secret_key)) == -1) {
+        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
         return -1;
     }
 
@@ -498,11 +496,12 @@ int sanctions_list_make_creds(GC_Chat *chat)
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds,
-                                    uint16_t num_sanctions)
+static int sanctions_creds_validate(const GC_Moderation *moderation, struct GC_Sanction *sanctions,
+                                    struct GC_Sanction_Creds *creds, uint16_t num_sanctions,
+                                    uint16_t shared_state_version)
 {
-    if (!mod_list_verify_sig_pk(&chat->moderation, creds->sig_pk)) {
-        LOGGER_WARNING(chat->logger, "Invalid credentials signature pk");
+    if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
+        LOGGER_WARNING(moderation->logger, "Invalid credentials signature pk");
         return -1;
     }
 
@@ -513,42 +512,42 @@ static int sanctions_creds_validate(const GC_Chat *chat, struct GC_Sanction *san
     }
 
     if (memcmp(hash, creds->hash, GC_SANCTION_HASH_SIZE) != 0) {
-        LOGGER_WARNING(chat->logger, "Invalid credentials hash");
+        LOGGER_WARNING(moderation->logger, "Invalid credentials hash");
         return -1;
     }
 
     if (creds->checksum != sanctions_creds_get_checksum(creds)) {
-        LOGGER_WARNING(chat->logger, "Invalid credentials checksum");
+        LOGGER_WARNING(moderation->logger, "Invalid credentials checksum");
         return -1;
     }
 
-    if (chat->shared_state.version > 0) {
-        if ((creds->version < chat->moderation.sanctions_creds.version)
-                && !(creds->version == 0 && chat->moderation.sanctions_creds.version == UINT32_MAX)) {
-            LOGGER_WARNING(chat->logger, "Invalid version");
+    if (shared_state_version > 0) {
+        if ((creds->version < moderation->sanctions_creds.version)
+                && !(creds->version == 0 && moderation->sanctions_creds.version == UINT32_MAX)) {
+            LOGGER_WARNING(moderation->logger, "Invalid version");
             return -1;
         }
     }
 
     if (crypto_sign_verify_detached(creds->sig, hash, GC_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
-        LOGGER_WARNING(chat->logger, "Invalid signature");
+        LOGGER_WARNING(moderation->logger, "Invalid signature");
         return -1;
     }
 
     return 0;
 }
 
-int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds *creds,
-                                   struct GC_Sanction *sanctions, uint16_t num_sanctions)
+int sanctions_list_check_integrity(const GC_Moderation *moderation, struct GC_Sanction_Creds *creds,
+                                   struct GC_Sanction *sanctions, uint16_t num_sanctions, uint32_t shared_state_version)
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
-        if (sanctions_list_validate_entry(chat, &sanctions[i]) != 0) {
-            LOGGER_WARNING(chat->logger, "Invalid entry");
+        if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
+            LOGGER_WARNING(moderation->logger, "Invalid entry");
             return -1;
         }
     }
 
-    if (sanctions_creds_validate(chat, sanctions, creds, num_sanctions) == -1) {
+    if (sanctions_creds_validate(moderation, sanctions, creds, num_sanctions, shared_state_version) == -1) {
         return -1;
     }
 
@@ -560,37 +559,38 @@ int sanctions_list_check_integrity(const GC_Chat *chat, struct GC_Sanction_Creds
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_Sanction_Creds *creds)
+static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index, struct GC_Sanction_Creds *creds,
+                                       uint32_t shared_state_version)
 {
-    if (index >= chat->moderation.num_sanctions || chat->moderation.num_sanctions == 0) {
+    if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
         return -1;
     }
 
-    const uint16_t new_num = chat->moderation.num_sanctions - 1;
+    const uint16_t new_num = moderation->num_sanctions - 1;
 
     if (new_num == 0) {
         if (creds) {
-            if (sanctions_creds_validate(chat, nullptr, creds, 0) == -1) {
+            if (sanctions_creds_validate(moderation, nullptr, creds, 0, shared_state_version) == -1) {
                 return -1;
             }
 
-            memcpy(&chat->moderation.sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+            memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
         }
 
-        sanctions_list_cleanup(chat);
+        sanctions_list_cleanup(moderation);
 
         return 0;
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
+    const size_t old_size = sizeof(struct GC_Sanction) * moderation->num_sanctions;
     struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
         return -1;
     }
 
-    memcpy(sanctions_copy, chat->moderation.sanctions, old_size);
+    memcpy(sanctions_copy, moderation->sanctions, old_size);
 
     if (index != new_num) {
         memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(struct GC_Sanction));
@@ -604,37 +604,39 @@ static int sanctions_list_remove_index(GC_Chat *chat, uint16_t index, struct GC_
     }
 
     if (creds) {
-        if (sanctions_creds_validate(chat, new_list, creds, new_num) == -1) {
+        if (sanctions_creds_validate(moderation, new_list, creds, new_num, shared_state_version) == -1) {
             free(new_list);
             return -1;
         }
 
-        memcpy(&chat->moderation.sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+        memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
     }
 
-    sanctions_list_cleanup(chat);
-    chat->moderation.sanctions = new_list;
-    chat->moderation.num_sanctions = new_num;
+    sanctions_list_cleanup(moderation);
+    moderation->sanctions = new_list;
+    moderation->num_sanctions = new_num;
 
     return 0;
 }
 
-int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, struct GC_Sanction_Creds *creds)
+int sanctions_list_remove_observer(GC_Moderation *moderation, const uint8_t *public_key,
+                                   struct GC_Sanction_Creds *creds,
+                                   uint32_t shared_state_version)
 {
-    for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        const struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
+    for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
+        const struct GC_Sanction *curr_sanction = &moderation->sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
         }
 
         if (memcmp(public_key, curr_sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE) == 0) {
-            if (sanctions_list_remove_index(chat, i, creds) == -1) {
+            if (sanctions_list_remove_index(moderation, i, creds, shared_state_version) == -1) {
                 return -1;
             }
 
             if (creds == nullptr) {
-                return sanctions_list_make_creds(chat);
+                return sanctions_list_make_creds(moderation);
             }
 
             return 0;
@@ -644,10 +646,10 @@ int sanctions_list_remove_observer(GC_Chat *chat, const uint8_t *public_key, str
     return -1;
 }
 
-bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
+bool sanctions_list_is_observer(const GC_Moderation *moderation, const uint8_t *public_key)
 {
-    for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        const struct GC_Sanction *curr_sanction = &chat->moderation.sanctions[i];
+    for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
+        const struct GC_Sanction *curr_sanction = &moderation->sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
@@ -661,47 +663,37 @@ bool sanctions_list_is_observer(const GC_Chat *chat, const uint8_t *public_key)
     return false;
 }
 
-bool sanctions_list_is_observer_sig(const GC_Chat *chat, const uint8_t *public_sig_key)
-{
-    uint8_t public_key[ENC_PUBLIC_KEY_SIZE];
-
-    if (gc_get_enc_pk_from_sig_pk(chat, public_key, public_sig_key) != 0) {
-        return false;
-    }
-
-    return sanctions_list_is_observer(chat, public_key);
-}
-
-bool sanctions_list_entry_exists(const GC_Chat *chat, struct GC_Sanction *sanction)
+bool sanctions_list_entry_exists(const GC_Moderation *moderation, struct GC_Sanction *sanction)
 {
     if (sanction->type == SA_OBSERVER) {
-        return sanctions_list_is_observer(chat, sanction->info.target_pk);
+        return sanctions_list_is_observer(moderation, sanction->info.target_pk);
     }
 
     return false;
 }
 
-static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sanction);
+static int sanctions_list_sign_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction);
 
-int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds)
+int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds,
+                             uint32_t shared_state_version)
 {
-    if (chat->moderation.num_sanctions >= MAX_GC_SANCTIONS) {
-        LOGGER_WARNING(chat->logger, "num_sanctions %d exceeds maximum", chat->moderation.num_sanctions);
+    if (moderation->num_sanctions >= MAX_GC_SANCTIONS) {
+        LOGGER_WARNING(moderation->logger, "num_sanctions %d exceeds maximum", moderation->num_sanctions);
         return -1;
     }
 
-    if (sanctions_list_validate_entry(chat, sanction) < 0) {
-        LOGGER_ERROR(chat->logger, "Failed to validate sanction");
+    if (sanctions_list_validate_entry(moderation, sanction) < 0) {
+        LOGGER_ERROR(moderation->logger, "Failed to validate sanction");
         return -1;
     }
 
-    if (sanctions_list_entry_exists(chat, sanction)) {
-        LOGGER_WARNING(chat->logger, "Attempted to add duplicate sanction");
+    if (sanctions_list_entry_exists(moderation, sanction)) {
+        LOGGER_WARNING(moderation->logger, "Attempted to add duplicate sanction");
         return -1;
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(struct GC_Sanction) * chat->moderation.num_sanctions;
+    const size_t old_size = sizeof(struct GC_Sanction) * moderation->num_sanctions;
     struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
@@ -709,10 +701,10 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
     }
 
     if (old_size > 0) {
-        memcpy(sanctions_copy, chat->moderation.sanctions, old_size);
+        memcpy(sanctions_copy, moderation->sanctions, old_size);
     }
 
-    const uint16_t index = chat->moderation.num_sanctions;
+    const uint16_t index = moderation->num_sanctions;
     struct GC_Sanction *new_list = (struct GC_Sanction *)realloc(sanctions_copy, sizeof(struct GC_Sanction) * (index + 1));
 
     if (new_list == nullptr) {
@@ -723,18 +715,19 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
     memcpy(&new_list[index], sanction, sizeof(struct GC_Sanction));
 
     if (creds) {
-        if (sanctions_creds_validate(chat, new_list, creds, index + 1) == -1) {
-            LOGGER_WARNING(chat->logger, "Failed to validate credentials");
+        if (sanctions_creds_validate(moderation, new_list, creds, index + 1, shared_state_version) == -1) {
+            LOGGER_WARNING(moderation->logger, "Failed to validate credentials");
             free(new_list);
             return -1;
         }
 
-        memcpy(&chat->moderation.sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+        memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
     }
 
-    sanctions_list_cleanup(chat);
-    chat->moderation.sanctions = new_list;
-    chat->moderation.num_sanctions = index + 1;
+    sanctions_list_cleanup(moderation);
+
+    moderation->sanctions = new_list;
+    moderation->num_sanctions = index + 1;
 
     return 0;
 }
@@ -745,7 +738,7 @@ int sanctions_list_add_entry(GC_Chat *chat, struct GC_Sanction *sanction, struct
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sanction)
+static int sanctions_list_sign_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction)
 {
     uint8_t packed_data[sizeof(struct GC_Sanction)];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
@@ -755,67 +748,63 @@ static int sanctions_list_sign_entry(const GC_Chat *chat, struct GC_Sanction *sa
     }
 
     return crypto_sign_detached(sanction->signature, nullptr, packed_data, packed_len - SIGNATURE_SIZE,
-                                get_sig_sk(chat->self_secret_key));
+                                get_sig_sk(moderation->self_secret_key));
 }
 
-int sanctions_list_make_entry(GC_Chat *chat, uint32_t peer_number, struct GC_Sanction *sanction, uint8_t type)
+int sanctions_list_make_entry(GC_Moderation *moderation, const uint8_t *public_key, struct GC_Sanction *sanction,
+                              uint8_t type)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return -1;
-    }
-
     *sanction = (struct GC_Sanction) {
         0
     };
 
     if (type == SA_OBSERVER) {
-        memcpy(sanction->info.target_pk, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
+        memcpy(sanction->info.target_pk, public_key, ENC_PUBLIC_KEY_SIZE);
     } else {
-        LOGGER_ERROR(chat->logger, "Tried to create sanction with invalid type: %u", type);
+        LOGGER_ERROR(moderation->logger, "Tried to create sanction with invalid type: %u", type);
         return -1;
     }
 
-    memcpy(sanction->public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(sanction->public_sig_key, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
+
     sanction->time_set = (uint64_t) time(nullptr);
     sanction->type = type;
 
-    if (sanctions_list_sign_entry(chat, sanction) == -1) {
-        LOGGER_ERROR(chat->logger, "Failed to sign sanction");
+    if (sanctions_list_sign_entry(moderation, sanction) == -1) {
+        LOGGER_ERROR(moderation->logger, "Failed to sign sanction");
         return -1;
     }
 
-    if (sanctions_list_add_entry(chat, sanction, nullptr) == -1) {
+    if (sanctions_list_add_entry(moderation, sanction, nullptr, 0) == -1) {
         return -1;
     }
 
-    if (sanctions_list_make_creds(chat) == -1) {
-        LOGGER_ERROR(chat->logger, "Failed to make credentials for new sanction");
+    if (sanctions_list_make_creds(moderation) == -1) {
+        LOGGER_ERROR(moderation->logger, "Failed to make credentials for new sanction");
         return -1;
     }
 
     return 0;
 }
 
-uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key)
+uint16_t sanctions_list_replace_sig(GC_Moderation *moderation, const uint8_t *public_sig_key)
 {
     uint16_t count = 0;
 
-    for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        if (memcmp(chat->moderation.sanctions[i].public_sig_key, public_sig_key, SIG_PUBLIC_KEY_SIZE) != 0) {
+    for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
+        if (memcmp(moderation->sanctions[i].public_sig_key, public_sig_key, SIG_PUBLIC_KEY_SIZE) != 0) {
             continue;
         }
 
-        memcpy(chat->moderation.sanctions[i].public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+        memcpy(moderation->sanctions[i].public_sig_key, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
-        if (sanctions_list_sign_entry(chat, &chat->moderation.sanctions[i]) != -1) {
+        if (sanctions_list_sign_entry(moderation, &moderation->sanctions[i]) != -1) {
             ++count;
         }
     }
 
     if (count) {
-        if (sanctions_list_make_creds(chat) == -1) {
+        if (sanctions_list_make_creds(moderation) == -1) {
             return 0;
         }
     }
@@ -823,14 +812,14 @@ uint16_t sanctions_list_replace_sig(GC_Chat *chat, const uint8_t *public_sig_key
     return count;
 }
 
-void sanctions_list_cleanup(GC_Chat *chat)
+void sanctions_list_cleanup(GC_Moderation *moderation)
 {
-    if (chat->moderation.sanctions) {
-        free(chat->moderation.sanctions);
+    if (moderation->sanctions) {
+        free(moderation->sanctions);
     }
 
-    chat->moderation.sanctions = nullptr;
-    chat->moderation.num_sanctions = 0;
+    moderation->sanctions = nullptr;
+    moderation->num_sanctions = 0;
 }
 
 #endif /* VANILLA_NACL */

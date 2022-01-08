@@ -193,6 +193,8 @@ struct GC_Sanction_Creds {
 };
 
 typedef struct GC_Moderation {
+    const       Logger *logger;
+
     struct GC_Sanction *sanctions;
     struct GC_Sanction_Creds sanctions_creds;
     uint16_t    num_sanctions;
@@ -201,6 +203,8 @@ typedef struct GC_Moderation {
     uint16_t    num_mods;
 
     uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
 } GC_Moderation;
 
 typedef struct GC_PeerAddress {
@@ -954,13 +958,5 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
 int gc_add_peers_from_announces(const GC_Session *gc_session, GC_Chat *chat, GC_Announce *announces,
                                 uint8_t gc_announces_count);
 
-/* Puts the encryption public key associated with `signature_key` in `public_key`.
- *
- * `public_key` must have room for at least ENC_PUBLIC_KEY_SIZE bytes.
- *
- * Return 0 on success.
- * Return -1 if no peer associated with signature key is found.
- */
-int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *signature_key);
-
 #endif  // GROUP_CHATS_H
+
