@@ -33,10 +33,6 @@ typedef enum Mod_Sanction_Type {
     SA_INVALID  = 0x01,
 } Mod_Sanction_Type;
 
-typedef struct Mod_Sanction_Info {
-    uint8_t     target_pk[ENC_PUBLIC_KEY_SIZE];
-} Mod_Sanction_Info;
-
 typedef struct Mod_Sanction_Creds {
     uint32_t    version;
     uint8_t     hash[MOD_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
@@ -47,11 +43,11 @@ typedef struct Mod_Sanction_Creds {
 
 /* Holds data pertaining to a peer who has been sanctioned. */
 typedef struct Mod_Sanction {
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];
+    uint8_t     setter_public_sig_key[SIG_PUBLIC_KEY_SIZE];
     uint64_t    time_set;
 
     uint8_t     type;
-    Mod_Sanction_Info info;
+    uint8_t     target_public_enc_key[ENC_PUBLIC_KEY_SIZE];
 
     /* Signature of all above packed data signed by the owner of public_sig_key */
     uint8_t     signature[SIGNATURE_SIZE];

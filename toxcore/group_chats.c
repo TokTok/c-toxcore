@@ -837,12 +837,12 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
     uint8_t target_ext_pk[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].info.target_pk, true);
+        int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].target_public_enc_key, true);
 
         if (peer_number == -1) {
             sanction = &chat->moderation.sanctions[i];
-            memcpy(target_ext_pk, sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE);
-            memcpy(target_ext_pk + ENC_PUBLIC_KEY_SIZE, sanction->public_sig_key, SIG_PUBLIC_KEY_SIZE);
+            memcpy(target_ext_pk, sanction->target_public_enc_key, ENC_PUBLIC_KEY_SIZE);
+            memcpy(target_ext_pk + ENC_PUBLIC_KEY_SIZE, sanction->setter_public_sig_key, SIG_PUBLIC_KEY_SIZE);
             break;
         }
     }
@@ -851,7 +851,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return -1;
     }
 
-    if (sanctions_list_remove_observer(&chat->moderation, sanction->info.target_pk, nullptr,
+    if (sanctions_list_remove_observer(&chat->moderation, sanction->target_public_enc_key, nullptr,
                                        chat->shared_state.version) == -1) {
         LOGGER_WARNING(chat->logger, "Failed to remove entry from observer list");
         return -1;

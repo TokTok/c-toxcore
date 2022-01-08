@@ -247,7 +247,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
 
         memcpy(data + packed_len, &sanctions[i].type, sizeof(uint8_t));
         packed_len += sizeof(uint8_t);
-        memcpy(data + packed_len, sanctions[i].public_sig_key, SIG_PUBLIC_KEY_SIZE);
+        memcpy(data + packed_len, sanctions[i].setter_public_sig_key, SIG_PUBLIC_KEY_SIZE);
         packed_len += SIG_PUBLIC_KEY_SIZE;
         net_pack_u64(data + packed_len, sanctions[i].time_set);
         packed_len += TIME_STAMP_SIZE;
@@ -259,7 +259,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
                 return -1;
             }
 
-            memcpy(data + packed_len, sanctions[i].info.target_pk, ENC_PUBLIC_KEY_SIZE);
+            memcpy(data + packed_len, sanctions[i].target_public_enc_key, ENC_PUBLIC_KEY_SIZE);
             packed_len += ENC_PUBLIC_KEY_SIZE;
         } else {
             return -1;
@@ -322,7 +322,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
 
         memcpy(&sanctions[num].type, data + len_processed, sizeof(uint8_t));
         len_processed += sizeof(uint8_t);
-        memcpy(sanctions[num].public_sig_key, data + len_processed, SIG_PUBLIC_KEY_SIZE);
+        memcpy(sanctions[num].setter_public_sig_key, data + len_processed, SIG_PUBLIC_KEY_SIZE);
         len_processed += SIG_PUBLIC_KEY_SIZE;
         net_unpack_u64(data + len_processed, &sanctions[num].time_set);
         len_processed += TIME_STAMP_SIZE;
@@ -332,7 +332,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
                 return -1;
             }
 
-            memcpy(sanctions[num].info.target_pk, data + len_processed, ENC_PUBLIC_KEY_SIZE);
+            memcpy(sanctions[num].target_public_enc_key, data + len_processed, ENC_PUBLIC_KEY_SIZE);
             len_processed += ENC_PUBLIC_KEY_SIZE;
         } else {
             return -1;
@@ -413,7 +413,7 @@ static int sanctions_list_make_hash(Mod_Sanction *sanctions, uint32_t new_versio
  */
 static int sanctions_list_validate_entry(const Moderation *moderation, Mod_Sanction *sanction)
 {
-    if (!mod_list_verify_sig_pk(moderation, sanction->public_sig_key)) {
+    if (!mod_list_verify_sig_pk(moderation, sanction->setter_public_sig_key)) {
         return -1;
     }
 
@@ -433,7 +433,7 @@ static int sanctions_list_validate_entry(const Moderation *moderation, Mod_Sanct
     }
 
     if (crypto_sign_verify_detached(sanction->signature, packed_data, packed_len - SIGNATURE_SIZE,
-                                    sanction->public_sig_key) == -1) {
+                                    sanction->setter_public_sig_key) == -1) {
         return -1;
     }
 
@@ -630,7 +630,7 @@ int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public
             continue;
         }
 
-        if (memcmp(public_key, curr_sanction->info.target_pk, ENC_PUBLIC_KEY_SIZE) == 0) {
+        if (memcmp(public_key, curr_sanction->target_public_enc_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             if (sanctions_list_remove_index(moderation, i, creds, shared_state_version) == -1) {
                 return -1;
             }
@@ -655,7 +655,7 @@ bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *pub
             continue;
         }
 
-        if (memcmp(curr_sanction->info.target_pk, public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
+        if (memcmp(curr_sanction->target_public_enc_key, public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             return true;
         }
     }
@@ -666,7 +666,7 @@ bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *pub
 bool sanctions_list_entry_exists(const Moderation *moderation, Mod_Sanction *sanction)
 {
     if (sanction->type == SA_OBSERVER) {
-        return sanctions_list_is_observer(moderation, sanction->info.target_pk);
+        return sanctions_list_is_observer(moderation, sanction->target_public_enc_key);
     }
 
     return false;
@@ -759,13 +759,13 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
     };
 
     if (type == SA_OBSERVER) {
-        memcpy(sanction->info.target_pk, public_key, ENC_PUBLIC_KEY_SIZE);
+        memcpy(sanction->target_public_enc_key, public_key, ENC_PUBLIC_KEY_SIZE);
     } else {
         LOGGER_ERROR(moderation->logger, "Tried to create sanction with invalid type: %u", type);
         return -1;
     }
 
-    memcpy(sanction->public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
+    memcpy(sanction->setter_public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
     sanction->time_set = (uint64_t) time(nullptr);
     sanction->type = type;
@@ -792,11 +792,11 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
     uint16_t count = 0;
 
     for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
-        if (memcmp(moderation->sanctions[i].public_sig_key, public_sig_key, SIG_PUBLIC_KEY_SIZE) != 0) {
+        if (memcmp(moderation->sanctions[i].setter_public_sig_key, public_sig_key, SIG_PUBLIC_KEY_SIZE) != 0) {
             continue;
         }
 
-        memcpy(moderation->sanctions[i].public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
+        memcpy(moderation->sanctions[i].setter_public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
         if (sanctions_list_sign_entry(moderation, &moderation->sanctions[i]) != -1) {
             ++count;
