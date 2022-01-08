@@ -23,9 +23,9 @@
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 
-int mod_list_unpack(GC_Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods)
+int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods)
 {
-    if (length != num_mods * GC_MOD_LIST_ENTRY_SIZE) {
+    if (length != num_mods * MOD_LIST_ENTRY_SIZE) {
         return -1;
     }
 
@@ -44,15 +44,15 @@ int mod_list_unpack(GC_Moderation *moderation, const uint8_t *data, uint32_t len
     uint32_t unpacked_len = 0;
 
     for (uint16_t i = 0; i < num_mods; ++i) {
-        tmp_list[i] = (uint8_t *)malloc(sizeof(uint8_t) * GC_MOD_LIST_ENTRY_SIZE);
+        tmp_list[i] = (uint8_t *)malloc(sizeof(uint8_t) * MOD_LIST_ENTRY_SIZE);
 
         if (tmp_list[i] == nullptr) {
             free_uint8_t_pointer_array(tmp_list, i);
             return -1;
         }
 
-        memcpy(tmp_list[i], &data[i * GC_MOD_LIST_ENTRY_SIZE], GC_MOD_LIST_ENTRY_SIZE);
-        unpacked_len += GC_MOD_LIST_ENTRY_SIZE;
+        memcpy(tmp_list[i], &data[i * MOD_LIST_ENTRY_SIZE], MOD_LIST_ENTRY_SIZE);
+        unpacked_len += MOD_LIST_ENTRY_SIZE;
     }
 
     moderation->mod_list = tmp_list;
@@ -61,10 +61,10 @@ int mod_list_unpack(GC_Moderation *moderation, const uint8_t *data, uint32_t len
     return unpacked_len;
 }
 
-void mod_list_pack(const GC_Moderation *moderation, uint8_t *data)
+void mod_list_pack(const Moderation *moderation, uint8_t *data)
 {
-    for (uint16_t i = 0; i < moderation->num_mods && i < MAX_GC_MODERATORS; ++i) {
-        memcpy(&data[i * GC_MOD_LIST_ENTRY_SIZE], moderation->mod_list[i], GC_MOD_LIST_ENTRY_SIZE);
+    for (uint16_t i = 0; i < moderation->num_mods && i < MOD_MAX_NUM_MODERATORS; ++i) {
+        memcpy(&data[i * MOD_LIST_ENTRY_SIZE], moderation->mod_list[i], MOD_LIST_ENTRY_SIZE);
     }
 }
 
@@ -73,14 +73,14 @@ void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_
     crypto_hash_sha256(hash, packed_mod_list, length);
 }
 
-int mod_list_make_hash(GC_Moderation *moderation, uint8_t *hash)
+int mod_list_make_hash(Moderation *moderation, uint8_t *hash)
 {
     if (moderation->num_mods == 0) {
-        memset(hash, 0, GC_MODERATION_HASH_SIZE);
+        memset(hash, 0, MOD_MODERATION_HASH_SIZE);
         return 0;
     }
 
-    const size_t data_buf_size = moderation->num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    const size_t data_buf_size = moderation->num_mods * MOD_LIST_ENTRY_SIZE;
     uint8_t *data = (uint8_t *)malloc(data_buf_size);
 
     if (data == nullptr) {
@@ -99,7 +99,7 @@ int mod_list_make_hash(GC_Moderation *moderation, uint8_t *hash)
 /* Returns moderator list index for public_sig_key.
  * Returns -1 if key is not in the list.
  */
-static int mod_list_index_of_sig_pk(const GC_Moderation *moderation, const uint8_t *public_sig_key)
+static int mod_list_index_of_sig_pk(const Moderation *moderation, const uint8_t *public_sig_key)
 {
     for (uint16_t i = 0; i < moderation->num_mods; ++i) {
         if (memcmp(moderation->mod_list[i], public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
@@ -110,7 +110,7 @@ static int mod_list_index_of_sig_pk(const GC_Moderation *moderation, const uint8
     return -1;
 }
 
-bool mod_list_verify_sig_pk(const GC_Moderation *moderation, const uint8_t *sig_pk)
+bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk)
 {
     if (memcmp(get_sig_pk(moderation->founder_public_key), sig_pk, SIG_PUBLIC_KEY_SIZE) == 0) {
         return true;
@@ -125,7 +125,7 @@ bool mod_list_verify_sig_pk(const GC_Moderation *moderation, const uint8_t *sig_
     return false;
 }
 
-int mod_list_remove_index(GC_Moderation *moderation, size_t index)
+int mod_list_remove_index(Moderation *moderation, size_t index)
 {
     if (index >= moderation->num_mods) {
         return -1;
@@ -144,7 +144,7 @@ int mod_list_remove_index(GC_Moderation *moderation, size_t index)
 
     if (index != moderation->num_mods) {
         memcpy(moderation->mod_list[index], moderation->mod_list[moderation->num_mods],
-               GC_MOD_LIST_ENTRY_SIZE);
+               MOD_LIST_ENTRY_SIZE);
     }
 
     free(moderation->mod_list[moderation->num_mods]);
@@ -161,7 +161,7 @@ int mod_list_remove_index(GC_Moderation *moderation, size_t index)
     return 0;
 }
 
-int mod_list_remove_entry(GC_Moderation *moderation, const uint8_t *public_sig_key)
+int mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key)
 {
     if (moderation->num_mods == 0) {
         return -1;
@@ -180,9 +180,9 @@ int mod_list_remove_entry(GC_Moderation *moderation, const uint8_t *public_sig_k
     return 0;
 }
 
-int mod_list_add_entry(GC_Moderation *moderation, const uint8_t *mod_data)
+int mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
 {
-    if (moderation->num_mods >= MAX_GC_MODERATORS) {
+    if (moderation->num_mods >= MOD_MAX_NUM_MODERATORS) {
         return -1;
     }
 
@@ -194,28 +194,28 @@ int mod_list_add_entry(GC_Moderation *moderation, const uint8_t *mod_data)
 
     moderation->mod_list = tmp_list;
 
-    tmp_list[moderation->num_mods] = (uint8_t *)malloc(sizeof(uint8_t) * GC_MOD_LIST_ENTRY_SIZE);
+    tmp_list[moderation->num_mods] = (uint8_t *)malloc(sizeof(uint8_t) * MOD_LIST_ENTRY_SIZE);
 
     if (tmp_list[moderation->num_mods] == nullptr) {
         return -1;
     }
 
-    memcpy(tmp_list[moderation->num_mods], mod_data, GC_MOD_LIST_ENTRY_SIZE);
+    memcpy(tmp_list[moderation->num_mods], mod_data, MOD_LIST_ENTRY_SIZE);
     ++moderation->num_mods;
 
     return 0;
 }
 
-void mod_list_cleanup(GC_Moderation *moderation)
+void mod_list_cleanup(Moderation *moderation)
 {
     free_uint8_t_pointer_array(moderation->mod_list, moderation->num_mods);
     moderation->num_mods = 0;
     moderation->mod_list = nullptr;
 }
 
-uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *data, uint16_t length)
+uint16_t sanctions_creds_pack(const Mod_Sanction_Creds *creds, uint8_t *data, uint16_t length)
 {
-    if (GC_SANCTIONS_CREDENTIALS_SIZE > length) {
+    if (MOD_SANCTIONS_CREDS_SIZE > length) {
         return 0;
     }
 
@@ -223,8 +223,8 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
 
     net_pack_u32(data + packed_len, creds->version);
     packed_len += sizeof(uint32_t);
-    memcpy(data + packed_len, creds->hash, GC_SANCTION_HASH_SIZE);
-    packed_len += GC_SANCTION_HASH_SIZE;
+    memcpy(data + packed_len, creds->hash, MOD_SANCTION_HASH_SIZE);
+    packed_len += MOD_SANCTION_HASH_SIZE;
     net_pack_u16(data + packed_len, creds->checksum);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, creds->sig_pk, SIG_PUBLIC_KEY_SIZE);
@@ -235,12 +235,12 @@ uint16_t sanctions_creds_pack(const struct GC_Sanction_Creds *creds, uint8_t *da
     return packed_len;
 }
 
-int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanctions,
-                        const struct GC_Sanction_Creds *creds, uint16_t num_sanctions)
+int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
+                        const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
     uint32_t packed_len = 0;
 
-    for (uint16_t i = 0; i < num_sanctions && i < MAX_GC_SANCTIONS; ++i) {
+    for (uint16_t i = 0; i < num_sanctions && i < MOD_MAX_NUM_SANCTIONS; ++i) {
         if (packed_len + sizeof(uint8_t) + SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE > length) {
             return -1;
         }
@@ -280,16 +280,16 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, struct GC_Sanction *sanc
 
     const uint16_t cred_len = sanctions_creds_pack(creds, data + packed_len, length - packed_len);
 
-    if (cred_len != GC_SANCTIONS_CREDENTIALS_SIZE) {
+    if (cred_len != MOD_SANCTIONS_CREDS_SIZE) {
         return -1;
     }
 
     return packed_len + cred_len;
 }
 
-uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *data, uint16_t length)
+uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data, uint16_t length)
 {
-    if (GC_SANCTIONS_CREDENTIALS_SIZE > length) {
+    if (MOD_SANCTIONS_CREDS_SIZE > length) {
         return 0;
     }
 
@@ -297,8 +297,8 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
 
     net_unpack_u32(data + len_processed, &creds->version);
     len_processed += sizeof(uint32_t);
-    memcpy(creds->hash, data + len_processed, GC_SANCTION_HASH_SIZE);
-    len_processed += GC_SANCTION_HASH_SIZE;
+    memcpy(creds->hash, data + len_processed, MOD_SANCTION_HASH_SIZE);
+    len_processed += MOD_SANCTION_HASH_SIZE;
     net_unpack_u16(data + len_processed, &creds->checksum);
     len_processed += sizeof(uint16_t);
     memcpy(creds->sig_pk, data + len_processed, SIG_PUBLIC_KEY_SIZE);
@@ -309,13 +309,13 @@ uint16_t sanctions_creds_unpack(struct GC_Sanction_Creds *creds, const uint8_t *
     return len_processed;
 }
 
-int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Creds *creds, uint16_t max_sanctions,
+int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, uint16_t max_sanctions,
                           const uint8_t *data, uint16_t length, uint16_t *processed_data_len)
 {
     uint16_t num = 0;
     uint16_t len_processed = 0;
 
-    while (num < max_sanctions && num < MAX_GC_SANCTIONS && len_processed < length) {
+    while (num < max_sanctions && num < MOD_MAX_NUM_SANCTIONS && len_processed < length) {
         if (len_processed + sizeof(uint8_t) + SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE > length) {
             return -1;
         }
@@ -350,7 +350,7 @@ int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Cred
 
     const uint16_t creds_len = sanctions_creds_unpack(creds, data + len_processed, length - len_processed);
 
-    if (creds_len != GC_SANCTIONS_CREDENTIALS_SIZE) {
+    if (creds_len != MOD_SANCTIONS_CREDS_SIZE) {
         return -1;
     }
 
@@ -365,18 +365,18 @@ int sanctions_list_unpack(struct GC_Sanction *sanctions, struct GC_Sanction_Cred
 /* Creates a new sanction list hash and puts it in hash.
  *
  * The hash is derived from the signature of all entries plus the version number.
- * hash must have room for at least GC_SANCTION_HASH_SIZE bytes.
+ * hash must have room for at least MOD_SANCTION_HASH_SIZE bytes.
  *
  * If num_sanctions is 0 the hash is zeroed.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
+static int sanctions_list_make_hash(Mod_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
                                     uint8_t *hash)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
-        memset(hash, 0, GC_SANCTION_HASH_SIZE);
+        memset(hash, 0, MOD_SANCTION_HASH_SIZE);
         return 0;
     }
 
@@ -411,7 +411,7 @@ static int sanctions_list_make_hash(struct GC_Sanction *sanctions, uint32_t new_
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_validate_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction)
+static int sanctions_list_validate_entry(const Moderation *moderation, Mod_Sanction *sanction)
 {
     if (!mod_list_verify_sig_pk(moderation, sanction->public_sig_key)) {
         return -1;
@@ -425,7 +425,7 @@ static int sanctions_list_validate_entry(const GC_Moderation *moderation, struct
         return -1;
     }
 
-    uint8_t packed_data[sizeof(struct GC_Sanction)];
+    uint8_t packed_data[sizeof(Mod_Sanction)];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
@@ -440,46 +440,46 @@ static int sanctions_list_validate_entry(const GC_Moderation *moderation, struct
     return 0;
 }
 
-static uint16_t sanctions_creds_get_checksum(const struct GC_Sanction_Creds *creds)
+static uint16_t sanctions_creds_get_checksum(const Mod_Sanction_Creds *creds)
 {
     uint16_t sum = 0;
 
-    for (size_t i = 0; i < GC_SANCTION_HASH_SIZE; ++i) {
+    for (size_t i = 0; i < MOD_SANCTION_HASH_SIZE; ++i) {
         sum += creds->hash[i];
     }
 
     return sum;
 }
 
-static void sanctions_creds_set_checksum(struct GC_Sanction_Creds *creds)
+static void sanctions_creds_set_checksum(Mod_Sanction_Creds *creds)
 {
     creds->checksum = sanctions_creds_get_checksum(creds);
 }
 
-int sanctions_list_make_creds(GC_Moderation *moderation)
+int sanctions_list_make_creds(Moderation *moderation)
 {
-    struct GC_Sanction_Creds old_creds;
-    memcpy(&old_creds, &moderation->sanctions_creds, sizeof(struct GC_Sanction_Creds));
+    Mod_Sanction_Creds old_creds;
+    memcpy(&old_creds, &moderation->sanctions_creds, sizeof(Mod_Sanction_Creds));
 
     ++moderation->sanctions_creds.version;
 
     memcpy(moderation->sanctions_creds.sig_pk, get_sig_pk(moderation->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
-    uint8_t hash[GC_SANCTION_HASH_SIZE];
+    uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
     if (sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
                                  moderation->num_sanctions, hash) == -1) {
-        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
+        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(Mod_Sanction_Creds));
         return -1;
     }
 
-    memcpy(moderation->sanctions_creds.hash, hash, GC_SANCTION_HASH_SIZE);
+    memcpy(moderation->sanctions_creds.hash, hash, MOD_SANCTION_HASH_SIZE);
 
     sanctions_creds_set_checksum(&moderation->sanctions_creds);
 
     if (crypto_sign_detached(moderation->sanctions_creds.sig, nullptr, moderation->sanctions_creds.hash,
-                             GC_SANCTION_HASH_SIZE, get_sig_sk(moderation->self_secret_key)) == -1) {
-        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(struct GC_Sanction_Creds));
+                             MOD_SANCTION_HASH_SIZE, get_sig_sk(moderation->self_secret_key)) == -1) {
+        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(Mod_Sanction_Creds));
         return -1;
     }
 
@@ -496,8 +496,8 @@ int sanctions_list_make_creds(GC_Moderation *moderation)
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_creds_validate(const GC_Moderation *moderation, struct GC_Sanction *sanctions,
-                                    struct GC_Sanction_Creds *creds, uint16_t num_sanctions,
+static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *sanctions,
+                                    Mod_Sanction_Creds *creds, uint16_t num_sanctions,
                                     uint16_t shared_state_version)
 {
     if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
@@ -505,13 +505,13 @@ static int sanctions_creds_validate(const GC_Moderation *moderation, struct GC_S
         return -1;
     }
 
-    uint8_t hash[GC_SANCTION_HASH_SIZE];
+    uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
     if (sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash) == -1) {
         return -1;
     }
 
-    if (memcmp(hash, creds->hash, GC_SANCTION_HASH_SIZE) != 0) {
+    if (memcmp(hash, creds->hash, MOD_SANCTION_HASH_SIZE) != 0) {
         LOGGER_WARNING(moderation->logger, "Invalid credentials hash");
         return -1;
     }
@@ -529,7 +529,7 @@ static int sanctions_creds_validate(const GC_Moderation *moderation, struct GC_S
         }
     }
 
-    if (crypto_sign_verify_detached(creds->sig, hash, GC_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
+    if (crypto_sign_verify_detached(creds->sig, hash, MOD_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
         LOGGER_WARNING(moderation->logger, "Invalid signature");
         return -1;
     }
@@ -537,8 +537,8 @@ static int sanctions_creds_validate(const GC_Moderation *moderation, struct GC_S
     return 0;
 }
 
-int sanctions_list_check_integrity(const GC_Moderation *moderation, struct GC_Sanction_Creds *creds,
-                                   struct GC_Sanction *sanctions, uint16_t num_sanctions, uint32_t shared_state_version)
+int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Creds *creds,
+                                   Mod_Sanction *sanctions, uint16_t num_sanctions, uint32_t shared_state_version)
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
         if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
@@ -559,7 +559,7 @@ int sanctions_list_check_integrity(const GC_Moderation *moderation, struct GC_Sa
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index, struct GC_Sanction_Creds *creds,
+static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, Mod_Sanction_Creds *creds,
                                        uint32_t shared_state_version)
 {
     if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
@@ -574,7 +574,7 @@ static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index
                 return -1;
             }
 
-            memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+            memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
         }
 
         sanctions_list_cleanup(moderation);
@@ -583,8 +583,8 @@ static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(struct GC_Sanction) * moderation->num_sanctions;
-    struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
+    const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
+    Mod_Sanction *sanctions_copy = (Mod_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
         return -1;
@@ -593,10 +593,10 @@ static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index
     memcpy(sanctions_copy, moderation->sanctions, old_size);
 
     if (index != new_num) {
-        memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(struct GC_Sanction));
+        memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(Mod_Sanction));
     }
 
-    struct GC_Sanction *new_list = (struct GC_Sanction *)realloc(sanctions_copy, sizeof(struct GC_Sanction) * new_num);
+    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, sizeof(Mod_Sanction) * new_num);
 
     if (new_list == nullptr) {
         free(sanctions_copy);
@@ -609,7 +609,7 @@ static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index
             return -1;
         }
 
-        memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+        memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
     }
 
     sanctions_list_cleanup(moderation);
@@ -619,12 +619,12 @@ static int sanctions_list_remove_index(GC_Moderation *moderation, uint16_t index
     return 0;
 }
 
-int sanctions_list_remove_observer(GC_Moderation *moderation, const uint8_t *public_key,
-                                   struct GC_Sanction_Creds *creds,
+int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
+                                   Mod_Sanction_Creds *creds,
                                    uint32_t shared_state_version)
 {
     for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
-        const struct GC_Sanction *curr_sanction = &moderation->sanctions[i];
+        const Mod_Sanction *curr_sanction = &moderation->sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
@@ -646,10 +646,10 @@ int sanctions_list_remove_observer(GC_Moderation *moderation, const uint8_t *pub
     return -1;
 }
 
-bool sanctions_list_is_observer(const GC_Moderation *moderation, const uint8_t *public_key)
+bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *public_key)
 {
     for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
-        const struct GC_Sanction *curr_sanction = &moderation->sanctions[i];
+        const Mod_Sanction *curr_sanction = &moderation->sanctions[i];
 
         if (curr_sanction->type != SA_OBSERVER) {
             continue;
@@ -663,7 +663,7 @@ bool sanctions_list_is_observer(const GC_Moderation *moderation, const uint8_t *
     return false;
 }
 
-bool sanctions_list_entry_exists(const GC_Moderation *moderation, struct GC_Sanction *sanction)
+bool sanctions_list_entry_exists(const Moderation *moderation, Mod_Sanction *sanction)
 {
     if (sanction->type == SA_OBSERVER) {
         return sanctions_list_is_observer(moderation, sanction->info.target_pk);
@@ -672,12 +672,12 @@ bool sanctions_list_entry_exists(const GC_Moderation *moderation, struct GC_Sanc
     return false;
 }
 
-static int sanctions_list_sign_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction);
+static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction);
 
-int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanction, struct GC_Sanction_Creds *creds,
+int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod_Sanction_Creds *creds,
                              uint32_t shared_state_version)
 {
-    if (moderation->num_sanctions >= MAX_GC_SANCTIONS) {
+    if (moderation->num_sanctions >= MOD_MAX_NUM_SANCTIONS) {
         LOGGER_WARNING(moderation->logger, "num_sanctions %d exceeds maximum", moderation->num_sanctions);
         return -1;
     }
@@ -693,8 +693,8 @@ int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanc
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(struct GC_Sanction) * moderation->num_sanctions;
-    struct GC_Sanction *sanctions_copy = (struct GC_Sanction *)malloc(old_size);
+    const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
+    Mod_Sanction *sanctions_copy = (Mod_Sanction *)malloc(old_size);
 
     if (sanctions_copy == nullptr) {
         return -1;
@@ -705,14 +705,14 @@ int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanc
     }
 
     const uint16_t index = moderation->num_sanctions;
-    struct GC_Sanction *new_list = (struct GC_Sanction *)realloc(sanctions_copy, sizeof(struct GC_Sanction) * (index + 1));
+    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, sizeof(Mod_Sanction) * (index + 1));
 
     if (new_list == nullptr) {
         free(sanctions_copy);
         return -1;
     }
 
-    memcpy(&new_list[index], sanction, sizeof(struct GC_Sanction));
+    memcpy(&new_list[index], sanction, sizeof(Mod_Sanction));
 
     if (creds) {
         if (sanctions_creds_validate(moderation, new_list, creds, index + 1, shared_state_version) == -1) {
@@ -721,7 +721,7 @@ int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanc
             return -1;
         }
 
-        memcpy(&moderation->sanctions_creds, creds, sizeof(struct GC_Sanction_Creds));
+        memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
     }
 
     sanctions_list_cleanup(moderation);
@@ -738,9 +738,9 @@ int sanctions_list_add_entry(GC_Moderation *moderation, struct GC_Sanction *sanc
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_sign_entry(const GC_Moderation *moderation, struct GC_Sanction *sanction)
+static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction)
 {
-    uint8_t packed_data[sizeof(struct GC_Sanction)];
+    uint8_t packed_data[sizeof(Mod_Sanction)];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
@@ -751,10 +751,10 @@ static int sanctions_list_sign_entry(const GC_Moderation *moderation, struct GC_
                                 get_sig_sk(moderation->self_secret_key));
 }
 
-int sanctions_list_make_entry(GC_Moderation *moderation, const uint8_t *public_key, struct GC_Sanction *sanction,
+int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
                               uint8_t type)
 {
-    *sanction = (struct GC_Sanction) {
+    *sanction = (Mod_Sanction) {
         0
     };
 
@@ -787,7 +787,7 @@ int sanctions_list_make_entry(GC_Moderation *moderation, const uint8_t *public_k
     return 0;
 }
 
-uint16_t sanctions_list_replace_sig(GC_Moderation *moderation, const uint8_t *public_sig_key)
+uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *public_sig_key)
 {
     uint16_t count = 0;
 
@@ -812,7 +812,7 @@ uint16_t sanctions_list_replace_sig(GC_Moderation *moderation, const uint8_t *pu
     return count;
 }
 
-void sanctions_list_cleanup(GC_Moderation *moderation)
+void sanctions_list_cleanup(Moderation *moderation)
 {
     if (moderation->sanctions) {
         free(moderation->sanctions);

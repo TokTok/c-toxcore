@@ -11,10 +11,12 @@
 #define GROUP_CHATS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "TCP_connection.h"
 #include "group_announce.h"
 #include "group_moderation.h"
+#include "logger.h"
 
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
@@ -23,15 +25,12 @@
 #define MAX_GC_PART_MESSAGE_SIZE 128
 #define MAX_GC_PEER_ADDRS 30
 #define MAX_GC_PASSWORD_SIZE 32
-#define MAX_GC_MODERATORS 30
 #define MAX_GC_SAVED_INVITES 50
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_PACKET_SIZE (uint16_t) 1400
 #define MAX_GC_SAVED_TIMEOUTS 12
 #define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
-#define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
-#define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
-#define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
+
 #define GC_PING_TIMEOUT 12
 #define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
 #define GC_CONFIRMED_PEER_TIMEOUT (GC_PING_TIMEOUT * 6 + 10)
@@ -223,7 +222,7 @@ typedef struct GC_SharedState {
     Group_Privacy_State privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)
     uint16_t    password_length;
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
-    uint8_t     mod_list_hash[GC_MODERATION_HASH_SIZE];
+    uint8_t     mod_list_hash[MOD_MODERATION_HASH_SIZE];
     uint32_t    topic_lock; // non-zero value when lock is enabled
 } GC_SharedState;
 
@@ -238,7 +237,7 @@ typedef struct GC_TopicInfo {
 typedef struct GC_Connection GC_Connection;
 typedef struct GC_Exit_Info GC_Exit_Info;
 
-#define GROUP_SAVE_MAX_MODERATORS 128  // must be <= MAX_GC_MODERATORS (temporary fix to prevent save format breakage)
+#define GROUP_SAVE_MAX_MODERATORS 30 // must be <= MOD_MAX_NUM_MODERATORS (temp fix to prevent save format breakage)
 
 struct Saved_Group {
     /* Group shared state */
@@ -251,8 +250,8 @@ struct Saved_Group {
     uint8_t   privacy_state;
     uint16_t  password_length;
     uint8_t   password[MAX_GC_PASSWORD_SIZE];
-    uint8_t   mod_list_hash[GC_MODERATION_HASH_SIZE];
-    uint32_t   topic_lock;
+    uint8_t   mod_list_hash[MOD_MODERATION_HASH_SIZE];
+    uint32_t  topic_lock;
 
     /* Topic info */
     uint16_t  topic_length;
@@ -265,7 +264,7 @@ struct Saved_Group {
     uint8_t   chat_public_key[EXT_PUBLIC_KEY_SIZE];
     uint8_t   chat_secret_key[EXT_SECRET_KEY_SIZE];
     uint16_t  num_mods;
-    uint8_t   mod_list[GC_MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
+    uint8_t   mod_list[MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
     uint8_t   group_connection_state;
 
     GC_SavedPeerInfo addrs[GC_MAX_SAVED_PEERS];
@@ -298,7 +297,7 @@ typedef struct GC_Chat {
 
     GC_GroupPeer    *group;
     GC_Connection   *gcc;
-    GC_Moderation   moderation;
+    Moderation      moderation;
 
     GC_Conn_State   connection_state;
 

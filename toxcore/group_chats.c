@@ -39,7 +39,7 @@
 /* Size of a group's shared state in packed format */
 #define GC_PACKED_SHARED_STATE_SIZE (EXT_PUBLIC_KEY_SIZE + sizeof(uint32_t) + MAX_GC_GROUP_NAME_SIZE +\
                                      sizeof(uint16_t) + 1 + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE +\
-                                     GC_MODERATION_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t))
+                                     MOD_MODERATION_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t))
 
 /* Minimum size of a topic packet; includes topic length, public signature key, topic version and checksum */
 #define GC_MIN_PACKED_TOPIC_INFO_SIZE (sizeof(uint16_t) + SIG_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t))
@@ -244,7 +244,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     temp->maxpeers = net_htons(chat->shared_state.maxpeers);
     temp->password_length = net_htons(chat->shared_state.password_length);
     memcpy(temp->password, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
-    memcpy(temp->mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE);
+    memcpy(temp->mod_list_hash, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
     temp->topic_lock = net_htonl(chat->shared_state.topic_lock);
     temp->topic_length = net_htons(chat->topic_info.length);
     memcpy(temp->topic, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
@@ -833,7 +833,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return 0;
     }
 
-    const struct GC_Sanction *sanction = nullptr;
+    const Mod_Sanction *sanction = nullptr;
     uint8_t target_ext_pk[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
@@ -859,10 +859,10 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
 
     sanction = nullptr;
 
-    uint8_t data[GC_SANCTIONS_CREDENTIALS_SIZE];
+    uint8_t data[MOD_SANCTIONS_CREDS_SIZE];
     const uint16_t length = sanctions_creds_pack(&chat->moderation.sanctions_creds, data, sizeof(data));
 
-    if (length != GC_SANCTIONS_CREDENTIALS_SIZE) {
+    if (length != MOD_SANCTIONS_CREDS_SIZE) {
         LOGGER_ERROR(chat->logger, "Failed to pack credentials (invlaid length: %u)", length);
         return -1;
     }
@@ -958,8 +958,8 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, shared_state->password, MAX_GC_PASSWORD_SIZE);
     packed_len += MAX_GC_PASSWORD_SIZE;
-    memcpy(data + packed_len, shared_state->mod_list_hash, GC_MODERATION_HASH_SIZE);
-    packed_len += GC_MODERATION_HASH_SIZE;
+    memcpy(data + packed_len, shared_state->mod_list_hash, MOD_MODERATION_HASH_SIZE);
+    packed_len += MOD_MODERATION_HASH_SIZE;
     net_pack_u32(data + packed_len, shared_state->topic_lock);
     packed_len += sizeof(uint32_t);
 
@@ -1000,8 +1000,8 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     len_processed += sizeof(uint16_t);
     memcpy(shared_state->password, data + len_processed, MAX_GC_PASSWORD_SIZE);
     len_processed += MAX_GC_PASSWORD_SIZE;
-    memcpy(shared_state->mod_list_hash, data + len_processed, GC_MODERATION_HASH_SIZE);
-    len_processed += GC_MODERATION_HASH_SIZE;
+    memcpy(shared_state->mod_list_hash, data + len_processed, MOD_MODERATION_HASH_SIZE);
+    len_processed += MOD_MODERATION_HASH_SIZE;
     net_unpack_u32(data + len_processed, &shared_state->topic_lock);
     len_processed += sizeof(uint32_t);
 
@@ -2525,11 +2525,6 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
             (*c->topic_lock)(c->messenger, chat->group_number, lock_state, userdata);
         }
     }
-
-    /* make sure we set founder PK on initial sync */
-    if (chat->connection_state != CS_CONNECTED) {
-        memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
-    }
 }
 
 /* Sends a sync request to a random peer in the group with the specificed sync flags.
@@ -2672,6 +2667,11 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
     memcpy(&chat->shared_state, &new_shared_state, sizeof(GC_SharedState));
     memcpy(chat->shared_state_sig, signature, sizeof(chat->shared_state_sig));
 
+    /* make sure we set founder PK on initial sync */
+    if (chat->connection_state != CS_CONNECTED) {
+        memcpy(chat->moderation.founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
+    }
+
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
 
     return 0;
@@ -2686,11 +2686,11 @@ static int handle_gc_shared_state(Messenger *m, int group_number, uint32_t peer_
  */
 static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t length, uint16_t num_mods)
 {
-    if (num_mods > MAX_GC_MODERATORS) {
+    if (num_mods > MOD_MAX_NUM_MODERATORS) {
         return -1;
     }
 
-    uint8_t mod_list_hash[GC_MODERATION_HASH_SIZE] = {0};
+    uint8_t mod_list_hash[MOD_MODERATION_HASH_SIZE] = {0};
 
     if (length > 0) {
         mod_list_get_data_hash(mod_list_hash, data, length);
@@ -2698,7 +2698,7 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint32_t
 
     // we make sure that this mod list's hash matches the one we got in our last shared state update
     if (chat->shared_state.version > 0
-            && memcmp(mod_list_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE) != 0) {
+            && memcmp(mod_list_hash, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE) != 0) {
         LOGGER_WARNING(chat->logger, "failed to validate mod list hash");
         return 1;
     }
@@ -2833,14 +2833,14 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
     uint16_t num_sanctions;
     net_unpack_u16(data, &num_sanctions);
 
-    if (num_sanctions > MAX_GC_SANCTIONS) {
-        LOGGER_WARNING(chat->logger, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MAX_GC_SANCTIONS);
+    if (num_sanctions > MOD_MAX_NUM_SANCTIONS) {
+        LOGGER_WARNING(chat->logger, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MOD_MAX_NUM_SANCTIONS);
         return handle_gc_sanctions_list_error(m, group_number, peer_number, chat);
     }
 
-    struct GC_Sanction_Creds creds;
+    Mod_Sanction_Creds creds;
 
-    struct GC_Sanction *sanctions = (struct GC_Sanction *)malloc(num_sanctions * sizeof(struct GC_Sanction));
+    Mod_Sanction *sanctions = (Mod_Sanction *)malloc(num_sanctions * sizeof(Mod_Sanction));
 
     if (sanctions == nullptr) {
         return -1;
@@ -2876,7 +2876,7 @@ static int handle_gc_sanctions_list(Messenger *m, int group_number, uint32_t pee
 
     sanctions_list_cleanup(&chat->moderation);
 
-    memcpy(&chat->moderation.sanctions_creds, &creds, sizeof(struct GC_Sanction_Creds));
+    memcpy(&chat->moderation.sanctions_creds, &creds, sizeof(Mod_Sanction_Creds));
     chat->moderation.sanctions = sanctions;
     chat->moderation.num_sanctions = num_sanctions;
 
@@ -2928,7 +2928,7 @@ static int make_gc_mod_list_packet(const GC_Chat *chat, uint8_t *data, uint32_t 
  */
 static int send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn)
 {
-    const size_t mod_list_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    const size_t mod_list_size = chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE;
     const uint32_t length = sizeof(uint16_t) + mod_list_size;
     uint8_t *packet = (uint8_t *)malloc(length);
 
@@ -3041,7 +3041,7 @@ static int update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key
  */
 static int broadcast_gc_mod_list(const GC_Chat *chat)
 {
-    size_t mod_list_size = chat->moderation.num_mods * GC_MOD_LIST_ENTRY_SIZE;
+    size_t mod_list_size = chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE;
     const uint32_t length = sizeof(uint16_t) + mod_list_size;
     uint8_t *packet = (uint8_t *)malloc(length);
 
@@ -3770,14 +3770,14 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
                                       bool add_mod)
 {
     int target_peer_number;
-    uint8_t mod_data[GC_MOD_LIST_ENTRY_SIZE];
+    uint8_t mod_data[MOD_LIST_ENTRY_SIZE];
 
     if (add_mod) {
-        if (length < 1 + GC_MOD_LIST_ENTRY_SIZE) {
+        if (length < 1 + MOD_LIST_ENTRY_SIZE) {
             return -1;
         }
 
-        memcpy(mod_data, data + 1, GC_MODERATION_HASH_SIZE);
+        memcpy(mod_data, data + 1, MOD_MODERATION_HASH_SIZE);
         target_peer_number = get_peer_number_of_sig_pk(chat, mod_data);
 
         if (!gc_peer_number_is_valid(chat, target_peer_number)) {
@@ -3912,7 +3912,7 @@ static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool ad
     }
 
     if (add_mod) {
-        if (chat->moderation.num_mods >= MAX_GC_MODERATORS) {
+        if (chat->moderation.num_mods >= MOD_MAX_NUM_MODERATORS) {
             if (prune_gc_mod_list(chat) != 0) {
                 return -1;
             }
@@ -3935,20 +3935,20 @@ static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool ad
         }
     }
 
-    uint8_t old_hash[GC_MODERATION_HASH_SIZE];
-    memcpy(old_hash, chat->shared_state.mod_list_hash, GC_MODERATION_HASH_SIZE);
+    uint8_t old_hash[MOD_MODERATION_HASH_SIZE];
+    memcpy(old_hash, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
 
     if (mod_list_make_hash(&chat->moderation, chat->shared_state.mod_list_hash) == -1) {
         return -1;
     }
 
     if (sign_gc_shared_state(chat) == -1) {
-        memcpy(chat->shared_state.mod_list_hash, old_hash, GC_MODERATION_HASH_SIZE);
+        memcpy(chat->shared_state.mod_list_hash, old_hash, MOD_MODERATION_HASH_SIZE);
         return -1;
     }
 
     if (broadcast_gc_shared_state(chat) == -1) {
-        memcpy(chat->shared_state.mod_list_hash, old_hash, GC_MODERATION_HASH_SIZE);
+        memcpy(chat->shared_state.mod_list_hash, old_hash, MOD_MODERATION_HASH_SIZE);
         return -1;
     }
 
@@ -3972,10 +3972,10 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
         const uint8_t *public_key,
         bool add_obs)
 {
-    struct GC_Sanction_Creds creds;
+    Mod_Sanction_Creds creds;
 
     if (add_obs) {
-        struct GC_Sanction sanction;
+        Mod_Sanction sanction;
 
         if (sanctions_list_unpack(&sanction, &creds, 1, data, length, nullptr) != 1) {
             return -1;
@@ -3995,7 +3995,7 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
     } else {
-        if (sanctions_creds_unpack(&creds, data, length) != GC_SANCTIONS_CREDENTIALS_SIZE) {
+        if (sanctions_creds_unpack(&creds, data, length) != MOD_SANCTIONS_CREDS_SIZE) {
             return -1;
         }
 
@@ -4127,7 +4127,7 @@ static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_p
  */
 static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -4137,11 +4137,11 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         return -1;
     }
 
-    uint8_t sanction_data[sizeof(struct GC_Sanction) + sizeof(struct GC_Sanction_Creds)];
+    uint8_t sanction_data[sizeof(Mod_Sanction) + sizeof(Mod_Sanction_Creds)];
     uint32_t length = 0;
 
     if (add_obs) {
-        if (chat->moderation.num_sanctions >= MAX_GC_SANCTIONS) {
+        if (chat->moderation.num_sanctions >= MOD_MAX_NUM_SANCTIONS) {
             if (prune_gc_sanctions_list(chat) != 0) {
                 return -1;
             }
@@ -4156,13 +4156,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
             }
         }
 
-        const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-        if (gconn == nullptr) {
-            return -1;
-        }
-
-        struct GC_Sanction sanction;
+        Mod_Sanction sanction;
 
         if (sanctions_list_make_entry(&chat->moderation, gconn->addr.public_key, &sanction, SA_OBSERVER) == -1) {
             LOGGER_WARNING(chat->logger, "sanctions_list_make_entry failed in mod_gc_set_observer");
@@ -4187,7 +4181,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         const uint16_t packed_len = sanctions_creds_pack(&chat->moderation.sanctions_creds, sanction_data,
                                     sizeof(sanction_data));
 
-        if (packed_len != GC_SANCTIONS_CREDENTIALS_SIZE) {
+        if (packed_len != MOD_SANCTIONS_CREDS_SIZE) {
             return -1;
         }
 
@@ -6983,7 +6977,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     chat->shared_state.maxpeers = net_ntohs(save->maxpeers);
     chat->shared_state.password_length = net_ntohs(save->password_length);
     memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
-    memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, GC_MODERATION_HASH_SIZE);
+    memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, MOD_MODERATION_HASH_SIZE);
     chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
 
     chat->topic_info.length = net_ntohs(save->topic_length);
@@ -7004,7 +6998,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     const uint16_t num_mods = net_ntohs(save->num_mods);
 
-    if (mod_list_unpack(&chat->moderation, save->mod_list, num_mods * GC_MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
+    if (mod_list_unpack(&chat->moderation, save->mod_list, num_mods * MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
         return -1;
     }
 
