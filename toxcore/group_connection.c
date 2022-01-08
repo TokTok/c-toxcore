@@ -16,7 +16,6 @@
 #include "Messenger.h"
 #include "crypto_core.h"
 #include "group_chats.h"
-#include "logger.h"
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
@@ -108,7 +107,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id)
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int create_array_entry(const Logger *logger, const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry,
+static int create_array_entry(const Logger *log, const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry,
                               const uint8_t *data, uint32_t length, uint8_t packet_type,
                               uint64_t message_id)
 {
@@ -137,12 +136,12 @@ static int create_array_entry(const Logger *logger, const Mono_Time *mono_time, 
     return 0;
 }
 
-int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
+int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
                           uint32_t length, uint8_t packet_type)
 {
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
-        LOGGER_DEBUG(logger, "Send array overflow");
+        LOGGER_DEBUG(log, "Send array overflow");
         return -1;
     }
 
@@ -150,12 +149,12 @@ int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_C
     GC_Message_Array_Entry *array_entry = &gconn->send_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        LOGGER_DEBUG(logger, "Send array entry isn't empty");
+        LOGGER_DEBUG(log, "Send array entry isn't empty");
         return -1;
     }
 
-    if (create_array_entry(logger, mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
-        LOGGER_WARNING(logger, "Failed to create array entry");
+    if (create_array_entry(log, mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
+        LOGGER_WARNING(log, "Failed to create array entry");
         return -1;
     }
 
@@ -274,12 +273,12 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
         GC_Message_Array_Entry *ary_entry = &gconn->received_array[idx];
 
         if (!array_entry_is_empty(ary_entry)) {
-            LOGGER_DEBUG(chat->logger, "Recv array is not empty");
+            LOGGER_DEBUG(chat->log, "Recv array is not empty");
             return -1;
         }
 
-        if (create_array_entry(chat->logger, chat->mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
-            LOGGER_DEBUG(chat->logger, "Failed to create array entry");
+        if (create_array_entry(chat->log, chat->mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
+            LOGGER_DEBUG(chat->log, "Failed to create array entry");
             return -1;
         }
 
@@ -421,17 +420,17 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
-    const int enc_len = group_packet_wrap(chat->logger, chat->self_public_key, gconn->session_shared_key, packet,
+    const int enc_len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
                                           sizeof(packet), data, length, message_id, packet_type, gconn->addr.public_key,
                                           NET_PACKET_GC_LOSSLESS);
 
     if (enc_len == -1) {
-        LOGGER_WARNING(chat->logger, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
+        LOGGER_WARNING(chat->log, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
         return -1;
     }
 
     if (gcc_send_packet(chat, gconn, packet, enc_len) == -1) {
-        LOGGER_WARNING(chat->logger, "Failed to send packet (type: %u, enc_len: %d)", packet_type, enc_len);
+        LOGGER_WARNING(chat->log, "Failed to send packet (type: %u, enc_len: %d)", packet_type, enc_len);
         return -1;
     }
 

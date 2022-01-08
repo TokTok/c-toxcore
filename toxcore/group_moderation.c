@@ -501,7 +501,7 @@ static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *
                                     uint16_t shared_state_version)
 {
     if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
-        LOGGER_WARNING(moderation->logger, "Invalid credentials signature pk");
+        LOGGER_WARNING(moderation->log, "Invalid credentials signature pk");
         return -1;
     }
 
@@ -512,25 +512,25 @@ static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *
     }
 
     if (memcmp(hash, creds->hash, MOD_SANCTION_HASH_SIZE) != 0) {
-        LOGGER_WARNING(moderation->logger, "Invalid credentials hash");
+        LOGGER_WARNING(moderation->log, "Invalid credentials hash");
         return -1;
     }
 
     if (creds->checksum != sanctions_creds_get_checksum(creds)) {
-        LOGGER_WARNING(moderation->logger, "Invalid credentials checksum");
+        LOGGER_WARNING(moderation->log, "Invalid credentials checksum");
         return -1;
     }
 
     if (shared_state_version > 0) {
         if ((creds->version < moderation->sanctions_creds.version)
                 && !(creds->version == 0 && moderation->sanctions_creds.version == UINT32_MAX)) {
-            LOGGER_WARNING(moderation->logger, "Invalid version");
+            LOGGER_WARNING(moderation->log, "Invalid version");
             return -1;
         }
     }
 
     if (crypto_sign_verify_detached(creds->sig, hash, MOD_SANCTION_HASH_SIZE, creds->sig_pk) == -1) {
-        LOGGER_WARNING(moderation->logger, "Invalid signature");
+        LOGGER_WARNING(moderation->log, "Invalid signature");
         return -1;
     }
 
@@ -542,7 +542,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Cr
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
         if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
-            LOGGER_WARNING(moderation->logger, "Invalid entry");
+            LOGGER_WARNING(moderation->log, "Invalid entry");
             return -1;
         }
     }
@@ -678,17 +678,17 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
                              uint32_t shared_state_version)
 {
     if (moderation->num_sanctions >= MOD_MAX_NUM_SANCTIONS) {
-        LOGGER_WARNING(moderation->logger, "num_sanctions %d exceeds maximum", moderation->num_sanctions);
+        LOGGER_WARNING(moderation->log, "num_sanctions %d exceeds maximum", moderation->num_sanctions);
         return -1;
     }
 
     if (sanctions_list_validate_entry(moderation, sanction) < 0) {
-        LOGGER_ERROR(moderation->logger, "Failed to validate sanction");
+        LOGGER_ERROR(moderation->log, "Failed to validate sanction");
         return -1;
     }
 
     if (sanctions_list_entry_exists(moderation, sanction)) {
-        LOGGER_WARNING(moderation->logger, "Attempted to add duplicate sanction");
+        LOGGER_WARNING(moderation->log, "Attempted to add duplicate sanction");
         return -1;
     }
 
@@ -716,7 +716,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
 
     if (creds) {
         if (sanctions_creds_validate(moderation, new_list, creds, index + 1, shared_state_version) == -1) {
-            LOGGER_WARNING(moderation->logger, "Failed to validate credentials");
+            LOGGER_WARNING(moderation->log, "Failed to validate credentials");
             free(new_list);
             return -1;
         }
@@ -761,7 +761,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
     if (type == SA_OBSERVER) {
         memcpy(sanction->target_public_enc_key, public_key, ENC_PUBLIC_KEY_SIZE);
     } else {
-        LOGGER_ERROR(moderation->logger, "Tried to create sanction with invalid type: %u", type);
+        LOGGER_ERROR(moderation->log, "Tried to create sanction with invalid type: %u", type);
         return -1;
     }
 
@@ -771,7 +771,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
     sanction->type = type;
 
     if (sanctions_list_sign_entry(moderation, sanction) == -1) {
-        LOGGER_ERROR(moderation->logger, "Failed to sign sanction");
+        LOGGER_ERROR(moderation->log, "Failed to sign sanction");
         return -1;
     }
 
@@ -780,7 +780,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
     }
 
     if (sanctions_list_make_creds(moderation) == -1) {
-        LOGGER_ERROR(moderation->logger, "Failed to make credentials for new sanction");
+        LOGGER_ERROR(moderation->log, "Failed to make credentials for new sanction");
         return -1;
     }
 

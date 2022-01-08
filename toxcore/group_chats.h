@@ -282,7 +282,7 @@ typedef struct Saved_Group Saved_Group;
 
 typedef struct GC_Chat {
     Mono_Time       *mono_time;
-    const Logger    *logger;
+    const Logger    *log;
 
     Self_UDP_Status self_udp_status;
     IP_Port         self_ip_port;
@@ -418,7 +418,7 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
  * Returns -1 on failure.
  */
 
-int group_packet_wrap(const Logger *logger, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
                       uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id,
                       uint8_t gp_packet_type, const uint8_t *target_pk, uint8_t net_packet_type);
 

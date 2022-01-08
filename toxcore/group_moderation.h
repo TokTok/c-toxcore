@@ -54,7 +54,7 @@ typedef struct Mod_Sanction {
 } Mod_Sanction;
 
 typedef struct Moderation {
-    const       Logger *logger;
+    const       Logger *log;
 
     Mod_Sanction *sanctions;
     Mod_Sanction_Creds sanctions_creds;
