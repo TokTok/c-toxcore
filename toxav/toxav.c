@@ -108,7 +108,10 @@ struct ToxAV {
     void *vbcb_user_data;
 
     /* keep track of decode times for audio and video */
+
+    /* Must only be accessed from Audio thread */
     DecodeTimeStats audio_stats;
+    /* Must only be accessed from Video thread */
     DecodeTimeStats video_stats;
     /** ToxAV's own mono_time instance */
     Mono_Time *toxav_mono_time;
@@ -253,12 +256,12 @@ Tox *toxav_get_tox(const ToxAV *av)
 
 uint32_t toxav_audio_iteration_interval(const ToxAV *av)
 {
-    return av->calls ? av->audio_stats.interval : IDLE_ITERATION_INTERVAL_MS;
+    return av->audio_stats.interval;
 }
 
 uint32_t toxav_video_iteration_interval(const ToxAV *av)
 {
-    return av->calls ? av->video_stats.interval : IDLE_ITERATION_INTERVAL_MS;
+    return av->video_stats.interval;
 }
 
 uint32_t toxav_iteration_interval(const ToxAV *av)
@@ -276,6 +279,12 @@ uint32_t toxav_iteration_interval(const ToxAV *av)
  */
 static void calc_interval(ToxAV *av, DecodeTimeStats *stats, int32_t frame_time, uint64_t start_time)
 {
+    if (av->calls == nullptr) {
+        // No calls active
+        stats->interval = IDLE_ITERATION_INTERVAL_MS;
+        return;
+    }
+
     stats->interval = frame_time < stats->average ? 0 : (frame_time - stats->average);
     stats->total += current_time_monotonic(av->m->mono_time) - start_time;
 
@@ -295,14 +304,15 @@ static void iterate_common(ToxAV *av, bool audio)
 {
     pthread_mutex_lock(av->mutex);
 
-    if (av->calls == nullptr) {
-        pthread_mutex_unlock(av->mutex);
-        return;
-    }
-
     uint64_t start = current_time_monotonic(av->toxav_mono_time);
     // time until the first audio or video frame is over
     int32_t frame_time = IDLE_ITERATION_INTERVAL_MS;
+
+    DecodeTimeStats *stats = audio ? &av->audio_stats : &av->video_stats;
+
+    if (av->calls == nullptr) {
+        goto EARLY_RETURN;
+    }
 
     for (ToxAVCall *i = av->calls[av->calls_head]; i; i = i->next) {
         if (!i->active) {
@@ -341,7 +351,8 @@ static void iterate_common(ToxAV *av, bool audio)
         }
     }
 
-    DecodeTimeStats *stats = audio ? &av->audio_stats : &av->video_stats;
+EARLY_RETURN:
+
     calc_interval(av, stats, frame_time, start);
     pthread_mutex_unlock(av->mutex);
 }
