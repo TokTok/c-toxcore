@@ -10,10 +10,19 @@
 #ifndef GROUP_MODERATION_H
 #define GROUP_MODERATION_H
 
-#include "group_chats.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "DHT.h"
+#include "logger.h"
 
 /* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
 #define MAX_GC_SANCTIONS 12
+
+#define GC_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
+#define GC_MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
+#define GC_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
+#define MAX_GC_MODERATORS 30
 
 /* Corresponds to GC_Sanction_Creds in group_chats.h */
 #define GC_SANCTIONS_CREDENTIALS_SIZE (sizeof(uint32_t) + GC_SANCTION_HASH_SIZE + sizeof(uint16_t) +\
@@ -40,7 +49,28 @@ struct GC_Sanction {
     uint8_t     signature[SIGNATURE_SIZE];
 };
 
-typedef struct GC_Sanction GC_Sanction;
+struct GC_Sanction_Creds {
+    uint32_t    version;
+    uint8_t     hash[GC_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
+    uint16_t    checksum;  // a sum of the hash
+    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    // Last mod to have modified the sanctions list
+    uint8_t     sig[SIGNATURE_SIZE];    // signature of hash, signed by sig_pk
+};
+
+typedef struct GC_Moderation {
+    const       Logger *logger;
+
+    struct GC_Sanction *sanctions;
+    struct GC_Sanction_Creds sanctions_creds;
+    uint16_t    num_sanctions;
+
+    uint8_t     **mod_list;  // array of public signature keys of all the mods
+    uint16_t    num_mods;
+
+    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
+    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
+} GC_Moderation;
 
 /* Unpacks data into the moderator list.
  * data should contain num_mods entries of size GC_MOD_LIST_ENTRY_SIZE.

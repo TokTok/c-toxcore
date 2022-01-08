@@ -833,7 +833,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return 0;
     }
 
-    const GC_Sanction *sanction = nullptr;
+    const struct GC_Sanction *sanction = nullptr;
     uint8_t target_ext_pk[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {

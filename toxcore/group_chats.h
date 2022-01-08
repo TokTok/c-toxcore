@@ -14,6 +14,7 @@
 
 #include "TCP_connection.h"
 #include "group_announce.h"
+#include "group_moderation.h"
 
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
@@ -183,29 +184,6 @@ typedef enum Group_Message_Ack_Type {
     GR_ACK_RECV    = 0x00,  // indicates a message has been received
     GR_ACK_REQ     = 0x01,  // indicates a message needs to be re-sent
 } Group_Message_Ack_Type;
-
-struct GC_Sanction_Creds {
-    uint32_t    version;
-    uint8_t     hash[GC_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
-    uint16_t    checksum;  // a sum of the hash
-    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    // Last mod to have modified the sanctions list
-    uint8_t     sig[SIGNATURE_SIZE];    // signature of hash, signed by sig_pk
-};
-
-typedef struct GC_Moderation {
-    const       Logger *logger;
-
-    struct GC_Sanction *sanctions;
-    struct GC_Sanction_Creds sanctions_creds;
-    uint16_t    num_sanctions;
-
-    uint8_t     **mod_list;  // array of public signature keys of all the mods
-    uint16_t    num_mods;
-
-    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
-} GC_Moderation;
 
 typedef struct GC_PeerAddress {
     uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
