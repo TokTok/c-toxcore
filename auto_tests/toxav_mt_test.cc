@@ -146,7 +146,7 @@ std::vector<Tox_Ptr> prepare_network(uint32_t count) {
 class AV_State {
  public:
   AV_State() = delete;
-  explicit AV_State(Tox_Ptr tox, std::string name, bool combined = false)
+  explicit AV_State(Tox_Ptr tox, const std::string& name, bool combined = false)
       : tox_(std::move(tox)),
         combined_av_(combined),
         stop_threads_{false},
