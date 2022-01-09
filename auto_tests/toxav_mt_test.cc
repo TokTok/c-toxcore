@@ -151,6 +151,7 @@ class AV_State {
         combined_av_(combined),
         stop_threads_{false},
         incomming_{false},
+        hangup_{false},
         call_state_{0},
         video_received_{false},
         audio_received_{false},
