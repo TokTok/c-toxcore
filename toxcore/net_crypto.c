@@ -1179,9 +1179,11 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
         Packet_Data *dt1 = nullptr;
 
         pthread_mutex_lock(conn->mutex);
+
         if (get_data_pointer(c->log, &conn->send_array, &dt1, packet_num) == 1) {
             dt1->sent_time = current_time_monotonic(c->mono_time);
         }
+
         pthread_mutex_unlock(conn->mutex);
     } else {
         conn->maximum_speed_reached = 1;
