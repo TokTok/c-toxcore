@@ -180,6 +180,7 @@ class AV_State {
   std::mutex &get_tox_loop_lock() { return tox_loop_lock_; }
   bool in_call() const { return in_call_.load(); }
   uint32_t get_call_state() const { return call_state_.load(); }
+  void hangup() {hangup_.store(true);}
   void stop_threads() {
     if (stop_threads_.exchange(true)) {
       // already stopped
@@ -201,7 +202,6 @@ class AV_State {
 
   static constexpr uint32_t TEST_A_BITRATE = 48;    // In kbit/s
   static constexpr uint32_t TEST_V_BITRATE = 4000;  // In kbit/s
-  static constexpr std::chrono::duration<double> AUTO_HANGUP_TIME = std::chrono::seconds(2);
 
  private:
   enum class Iteration_Type {
@@ -225,10 +225,9 @@ class AV_State {
     ck_assert(state != TOXAV_FRIEND_CALL_STATE_ERROR);
     std::cout << "[" << me->name_ << "] State changed to: " << std::to_string(state) << std::endl;
     me->call_state_.store(state);
-    Time_Point tp = me->call_start_.load();
 
-    if (state != TOXAV_FRIEND_CALL_STATE_NONE && tp == Time_Point()) {
-      me->call_start_.store(Clock::now());
+    if (state != TOXAV_FRIEND_CALL_STATE_NONE && me->call_start_ == Time_Point()) {
+      me->call_start_ = Clock::now();
       me->in_call_.store(true);
     }
   }
@@ -292,14 +291,13 @@ class AV_State {
 
         if (in_call_.load()) {
           uint32_t state = call_state_.load();
-          Time_Point tp = call_start_.load();
-          std::chrono::duration<double> call_time = Clock::now() - tp;
+          std::chrono::duration<double> call_time = Clock::now() - call_start_;
 
           if (state == TOXAV_FRIEND_CALL_STATE_FINISHED) {
             std::cout << "[" << name_ << "] Call ended by other side after: " << call_time.count()
                       << "s" << std::endl;
             in_call_.store(false);
-          } else if (tp > Time_Point() && call_time > AV_State::AUTO_HANGUP_TIME) {
+          } else if (hangup_.exchange(false)) {
             std::cout << "[" << name_ << "] Ending call after: " << call_time.count() << "s"
                       << std::endl;
             Toxav_Err_Call_Control cc_err;
@@ -361,9 +359,10 @@ class AV_State {
 
   std::atomic_bool stop_threads_;
   std::atomic_bool incomming_;
+  std::atomic_bool hangup_;
   std::atomic_uint32_t call_state_;
 
-  std::atomic<Time_Point> call_start_{Time_Point()};
+  Time_Point call_start_;
   std::atomic_bool in_call_;
 
   std::atomic_bool video_received_;
@@ -389,7 +388,6 @@ struct DUMMY_VIDEO {
 };
 
 // FIXME: once we upgrade to C++17, remove these, reason: https://stackoverflow.com/a/28846608
-constexpr std::chrono::duration<double> AV_State::AUTO_HANGUP_TIME;
 constexpr int16_t DUMMY_PCM::pcm[];
 constexpr uint8_t DUMMY_VIDEO::y[];
 constexpr uint8_t DUMMY_VIDEO::u[];
@@ -455,6 +453,18 @@ static void test_av(bool combined_av) {
                                   DUMMY_VIDEO::u, DUMMY_VIDEO::v, error);
   };
 
+  auto poll_av_received = [](AV_State &av, uint32_t max_tries, uint32_t delay_ms) -> bool {
+    for (uint32_t i = 0; i < max_tries; ++i) {
+      if (av.did_receive_audio() && av.did_receive_video()) {
+        return true;
+      }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+
+    return false;
+  };
+
   // Send frames from alice to bob
   {
     std::lock_guard<std::mutex>(alice.get_tox_loop_lock());
@@ -465,6 +475,9 @@ static void test_av(bool combined_av) {
     ck_assert(toxav_video_send_frame_dummy(alice.get_ToxAV(), &err));
     ck_assert(err == TOXAV_ERR_SEND_FRAME_OK);
   }
+
+  // Give up to 1s for frames to arrive
+  ck_assert(poll_av_received(bob, 10, 100));
 
   // Send frames from bob to alice
   {
@@ -477,8 +490,14 @@ static void test_av(bool combined_av) {
     ck_assert(err == TOXAV_ERR_SEND_FRAME_OK);
   }
 
-  // auto hangup after 2s, wait 3s for this
-  ck_assert(poll_state(alice, TOXAV_FRIEND_CALL_STATE_FINISHED, 30, 100));
+  // Give up to 1s for frames to arrive
+  ck_assert(poll_av_received(alice, 10, 100));
+
+  // Let bob hangup, no locking needed since we use atomics
+  bob.hangup();
+
+  // wait 1s for hangup confirmed
+  ck_assert(poll_state(alice, TOXAV_FRIEND_CALL_STATE_FINISHED, 10, 100));
 
   // TODO: why is Bobs call state not updated?
   // ck_assert(poll_state(bob, TOXAV_FRIEND_CALL_STATE_FINISHED, 30, 100)); fails
@@ -490,11 +509,6 @@ static void test_av(bool combined_av) {
 
   alice.stop_threads();
   bob.stop_threads();
-
-  ck_assert(alice.did_receive_audio());
-  ck_assert(alice.did_receive_video());
-  ck_assert(bob.did_receive_audio());
-  ck_assert(bob.did_receive_video());
 }
 
 }  // namespace
