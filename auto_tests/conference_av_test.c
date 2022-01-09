@@ -329,7 +329,7 @@ static void run_conference_tests(Tox **toxes, State *state)
 
     for (uint32_t i = 0; i < NUM_AV_GROUP_TOX; ++i) {
         if (restarting[i]) {
-            struct Tox_Options *const options = tox_options_new(nullptr);
+            Tox_Options *const options = tox_options_new(nullptr);
             tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
             tox_options_set_savedata_data(options, save[i], save_size[i]);
             toxes[i] = tox_new_log(options, nullptr, &state[i].index);
