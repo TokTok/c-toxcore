@@ -145,7 +145,8 @@ std::vector<Tox_Ptr> prepare_network(uint32_t count) {
 
 class AV_State {
  public:
-  explicit AV_State(Tox_Ptr tox, std::string name, bool combined = false) noexcept
+  AV_State() = delete;
+  explicit AV_State(Tox_Ptr tox, std::string name, bool combined = false)
       : tox_(std::move(tox)),
         combined_av_(combined),
         stop_threads_{false},
@@ -362,7 +363,7 @@ class AV_State {
   std::atomic_bool incomming_;
   std::atomic_uint32_t call_state_;
 
-  std::atomic<Time_Point> call_start_{};
+  std::atomic<Time_Point> call_start_{Time_Point()};
   std::atomic_bool in_call_;
 
   std::atomic_bool video_received_;
