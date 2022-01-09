@@ -851,8 +851,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
         return -1;
     }
 
-    if (sanctions_list_remove_observer(&chat->moderation, sanction->target_public_enc_key, nullptr,
-                                       chat->shared_state.version) == -1) {
+    if (sanctions_list_remove_observer(&chat->moderation, sanction->target_public_enc_key, nullptr) == -1) {
         LOGGER_WARNING(chat->log, "Failed to remove entry from observer list");
         return -1;
     }
@@ -2578,12 +2577,6 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, uint32_t p
     memcpy(&chat->shared_state, &new_shared_state, sizeof(GC_SharedState));
     memcpy(chat->shared_state_sig, signature, sizeof(chat->shared_state_sig));
 
-    /* make sure we set founder PK on initial sync */
-    if (chat->connection_state != CS_CONNECTED) {
-        memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->shared_state.founder_public_key),
-               SIG_PUBLIC_KEY_SIZE);
-    }
-
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
 
     return 0;
@@ -2749,8 +2742,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, uint32_t
         return handle_gc_sanctions_list_error(chat, peer_number);
     }
 
-    if (sanctions_list_check_integrity(&chat->moderation, &creds, sanctions, num_sanctions,
-                                       chat->shared_state.version) == -1) {
+    if (sanctions_list_check_integrity(&chat->moderation, &creds, sanctions, num_sanctions) == -1) {
         LOGGER_WARNING(chat->log, "Sanctions list failed integrity check");
         free(sanctions);
         return handle_gc_sanctions_list_error(chat, peer_number);
@@ -3824,8 +3816,7 @@ static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool ad
  * Return -1 if data is invalid format.
  */
 static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, uint32_t length,
-        const uint8_t *public_key,
-        bool add_obs)
+        const uint8_t *public_key, bool add_obs)
 {
     Mod_Sanction_Creds creds;
 
@@ -3846,7 +3837,7 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
 
-        if (sanctions_list_add_entry(&chat->moderation, &sanction, &creds, chat->shared_state.version) == -1) {
+        if (sanctions_list_add_entry(&chat->moderation, &sanction, &creds) == -1) {
             return 1;
         }
     } else {
@@ -3863,7 +3854,7 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return 1;
         }
 
-        if (sanctions_list_remove_observer(&chat->moderation, public_key, &creds, chat->shared_state.version) == -1) {
+        if (sanctions_list_remove_observer(&chat->moderation, public_key, &creds) == -1) {
             return 1;
         }
     }
@@ -4019,8 +4010,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
 
         length += packed_len;
     } else {
-        if (sanctions_list_remove_observer(&chat->moderation, gconn->addr.public_key, nullptr,
-                                           chat->shared_state.version) == -1) {
+        if (sanctions_list_remove_observer(&chat->moderation, gconn->addr.public_key, nullptr) == -1) {
             LOGGER_WARNING(chat->log, "failed to remove sanction");
             return -1;
         }
@@ -6545,12 +6535,22 @@ static int init_gc_shared_state_founder(GC_Chat *chat, Group_Privacy_State priva
                                         uint16_t name_length)
 {
     memcpy(chat->shared_state.founder_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
     memcpy(chat->shared_state.group_name, group_name, name_length);
     chat->shared_state.group_name_len = name_length;
     chat->shared_state.privacy_state = privacy_state;
 
     return sign_gc_shared_state(chat);
+}
+
+/* Initializes shared state for moderation object. This must be called before any moderation
+ * or sanctions related operations.
+ */
+static void init_gc_moderation(GC_Chat *chat)
+{
+    chat->moderation.founder_public_sig_key = get_sig_pk(chat->shared_state.founder_public_key);
+    chat->moderation.self_public_sig_key = get_sig_pk(chat->self_public_key);
+    chat->moderation.self_secret_sig_key = get_sig_sk(chat->self_secret_key);
+    chat->moderation.shared_state_version = &chat->shared_state.version;
 }
 
 static int create_new_chat_ext_keypair(GC_Chat *chat);
@@ -6613,17 +6613,25 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     self_gc_set_ext_public_key(chat, chat->self_public_key);
 
     init_gc_shared_state(chat);
+    init_gc_moderation(chat);
 
     return group_number;
 }
 
 /* Inits the sanctions list credentials. This should be called by the group founder on creation.
  *
+ * This function must be called after init_gc_moderation().
+ *
  * Returns 0 on success.
  * Returns -1 on failure.
  */
 static int init_gc_sanctions_creds(GC_Chat *chat)
 {
+    if (chat->moderation.founder_public_sig_key == nullptr || chat->moderation.self_secret_sig_key == nullptr) {
+        LOGGER_FATAL(chat->log, "moderation object is not initialized");
+        return -1;
+    }
+
     if (sanctions_list_make_creds(&chat->moderation) == -1) {
         return -1;
     }
@@ -6755,11 +6763,6 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
-    memcpy(chat->moderation.founder_public_sig_key, get_sig_pk(chat->shared_state.founder_public_key),
-           SIG_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_secret_sig_key, get_sig_sk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
-
     if (peer_add(chat, nullptr, save->self_public_key) != 0) {
         return -1;
     }
@@ -6775,6 +6778,8 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     if (self_gc_set_nick(chat, save->self_nick, self_nick_length) == -1) {
         return -1;
     }
+
+    init_gc_moderation(chat);
 
     self_gc_set_role(chat, (Group_Role) save->self_role);
     self_gc_set_status(chat, (Group_Peer_Status) save->self_status);
@@ -6847,6 +6852,8 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
         group_delete(c, chat);
         return -4;
     }
+
+    init_gc_moderation(chat);
 
     if (init_gc_sanctions_creds(chat) == -1) {
         group_delete(c, chat);
@@ -7357,7 +7364,6 @@ static void group_cleanup(GC_Session *c, GC_Chat *chat)
     crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
     crypto_memunlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
     crypto_memunlock(chat->shared_state.password, sizeof(chat->shared_state.password));
-    crypto_memunlock(chat->moderation.self_secret_sig_key, sizeof(chat->moderation.self_secret_sig_key));
 }
 
 /* Deletes chat from group chat array and cleans up.
@@ -7509,11 +7515,7 @@ static int create_new_chat_ext_keypair(GC_Chat *chat)
         return -1;
     }
 
-    memcpy(chat->moderation.self_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
-    memcpy(chat->moderation.self_secret_sig_key, get_sig_sk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
-
     crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
-    crypto_memlock(chat->moderation.self_secret_sig_key, sizeof(chat->moderation.self_secret_sig_key));
 
     return 0;
 }

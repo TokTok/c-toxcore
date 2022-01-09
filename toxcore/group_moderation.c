@@ -497,8 +497,7 @@ int sanctions_list_make_creds(Moderation *moderation)
  * Returns -1 on failure.
  */
 static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *sanctions,
-                                    Mod_Sanction_Creds *creds, uint16_t num_sanctions,
-                                    uint16_t shared_state_version)
+                                    Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
     if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
         LOGGER_WARNING(moderation->log, "Invalid credentials signature pk");
@@ -521,7 +520,7 @@ static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *
         return -1;
     }
 
-    if (shared_state_version > 0) {
+    if (*moderation->shared_state_version > 0) {
         if ((creds->version < moderation->sanctions_creds.version)
                 && !(creds->version == 0 && moderation->sanctions_creds.version == UINT32_MAX)) {
             LOGGER_WARNING(moderation->log, "Invalid version");
@@ -538,7 +537,7 @@ static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *
 }
 
 int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Creds *creds,
-                                   Mod_Sanction *sanctions, uint16_t num_sanctions, uint32_t shared_state_version)
+                                   Mod_Sanction *sanctions, uint16_t num_sanctions)
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
         if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
@@ -547,7 +546,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Cr
         }
     }
 
-    if (sanctions_creds_validate(moderation, sanctions, creds, num_sanctions, shared_state_version) == -1) {
+    if (sanctions_creds_validate(moderation, sanctions, creds, num_sanctions) == -1) {
         return -1;
     }
 
@@ -559,8 +558,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Cr
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, Mod_Sanction_Creds *creds,
-                                       uint32_t shared_state_version)
+static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, Mod_Sanction_Creds *creds)
 {
     if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
         return -1;
@@ -570,7 +568,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
 
     if (new_num == 0) {
         if (creds) {
-            if (sanctions_creds_validate(moderation, nullptr, creds, 0, shared_state_version) == -1) {
+            if (sanctions_creds_validate(moderation, nullptr, creds, 0) == -1) {
                 return -1;
             }
 
@@ -604,7 +602,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
     }
 
     if (creds) {
-        if (sanctions_creds_validate(moderation, new_list, creds, new_num, shared_state_version) == -1) {
+        if (sanctions_creds_validate(moderation, new_list, creds, new_num) == -1) {
             free(new_list);
             return -1;
         }
@@ -620,8 +618,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
 }
 
 int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
-                                   Mod_Sanction_Creds *creds,
-                                   uint32_t shared_state_version)
+                                   Mod_Sanction_Creds *creds)
 {
     for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
         const Mod_Sanction *curr_sanction = &moderation->sanctions[i];
@@ -631,7 +628,7 @@ int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public
         }
 
         if (memcmp(public_key, curr_sanction->target_public_enc_key, ENC_PUBLIC_KEY_SIZE) == 0) {
-            if (sanctions_list_remove_index(moderation, i, creds, shared_state_version) == -1) {
+            if (sanctions_list_remove_index(moderation, i, creds) == -1) {
                 return -1;
             }
 
@@ -674,8 +671,7 @@ bool sanctions_list_entry_exists(const Moderation *moderation, Mod_Sanction *san
 
 static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction);
 
-int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod_Sanction_Creds *creds,
-                             uint32_t shared_state_version)
+int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod_Sanction_Creds *creds)
 {
     if (moderation->num_sanctions >= MOD_MAX_NUM_SANCTIONS) {
         LOGGER_WARNING(moderation->log, "num_sanctions %d exceeds maximum", moderation->num_sanctions);
@@ -715,7 +711,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
     memcpy(&new_list[index], sanction, sizeof(Mod_Sanction));
 
     if (creds) {
-        if (sanctions_creds_validate(moderation, new_list, creds, index + 1, shared_state_version) == -1) {
+        if (sanctions_creds_validate(moderation, new_list, creds, index + 1) == -1) {
             LOGGER_WARNING(moderation->log, "Failed to validate credentials");
             free(new_list);
             return -1;
@@ -775,7 +771,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
         return -1;
     }
 
-    if (sanctions_list_add_entry(moderation, sanction, nullptr, 0) == -1) {
+    if (sanctions_list_add_entry(moderation, sanction, nullptr) == -1) {
         return -1;
     }
 
