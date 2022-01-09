@@ -360,7 +360,7 @@ class AV_State {
   std::atomic_bool incomming_;
   std::atomic_uint32_t call_state_;
 
-  std::atomic<Time_Point> call_start_;
+  std::atomic<Time_Point> call_start_{};
   std::atomic_bool in_call_;
 
   std::atomic_bool video_received_;
