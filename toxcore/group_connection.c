@@ -424,13 +424,13 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
                                           sizeof(packet), data, length, message_id, packet_type, gconn->addr.public_key,
                                           NET_PACKET_GC_LOSSLESS);
 
-    if (enc_len == -1) {
-        LOGGER_WARNING(chat->log, "Failed to wrap packet (type: %u, enc_len: %d)", packet_type, enc_len);
+    if (enc_len < 0) {
+        LOGGER_WARNING(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
         return -1;
     }
 
     if (gcc_send_packet(chat, gconn, packet, enc_len) == -1) {
-        LOGGER_WARNING(chat->log, "Failed to send packet (type: %u, enc_len: %d)", packet_type, enc_len);
+        LOGGER_WARNING(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
         return -1;
     }
 
@@ -506,3 +506,4 @@ void gcc_cleanup(GC_Chat *chat)
 }
 
 #endif /* VANILLA_NACL */
+

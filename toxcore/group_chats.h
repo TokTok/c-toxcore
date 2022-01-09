@@ -414,10 +414,11 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
  * Adds encrypted header consisting of: packet type, message_id (only for lossless packets).
  * Adds plaintext header consisting of: packet identifier, self public encryption key, nonce.
  *
- * Returns length of encrypted packet on success.
- * Returns -1 on failure.
+ * Return length of encrypted packet on success.
+ * Return -1 if plaintext length is invalid.
+ * Return -2 if malloc fails.
+ * Return -3 if encryption fails.
  */
-
 int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
                       uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id,
                       uint8_t gp_packet_type, const uint8_t *target_pk, uint8_t net_packet_type);

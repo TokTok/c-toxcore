@@ -1145,8 +1145,9 @@ static int sign_gc_shared_state(GC_Chat *chat)
  * `message_id` should be set to NULL for lossy packets.
  *
  * Returns length of the plaintext data on success.
- * Returns -1 on decryption failure.
- * Returns -2 if length is invalid.
+ * Return -1 if encrypted payload length is invalid.
+ * Return -2 on decryption failure.
+ * Return -3 if plaintext payload length is invalid.
  */
 static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
@@ -1161,7 +1162,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
                                            length - CRYPTO_NONCE_SIZE, plain);
 
     if (plain_len <= 0) {
-        return -1;
+        return -2;
     }
 
     const int min_plain_len = message_id != nullptr ? 1 + GC_MESSAGE_ID_BYTES : 1;
@@ -1174,7 +1175,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
         --plain_len;
 
         if (plain_len < min_plain_len) {
-            return -2;
+            return -3;
         }
     }
 
@@ -1226,7 +1227,7 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     uint8_t *encrypt = (uint8_t *)malloc(encrypt_buf_size);
 
     if (encrypt == nullptr) {
-        return -1;
+        return -2;
     }
 
     const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
@@ -1234,7 +1235,7 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     if (enc_len != encrypt_buf_size) {
         LOGGER_ERROR(log, "encryption failed. packet type: 0x%02x, enc_len: %d", gp_packet_type, enc_len);
         free(encrypt);
-        return -1;
+        return -3;
     }
 
     packet[0] = net_packet_type;
@@ -1268,8 +1269,8 @@ static int send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gco
                                       sizeof(packet), data, length, 0, packet_type, gconn->addr.public_key,
                                       NET_PACKET_GC_LOSSY);
 
-    if (len == -1) {
-        LOGGER_WARNING(chat->log, "group_packet_wrap failed (type: 0x%02x, len: %d)", packet_type, len);
+    if (len < 0) {
+        LOGGER_WARNING(chat->log, "group_packet_wrap failed (type: 0x%02x, error: %d)", packet_type, len);
         return -1;
     }
 
@@ -4828,7 +4829,8 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
  * The packet payload should begin with a nonce.
  *
  * Returns length of plaintext data on success.
- * Returns -1 on failure.
+ * Return -1 if length is invalid.
+ * Return -2 if decryption fails.
  */
 static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_sk, const uint8_t *sender_pk,
         uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
@@ -4843,7 +4845,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
 
     if (plain_len != plain_size) {
         LOGGER_WARNING(log, "decrypt handshake request failed: len: %d, size: %zu", plain_len, plain_size);
-        return -1;
+        return -2;
     }
 
     return plain_len;
@@ -4854,8 +4856,10 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
  * Adds plaintext header consisting of: packet identifier, target public encryption key,
  * self public encryption key, nonce.
  *
- * Returns length of encrypted packet on success.
- * Returns -1 on failure.
+ * Return length of encrypted packet on success.
+ * Return -1 if packet size is invalid.
+ * Return -2 on malloc failure.
+ * Return -3 if encryption fails.
  */
 static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk, const uint8_t *self_sk,
                                        const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
@@ -4873,7 +4877,7 @@ static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk
     uint8_t *encrypt = (uint8_t *)malloc(encrypt_buf_size);
 
     if (encrypt == nullptr) {
-        return -1;
+        return -2;
     }
 
     const int enc_len = encrypt_data(target_pk, self_sk, nonce, data, length, encrypt);
@@ -4881,7 +4885,7 @@ static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk
     if (enc_len != encrypt_buf_size) {
         LOGGER_ERROR(log, "Failed to encrypt group handshake packet (len: %d)", enc_len);
         free(encrypt);
-        return -1;
+        return -3;
     }
 
     packet[0] = NET_PACKET_GC_HANDSHAKE;
@@ -4940,6 +4944,7 @@ static int make_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
                         gconn->addr.public_key, packet, packet_size, data, length);
 
     if (enc_len != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + nodes_size) {
+        LOGGER_WARNING(chat->log, "Failed to wrap handshake packet: %d", enc_len);
         return -1;
     }
 
@@ -5520,7 +5525,7 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
     const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
-        LOGGER_DEBUG(chat->log, "Failed to unwrap lossy packet");
+        LOGGER_DEBUG(chat->log, "Failed to unwrap lossy packet: %d", len);
         return -1;
     }
 
