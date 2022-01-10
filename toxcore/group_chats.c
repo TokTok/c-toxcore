@@ -2592,7 +2592,7 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
 
         if (c->password) {
             c->password(c->messenger, chat->group_number, chat->shared_state.password,
-                           chat->shared_state.password_length, userdata);
+                        chat->shared_state.password_length, userdata);
         }
     }
 
@@ -4082,8 +4082,8 @@ static int handle_gc_set_observer(const GC_Session *c, GC_Chat *chat, uint32_t p
     if (target_gconn != nullptr) {
         if (c->moderation) {
             c->moderation(c->messenger, chat->group_number, chat->group[peer_number].peer_id,
-                             chat->group[target_peer_number].peer_id,
-                             add_obs ? MV_OBSERVER : MV_USER, userdata);
+                          chat->group[target_peer_number].peer_id,
+                          add_obs ? MV_OBSERVER : MV_USER, userdata);
         }
     }
 
@@ -4508,7 +4508,7 @@ static int handle_gc_message(const GC_Session *c, const GC_Chat *chat, uint32_t 
 
     if (c->message) {
         c->message(c->messenger, chat->group_number, chat->group[peer_number].peer_id, cb_type, data, length,
-                      userdata);
+                   userdata);
     }
 
     return 0;
@@ -4597,7 +4597,7 @@ static int handle_gc_private_message(const GC_Session *c, const GC_Chat *chat, u
 
     if (c->private_message) {
         c->private_message(c->messenger, chat->group_number, chat->group[peer_number].peer_id,
-                              message_type, data + 1, length - 1, userdata);
+                           message_type, data + 1, length - 1, userdata);
     }
 
     return 0;
@@ -4679,7 +4679,7 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, uint32_t peer
     if (peer_number_is_self(target_peer_number)) {
         if (c->moderation) {
             c->moderation(c->messenger, chat->group_number, chat->group[peer_number].peer_id,
-                             chat->group[target_peer_number].peer_id, MV_KICK, userdata);
+                          chat->group[target_peer_number].peer_id, MV_KICK, userdata);
         }
 
         for (uint32_t i = 1; i < chat->numpeers; ++i) {
@@ -4697,7 +4697,7 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     if (c->moderation) {
         c->moderation(c->messenger, chat->group_number, chat->group[peer_number].peer_id,
-                         chat->group[target_peer_number].peer_id, MV_KICK, userdata);
+                      chat->group[target_peer_number].peer_id, MV_KICK, userdata);
     }
 
     gcc_mark_for_deletion(&chat->gcc[target_peer_number], chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
@@ -6029,7 +6029,7 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
     /* Needs to occur before peer is removed */
     if (exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && peer_confirmed) {
         c->peer_exit(c->messenger, chat->group_number, chat->group[peer_number].peer_id, exit_type,
-                        chat->group[peer_number].nick, chat->group[peer_number].nick_length, data, length, userdata);
+                     chat->group[peer_number].nick, chat->group[peer_number].nick_length, data, length, userdata);
     }
 
     gcc_peer_cleanup(gconn);
