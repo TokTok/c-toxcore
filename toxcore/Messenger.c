@@ -2511,8 +2511,8 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
 
             if (m->group_invite && data[1] == GROUP_INVITE && data_length != 2 + GC_JOIN_DATA_LENGTH) {
                 if (group_not_added(m->group_handler, data + 2, data_length - 1)) {
-                    (*m->group_invite)(m, i, data + 2, GC_JOIN_DATA_LENGTH,
-                                       data + 2 + GC_JOIN_DATA_LENGTH, data_length - 2 - GC_JOIN_DATA_LENGTH, userdata);
+                    m->group_invite(m, i, data + 2, GC_JOIN_DATA_LENGTH,
+                                    data + 2 + GC_JOIN_DATA_LENGTH, data_length - 2 - GC_JOIN_DATA_LENGTH, userdata);
                 }
             } else if (data[1] == GROUP_INVITE_ACCEPTED) {
                 handle_gc_invite_accepted_packet(m->group_handler, i, data + 2, data_length - 2);
@@ -3227,7 +3227,7 @@ static uint32_t saved_groups_size(const Messenger *m)
 
 static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
-    Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
+    Saved_Group *temp = (Saved_Group *)calloc(1, sizeof(Saved_Group));
 
     if (temp == nullptr) {
         LOGGER_ERROR(m->log, "Failed to allocate memory for saved group");
@@ -3269,7 +3269,7 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
         return STATE_LOAD_STATUS_ERROR; // TODO(endoffile78): error or continue?
     }
 
-    Saved_Group *temp = (Saved_Group *)malloc(sizeof(Saved_Group));
+    Saved_Group *temp = (Saved_Group *)calloc(1, sizeof(Saved_Group));
 
     if (temp == nullptr) {
         return STATE_LOAD_STATUS_ERROR;
