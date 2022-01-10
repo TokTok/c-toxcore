@@ -35,7 +35,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length
         return 0;
     }
 
-    uint8_t **tmp_list = (uint8_t **)malloc(sizeof(uint8_t *) * num_mods);
+    uint8_t **tmp_list = (uint8_t **)calloc(num_mods, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return -1;
@@ -582,7 +582,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
 
     /* Operate on a copy of the list in case something goes wrong. */
     const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
-    Mod_Sanction *sanctions_copy = (Mod_Sanction *)malloc(old_size);
+    Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(moderation->num_sanctions, sizeof(Mod_Sanction));
 
     if (sanctions_copy == nullptr) {
         return -1;
@@ -690,7 +690,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
 
     /* Operate on a copy of the list in case something goes wrong. */
     const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
-    Mod_Sanction *sanctions_copy = (Mod_Sanction *)malloc(old_size);
+    Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(moderation->num_sanctions, sizeof(Mod_Sanction));
 
     if (sanctions_copy == nullptr) {
         return -1;
