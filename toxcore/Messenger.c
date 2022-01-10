@@ -2319,7 +2319,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             uint8_t type = packet_id - PACKET_ID_MESSAGE;
 
             if (m->friend_message) {
-                (*m->friend_message)(m, i, type, message_terminated, message_length, userdata);
+                m->friend_message(m, i, type, message_terminated, message_length, userdata);
             }
 
             break;
@@ -2331,7 +2331,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             }
 
             if (m->conference_invite) {
-                (*m->conference_invite)(m, i, data, data_length, userdata);
+                m->conference_invite(m, i, data, data_length, userdata);
             }
 
             break;
@@ -2393,8 +2393,8 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             real_filenumber <<= 16;
 
             if (m->file_sendrequest) {
-                (*m->file_sendrequest)(m, i, real_filenumber, file_type, filesize, filename, filename_length,
-                                       userdata);
+                m->file_sendrequest(m, i, real_filenumber, file_type, filesize, filename, filename_length,
+                                    userdata);
             }
 
             break;
@@ -2451,7 +2451,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             uint32_t real_filenumber = filenumber;
             real_filenumber += 1;
             real_filenumber <<= 16;
-            uint16_t file_data_length = (data_length - 1);
+            uint16_t file_data_length = data_length - 1;
             const uint8_t *file_data;
 
             if (file_data_length == 0) {
@@ -2466,7 +2466,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             }
 
             if (m->file_filedata) {
-                (*m->file_filedata)(m, i, real_filenumber, position, file_data, file_data_length, userdata);
+                m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
             }
 
             ft->transferred += file_data_length;
@@ -2478,7 +2478,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
 
                 /* Full file received. */
                 if (m->file_filedata) {
-                    (*m->file_filedata)(m, i, real_filenumber, position, file_data, file_data_length, userdata);
+                    m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
                 }
             }
 
@@ -2496,7 +2496,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             }
 
             if (m->msi_packet) {
-                (*m->msi_packet)(m, i, data, data_length, m->msi_packet_userdata);
+                m->msi_packet(m, i, data, data_length, m->msi_packet_userdata);
             }
 
             break;
@@ -2599,7 +2599,7 @@ static void connection_status_callback(Messenger *m, void *userdata)
 
     if (conn_status != m->last_connection_status) {
         if (m->core_connection_change) {
-            (*m->core_connection_change)(m, conn_status, userdata);
+            m->core_connection_change(m, conn_status, userdata);
         }
 
         m->last_connection_status = conn_status;

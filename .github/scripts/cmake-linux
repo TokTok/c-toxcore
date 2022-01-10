@@ -3,21 +3,21 @@
 set -eu
 
 CACHEDIR="$HOME/cache"
-NPROC=$(sysctl -n hw.physicalcpu)
+NPROC=$(nproc)
 
-# Workaround for bug in Homebrew where it only finds an old Ruby version.
-brew update
+sudo apt-get install -y --no-install-recommends libopus-dev libsodium-dev libvpx-dev ninja-build
 
-brew install libconfig libsodium libvpx opus
+. ".github/scripts/flags-$CC.sh"
 
-. ".travis/flags-clang.sh"
-
-add_ld_flag -undefined error
+add_ld_flag -Wl,-z,defs
 
 # Make compilation error on a warning
 add_flag -Werror
 
-cmake -B_build -H. \
+# Coverage flags.
+add_flag -fprofile-arcs -ftest-coverage
+
+cmake -B_build -H. -GNinja \
   -DCMAKE_C_FLAGS="$C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS="$LD_FLAGS" \
@@ -25,13 +25,15 @@ cmake -B_build -H. \
   -DCMAKE_INSTALL_PREFIX:PATH="$PWD/_install" \
   -DMIN_LOGGER_LEVEL=TRACE \
   -DMUST_BUILD_TOXAV=ON \
-  -DNON_HERMETIC_TESTS=ON \
+  -DNON_HERMETIC_TESTS=OFF \
+  -DSTRICT_ABI=ON \
   -DTEST_TIMEOUT_SECONDS=120 \
   -DUSE_IPV6=OFF \
   -DAUTOTEST=ON
 
+cmake --build _build --parallel "$NPROC" --target install -- -k 0
+
 cd _build # pushd
-make "-j$NPROC" -k install
-make "-j$NPROC" test ARGS="-j50" ||
-  make "-j$NPROC" test ARGS="-j50 --rerun-failed" CTEST_OUTPUT_ON_FAILURE=1
+ctest -j50 --output-on-failure ||
+  ctest -j50 --output-on-failure --rerun-failed
 cd - # popd

@@ -107,7 +107,11 @@
 #endif
 
 #if !defined(OS_WIN32)
-#define TOX_EWOULDBLOCK EWOULDBLOCK
+
+static bool should_ignore_recv_error(int err)
+{
+    return err == EWOULDBLOCK;
+}
 
 static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufsize)
 {
@@ -134,7 +138,12 @@ static int inet_pton6(const char *addrString, struct in6_addr *addrbuf)
 #define IPV6_V6ONLY 27
 #endif
 
-#define TOX_EWOULDBLOCK WSAEWOULDBLOCK
+static bool should_ignore_recv_error(int err)
+{
+    // We ignore WSAECONNRESET as Windows helpfully* sends that error if a
+    // previously sent UDP packet wasn't delivered.
+    return err == WSAEWOULDBLOCK || err == WSAECONNRESET;
+}
 
 static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufsize)
 {
@@ -596,7 +605,7 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
     if (fail_or_len < 0) {
         int error = net_error();
 
-        if (fail_or_len < 0 && error != TOX_EWOULDBLOCK) {
+        if (!should_ignore_recv_error(error)) {
             const char *strerror = net_new_strerror(error);
             LOGGER_ERROR(log, "Unexpected error reading from socket: %u, %s", error, strerror);
             net_kill_strerror(strerror);
@@ -1370,7 +1379,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
         return -1;
     }
 
-    // Used to avoid malloc parameter overflow
+    // Used to avoid calloc parameter overflow
     const size_t max_count = min_u64(SIZE_MAX, INT32_MAX) / sizeof(IP_Port);
     int type = make_socktype(tox_type);
     struct addrinfo *cur;
@@ -1395,7 +1404,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
         return 0;
     }
 
-    *res = (IP_Port *)malloc(sizeof(IP_Port) * count);
+    *res = (IP_Port *)calloc(count, sizeof(IP_Port));
 
     if (*res == nullptr) {
         freeaddrinfo(infos);
