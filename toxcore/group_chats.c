@@ -6960,7 +6960,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
-    const uint16_t num_saved_peers = net_ntohs(save->num_saved_peers);
+    const uint16_t num_saved_peers = min_u16(GC_MAX_SAVED_PEERS, net_ntohs(save->num_saved_peers));
 
     if (unpack_gc_saved_peers(chat, save->saved_peers, sizeof(save->saved_peers), num_saved_peers) == -1) {
         LOGGER_ERROR(chat->log, "failed to unpack saved peers list");
