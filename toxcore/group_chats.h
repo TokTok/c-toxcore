@@ -238,6 +238,7 @@ typedef struct GC_Connection GC_Connection;
 typedef struct GC_Exit_Info GC_Exit_Info;
 
 #define GROUP_SAVE_MAX_MODERATORS 30 // must be <= MOD_MAX_NUM_MODERATORS (temp fix to prevent save format breakage)
+#define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
 
 struct Saved_Group {
     /* Group shared state */
@@ -266,8 +267,8 @@ struct Saved_Group {
     uint16_t  num_mods;
     uint8_t   mod_list[MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
     uint8_t   group_connection_state;
-
-    GC_SavedPeerInfo addrs[GC_MAX_SAVED_PEERS];
+    uint8_t   saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
+    uint16_t  num_saved_peers;
 
     /* self info */
     uint8_t   self_public_key[EXT_PUBLIC_KEY_SIZE];

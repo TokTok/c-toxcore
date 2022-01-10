@@ -113,7 +113,6 @@ typedef enum Group_Sync_Flags {
     GF_STATE      = (1 << 2), // 4
 } Group_Sync_Flags;
 
-
 static bool self_gc_is_founder(const GC_Chat *chat);
 static bool group_number_valid(const GC_Session *c, int group_number);
 static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
@@ -229,6 +228,123 @@ static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_
     }
 }
 
+static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
+
+/* Packs all valid entries from saved peerlist into `data`.
+ *
+ * Return the number of packed saved peers on success.
+ * Return -1 if buffer is too small.
+ */
+static int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, size_t length)
+{
+    size_t packed_len = 0;
+    size_t num_packed = 0;
+
+    for (uint32_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
+
+        if (!saved_peer_is_valid(saved_peer)) {
+            continue;
+        }
+
+        if (packed_len + ENC_PUBLIC_KEY_SIZE > length) {
+            return -1;
+        }
+
+        memcpy(data + packed_len, chat->saved_peers[i].public_key, ENC_PUBLIC_KEY_SIZE);
+        packed_len += ENC_PUBLIC_KEY_SIZE;
+
+        int packed_ipp_len = 0;
+        int packed_tcp_len = 0;
+
+        if (ipport_isset(&saved_peer->ip_port)) {
+            if (packed_len > length) {
+                return -1;
+            }
+
+            packed_ipp_len = pack_ip_port(data + packed_len, length - packed_len, &saved_peer->ip_port);
+
+            if (packed_ipp_len > 0) {
+                packed_len += packed_ipp_len;
+            }
+        }
+
+        if (ipport_isset(&saved_peer->tcp_relay.ip_port)) {
+            if (packed_len > length) {
+                return -1;
+            }
+
+            packed_tcp_len = pack_nodes(data + packed_len, length - packed_len, &saved_peer->tcp_relay, 1);
+
+            if (packed_tcp_len > 0) {
+                packed_len += packed_tcp_len;
+            }
+        }
+
+        if (packed_tcp_len <= 0 && packed_ipp_len <= 0) {
+            packed_len -= ENC_PUBLIC_KEY_SIZE;
+            LOGGER_WARNING(chat->log, "Failed to pack saved peer");
+            continue;
+        }
+
+        ++num_packed;
+    }
+
+    return num_packed;
+}
+
+/* Unpacks saved peers from `data` of size `length` into `chat`.
+ *
+ * Returns the number of unpacked peers on success.
+ * Returns -1 on failure.
+ */
+static int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, size_t length, uint16_t max_num)
+{
+    uint16_t num = 0;
+    size_t unpacked_len = 0;
+
+    while (num < max_num && unpacked_len < length) {
+        GC_SavedPeerInfo *saved_peer = &chat->saved_peers[num];
+
+        if (unpacked_len + ENC_PUBLIC_KEY_SIZE > length) {
+            return -1;
+        }
+
+        memcpy(saved_peer->public_key, data + unpacked_len, ENC_PUBLIC_KEY_SIZE);
+        unpacked_len += ENC_PUBLIC_KEY_SIZE;
+
+        if (unpacked_len > length) {
+            return -1;
+        }
+
+        const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len, false);
+
+        if (ipp_len > 0) {
+            unpacked_len += ipp_len;
+        }
+
+        if (unpacked_len > length) {
+            return -1;
+        }
+
+        uint16_t tcp_len_processed = 0;
+        const int tcp_len = unpack_nodes(&saved_peer->tcp_relay, 1, &tcp_len_processed, data + unpacked_len,
+                                         length - unpacked_len, true);
+
+        if (tcp_len == 1) {
+            unpacked_len += tcp_len_processed;
+        }
+
+        if (!saved_peer_is_valid(saved_peer)) {
+            LOGGER_WARNING(chat->log, "invalid peer %u", num);
+        }
+
+        ++num;
+    }
+
+    return num;
+}
+
 void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
 {
     *temp = (Saved_Group) {
@@ -255,8 +371,6 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     memcpy(temp->chat_public_key, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE);
     memcpy(temp->chat_secret_key, chat->chat_secret_key, EXT_SECRET_KEY_SIZE);  /* empty for non-founders */
 
-    memcpy(temp->addrs, &chat->saved_peers, GC_MAX_SAVED_PEERS * sizeof(GC_SavedPeerInfo));
-
     temp->num_mods = net_htons(chat->moderation.num_mods);
     mod_list_pack(&chat->moderation, temp->mod_list);
 
@@ -270,6 +384,15 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     temp->self_nick_length = net_htons(gc_get_self_nick_size(chat));
     temp->self_role = gc_get_self_role(chat);
     temp->self_status = gc_get_self_status(chat);
+
+    const int packed_num = pack_gc_saved_peers(chat, temp->saved_peers, sizeof(temp->saved_peers));
+
+    if (packed_num == -1) {
+        LOGGER_WARNING(chat->log, "Failed to pack saved peers");
+        temp->num_saved_peers = 0;
+    } else {
+        temp->num_saved_peers = net_htons(packed_num);
+    }
 }
 
 /* Returns true if chat privacy state is set to public. */
@@ -6837,7 +6960,11 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         return -1;
     }
 
-    memcpy(&chat->saved_peers, save->addrs, GC_MAX_SAVED_PEERS * sizeof(GC_SavedPeerInfo));
+    const uint16_t num_saved_peers = net_ntohs(save->num_saved_peers);
+
+    if (unpack_gc_saved_peers(chat, save->saved_peers, sizeof(save->saved_peers), num_saved_peers) == -1) {
+        LOGGER_ERROR(chat->log, "failed to unpack saved peers list");
+    }
 
     if (!is_active_chat) {
         return group_number;
