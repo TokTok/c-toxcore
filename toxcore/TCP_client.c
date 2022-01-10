@@ -374,13 +374,13 @@ static int client_send_pending_data(TCP_Client_Connection *con)
     return -1;
 }
 
-/** return 0 on failure (only if malloc fails)
+/** return 0 on failure (only if calloc fails)
  * return 1 on success
  */
 static bool client_add_priority(TCP_Client_Connection *con, const uint8_t *packet, uint16_t size, uint16_t sent)
 {
     TCP_Priority_List *p = con->priority_queue_end;
-    TCP_Priority_List *new_list = (TCP_Priority_List *)malloc(sizeof(TCP_Priority_List) + size);
+    TCP_Priority_List *new_list = (TCP_Priority_List *)calloc(1, sizeof(TCP_Priority_List) + size);
 
     if (!new_list) {
         return 0;
@@ -698,7 +698,7 @@ TCP_Client_Connection *new_TCP_connection(const Mono_Time *mono_time, IP_Port ip
         return nullptr;
     }
 
-    TCP_Client_Connection *temp = (TCP_Client_Connection *)calloc(sizeof(TCP_Client_Connection), 1);
+    TCP_Client_Connection *temp = (TCP_Client_Connection *)calloc(1, sizeof(TCP_Client_Connection));
 
     if (temp == nullptr) {
         kill_sock(sock);

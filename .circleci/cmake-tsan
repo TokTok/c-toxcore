@@ -4,7 +4,7 @@ set -eu
 
 CACHEDIR="$HOME/cache"
 
-. ".travis/flags-$CC.sh"
+. ".github/scripts/flags-$CC.sh"
 add_flag -Werror
 add_flag -fdiagnostics-color=always
 add_flag -fno-omit-frame-pointer
@@ -32,5 +32,4 @@ ninja install -j"$(nproc)"
 export TSAN_OPTIONS="halt_on_error=1"
 export TSAN_OPTIONS="$TSAN_OPTIONS,second_deadlock_stack=1"
 export TSAN_OPTIONS="$TSAN_OPTIONS,symbolize=1"
-ctest -j50 --output-on-failure ||
-  ctest -j50 --output-on-failure --rerun-failed
+ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:4

@@ -749,13 +749,13 @@ static int add_data_to_buffer(const Logger *log, Packets_Array *array, uint32_t 
         return -1;
     }
 
-    Packet_Data *new_d = (Packet_Data *)malloc(sizeof(Packet_Data));
+    Packet_Data *new_d = (Packet_Data *)calloc(1, sizeof(Packet_Data));
 
     if (new_d == nullptr) {
         return -1;
     }
 
-    memcpy(new_d, data, sizeof(Packet_Data));
+    *new_d = *data;
     array->buffer[num] = new_d;
 
     if (number - array->buffer_start >= num_packets_array(array)) {
@@ -802,13 +802,13 @@ static int64_t add_data_end_of_buffer(const Logger *log, Packets_Array *array, c
         return -1;
     }
 
-    Packet_Data *new_d = (Packet_Data *)malloc(sizeof(Packet_Data));
+    Packet_Data *new_d = (Packet_Data *)calloc(1, sizeof(Packet_Data));
 
     if (new_d == nullptr) {
         return -1;
     }
 
-    memcpy(new_d, data, sizeof(Packet_Data));
+    *new_d = *data;
     uint32_t id = array->buffer_end;
     array->buffer[id % CRYPTO_PACKET_BUFFER_SIZE] = new_d;
     ++array->buffer_end;
@@ -832,7 +832,7 @@ static int64_t read_data_beg_buffer(const Logger *log, Packets_Array *array, Pac
         return -1;
     }
 
-    memcpy(data, array->buffer[num], sizeof(Packet_Data));
+    *data = *array->buffer[num];
     uint32_t id = array->buffer_start;
     ++array->buffer_start;
     free(array->buffer[num]);
@@ -1786,7 +1786,7 @@ static int create_crypto_connection(Net_Crypto *c)
         c->crypto_connections[id].last_packets_left_rem = 0;
         c->crypto_connections[id].packet_send_rate_requested = 0;
         c->crypto_connections[id].last_packets_left_requested_rem = 0;
-        c->crypto_connections[id].mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
+        c->crypto_connections[id].mutex = (pthread_mutex_t *)calloc(1, sizeof(pthread_mutex_t));
 
         if (c->crypto_connections[id].mutex == nullptr) {
             pthread_mutex_unlock(&c->connections_mutex);
@@ -2510,8 +2510,8 @@ static void send_crypto_packets(Net_Crypto *c)
 
         if (conn->status == CRYPTO_CONN_ESTABLISHED) {
             if (conn->packet_recv_rate > CRYPTO_PACKET_MIN_RATE) {
-                double request_packet_interval = (REQUEST_PACKETS_COMPARE_CONSTANT / ((num_packets_array(
-                                                      &conn->recv_array) + 1.0) / (conn->packet_recv_rate + 1.0)));
+                double request_packet_interval = REQUEST_PACKETS_COMPARE_CONSTANT / ((num_packets_array(
+                                                     &conn->recv_array) + 1.0) / (conn->packet_recv_rate + 1.0));
 
                 double request_packet_interval2 = ((CRYPTO_PACKET_MIN_RATE / conn->packet_recv_rate) *
                                                    (double)CRYPTO_SEND_PACKET_INTERVAL) + (double)PACKET_COUNTER_AVERAGE_INTERVAL;
@@ -2581,7 +2581,7 @@ static void send_crypto_packets(Net_Crypto *c)
 
                     // TODO(irungentoo): use real delay
                     unsigned int delay = (unsigned int)(((double)conn->rtt_time / PACKET_COUNTER_AVERAGE_INTERVAL) + 0.5);
-                    unsigned int packets_set_rem_array = (CONGESTION_LAST_SENT_ARRAY_SIZE - CONGESTION_QUEUE_ARRAY_SIZE);
+                    unsigned int packets_set_rem_array = CONGESTION_LAST_SENT_ARRAY_SIZE - CONGESTION_QUEUE_ARRAY_SIZE;
 
                     if (delay > packets_set_rem_array) {
                         delay = packets_set_rem_array;
@@ -2603,17 +2603,17 @@ static void send_crypto_packets(Net_Crypto *c)
 
                     /* if queue is too big only allow resending packets. */
                     uint32_t npackets = num_packets_array(&conn->send_array);
-                    double min_speed = 1000.0 * (((double)(total_sent)) / ((double)(CONGESTION_QUEUE_ARRAY_SIZE) *
+                    double min_speed = 1000.0 * (((double)total_sent) / ((double)CONGESTION_QUEUE_ARRAY_SIZE *
                                                  PACKET_COUNTER_AVERAGE_INTERVAL));
 
-                    double min_speed_request = 1000.0 * (((double)(total_sent + total_resent)) / ((double)(
-                            CONGESTION_QUEUE_ARRAY_SIZE) * PACKET_COUNTER_AVERAGE_INTERVAL));
+                    double min_speed_request = 1000.0 * (((double)(total_sent + total_resent)) / (
+                            (double)CONGESTION_QUEUE_ARRAY_SIZE * PACKET_COUNTER_AVERAGE_INTERVAL));
 
                     if (min_speed < CRYPTO_PACKET_MIN_RATE) {
                         min_speed = CRYPTO_PACKET_MIN_RATE;
                     }
 
-                    double send_array_ratio = (((double)npackets) / min_speed);
+                    double send_array_ratio = (double)npackets / min_speed;
 
                     // TODO(irungentoo): Improve formula?
                     if (send_array_ratio > SEND_QUEUE_RATIO && CRYPTO_MIN_QUEUE_LENGTH < npackets) {

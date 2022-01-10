@@ -35,6 +35,12 @@
 #define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
 #endif
 
+//!TOKSTYLE-
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#include "../testing/fuzzing/fuzz_adapter.h"
+#endif
+//!TOKSTYLE+
+
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
               "CRYPTO_PUBLIC_KEY_SIZE should be equal to crypto_box_PUBLICKEYBYTES");
 static_assert(CRYPTO_SECRET_KEY_SIZE == crypto_box_SECRETKEYBYTES,
@@ -83,6 +89,7 @@ int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk)
 }
 #endif
 
+#if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 static uint8_t *crypto_malloc(size_t bytes)
 {
     return (uint8_t *)malloc(bytes);
@@ -96,10 +103,16 @@ static void crypto_free(uint8_t *ptr, size_t bytes)
 
     free(ptr);
 }
+#endif // !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 
 int32_t public_key_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // Hope that this is better for the fuzzer
+    return memcmp(pk1, pk2, CRYPTO_PUBLIC_KEY_SIZE) == 0 ? 0 : -1;
+#else
     return crypto_verify_32(pk1, pk2);
+#endif
 }
 
 int32_t crypto_sha512_cmp(const uint8_t *cksum1, const uint8_t *cksum2)
@@ -166,6 +179,11 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
         return -1;
     }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(encrypted, plain, length); // Don't encrypt anything
+    memset(encrypted + length, 0, crypto_box_MACBYTES); // Zero MAC to avoid false alarms of uninitialized memory
+#else
+
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_MACBYTES + crypto_box_BOXZEROBYTES;
 
@@ -194,7 +212,7 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
 
     crypto_free(temp_plain, size_temp_plain);
     crypto_free(temp_encrypted, size_temp_encrypted);
-
+#endif
     return length + crypto_box_MACBYTES;
 }
 
@@ -204,6 +222,10 @@ int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     if (length <= crypto_box_BOXZEROBYTES || !secret_key || !nonce || !encrypted || !plain) {
         return -1;
     }
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(plain, encrypted, length - crypto_box_MACBYTES); // Don't encrypt anything
+#else
 
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_BOXZEROBYTES;
@@ -232,6 +254,7 @@ int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
 
     crypto_free(temp_plain, size_temp_plain);
     crypto_free(temp_encrypted, size_temp_encrypted);
+#endif
     return length - crypto_box_MACBYTES;
 }
 
@@ -330,7 +353,14 @@ void new_symmetric_key(uint8_t *key)
 
 int32_t crypto_new_keypair(uint8_t *public_key, uint8_t *secret_key)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    random_bytes(secret_key, CRYPTO_SECRET_KEY_SIZE);
+    memset(public_key, 0, CRYPTO_PUBLIC_KEY_SIZE); // Make MSAN happy
+    crypto_scalarmult_curve25519_base(public_key, secret_key);
+    return 0;
+#else
     return crypto_box_keypair(public_key, secret_key);
+#endif
 }
 
 void crypto_derive_public_key(uint8_t *public_key, const uint8_t *secret_key)
@@ -350,5 +380,9 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
 
 void random_bytes(uint8_t *data, size_t length)
 {
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    fuzz_random_bytes(data, length);
+#else
     randombytes(data, length);
+#endif
 }

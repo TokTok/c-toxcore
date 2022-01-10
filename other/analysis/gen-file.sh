@@ -1,16 +1,17 @@
 #!/bin/bash
 
-CPPFLAGS=(-DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE)
-CPPFLAGS+=(-isystem /usr/include/opus)
-CPPFLAGS+=(-Iauto_tests)
-CPPFLAGS+=(-Iother)
-CPPFLAGS+=(-Iother/bootstrap_daemon/src)
-CPPFLAGS+=(-Iother/fun)
-CPPFLAGS+=(-Itesting)
-CPPFLAGS+=(-Itesting/groupchats)
-CPPFLAGS+=(-Itoxcore)
-CPPFLAGS+=(-Itoxav)
-CPPFLAGS+=(-Itoxencryptsave)
+CPPFLAGS="-DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE"
+CPPFLAGS+=("-isystem" "/usr/include/opus")
+CPPFLAGS+=("-Iauto_tests")
+CPPFLAGS+=("-Iother")
+CPPFLAGS+=("-Iother/bootstrap_daemon/src")
+CPPFLAGS+=("-Iother/fun")
+CPPFLAGS+=("-Itesting")
+CPPFLAGS+=("-Itesting/fuzzing")
+CPPFLAGS+=("-Itesting/groupchats")
+CPPFLAGS+=("-Itoxcore")
+CPPFLAGS+=("-Itoxav")
+CPPFLAGS+=("-Itoxencryptsave")
 
 LDFLAGS=("-lopus" "-lsodium" "-lvpx" "-lpthread" "-lconfig" "-lgtest")
 LDFLAGS+=("-fuse-ld=gold")
@@ -44,7 +45,9 @@ callmain() {
 
 put auto_tests/check_compat.h
 
+# Include all C and C++ code
 FIND_QUERY="find . '-(' -name '*.c' -or -name '*.cc' '-)'"
+# Excludes
 FIND_QUERY="$FIND_QUERY -and -not -wholename './_build/*'"
 FIND_QUERY="$FIND_QUERY -and -not -wholename './super_donators/*'"
 FIND_QUERY="$FIND_QUERY -and -not -name amalgamation.cc"
@@ -52,6 +55,7 @@ FIND_QUERY="$FIND_QUERY -and -not -name av_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -name dht_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -name trace.cc"
 FIND_QUERY="$FIND_QUERY -and -not -name version_test.c"
+FIND_QUERY="$FIND_QUERY -and -not -wholename './testing/fuzzing/*'"
 
 readarray -t FILES <<<"$(eval "$FIND_QUERY")"
 

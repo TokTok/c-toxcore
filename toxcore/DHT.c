@@ -1505,12 +1505,24 @@ static int handle_sendnodes_ipv6(void *object, IP_Port source, const uint8_t *pa
 /*----------------------------------------------------------------------------------*/
 /*------------------------END of packet handling functions--------------------------*/
 
+static void dht_friend_lock(DHT_Friend *const dht_friend, dht_ip_cb *ip_callback,
+                            void *data, int32_t number, uint16_t *lock_count)
+{
+    const uint16_t lock_num = dht_friend->lock_count;
+    ++dht_friend->lock_count;
+    dht_friend->callbacks[lock_num].ip_callback = ip_callback;
+    dht_friend->callbacks[lock_num].data = data;
+    dht_friend->callbacks[lock_num].number = number;
+
+    if (lock_count) {
+        *lock_count = lock_num + 1;
+    }
+}
+
 int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
                   void *data, int32_t number, uint16_t *lock_count)
 {
     const uint32_t friend_num = index_of_friend_pk(dht->friends_list, dht->num_friends, public_key);
-
-    uint16_t lock_num;
 
     if (friend_num != UINT32_MAX) { /* Is friend already in DHT? */
         DHT_Friend *const dht_friend = &dht->friends_list[friend_num];
@@ -1519,15 +1531,7 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
             return -1;
         }
 
-        lock_num = dht_friend->lock_count;
-        ++dht_friend->lock_count;
-        dht_friend->callbacks[lock_num].ip_callback = ip_callback;
-        dht_friend->callbacks[lock_num].data = data;
-        dht_friend->callbacks[lock_num].number = number;
-
-        if (lock_count) {
-            *lock_count = lock_num + 1;
-        }
+        dht_friend_lock(dht_friend, ip_callback, data, number, lock_count);
 
         return 0;
     }
@@ -1546,15 +1550,7 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
     dht_friend->nat.nat_ping_id = random_u64();
     ++dht->num_friends;
 
-    lock_num = dht_friend->lock_count;
-    ++dht_friend->lock_count;
-    dht_friend->callbacks[lock_num].ip_callback = ip_callback;
-    dht_friend->callbacks[lock_num].data = data;
-    dht_friend->callbacks[lock_num].number = number;
-
-    if (lock_count) {
-        *lock_count = lock_num + 1;
-    }
+    dht_friend_lock(dht_friend, ip_callback, data, number, lock_count);
 
     dht_friend->num_to_bootstrap = get_close_nodes(dht, dht_friend->public_key, dht_friend->to_bootstrap, net_family_unspec,
                                    1);
@@ -1584,9 +1580,7 @@ int dht_delfriend(DHT *dht, const uint8_t *public_key, uint16_t lock_count)
     --dht->num_friends;
 
     if (dht->num_friends != friend_num) {
-        memcpy(&dht->friends_list[friend_num],
-               &dht->friends_list[dht->num_friends],
-               sizeof(DHT_Friend));
+        dht->friends_list[friend_num] = dht->friends_list[dht->num_friends];
     }
 
     if (dht->num_friends == 0) {
@@ -1595,7 +1589,7 @@ int dht_delfriend(DHT *dht, const uint8_t *public_key, uint16_t lock_count)
         return 0;
     }
 
-    DHT_Friend *const temp = (DHT_Friend *)realloc(dht->friends_list, sizeof(DHT_Friend) * (dht->num_friends));
+    DHT_Friend *const temp = (DHT_Friend *)realloc(dht->friends_list, sizeof(DHT_Friend) * dht->num_friends);
 
     if (temp == nullptr) {
         return -1;
@@ -2507,7 +2501,7 @@ void dht_save(const DHT *dht, uint8_t *data)
     /* get right offset. we write the actual header later. */
     data = state_write_section_header(data, DHT_STATE_COOKIE_TYPE, 0, 0);
 
-    Node_format *clients = (Node_format *)malloc(MAX_SAVED_DHT_NODES * sizeof(Node_format));
+    Node_format *clients = (Node_format *)calloc(MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
     if (clients == nullptr) {
         LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);

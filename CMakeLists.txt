@@ -426,8 +426,8 @@ auto_test(conference_invite_merge)
 auto_test(conference_peer_nick)
 auto_test(conference_simple)
 auto_test(conference_two)
-auto_test(crypto                        MSVC_DONT_BUILD)
-auto_test(dht                           MSVC_DONT_BUILD)
+auto_test(crypto)
+auto_test(dht)
 auto_test(encryptsave)
 auto_test(file_transfer)
 auto_test(file_saving)
@@ -446,7 +446,7 @@ auto_test(invalid_udp_proxy)
 auto_test(lan_discovery)
 auto_test(lossless_packet)
 auto_test(lossy_packet)
-auto_test(messenger                     MSVC_DONT_BUILD)
+auto_test(messenger)
 auto_test(network)
 auto_test(onion)
 auto_test(overflow_recvq)
@@ -472,7 +472,7 @@ if(NON_HERMETIC_TESTS)
 endif()
 
 if(BUILD_TOXAV)
-  auto_test(conference_av)
+  auto_test(conference_av MSVC_DONT_BUILD)
   auto_test(toxav_basic)
   auto_test(toxav_many)
 endif()
@@ -547,16 +547,32 @@ if (BUILD_MISC_TESTS)
     other/fun/save-generator.c)
   target_link_modules(save-generator toxcore misc_tools)
 
-  add_executable(cracker
-    other/fun/cracker.c)
-  target_link_modules(cracker ${LIBSODIUM_LIBRARIES})
-  find_package(OpenMP)
-  if(OpenMP_C_FOUND)
-      target_link_libraries(cracker OpenMP::OpenMP_C)
+  if(NOT MSVC)
+    add_executable(cracker
+      other/fun/cracker.c)
+    target_link_modules(cracker ${LIBSODIUM_LIBRARIES})
+    find_package(OpenMP)
+    if(OpenMP_C_FOUND)
+        target_link_libraries(cracker OpenMP::OpenMP_C)
+    endif()
   endif()
-
-  add_executable(afl_toxsave
-    testing/afl_toxsave.c)
-  target_link_modules(afl_toxsave toxcore)
-
 endif()
+
+# Enabling this breaks all other tests and no network connections will be possible
+option(BUILD_FUZZ_TESTS "Build fuzzing harnesses" OFF)
+if (BUILD_FUZZ_TESTS)
+  # For coverage tests
+  target_compile_definitions(toxcore_static PUBLIC "FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION")
+
+  # Override network and random functions
+  add_library(fuzz_adapter testing/fuzzing/fuzz_adapter.c)
+
+  # Fuzzes the toxsave API
+  add_executable(toxsave_fuzzer testing/fuzzing/toxsave_harness.cc)
+  target_link_libraries(toxsave_fuzzer toxcore_static fuzz_adapter -fsanitize=fuzzer)
+
+  # Fuzzes the bootstrap process
+  add_executable(bootstrap_fuzzer testing/fuzzing/bootstrap_harness.cc)
+  target_link_libraries(bootstrap_fuzzer toxcore_static fuzz_adapter -fsanitize=fuzzer)
+endif()
+

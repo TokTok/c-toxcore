@@ -561,7 +561,6 @@ static int tox_load(Tox *tox, const uint8_t *data, uint32_t length)
                       length - cookie_len, STATE_COOKIE_TYPE);
 }
 
-
 Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 {
     Tox *tox = (Tox *)calloc(1, sizeof(Tox));
@@ -705,7 +704,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     }
 
     if (tox_options_get_experimental_thread_safety(opts)) {
-        tox->mutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+        tox->mutex = (pthread_mutex_t *)calloc(1, sizeof(pthread_mutex_t));
 
         if (tox->mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
