@@ -28,7 +28,8 @@ cmake -B_build -H. \
   -DNON_HERMETIC_TESTS=ON \
   -DTEST_TIMEOUT_SECONDS=120 \
   -DUSE_IPV6=OFF \
-  -DAUTOTEST=ON
+  -DAUTOTEST=ON \
+  -DUSE_TEST_NETWORK=ON
 
 cd _build # pushd
 make "-j$NPROC" -k install
