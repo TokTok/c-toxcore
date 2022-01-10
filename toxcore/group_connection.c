@@ -25,45 +25,6 @@
 /* Seconds since last direct UDP packet was received before the connection is considered dead */
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
-
-GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number)
-{
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
-        return nullptr;
-    }
-
-    return &chat->gcc[peer_number];
-}
-
-GC_Connection *gcc_random_connection(const GC_Chat *chat)
-{
-    if (chat->numpeers <= 1) {
-        return nullptr;
-    }
-
-    uint32_t index = random_u32() % chat->numpeers;
-
-    if (index == 0) {
-        index = 1;  // random index doesn't need to be cryptographically secure
-    }
-
-    do {
-        GC_Connection *rand_gconn = gcc_get_connection(chat, index);
-
-        if (rand_gconn == nullptr) {
-            return nullptr;
-        }
-
-        if (!rand_gconn->pending_delete && rand_gconn->confirmed) {
-            return rand_gconn;
-        }
-
-        index = (index + 1) % chat->numpeers;
-    } while (index != 0);
-
-    return nullptr;
-}
-
 /* Returns true if ary entry does not contain an active packet. */
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
 {
@@ -253,15 +214,10 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
     return 0;
 }
 
-int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const uint8_t *data, uint32_t length,
-                                uint8_t packet_type, uint64_t message_id, bool direct_conn)
+int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
+                                const uint8_t *data, uint32_t length, uint8_t packet_type, uint64_t message_id,
+                                bool direct_conn)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return -1;
-    }
-
     /* Appears to be a duplicate packet so we discard it */
     if (message_id < gconn->received_message_id + 1) {
         return 0;
@@ -273,12 +229,12 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
         GC_Message_Array_Entry *ary_entry = &gconn->received_array[idx];
 
         if (!array_entry_is_empty(ary_entry)) {
-            LOGGER_DEBUG(chat->log, "Recv array is not empty");
+            LOGGER_DEBUG(log, "Recv array is not empty");
             return -1;
         }
 
-        if (create_array_entry(chat->log, chat->mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
-            LOGGER_DEBUG(chat->log, "Failed to create array entry");
+        if (create_array_entry(log, mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
+            LOGGER_DEBUG(log, "Failed to create array entry");
             return -1;
         }
 
@@ -286,7 +242,7 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
     }
 
     if (direct_conn) {
-        gconn->last_received_direct_time = mono_time_get(chat->mono_time);
+        gconn->last_received_direct_time = mono_time_get(mono_time);
     }
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
@@ -301,15 +257,9 @@ int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
+static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                                         GC_Message_Array_Entry *array_entry, void *userdata)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return -1;
-    }
-
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
                     array_entry->message_id, array_entry->packet_type, userdata);
 
@@ -327,32 +277,21 @@ static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, uint
     return 0;
 }
 
-int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata)
+int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                             void *userdata)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return -1;
-    }
-
     const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
     GC_Message_Array_Entry *array_entry = &gconn->received_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        return process_received_array_entry(c, chat, peer_number, array_entry, userdata);
+        return process_received_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
     }
 
     return 0;
 }
 
-void gcc_resend_packets(const GC_Chat *chat, uint32_t peer_number)
+void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
-
-    if (gconn == nullptr) {
-        return;
-    }
-
     const uint64_t tm = mono_time_get(chat->mono_time);
     const uint16_t start = gconn->send_array_start;
     const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;

@@ -434,6 +434,44 @@ bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number)
     return peer_number >= 0 && peer_number < chat->numpeers;
 }
 
+static GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
+{
+    if (!gc_peer_number_is_valid(chat, peer_number)) {
+        return nullptr;
+    }
+
+    return &chat->gcc[peer_number];
+}
+
+static GC_Connection *random_gc_connection(const GC_Chat *chat)
+{
+    if (chat->numpeers <= 1) {
+        return nullptr;
+    }
+
+    uint32_t index = random_u32() % chat->numpeers;
+
+    if (index == 0) {
+        index = 1;  // random index doesn't need to be cryptographically secure
+    }
+
+    do {
+        GC_Connection *rand_gconn = get_gc_connection(chat, index);
+
+        if (rand_gconn == nullptr) {
+            return nullptr;
+        }
+
+        if (!rand_gconn->pending_delete && rand_gconn->confirmed) {
+            return rand_gconn;
+        }
+
+        index = (index + 1) % chat->numpeers;
+    } while (index != 0);
+
+    return nullptr;
+}
+
 /* Returns the peer number associated with peer_id.
  * Returns -1 if peer_id is invalid. */
 static int get_peer_number_of_peer_id(const GC_Chat *chat, uint32_t peer_id)
@@ -613,7 +651,7 @@ static void refresh_gc_saved_peers(GC_Chat *chat)
     }
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = gcc_get_connection(chat, i);
+        const GC_Connection *gconn = get_gc_connection(chat, i);
 
         if (gconn == nullptr) {
             continue;
@@ -656,7 +694,7 @@ static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, c
 /* Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 static bool peer_is_observer(const GC_Chat *chat, uint32_t peer_number)
 {
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return false;
@@ -669,7 +707,7 @@ static bool peer_is_observer(const GC_Chat *chat, uint32_t peer_number)
 static bool peer_is_founder(const GC_Chat *chat, uint32_t peer_number)
 {
 
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return false;
@@ -681,7 +719,7 @@ static bool peer_is_founder(const GC_Chat *chat, uint32_t peer_number)
 /* Returns true if peer designated by `peer_number` is in the moderator list or is the founder. */
 static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
 {
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return false;
@@ -707,7 +745,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
     bool conflicts = false;
 
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = gcc_get_connection(chat, i);
+        const GC_Connection *gconn = get_gc_connection(chat, i);
 
         if (gconn == nullptr) {
             continue;
@@ -1387,7 +1425,7 @@ static int unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const uin
     }
 
     if (new_peer_number > 0) {
-        GC_Connection *new_gconn = gcc_get_connection(chat, new_peer_number);
+        GC_Connection *new_gconn = get_gc_connection(chat, new_peer_number);
 
         if (new_gconn == nullptr) {
             return -1;
@@ -1442,7 +1480,7 @@ static int handle_gc_sync_response(const GC_Session *c, GC_Chat *chat, int peer_
         unpack_gc_sync_announce(chat, data, length);
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -2;
@@ -1499,7 +1537,7 @@ static bool create_sync_announce(const GC_Chat *chat, GC_Connection *gconn, uint
 
 static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -1511,7 +1549,7 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
     uint32_t num_announces = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *peer_gconn = gcc_get_connection(chat, i);
+        GC_Connection *peer_gconn = get_gc_connection(chat, i);
 
         if (peer_gconn == nullptr || !peer_gconn->confirmed) {
             continue;
@@ -1567,7 +1605,7 @@ static int sync_response_send_peers(const GC_Chat *chat, uint32_t peer_number)
  */
 static int sync_response_send_state(const GC_Chat *chat, uint32_t peer_number, uint16_t sync_flags)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -1863,7 +1901,7 @@ static int send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gc
  */
 static int handle_gc_invite_request(GC_Chat *chat, uint32_t peer_number, const uint8_t *data, uint32_t length)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -2290,7 +2328,7 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
         return -1;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -3;
@@ -2456,7 +2494,7 @@ static int send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
         return 0;
     }
 
-    GC_Connection *rand_gconn = gcc_random_connection(chat);
+    GC_Connection *rand_gconn = random_gc_connection(chat);
 
     if (rand_gconn == nullptr) {
         return -1;
@@ -2504,7 +2542,7 @@ static int validate_gc_shared_state(const GC_SharedState *state)
  */
 static int handle_gc_shared_state_error(GC_Chat *chat, uint32_t peer_number)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn != nullptr) {
         gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
@@ -2981,7 +3019,7 @@ static int handle_gc_peer_exit(const GC_Session *c, const GC_Chat *chat, uint32_
         length = MAX_GC_PART_MESSAGE_SIZE;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -3081,7 +3119,7 @@ static int handle_gc_nick(const GC_Session *c, GC_Chat *chat, uint32_t peer_numb
  */
 static int get_gc_peer_public_key(const GC_Chat *chat, uint32_t peer_number, uint8_t *public_key)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -3104,7 +3142,7 @@ int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uin
         return -1;
     }
 
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -3131,7 +3169,7 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
         return 0;
     }
 
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return 0;
@@ -3916,7 +3954,7 @@ static int handle_gc_set_observer(const GC_Session *c, GC_Chat *chat, uint32_t p
         return 0;
     }
 
-    const GC_Connection *target_gconn = gcc_get_connection(chat, target_peer_number);
+    const GC_Connection *target_gconn = get_gc_connection(chat, target_peer_number);
 
     if (target_gconn != nullptr) {
         if (c->moderation) {
@@ -3966,7 +4004,7 @@ static int send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_p
  */
 static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs)
 {
-    const GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -4043,7 +4081,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
  */
 static int apply_new_gc_role(GC_Chat *chat, uint32_t peer_number, Group_Role current_role, Group_Role new_role)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -4110,7 +4148,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Gro
 
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -2;
@@ -4366,7 +4404,7 @@ int gc_send_private_message(const GC_Chat *chat, uint32_t peer_id, uint8_t type,
 
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -3;
@@ -4572,7 +4610,7 @@ int gc_kick_peer(const Messenger *m, int group_number, uint32_t peer_id)
         return -6;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -2;
@@ -4748,7 +4786,7 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
         return -1;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5055,7 +5093,7 @@ static int handle_gc_handshake_response(const GC_Session *c, GC_Chat *chat, cons
         return -1;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5159,7 +5197,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
             return -1;
         }
     } else  {
-        GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+        GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
         if (gconn == nullptr) {
             return -1;
@@ -5178,7 +5216,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
         }
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5278,7 +5316,7 @@ static int handle_gc_handshake_packet(const GC_Session *c, GC_Chat *chat, const 
 
     free(data);
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5299,7 +5337,7 @@ static int handle_gc_handshake_packet(const GC_Session *c, GC_Chat *chat, const 
 int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5414,7 +5452,7 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
 
     int peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5449,8 +5487,8 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
         return -1;
     }
 
-    const int lossless_ret = gcc_handle_received_message(chat, peer_number, data, len, packet_type, message_id,
-                             direct_conn);
+    const int lossless_ret = gcc_handle_received_message(chat->log, chat->mono_time, gconn, data, len, packet_type,
+                             message_id, direct_conn);
 
     if (packet_type == GP_INVITE_REQUEST && !gconn->handshaked) {  // Both peers sent request at same time
         return 0;
@@ -5474,8 +5512,7 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
     }
 
-    const int ret = handle_gc_lossless_helper(c, chat, peer_number, data, len, message_id, packet_type,
-                    userdata);
+    const int ret = handle_gc_lossless_helper(c, chat, peer_number, data, len, message_id, packet_type, userdata);
 
     if (ret < 0) {
         return -1;
@@ -5483,7 +5520,7 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    gconn = gcc_get_connection(chat, peer_number);
+    gconn = get_gc_connection(chat, peer_number);
 
     if (gconn != nullptr && lossless_ret == 2) {
         gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
@@ -5508,7 +5545,7 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
 
     const int peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -5858,7 +5895,7 @@ void gc_callback_rejected(Messenger *m, gc_rejected_cb *function)
 static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, Group_Exit_Type exit_type,
                        const uint8_t *data, uint16_t length, void *userdata)
 {
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -6099,7 +6136,7 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
             continue;
         }
 
-        gcc_resend_packets(chat, i);
+        gcc_resend_packets(chat, gconn);
 
         if (chat->new_tcp_relay || (gconn->tcp_relays_count == 0 &&
                                     mono_time_is_timeout(chat->mono_time,
@@ -6111,7 +6148,7 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
             }
         }
 
-        gcc_check_received_array(c, chat, i, userdata);   // may change peer numbers
+        gcc_check_received_array(c, chat, gconn, i, userdata);   // may change peer numbers
     }
 
     chat->new_tcp_relay = false;
@@ -6667,7 +6704,7 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
             continue;
         }
 
-        GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+        GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
         if (gconn == nullptr) {
             continue;
@@ -7164,7 +7201,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
         return -3;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
     const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS,
@@ -7231,7 +7268,7 @@ int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uin
         return -1;
     }
 
-    GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -7579,7 +7616,7 @@ int gc_add_peers_from_announces(GC_Chat *chat, GC_Announce *announces, uint8_t g
         const IP_Port *ip_port = ip_port_set ? &announce->ip_port : nullptr;
         const int peer_number = peer_add(chat, ip_port, announce->peer_public_key);
 
-        GC_Connection *gconn = gcc_get_connection(chat, peer_number);
+        GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
         if (gconn == nullptr) {
             continue;

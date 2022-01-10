@@ -79,16 +79,6 @@ struct GC_Connection {
     GC_Exit_Info exit_info;
 };
 
-/* Return connection object for peer_number.
- * Return NULL if peer_number is invalid.
- */
-GC_Connection *gcc_get_connection(const GC_Chat *chat, int peer_number);
-
-/* Returns a random group connection that isn't our own and isn't marked for deletion.
- * Returns NULL if there are no available connections.
- */
-GC_Connection *gcc_random_connection(const GC_Chat *chat);
-
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
                            const uint8_t *part_message, size_t length);
@@ -108,8 +98,9 @@ int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_C
  * Return 0 if message is a duplicate.
  * Return -1 on failure
  */
-int gcc_handle_received_message(const GC_Chat *chat, uint32_t peer_number, const uint8_t *data, uint32_t length,
-                                uint8_t packet_type, uint64_t message_id, bool direct_conn);
+int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
+                                const uint8_t *data, uint32_t length, uint8_t packet_type, uint64_t message_id,
+                                bool direct_conn);
 
 /* Return array index for message_id */
 uint16_t gcc_get_array_index(uint64_t message_id);
@@ -161,10 +152,11 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node);
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
+int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                             void *userdata);
 
 /* Attempts to re-send lossless packets that have not yet received an ack. */
-void gcc_resend_packets(const GC_Chat *chat, uint32_t peer_number);
+void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn);
 
 /* Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
  * to generate a shared 32-byte encryption key that can be used by the owners of both keys for symmetric
