@@ -3,6 +3,8 @@ load("//tools/project:build_defs.bzl", "project")
 
 project()
 
+package(features = ["layering_check"])
+
 genrule(
     name = "copy_headers",
     srcs = [
