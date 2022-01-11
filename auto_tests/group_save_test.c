@@ -183,24 +183,31 @@ static void group_save_test(Tox **toxes, State *state)
     }
 
     struct Tox_Options *const options = tox_options_new(nullptr);
+
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
+
     tox_options_set_savedata_data(options, save, save_length);
 
     Tox *new_tox = tox_new_log(options, nullptr, nullptr);
+
     ck_assert(new_tox != nullptr);
 
     printf("tox0 saves group and reloads client\n");
 
     int ret = has_correct_state(new_tox, group_number, chat_id);
+
     ck_assert_msg(ret == 0, "incorrect state: %d", ret);
 
     tox_group_leave(new_tox, group_number, nullptr, 0, nullptr);
 
     free(save);
+
     tox_options_free(options);
+
     tox_kill(new_tox);
 
     printf("All tests passed!\n");
+
 #endif  // VANILLA_NACL
 }
 
