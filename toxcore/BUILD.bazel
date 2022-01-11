@@ -1,6 +1,8 @@
 load("@rules_cc//cc:defs.bzl", "cc_test")
 load("//tools:no_undefined.bzl", "cc_library")
 
+package(features = ["layering_check"])
+
 filegroup(
     name = "public_headers",
     srcs = ["tox.h"],
@@ -36,6 +38,7 @@ cc_test(
     flaky = True,
     deps = [
         ":crypto_core",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -53,6 +56,7 @@ cc_test(
     srcs = ["list_test.cc"],
     deps = [
         ":list",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -61,6 +65,10 @@ cc_library(
     name = "logger",
     srcs = ["logger.c"],
     hdrs = ["logger.h"],
+    visibility = [
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
     deps = [":ccompat"],
 )
 
@@ -75,6 +83,11 @@ cc_library(
     name = "mono_time",
     srcs = ["mono_time.c"],
     hdrs = ["mono_time.h"],
+    visibility = [
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
     deps = [
         ":ccompat",
         "@pthread",
@@ -87,6 +100,7 @@ cc_test(
     srcs = ["mono_time_test.cc"],
     deps = [
         ":mono_time",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -103,6 +117,7 @@ cc_library(
     ],
     visibility = [
         "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
@@ -110,6 +125,7 @@ cc_library(
         ":crypto_core",
         ":logger",
         ":mono_time",
+        "@libsodium",
         "@psocket",
         "@pthread",
     ],
@@ -121,6 +137,7 @@ cc_test(
     srcs = ["network_test.cc"],
     deps = [
         ":network",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -130,7 +147,9 @@ cc_test(
     size = "small",
     srcs = ["util_test.cc"],
     deps = [
+        ":crypto_core",
         ":network",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -139,7 +158,11 @@ cc_library(
     name = "ping_array",
     srcs = ["ping_array.c"],
     hdrs = ["ping_array.h"],
-    deps = [":network"],
+    deps = [
+        ":crypto_core",
+        ":mono_time",
+        ":network",
+    ],
 )
 
 cc_test(
@@ -147,7 +170,9 @@ cc_test(
     size = "small",
     srcs = ["ping_array_test.cc"],
     deps = [
+        ":mono_time",
         ":ping_array",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -164,10 +189,15 @@ cc_library(
         "LAN_discovery.h",
         "ping.h",
     ],
-    visibility = ["//c-toxcore/other/bootstrap_daemon:__pkg__"],
+    visibility = [
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing:__pkg__",
+    ],
     deps = [
         ":crypto_core",
         ":logger",
+        ":mono_time",
+        ":network",
         ":ping_array",
         ":state",
     ],
@@ -179,6 +209,8 @@ cc_test(
     srcs = ["DHT_test.cc"],
     deps = [
         ":DHT",
+        ":crypto_core",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -199,6 +231,8 @@ cc_library(
     ],
     deps = [
         ":logger",
+        ":mono_time",
+        ":network",
         ":ping_array",
         ":state",
     ],
@@ -208,7 +242,12 @@ cc_library(
     name = "onion",
     srcs = ["onion.c"],
     hdrs = ["onion.h"],
-    deps = [":DHT"],
+    deps = [
+        ":DHT",
+        ":crypto_core",
+        ":mono_time",
+        ":network",
+    ],
 )
 
 cc_library(
@@ -227,9 +266,12 @@ cc_library(
         "//tools/config:linux": ["-DTCP_SERVER_USE_EPOLL=1"],
         "//conditions:default": [],
     }),
+    visibility = ["//c-toxcore/other/bootstrap_daemon:__pkg__"],
     deps = [
         ":crypto_core",
         ":list",
+        ":mono_time",
+        ":network",
         ":onion",
     ],
 )
@@ -240,6 +282,7 @@ cc_test(
     srcs = ["TCP_connection_test.cc"],
     deps = [
         ":TCP_connection",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -251,20 +294,28 @@ cc_library(
     deps = [
         ":DHT",
         ":TCP_connection",
+        ":mono_time",
+        ":network",
     ],
 )
 
 cc_library(
     name = "onion_announce",
     srcs = [
-        "group_announce.c",
-        "onion_announce.c",
+	"group_announce.c",
+	"onion_announce.c",
     ],
     hdrs = [
-        "group_announce.h",
-        "onion_announce.h",
+	"group_announce.h",
+	"onion_announce.h",
+     ],
+    visibility = ["//c-toxcore/other/bootstrap_daemon:__pkg__"],
+    deps = [
+        ":DHT",
+        ":mono_time",
+        ":network",
+        ":onion",
     ],
-    deps = [":onion"],
 )
 
 cc_test(
@@ -272,7 +323,8 @@ cc_test(
     size = "small",
     srcs = ["friend_connection_test.cc"],
     deps = [
-        ":Messenger",
+        ":friend_connection",
+        "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -301,6 +353,10 @@ cc_library(
     ],
     visibility = ["//c-toxcore/toxav:__pkg__"],
     deps = [
+        ":friend_requests",
+        ":logger",
+        ":mono_time",
+        ":network",
         ":net_crypto",
         ":onion_announce",
         ":state",
@@ -312,20 +368,30 @@ cc_library(
     srcs = ["group.c"],
     hdrs = ["group.h"],
     visibility = ["//c-toxcore/toxav:__pkg__"],
-    deps = [":Messenger"],
+    deps = [
+        ":Messenger",
+        ":mono_time",
+        ":network",
+        ":state",
+    ],
 )
 
 cc_library(
     name = "toxcore",
     srcs = [
         "tox.c",
-        "tox.h",
         "tox_api.c",
         "tox_private.h",
     ],
+    hdrs = ["tox.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
+        ":Messenger",
+        ":ccompat",
         ":group",
+        ":logger",
+        ":mono_time",
+        ":network",
         "//c-toxcore/toxencryptsave:defines",
     ],
 )
