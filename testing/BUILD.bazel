@@ -43,7 +43,6 @@ cc_binary(
         ":misc_tools",
         "//c-toxcore/toxcore:DHT",
         "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:friend_requests",
         "//c-toxcore/toxcore:mono_time",
     ],
 )

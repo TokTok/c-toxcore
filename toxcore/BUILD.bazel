@@ -323,7 +323,7 @@ cc_test(
     size = "small",
     srcs = ["friend_connection_test.cc"],
     deps = [
-        ":friend_connection",
+        ":Messenger",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -351,15 +351,21 @@ cc_library(
         "group_moderation.h",
         "onion_client.h",
     ],
-    visibility = ["//c-toxcore/toxav:__pkg__"],
+    visibility = [
+    "//c-toxcore/testing:__pkg__",
+    "//c-toxcore/toxav:__pkg__",
+    ],
     deps = [
-        ":friend_requests",
+        ":DHT",
+        ":TCP_connection",
+        ":crypto_core",
         ":logger",
         ":mono_time",
         ":network",
         ":net_crypto",
         ":onion_announce",
         ":state",
+        "@libsodium",
     ],
 )
 
