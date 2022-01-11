@@ -6325,6 +6325,11 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
             }
         }
     }
+
+    // keep trying to handshake with saved peers if we fail to connect
+    if (chat->numpeers <= 1 && chat->connection_state == CS_CONNECTING) {
+        load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
+    }
 }
 
 /* Constructs and sends a ping packet to `gconn` containing info needed for group syncing
