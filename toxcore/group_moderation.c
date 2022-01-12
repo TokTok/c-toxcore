@@ -581,14 +581,14 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
-    Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(moderation->num_sanctions, sizeof(Mod_Sanction));
+    const size_t old_count =  moderation->num_sanctions;
+    Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(old_count, sizeof(Mod_Sanction));
 
     if (sanctions_copy == nullptr) {
         return -1;
     }
 
-    memcpy(sanctions_copy, moderation->sanctions, old_size);
+    memcpy(sanctions_copy, moderation->sanctions, old_count * sizeof(Mod_Sanction));
 
     if (index != new_num) {
         memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(Mod_Sanction));
@@ -689,15 +689,17 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    const size_t old_size = sizeof(Mod_Sanction) * moderation->num_sanctions;
-    Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(moderation->num_sanctions, sizeof(Mod_Sanction));
+    const size_t old_count = moderation->num_sanctions;
+    Mod_Sanction *sanctions_copy = nullptr;
 
-    if (sanctions_copy == nullptr) {
-        return -1;
-    }
+    if (old_count > 0) {
+        sanctions_copy = (Mod_Sanction *)calloc(old_count, sizeof(Mod_Sanction));
 
-    if (old_size > 0) {
-        memcpy(sanctions_copy, moderation->sanctions, old_size);
+        if (sanctions_copy == nullptr) {
+            return -1;
+        }
+
+        memcpy(sanctions_copy, moderation->sanctions, old_count * sizeof(Mod_Sanction));
     }
 
     const uint16_t index = moderation->num_sanctions;
