@@ -150,7 +150,7 @@ int mod_list_remove_index(Moderation *moderation, size_t index)
     free(moderation->mod_list[moderation->num_mods]);
     moderation->mod_list[moderation->num_mods] = nullptr;
 
-    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, sizeof(uint8_t *) * moderation->num_mods);
+    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, moderation->num_mods * sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return -1;
@@ -186,7 +186,7 @@ int mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
         return -1;
     }
 
-    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, sizeof(uint8_t *) * (moderation->num_mods + 1));
+    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, (moderation->num_mods + 1) * sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return -1;
@@ -594,7 +594,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
         memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(Mod_Sanction));
     }
 
-    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, sizeof(Mod_Sanction) * new_num);
+    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, new_num * sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
         free(sanctions_copy);
@@ -703,7 +703,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
     }
 
     const uint16_t index = moderation->num_sanctions;
-    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, sizeof(Mod_Sanction) * (index + 1));
+    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, (index + 1) * sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
         free(sanctions_copy);

@@ -6044,7 +6044,7 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
     memset(&chat->group[chat->numpeers], 0, sizeof(GC_GroupPeer));
     memset(&chat->gcc[chat->numpeers], 0, sizeof(GC_Connection));
 
-    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, sizeof(GC_GroupPeer) * chat->numpeers);
+    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, chat->numpeers * sizeof(GC_GroupPeer));
 
     if (tmp_group == nullptr) {
         return -1;
@@ -6052,7 +6052,7 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
 
     chat->group = tmp_group;
 
-    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, sizeof(GC_Connection) * chat->numpeers);
+    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, chat->numpeers * sizeof(GC_Connection));
 
     if (tmp_gcc == nullptr) {
         return -1;
@@ -6127,7 +6127,7 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
         }
     }
 
-    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, sizeof(GC_Connection) * (chat->numpeers + 1));
+    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, (chat->numpeers + 1) * sizeof(GC_Connection));
 
     if (tmp_gcc == nullptr) {
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
@@ -6138,7 +6138,7 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 
     chat->gcc = tmp_gcc;
 
-    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, sizeof(GC_GroupPeer) * (chat->numpeers + 1));
+    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, (chat->numpeers + 1) * sizeof(GC_GroupPeer));
 
     if (tmp_group == nullptr) {
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
