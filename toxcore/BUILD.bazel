@@ -369,6 +369,7 @@ cc_library(
     ],
     visibility = [
     "//c-toxcore/auto_tests:__pkg__",
+    "//c-toxcore/other:__pkg__",
     "//c-toxcore/testing:__pkg__",
     "//c-toxcore/toxav:__pkg__",
     ],
