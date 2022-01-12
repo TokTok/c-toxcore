@@ -3241,6 +3241,8 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     data = state_write_section_header(data, STATE_COOKIE_TYPE, saved_groups_size(m),
                                       STATE_TYPE_GROUPS);
 
+    const size_t saved_group_size = sizeof(Saved_Group);
+
     for (uint32_t i = 0; i < c->num_chats; ++i) {
         const GC_Chat *chat = &c->chats[i];
 
@@ -3250,10 +3252,8 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
         gc_pack_group_info(chat, temp);
 
-        memcpy(data, temp, sizeof(Saved_Group));
-        data += sizeof(Saved_Group);
-
-
+        memcpy(data, temp, saved_group_size);
+        data += saved_group_size;
     }
 
     crypto_memunlock(temp, sizeof(Saved_Group));
@@ -3265,7 +3265,9 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    if (length % sizeof(Saved_Group) != 0) {
+    const size_t saved_group_size = sizeof(Saved_Group);
+
+    if (length % saved_group_size != 0) {
         return STATE_LOAD_STATUS_ERROR; // TODO(endoffile78): error or continue?
     }
 
@@ -3277,10 +3279,10 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
 
     crypto_memlock(temp, sizeof(Saved_Group));
 
-    const uint32_t num = length / sizeof(Saved_Group);
+    const uint32_t num = length / saved_group_size;
 
     for (uint32_t i = 0; i < num; ++i) {
-        memcpy(temp, data + i * sizeof(Saved_Group), sizeof(Saved_Group));
+        memcpy(temp, data + i * saved_group_size, saved_group_size);
 
         int group_number = gc_group_load(m->group_handler, temp, -1);
 

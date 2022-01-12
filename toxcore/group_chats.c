@@ -2722,9 +2722,8 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, uint32_t p
         return 0;
     }
 
-    GC_SharedState old_shared_state;
+    GC_SharedState old_shared_state = chat->shared_state;
     GC_SharedState new_shared_state;
-    memcpy(&old_shared_state, &chat->shared_state, sizeof(GC_SharedState));
 
     if (unpack_gc_shared_state(&new_shared_state, ss_data, ss_length) == 0) {
         LOGGER_WARNING(chat->log, "Failed to unpack shared state");
@@ -2736,7 +2735,8 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, uint32_t p
         return 0;
     }
 
-    memcpy(&chat->shared_state, &new_shared_state, sizeof(GC_SharedState));
+    chat->shared_state = new_shared_state;
+
     memcpy(chat->shared_state_sig, signature, sizeof(chat->shared_state_sig));
 
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
@@ -2924,7 +2924,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, uint32_t
 
     sanctions_list_cleanup(&chat->moderation);
 
-    memcpy(&chat->moderation.sanctions_creds, &creds, sizeof(Mod_Sanction_Creds));
+    chat->moderation.sanctions_creds = creds;
     chat->moderation.sanctions = sanctions;
     chat->moderation.num_sanctions = num_sanctions;
 
@@ -3444,10 +3444,10 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         return -2;
     }
 
-    GC_TopicInfo old_topic_info;
-    uint8_t old_topic_sig[SIGNATURE_SIZE];
 
-    memcpy(&old_topic_info, &chat->topic_info, sizeof(GC_TopicInfo));
+    GC_TopicInfo old_topic_info = chat->topic_info;
+
+    uint8_t old_topic_sig[SIGNATURE_SIZE];
     memcpy(old_topic_sig, chat->topic_sig, SIGNATURE_SIZE);
 
     // TODO (jfreegman) improbable, but an overflow would break everything
@@ -3500,7 +3500,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     return 0;
 
 ON_ERROR:
-    memcpy(&chat->topic_info, &old_topic_info, sizeof(GC_TopicInfo));
+    chat->topic_info = old_topic_info;
     memcpy(chat->topic_sig, old_topic_sig, SIGNATURE_SIZE);
     free(packed_topic);
     return err;
@@ -3627,7 +3627,7 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, uint32_t peer_num
     const bool skip_callback = chat->topic_info.length == topic_info.length
                                && memcmp(chat->topic_info.topic, topic_info.topic, topic_info.length) == 0;
 
-    memcpy(&chat->topic_info, &topic_info, sizeof(GC_TopicInfo));
+    chat->topic_info = topic_info;
     memcpy(chat->topic_sig, signature, SIGNATURE_SIZE);
 
     if (!skip_callback && chat->connection_state == CS_CONNECTED && c->topic_change) {
@@ -6037,8 +6037,8 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
     --chat->numpeers;
 
     if (chat->numpeers != peer_number) {
-        memcpy(&chat->group[peer_number], &chat->group[chat->numpeers], sizeof(GC_GroupPeer));
-        memcpy(&chat->gcc[peer_number], &chat->gcc[chat->numpeers], sizeof(GC_Connection));
+        chat->group[peer_number] = chat->group[chat->numpeers];
+        chat->gcc[peer_number] = chat->gcc[chat->numpeers];
     }
 
     memset(&chat->group[chat->numpeers], 0, sizeof(GC_GroupPeer));

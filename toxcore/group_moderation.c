@@ -458,8 +458,7 @@ static void sanctions_creds_set_checksum(Mod_Sanction_Creds *creds)
 
 int sanctions_list_make_creds(Moderation *moderation)
 {
-    Mod_Sanction_Creds old_creds;
-    memcpy(&old_creds, &moderation->sanctions_creds, sizeof(Mod_Sanction_Creds));
+    const Mod_Sanction_Creds old_creds = moderation->sanctions_creds;
 
     ++moderation->sanctions_creds.version;
 
@@ -469,7 +468,7 @@ int sanctions_list_make_creds(Moderation *moderation)
 
     if (sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
                                  moderation->num_sanctions, hash) == -1) {
-        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(Mod_Sanction_Creds));
+        moderation->sanctions_creds = old_creds;
         return -1;
     }
 
@@ -479,7 +478,7 @@ int sanctions_list_make_creds(Moderation *moderation)
 
     if (crypto_sign_detached(moderation->sanctions_creds.sig, nullptr, moderation->sanctions_creds.hash,
                              MOD_SANCTION_HASH_SIZE, moderation->self_secret_sig_key) == -1) {
-        memcpy(&moderation->sanctions_creds, &old_creds, sizeof(Mod_Sanction_Creds));
+        moderation->sanctions_creds = old_creds;
         return -1;
     }
 
@@ -572,7 +571,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
                 return -1;
             }
 
-            memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
+            moderation->sanctions_creds = *creds;
         }
 
         sanctions_list_cleanup(moderation);
@@ -591,7 +590,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
     memcpy(sanctions_copy, moderation->sanctions, old_count * sizeof(Mod_Sanction));
 
     if (index != new_num) {
-        memcpy(&sanctions_copy[index], &sanctions_copy[new_num], sizeof(Mod_Sanction));
+        sanctions_copy[index] = sanctions_copy[new_num];
     }
 
     Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, new_num * sizeof(Mod_Sanction));
@@ -607,7 +606,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
             return -1;
         }
 
-        memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
+        moderation->sanctions_creds = *creds;
     }
 
     sanctions_list_cleanup(moderation);
@@ -710,7 +709,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
         return -1;
     }
 
-    memcpy(&new_list[index], sanction, sizeof(Mod_Sanction));
+    new_list[index] = *sanction;
 
     if (creds) {
         if (sanctions_creds_validate(moderation, new_list, creds, index + 1) == -1) {
@@ -719,7 +718,7 @@ int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod
             return -1;
         }
 
-        memcpy(&moderation->sanctions_creds, creds, sizeof(Mod_Sanction_Creds));
+        moderation->sanctions_creds = *creds;
     }
 
     sanctions_list_cleanup(moderation);
