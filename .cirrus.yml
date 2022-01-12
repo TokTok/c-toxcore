@@ -48,7 +48,31 @@ bazel-asan_task:
         --remote_download_minimal
         --
         //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test
 
 bazel-tsan_task:
   container:
@@ -65,7 +89,31 @@ bazel-tsan_task:
         --remote_download_minimal
         --
         //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test ||
+        bazel test -k
+        --remote_http_cache=http://$CIRRUS_HTTP_CACHE_HOST
+        --build_tag_filters=-haskell
+        --test_tag_filters=-haskell
+        --remote_download_minimal
+        --
+        //c-toxcore/...
+        -//c-toxcore/auto_tests:tcp_relay_test
 
 cimple_task:
   container:
