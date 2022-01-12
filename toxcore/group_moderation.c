@@ -284,7 +284,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
         return -1;
     }
 
-    return packed_len + cred_len;
+    return (int)packed_len + cred_len;
 }
 
 uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data, uint16_t length)

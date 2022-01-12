@@ -1258,7 +1258,7 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
         return -1;
     }
 
-    return header_len + packed_len;
+    return (int)header_len + packed_len;
 }
 
 /* Creates a signature for the group's shared state in packed form and increments the version.
@@ -3019,7 +3019,7 @@ static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uin
         return -1;
     }
 
-    return length + packed_len;
+    return (int)length + packed_len;
 }
 
 /* Sends the sanctions list to peer.
@@ -4317,7 +4317,7 @@ static bool group_topic_lock_enabled(const GC_Chat *chat)
 
 Group_Privacy_State gc_get_privacy_state(const GC_Chat *chat)
 {
-    return (Group_Privacy_State) chat->shared_state.privacy_state;
+    return chat->shared_state.privacy_state;
 }
 
 Group_Topic_Lock gc_get_topic_lock_state(const GC_Chat *chat)
