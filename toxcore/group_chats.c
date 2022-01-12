@@ -6902,16 +6902,16 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     chat->shared_state.version = net_ntohl(save->shared_state_version);
     memcpy(chat->shared_state_sig, save->shared_state_signature, SIGNATURE_SIZE);
     memcpy(chat->shared_state.founder_public_key, save->founder_public_key, EXT_PUBLIC_KEY_SIZE);
-    chat->shared_state.group_name_len = net_ntohs(save->group_name_length);
+    chat->shared_state.group_name_len = min_u16(MAX_GC_GROUP_NAME_SIZE, net_ntohs(save->group_name_length));
     memcpy(chat->shared_state.group_name, save->group_name, MAX_GC_GROUP_NAME_SIZE);
     chat->shared_state.privacy_state = (Group_Privacy_State) save->privacy_state;
     chat->shared_state.maxpeers = net_ntohs(save->maxpeers);
-    chat->shared_state.password_length = net_ntohs(save->password_length);
+    chat->shared_state.password_length = min_u16(MAX_GC_PASSWORD_SIZE, net_ntohs(save->password_length));
     memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
     memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, MOD_MODERATION_HASH_SIZE);
     chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
 
-    chat->topic_info.length = net_ntohs(save->topic_length);
+    chat->topic_info.length = min_u16(MAX_GC_TOPIC_SIZE, net_ntohs(save->topic_length));
     memcpy(chat->topic_info.topic, save->topic, MAX_GC_TOPIC_SIZE);
     memcpy(chat->topic_info.public_sig_key, save->topic_public_sig_key, SIG_PUBLIC_KEY_SIZE);
     chat->topic_info.version = net_ntohl(save->topic_version);
@@ -6927,9 +6927,10 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     chat->self_public_key_hash = gc_get_pk_jenkins_hash(chat->self_public_key);
 
-    const uint16_t num_mods = net_ntohs(save->num_mods);
+    const uint16_t num_mods = min_u16(GROUP_SAVE_MAX_MODERATORS, net_ntohs(save->num_mods));
 
-    if (mod_list_unpack(&chat->moderation, save->mod_list, num_mods * MOD_LIST_ENTRY_SIZE, num_mods) == -1) {
+    if (mod_list_unpack(&chat->moderation, save->mod_list, sizeof(save->mod_list), num_mods) == -1) {
+        LOGGER_ERROR(chat->log, "Failed to unpack mod list");
         return -1;
     }
 
@@ -6939,11 +6940,7 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     self_gc_set_ext_public_key(chat, chat->self_public_key);
 
-    uint16_t self_nick_length = net_ntohs(save->self_nick_length);
-
-    if (self_nick_length > MAX_GC_NICK_SIZE) {
-        self_nick_length = MAX_GC_NICK_SIZE;
-    }
+    const uint16_t self_nick_length = min_u16(MAX_GC_NICK_SIZE, net_ntohs(save->self_nick_length));
 
     if (self_gc_set_nick(chat, save->self_nick, self_nick_length) == -1) {
         return -1;
@@ -6957,11 +6954,13 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
 
     if (self_gc_is_founder(chat)) {
         if (init_gc_sanctions_creds(chat) == -1) {
+            LOGGER_ERROR(chat->log, "Failed to init sanctions credentials");
             return -1;
         }
     }
 
     if (init_gc_tcp_connection(c, chat) == -1) {
+        LOGGER_ERROR(chat->log, "Failed to init tcp connection");
         return -1;
     }
 

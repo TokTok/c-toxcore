@@ -242,6 +242,8 @@ static void group_save_test(Tox **toxes, State *state)
 
     ck_assert(new_tox != nullptr);
 
+    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+
     printf("tox0 saves group and reloads client\n");
 
     int group_ret = has_correct_group_state(new_tox, group_number, chat_id);

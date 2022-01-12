@@ -25,7 +25,7 @@
 
 int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods)
 {
-    if (length != num_mods * MOD_LIST_ENTRY_SIZE) {
+    if (length < num_mods * MOD_LIST_ENTRY_SIZE || num_mods > MOD_MAX_NUM_MODERATORS) {
         return -1;
     }
 
