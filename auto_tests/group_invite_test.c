@@ -6,10 +6,6 @@
  * This test also checks that many peers can successfully join the group simultaneously.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>

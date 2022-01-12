@@ -4,10 +4,6 @@
  * reconnect to a group while retaining our credentials.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

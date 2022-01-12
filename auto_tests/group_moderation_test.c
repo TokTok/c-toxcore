@@ -5,10 +5,6 @@
  * for general group/syncing functionality.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

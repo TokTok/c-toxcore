@@ -2,10 +2,6 @@
  * Does a basic functionality test for TCP connections.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>

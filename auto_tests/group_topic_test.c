@@ -3,10 +3,6 @@
  * and that the topic lock works as intended.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
