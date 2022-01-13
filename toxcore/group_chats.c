@@ -5063,7 +5063,7 @@ static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk
 /* Makes, wraps and encrypts a group handshake packet (both request and response are the same format).
  *
  * Packet contains the packet header, handshake type, self public encryption key, self public signature key,
- * request type, join type, and a single TCP relay node.
+ * request type, and a single TCP relay node.
  *
  * Returns length of encrypted packet on success.
  * Returns -1 on failure.
@@ -6277,6 +6277,10 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
     chat->new_tcp_relay = false;
 }
 
+/* Executes pending handshakes for peers. If our peerlist is empty we periodically try to
+ * load peers from our saved peers list and initiate handshake requests with them.
+ */
+#define LOAD_PEERS_TIMEOUT (GC_UNCONFIRMED_PEER_TIMEOUT + 10)
 static void do_handshakes(GC_Chat *chat)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
@@ -6287,6 +6291,15 @@ static void do_handshakes(GC_Chat *chat)
         }
 
         send_pending_handshake(chat, gconn, i);
+    }
+
+    if (chat->numpeers <= 1) {
+        const uint64_t tm = mono_time_get(chat->mono_time);
+
+        if (mono_time_is_timeout(chat->mono_time, chat->last_time_peers_loaded, LOAD_PEERS_TIMEOUT)) {
+            load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
+            chat->last_time_peers_loaded = tm;
+        }
     }
 }
 
@@ -6324,11 +6337,6 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
                 break;
             }
         }
-    }
-
-    // keep trying to handshake with saved peers if we fail to connect
-    if (chat->numpeers <= 1 && chat->connection_state == CS_CONNECTING) {
-        load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
     }
 }
 
@@ -6980,8 +6988,6 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
         }
     }
 
-    load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
-
     return group_number;
 }
 
@@ -7147,8 +7153,6 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
 
         chat->update_self_announces = true;
     }
-
-    load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
 
     chat->connection_state = CS_CONNECTING;
 

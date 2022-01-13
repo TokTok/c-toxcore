@@ -325,6 +325,7 @@ typedef struct GC_Chat {
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
     uint64_t    last_sync_request;
+    uint64_t    last_time_peers_loaded;
 
     /* keeps track of frequency of new inbound connections */
     uint8_t     connection_O_metre;
