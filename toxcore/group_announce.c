@@ -76,7 +76,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
         const size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
-        if (memcmp(except_public_key, &announces->announces[index].base_announce.peer_public_key,
+        if (memcmp(except_public_key, &announces->peer_announces[index].base_announce.peer_public_key,
                    ENC_PUBLIC_KEY_SIZE) == 0) {
             continue;
         }
@@ -84,7 +84,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         bool already_added = false;
 
         for (size_t j = 0; j < added_count; ++j) {
-            if (memcmp(&gc_announces[j].peer_public_key, &announces->announces[index].base_announce.peer_public_key,
+            if (memcmp(&gc_announces[j].peer_public_key, &announces->peer_announces[index].base_announce.peer_public_key,
                        ENC_PUBLIC_KEY_SIZE) == 0) {
                 already_added = true;
                 break;
@@ -92,7 +92,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         }
 
         if (!already_added) {
-            gc_announces[added_count] = announces->announces[index].base_announce;
+            gc_announces[added_count] = announces->peer_announces[index].base_announce;
             ++added_count;
         }
     }
@@ -358,7 +358,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
 
     const uint64_t index = announces->index % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
-    GC_Peer_Announce *gc_peer_announce = &announces->announces[index];
+    GC_Peer_Announce *gc_peer_announce = &announces->peer_announces[index];
 
     gc_peer_announce->base_announce = public_announce->base_announce;
 

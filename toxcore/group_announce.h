@@ -61,7 +61,7 @@ struct GC_Announces {
     uint64_t index;
     uint64_t last_announce_received_timestamp;
 
-    GC_Peer_Announce announces[GCA_MAX_SAVED_ANNOUNCES_PER_GC];
+    GC_Peer_Announce peer_announces[GCA_MAX_SAVED_ANNOUNCES_PER_GC];
 
     GC_Announces *next_announce;
     GC_Announces *prev_announce;
