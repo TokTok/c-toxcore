@@ -42,6 +42,8 @@ struct TCP_Connections {
 
     bool onion_status;
     uint16_t onion_num_conns;
+
+    Net_Profile net_profile;
 };
 
 
@@ -50,6 +52,10 @@ const uint8_t *tcp_connections_public_key(const TCP_Connections *tcp_c)
     return tcp_c->self_public_key;
 }
 
+const Net_Profile *tcp_connections_get_net_profile(const TCP_Connections *tcp_c)
+{
+    return &tcp_c->net_profile;
+}
 
 uint32_t tcp_connections_count(const TCP_Connections *tcp_c)
 {
@@ -316,7 +322,7 @@ int send_packet_tcp_connection(TCP_Connections *tcp_c, int connections_number, c
                 continue;
             }
 
-            ret = send_data(tcp_con->connection, connection_id, packet, length);
+            ret = send_data(tcp_con->connection, connection_id, &tcp_c->net_profile, packet, length);
 
             if (ret == 0) {
                 limit_reached = 1;
@@ -348,7 +354,7 @@ int send_packet_tcp_connection(TCP_Connections *tcp_c, int connections_number, c
                     continue;
                 }
 
-                if (send_oob_packet(tcp_con->connection, con_to->public_key, packet, length) == 1) {
+                if (send_oob_packet(tcp_con->connection, &tcp_c->net_profile, con_to->public_key, packet, length) == 1) {
                     ret += 1;
                 }
             }
@@ -400,7 +406,8 @@ int tcp_send_onion_request(TCP_Connections *tcp_c, uint32_t tcp_connections_numb
     }
 
     if (tcp_c->tcp_connections[tcp_connections_number].status == TCP_CONN_CONNECTED) {
-        int ret = send_onion_request(tcp_c->tcp_connections[tcp_connections_number].connection, data, length);
+        int ret = send_onion_request(tcp_c->tcp_connections[tcp_connections_number].connection, &tcp_c->net_profile, data,
+                                     length);
 
         if (ret == 1) {
             return 0;
@@ -428,7 +435,7 @@ int tcp_send_oob_packet(TCP_Connections *tcp_c, unsigned int tcp_connections_num
         return -1;
     }
 
-    int ret = send_oob_packet(tcp_con->connection, public_key, packet, length);
+    int ret = send_oob_packet(tcp_con->connection, &tcp_c->net_profile, public_key, packet, length);
 
     if (ret == 1) {
         return 0;
@@ -577,7 +584,7 @@ int kill_tcp_connection_to(TCP_Connections *tcp_c, int connections_number)
             }
 
             if (tcp_con->status == TCP_CONN_CONNECTED) {
-                send_disconnect_request(tcp_con->connection, con_to->connections[i].connection_id);
+                send_disconnect_request(tcp_con->connection, con_to->connections[i].connection_id, &tcp_c->net_profile);
             }
 
             if (con_to->connections[i].status == TCP_CONNECTIONS_STATUS_ONLINE) {
@@ -915,7 +922,7 @@ static int send_tcp_relay_routing_request(TCP_Connections *tcp_c, int tcp_connec
         return -1;
     }
 
-    if (send_routing_request(tcp_con->connection, public_key) != 1) {
+    if (send_routing_request(tcp_con->connection, public_key, &tcp_c->net_profile) != 1) {
         return -1;
     }
 
@@ -1418,7 +1425,7 @@ static void do_tcp_conns(const Logger *logger, TCP_Connections *tcp_c, void *use
         }
 
         if (tcp_con->status != TCP_CONN_SLEEPING) {
-            do_TCP_connection(logger, tcp_c->mono_time, tcp_con->connection, userdata);
+            do_TCP_connection(logger, tcp_c->mono_time, tcp_con->connection, &tcp_c->net_profile, userdata);
 
             /* callbacks can change TCP connection address. */
             tcp_con = get_tcp_connection(tcp_c, i);
@@ -1507,3 +1514,4 @@ void kill_tcp_connections(TCP_Connections *tcp_c)
     free(tcp_c->connections);
     free(tcp_c);
 }
+

@@ -523,6 +523,8 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+
+    Net_Profile udp_net_profile;
 };
 
 Family net_family(const Networking_Core *net)
@@ -609,6 +611,10 @@ int sendpacket(Networking_Core *net, IP_Port ip_port, const uint8_t *data, uint1
 #endif
 
     loglogdata(net->log, "O=>", data, length, ip_port, res);
+
+    if (res == length) {
+        netprof_record_packet(&net->udp_net_profile, data[0], length, Dir_Sent);
+    }
 
     return res;
 }
@@ -709,6 +715,8 @@ void networking_poll(Networking_Core *net, void *userdata)
         if (length < 1) {
             continue;
         }
+
+        netprof_record_packet(&net->udp_net_profile, data[0], length, Dir_Recv);
 
         packet_handler_cb *const cb = net->packethandlers[data[0]].function;
         void *const object = net->packethandlers[data[0]].object;
@@ -1560,13 +1568,21 @@ Socket net_socket(Family domain, int type, int protocol)
 #endif
 }
 
-int net_send(Socket sock, const void *buf, size_t len)
+int net_send(Socket sock, const void *buf, size_t len, Net_Profile *net_profile)
 {
+    int ret;
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    ret = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #else
-    return send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    ret = send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #endif
+
+    if (buf && ret == len) {
+        const uint8_t *data = (const uint8_t *)buf;
+        netprof_record_packet(net_profile, data[0], len, Dir_Sent);
+    }
+
+    return ret;
 }
 
 int net_recv(Socket sock, void *buf, size_t len)
@@ -1728,3 +1744,13 @@ void net_kill_strerror(const char *strerror)
     LocalFree((char *)strerror);
 #endif
 }
+
+const Net_Profile *net_get_net_profile(const Networking_Core *net)
+{
+    if (net) {
+        return &net->udp_net_profile;
+    }
+
+    return nullptr;
+}
+
