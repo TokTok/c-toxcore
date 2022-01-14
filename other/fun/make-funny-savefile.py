@@ -55,7 +55,7 @@ import sys
 import struct
 import os
 
-def abort(msg):
+def abort(msg: str) -> None:
     print(msg)
     exit(1)
 
@@ -65,12 +65,12 @@ if len(sys.argv) != 5:
     abort("Usage: %s <public key> <private key> <user name> <out file>" % (sys.argv[0]))
 
 try:
-    public_key = sys.argv[1].decode("hex")
+    public_key = bytes.fromhex(sys.argv[1])
 except:
     abort("Bad public key")
 
 try:
-    private_key = sys.argv[2].decode("hex")
+    private_key = bytes.fromhex(sys.argv[2])
 except:
     abort("Bad private key")
 
@@ -89,7 +89,7 @@ out_file_name = sys.argv[4]
 nospam = os.urandom(4)
 
 
-def make_subheader(h_type, h_length):
+def make_subheader(h_type: int, h_length: int) -> bytes:
     return (
         struct.pack("<I", h_length) +
         struct.pack("<H", h_type) +

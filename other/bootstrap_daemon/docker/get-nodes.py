@@ -27,12 +27,13 @@ THE SOFTWARE.
 import json
 import sys
 import urllib.request
+from typing import Dict
 
 response = urllib.request.urlopen('https://nodes.tox.chat/json')
 raw_json = response.read().decode('ascii', 'ignore')
 nodes = json.loads(raw_json)['nodes']
 
-def node_to_string(node):
+def node_to_string(node: Dict[str, str]) -> str:
     node_output  = '  { // ' + node['maintainer'] + '\n'
     node_output += '    public_key = "' + node['public_key'] + '"\n'
     node_output += '    port = ' + str(node['port']) + '\n'
