@@ -165,6 +165,17 @@ TCP_Connections *nc_get_tcp_c(const Net_Crypto *c)
     return c->tcp_c;
 }
 
+const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c)
+{
+    const TCP_Connections *tcp_c = nc_get_tcp_c(c);
+
+    if (tcp_c == nullptr) {
+        return nullptr;
+    }
+
+    return tcp_connections_get_net_profile(tcp_c);
+}
+
 DHT *nc_get_dht(const Net_Crypto *c)
 {
     return c->dht;

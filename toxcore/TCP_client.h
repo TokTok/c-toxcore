@@ -11,6 +11,7 @@
 
 #include "TCP_server.h"
 #include "crypto_core.h"
+#include "net_profile.h"
 
 #define TCP_CONNECTION_TIMEOUT 10
 
@@ -55,7 +56,7 @@ TCP_Client_Connection *new_TCP_connection(const Mono_Time *mono_time, IP_Port ip
 /** Run the TCP connection
  */
 void do_TCP_connection(const Logger *logger, Mono_Time *mono_time, TCP_Client_Connection *tcp_connection,
-                       void *userdata);
+                       Net_Profile *tcp_client_prof, void *userdata);
 
 /** Kill the TCP connection
  */
@@ -67,7 +68,7 @@ typedef int tcp_onion_response_cb(void *object, const uint8_t *data, uint16_t le
  * return 0 if could not send packet.
  * return -1 on failure (connection must be killed).
  */
-int send_onion_request(TCP_Client_Connection *con, const uint8_t *data, uint16_t length);
+int send_onion_request(TCP_Client_Connection *con, Net_Profile *tcp_client_prof, const uint8_t *data, uint16_t length);
 void onion_response_handler(TCP_Client_Connection *con, tcp_onion_response_cb *onion_callback, void *object);
 
 typedef int tcp_routing_response_cb(void *object, uint8_t connection_id, const uint8_t *public_key);
@@ -77,7 +78,8 @@ typedef int tcp_routing_status_cb(void *object, uint32_t number, uint8_t connect
  * return 0 if could not send packet.
  * return -1 on failure (connection must be killed).
  */
-int send_routing_request(TCP_Client_Connection *con, uint8_t *public_key);
+int send_routing_request(TCP_Client_Connection *con, uint8_t *public_key, Net_Profile *tcp_client_prof);
+
 void routing_response_handler(TCP_Client_Connection *con, tcp_routing_response_cb *response_callback, void *object);
 void routing_status_handler(TCP_Client_Connection *con, tcp_routing_status_cb *status_callback, void *object);
 
@@ -85,7 +87,7 @@ void routing_status_handler(TCP_Client_Connection *con, tcp_routing_status_cb *s
  * return 0 if could not send packet.
  * return -1 on failure (connection must be killed).
  */
-int send_disconnect_request(TCP_Client_Connection *con, uint8_t con_id);
+int send_disconnect_request(TCP_Client_Connection *con, uint8_t con_id, Net_Profile *tcp_client_prof);
 
 /** Set the number that will be used as an argument in the callbacks related to con_id.
  *
@@ -103,7 +105,8 @@ typedef int tcp_routing_data_cb(void *object, uint32_t number, uint8_t connectio
  * return 0 if could not send packet.
  * return -1 on failure.
  */
-int send_data(TCP_Client_Connection *con, uint8_t con_id, const uint8_t *data, uint16_t length);
+int send_data(TCP_Client_Connection *con, uint8_t con_id, Net_Profile *tcp_client_prof, const uint8_t *data,
+              uint16_t length);
 void routing_data_handler(TCP_Client_Connection *con, tcp_routing_data_cb *data_callback, void *object);
 
 typedef int tcp_oob_data_cb(void *object, const uint8_t *public_key, const uint8_t *data, uint16_t length,
@@ -113,8 +116,9 @@ typedef int tcp_oob_data_cb(void *object, const uint8_t *public_key, const uint8
  * return 0 if could not send packet.
  * return -1 on failure.
  */
-int send_oob_packet(TCP_Client_Connection *con, const uint8_t *public_key, const uint8_t *data, uint16_t length);
+int send_oob_packet(TCP_Client_Connection *con, Net_Profile *tcp_client_prof, const uint8_t *public_key,
+                    const uint8_t *data, uint16_t length);
 void oob_data_handler(TCP_Client_Connection *con, tcp_oob_data_cb *oob_data_callback, void *object);
 
-
 #endif
+

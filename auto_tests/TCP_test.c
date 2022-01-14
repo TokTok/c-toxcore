@@ -95,12 +95,12 @@ START_TEST(test_basic)
                   "encrypt_data() call failed.");
 
     // Sending the handshake
-    ck_assert_msg(net_send(sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+    ck_assert_msg(net_send(sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "An attempt to send the initial handshake minus last byte failed.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1) == 1,
+    ck_assert_msg(net_send(sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, nullptr) == 1,
                   "The attempt to send the last byte of handshake failed.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
@@ -137,7 +137,7 @@ START_TEST(test_basic)
             msg_length = sizeof(r_req) - i;
         }
 
-        ck_assert_msg(net_send(sock, r_req + i, msg_length) == msg_length,
+        ck_assert_msg(net_send(sock, r_req + i, msg_length, nullptr) == msg_length,
                       "Failed to send request after completing the handshake.");
         i += msg_length;
 
@@ -212,12 +212,12 @@ static struct sec_TCP_con *new_TCP_con(TCP_Server *tcp_s, Mono_Time *mono_time)
     ck_assert_msg(ret == TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                   "Failed to encrypt the outgoing handshake.");
 
-    ck_assert_msg(net_send(sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+    ck_assert_msg(net_send(sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "Failed to send the first portion of the handshake to the TCP relay server.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1) == 1,
+    ck_assert_msg(net_send(sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, nullptr) == 1,
                   "Failed to send last byte of handshake.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
@@ -255,7 +255,8 @@ static int write_packet_TCP_secure_connection(struct sec_TCP_con *con, uint8_t *
 
     increment_nonce(con->sent_nonce);
 
-    ck_assert_msg(net_send(con->sock, packet, SIZEOF_VLA(packet)) == SIZEOF_VLA(packet), "Failed to send a packet.");
+    ck_assert_msg(net_send(con->sock, packet, SIZEOF_VLA(packet), nullptr) == SIZEOF_VLA(packet),
+                  "Failed to send a packet.");
     return 0;
 }
 
@@ -480,7 +481,7 @@ START_TEST(test_client)
 
     TCP_Client_Connection *conn = new_TCP_connection(mono_time, ip_port_tcp_s, self_public_key, f_public_key, f_secret_key,
                                   nullptr);
-    do_TCP_connection(logger, mono_time, conn, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
     c_sleep(50);
 
     // The connection status should be unconfirmed here because we have finished
@@ -494,7 +495,7 @@ START_TEST(test_client)
 
     for (uint8_t i = 0; i < LOOP_SIZE; i++) {
         mono_time_update(mono_time);
-        do_TCP_connection(logger, mono_time, conn, nullptr); // Run the connection loop.
+        do_TCP_connection(logger, mono_time, conn, nullptr, nullptr); // Run the connection loop.
 
         // The status of the connection should continue to be TCP_CLIENT_CONFIRMED after multiple subsequent do_TCP_connection() calls.
         ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong connection status. Expected: %d, is: %d",
@@ -528,25 +529,25 @@ START_TEST(test_client)
     // These integers will increment per successful callback.
     oob_data_callback_good = response_callback_good = status_callback_good = data_callback_good = 0;
 
-    do_TCP_connection(logger, mono_time, conn, nullptr);
-    do_TCP_connection(logger, mono_time, conn2, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
+    do_TCP_connection(logger, mono_time, conn2, nullptr, nullptr);
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    do_TCP_connection(logger, mono_time, conn, nullptr);
-    do_TCP_connection(logger, mono_time, conn2, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
+    do_TCP_connection(logger, mono_time, conn2, nullptr, nullptr);
     c_sleep(50);
 
     uint8_t data[5] = {1, 2, 3, 4, 5};
     memcpy(oob_pubkey, f2_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    send_oob_packet(conn2, f_public_key, data, 5);
-    send_routing_request(conn, f2_public_key);
-    send_routing_request(conn2, f_public_key);
+    send_oob_packet(conn2, nullptr, f_public_key, data, 5);
+    send_routing_request(conn, f2_public_key, nullptr);
+    send_routing_request(conn2, f_public_key, nullptr);
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    do_TCP_connection(logger, mono_time, conn, nullptr);
-    do_TCP_connection(logger, mono_time, conn2, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
+    do_TCP_connection(logger, mono_time, conn2, nullptr, nullptr);
 
     // All callback methods save data should have run during the above network prodding.
     ck_assert_msg(oob_data_callback_good == 1, "OOB callback not called");
@@ -559,20 +560,20 @@ START_TEST(test_client)
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(send_data(conn2, 0, data, 5) == 1, "Failed a send_data() call.");
+    ck_assert_msg(send_data(conn2, 0, nullptr, data, 5) == 1, "Failed a send_data() call.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    do_TCP_connection(logger, mono_time, conn, nullptr);
-    do_TCP_connection(logger, mono_time, conn2, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
+    do_TCP_connection(logger, mono_time, conn2, nullptr, nullptr);
     ck_assert_msg(data_callback_good == 1, "Data callback was not called.");
     status_callback_good = 0;
-    send_disconnect_request(conn2, 0);
+    send_disconnect_request(conn2, 0, nullptr);
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
 
-    do_TCP_connection(logger, mono_time, conn, nullptr);
-    do_TCP_connection(logger, mono_time, conn2, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
+    do_TCP_connection(logger, mono_time, conn2, nullptr, nullptr);
     ck_assert_msg(status_callback_good == 1, "Status callback not called");
     ck_assert_msg(status_callback_status == 1, "Wrong status callback status.");
 
@@ -608,7 +609,7 @@ START_TEST(test_client_invalid)
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);
-    do_TCP_connection(logger, mono_time, conn, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
     c_sleep(50);
 
     // After 50ms of no response...
@@ -617,13 +618,13 @@ START_TEST(test_client_invalid)
     // After 5s...
     c_sleep(5000);
     mono_time_update(mono_time);
-    do_TCP_connection(logger, mono_time, conn, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
     ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONNECTING, "Wrong status. Expected: %d, is: %d.",
                   TCP_CLIENT_CONNECTING, tcp_con_status(conn));
     // 11s... (Should wait for 10 before giving up.)
     c_sleep(6000);
     mono_time_update(mono_time);
-    do_TCP_connection(logger, mono_time, conn, nullptr);
+    do_TCP_connection(logger, mono_time, conn, nullptr, nullptr);
     ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_DISCONNECTED, "Wrong status. Expected: %d, is: %d.",
                   TCP_CLIENT_DISCONNECTED, tcp_con_status(conn));
 

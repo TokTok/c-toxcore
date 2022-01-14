@@ -19,6 +19,8 @@ libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
                         ../toxcore/ping_array.c \
                         ../toxcore/net_crypto.h \
                         ../toxcore/net_crypto.c \
+                        ../toxcore/net_profile.c \
+                        ../toxcore/net_profile.h \
                         ../toxcore/friend_requests.h \
                         ../toxcore/friend_requests.c \
                         ../toxcore/LAN_discovery.h \
@@ -44,6 +46,8 @@ libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
                         ../toxcore/logger.h \
                         ../toxcore/logger.c \
                         ../toxcore/onion_announce.h \
+                        ../toxcore/net_profile.c \
+                        ../toxcore/net_profile.h \
                         ../toxcore/onion_announce.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion_client.c \
