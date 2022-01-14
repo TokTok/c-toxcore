@@ -62,7 +62,7 @@ set -eux
 
 run() {
   echo "Running clang-tidy in variant '$*'"
-  $HOME/usr/clang/bin/clang-tidy \
+  "$HOME"/usr/clang/bin/clang-tidy \
     -p=_build \
     --extra-arg=-DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE \
     --checks="$CHECKS" \
