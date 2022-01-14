@@ -35,12 +35,13 @@ Example (of course, do not try using this key for anything real):
 import os
 import struct
 import sys
+
 PUBLIC_KEY_LENGTH = 32
 PRIVATE_KEY_LENGTH = 32
 
 # Constants taken from messenger.c
-MESSENGER_STATE_COOKIE_GLOBAL = 0x15ed1b1f
-MESSENGER_STATE_COOKIE_TYPE = 0x01ce
+MESSENGER_STATE_COOKIE_GLOBAL = 0x15ED1B1F
+MESSENGER_STATE_COOKIE_TYPE = 0x01CE
 MESSENGER_STATE_TYPE_NOSPAMKEYS = 1
 MESSENGER_STATE_TYPE_DHT = 2
 MESSENGER_STATE_TYPE_FRIENDS = 3
@@ -59,8 +60,7 @@ def abort(msg: str) -> None:
 
 
 if len(sys.argv) != 5:
-    abort("Usage: %s <public key> <private key> <user name> <out file>" %
-          (sys.argv[0]))
+    abort("Usage: %s <public key> <private key> <user name> <out file>" % (sys.argv[0]))
 
 try:
     public_key = bytes.fromhex(sys.argv[1])
@@ -89,28 +89,33 @@ nospam = os.urandom(4)
 
 def make_subheader(h_type: int, h_length: int) -> bytes:
     return (
-        struct.pack("<I", h_length) +
-        struct.pack("<H", h_type) +
-        struct.pack("<H", MESSENGER_STATE_COOKIE_TYPE))
+        struct.pack("<I", h_length)
+        + struct.pack("<H", h_type)
+        + struct.pack("<H", MESSENGER_STATE_COOKIE_TYPE)
+    )
 
 
 data = (
     # Main header
-    struct.pack("<I", 0) +
-    struct.pack("<I", MESSENGER_STATE_COOKIE_GLOBAL) +
-
+    struct.pack("<I", 0)
+    + struct.pack("<I", MESSENGER_STATE_COOKIE_GLOBAL)
+    +
     # Keys
-    make_subheader(MESSENGER_STATE_TYPE_NOSPAMKEYS,
-                   len(nospam) + PUBLIC_KEY_LENGTH + PRIVATE_KEY_LENGTH) +
-    nospam + public_key + private_key +
-
+    make_subheader(
+        MESSENGER_STATE_TYPE_NOSPAMKEYS,
+        len(nospam) + PUBLIC_KEY_LENGTH + PRIVATE_KEY_LENGTH,
+    )
+    + nospam
+    + public_key
+    + private_key
+    +
     # Name (not really needed, but helps)
-    make_subheader(MESSENGER_STATE_TYPE_NAME, len(user_name)) +
-    user_name +
-
+    make_subheader(MESSENGER_STATE_TYPE_NAME, len(user_name))
+    + user_name
+    +
     # Status message (not really needed, but helps)
-    make_subheader(MESSENGER_STATE_TYPE_STATUSMESSAGE, len(STATUS_MESSAGE)) +
-    STATUS_MESSAGE
+    make_subheader(MESSENGER_STATE_TYPE_STATUSMESSAGE, len(STATUS_MESSAGE))
+    + STATUS_MESSAGE
 )
 
 

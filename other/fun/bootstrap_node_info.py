@@ -51,7 +51,8 @@ INFO_REQUEST_PACKET_LENGTH = 78
 # first byte is INFO_REQUEST_ID, other bytes don't matter as long as reqest's
 # length matches INFO_REQUEST_LENGTH
 INFO_REQUEST_PACKET = INFO_PACKET_ID + (
-    b"0" * (INFO_REQUEST_PACKET_LENGTH - len(INFO_PACKET_ID)))
+    b"0" * (INFO_REQUEST_PACKET_LENGTH - len(INFO_PACKET_ID))
+)
 
 PACKET_ID_LENGTH = len(INFO_PACKET_ID)
 # https://github.com/irungentoo/toxcore/blob/881b2d900d1998981fb6b9938ec66012d049635f/other/bootstrap_node_packets.c#L44
@@ -59,8 +60,7 @@ VERSION_LENGTH = 4
 # https://github.com/irungentoo/toxcore/blob/881b2d900d1998981fb6b9938ec66012d049635f/other/bootstrap_node_packets.c#L26
 MAX_MOTD_LENGTH = 256
 
-MAX_INFO_RESPONSE_PACKET_LENGTH = PACKET_ID_LENGTH + \
-    VERSION_LENGTH + MAX_MOTD_LENGTH
+MAX_INFO_RESPONSE_PACKET_LENGTH = PACKET_ID_LENGTH + VERSION_LENGTH + MAX_MOTD_LENGTH
 
 SOCK_TIMEOUT_SECONDS = 1.0
 
@@ -83,28 +83,35 @@ def main(prog: str, protocol: str, host: str, port: int) -> None:
     try:
         data, _ = sock.recvfrom(MAX_INFO_RESPONSE_PACKET_LENGTH)
     except socket.timeout:
-        print("The DHT bootstrap node didn't reply in " +
-              str(SOCK_TIMEOUT_SECONDS) + " sec.")
-        print("The likely reason for that is that the DHT bootstrap node "
-              "is either offline or has no info set.")
+        print(
+            "The DHT bootstrap node didn't reply in "
+            + str(SOCK_TIMEOUT_SECONDS)
+            + " sec."
+        )
+        print(
+            "The likely reason for that is that the DHT bootstrap node "
+            "is either offline or has no info set."
+        )
         sys.exit(2)
 
     packet_id = data[:PACKET_ID_LENGTH]
     if packet_id != INFO_PACKET_ID:
-        print("Bad response, first byte should be {info_packet_id!r}"
-              " but got {packet_id!r}({data!r})".format(
-                  info_packet_id=INFO_PACKET_ID,
-                  packet_id=packet_id,
-                  data=data,
-              ))
-        print("Are you sure that you are pointing the script at a Tox "
-              "DHT bootstrap node and that the script is up to date?")
+        print(
+            "Bad response, first byte should be {info_packet_id!r}"
+            " but got {packet_id!r}({data!r})".format(
+                info_packet_id=INFO_PACKET_ID, packet_id=packet_id, data=data,
+            )
+        )
+        print(
+            "Are you sure that you are pointing the script at a Tox "
+            "DHT bootstrap node and that the script is up to date?"
+        )
         sys.exit(3)
 
-    version = int.from_bytes(data[PACKET_ID_LENGTH:PACKET_ID_LENGTH +
-                                  VERSION_LENGTH],
-                             byteorder="big")
-    motd = data[PACKET_ID_LENGTH + VERSION_LENGTH:].decode("utf-8")
+    version = int.from_bytes(
+        data[PACKET_ID_LENGTH : PACKET_ID_LENGTH + VERSION_LENGTH], byteorder="big"
+    )
+    motd = data[PACKET_ID_LENGTH + VERSION_LENGTH :].decode("utf-8")
     print("Version: " + str(version))
     print("MOTD:    " + motd)
     sys.exit(0)
@@ -116,8 +123,5 @@ if __name__ == "__main__":
         sys.exit(1)
 
     main(
-        prog=sys.argv[0],
-        protocol=sys.argv[1],
-        host=sys.argv[2],
-        port=int(sys.argv[3]),
+        prog=sys.argv[0], protocol=sys.argv[1], host=sys.argv[2], port=int(sys.argv[3]),
     )
