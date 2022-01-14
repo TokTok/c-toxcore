@@ -255,7 +255,8 @@ static int write_packet_TCP_secure_connection(struct sec_TCP_con *con, uint8_t *
 
     increment_nonce(con->sent_nonce);
 
-    ck_assert_msg(net_send(con->sock, packet, SIZEOF_VLA(packet), nullptr) == SIZEOF_VLA(packet), "Failed to send a packet.");
+    ck_assert_msg(net_send(con->sock, packet, SIZEOF_VLA(packet), nullptr) == SIZEOF_VLA(packet),
+                  "Failed to send a packet.");
     return 0;
 }
 
