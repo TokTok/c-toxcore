@@ -20,10 +20,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-
 # Gets a list of nodes from https://nodes.tox.chat/json and prints them out
 # in the format of tox-bootstrapd config file.
-
 import json
 import sys
 import urllib.request

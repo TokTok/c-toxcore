@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 """
 Generate a new (and empty) save file with predefined keys. Used to play
 with externally generated keys.
@@ -30,8 +29,6 @@ Example (of course, do not try using this key for anything real):
 
 
 """
-
-
 import os
 import struct
 import sys
