@@ -44,7 +44,8 @@ def node_to_string(node: Dict[str, str]) -> str:
     raise Exception("no IP address found for node " + json.dumps(node))
 
 
-output = "bootstrap_nodes = (\n" + ",\n".join(map(node_to_string, nodes)) + "\n)"
+output = "bootstrap_nodes = (\n" + ",\n".join(map(node_to_string,
+                                                  nodes)) + "\n)"
 
 if len(sys.argv) > 1:
     with open(sys.argv[1], "a") as fh:
