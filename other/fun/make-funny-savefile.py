@@ -32,37 +32,35 @@ Example (of course, do not try using this key for anything real):
 """
 
 
+import os
+import struct
+import sys
 PUBLIC_KEY_LENGTH = 32
 PRIVATE_KEY_LENGTH = 32
 
 # Constants taken from messenger.c
-MESSENGER_STATE_COOKIE_GLOBAL       = 0x15ed1b1f
-MESSENGER_STATE_COOKIE_TYPE         = 0x01ce
-MESSENGER_STATE_TYPE_NOSPAMKEYS     = 1
-MESSENGER_STATE_TYPE_DHT            = 2
-MESSENGER_STATE_TYPE_FRIENDS        = 3
-MESSENGER_STATE_TYPE_NAME           = 4
-MESSENGER_STATE_TYPE_STATUSMESSAGE  = 5
-MESSENGER_STATE_TYPE_STATUS         = 6
-MESSENGER_STATE_TYPE_TCP_RELAY      = 10
-MESSENGER_STATE_TYPE_PATH_NODE      = 11
+MESSENGER_STATE_COOKIE_GLOBAL = 0x15ed1b1f
+MESSENGER_STATE_COOKIE_TYPE = 0x01ce
+MESSENGER_STATE_TYPE_NOSPAMKEYS = 1
+MESSENGER_STATE_TYPE_DHT = 2
+MESSENGER_STATE_TYPE_FRIENDS = 3
+MESSENGER_STATE_TYPE_NAME = 4
+MESSENGER_STATE_TYPE_STATUSMESSAGE = 5
+MESSENGER_STATE_TYPE_STATUS = 6
+MESSENGER_STATE_TYPE_TCP_RELAY = 10
+MESSENGER_STATE_TYPE_PATH_NODE = 11
 
 STATUS_MESSAGE = "New user".encode("utf-8")
 
-
-
-import sys
-import struct
-import os
 
 def abort(msg: str) -> None:
     print(msg)
     exit(1)
 
 
-
 if len(sys.argv) != 5:
-    abort("Usage: %s <public key> <private key> <user name> <out file>" % (sys.argv[0]))
+    abort("Usage: %s <public key> <private key> <user name> <out file>" %
+          (sys.argv[0]))
 
 try:
     public_key = bytes.fromhex(sys.argv[1])
@@ -95,6 +93,7 @@ def make_subheader(h_type: int, h_length: int) -> bytes:
         struct.pack("<H", h_type) +
         struct.pack("<H", MESSENGER_STATE_COOKIE_TYPE))
 
+
 data = (
     # Main header
     struct.pack("<I", 0) +
@@ -102,7 +101,7 @@ data = (
 
     # Keys
     make_subheader(MESSENGER_STATE_TYPE_NOSPAMKEYS,
-        len(nospam) + PUBLIC_KEY_LENGTH + PRIVATE_KEY_LENGTH) +
+                   len(nospam) + PUBLIC_KEY_LENGTH + PRIVATE_KEY_LENGTH) +
     nospam + public_key + private_key +
 
     # Name (not really needed, but helps)

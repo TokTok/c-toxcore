@@ -33,8 +33,9 @@ response = urllib.request.urlopen('https://nodes.tox.chat/json')
 raw_json = response.read().decode('ascii', 'ignore')
 nodes = json.loads(raw_json)['nodes']
 
+
 def node_to_string(node: Dict[str, str]) -> str:
-    node_output  = '  { // ' + node['maintainer'] + '\n'
+    node_output = '  { // ' + node['maintainer'] + '\n'
     node_output += '    public_key = "' + node['public_key'] + '"\n'
     node_output += '    port = ' + str(node['port']) + '\n'
     node_output += '    address = "'
@@ -43,6 +44,7 @@ def node_to_string(node: Dict[str, str]) -> str:
     if len(node['ipv6']) > 4:
         return node_output + node['ipv6'] + '"\n  }'
     raise Exception('no IP address found for node ' + json.dumps(node))
+
 
 output = ('bootstrap_nodes = (\n' +
           ',\n'.join(map(node_to_string, nodes)) +
