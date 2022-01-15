@@ -60,7 +60,6 @@ struct BWCMessage {
 };
 
 static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data, size_t length, void *dummy);
-static int bwc_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
 static void send_update(BWController *bwc);
 
 
@@ -152,8 +151,10 @@ static void send_update(BWController *bwc)
             offset += net_pack_u32(bwc_packet + offset, bwc->cycle.recv);
             assert(offset == sizeof(bwc_packet));
 
-            if (bwc_send_custom_lossy_packet(bwc->tox, bwc->friend_number, bwc_packet, sizeof(bwc_packet)) == -1) {
-                LOGGER_WARNING(bwc->log, "BWC send failed");
+            Tox_Err_Friend_Custom_Packet error;
+            tox_friend_send_lossy_packet(bwc->tox, bwc->friend_number, bwc_packet, sizeof(bwc_packet), &error);
+            if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
+                LOGGER_WARNING(bwc->log, "BWC send failed: %d", error);
             }
         }
 
@@ -233,22 +234,6 @@ static void bwc_handle_data(Tox *tox, uint32_t friendnumber, const uint8_t *data
     assert(offset == length);
 
     on_update(bwc, &msg);
-}
-
-/*
- * return -1 on failure, 0 on success
- *
- */
-static int bwc_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length)
-{
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossy_packet(tox, friendnumber, data, (size_t)length, &error);
-
-    if (error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-        return 0;
-    }
-
-    return -1;
 }
 
 void bwc_allow_receiving(Tox *tox)
