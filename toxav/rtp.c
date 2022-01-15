@@ -753,7 +753,8 @@ void rtp_stop_receiving(Tox *tox)
     tox_callback_friend_lossy_packet_per_pktid(tox, nullptr, RTP_TYPE_VIDEO);
 }
 
-static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, const struct RTPHeader *header, const uint8_t *data, uint8_t *rdata, uint16_t piece)
+static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, const struct RTPHeader *header,
+                           const uint8_t *data, uint8_t *rdata, uint16_t piece)
 {
     rtp_header_pack(rdata + 1, header);
     memcpy(rdata + 1 + RTP_HEADER_SIZE, data, piece);
