@@ -130,6 +130,11 @@ typedef struct DHT_Friend DHT_Friend;
 const uint8_t *dht_friend_public_key(const DHT_Friend *dht_friend);
 const Client_data *dht_friend_client(const DHT_Friend *dht_friend, size_t index);
 
+typedef struct Packet {
+    const uint8_t *data;
+    uint16_t length;
+} Packet;
+
 /** Return packet size of packed node with ip_family on success.
  * Return -1 on failure.
  */
@@ -358,7 +363,7 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
  *  return ip for friend.
  *  return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
  */
-int route_tofriend(const DHT *dht, const uint8_t *friend_id, const uint8_t *packet, uint16_t length);
+uint32_t route_tofriend(const DHT *dht, const uint8_t *friend_id, const Packet *packet);
 
 /** Function to handle crypto packets.
  */
