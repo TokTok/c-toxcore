@@ -10,6 +10,7 @@
 #define C_TOXCORE_TOXCORE_NETWORK_H
 
 #include "logger.h"
+#include "net_profile.h"
 
 #include <stdbool.h>    // bool
 #include <stddef.h>     // size_t
@@ -61,7 +62,7 @@ extern const Socket net_invalid_socket;
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-int net_send(Socket sock, const void *buf, size_t len);
+int net_send(Socket sock, const void *buf, size_t len, Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
@@ -457,6 +458,11 @@ Networking_Core *new_networking_no_udp(const Logger *log);
 
 /** Function to cleanup networking stuff (doesn't do much right now). */
 void kill_networking(Networking_Core *net);
+
+/** Returns a pointer to the network net_profile object associated with `net`.
+ * Returns a null pointer if `net` is null.
+ */
+const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus
 }  // extern "C"
