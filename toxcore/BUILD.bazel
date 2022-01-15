@@ -3,8 +3,7 @@ load("//tools:no_undefined.bzl", "cc_library")
 
 package(features = ["layering_check"])
 
-filegroup(
-    name = "public_headers",
+exports_files(
     srcs = ["tox.h"],
     visibility = ["//c-toxcore:__pkg__"],
 )
@@ -17,13 +16,8 @@ cc_library(
 
 cc_library(
     name = "crypto_core",
-    srcs = [
-        "crypto_core.c",
-        "crypto_core_mem.c",
-    ],
-    hdrs = [
-        "crypto_core.h",
-    ],
+    srcs = ["crypto_core.c"],
+    hdrs = ["crypto_core.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
         ":ccompat",

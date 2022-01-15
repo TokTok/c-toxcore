@@ -185,11 +185,19 @@ typedef enum Net_Packet_Type {
 #define TCP_INET6 (TOX_AF_INET6 + 3)
 #define TCP_FAMILY (TOX_AF_INET6 + 4)
 
+#define SIZE_IP4 4
+#define SIZE_IP6 16
+#define SIZE_IP (1 + SIZE_IP6)
+#define SIZE_PORT 2
+#define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
+
 typedef union IP4 {
     uint32_t uint32;
     uint16_t uint16[2];
     uint8_t uint8[4];
 } IP4;
+
+static_assert(sizeof(IP4) == SIZE_IP4, "IP4 size must be 4");
 
 IP4 get_ip4_loopback(void);
 extern const IP4 ip4_broadcast;
@@ -200,6 +208,10 @@ typedef union IP6 {
     uint32_t uint32[4];
     uint64_t uint64[2];
 } IP6;
+
+// TODO(iphydf): Stop relying on this. We memcpy this struct (and IP4 above)
+// into packets but really should be serialising it properly.
+static_assert(sizeof(IP6) == SIZE_IP6, "IP6 size must be 16");
 
 IP6 get_ip6_loopback(void);
 extern const IP6 ip6_broadcast;
@@ -236,12 +248,6 @@ size_t net_unpack_u64(const uint8_t *bytes, uint64_t *v);
 
 /** Does the IP6 struct a contain an IPv4 address in an IPv6 one? */
 bool ipv6_ipv4_in_v6(IP6 a);
-
-#define SIZE_IP4 4
-#define SIZE_IP6 16
-#define SIZE_IP (1 + SIZE_IP6)
-#define SIZE_PORT 2
-#define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
 
 #define TOX_ENABLE_IPV6_DEFAULT true
 
@@ -471,13 +477,13 @@ int net_error(void);
  * return pointer to a NULL-terminated string describing the error code on
  * success. The returned string must be freed using net_kill_strerror().
  */
-const char *net_new_strerror(int error);
+char *net_new_strerror(int error);
 
 /** Frees the string returned by net_new_strerror().
  * It's valid to pass NULL as the argument, the function does nothing in this
  * case.
  */
-void net_kill_strerror(const char *strerror);
+void net_kill_strerror(char *strerror);
 
 /** Initialize networking.
  * Added for reverse compatibility with old new_networking calls.

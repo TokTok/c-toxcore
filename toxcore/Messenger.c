@@ -1234,8 +1234,6 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
 
     memcpy(ft->id, file_id, FILE_ID_LENGTH);
 
-    ++m->friendlist[friendnumber].num_sending_files;
-
     return i;
 }
 
@@ -1341,11 +1339,12 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
 
     if (send_file_control_packet(m, friendnumber, send_receive, file_number, control, nullptr, 0)) {
         if (control == FILECONTROL_KILL) {
-            ft->status = FILESTATUS_NONE;
-
-            if (send_receive == 0) {
+            if (send_receive == 0 && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
+                // We are actively sending that file, remove from list
                 --m->friendlist[friendnumber].num_sending_files;
             }
+
+            ft->status = FILESTATUS_NONE;
         } else if (control == FILECONTROL_PAUSE) {
             ft->paused |= FILE_PAUSE_US;
         } else if (control == FILECONTROL_ACCEPT) {
@@ -1551,14 +1550,12 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
             return false;
         }
 
-        if (max_speed_reached(m->net_crypto, friend_connection_crypt_connection_id(
-                                  m->fr_c, friendcon->friendcon_id))) {
-            LOGGER_TRACE(m->log, "Maximum connection speed reached");
-            // connection doesn't support any more data
-            return false;
-        }
-
         struct File_Transfers *const ft = &friendcon->file_sending[i];
+
+        if (ft->status == FILESTATUS_NONE || ft->status == FILESTATUS_NOT_ACCEPTED) {
+            // Filetransfers not actively sending, nothing to do
+            continue;
+        }
 
         // If the file transfer is complete, we request a chunk of size 0.
         if (ft->status == FILESTATUS_FINISHED && friend_received_packet(m, friendnumber, ft->last_packet_number) == 0) {
@@ -1569,9 +1566,7 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
             // Now it's inactive, we're no longer sending this.
             ft->status = FILESTATUS_NONE;
             --friendcon->num_sending_files;
-        }
-
-        if (ft->status == FILESTATUS_TRANSFERRING && ft->paused == FILE_PAUSE_NOT) {
+        } else if (ft->status == FILESTATUS_TRANSFERRING && ft->paused == FILE_PAUSE_NOT) {
             if (ft->size == 0) {
                 /* Send 0 data to friend if file is 0 length. */
                 file_data(m, friendnumber, i, 0, nullptr, 0);
@@ -1593,6 +1588,14 @@ static bool do_all_filetransfers(Messenger *m, int32_t friendnumber, void *userd
 
             // The allocated slot is no longer free.
             --*free_slots;
+        }
+
+        // Must be last to allow finishing file transfers
+        if (max_speed_reached(m->net_crypto, friend_connection_crypt_connection_id(
+                                  m->fr_c, friendcon->friendcon_id))) {
+            LOGGER_TRACE(m->log, "Maximum connection speed reached");
+            // connection doesn't support any more data
+            return false;
         }
     }
 
@@ -1700,6 +1703,7 @@ static int handle_filecontrol(Messenger *m, int32_t friendnumber, uint8_t receiv
         case FILECONTROL_ACCEPT: {
             if (receive_send && ft->status == FILESTATUS_NOT_ACCEPTED) {
                 ft->status = FILESTATUS_TRANSFERRING;
+                ++m->friendlist[friendnumber].num_sending_files;
             } else {
                 if (ft->paused & FILE_PAUSE_OTHER) {
                     ft->paused ^= FILE_PAUSE_OTHER;
@@ -1738,11 +1742,11 @@ static int handle_filecontrol(Messenger *m, int32_t friendnumber, uint8_t receiv
                 m->file_filecontrol(m, friendnumber, real_filenumber, control_type, userdata);
             }
 
-            ft->status = FILESTATUS_NONE;
-
-            if (receive_send) {
+            if (receive_send && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
                 --m->friendlist[friendnumber].num_sending_files;
             }
+
+            ft->status = FILESTATUS_NONE;
 
             return 0;
         }
@@ -2616,7 +2620,7 @@ static char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
     }
 
     for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE; ++i) {
-        sprintf(&id_str[i * 2], "%02X", pk[i]);
+        snprintf(&id_str[i * 2], length - i * 2, "%02X", pk[i]);
     }
 
     id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = 0;
@@ -3379,7 +3383,7 @@ static uint32_t tcp_relay_size(const Messenger *m)
 
 static uint8_t *save_tcp_relays(const Messenger *m, uint8_t *data)
 {
-    Node_format relays[NUM_SAVED_TCP_RELAYS];
+    Node_format relays[NUM_SAVED_TCP_RELAYS] = {0};
     uint8_t *temp_data = data;
     data = state_write_section_header(temp_data, STATE_COOKIE_TYPE, 0, STATE_TYPE_TCP_RELAY);
 

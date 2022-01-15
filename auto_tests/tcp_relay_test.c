@@ -18,6 +18,21 @@ static uint8_t const key2[] = {
 };
 
 static uint8_t const key3[] = {
+    0x7A, 0x60, 0x98, 0xB5, 0x90, 0xBD, 0xC7, 0x3F,
+    0x97, 0x23, 0xFC, 0x59, 0xF8, 0x2B, 0x3F, 0x90,
+    0x85, 0xA6, 0x4D, 0x1B, 0x21, 0x3A, 0xAF, 0x8E,
+    0x61, 0x0F, 0xD3, 0x51, 0x93, 0x0D, 0x05, 0x2D,
+};
+
+static uint8_t const key4[] = {
+    0x8E, 0x8B, 0x63, 0x29, 0x9B, 0x3D, 0x52, 0x0F,
+    0xB3, 0x77, 0xFE, 0x51, 0x00, 0xE6, 0x5E, 0x33,
+    0x22, 0xF7, 0xAE, 0x5B, 0x20, 0xA0, 0xAC, 0xED,
+    0x29, 0x81, 0x76, 0x9F, 0xC5, 0xB4, 0x37, 0x25,
+};
+
+// testnet node
+static uint8_t const key5[] = {
     0x79, 0xCA, 0xDA, 0x49, 0x74, 0xB0, 0x92, 0x6F,
     0x28, 0x6F, 0x02, 0x5C, 0xD5, 0xFF, 0xDF, 0x3E,
     0x65, 0x4A, 0x37, 0x58, 0xC5, 0x3E, 0x02, 0x73,
@@ -33,18 +48,32 @@ int main(void)
     Tox *tox_tcp = tox_new_log(opts, nullptr, nullptr);
     tox_options_free(opts);
 
-    // TODO(iphydf): Why do we need to bootstrap in addition to adding TCP
-    // relays?
     tox_bootstrap(tox_tcp, "78.46.73.141", 33445, key1, nullptr);
     tox_bootstrap(tox_tcp, "tox.initramfs.io", 33445, key2, nullptr);
-    tox_bootstrap(tox_tcp, "172.93.52.70", 33445, key3, nullptr);
+    tox_bootstrap(tox_tcp, "tox2.abilinski.com", 33445, key3, nullptr);
+    tox_bootstrap(tox_tcp, "tox.plastiras.org", 443, key4, nullptr);
+    tox_bootstrap(tox_tcp, "172.93.52.70", 33445, key5, nullptr);
 
     Tox_Err_Bootstrap tcp_err;
     tox_add_tcp_relay(tox_tcp, "78.46.73.141", 33445, key1, &tcp_err);
-    tox_add_tcp_relay(tox_tcp, "tox.initramfs.io", 33445, key2, &tcp_err);
-    tox_add_tcp_relay(tox_tcp, "172.93.52.70", 33445, key3, &tcp_err);
     ck_assert_msg(tcp_err == TOX_ERR_BOOTSTRAP_OK,
-                  "attempting to add tcp relay returned with an error: %d",
+                  "attempting to add tcp relay 1 returned with an error: %d",
+                  tcp_err);
+    tox_add_tcp_relay(tox_tcp, "tox.initramfs.io", 33445, key2, &tcp_err);
+    ck_assert_msg(tcp_err == TOX_ERR_BOOTSTRAP_OK,
+                  "attempting to add tcp relay 2 returned with an error: %d",
+                  tcp_err);
+    tox_add_tcp_relay(tox_tcp, "tox2.abilinski.com", 33445, key3, &tcp_err);
+    ck_assert_msg(tcp_err == TOX_ERR_BOOTSTRAP_OK,
+                  "attempting to add tcp relay 3 returned with an error: %d",
+                  tcp_err);
+    tox_add_tcp_relay(tox_tcp, "tox.plastiras.org", 443, key4, &tcp_err);
+    ck_assert_msg(tcp_err == TOX_ERR_BOOTSTRAP_OK,
+                  "attempting to add tcp relay 4 returned with an error: %d",
+                  tcp_err);
+    tox_add_tcp_relay(tox_tcp, "172.93.52.70", 33445, key5, &tcp_err);
+    ck_assert_msg(tcp_err == TOX_ERR_BOOTSTRAP_OK,
+                  "attempting to add tcp relay 4 returned with an error: %d",
                   tcp_err);
 
     printf("Waiting for connection");
