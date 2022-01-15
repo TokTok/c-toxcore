@@ -11,7 +11,17 @@
 
 #include "check_compat.h"
 
+typedef struct State {
+    uint32_t index;
+    uint64_t clock;
+    size_t  num_peers;
+} State;
+
+#include "run_auto_test.h"
+
 #define NUM_GROUP_TOXES 5
+
+#ifndef VANILLA_NACL
 
 #define PEER_LIMIT_1 NUM_GROUP_TOXES
 #define PEER_LIMIT_2 50
@@ -24,14 +34,6 @@
 
 #define PEER0_NICK "David"
 #define PEER0_NICK_LEN (sizeof(PEER0_NICK) - 1)
-
-typedef struct State {
-    uint32_t index;
-    uint64_t clock;
-    size_t  num_peers;
-} State;
-
-#include "run_auto_test.h"
 
 static bool all_group_peers_connected(uint32_t tox_count, State *state, Tox **toxes, uint32_t groupnumber,
                                       size_t name_length, uint32_t peer_limit)
@@ -198,6 +200,7 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
     ck_assert_msg(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to set topic lock: %d",
                   lock_set_err);
 }
+#endif  // VANILLA_NACL
 
 static void group_state_test(Tox **toxes, State *state)
 {
@@ -290,6 +293,8 @@ int main(void)
     return 0;
 }
 
+#ifndef VANILLA_NACL
+
 #undef PEER0_NICK
 #undef PEER0_NICK_LEN
 #undef GROUP_NAME_LEN
@@ -298,4 +303,7 @@ int main(void)
 #undef PASSWORD
 #undef PEER_LIMIT_2
 #undef PEER_LIMIT_1
+
+#endif  // VANILLA_NACL
+
 #undef NUM_GROUP_TOXES

@@ -14,8 +14,6 @@
 #include "check_compat.h"
 
 #define NUM_GROUP_TOXES 5
-#define GROUP_NAME "NASA Headquarters"
-#define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
 typedef struct Peer {
     char name[TOX_MAX_NAME_LENGTH];
@@ -52,8 +50,12 @@ typedef struct State {
     bool kick_check;  // moderater gets kicked
 } State;
 
-
 #include "run_auto_test.h"
+
+#ifndef VANILLA_NACL
+
+#define GROUP_NAME "NASA Headquarters"
+#define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
 static bool all_peers_connected(Tox **toxes, State *state)
 {
@@ -316,6 +318,7 @@ static void check_self_role(State *state, Tox **toxes, uint32_t peer_id, TOX_GRO
         }
     }
 }
+#endif  // VANILLA_NACL
 
 static void group_moderation_test(Tox **toxes, State *state)
 {
@@ -514,6 +517,11 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN
+
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

@@ -9,6 +9,8 @@
 
 #include "check_compat.h"
 
+#define NUM_GROUP_TOXES 2
+
 typedef struct State {
     uint32_t index;
     uint64_t clock;
@@ -24,8 +26,8 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
+#ifndef VANILLA_NACL
 
-#define NUM_GROUP_TOXES 2
 #define MAX_NUM_MESSAGES 1000
 
 #define TEST_MESSAGE "Where is it I've read that someone condemned to death says or thinks, an hour before his death, that if he had to live on some high rock, on such a narrow ledge that he'd only room to stand, and the ocean, everlasting darkness, everlasting solitude, everlasting tempest around him, if he had to remain standing on a square yard of space all his life, a thousand years, eternity, it were better to live so than to die at once. Only to live, to live and live! Life, whatever it may be!"
@@ -220,6 +222,7 @@ static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t pee
         state->lossless_check = true;
     }
 }
+#endif  // VANILLA_NACL
 
 static void group_message_test(Tox **toxes, State *state)
 {
@@ -343,7 +346,8 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef PEER1_NICK
 #undef PEER1_NICK_LEN
 #undef PEER0_NICK
@@ -357,3 +361,7 @@ int main(void)
 #undef IGNORE_MESSAGE
 #undef IGNORE_MESSAGE_LEN
 #undef MAX_NUM_MESSAGES
+
+#endif // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

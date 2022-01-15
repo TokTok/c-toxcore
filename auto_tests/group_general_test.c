@@ -24,6 +24,8 @@ typedef struct State {
 
 #define NUM_GROUP_TOXES 2
 
+#ifndef VANILLA_NACL
+
 #define GROUP_NAME "NASA Headquarters"
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
@@ -223,6 +225,8 @@ static void group_peer_status_handler(Tox *tox, uint32_t groupnumber, uint32_t p
     state->peer_status = true;
 }
 
+#endif // VANILLA_NACL
+
 static void group_announce_test(Tox **toxes, State *state)
 {
 #ifndef VANILLA_NACL
@@ -396,6 +400,7 @@ static void group_announce_test(Tox **toxes, State *state)
     ck_assert(num_groups1 == num_groups2 && num_groups2 == 0);
 
     printf("All tests passed!\n");
+
 #endif  // VANILLA_NACL
 }
 
@@ -408,7 +413,8 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef PEER1_NICK
 #undef PEER0_NICK
 #undef PEER0_NICK_LEN
@@ -419,3 +425,6 @@ int main(void)
 #undef TOPIC
 #undef TOPIC_LEN
 
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

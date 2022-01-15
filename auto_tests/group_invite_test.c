@@ -26,6 +26,8 @@ typedef struct State {
 
 #define NUM_GROUP_TOXES 15  // must be > 7
 
+#ifndef VANILLA_NACL
+
 #define PASSWORD "dadada"
 #define PASS_LEN (sizeof(PASSWORD) - 1)
 
@@ -123,6 +125,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
     ++state->num_peers;
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
+#endif  // VANILLA_NACL
 
 static void group_invite_test(Tox **toxes, State *state)
 {
@@ -283,7 +286,6 @@ static void group_invite_test(Tox **toxes, State *state)
     }
 
     printf("All tests passed!\n");
-
 #endif // VANILLA_NACL
 }
 
@@ -296,9 +298,13 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef PASSWORD
 #undef PASS_LEN
 #undef WRONG_PASS
 #undef WRONG_PASS_LEN
 
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

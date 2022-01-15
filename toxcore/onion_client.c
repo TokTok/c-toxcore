@@ -876,6 +876,7 @@ static int client_ping_nodes(Onion_Client *onion_c, uint32_t num, const Node_for
     return 0;
 }
 
+#ifndef VANILLA_NACL
 /* Handles a group announce onion response.
  *
  * Return 0 on success.
@@ -884,10 +885,6 @@ static int client_ping_nodes(Onion_Client *onion_c, uint32_t num, const Node_for
 static int handle_gca_announce_response(const Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
                                         const uint8_t *plain, size_t plain_size)
 {
-#ifdef VANILLA_NACL
-    return 1;
-#endif
-
     if (sendback_num == 0) {  // TODO(Jfreegman): should/can this ever happen?
         LOGGER_WARNING(onion_c->logger, "sendback_num is 0");
         return 1;
@@ -919,6 +916,7 @@ static int handle_gca_announce_response(const Onion_Client *onion_c, uint32_t se
 
     return 0;
 }
+#endif  // VANILLA_NACL
 
 static int handle_announce_response(void *object, IP_Port source, const uint8_t *packet, uint16_t length,
                                     void *userdata)
@@ -990,9 +988,13 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
     }
 
     if (len_nodes + 1 < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE) {
+#ifndef VANILLA_NACL
         if (handle_gca_announce_response(onion_c, num, len_nodes, plain, plain_size) != 0) {
             return 1;
         }
+#else
+        return 1;
+#endif  // VANILLLAN_NACL
     }
 
     // TODO(irungentoo): LAN vs non LAN ips?, if we are connected only to LAN, are we offline?

@@ -436,15 +436,12 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
     }
 }
 
+#ifndef VANILLA_NACL
 static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, const uint8_t *packet, uint16_t length)
 {
     if (length > ANNOUNCE_REQUEST_MAX_SIZE_RECV || length <= ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
         return 1;
     }
-
-#ifdef VANILLA_NACL
-    return 1;
-#endif
 
     const uint8_t *packet_public_key = packet + 1 + CRYPTO_NONCE_SIZE;
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
@@ -562,13 +559,18 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
 
     return 0;
 }
+#endif  // VANILLA_NACL
 
 static int handle_announce_request(void *object, IP_Port source, const uint8_t *packet, uint16_t length, void *userdata)
 {
     Onion_Announce *onion_a = (Onion_Announce *)object;
 
     if (length != ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
+#ifndef VANILLA_NACL
         return handle_gca_announce_request(onion_a, source, packet, length);
+#else
+        return 1;
+#endif
     }
 
     const uint8_t *packet_public_key = packet + 1 + CRYPTO_NONCE_SIZE;

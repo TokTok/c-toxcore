@@ -11,12 +11,6 @@
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 
-// these should be kept relatively low so integration tests don't always flake out
-// but they can be increased for local stress testing
-#define NUM_GROUP_TOXES 7
-#define ROLE_SPAM_ITERATIONS 1
-#define TOPIC_SPAM_ITERATIONS 3
-
 typedef struct Peers {
     uint32_t  num_peers;
     int64_t   *peer_ids;
@@ -32,6 +26,14 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
+#define NUM_GROUP_TOXES 7
+
+#ifndef VANILLA_NACL
+
+// these should be kept relatively low so integration tests don't always flake out
+// but they can be increased for local stress testing
+#define ROLE_SPAM_ITERATIONS 1
+#define TOPIC_SPAM_ITERATIONS 3
 
 static int add_peer(Peers *peers, uint32_t peer_id)
 {
@@ -300,6 +302,7 @@ static void topic_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_t g
 
     fprintf(stderr, "all peers see the same topic\n");
 }
+#endif  // VANILLA_NACL
 
 static void group_sync_test(Tox **toxes, State *state)
 {
@@ -421,7 +424,11 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef ROLE_SPAM_ITERATIONS
 #undef TOPIC_SPAM_ITERATIONS
 
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

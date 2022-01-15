@@ -16,6 +16,9 @@ typedef struct State {
 #include "run_auto_test.h"
 
 #define NUM_GROUP_TOXES 2
+
+#ifndef VANILLA_NACL
+
 #define GROUP_NAME "The Test Chamber"
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 #define TOPIC "They're waiting for you Gordon..."
@@ -145,6 +148,7 @@ static int has_correct_self_state(Tox *tox, uint32_t group_number, const uint8_t
 
     return 0;
 }
+#endif  // VANILLA_NACL
 
 static void group_save_test(Tox **toxes, State *state)
 {
@@ -276,7 +280,8 @@ int main(void)
     return 0;
 }
 
-#undef NUM_GROUP_TOXES
+#ifndef VANILLA_NACL
+
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN
 #undef TOPIC
@@ -289,3 +294,6 @@ int main(void)
 #undef PEER0_NICK_LEN
 #undef NEW_USER_STATUS
 
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES

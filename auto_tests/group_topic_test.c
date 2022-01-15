@@ -13,7 +13,17 @@
 
 #include "check_compat.h"
 
+typedef struct State {
+    uint32_t index;
+    uint64_t clock;
+    uint32_t peer_id;  // the id of the peer we set to observer
+} State;
+
+#include "run_auto_test.h"
+
 #define NUM_GROUP_TOXES 3
+
+#ifndef VANILLA_NACL
 
 #define TOPIC "They're waiting for you Gordon...in the test chamber"
 #define TOPIC_LEN (sizeof(TOPIC) - 1)
@@ -23,14 +33,6 @@
 
 #define PEER0_NICK "Koresh"
 #define PEER0_NICK_LEN  (sizeof(PEER0_NICK) - 1)
-
-typedef struct State {
-    uint32_t index;
-    uint64_t clock;
-    uint32_t peer_id;  // the id of the peer we set to observer
-} State;
-
-#include "run_auto_test.h"
 
 static bool all_group_peers_connected(uint32_t tox_count, Tox **toxes, uint32_t groupnumber, size_t name_length,
                                       uint32_t peer_limit)
@@ -203,6 +205,7 @@ static uint32_t set_topic_all_peers(Tox **toxes, State *state, size_t num_peers,
 
     return change_count;
 }
+#endif  // VANILLA_NACL
 
 static void group_topic_test(Tox **toxes, State *state)
 {
@@ -327,10 +330,15 @@ int main(void)
     return 0;
 }
 
+#ifndef VANILLA_NACL
+
 #undef TOPIC
 #undef TOPIC_LEN
-#undef NUM_GROUP_TOXES
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN
 #undef PEER0_NICK
 #undef PEER0
+
+#endif  // VANILLA_NACL
+
+#undef NUM_GROUP_TOXES
