@@ -1720,9 +1720,11 @@ char *net_new_strerror(int error)
 #else
     char *str = (char *)malloc(256);
     const int fmt_error = strerror_r(error, str, 256);
+
     if (fmt_error != 0) {
         snprintf(str, 256, "error %d (strerror failed with error %d)", error, fmt_error);
     }
+
     return str;
 #endif
 }
