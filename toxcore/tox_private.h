@@ -263,8 +263,4 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
 }
 #endif
 
-typedef Tox_Netprof_Packet_Id TOX_NETPROF_PACKET_ID;
-typedef Tox_Netprof_Direction TOX_NETPROF_DIRECTION;
-typedef Tox_Netprof_Packet_Type TOX_NETPROF_PACKET_TYPE;
-
 #endif // C_TOXCORE_TOXCORE_TOX_PRIVATE_H
