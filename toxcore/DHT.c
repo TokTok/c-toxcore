@@ -1934,7 +1934,8 @@ typedef bool foreach_ip_port_cb(const DHT *dht, IP_Port ip_port, uint32_t *n, vo
  * @param callback The callback to invoke for each IP/port.
  * @param userdata Extra pointer passed to the callback.
  */
-static uint32_t foreach_ip_port(const DHT *dht, const DHT_Friend *dht_friend, foreach_ip_port_cb *callback, void *userdata)
+static uint32_t foreach_ip_port(const DHT *dht, const DHT_Friend *dht_friend, foreach_ip_port_cb *callback,
+                                void *userdata)
 {
     uint32_t n = 0;
 
@@ -1944,7 +1945,7 @@ static uint32_t foreach_ip_port(const DHT *dht, const DHT_Friend *dht_friend, fo
         const Client_data *const client = &dht_friend->client_list[i];
         const IPPTsPng *const assocs[] = { &client->assoc4, &client->assoc6, nullptr };
 
-        for (const IPPTsPng *const *it = assocs; *it != nullptr; ++it) {
+        for (const IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
             const IPPTsPng *const assoc = *it;
 
             /* If ip is not zero and node is good. */

@@ -600,9 +600,11 @@ int send_packet(Networking_Core *net, IP_Port ip_port, Packet packet)
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    const int res = fuzz_sendto(net->sock.socket, (const char *)packet.data, packet.length, 0, (struct sockaddr *)&addr, addrsize);
+    const int res = fuzz_sendto(net->sock.socket, (const char *)packet.data, packet.length, 0, (struct sockaddr *)&addr,
+                                addrsize);
 #else
-    const int res = sendto(net->sock.socket, (const char *)packet.data, packet.length, 0, (struct sockaddr *)&addr, addrsize);
+    const int res = sendto(net->sock.socket, (const char *)packet.data, packet.length, 0, (struct sockaddr *)&addr,
+                           addrsize);
 #endif
 
     loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
