@@ -989,9 +989,11 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
 
     if (len_nodes + 1 < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE) {
 #ifndef VANILLA_NACL
+
         if (handle_gca_announce_response(onion_c, num, len_nodes, plain, plain_size) != 0) {
             return 1;
         }
+
 #else
         return 1;
 #endif  // VANILLLAN_NACL
