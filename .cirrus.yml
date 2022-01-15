@@ -50,6 +50,7 @@ bazel-asan_task:
         --remote_download_minimal
         --
         //c-toxcore/...
+        -//c-toxcore/auto_tests:group_tcp_test
         -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
 
 # TODO(iphydf): Remove "|| true" once this works properly.
@@ -68,6 +69,7 @@ bazel-msan_task:
         --remote_download_minimal
         --
         //c-toxcore/...
+        -//c-toxcore/auto_tests:group_tcp_test || true
         -//c-toxcore/auto_tests:tcp_relay_test || true # TODO(robinlinden): Why does this pass locally but not in Cirrus?
 
 # TODO(iphydf): Fix test timeouts.
@@ -90,6 +92,7 @@ bazel-tsan_task:
         -//c-toxcore/auto_tests:conference_test
         -//c-toxcore/auto_tests:dht_test
         -//c-toxcore/auto_tests:file_transfer_test
+        -//c-toxcore/auto_tests:group_tcp_test
         -//c-toxcore/auto_tests:onion_test
         -//c-toxcore/auto_tests:tcp_relay_test
         -//c-toxcore/auto_tests:tox_many_test
@@ -116,6 +119,7 @@ bazel-valgrind_task:
         -//c-toxcore/auto_tests:dht_test
         -//c-toxcore/auto_tests:encryptsave_test
         -//c-toxcore/auto_tests:file_transfer_test
+        -//c-toxcore/auto_tests:group_tcp_test
         -//c-toxcore/auto_tests:onion_test
         -//c-toxcore/auto_tests:tcp_relay_test
         -//c-toxcore/auto_tests:tox_many_tcp_test
