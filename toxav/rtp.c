@@ -745,19 +745,19 @@ void rtp_stop_receiving(Tox *tox)
 }
 
 static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, const struct RTPHeader *header,
-                           const uint8_t *data, uint8_t *rdata, uint16_t piece)
+                           const uint8_t *data, uint8_t *rdata, uint16_t length)
 {
     rtp_header_pack(rdata + 1, header);
-    memcpy(rdata + 1 + RTP_HEADER_SIZE, data, piece);
+    memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
 
     Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossy_packet(tox, friend_number,
-                                 rdata, piece + RTP_HEADER_SIZE + 1, &error);
+                                 rdata, length + RTP_HEADER_SIZE + 1, &error);
 
     if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
         char *netstrerror = net_new_strerror(net_error());
         LOGGER_WARNING(log, "RTP send failed (len: %d)! tox error: %d, net error: %s",
-                       piece + RTP_HEADER_SIZE + 1, error, netstrerror);
+                       length + RTP_HEADER_SIZE + 1, error, netstrerror);
         net_kill_strerror(netstrerror);
     }
 }
@@ -825,18 +825,8 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
          * The length is lesser than the maximum allowed length (including header)
          * Send the packet in single piece.
          */
-        rtp_header_pack(rdata + 1, &header);
-        memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
-
-        Tox_Err_Friend_Custom_Packet error;
-        tox_friend_send_lossy_packet(session->tox, session->friend_number, rdata, SIZEOF_VLA(rdata), &error);
-
-        if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-            char *netstrerror = net_new_strerror(net_error());
-            LOGGER_WARNING(log, "RTP send failed (len: %u)! tox error: %d, net error: %s",
-                           (unsigned)SIZEOF_VLA(rdata), error, netstrerror);
-            net_kill_strerror(netstrerror);
-        }
+        assert(length < UINT16_MAX);
+        rtp_send_piece(log, session->tox, session->friend_number, &header, data, rdata, length);
     } else {
         /*
          * The length is greater than the maximum allowed length (including header)
