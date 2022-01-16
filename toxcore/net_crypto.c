@@ -371,7 +371,7 @@ static int udp_handle_cookie_request(void *object, IP_Port source, const uint8_t
 
 /* Handle the cookie request packet (for TCP)
  */
-static int tcp_handle_cookie_request(Net_Crypto *c, int connections_number, const uint8_t *packet, uint16_t length)
+static int tcp_handle_cookie_request(const Net_Crypto *c, int connections_number, const uint8_t *packet, uint16_t length)
 {
     uint8_t request_plain[COOKIE_REQUEST_PLAIN_LENGTH];
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
@@ -2956,7 +2956,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
 /* Run this to (re)initialize net_crypto.
  * Sets all the global connection variables to their default values.
  */
-Net_Crypto *new_net_crypto(const Logger *log, Mono_Time *mono_time, DHT *dht, TCP_Proxy_Info *proxy_info)
+Net_Crypto *new_net_crypto(const Logger *log, Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info)
 {
     if (dht == nullptr) {
         return nullptr;
