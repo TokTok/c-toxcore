@@ -3088,3 +3088,14 @@ void kill_net_crypto(Net_Crypto *c)
     crypto_memzero(c, sizeof(Net_Crypto));
     free(c);
 }
+
+const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c)
+{
+    const TCP_Connections *tcp_c = nc_get_tcp_c(c);
+
+    if (tcp_c == nullptr) {
+        return nullptr;
+    }
+
+    return tcp_connection_get_client_net_profile(tcp_c);
+}

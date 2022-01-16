@@ -10,6 +10,7 @@
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
 #include "crypto_core.h"
+#include "net_profile.h"
 #include "onion.h"
 
 #define MAX_INCOMING_CONNECTIONS 256
@@ -42,6 +43,9 @@ void do_TCP_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 /** Kill the TCP server
  */
 void kill_TCP_server(TCP_Server *tcp_server);
+
+/** Returns a pointer to the net profile associated with `tcp_server`. */
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server);
 
 
 #endif

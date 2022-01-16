@@ -10,6 +10,7 @@
 #define C_TOXCORE_TOXCORE_TCP_CONNECTION_H
 
 #include "DHT.h"  // for Node_format
+#include "net_profile.h"
 #include "TCP_client.h"
 #include "TCP_common.h"
 
@@ -224,5 +225,8 @@ int kill_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connections_number
 
 void do_tcp_connections(const Logger *logger, TCP_Connections *tcp_c, void *userdata);
 void kill_tcp_connections(TCP_Connections *tcp_c);
+
+/** Returns a pointer to the tcp client net profile associated with `tcp_c`. */
+const Net_Profile *tcp_connection_get_client_net_profile(const TCP_Connections *tcp_c);
 
 #endif

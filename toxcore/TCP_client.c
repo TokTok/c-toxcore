@@ -495,7 +495,8 @@ void onion_response_handler(TCP_Client_Connection *con, tcp_onion_response_cb *o
 /** Create new TCP connection to ip_port/public_key
  */
 TCP_Client_Connection *new_TCP_connection(const Mono_Time *mono_time, IP_Port ip_port, const uint8_t *public_key,
-        const uint8_t *self_public_key, const uint8_t *self_secret_key, const TCP_Proxy_Info *proxy_info)
+        const uint8_t *self_public_key, const uint8_t *self_secret_key, const TCP_Proxy_Info *proxy_info,
+        Net_Profile *net_profile)
 {
     if (networking_at_startup() != 0) {
         return nullptr;
@@ -541,6 +542,7 @@ TCP_Client_Connection *new_TCP_connection(const Mono_Time *mono_time, IP_Port ip
     }
 
     temp->con.sock = sock;
+    temp->con.net_profile = net_profile;
     memcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key);
@@ -586,6 +588,8 @@ static int handle_TCP_client_packet(TCP_Client_Connection *conn, const uint8_t *
     if (length <= 1) {
         return -1;
     }
+
+    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
 
     switch (data[0]) {
         case TCP_PACKET_ROUTING_RESPONSE: {
@@ -792,8 +796,8 @@ static int do_confirmed_TCP(const Logger *logger, TCP_Client_Connection *conn, c
 
 /** Run the TCP connection
  */
-void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
-                       TCP_Client_Connection *tcp_connection, void *userdata)
+void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time, TCP_Client_Connection *tcp_connection,
+                       void *userdata)
 {
     if (tcp_connection->status == TCP_CLIENT_DISCONNECTED) {
         return;

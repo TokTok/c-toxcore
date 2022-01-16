@@ -174,6 +174,8 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/logger.h
   toxcore/mono_time.c
   toxcore/mono_time.h
+  toxcore/net_profile.c
+  toxcore/net_profile.h
   toxcore/network.c
   toxcore/network.h
   toxcore/state.c

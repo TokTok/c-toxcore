@@ -80,6 +80,8 @@ struct TCP_Server {
     uint64_t counter;
 
     BS_List accepted_key_list;
+
+    Net_Profile net_profile;
 };
 
 const uint8_t *tcp_server_public_key(const TCP_Server *tcp_server)
@@ -217,6 +219,7 @@ static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_
     tcp_server->accepted_connection_array[index].identifier = ++tcp_server->counter;
     tcp_server->accepted_connection_array[index].last_pinged = mono_time_get(mono_time);
     tcp_server->accepted_connection_array[index].ping_id = 0;
+    tcp_server->accepted_connection_array[index].con.net_profile = &tcp_server->net_profile;
 
     return index;
 }
@@ -329,7 +332,7 @@ static int handle_TCP_handshake(TCP_Secure_Connection *con, const uint8_t *data,
         return -1;
     }
 
-    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE)) {
+    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, con->con.net_profile)) {
         crypto_memzero(shared_key, sizeof(shared_key));
         return -1;
     }
@@ -572,6 +575,8 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
 
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[con_id];
 
+    netprof_record_packet(con->con.net_profile, data[0], length, DIR_RECV);
+
     switch (data[0]) {
         case TCP_PACKET_ROUTING_REQUEST: {
             if (length != 1 + CRYPTO_PUBLIC_KEY_SIZE) {
@@ -684,7 +689,8 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
             VLA(uint8_t, new_data, length);
             memcpy(new_data, data, length);
             new_data[0] = other_c_id;
-            int ret = write_packet_TCP_secure_connection(&tcp_server->accepted_connection_array[index].con, new_data, length, 0);
+            int ret = write_packet_TCP_secure_connection(&tcp_server->accepted_connection_array[index].con, new_data,
+                      length, 0);
 
             if (ret == -1) {
                 return -1;
@@ -1200,4 +1206,13 @@ void kill_TCP_server(TCP_Server *tcp_server)
 
     free(tcp_server->socks_listening);
     free(tcp_server);
+}
+
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server)
+{
+    if (tcp_server) {
+        return &tcp_server->net_profile;
+    }
+
+    return nullptr;
 }
