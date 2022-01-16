@@ -1659,7 +1659,8 @@ static int handle_packet_cookie_response(Net_Crypto *c, int crypt_connection_id,
     return 0;
 }
 
-static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const uint8_t *packet, uint16_t length, void *userdata)
+static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const uint8_t *packet, uint16_t length,
+                                   void *userdata)
 {
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
@@ -1701,7 +1702,8 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
     return 0;
 }
 
-static int handle_packet_crypto_data(Net_Crypto *c, int crypt_connection_id, const uint8_t *packet, uint16_t length, bool udp, void *userdata)
+static int handle_packet_crypto_data(Net_Crypto *c, int crypt_connection_id, const uint8_t *packet, uint16_t length,
+                                     bool udp, void *userdata)
 {
     const Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
@@ -1731,10 +1733,13 @@ static int handle_packet_connection(Net_Crypto *c, int crypt_connection_id, cons
     switch (packet[0]) {
         case NET_PACKET_COOKIE_RESPONSE:
             return handle_packet_cookie_response(c, crypt_connection_id, packet, length);
+
         case NET_PACKET_CRYPTO_HS:
             return handle_packet_crypto_hs(c, crypt_connection_id, packet, length, userdata);
+
         case NET_PACKET_CRYPTO_DATA:
             return handle_packet_crypto_data(c, crypt_connection_id, packet, length, udp, userdata);
+
         default:
             return -1;
     }
