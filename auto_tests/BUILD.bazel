@@ -22,7 +22,7 @@ flaky_tests = {
 }
 
 [cc_test(
-    name = src[:-2],
+    name = src[:src.rindex(".")-len(src)],
     size = "small",
     srcs = [src],
     args = ["$(location %s)" % src],
@@ -54,4 +54,4 @@ flaky_tests = {
         "@libsodium",
         "@libvpx",
     ],
-) for src in glob(["*_test.c"])]
+) for src in glob(["*_test.c*"])]
