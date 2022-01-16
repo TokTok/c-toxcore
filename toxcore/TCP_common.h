@@ -7,6 +7,7 @@
 #define C_TOXCORE_TOXCORE_TCP_COMMON_H
 
 #include "crypto_core.h"
+#include "net_profile.h"
 #include "network.h"
 
 typedef struct TCP_Priority_List TCP_Priority_List;
@@ -54,6 +55,10 @@ typedef struct TCP_Connection {
 
     TCP_Priority_List *priority_queue_start;
     TCP_Priority_List *priority_queue_end;
+
+    // This is a shared pointer to the parent's respective Net_Profile obect
+    // (either TCP_Server for TCP server packets or TCP_Connections for TCP client packets).
+    Net_Profile *net_profile;
 } TCP_Connection;
 
 /** return 0 if pending data was sent completely

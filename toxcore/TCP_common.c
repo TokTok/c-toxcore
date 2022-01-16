@@ -27,7 +27,7 @@ int send_pending_data_nonpriority(TCP_Connection *con)
     }
 
     const uint16_t left = con->last_packet_length - con->last_packet_sent;
-    const int len = net_send(con->sock, con->last_packet + con->last_packet_sent, left);
+    const int len = net_send(con->sock, con->last_packet + con->last_packet_sent, left, con->net_profile);
 
     if (len <= 0) {
         return -1;
@@ -57,7 +57,7 @@ int send_pending_data(TCP_Connection *con)
 
     while (p) {
         const uint16_t left = p->size - p->sent;
-        const int len = net_send(con->sock, p->data + p->sent, left);
+        const int len = net_send(con->sock, p->data + p->sent, left, con->net_profile);
 
         if (len != left) {
             if (len > 0) {
@@ -140,7 +140,7 @@ int write_packet_TCP_secure_connection(TCP_Connection *con, const uint8_t *data,
     }
 
     if (priority) {
-        len = sendpriority ? net_send(con->sock, packet, SIZEOF_VLA(packet)) : 0;
+        len = sendpriority ? net_send(con->sock, packet, SIZEOF_VLA(packet), con->net_profile) : 0;
 
         if (len <= 0) {
             len = 0;
@@ -155,7 +155,7 @@ int write_packet_TCP_secure_connection(TCP_Connection *con, const uint8_t *data,
         return add_priority(con, packet, SIZEOF_VLA(packet), len);
     }
 
-    len = net_send(con->sock, packet, SIZEOF_VLA(packet));
+    len = net_send(con->sock, packet, SIZEOF_VLA(packet), con->net_profile);
 
     if (len <= 0) {
         return 0;
