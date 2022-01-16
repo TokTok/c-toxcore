@@ -603,7 +603,7 @@ static void test_client_invalid(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
     TCP_Client_Connection *conn = new_TCP_connection(mono_time, ip_port_tcp_s, self_public_key, f_public_key,
-                                     f_secret_key, nullptr, nullptr);
+                                  f_secret_key, nullptr, nullptr);
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);
