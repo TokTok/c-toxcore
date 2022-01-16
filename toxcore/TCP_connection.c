@@ -904,7 +904,8 @@ static int unsleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connecti
  * return 0 on success.
  * return -1 on failure.
  */
-static int send_tcp_relay_routing_request(const TCP_Connections *tcp_c, int tcp_connections_number, const uint8_t *public_key)
+static int send_tcp_relay_routing_request(const TCP_Connections *tcp_c, int tcp_connections_number,
+        const uint8_t *public_key)
 {
     TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
 
@@ -1193,7 +1194,8 @@ int add_tcp_relay_global(TCP_Connections *tcp_c, IP_Port ip_port, const uint8_t 
  * return 0 on success.
  * return -1 on failure.
  */
-int add_tcp_number_relay_connection(const TCP_Connections *tcp_c, int connections_number, unsigned int tcp_connections_number)
+int add_tcp_number_relay_connection(const TCP_Connections *tcp_c, int connections_number,
+                                    unsigned int tcp_connections_number)
 {
     TCP_Connection_to *con_to = get_connection(tcp_c, connections_number);
 

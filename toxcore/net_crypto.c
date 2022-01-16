@@ -371,7 +371,8 @@ static int udp_handle_cookie_request(void *object, IP_Port source, const uint8_t
 
 /* Handle the cookie request packet (for TCP)
  */
-static int tcp_handle_cookie_request(const Net_Crypto *c, int connections_number, const uint8_t *packet, uint16_t length)
+static int tcp_handle_cookie_request(const Net_Crypto *c, int connections_number, const uint8_t *packet,
+                                     uint16_t length)
 {
     uint8_t request_plain[COOKIE_REQUEST_PLAIN_LENGTH];
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
