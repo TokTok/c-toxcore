@@ -289,7 +289,8 @@ uint32_t tcp_connected_relays_count(const TCP_Connections *tcp_c)
  * return -1 on failure.
  * return 0 on success.
  */
-int send_packet_tcp_connection(const TCP_Connections *tcp_c, int connections_number, const uint8_t *packet, uint16_t length)
+int send_packet_tcp_connection(const TCP_Connections *tcp_c, int connections_number, const uint8_t *packet,
+                               uint16_t length)
 {
     TCP_Connection_to *con_to = get_connection(tcp_c, connections_number);
 

@@ -209,7 +209,8 @@ int connection_lossy_data_handler(const Net_Crypto *c, int crypt_connection_id,
  * return -1 on failure.
  * return 0 on success.
  */
-int nc_dht_pk_callback(const Net_Crypto *c, int crypt_connection_id, dht_pk_cb *function, void *object, uint32_t number);
+int nc_dht_pk_callback(const Net_Crypto *c, int crypt_connection_id, dht_pk_cb *function, void *object,
+                       uint32_t number);
 
 /* returns the number of packet slots left in the sendbuffer.
  * return 0 if failure.
