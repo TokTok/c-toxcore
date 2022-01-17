@@ -203,6 +203,8 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/TCP_client.c
   toxcore/TCP_client.h
+  toxcore/TCP_common.c
+  toxcore/TCP_common.h
   toxcore/TCP_connection.c
   toxcore/TCP_connection.h
   toxcore/TCP_server.c
@@ -454,7 +456,6 @@ auto_test(save_load)
 auto_test(send_message)
 auto_test(set_name)
 auto_test(set_status_message)
-auto_test(skeleton)
 auto_test(tox_many)
 auto_test(tox_many_tcp)
 auto_test(tox_one)

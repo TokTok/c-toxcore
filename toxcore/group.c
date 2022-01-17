@@ -337,7 +337,7 @@ static bool add_to_closest(Group_c *g, const uint8_t *real_pk, const uint8_t *te
     return true;
 }
 
-static bool pk_in_closest_peers(const Group_c *g, uint8_t *real_pk)
+static bool pk_in_closest_peers(const Group_c *g, const uint8_t *real_pk)
 {
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
         if (!g->closest_peers[i].entry) {
@@ -380,8 +380,8 @@ static void purge_closest(Group_Chats *g_c, uint32_t groupnumber)
     }
 }
 
-static int send_packet_online(Friend_Connections *fr_c, int friendcon_id, uint16_t group_num, uint8_t type,
-                              const uint8_t *id);
+static int send_packet_online(const Friend_Connections *fr_c, int friendcon_id, uint16_t group_num,
+                              uint8_t type, const uint8_t *id);
 
 static int add_conn_to_groupchat(Group_Chats *g_c, int friendcon_id, Group_c *g, uint8_t reason,
                                  uint8_t lock);
@@ -1386,7 +1386,7 @@ bool conference_get_id(const Group_Chats *g_c, uint32_t groupnumber, uint8_t *id
  *  return 1 on success
  *  return 0 on failure
  */
-static unsigned int send_packet_group_peer(Friend_Connections *fr_c, int friendcon_id, uint8_t packet_id,
+static unsigned int send_packet_group_peer(const Friend_Connections *fr_c, int friendcon_id, uint8_t packet_id,
         uint16_t group_num, const uint8_t *data, uint16_t length)
 {
     if (1 + sizeof(uint16_t) + length > MAX_CRYPTO_DATA_SIZE) {
@@ -1407,7 +1407,7 @@ static unsigned int send_packet_group_peer(Friend_Connections *fr_c, int friendc
  *  return 1 on success
  *  return 0 on failure
  */
-static unsigned int send_lossy_group_peer(Friend_Connections *fr_c, int friendcon_id, uint8_t packet_id,
+static unsigned int send_lossy_group_peer(const Friend_Connections *fr_c, int friendcon_id, uint8_t packet_id,
         uint16_t group_num, const uint8_t *data, uint16_t length)
 {
     if (1 + sizeof(uint16_t) + length > MAX_CRYPTO_DATA_SIZE) {
@@ -1430,7 +1430,7 @@ static unsigned int send_lossy_group_peer(Friend_Connections *fr_c, int friendco
  * return -2 if invite packet failed to send.
  * return -3 if we are not connected to the group chat.
  */
-int invite_friend(Group_Chats *g_c, uint32_t friendnumber, uint32_t groupnumber)
+int invite_friend(const Group_Chats *g_c, uint32_t friendnumber, uint32_t groupnumber)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
 
@@ -1664,7 +1664,7 @@ int callback_groupchat_peer_new(const Group_Chats *g_c, uint32_t groupnumber, pe
  * return 0 on success.
  * return -1 on failure.
  */
-int callback_groupchat_peer_delete(Group_Chats *g_c, uint32_t groupnumber, peer_on_leave_cb *function)
+int callback_groupchat_peer_delete(const Group_Chats *g_c, uint32_t groupnumber, peer_on_leave_cb *function)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
 
@@ -1681,7 +1681,7 @@ int callback_groupchat_peer_delete(Group_Chats *g_c, uint32_t groupnumber, peer_
  * return 0 on success.
  * return -1 on failure.
  */
-int callback_groupchat_delete(Group_Chats *g_c, uint32_t groupnumber, group_on_delete_cb *function)
+int callback_groupchat_delete(const Group_Chats *g_c, uint32_t groupnumber, group_on_delete_cb *function)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
 
@@ -1712,7 +1712,7 @@ static bool group_ping_send(const Group_Chats *g_c, uint32_t groupnumber)
  * return true on success
  */
 static bool group_new_peer_send(const Group_Chats *g_c, uint32_t groupnumber, uint16_t peer_num, const uint8_t *real_pk,
-                                uint8_t *temp_pk)
+                                const uint8_t *temp_pk)
 {
     uint8_t packet[GROUP_MESSAGE_NEW_PEER_LENGTH];
 
@@ -2052,8 +2052,8 @@ static unsigned int count_connected(const Group_c *g)
     return count;
 }
 
-static int send_packet_online(Friend_Connections *fr_c, int friendcon_id, uint16_t group_num, uint8_t type,
-                              const uint8_t *id)
+static int send_packet_online(const Friend_Connections *fr_c, int friendcon_id, uint16_t group_num,
+                              uint8_t type, const uint8_t *id)
 {
     uint8_t packet[1 + ONLINE_PACKET_DATA_SIZE];
     group_num = net_htons(group_num);
@@ -2065,7 +2065,7 @@ static int send_packet_online(Friend_Connections *fr_c, int friendcon_id, uint16
                              sizeof(packet), 0) != -1;
 }
 
-static bool ping_groupchat(Group_Chats *g_c, uint32_t groupnumber);
+static bool ping_groupchat(const Group_Chats *g_c, uint32_t groupnumber);
 
 static int handle_packet_online(Group_Chats *g_c, int friendcon_id, const uint8_t *data, uint16_t length)
 {
@@ -3033,7 +3033,7 @@ void *group_peer_get_object(const Group_Chats *g_c, uint32_t groupnumber, uint32
 /* Interval in seconds to send ping messages */
 #define GROUP_PING_INTERVAL 20
 
-static bool ping_groupchat(Group_Chats *g_c, uint32_t groupnumber)
+static bool ping_groupchat(const Group_Chats *g_c, uint32_t groupnumber)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
 
@@ -3097,7 +3097,7 @@ static void squash_connections(Group_c *g)
 
 #define MIN_EMPTY_CONNECTIONS (1 + MAX_GROUP_CONNECTIONS / 10)
 
-static uint16_t empty_connection_count(Group_c *g)
+static uint16_t empty_connection_count(const Group_c *g)
 {
     uint16_t to_clear = MIN_EMPTY_CONNECTIONS;
 
@@ -3152,7 +3152,7 @@ static void clean_connections(Group_Chats *g_c, Group_c *g)
 
 /** Send current name (set in messenger) to all online groups.
  */
-void send_name_all_groups(Group_Chats *g_c)
+void send_name_all_groups(const Group_Chats *g_c)
 {
     for (uint16_t i = 0; i < g_c->num_chats; ++i) {
         Group_c *g = get_group_c(g_c, i);
@@ -3431,7 +3431,7 @@ bool conferences_load_state_section(Group_Chats *g_c, const uint8_t *data, uint3
 
 
 /** Create new groupchat instance. */
-Group_Chats *new_groupchats(Mono_Time *mono_time, Messenger *m)
+Group_Chats *new_groupchats(const Mono_Time *mono_time, Messenger *m)
 {
     if (!m) {
         return nullptr;

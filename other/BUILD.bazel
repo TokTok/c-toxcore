@@ -13,6 +13,7 @@ cc_library(
 
 cc_binary(
     name = "DHT_bootstrap",
+    testonly = 1,
     srcs = ["DHT_bootstrap.c"],
     deps = [
         "//c-toxcore/testing:misc_tools",
@@ -20,6 +21,7 @@ cc_binary(
         "//c-toxcore/toxcore:DHT",
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:TCP_connection",
+        "//c-toxcore/toxcore:TCP_server",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:network",

@@ -214,7 +214,7 @@ static void fetch_broadcast_info(uint16_t port)
  *  return 1 if sent to at least one broadcast target.
  *  return 0 on failure to find any valid broadcast target.
  */
-static uint32_t send_broadcasts(Networking_Core *net, uint16_t port, const uint8_t *data, uint16_t length)
+static uint32_t send_broadcasts(const Networking_Core *net, uint16_t port, const uint8_t *data, uint16_t length)
 {
     /* fetch only once? on every packet? every X seconds?
      * old: every packet, new: once */
@@ -369,7 +369,7 @@ static int handle_LANdiscovery(void *object, IP_Port source, const uint8_t *pack
 }
 
 
-int lan_discovery_send(uint16_t port, DHT *dht)
+int lan_discovery_send(uint16_t port, const DHT *dht)
 {
     uint8_t data[CRYPTO_PUBLIC_KEY_SIZE + 1];
     data[0] = NET_PACKET_LAN_DISCOVERY;

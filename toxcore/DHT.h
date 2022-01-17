@@ -322,13 +322,13 @@ int get_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *node
  *
  * return the number of nodes.
  */
-uint16_t randfriends_nodes(DHT *dht, Node_format *nodes, uint16_t max_num);
+uint16_t randfriends_nodes(const DHT *dht, Node_format *nodes, uint16_t max_num);
 
 /** Put up to max_num nodes in nodes from the closelist.
  *
  * return the number of nodes.
  */
-uint16_t closelist_nodes(DHT *dht, Node_format *nodes, uint16_t max_num);
+uint16_t closelist_nodes(const DHT *dht, Node_format *nodes, uint16_t max_num);
 
 /** Run this function at least a couple times per second (It's the main loop). */
 void do_dht(DHT *dht);
@@ -369,12 +369,13 @@ int dht_connect_after_load(DHT *dht);
  */
 int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packet, uint16_t length);
 
-/** Send the following packet to everyone who tells us they are connected to friend_id.
+/**
+ * Send the following packet to everyone who tells us they are connected to friend_id.
  *
  *  return ip for friend.
  *  return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
  */
-int route_tofriend(const DHT *dht, const uint8_t *friend_id, const uint8_t *packet, uint16_t length);
+uint32_t route_to_friend(const DHT *dht, const uint8_t *friend_id, const Packet *packet);
 
 /** Function to handle crypto packets.
  */

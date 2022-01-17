@@ -367,7 +367,7 @@ static int is_path_used(const Mono_Time *mono_time, const Onion_Client_Paths *on
 }
 
 /** is path timed out */
-static bool path_timed_out(const Mono_Time *mono_time, Onion_Client_Paths *onion_paths, uint32_t pathnum)
+static bool path_timed_out(const Mono_Time *mono_time, const Onion_Client_Paths *onion_paths, uint32_t pathnum)
 {
     pathnum = pathnum % NUMBER_ONION_PATHS;
 
@@ -443,7 +443,7 @@ static int random_path(const Onion_Client *onion_c, Onion_Client_Paths *onion_pa
 }
 
 /** Does path with path_num exist. */
-static bool path_exists(const Mono_Time *mono_time, Onion_Client_Paths *onion_paths, uint32_t path_num)
+static bool path_exists(const Mono_Time *mono_time, const Onion_Client_Paths *onion_paths, uint32_t path_num)
 {
     if (path_timed_out(mono_time, onion_paths, path_num)) {
         return 0;
@@ -652,24 +652,22 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, IP_
     return send_onion_packet_tcp_udp(onion_c, &path, dest, request, len);
 }
 
-typedef struct Onion_Client_Cmp_data {
+typedef struct Onion_Client_Cmp_Data {
     const Mono_Time *mono_time;
     const uint8_t *base_public_key;
     Onion_Node entry;
-} Onion_Client_Cmp_data;
+} Onion_Client_Cmp_Data;
 
 static int onion_client_cmp_entry(const void *a, const void *b)
 {
-    Onion_Client_Cmp_data cmp1;
-    Onion_Client_Cmp_data cmp2;
-    memcpy(&cmp1, a, sizeof(Onion_Client_Cmp_data));
-    memcpy(&cmp2, b, sizeof(Onion_Client_Cmp_data));
-    Onion_Node entry1 = cmp1.entry;
-    Onion_Node entry2 = cmp2.entry;
-    const uint8_t *cmp_public_key = cmp1.base_public_key;
+    const Onion_Client_Cmp_Data *cmp1 = (const Onion_Client_Cmp_Data *)a;
+    const Onion_Client_Cmp_Data *cmp2 = (const Onion_Client_Cmp_Data *)b;
+    const Onion_Node entry1 = cmp1->entry;
+    const Onion_Node entry2 = cmp2->entry;
+    const uint8_t *cmp_public_key = cmp1->base_public_key;
 
-    int t1 = onion_node_timed_out(&entry1, cmp1.mono_time);
-    int t2 = onion_node_timed_out(&entry2, cmp2.mono_time);
+    const int t1 = onion_node_timed_out(&entry1, cmp1->mono_time);
+    const int t2 = onion_node_timed_out(&entry2, cmp2->mono_time);
 
     if (t1 && t2) {
         return 0;
@@ -683,7 +681,7 @@ static int onion_client_cmp_entry(const void *a, const void *b)
         return 1;
     }
 
-    int close = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
+    const int close = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
 
     if (close == 1) {
         return 1;
@@ -701,7 +699,7 @@ static void sort_onion_node_list(Onion_Node *list, unsigned int length, const Mo
 {
     // Pass comp_public_key to qsort with each Client_data entry, so the
     // comparison function can use it as the base of comparison.
-    VLA(Onion_Client_Cmp_data, cmp_list, length);
+    VLA(Onion_Client_Cmp_Data, cmp_list, length);
 
     for (uint32_t i = 0; i < length; ++i) {
         cmp_list[i].mono_time = mono_time;
@@ -709,7 +707,7 @@ static void sort_onion_node_list(Onion_Node *list, unsigned int length, const Mo
         cmp_list[i].entry = list[i];
     }
 
-    qsort(cmp_list, length, sizeof(Onion_Client_Cmp_data), onion_client_cmp_entry);
+    qsort(cmp_list, length, sizeof(Onion_Client_Cmp_Data), onion_client_cmp_entry);
 
     for (uint32_t i = 0; i < length; ++i) {
         list[i] = cmp_list[i].entry;
@@ -796,7 +794,7 @@ static int client_add_to_list(Onion_Client *onion_c, uint32_t num, const uint8_t
     return 0;
 }
 
-static int good_to_ping(Mono_Time *mono_time, Last_Pinged *last_pinged, uint8_t *last_pinged_index,
+static int good_to_ping(const Mono_Time *mono_time, Last_Pinged *last_pinged, uint8_t *last_pinged_index,
                         const uint8_t *public_key)
 {
     for (unsigned int i = 0; i < MAX_STORED_PINGED_NODES; ++i) {
@@ -1314,15 +1312,17 @@ static int send_dht_dhtpk(const Onion_Client *onion_c, int friend_num, const uin
         return -1;
     }
 
-    uint8_t packet[MAX_CRYPTO_REQUEST_SIZE];
-    len = create_request(dht_get_self_public_key(onion_c->dht), dht_get_self_secret_key(onion_c->dht), packet,
+    uint8_t packet_data[MAX_CRYPTO_REQUEST_SIZE];
+    len = create_request(dht_get_self_public_key(onion_c->dht), dht_get_self_secret_key(onion_c->dht), packet_data,
                          onion_c->friends_list[friend_num].dht_public_key, temp, SIZEOF_VLA(temp), CRYPTO_PACKET_DHTPK);
+    assert(len <= UINT16_MAX);
+    const Packet packet = {packet_data, (uint16_t)len};
 
     if (len == -1) {
         return -1;
     }
 
-    return route_tofriend(onion_c->dht, onion_c->friends_list[friend_num].dht_public_key, packet, len);
+    return route_to_friend(onion_c->dht, onion_c->friends_list[friend_num].dht_public_key, &packet);
 }
 
 static int handle_dht_dhtpk(void *object, IP_Port source, const uint8_t *source_pubkey, const uint8_t *packet,
