@@ -217,7 +217,7 @@ static bool set_topic_all_peers(Tox **toxes, State *state, size_t num_peers, uin
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
         snprintf(new_topic, sizeof(new_topic), "peer %zu's topic %u", i, random_u32());
-        const size_t length = sizeof(new_topic);
+        const size_t length = strlen(new_topic);
 
         TOX_ERR_GROUP_TOPIC_SET err;
         tox_group_set_topic(toxes[i], groupnumber, (const uint8_t *)new_topic, length, &err);

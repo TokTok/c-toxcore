@@ -191,7 +191,7 @@ static uint32_t set_topic_all_peers(Tox **toxes, State *state, size_t num_peers,
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
         snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic", i);
-        size_t length = sizeof(new_topic);
+        size_t length = strlen(new_topic);
 
         if (set_topic(toxes[i], groupnumber, new_topic, length) == 0) {
             wait_state_topic(toxes, state, groupnumber, new_topic, length);
