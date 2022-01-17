@@ -621,17 +621,21 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
         }
 
         for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-            if (con_to->connections[i].tcp_connection) {
-                unsigned int tcp_connections_number = con_to->connections[i].tcp_connection - 1;
-                TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
+            const TCP_Conn_to *con = &con_to->connections[i];
+            const unsigned int tcp_connections_number = con->tcp_connection;
 
-                if (!tcp_con) {
-                    continue;
-                }
+            if (tcp_connections_number == 0) {
+                continue;
+            }
 
-                if (tcp_con->status == TCP_CONN_SLEEPING) {
-                    tcp_con->unsleep = 1;
-                }
+            TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number - 1);
+
+            if (tcp_con == nullptr) {
+                continue;
+            }
+
+            if (tcp_con->status == TCP_CONN_SLEEPING) {
+                tcp_con->unsleep = 1;
             }
         }
 
@@ -645,17 +649,22 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
     }
 
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection) {
-            unsigned int tcp_connections_number = con_to->connections[i].tcp_connection - 1;
-            TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number);
+        const TCP_Conn_to *con = &con_to->connections[i];
 
-            if (!tcp_con) {
-                continue;
-            }
+        const unsigned int tcp_connections_number = con->tcp_connection;
 
-            if (con_to->connections[i].status == TCP_CONNECTIONS_STATUS_ONLINE) {
-                ++tcp_con->sleep_count;
-            }
+        if (tcp_connections_number == 0) {
+            continue;
+        }
+
+        TCP_con *tcp_con = get_tcp_connection(tcp_c, tcp_connections_number - 1);
+
+        if (tcp_con == nullptr) {
+            continue;
+        }
+
+        if (con->status == TCP_CONNECTIONS_STATUS_ONLINE) {
+            ++tcp_con->sleep_count;
         }
     }
 
@@ -666,7 +675,9 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
 static bool tcp_connection_in_conn(const TCP_Connection_to *con_to, unsigned int tcp_connections_number)
 {
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection == (tcp_connections_number + 1)) {
+        const TCP_Conn_to *con = &con_to->connections[i];
+
+        if (con->tcp_connection == tcp_connections_number + 1) {
             return 1;
         }
     }
@@ -684,10 +695,12 @@ static int add_tcp_connection_to_conn(TCP_Connection_to *con_to, unsigned int tc
     }
 
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection == 0) {
-            con_to->connections[i].tcp_connection = tcp_connections_number + 1;
-            con_to->connections[i].status = TCP_CONNECTIONS_STATUS_NONE;
-            con_to->connections[i].connection_id = 0;
+        TCP_Conn_to *con = &con_to->connections[i];
+
+        if (con->tcp_connection == 0) {
+            con->tcp_connection = tcp_connections_number + 1;
+            con->status = TCP_CONNECTIONS_STATUS_NONE;
+            con->connection_id = 0;
             return i;
         }
     }
@@ -701,10 +714,12 @@ static int add_tcp_connection_to_conn(TCP_Connection_to *con_to, unsigned int tc
 static int rm_tcp_connection_from_conn(TCP_Connection_to *con_to, unsigned int tcp_connections_number)
 {
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection == (tcp_connections_number + 1)) {
-            con_to->connections[i].tcp_connection = 0;
-            con_to->connections[i].status = TCP_CONNECTIONS_STATUS_NONE;
-            con_to->connections[i].connection_id = 0;
+        TCP_Conn_to *con = &con_to->connections[i];
+
+        if (con->tcp_connection == (tcp_connections_number + 1)) {
+            con->tcp_connection = 0;
+            con->status = TCP_CONNECTIONS_STATUS_NONE;
+            con->connection_id = 0;
             return i;
         }
     }
@@ -720,10 +735,10 @@ static unsigned int online_tcp_connection_from_conn(const TCP_Connection_to *con
     unsigned int count = 0;
 
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection) {
-            if (con_to->connections[i].status == TCP_CONNECTIONS_STATUS_ONLINE) {
-                ++count;
-            }
+        const TCP_Conn_to *con = &con_to->connections[i];
+
+        if (con->tcp_connection != 0 && con->status == TCP_CONNECTIONS_STATUS_ONLINE) {
+            ++count;
         }
     }
 
@@ -734,18 +749,18 @@ static unsigned int online_tcp_connection_from_conn(const TCP_Connection_to *con
  * return -1 on failure.
  */
 static int set_tcp_connection_status(TCP_Connection_to *con_to, unsigned int tcp_connections_number,
-                                     uint8_t status,
-                                     uint8_t connection_id)
+                                     uint8_t status, uint8_t connection_id)
 {
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
-        if (con_to->connections[i].tcp_connection == (tcp_connections_number + 1)) {
+        TCP_Conn_to *con = &con_to->connections[i];
 
-            if (con_to->connections[i].status == status) {
+        if (con->tcp_connection == tcp_connections_number + 1) {
+            if (con->status == status) {
                 return -1;
             }
 
-            con_to->connections[i].status = status;
-            con_to->connections[i].connection_id = connection_id;
+            con->status = status;
+            con->connection_id = connection_id;
             return i;
         }
     }

@@ -474,7 +474,7 @@ static int handle_data_request(void *object, const IP_Port *source, const uint8_
         return 1;
     }
 
-    int index = in_entries(onion_a, packet + 1);
+    const int index = in_entries(onion_a, packet + 1);
 
     if (index == -1) {
         return 1;

@@ -810,81 +810,98 @@ static int do_confirmed_TCP(const Logger *logger, TCP_Client_Connection *conn, c
 void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
                        TCP_Client_Connection *tcp_connection, void *userdata)
 {
-    if (tcp_connection->status == TCP_CLIENT_DISCONNECTED) {
-        return;
-    }
+    switch (tcp_connection->status) {
+        case TCP_CLIENT_PROXY_HTTP_CONNECTING: {
+            if (send_pending_data(logger, &tcp_connection->con) == 0) {
+                const int ret = proxy_http_read_connection_response(logger, tcp_connection);
 
-    if (tcp_connection->status == TCP_CLIENT_PROXY_HTTP_CONNECTING) {
-        if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            int ret = proxy_http_read_connection_response(logger, tcp_connection);
+                if (ret == -1) {
+                    tcp_connection->kill_at = 0;
+                    tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                }
 
-            if (ret == -1) {
-                tcp_connection->kill_at = 0;
-                tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                if (ret == 1) {
+                    generate_handshake(tcp_connection);
+                    tcp_connection->status = TCP_CLIENT_CONNECTING;
+                }
             }
 
-            if (ret == 1) {
-                generate_handshake(tcp_connection);
-                tcp_connection->status = TCP_CLIENT_CONNECTING;
-            }
+            break;
         }
-    }
 
-    if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_CONNECTING) {
-        if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            int ret = socks5_read_handshake_response(logger, tcp_connection);
+        case TCP_CLIENT_PROXY_SOCKS5_CONNECTING: {
+            if (send_pending_data(logger, &tcp_connection->con) == 0) {
+                const int ret = socks5_read_handshake_response(logger, tcp_connection);
 
-            if (ret == -1) {
-                tcp_connection->kill_at = 0;
-                tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                if (ret == -1) {
+                    tcp_connection->kill_at = 0;
+                    tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                }
+
+                if (ret == 1) {
+                    proxy_socks5_generate_connection_request(tcp_connection);
+                    tcp_connection->status = TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED;
+                }
             }
 
-            if (ret == 1) {
-                proxy_socks5_generate_connection_request(tcp_connection);
-                tcp_connection->status = TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED;
-            }
+            break;
         }
-    }
 
-    if (tcp_connection->status == TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED) {
-        if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            int ret = proxy_socks5_read_connection_response(logger, tcp_connection);
+        case TCP_CLIENT_PROXY_SOCKS5_UNCONFIRMED: {
+            if (send_pending_data(logger, &tcp_connection->con) == 0) {
+                const int ret = proxy_socks5_read_connection_response(logger, tcp_connection);
 
-            if (ret == -1) {
-                tcp_connection->kill_at = 0;
-                tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                if (ret == -1) {
+                    tcp_connection->kill_at = 0;
+                    tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                }
+
+                if (ret == 1) {
+                    generate_handshake(tcp_connection);
+                    tcp_connection->status = TCP_CLIENT_CONNECTING;
+                }
             }
 
-            if (ret == 1) {
-                generate_handshake(tcp_connection);
-                tcp_connection->status = TCP_CLIENT_CONNECTING;
+            break;
+        }
+
+        case TCP_CLIENT_CONNECTING: {
+            if (send_pending_data(logger, &tcp_connection->con) == 0) {
+                tcp_connection->status = TCP_CLIENT_UNCONFIRMED;
             }
+
+            break;
         }
-    }
 
-    if (tcp_connection->status == TCP_CLIENT_CONNECTING) {
-        if (send_pending_data(logger, &tcp_connection->con) == 0) {
-            tcp_connection->status = TCP_CLIENT_UNCONFIRMED;
-        }
-    }
+        case TCP_CLIENT_UNCONFIRMED: {
+            uint8_t data[TCP_SERVER_HANDSHAKE_SIZE];
+            const int len = read_TCP_packet(logger, tcp_connection->con.sock, data, sizeof(data), &tcp_connection->con.ip_port);
 
-    if (tcp_connection->status == TCP_CLIENT_UNCONFIRMED) {
-        uint8_t data[TCP_SERVER_HANDSHAKE_SIZE];
-        int len = read_TCP_packet(logger, tcp_connection->con.sock, data, sizeof(data), &tcp_connection->con.ip_port);
-
-        if (sizeof(data) == len) {
-            if (handle_handshake(tcp_connection, data) == 0) {
-                tcp_connection->kill_at = -1;
-                tcp_connection->status = TCP_CLIENT_CONFIRMED;
-            } else {
-                tcp_connection->kill_at = 0;
-                tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+            if (len == sizeof(data)) {
+                if (handle_handshake(tcp_connection, data) == 0) {
+                    tcp_connection->kill_at = -1;
+                    tcp_connection->status = TCP_CLIENT_CONFIRMED;
+                } else {
+                    tcp_connection->kill_at = 0;
+                    tcp_connection->status = TCP_CLIENT_DISCONNECTED;
+                }
             }
-        }
-    }
 
-    if (tcp_connection->status == TCP_CLIENT_CONFIRMED) {
-        do_confirmed_TCP(logger, tcp_connection, mono_time, userdata);
+            break;
+        }
+
+        case TCP_CLIENT_CONFIRMED: {
+            do_confirmed_TCP(logger, tcp_connection, mono_time, userdata);
+            break;
+        }
+
+        case TCP_CLIENT_DISCONNECTED: {
+            return;
+        }
+
+        case TCP_CLIENT_NO_STATUS: {
+            break;
+        }
     }
 
     if (tcp_connection->kill_at <= mono_time_get(mono_time)) {
