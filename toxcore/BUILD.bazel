@@ -256,11 +256,13 @@ cc_library(
     name = "TCP_connection",
     srcs = [
         "TCP_client.c",
+        "TCP_common.c",
         "TCP_connection.c",
         "TCP_server.c",
     ],
     hdrs = [
         "TCP_client.h",
+        "TCP_common.h",
         "TCP_connection.h",
         "TCP_server.h",
     ],
@@ -301,6 +303,7 @@ cc_library(
     deps = [
         ":DHT",
         ":TCP_connection",
+        ":list",
         ":mono_time",
         ":network",
     ],
