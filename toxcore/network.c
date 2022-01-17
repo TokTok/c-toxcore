@@ -1322,6 +1322,7 @@ int addr_resolve(const char *address, IP *to, IP *extra)
     }
 
     struct addrinfo *server = nullptr;
+
     const int rc = getaddrinfo(address, nullptr, &hints, &server);
 
     // Lookup failed.
