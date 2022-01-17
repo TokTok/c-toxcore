@@ -461,7 +461,7 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
 
 static int handle_data_request(void *object, IP_Port source, const uint8_t *packet, uint16_t length, void *userdata)
 {
-    Onion_Announce *onion_a = (Onion_Announce *)object;
+    const Onion_Announce *onion_a = (const Onion_Announce *)object;
 
     if (length <= DATA_REQUEST_MIN_SIZE_RECV) {
         return 1;
@@ -471,7 +471,7 @@ static int handle_data_request(void *object, IP_Port source, const uint8_t *pack
         return 1;
     }
 
-    int index = in_entries(onion_a, packet + 1);
+    const int index = in_entries(onion_a, packet + 1);
 
     if (index == -1) {
         return 1;
