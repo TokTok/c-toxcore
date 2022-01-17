@@ -50,12 +50,13 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value);
 /** Create new TCP connection to ip_port/public_key
  */
 TCP_Client_Connection *new_TCP_connection(const Mono_Time *mono_time, IP_Port ip_port, const uint8_t *public_key,
-        const uint8_t *self_public_key, const uint8_t *self_secret_key, const TCP_Proxy_Info *proxy_info);
+        const uint8_t *self_public_key, const uint8_t *self_secret_key, const TCP_Proxy_Info *proxy_info,
+        Net_Profile *net_profile);
 
 /** Run the TCP connection
  */
-void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
-                       TCP_Client_Connection *tcp_connection, void *userdata);
+void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time, TCP_Client_Connection *tcp_connection,
+                       void *userdata);
 
 /** Kill the TCP connection
  */
@@ -113,8 +114,8 @@ typedef int tcp_oob_data_cb(void *object, const uint8_t *public_key, const uint8
  * return 0 if could not send packet.
  * return -1 on failure.
  */
-int send_oob_packet(TCP_Client_Connection *con, const uint8_t *public_key, const uint8_t *data, uint16_t length);
+int send_oob_packet(TCP_Client_Connection *con, const uint8_t *public_key,
+                    const uint8_t *data, uint16_t length);
 void oob_data_handler(TCP_Client_Connection *con, tcp_oob_data_cb *oob_data_callback, void *object);
-
 
 #endif
