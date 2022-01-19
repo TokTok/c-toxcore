@@ -116,7 +116,7 @@ typedef enum Group_Sync_Flags {
 static bool self_gc_is_founder(const GC_Chat *chat);
 static bool group_number_valid(const GC_Session *c, int group_number);
 static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
-static int peer_update(GC_Chat *chat, GC_GroupPeer *peer, uint32_t peer_number);
+static int peer_update(GC_Chat *chat, GC_Peer *peer, uint32_t peer_number);
 static int group_delete(GC_Session *c, GC_Chat *chat);
 static void group_cleanup(GC_Session *c, GC_Chat *chat);
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
@@ -1041,7 +1041,7 @@ static int prune_gc_sanctions_list(GC_Chat *chat)
  * Return length of packed peer on success.
  * Return -1 on failure.
  */
-static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_GroupPeer *peer)
+static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_Peer *peer)
 {
     if (PACKED_GC_PEER_SIZE > length) {
         return -1;
@@ -1064,7 +1064,7 @@ static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_GroupPeer *peer
  * Returns the length of processed data on success.
  * Returns -1 on failure.
  */
-static int unpack_gc_peer(GC_GroupPeer *peer, const uint8_t *data, uint16_t length)
+static int unpack_gc_peer(GC_Peer *peer, const uint8_t *data, uint16_t length)
 {
     if (PACKED_GC_PEER_SIZE > length) {
         return -1;
@@ -1828,7 +1828,7 @@ static int handle_gc_sync_request(const GC_Chat *chat, int peer_number, GC_Conne
     return 0;
 }
 
-static void copy_self(const GC_Chat *chat, GC_GroupPeer *peer);
+static void copy_self(const GC_Chat *chat, GC_Peer *peer);
 static int send_gc_peer_info_request(const GC_Chat *chat, GC_Connection *gconn);
 
 
@@ -2358,7 +2358,7 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest)
  */
 static int send_self_to_peer(const GC_Session *c, const GC_Chat *chat, GC_Connection *gconn)
 {
-    GC_GroupPeer self;
+    GC_Peer self;
     copy_self(chat, &self);
 
     uint8_t data[MAX_GC_PACKET_SIZE];
@@ -2475,8 +2475,9 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
         unpacked_len += MAX_GC_PASSWORD_SIZE;
     }
 
-    GC_GroupPeer peer;
-    memset(&peer, 0, sizeof(GC_GroupPeer));
+    GC_Peer peer = (GC_Peer) {
+        0
+    };
 
     if (length <= unpacked_len) {
         return -1;
@@ -6037,10 +6038,10 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
         chat->gcc[peer_number] = chat->gcc[chat->numpeers];
     }
 
-    memset(&chat->group[chat->numpeers], 0, sizeof(GC_GroupPeer));
+    memset(&chat->group[chat->numpeers], 0, sizeof(GC_Peer));
     memset(&chat->gcc[chat->numpeers], 0, sizeof(GC_Connection));
 
-    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, chat->numpeers * sizeof(GC_GroupPeer));
+    GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, chat->numpeers * sizeof(GC_Peer));
 
     if (tmp_group == nullptr) {
         return -1;
@@ -6069,7 +6070,7 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
  * Returns peer_number on success.
  * Returns -1 on failure.
  */
-static int peer_update(GC_Chat *chat, GC_GroupPeer *peer, uint32_t peer_number)
+static int peer_update(GC_Chat *chat, GC_Peer *peer, uint32_t peer_number)
 {
     if (peer->nick_length == 0) {
         return -1;
@@ -6083,7 +6084,7 @@ static int peer_update(GC_Chat *chat, GC_GroupPeer *peer, uint32_t peer_number)
         return -1;
     }
 
-    GC_GroupPeer *curr_peer = &chat->group[peer_number];
+    GC_Peer *curr_peer = &chat->group[peer_number];
 
     curr_peer->status = peer->status;
     curr_peer->nick_length = peer->nick_length;
@@ -6134,7 +6135,7 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 
     chat->gcc = tmp_gcc;
 
-    GC_GroupPeer *tmp_group = (GC_GroupPeer *)realloc(chat->group, (chat->numpeers + 1) * sizeof(GC_GroupPeer));
+    GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, (chat->numpeers + 1) * sizeof(GC_Peer));
 
     if (tmp_group == nullptr) {
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
@@ -6143,7 +6144,7 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 
     ++chat->numpeers;
 
-    memset(&tmp_group[peer_number], 0, sizeof(GC_GroupPeer));
+    memset(&tmp_group[peer_number], 0, sizeof(GC_Peer));
 
     chat->group = tmp_group;
 
@@ -6184,9 +6185,9 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 }
 
 /* Copies own peer data to `peer`. */
-static void copy_self(const GC_Chat *chat, GC_GroupPeer *peer)
+static void copy_self(const GC_Chat *chat, GC_Peer *peer)
 {
-    memset(peer, 0, sizeof(GC_GroupPeer));
+    memset(peer, 0, sizeof(GC_Peer));
 
     peer->status = gc_get_self_status(chat);
     gc_get_self_nick(chat, peer->nick);

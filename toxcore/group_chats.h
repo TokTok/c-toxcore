@@ -202,16 +202,17 @@ typedef struct GC_TimedOutPeer {
     uint64_t    last_reconn_try;  // the last time we tried to establish a new connection
 } GC_TimedOutPeer;
 
-typedef struct GC_GroupPeer {
-    Group_Role  role;
+typedef struct GC_Peer {
+    /* Below state is sent to other peers in peer info exchange*/
     uint8_t     nick[MAX_GC_NICK_SIZE];
     uint16_t    nick_length;
     uint8_t     status;
 
-    /* Below variables are not sent to other peers */
+    /* Below state is local only */
+    Group_Role  role;
     uint32_t    peer_id;    // permanent ID (used for the public API)
     bool        ignore;
-} GC_GroupPeer;
+} GC_Peer;
 
 typedef struct GC_SharedState {
     uint32_t    version;
@@ -296,7 +297,7 @@ typedef struct GC_Chat {
     uint16_t        tcp_connections; // the number of global TCP relays we're connected to
     uint64_t        last_checked_tcp_relays;
 
-    GC_GroupPeer    *group;
+    GC_Peer         *group;
     GC_Connection   *gcc;
     Moderation      moderation;
 
