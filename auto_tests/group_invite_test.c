@@ -24,7 +24,7 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-#define NUM_GROUP_TOXES 15  // must be > 7
+#define NUM_GROUP_TOXES 8  // must be > 7
 
 #define PASSWORD "dadada"
 #define PASS_LEN (sizeof(PASSWORD) - 1)
