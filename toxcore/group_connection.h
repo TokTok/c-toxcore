@@ -10,99 +10,10 @@
 #ifndef GROUP_CONNECTION_H
 #define GROUP_CONNECTION_H
 
-#include "group_chats.h"
-
-/* Max number of messages to store in the send/recv arrays (must fit inside an uint16) */
-#define GCC_BUFFER_SIZE 8192
+#include "group_common.h"
 
 /* Max number of TCP relays we share with a peer */
 #define GCC_MAX_TCP_SHARED_RELAYS 3
-
-/* Max size of a peer part message */
-#define MAX_GC_PART_MESSAGE_SIZE 128
-
-#ifndef GROUP_CHATS_DEFINED
-#define GROUP_CHATS_DEFINED
-typedef struct GC_Chat GC_Chat;
-typedef struct GC_Session GC_Session;
-#endif
-
-/* Group exit types. */
-typedef enum Group_Exit_Type {
-    GC_EXIT_TYPE_QUIT              = 0x00,  // Peer left the group
-    GC_EXIT_TYPE_TIMEOUT           = 0x01,  // Peer connection timed out
-    GC_EXIT_TYPE_DISCONNECTED      = 0x02,  // Peer diconnected from group
-    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,  // Self disconnected from group
-    GC_EXIT_TYPE_KICKED            = 0x04,  // Peer was kicked from the group
-    GC_EXIT_TYPE_SYNC_ERR          = 0x05,  // Peer failed to sync with the group
-    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,  // The peer exit callback should not be triggered
-} Group_Exit_Type;
-
-typedef struct GC_Message_Array_Entry {
-    uint8_t *data;
-    uint32_t data_length;
-    uint8_t  packet_type;
-    uint64_t message_id;
-    uint64_t time_added;
-    uint64_t last_send_try;
-} GC_Message_Array_Entry;
-
-typedef struct GC_Exit_Info {
-    uint8_t part_message[MAX_GC_PART_MESSAGE_SIZE];
-    size_t  length;
-    Group_Exit_Type exit_type;
-} GC_Exit_Info;
-
-typedef struct GC_PeerAddress {
-    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
-    IP_Port     ip_port;
-} GC_PeerAddress;
-
-typedef struct GC_Connection {
-    uint64_t send_message_id;   /* message_id of the next message we send to peer */
-
-    uint16_t send_array_start;   /* send_array index of oldest item */
-    GC_Message_Array_Entry send_array[GCC_BUFFER_SIZE];
-
-    uint64_t received_message_id;   /* message_id of peer's last message to us */
-    GC_Message_Array_Entry received_array[GCC_BUFFER_SIZE];
-
-    GC_PeerAddress   addr;   /* holds peer's extended real public key and ip_port */
-    uint32_t    public_key_hash;   /* Jenkins one at a time hash of peer's real encryption public key */
-
-    uint8_t     session_public_key[ENC_PUBLIC_KEY_SIZE];   /* self session public key for this peer */
-    uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
-    uint8_t     session_shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
-
-    int         tcp_connection_num;
-    uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
-    uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
-    uint64_t    last_sent_ip_time;  /* the last time we sent our ip info to this peer in a ping packet */
-
-    Node_format connected_tcp_relays[MAX_FRIEND_TCP_CONNECTIONS];
-    uint16_t    tcp_relays_count;
-
-    uint64_t    last_received_ping_time;
-    uint64_t    last_requested_packet_time;  /* The last time we requested a missing packet from this peer */
-    uint64_t    last_sent_ping_time;
-    uint64_t    last_sync_response;  /* the last time we sent this peer a sync response */
-    uint8_t     oob_relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    bool        self_is_closer; /* true if we're "closer" to the chat_id than this peer (uses real pk's) */
-
-    bool        confirmed;  /* true if this peer has given us their info */
-    bool        handshaked;  /* true if we've successfully handshaked with this peer */
-    uint64_t    last_handshake_request;
-    uint64_t    last_handshake_response;
-    uint8_t     pending_handshake_type;
-    bool        is_pending_handshake_response;
-    bool        is_oob_handshake;
-
-    uint64_t    last_key_rotation;  /* the last time we rotated session keys for this peer */
-    bool        pending_key_rotation_request;
-
-    bool        pending_delete;  /* true if this peer has been marked for deletion */
-    GC_Exit_Info exit_info;
-} GC_Connection;
 
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,

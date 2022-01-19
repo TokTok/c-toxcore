@@ -15,21 +15,9 @@
 
 #include "TCP_connection.h"
 #include "group_announce.h"
+#include "group_common.h"
 #include "group_connection.h"
-#include "group_moderation.h"
 #include "logger.h"
-
-#define MAX_GC_NICK_SIZE 128
-#define MAX_GC_TOPIC_SIZE 512
-#define MAX_GC_GROUP_NAME_SIZE 48
-#define MAX_GC_MESSAGE_SIZE 1372
-#define MAX_GC_PEER_ADDRS 30
-#define MAX_GC_PASSWORD_SIZE 32
-#define MAX_GC_SAVED_INVITES 50
-#define MAX_GC_PEERS_DEFAULT 100
-#define MAX_GC_PACKET_SIZE (uint16_t) 1400
-#define MAX_GC_SAVED_TIMEOUTS 12
-#define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
 
 #define GC_PING_TIMEOUT 12
 #define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
@@ -37,24 +25,6 @@
 #define GC_UNCONFIRMED_PEER_TIMEOUT GC_PING_TIMEOUT
 
 #define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE)
-
-#ifndef GROUP_CHATS_DEFINED
-#define GROUP_CHATS_DEFINED
-typedef struct GC_Chat GC_Chat;
-typedef struct GC_Session GC_Session;
-#endif
-
-typedef enum Self_UDP_Status {
-    SELF_UDP_STATUS_NONE = 0x00,
-    SELF_UDP_STATUS_WAN  = 0x01,
-    SELF_UDP_STATUS_LAN  = 0x02,
-} Self_UDP_Status;
-
-/* Group privacy states. */
-typedef enum Group_Privacy_State {
-    GI_PUBLIC   = 0x00,  // Anyone with the chat ID may join the group
-    GI_PRIVATE  = 0x01,  // Peers may only join the group via a friend invite
-} Group_Privacy_State;
 
 /* Group topic lock states. */
 typedef enum Group_Topic_Lock {
@@ -77,40 +47,11 @@ typedef enum Group_Invite_Message_Type {
     GROUP_INVITE_CONFIRMATION = 0x02,  // Peer has confirmed the accepted invite
 } Group_Invite_Message_Type;
 
-/**
- * Group roles. Roles are hierarchical in that each role has a set of privileges plus
- * all the privileges of the roles below it.
- */
-typedef enum Group_Role {
-    /* Group creator. All-powerful. Cannot be demoted or kicked. */
-    GR_FOUNDER   = 0x00,
-
-    /*
-     * May promote or demote peers below them to any role below them.
-     * May also kick peers below them and set the topic.
-     */
-    GR_MODERATOR = 0x01,
-
-    /* may interact normally with the group. */
-    GR_USER      = 0x02,
-
-    /* May not interact with the group but may observe. */
-    GR_OBSERVER  = 0x03,
-} Group_Role;
-
 typedef enum Group_Peer_Status {
     GS_NONE    = 0x00,
     GS_AWAY    = 0x01,
     GS_BUSY    = 0x02,
 } Group_Peer_Status;
-
-/* Group connection states. */
-typedef enum GC_Conn_State {
-    CS_NONE         = 0x00,  // Indicates a group is not initialized
-    CS_DISCONNECTED = 0x01,  // Not receiving or sending any packets
-    CS_CONNECTING   = 0x02,  // Attempting to establish a connection with peers in the group
-    CS_CONNECTED    = 0x03,  // Has successfully received a sync response from a peer in the group
-} GC_Conn_State;
 
 /**
  * Group save connection state.
@@ -179,223 +120,10 @@ typedef enum Group_Message_Ack_Type {
     GR_ACK_REQ     = 0x01,  // indicates a message needs to be re-sent
 } Group_Message_Ack_Type;
 
-typedef struct GC_SavedPeerInfo {
-    uint8_t     public_key[ENC_PUBLIC_KEY_SIZE];
-    Node_format tcp_relay;
-    IP_Port     ip_port;
-} GC_SavedPeerInfo;
-
-/* Holds info about peers who recently timed out */
-typedef struct GC_TimedOutPeer {
-    GC_SavedPeerInfo addr;
-    uint64_t    last_seen;  // the time the peer disconnected
-    uint64_t    last_reconn_try;  // the last time we tried to establish a new connection
-} GC_TimedOutPeer;
-
-typedef struct GC_Peer {
-    /* Below state is sent to other peers in peer info exchange*/
-    uint8_t       nick[MAX_GC_NICK_SIZE];
-    uint16_t      nick_length;
-    uint8_t       status;
-
-    /* Below state is local only */
-    Group_Role    role;
-    uint32_t      peer_id;    // permanent ID (used for the public API)
-    bool          ignore;
-
-    GC_Connection gconn;
-} GC_Peer;
-
-typedef struct GC_SharedState {
-    uint32_t    version;
-    uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint32_t    maxpeers;
-    uint16_t    group_name_len;
-    uint8_t     group_name[MAX_GC_GROUP_NAME_SIZE];
-    Group_Privacy_State privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)
-    uint16_t    password_length;
-    uint8_t     password[MAX_GC_PASSWORD_SIZE];
-    uint8_t     mod_list_hash[MOD_MODERATION_HASH_SIZE];
-    uint32_t    topic_lock; // non-zero value when lock is enabled
-} GC_SharedState;
-
-typedef struct GC_TopicInfo {
-    uint32_t    version;
-    uint16_t    length;
-    uint16_t    checksum;  // used for syncing problems. the checksum with the highest value gets priority.
-    uint8_t     topic[MAX_GC_TOPIC_SIZE];
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];  // Public signature key of the topic setter
-} GC_TopicInfo;
-
-#define GROUP_SAVE_MAX_MODERATORS 30 // must be <= MOD_MAX_NUM_MODERATORS (temp fix to prevent save format breakage)
-#define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
-
-struct Saved_Group {
-    /* Group shared state */
-    uint32_t  shared_state_version;
-    uint8_t   shared_state_signature[SIGNATURE_SIZE];
-    uint8_t   founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint16_t  maxpeers;
-    uint16_t  group_name_length;
-    uint8_t   group_name[MAX_GC_GROUP_NAME_SIZE];
-    uint8_t   privacy_state;
-    uint16_t  password_length;
-    uint8_t   password[MAX_GC_PASSWORD_SIZE];
-    uint8_t   mod_list_hash[MOD_MODERATION_HASH_SIZE];
-    uint32_t  topic_lock;
-
-    /* Topic info */
-    uint16_t  topic_length;
-    uint8_t   topic[MAX_GC_TOPIC_SIZE];
-    uint8_t   topic_public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    uint32_t  topic_version;
-    uint8_t   topic_signature[SIGNATURE_SIZE];
-
-    /* Other group info */
-    uint8_t   chat_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t   chat_secret_key[EXT_SECRET_KEY_SIZE];
-    uint16_t  num_mods;
-    uint8_t   mod_list[MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
-    uint8_t   group_connection_state;
-    uint8_t   saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
-    uint16_t  num_saved_peers;
-
-    /* self info */
-    uint8_t   self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t   self_secret_key[EXT_SECRET_KEY_SIZE];
-    uint8_t   self_nick[MAX_GC_NICK_SIZE];
-    uint16_t  self_nick_length;
-    uint8_t   self_role;
-    uint8_t   self_status;
-};
-
-typedef struct Saved_Group Saved_Group;
-
-struct GC_Chat {
-    Mono_Time       *mono_time;
-    const Logger    *log;
-
-    Self_UDP_Status self_udp_status;
-    IP_Port         self_ip_port;
-
-
-    Networking_Core *net;
-    TCP_Connections *tcp_conn;
-
-    bool            new_tcp_relay;   // true if we need to send peers a new TCP relay
-    uint16_t        tcp_connections; // the number of global TCP relays we're connected to
-    uint64_t        last_checked_tcp_relays;
-
-    GC_Peer         *group;
-    Moderation      moderation;
-
-    GC_Conn_State   connection_state;
-
-    GC_SharedState  shared_state;
-    uint8_t         shared_state_sig[SIGNATURE_SIZE];  // signed by founder using the chat secret key
-
-    GC_TopicInfo    topic_info;
-    uint8_t         topic_sig[SIGNATURE_SIZE];  // signed by the peer who set the current topic
-
-    uint16_t    peers_checksum;  // sum of the public key hash of every confirmed peer in the group
-    uint16_t    roles_checksum;  // sum of every confirmed peer's role plus the first byte of their public key
-
-    uint32_t    numpeers;
-    int         group_number;
-
-    uint8_t     chat_public_key[EXT_PUBLIC_KEY_SIZE];  // the chat_id is the sig portion
-    uint8_t     chat_secret_key[EXT_SECRET_KEY_SIZE];  // only used by the founder
-
-    uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
-
-    uint32_t    self_public_key_hash;  // Jenkins one at a time hash of our self public encryption key
-
-    uint64_t    time_connected;
-    uint64_t    last_ping_interval;
-    uint64_t    last_sync_request;
-    uint64_t    last_time_peers_loaded;
-
-    /* keeps track of frequency of new inbound connections */
-    uint8_t     connection_O_metre;
-    uint64_t    connection_cooldown_timer;
-    bool        block_handshakes;
-
-    int32_t     saved_invites[MAX_GC_SAVED_INVITES];
-    uint8_t     saved_invites_index;
-
-    /* A list of recently seen peers in case we disconnect from a private group.
-     * Peers are added once they're confirmed, and only if there are vacant
-     * spots (older connections get priority). An entry is removed only when the list
-     * is full, its respective peer goes offline, and an online peer who isn't yet
-     * present in the list can be added.
-     */
-    GC_SavedPeerInfo saved_peers[GC_MAX_SAVED_PEERS];
-
-    GC_TimedOutPeer timeout_list[MAX_GC_SAVED_TIMEOUTS];
-    size_t      timeout_list_index;
-    uint64_t    last_timed_out_reconn_try;  // the last time we tried to reconnect to timed out peers
-
-    bool        update_self_announces;  // true if we should try to update our announcements
-    uint64_t    last_self_announce_check;  // the last time we checked if we should update our announcements
-
-    uint8_t     m_group_public_key[CRYPTO_PUBLIC_KEY_SIZE];  // public key for group's messenger friend connection
-    int         friend_connection_id;  // identifier for group's messenger friend connection
-};
-
-#ifndef MESSENGER_DEFINED
-#define MESSENGER_DEFINED
-typedef struct Messenger Messenger;
-#endif /* MESSENGER_DEFINED */
-
-typedef void gc_message_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
-                           const uint8_t *data, size_t length, void *user_data);
-typedef void gc_private_message_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
-                                   const uint8_t *data, size_t length, void *user_data);
-typedef void gc_custom_packet_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
-                                 size_t length, void *user_data);
-typedef void gc_moderation_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, uint32_t target_peer,
-                              unsigned int mod_event, void *user_data);
-typedef void gc_nick_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
-                               size_t length, void *user_data);
-typedef void gc_status_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int status,
-                                 void *user_data);
-typedef void gc_topic_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
-                                size_t length, void *user_data);
-typedef void gc_topic_lock_cb(Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
-typedef void gc_peer_limit_cb(Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
-typedef void gc_privacy_state_cb(Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
-typedef void gc_password_cb(Messenger *m, uint32_t group_number, const uint8_t *data, size_t length, void *user_data);
-typedef void gc_peer_join_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data);
-typedef void gc_peer_exit_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int exit_type,
-                             const uint8_t *nick, size_t nick_len, const uint8_t *data, size_t length, void *user_data);
-typedef void gc_self_join_cb(Messenger *m, uint32_t group_number, void *user_data);
-typedef void gc_rejected_cb(Messenger *m, uint32_t group_number, unsigned int type, void *user_data);
-
-struct GC_Session {
-    Messenger                 *messenger;
-    GC_Chat                   *chats;
-    struct GC_Announces_List  *announces_list;
-
-    uint32_t     num_chats;
-
-    gc_message_cb *message;
-    gc_private_message_cb *private_message;
-    gc_custom_packet_cb *custom_packet;
-    gc_moderation_cb *moderation;
-    gc_nick_change_cb *nick_change;
-    gc_status_change_cb *status_change;
-    gc_topic_change_cb *topic_change;
-    gc_topic_lock_cb *topic_lock;
-    gc_peer_limit_cb *peer_limit;
-    gc_privacy_state_cb *privacy_state;
-    gc_password_cb *password;
-    gc_peer_join_cb *peer_join;
-    gc_peer_exit_cb *peer_exit;
-    gc_self_join_cb *self_join;
-    gc_rejected_cb *rejected;
-};
-
+/* Returns the GC_Connection object associated with `peer_number`.
+ * Returns null if peer_number does not designate a valid peer.
+ */
+GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number);
 
 /* Returns the jenkins hash of a 32 byte public encryption key. */
 uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);

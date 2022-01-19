@@ -9,15 +9,16 @@
 
 #include "group_connection.h"
 
+#include <assert.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
-#include "Messenger.h"
 #include "crypto_core.h"
 #include "group_chats.h"
+#include "group_common.h"
 #include "mono_time.h"
-#include "network.h"
 #include "util.h"
 
 #ifndef VANILLA_NACL
@@ -433,16 +434,11 @@ void gcc_peer_cleanup(GC_Connection *gconn)
 void gcc_cleanup(GC_Chat *chat)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
 
-        if (gconn) {
-            gcc_peer_cleanup(gconn);
-        }
+        gcc_peer_cleanup(gconn);
     }
-
-    free(chat->gcc);
-    chat->gcc = nullptr;
 }
 
 #endif /* VANILLA_NACL */
-

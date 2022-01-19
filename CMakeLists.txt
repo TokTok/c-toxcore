@@ -232,9 +232,14 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
 # ----------------------
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/group_announce.c
+  toxcore/group_announce.h
   toxcore/group_chats.c
+  toxcore/group_chats.h
+  toxcore/group_common.h
   toxcore/group_connection.c
-  toxcore/group_moderation.c)
+  toxcore/group_connection.h
+  toxcore/group_moderation.c
+  toxcore/group_moderation.h)
 
 # LAYER 7: Tox messenger
 # ----------------------

@@ -17,6 +17,8 @@
 #include "Messenger.h"
 #include "TCP_connection.h"
 #include "friend_connection.h"
+#include "group_common.h"
+#include "group_moderation.h"
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
@@ -144,7 +146,7 @@ static GC_Peer *get_gc_peer(const GC_Chat *chat, int peer_number)
     return &chat->group[peer_number];
 }
 
-static GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
+GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
 {
     GC_Peer *peer = get_gc_peer(chat, peer_number);
 
@@ -7815,6 +7817,4 @@ int gc_add_peers_from_announces(GC_Chat *chat, GC_Announce *announces, uint8_t g
 
     return added_peers;
 }
-
 #endif
-
