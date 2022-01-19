@@ -261,12 +261,18 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
 static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                                         GC_Message_Array_Entry *array_entry, void *userdata)
 {
+    const uint8_t *sender_pk = gconn->addr.public_key;
+
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
                     array_entry->message_id, array_entry->packet_type, userdata);
 
+    /* peer number can change from peer add operations in packet handlers */
+    peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
+    gconn = get_gc_connection(chat, peer_number);
+
     clear_array_entry(array_entry);
 
-    if (ret == -1) {
+    if (ret < 0) {
         gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_REQ);
         return -1;
     }

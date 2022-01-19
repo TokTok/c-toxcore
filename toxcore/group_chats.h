@@ -128,6 +128,15 @@ GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number);
 /* Returns the jenkins hash of a 32 byte public encryption key. */
 uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
 
+/* Check if peer with the public encryption key is in peer list.
+ *
+ * Returns the peer number if peer is in the peer list.
+ * Returns -1 if peer is not in the peer list.
+ *
+ * If `confirmed` is true the peer number will only be returned if the peer is confirmed.
+ */
+int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed);
+
 /* Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
  * Adds encrypted header consisting of: packet type, message_id (only for lossless packets).
@@ -611,6 +620,8 @@ GC_Chat *gc_get_group(const GC_Session *c, int group_number);
 int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type);
 
 /* Helper function for handle_gc_lossless_packet().
+ *
+ * Note: This function may modify the peer list and change peer numbers.
  *
  * Return 0 if packet is successfully handled.
  * Return -1 on failure.
