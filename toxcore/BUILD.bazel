@@ -360,7 +360,7 @@ cc_library(
         "friend_requests.h",
         "group_announce.h",
         "group_chats.h",
-        "group_common.h"
+        "group_common.h",
         "group_connection.h",
         "group_moderation.h",
         "onion_client.h",

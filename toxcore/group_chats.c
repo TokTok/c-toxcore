@@ -2399,8 +2399,13 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest)
  */
 static int send_self_to_peer(const GC_Session *c, const GC_Chat *chat, GC_Connection *gconn)
 {
-    GC_Peer self;
-    copy_self(chat, &self);
+    GC_Peer *self = (GC_Peer *)calloc(1, sizeof(GC_Peer));
+
+    if (self == nullptr) {
+        return -1;
+    }
+
+    copy_self(chat, self);
 
     uint8_t data[MAX_GC_PACKET_SIZE];
 
@@ -2414,8 +2419,10 @@ static int send_self_to_peer(const GC_Session *c, const GC_Chat *chat, GC_Connec
         length += MAX_GC_PASSWORD_SIZE;
     }
 
-    const int packed_len = pack_gc_peer(data + length, sizeof(data) - length, &self);
+    const int packed_len = pack_gc_peer(data + length, sizeof(data) - length, self);
     length += packed_len;
+
+    free(self);
 
     if (packed_len <= 0) {
         LOGGER_DEBUG(chat->log, "pack_gc_peer failed in handle_gc_peer_info_request_request %d", packed_len);
@@ -2480,6 +2487,7 @@ static int send_gc_peer_exchange(const GC_Session *c, const GC_Chat *chat, GC_Co
  * Return -5 if supplied group password is invalid.
  * Return -6 if we fail to add the peer to the peer list.
  * Return -7 if peer's role cannot be validated.
+ * Return -8 if malloc fails.
  */
 static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
                                         const uint8_t *data, uint32_t length, void *userdata)
@@ -2516,23 +2524,29 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
         unpacked_len += MAX_GC_PASSWORD_SIZE;
     }
 
-    GC_Peer peer = (GC_Peer) {
-        0
-    };
-
     if (length <= unpacked_len) {
         return -1;
     }
 
-    if (unpack_gc_peer(&peer, data + unpacked_len, length - unpacked_len) == -1) {
+    GC_Peer *peer = (GC_Peer *)calloc(1, sizeof(GC_Peer));
+
+    if (peer == nullptr) {
+        return -8;
+    }
+
+    if (unpack_gc_peer(peer, data + unpacked_len, length - unpacked_len) == -1) {
         LOGGER_WARNING(chat->log, "unpack_gc_peer() failed");
+        free(peer);
         return -6;
     }
 
-    if (peer_update(chat, &peer, peer_number) == -1) {
+    if (peer_update(chat, peer, peer_number) == -1) {
         LOGGER_WARNING(chat->log, "peer_update() failed");
+        free(peer);
         return -6;
     }
+
+    free(peer);
 
     const bool was_confirmed = gconn->confirmed;
     gconn->confirmed = true;
