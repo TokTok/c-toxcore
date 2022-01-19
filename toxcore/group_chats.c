@@ -9,6 +9,7 @@
 
 #include "group_chats.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -16,9 +17,6 @@
 #include "Messenger.h"
 #include "TCP_connection.h"
 #include "friend_connection.h"
-#include "group_announce.h"
-#include "group_connection.h"
-#include "group_moderation.h"
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
@@ -132,6 +130,31 @@ static bool peer_number_is_self(int peer_number)
     return peer_number == 0;
 }
 
+bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number)
+{
+    return peer_number >= 0 && peer_number < chat->numpeers;
+}
+
+static GC_Peer *get_gc_peer(const GC_Chat *chat, int peer_number)
+{
+    if (!gc_peer_number_is_valid(chat, peer_number)) {
+        return nullptr;
+    }
+
+    return &chat->group[peer_number];
+}
+
+static GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
+{
+    GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
+        return nullptr;
+    }
+
+    return &peer->gconn;
+}
+
 /* Returns the amount of empty padding a packet of designated length should have. */
 static uint16_t group_packet_padding_length(uint16_t length)
 {
@@ -196,7 +219,11 @@ static void self_gc_set_status(GC_Chat *chat, Group_Peer_Status status)
 /* Sets self confirmed status. */
 static void self_gc_set_confirmed(GC_Chat *chat, bool confirmed)
 {
-    chat->gcc[0].confirmed = confirmed;
+    GC_Connection *gconn = get_gc_connection(chat, 0);
+
+    assert(gconn != nullptr);
+
+    gconn->confirmed = confirmed;
 }
 
 uint32_t gc_get_self_peer_id(const GC_Chat *chat)
@@ -224,7 +251,9 @@ void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key)
 static void self_gc_set_ext_public_key(GC_Chat *chat, const uint8_t *ext_public_key)
 {
     if (ext_public_key != nullptr) {
-        memcpy(chat->gcc[0].addr.public_key, ext_public_key, EXT_PUBLIC_KEY_SIZE);
+        GC_Connection *gconn = get_gc_connection(chat, 0);
+        assert(gconn != nullptr);
+        memcpy(gconn->addr.public_key, ext_public_key, EXT_PUBLIC_KEY_SIZE);
     }
 }
 
@@ -459,7 +488,9 @@ static void set_gc_peerlist_checksum(GC_Chat *chat)
     uint16_t sum = 0;
 
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = &chat->gcc[i];
+        const GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
 
         if (gconn->confirmed) {
             sum += gconn->public_key_hash;
@@ -500,7 +531,9 @@ static void set_gc_topic_checksum(GC_TopicInfo *topic_info)
 static int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
 
         if (gconn->pending_delete) {
             continue;
@@ -526,7 +559,11 @@ static int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_
 static int get_peer_number_of_sig_pk(const GC_Chat *chat, const uint8_t *public_sig_key)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        if (memcmp(get_sig_pk(chat->gcc[i].addr.public_key), public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
+        GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
+
+        if (memcmp(get_sig_pk(gconn->addr.public_key), public_sig_key, SIG_PUBLIC_KEY_SIZE) == 0) {
             return i;
         }
     }
@@ -537,7 +574,11 @@ static int get_peer_number_of_sig_pk(const GC_Chat *chat, const uint8_t *public_
 static int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, const uint8_t *public_sig_key)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        const uint8_t *full_pk = chat->gcc[i].addr.public_key;
+        GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
+
+        const uint8_t *full_pk = gconn->addr.public_key;
 
         if (memcmp(public_sig_key, get_sig_pk(full_pk), SIG_PUBLIC_KEY_SIZE) == 0) {
             memcpy(public_key, get_enc_key(full_pk), ENC_PUBLIC_KEY_SIZE);
@@ -546,20 +587,6 @@ static int gc_get_enc_pk_from_sig_pk(const GC_Chat *chat, uint8_t *public_key, c
     }
 
     return -1;
-}
-
-bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number)
-{
-    return peer_number >= 0 && peer_number < chat->numpeers;
-}
-
-static GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
-{
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
-        return nullptr;
-    }
-
-    return &chat->gcc[peer_number];
 }
 
 static GC_Connection *random_gc_connection(const GC_Chat *chat)
@@ -794,7 +821,11 @@ static uint32_t get_gc_confirmed_numpeers(const GC_Chat *chat)
     uint32_t count = 0;
 
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        if (chat->gcc[i].confirmed) {
+        const GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
+
+        if (gconn->confirmed) {
             ++count;
         }
     }
@@ -2072,8 +2103,12 @@ FAILED_INVITE:
 static void send_gc_lossless_packet_all_peers(const GC_Chat *chat, const uint8_t *data, uint32_t length, uint8_t type)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        if (chat->gcc[i].confirmed) {
-            send_lossless_group_packet(chat, &chat->gcc[i], data, length, type);
+        GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
+
+        if (gconn->confirmed) {
+            send_lossless_group_packet(chat, gconn, data, length, type);
         }
     }
 }
@@ -2082,8 +2117,12 @@ static void send_gc_lossless_packet_all_peers(const GC_Chat *chat, const uint8_t
 static void send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *data, uint32_t length, uint8_t type)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        if (chat->gcc[i].confirmed) {
-            send_lossy_group_packet(chat, &chat->gcc[i], data, length, type);
+        GC_Connection *gconn = get_gc_connection(chat, i);
+
+        assert(gconn != nullptr);
+
+        if (gconn->confirmed) {
+            send_lossy_group_packet(chat, gconn, data, length, type);
         }
     }
 }
@@ -3214,7 +3253,12 @@ static int handle_gc_nick(const GC_Session *c, GC_Chat *chat, uint32_t peer_numb
 {
     /* If this happens malicious behaviour is highly suspect */
     if (length == 0 || length > MAX_GC_NICK_SIZE) {
-        gcc_mark_for_deletion(&chat->gcc[peer_number], chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
+        GC_Connection *gconn = get_gc_connection(chat, peer_number);
+
+        if (gconn) {
+            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SYNC_ERR, nullptr, 0);
+        }
+
         LOGGER_WARNING(chat->log, "Invalid nick length for nick: %s (%u)", nick, length);
         return -1;
     }
@@ -4680,7 +4724,10 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, uint32_t peer
         }
 
         for (uint32_t i = 1; i < chat->numpeers; ++i) {
-            gcc_mark_for_deletion(&chat->gcc[i], chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
+            GC_Connection *gconn = get_gc_connection(chat, i);
+            assert(gconn != nullptr);
+
+            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
         }
 
         chat->connection_state = CS_DISCONNECTED;
@@ -4697,7 +4744,11 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, uint32_t peer
                       chat->group[target_peer_number].peer_id, MV_KICK, userdata);
     }
 
-    gcc_mark_for_deletion(&chat->gcc[target_peer_number], chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
+    GC_Connection *gconn = get_gc_connection(chat, target_peer_number);
+
+    if (gconn) {
+        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
+    }
 
     return 0;
 }
@@ -6035,11 +6086,9 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
 
     if (chat->numpeers != peer_number) {
         chat->group[peer_number] = chat->group[chat->numpeers];
-        chat->gcc[peer_number] = chat->gcc[chat->numpeers];
     }
 
     memset(&chat->group[chat->numpeers], 0, sizeof(GC_Peer));
-    memset(&chat->gcc[chat->numpeers], 0, sizeof(GC_Connection));
 
     GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, chat->numpeers * sizeof(GC_Peer));
 
@@ -6049,13 +6098,6 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
 
     chat->group = tmp_group;
 
-    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, chat->numpeers * sizeof(GC_Connection));
-
-    if (tmp_gcc == nullptr) {
-        return -1;
-    }
-
-    chat->gcc = tmp_gcc;
     set_gc_peerlist_checksum(chat);
 
     if (peer_confirmed) {
@@ -6124,17 +6166,6 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
         }
     }
 
-    GC_Connection *tmp_gcc = (GC_Connection *)realloc(chat->gcc, (chat->numpeers + 1) * sizeof(GC_Connection));
-
-    if (tmp_gcc == nullptr) {
-        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
-        return -1;
-    }
-
-    memset(&tmp_gcc[peer_number], 0, sizeof(GC_Connection));
-
-    chat->gcc = tmp_gcc;
-
     GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, (chat->numpeers + 1) * sizeof(GC_Peer));
 
     if (tmp_group == nullptr) {
@@ -6142,13 +6173,13 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
         return -1;
     }
 
-    ++chat->numpeers;
-
     memset(&tmp_group[peer_number], 0, sizeof(GC_Peer));
+
+    ++chat->numpeers;
 
     chat->group = tmp_group;
 
-    GC_Connection *gconn = &chat->gcc[peer_number];
+    GC_Connection *gconn = &chat->group[peer_number].gconn;
 
     gcc_set_ip_port(gconn, ipp);
     chat->group[peer_number].role = GR_USER;
@@ -6245,7 +6276,8 @@ static int send_pending_handshake(const GC_Chat *chat, GC_Connection *gconn, uin
 static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userdata)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
 
         if (gconn->pending_delete) {
             continue;
@@ -6281,7 +6313,8 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
 static void do_handshakes(GC_Chat *chat)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
 
         if (gconn->handshaked || gconn->pending_delete) {
             continue;
@@ -6316,7 +6349,8 @@ static void add_gc_peer_timeout_list(GC_Chat *chat, const GC_Connection *gconn)
 static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
 
         if (gconn->pending_delete) {
             GC_Exit_Info *exit_info = &gconn->exit_info;
@@ -6420,7 +6454,8 @@ static void do_gc_ping_and_key_rotation(GC_Chat *chat)
     const uint64_t tm = mono_time_get(chat->mono_time);
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
 
         if (!gconn->confirmed) {
             continue;
@@ -6471,7 +6506,9 @@ static void do_gc_tcp(const GC_Session *c, GC_Chat *chat, void *userdata)
     do_tcp_connections(chat->log, chat->tcp_conn, userdata);
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
+
         const bool tcp_set = !gcc_conn_is_direct(chat->mono_time, gconn);
         set_tcp_connection_to_status(chat->tcp_conn, gconn->tcp_connection_num, tcp_set);
     }
@@ -7117,7 +7154,10 @@ int gc_disconnect_from_group(GC_Session *c, GC_Chat *chat)
     send_gc_broadcast_message(chat, nullptr, 0, GM_PEER_EXIT);
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        gcc_mark_for_deletion(&chat->gcc[i], chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
+
+        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
     }
 
     return 0;
@@ -7136,7 +7176,9 @@ int gc_rejoin_group(GC_Session *c, GC_Chat *chat)
     }
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *gconn = &chat->gcc[i];
+        GC_Connection *gconn = get_gc_connection(chat, i);
+        assert(gconn != nullptr);
+
         gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_SELF_DISCONNECTED, nullptr, 0);
     }
 

@@ -18,6 +18,26 @@
 /* Max number of TCP relays we share with a peer */
 #define GCC_MAX_TCP_SHARED_RELAYS 3
 
+/* Max size of a peer part message */
+#define MAX_GC_PART_MESSAGE_SIZE 128
+
+#ifndef GROUP_CHATS_DEFINED
+#define GROUP_CHATS_DEFINED
+typedef struct GC_Chat GC_Chat;
+typedef struct GC_Session GC_Session;
+#endif
+
+/* Group exit types. */
+typedef enum Group_Exit_Type {
+    GC_EXIT_TYPE_QUIT              = 0x00,  // Peer left the group
+    GC_EXIT_TYPE_TIMEOUT           = 0x01,  // Peer connection timed out
+    GC_EXIT_TYPE_DISCONNECTED      = 0x02,  // Peer diconnected from group
+    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,  // Self disconnected from group
+    GC_EXIT_TYPE_KICKED            = 0x04,  // Peer was kicked from the group
+    GC_EXIT_TYPE_SYNC_ERR          = 0x05,  // Peer failed to sync with the group
+    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,  // The peer exit callback should not be triggered
+} Group_Exit_Type;
+
 typedef struct GC_Message_Array_Entry {
     uint8_t *data;
     uint32_t data_length;
@@ -27,13 +47,18 @@ typedef struct GC_Message_Array_Entry {
     uint64_t last_send_try;
 } GC_Message_Array_Entry;
 
-struct GC_Exit_Info {
+typedef struct GC_Exit_Info {
     uint8_t part_message[MAX_GC_PART_MESSAGE_SIZE];
     size_t  length;
     Group_Exit_Type exit_type;
-};
+} GC_Exit_Info;
 
-struct GC_Connection {
+typedef struct GC_PeerAddress {
+    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
+    IP_Port     ip_port;
+} GC_PeerAddress;
+
+typedef struct GC_Connection {
     uint64_t send_message_id;   /* message_id of the next message we send to peer */
 
     uint16_t send_array_start;   /* send_array index of oldest item */
@@ -77,7 +102,7 @@ struct GC_Connection {
 
     bool        pending_delete;  /* true if this peer has been marked for deletion */
     GC_Exit_Info exit_info;
-};
+} GC_Connection;
 
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,

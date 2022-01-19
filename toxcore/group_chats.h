@@ -15,6 +15,7 @@
 
 #include "TCP_connection.h"
 #include "group_announce.h"
+#include "group_connection.h"
 #include "group_moderation.h"
 #include "logger.h"
 
@@ -22,7 +23,6 @@
 #define MAX_GC_TOPIC_SIZE 512
 #define MAX_GC_GROUP_NAME_SIZE 48
 #define MAX_GC_MESSAGE_SIZE 1372
-#define MAX_GC_PART_MESSAGE_SIZE 128
 #define MAX_GC_PEER_ADDRS 30
 #define MAX_GC_PASSWORD_SIZE 32
 #define MAX_GC_SAVED_INVITES 50
@@ -37,6 +37,12 @@
 #define GC_UNCONFIRMED_PEER_TIMEOUT GC_PING_TIMEOUT
 
 #define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE)
+
+#ifndef GROUP_CHATS_DEFINED
+#define GROUP_CHATS_DEFINED
+typedef struct GC_Chat GC_Chat;
+typedef struct GC_Session GC_Session;
+#endif
 
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
@@ -63,17 +69,6 @@ typedef enum Group_Moderation_Event {
     MV_USER      = 0x02,  // A peer has been demoted or promoted to User
     MV_MOD       = 0x03,  // A peer has been promoted to or demoted from Moderator
 } Group_Moderation_Event;
-
-/* Group exit types. */
-typedef enum Group_Exit_Type {
-    GC_EXIT_TYPE_QUIT              = 0x00,  // Peer left the group
-    GC_EXIT_TYPE_TIMEOUT           = 0x01,  // Peer connection timed out
-    GC_EXIT_TYPE_DISCONNECTED      = 0x02,  // Peer diconnected from group
-    GC_EXIT_TYPE_SELF_DISCONNECTED = 0x03,  // Self disconnected from group
-    GC_EXIT_TYPE_KICKED            = 0x04,  // Peer was kicked from the group
-    GC_EXIT_TYPE_SYNC_ERR          = 0x05,  // Peer failed to sync with the group
-    GC_EXIT_TYPE_NO_CALLBACK       = 0x06,  // The peer exit callback should not be triggered
-} Group_Exit_Type;
 
 /* Messenger level group invite types */
 typedef enum Group_Invite_Message_Type {
@@ -184,11 +179,6 @@ typedef enum Group_Message_Ack_Type {
     GR_ACK_REQ     = 0x01,  // indicates a message needs to be re-sent
 } Group_Message_Ack_Type;
 
-typedef struct GC_PeerAddress {
-    uint8_t     public_key[EXT_PUBLIC_KEY_SIZE];
-    IP_Port     ip_port;
-} GC_PeerAddress;
-
 typedef struct GC_SavedPeerInfo {
     uint8_t     public_key[ENC_PUBLIC_KEY_SIZE];
     Node_format tcp_relay;
@@ -204,14 +194,16 @@ typedef struct GC_TimedOutPeer {
 
 typedef struct GC_Peer {
     /* Below state is sent to other peers in peer info exchange*/
-    uint8_t     nick[MAX_GC_NICK_SIZE];
-    uint16_t    nick_length;
-    uint8_t     status;
+    uint8_t       nick[MAX_GC_NICK_SIZE];
+    uint16_t      nick_length;
+    uint8_t       status;
 
     /* Below state is local only */
-    Group_Role  role;
-    uint32_t    peer_id;    // permanent ID (used for the public API)
-    bool        ignore;
+    Group_Role    role;
+    uint32_t      peer_id;    // permanent ID (used for the public API)
+    bool          ignore;
+
+    GC_Connection gconn;
 } GC_Peer;
 
 typedef struct GC_SharedState {
@@ -234,9 +226,6 @@ typedef struct GC_TopicInfo {
     uint8_t     topic[MAX_GC_TOPIC_SIZE];
     uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];  // Public signature key of the topic setter
 } GC_TopicInfo;
-
-typedef struct GC_Connection GC_Connection;
-typedef struct GC_Exit_Info GC_Exit_Info;
 
 #define GROUP_SAVE_MAX_MODERATORS 30 // must be <= MOD_MAX_NUM_MODERATORS (temp fix to prevent save format breakage)
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
@@ -282,7 +271,7 @@ struct Saved_Group {
 
 typedef struct Saved_Group Saved_Group;
 
-typedef struct GC_Chat {
+struct GC_Chat {
     Mono_Time       *mono_time;
     const Logger    *log;
 
@@ -298,7 +287,6 @@ typedef struct GC_Chat {
     uint64_t        last_checked_tcp_relays;
 
     GC_Peer         *group;
-    GC_Connection   *gcc;
     Moderation      moderation;
 
     GC_Conn_State   connection_state;
@@ -353,7 +341,7 @@ typedef struct GC_Chat {
 
     uint8_t     m_group_public_key[CRYPTO_PUBLIC_KEY_SIZE];  // public key for group's messenger friend connection
     int         friend_connection_id;  // identifier for group's messenger friend connection
-} GC_Chat;
+};
 
 #ifndef MESSENGER_DEFINED
 #define MESSENGER_DEFINED
@@ -384,7 +372,7 @@ typedef void gc_peer_exit_cb(Messenger *m, uint32_t group_number, uint32_t peer_
 typedef void gc_self_join_cb(Messenger *m, uint32_t group_number, void *user_data);
 typedef void gc_rejected_cb(Messenger *m, uint32_t group_number, unsigned int type, void *user_data);
 
-typedef struct GC_Session {
+struct GC_Session {
     Messenger                 *messenger;
     GC_Chat                   *chats;
     struct GC_Announces_List  *announces_list;
@@ -406,7 +394,7 @@ typedef struct GC_Session {
     gc_peer_exit_cb *peer_exit;
     gc_self_join_cb *self_join;
     gc_rejected_cb *rejected;
-} GC_Session;
+};
 
 
 /* Returns the jenkins hash of a 32 byte public encryption key. */
