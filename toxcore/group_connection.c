@@ -261,7 +261,8 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
 static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                                         GC_Message_Array_Entry *array_entry, void *userdata)
 {
-    const uint8_t *sender_pk = gconn->addr.public_key;
+    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
                     array_entry->message_id, array_entry->packet_type, userdata);
