@@ -40,6 +40,7 @@ jobs:
             llvm-dev
             ninja-build
             pkg-config
+            llvm-dev
       - checkout
       - run: CC=clang .circleci/cmake-asan
 
@@ -100,7 +101,7 @@ jobs:
 
     steps:
       - run: *apt_install
-      - run: apt-get install -y --no-install-recommends cppcheck g++ llvm-dev
+      - run: apt-get install -y --no-install-recommends cppcheck g++
       - checkout
       - run: other/analysis/check_includes
       - run: other/analysis/check_logger_levels

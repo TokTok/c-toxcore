@@ -80,6 +80,9 @@ struct TCP_Server {
     uint64_t counter;
 
     BS_List accepted_key_list;
+
+    /* Network profile for all TCP server packets. */
+    Net_Profile net_profile;
 };
 
 const uint8_t *tcp_server_public_key(const TCP_Server *tcp_server)
@@ -222,6 +225,7 @@ static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_
     tcp_server->accepted_connection_array[index].identifier = ++tcp_server->counter;
     tcp_server->accepted_connection_array[index].last_pinged = mono_time_get(mono_time);
     tcp_server->accepted_connection_array[index].ping_id = 0;
+    tcp_server->accepted_connection_array[index].con.net_profile = &tcp_server->net_profile;
 
     return index;
 }
@@ -343,7 +347,7 @@ static int handle_TCP_handshake(const Logger *logger, TCP_Secure_Connection *con
 
     IP_Port ipp = {0};
 
-    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp)) {
+    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp, con->con.net_profile)) {
         crypto_memzero(shared_key, sizeof(shared_key));
         return -1;
     }
@@ -595,6 +599,7 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
     }
 
     TCP_Secure_Connection *const con = &tcp_server->accepted_connection_array[con_id];
+    netprof_record_packet(con->con.net_profile, data[0], length, DIR_RECV);
 
     switch (data[0]) {
         case TCP_PACKET_ROUTING_REQUEST: {
@@ -1274,4 +1279,13 @@ void kill_TCP_server(TCP_Server *tcp_server)
 
     free(tcp_server->socks_listening);
     free(tcp_server);
+}
+
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server)
+{
+    if (tcp_server == nullptr) {
+        return nullptr;
+    }
+
+    return &tcp_server->net_profile;
 }

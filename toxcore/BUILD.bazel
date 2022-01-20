@@ -132,10 +132,18 @@ cc_library(
         ":crypto_core",
         ":logger",
         ":mono_time",
+        ":net_profile",
         "@libsodium",
         "@psocket",
         "@pthread",
     ],
+)
+
+cc_library(
+    name = "net_profile",
+    srcs = ["net_profile.c"],
+    hdrs = ["net_profile.h"],
+    deps = [":ccompat"],
 )
 
 cc_test(
@@ -315,6 +323,7 @@ cc_library(
         ":crypto_core",
         ":list",
         ":mono_time",
+        ":net_profile",
         ":network",
         ":onion",
     ],
@@ -462,6 +471,7 @@ cc_library(
         ":group",
         ":logger",
         ":mono_time",
+        ":net_profile",
         ":network",
         "//c-toxcore/toxencryptsave:defines",
     ],

@@ -14,6 +14,7 @@
 #include <stdint.h>     // uint*_t
 
 #include "logger.h"
+#include "net_profile.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -164,8 +165,8 @@ extern const Socket net_invalid_socket;
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-non_null()
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
+non_null(1, 3, 5) nullable(6)
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
@@ -408,7 +409,7 @@ typedef struct Packet {
  * Function to send a network packet to a given IP/port.
  */
 non_null()
-int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet);
+int send_packet(Networking_Core *net, const IP_Port *ip_port, Packet packet);
 
 /**
  * Function to send packet(data) of length length to ip_port.
@@ -416,7 +417,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
  * @deprecated Use send_packet instead.
  */
 non_null()
-int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length);
+int sendpacket(Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length);
 
 /** Function to call when packet beginning with byte is received. */
 non_null(1) nullable(3, 4)
@@ -424,7 +425,7 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
 
 /** Call this several times a second. */
 non_null(1) nullable(2)
-void networking_poll(const Networking_Core *net, void *userdata);
+void networking_poll( Networking_Core *net, void *userdata);
 
 /** Connect a socket to the address specified by the ip_port.
  *
@@ -511,6 +512,11 @@ Networking_Core *new_networking_no_udp(const Logger *log);
 /** Function to cleanup networking stuff (doesn't do much right now). */
 non_null()
 void kill_networking(Networking_Core *net);
+
+/** Returns a pointer to the network net_profile object associated with `net`
+ * Returns null if `net` is null.
+ */
+const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus
 }  // extern "C"
