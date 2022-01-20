@@ -21,6 +21,7 @@
 #include "group.h"
 #include "logger.h"
 #include "mono_time.h"
+#include "net_profile.h"
 
 #include "../toxencryptsave/defines.h"
 
@@ -2520,4 +2521,200 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_NOT_BOUND);
     unlock(tox);
     return 0;
+}
+
+uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Packet_Id id, Tox_Netprof_Direction direction)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+
+    const Net_Profile *tcp_c_profile = nc_get_tcp_client_net_profile(tox->m->net_crypto);
+    const Net_Profile *tcp_s_profile = tcp_server_get_net_profile(tox->m->tcp_server);
+
+    Packet_Direction dir = (Packet_Direction) direction;
+
+    uint64_t count = 0;
+
+    switch (type) {
+        case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
+            count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
+            count = netprof_get_packet_count_id(tcp_s_profile, id, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP: {
+            const uint64_t tcp_c_count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_s_count = netprof_get_packet_count_id(tcp_s_profile, id, dir);
+            count = tcp_c_count + tcp_s_count;
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_UDP: {
+            const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
+            count = netprof_get_packet_count_id(udp_profile, id, dir);
+            break;
+        }
+
+        default: {  /* can't happen */
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            break;
+        }
+    }
+
+    unlock(tox);
+
+    return count;
+}
+
+uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Direction direction)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+
+    const Net_Profile *tcp_c_profile = nc_get_tcp_client_net_profile(tox->m->net_crypto);
+    const Net_Profile *tcp_s_profile = tcp_server_get_net_profile(tox->m->tcp_server);
+
+    Packet_Direction dir = (Packet_Direction) direction;
+
+    uint64_t count = 0;
+
+    switch (type) {
+        case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
+            count = netprof_get_packet_count_total(tcp_c_profile, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
+            count = netprof_get_packet_count_total(tcp_s_profile, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP: {
+            const uint64_t tcp_c_count = netprof_get_packet_count_total(tcp_c_profile, dir);
+            const uint64_t tcp_s_count = netprof_get_packet_count_total(tcp_s_profile, dir);
+            count = tcp_c_count + tcp_s_count;
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_UDP: {
+            const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
+            count = netprof_get_packet_count_total(udp_profile, dir);
+            break;
+        }
+
+        default: {  /* can't happen */
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            break;
+        }
+    }
+
+    unlock(tox);
+
+    return count;
+}
+
+uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Packet_Id id, Tox_Netprof_Direction direction)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+
+    const Net_Profile *tcp_c_profile = nc_get_tcp_client_net_profile(tox->m->net_crypto);
+    const Net_Profile *tcp_s_profile = tcp_server_get_net_profile(tox->m->tcp_server);
+
+    Packet_Direction dir = (Packet_Direction) direction;
+
+    uint64_t bytes = 0;
+
+    switch (type) {
+        case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
+            bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
+            bytes = netprof_get_bytes_id(tcp_s_profile, id, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP: {
+            const uint64_t tcp_c_bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_s_bytes = netprof_get_bytes_id(tcp_s_profile, id, dir);
+            bytes = tcp_c_bytes + tcp_s_bytes;
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_UDP: {
+            const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
+            bytes = netprof_get_bytes_id(udp_profile, id, dir);
+            break;
+        }
+
+        default: {  /* can't happen */
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            break;
+        }
+    }
+
+    unlock(tox);
+
+    return bytes;
+}
+
+uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Direction direction)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+
+    const Net_Profile *tcp_c_profile = nc_get_tcp_client_net_profile(tox->m->net_crypto);
+    const Net_Profile *tcp_s_profile = tcp_server_get_net_profile(tox->m->tcp_server);
+
+    Packet_Direction dir = (Packet_Direction) direction;
+
+    uint64_t bytes = 0;
+
+    switch (type) {
+        case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
+            bytes = netprof_get_bytes_total(tcp_c_profile, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
+            bytes = netprof_get_bytes_total(tcp_s_profile, dir);
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_TCP: {
+            const uint64_t tcp_c_bytes = netprof_get_bytes_total(tcp_c_profile, dir);
+            const uint64_t tcp_s_bytes = netprof_get_bytes_total(tcp_s_profile, dir);
+            bytes = tcp_c_bytes + tcp_s_bytes;
+            break;
+        }
+
+        case TOX_NETPROF_PACKET_TYPE_UDP: {
+            const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
+            bytes = netprof_get_bytes_total(udp_profile, dir);
+            break;
+        }
+
+        default: { /* can't happen */
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            break;
+        }
+    }
+
+    unlock(tox);
+
+    return bytes;
 }
