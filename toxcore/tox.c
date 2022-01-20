@@ -24,6 +24,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 #include "tox_private.h"
 #include "tox_struct.h"

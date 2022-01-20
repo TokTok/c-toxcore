@@ -283,7 +283,7 @@ int create_onion_packet_tcp(const Random *rng, uint8_t *packet, uint16_t max_pac
  * return -1 on failure.
  * return 0 on success.
  */
-int send_onion_response(const Networking_Core *net, const IP_Port *dest, const uint8_t *data, uint16_t length,
+int send_onion_response(Networking_Core *net, const IP_Port *dest, const uint8_t *data, uint16_t length,
                         const uint8_t *ret)
 {
     if (length > ONION_RESPONSE_MAX_DATA_SIZE || length == 0) {

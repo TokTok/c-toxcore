@@ -249,11 +249,19 @@ cc_library(
         ":logger",
         ":mem",
         ":mono_time",
+        ":net_profile",
         ":util",
         "@libsodium",
         "@psocket",
         "@pthread",
     ],
+)
+
+cc_library(
+    name = "net_profile",
+    srcs = ["net_profile.c"],
+    hdrs = ["net_profile.h"],
+    deps = [":ccompat"],
 )
 
 cc_test(
@@ -500,6 +508,7 @@ cc_library(
         ":crypto_core",
         ":list",
         ":mono_time",
+        ":net_profile",
         ":onion",
         ":util",
     ],

@@ -94,7 +94,7 @@ int create_data_request(const Random *rng, uint8_t *packet, uint16_t max_packet_
  * return 0 on success.
  */
 non_null()
-int send_announce_request(const Networking_Core *net, const Random *rng,
+int send_announce_request(Networking_Core *net, const Random *rng,
                           const Onion_Path *path, const Node_format *dest,
                           const uint8_t *public_key, const uint8_t *secret_key,
                           const uint8_t *ping_id, const uint8_t *client_id,
@@ -117,7 +117,7 @@ int send_announce_request(const Networking_Core *net, const Random *rng,
  * return 0 on success.
  */
 non_null()
-int send_data_request(const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest,
+int send_data_request(Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest,
                       const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
                       const uint8_t *data, uint16_t length);
 

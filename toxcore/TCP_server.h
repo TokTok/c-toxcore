@@ -11,6 +11,7 @@
 
 #include "crypto_core.h"
 #include "forwarding.h"
+#include "net_profile.h"
 #include "onion.h"
 
 #define MAX_INCOMING_CONNECTIONS 256
@@ -46,6 +47,11 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 /** Kill the TCP server */
 nullable(1)
 void kill_tcp_server(TCP_Server *tcp_server);
+
+/** Returns a pointer to the net profile associated with `tcp_server`.
+ * Returns null if `tcp_server` is null.
+ */
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server);
 
 
 #endif

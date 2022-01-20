@@ -156,6 +156,226 @@ uint16_t tox_dht_get_num_closelist(const Tox *tox);
  */
 uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox);
 
+/*******************************************************************************
+ *
+ * :: Network profiler
+ *
+ ******************************************************************************/
+
+
+/**
+ * Represents all of the network packet identifiers that Toxcore uses.
+ *
+ * Note: Some packet ID's have different purposes depending on the
+ * packet type. These ID's are given numeral names.
+ */
+typedef enum Tox_Netprof_Packet_Id {
+    /**
+     * Ping request packet (UDP).
+     * Routing request (TCP).
+     */
+    TOX_NETPROF_PACKET_ID_ZERO                 = 0x00,
+
+    /**
+     * Ping response packet (UDP).
+     * Routing response (TCP).
+     */
+    TOX_NETPROF_PACKET_ID_ONE                  = 0x01,
+
+    /**
+     * Get nodes request packet (UDP).
+     * Connection notification (TCP).
+     */
+    TOX_NETPROF_PACKET_ID_TWO                  = 0x02,
+
+    /**
+     * TCP disconnect notification.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_DISCONNECT       = 0x03,
+
+    /**
+     * Send nodes response packet (UDP).
+     * Ping packet (TCP).
+     */
+    TOX_NETPROF_PACKET_ID_FOUR                 = 0x04,
+
+    /**
+     * TCP pong packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_PONG             = 0x05,
+
+    /**
+     * TCP out-of-band send packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_OOB_SEND         = 0x06,
+
+    /**
+     * TCP out-of-band receive packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_OOB_RECV         = 0x07,
+
+    /**
+     * TCP onion request packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST    = 0x08,
+
+    /**
+     * TCP onion response packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE   = 0x09,
+
+    /**
+     * TCP data packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_DATA             = 0x10,
+
+    /**
+     * Cookie request packet.
+     */
+    TOX_NETPROF_PACKET_ID_COOKIE_REQUEST       = 0x18,
+
+    /**
+     * Cookie response packet.
+     */
+    TOX_NETPROF_PACKET_ID_COOKIE_RESPONSE      = 0x19,
+
+    /**
+     * Crypto handshake packet.
+     */
+    TOX_NETPROF_PACKET_ID_CRYPTO_HS            = 0x1a,
+
+    /**
+     * Crypto data packet.
+     */
+    TOX_NETPROF_PACKET_ID_CRYPTO_DATA          = 0x1b,
+
+    /**
+     * Encrypted data packet.
+     */
+    TOX_NETPROF_PACKET_ID_CRYPTO               = 0x20,
+
+    /**
+     * LAN discovery packet.
+     */
+    TOX_NETPROF_PACKET_ID_LAN_DISCOVERY        = 0x21,
+
+    /**
+     * Onion send packets.
+     */
+    TOX_NETPROF_PACKET_ID_ONION_SEND_INITIAL   = 0x80,
+    TOX_NETPROF_PACKET_ID_ONION_SEND_1         = 0x81,
+    TOX_NETPROF_PACKET_ID_ONION_SEND_2         = 0x82,
+
+    /**
+     * DHT announce request packet.
+     */
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST     = 0x83,
+
+    /**
+     * DHT announce response packet.
+     */
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE    = 0x84,
+
+    /**
+     * Onion data request packet.
+     */
+    TOX_NETPROF_PACKET_ID_ONION_DATA_REQUEST   = 0x85,
+
+    /**
+     * Onion data response packet.
+     */
+    TOX_NETPROF_PACKET_ID_ONION_DATA_RESPONSE  = 0x86,
+
+    /**
+     * Onion receive packets.
+     */
+    TOX_NETPROF_PACKET_ID_ONION_RECV_3         = 0x8c,
+    TOX_NETPROF_PACKET_ID_ONION_RECV_2         = 0x8d,
+    TOX_NETPROF_PACKET_ID_ONION_RECV_1         = 0x8e,
+
+    /**
+     * Bootstrap info packet.
+     */
+    TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO       = 0xf0,
+} Tox_Netprof_Packet_Id;
+
+/**
+ * Specifies the packet type for a given query.
+ */
+typedef enum Tox_Netprof_Packet_Type {
+    /**
+     * TCP client packets.
+     */
+    TOX_NETPROF_PACKET_TYPE_TCP_CLIENT,
+
+    /**
+     * TCP server packets.
+     */
+    TOX_NETPROF_PACKET_TYPE_TCP_SERVER,
+
+    /**
+     * Combined TCP server and TCP client packets.
+     */
+    TOX_NETPROF_PACKET_TYPE_TCP,
+
+    /**
+     * UDP packets.
+     */
+    TOX_NETPROF_PACKET_TYPE_UDP,
+} Tox_Netprof_Packet_Type;
+
+/**
+ * Specifies the packet direction for a given query.
+ */
+typedef enum Tox_Netprof_Direction {
+    /**
+     * Outbound packets.
+     */
+    TOX_NETPROF_DIRECTION_SENT,
+
+    /**
+     * Inbound packets.
+     */
+    TOX_NETPROF_DIRECTION_RECV,
+} Tox_Netprof_Direction;
+
+/**
+ * Return the number of packets sent or received for a specific packet ID.
+ *
+ * @param type The types of packets being queried.
+ * @param id The packet ID being queried.
+ * @param direction The packet direction.
+ */
+uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Packet_Id id, Tox_Netprof_Direction direction);
+
+/**
+ * Return the total number of packets sent or received.
+ *
+ * @param type The types of packets being queried.
+ * @param direction The packet direction.
+ */
+uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Direction direction);
+/**
+ * Return the number of bytes sent or received for a specific packet ID.
+ *
+ * @param type The types of packets being queried.
+ * @param id The packet ID being queried.
+ * @param direction The packet direction.
+ */
+uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Packet_Id id, Tox_Netprof_Direction direction);
+/**
+ * Return the total number of bytes sent or received.
+ *
+ * @param type The types of packets being queried.
+ * @param direction The packet direction.
+ */
+uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_Type type,
+        Tox_Netprof_Direction direction);
+
+
 #ifdef __cplusplus
 }
 #endif

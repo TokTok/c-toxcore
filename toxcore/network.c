@@ -906,6 +906,8 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+
+    Net_Profile udp_net_profile;
 };
 
 Family net_family(const Networking_Core *net)
@@ -921,7 +923,7 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
-int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet)
+int send_packet(Networking_Core *net, const IP_Port *ip_port, Packet packet)
 {
     IP_Port ipp_copy = *ip_port;
 
@@ -990,6 +992,11 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
     loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
 
     assert(res <= INT_MAX);
+
+    if (res == packet.length) {
+        netprof_record_packet(&net->udp_net_profile, packet.data[0], packet.length, DIR_SENT);
+    }
+
     return (int)res;
 }
 
@@ -998,7 +1005,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
  *
  * @deprecated Use send_packet instead.
  */
-int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length)
+int sendpacket(Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length)
 {
     const Packet packet = {data, length};
     return send_packet(net, ip_port, packet);
@@ -1078,7 +1085,7 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
     net->packethandlers[byte].object = object;
 }
 
-void networking_poll(const Networking_Core *net, void *userdata)
+void networking_poll(Networking_Core *net, void *userdata)
 {
     if (net_family_is_unspec(net->family)) {
         /* Socket not initialized */
@@ -1093,6 +1100,8 @@ void networking_poll(const Networking_Core *net, void *userdata)
         if (length < 1) {
             continue;
         }
+
+        netprof_record_packet(&net->udp_net_profile, data[0], length, DIR_RECV);
 
         const Packet_Handler *const handler = &net->packethandlers[data[0]];
 
@@ -2085,4 +2094,13 @@ void net_kill_strerror(char *strerror)
 #else
     free(strerror);
 #endif
+}
+
+const Net_Profile *net_get_net_profile(const Networking_Core *net)
+{
+    if (net == nullptr) {
+        return nullptr;
+    }
+
+    return &net->udp_net_profile;
 }

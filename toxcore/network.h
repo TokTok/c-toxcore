@@ -15,6 +15,7 @@
 
 #include "logger.h"
 #include "mem.h"
+#include "net_profile.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -282,8 +283,8 @@ extern const Socket net_invalid_socket;
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-non_null()
-int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
+non_null(1, 2, 4, 6) nullable(7)
+int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
@@ -612,6 +613,11 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
 /** Function to cleanup networking stuff (doesn't do much right now). */
 nullable(1)
 void kill_networking(Networking_Core *net);
+
+/** Returns a pointer to the network net_profile object associated with `net`
+ * Returns null if `net` is null.
+ */
+const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus
 }  // extern "C"

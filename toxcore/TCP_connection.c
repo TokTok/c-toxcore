@@ -50,6 +50,9 @@ struct TCP_Connections {
 
     bool onion_status;
     uint16_t onion_num_conns;
+
+    /* Network profile for all TCP client packets. */
+    Net_Profile net_profile;
 };
 
 
@@ -925,7 +928,7 @@ static int reconnect_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connec
     uint8_t relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
     memcpy(relay_pk, tcp_con_public_key(tcp_con->connection), CRYPTO_PUBLIC_KEY_SIZE);
     kill_tcp_connection(tcp_con->connection);
-    tcp_con->connection = new_tcp_connection(tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ip_port, relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
+    tcp_con->connection = new_tcp_connection(tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ip_port, relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info, &tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
         kill_tcp_relay_connection(tcp_c, tcp_connections_number);
@@ -1014,7 +1017,7 @@ static int unsleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connecti
 
     tcp_con->connection = new_tcp_connection(
             tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &tcp_con->ip_port,
-            tcp_con->relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
+            tcp_con->relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info, &tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
         kill_tcp_relay_connection(tcp_c, tcp_connections_number);
@@ -1310,7 +1313,7 @@ static int add_tcp_relay_instance(TCP_Connections *tcp_c, const IP_Port *ip_port
 
     tcp_con->connection = new_tcp_connection(
             tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ipp_copy,
-            relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
+            relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info, &tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
         return -1;
@@ -1721,4 +1724,13 @@ void kill_tcp_connections(TCP_Connections *tcp_c)
     mem_delete(tcp_c->mem, tcp_c->tcp_connections);
     mem_delete(tcp_c->mem, tcp_c->connections);
     mem_delete(tcp_c->mem, tcp_c);
+}
+
+const Net_Profile *tcp_connection_get_client_net_profile(const TCP_Connections *tcp_c)
+{
+    if (tcp_c == nullptr) {
+        return nullptr;
+    }
+
+    return &tcp_c->net_profile;
 }
