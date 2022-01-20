@@ -67,7 +67,6 @@ int main(void)
     do {
         printf(".");
         fflush(stdout);
-
         tox_iterate(tox_tcp, nullptr);
         c_sleep(ITERATION_INTERVAL);
     } while (tox_self_get_connection_status(tox_tcp) == TOX_CONNECTION_NONE);
