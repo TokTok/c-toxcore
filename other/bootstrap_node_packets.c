@@ -27,7 +27,7 @@ static int handle_info_request(void *object, IP_Port source, const uint8_t *pack
         return 1;
     }
 
-    const Networking_Core *nc = (const Networking_Core *)object;
+    Networking_Core *nc = (Networking_Core *)object;
 
     uint8_t data[1 + sizeof(bootstrap_version) + MAX_MOTD_LENGTH];
     data[0] = BOOTSTRAP_INFO_PACKET_ID;

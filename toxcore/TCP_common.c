@@ -28,7 +28,7 @@ int send_pending_data_nonpriority(const Logger *logger, TCP_Connection *con)
     }
 
     const uint16_t left = con->last_packet_length - con->last_packet_sent;
-    const int len = net_send(logger, con->sock, con->last_packet + con->last_packet_sent, left, con->ip_port);
+    const int len = net_send(logger, con->sock, con->last_packet + con->last_packet_sent, left, con->ip_port, con->net_profile);
 
     if (len <= 0) {
         return -1;
@@ -58,7 +58,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
 
     while (p) {
         const uint16_t left = p->size - p->sent;
-        const int len = net_send(logger, con->sock, p->data + p->sent, left, con->ip_port);
+        const int len = net_send(logger, con->sock, p->data + p->sent, left, con->ip_port, con->net_profile);
 
         if (len != left) {
             if (len > 0) {
@@ -150,7 +150,7 @@ int write_packet_TCP_secure_connection(const Logger *logger, TCP_Connection *con
     }
 
     if (priority) {
-        len = sendpriority ? net_send(logger, con->sock, packet, SIZEOF_VLA(packet), con->ip_port) : 0;
+        len = sendpriority ? net_send(logger, con->sock, packet, SIZEOF_VLA(packet), con->ip_port, con->net_profile) : 0;
 
         if (len <= 0) {
             len = 0;
@@ -165,7 +165,7 @@ int write_packet_TCP_secure_connection(const Logger *logger, TCP_Connection *con
         return add_priority(con, packet, SIZEOF_VLA(packet), len);
     }
 
-    len = net_send(logger, con->sock, packet, SIZEOF_VLA(packet), con->ip_port);
+    len = net_send(logger, con->sock, packet, SIZEOF_VLA(packet), con->ip_port, con->net_profile);
 
     if (len <= 0) {
         return 0;
