@@ -160,7 +160,7 @@ int create_data_request(uint8_t *packet, uint16_t max_packet_length, const uint8
  * return -1 on failure.
  * return 0 on success.
  */
-int send_announce_request(const Networking_Core *net, const Onion_Path *path, Node_format dest,
+int send_announce_request(Networking_Core *net, const Onion_Path *path, Node_format dest,
                           const uint8_t *public_key, const uint8_t *secret_key,
                           const uint8_t *ping_id, const uint8_t *client_id,
                           const uint8_t *data_public_key, uint64_t sendback_data)
@@ -203,7 +203,7 @@ int send_announce_request(const Networking_Core *net, const Onion_Path *path, No
  * return -1 on failure.
  * return 0 on success.
  */
-int send_data_request(const Networking_Core *net, const Onion_Path *path, const IP_Port *dest,
+int send_data_request(Networking_Core *net, const Onion_Path *path, const IP_Port *dest,
                       const uint8_t *public_key,
                       const uint8_t *encrypt_public_key, const uint8_t *nonce, const uint8_t *data, uint16_t length)
 {

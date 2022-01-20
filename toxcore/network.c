@@ -524,6 +524,8 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+
+    Net_Profile udp_net_profile;
 };
 
 Family net_family(const Networking_Core *net)
@@ -539,7 +541,7 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
-int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet)
+int send_packet(Networking_Core *net, const IP_Port *ip_port, Packet packet)
 {
     IP_Port ipp_copy = *ip_port;
 
@@ -613,6 +615,11 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
     loglogdata(net->log, "O=>", packet.data, packet.length, &ipp_copy, res);
 
     assert(res <= INT_MAX);
+
+    if (res == packet.length) {
+        netprof_record_packet(&net->udp_net_profile, packet.data[0], packet.length, DIR_SENT);
+    }
+
     return (int)res;
 }
 
@@ -621,7 +628,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
  *
  * @deprecated Use send_packet instead.
  */
-int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length)
+int sendpacket(Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length)
 {
     const Packet packet = {data, length};
     return send_packet(net, ip_port, packet);
@@ -708,7 +715,7 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
     net->packethandlers[byte].object = object;
 }
 
-void networking_poll(const Networking_Core *net, void *userdata)
+void networking_poll(Networking_Core *net, void *userdata)
 {
     if (net_family_is_unspec(net->family)) {
         /* Socket not initialized */
@@ -723,6 +730,8 @@ void networking_poll(const Networking_Core *net, void *userdata)
         if (length < 1) {
             continue;
         }
+
+        netprof_record_packet(&net->udp_net_profile, data[0], length, DIR_RECV);
 
         packet_handler_cb *const cb = net->packethandlers[data[0]].function;
         void *const object = net->packethandlers[data[0]].object;
@@ -1584,13 +1593,21 @@ Socket net_socket(Family domain, int type, int protocol)
 #endif
 }
 
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port)
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
 {
+    int res;
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    int res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #else
-    int res = send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    res = send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #endif
+
+    if (buf && res == len) {
+        const uint8_t *data = (const uint8_t *)buf;
+        netprof_record_packet(net_profile, data[0], len, DIR_SENT);
+    
+    }
+
     loglogdata(log, "T=>", buf, len, ip_port, res);
     return res;
 }
@@ -1769,4 +1786,13 @@ void net_kill_strerror(char *strerror)
 #else
     free(strerror);
 #endif
+}
+
+const Net_Profile *net_get_net_profile(const Networking_Core *net)
+{
+    if (net == nullptr) {
+        return nullptr;
+    }
+
+    return &net->udp_net_profile;
 }

@@ -131,6 +131,7 @@ typedef int connection_lossy_data_cb(void *object, int id, const uint8_t *data, 
 typedef void dht_pk_cb(void *data, int32_t number, const uint8_t *dht_public_key, void *userdata);
 typedef int new_connection_cb(void *object, const New_Connection *n_c);
 
+
 /* Set function to be called when someone requests a new connection to us.
  *
  * The set function should return -1 on failure and 0 on success.
@@ -332,6 +333,11 @@ void do_net_crypto(Net_Crypto *c, void *userdata);
 
 void kill_net_crypto(Net_Crypto *c);
 
+/**
+ * Returns a pointer to the net profile object for the TCP client associated with `c`.
+ * Returns null if `c` is null or the TCP_Connections associated with `c` is null.
+ */
+const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
 
 
 #endif
