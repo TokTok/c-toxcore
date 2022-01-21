@@ -2568,7 +2568,7 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
 
     if (peer_update(chat, peer_info, peer_number) == -1) {
         LOGGER_WARNING(chat->log, "peer_update() failed");
-        free(peer);
+        free(peer_info);
         return -6;
     }
 
