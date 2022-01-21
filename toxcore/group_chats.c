@@ -462,6 +462,10 @@ static bool chat_is_password_protected(const GC_Chat *chat)
 /* Returns true if `password` matches the current group password. */
 static bool validate_password(const GC_Chat *chat, const uint8_t *password, uint16_t length)
 {
+    if (length > MAX_GC_PASSWORD_SIZE) {
+        return false;
+    }
+
     if (length != chat->shared_state.password_length) {
         return false;
     }
@@ -2013,7 +2017,7 @@ static int handle_gc_invite_response(GC_Chat *chat, GC_Connection *gconn, const 
 static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, const uint8_t *data, uint32_t length,
         void *userdata)
 {
-    if (length != sizeof(uint8_t)) {
+    if (length < sizeof(uint8_t)) {
         return -1;
     }
 
@@ -2085,7 +2089,7 @@ static int handle_gc_invite_request(GC_Chat *chat, GC_Connection *gconn, const u
         invite_error = GJ_INVALID_PASSWORD;
         ret = -2;
 
-        if (length != sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE) {
+        if (length < sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE) {
             goto FAILED_INVITE;
         }
 
@@ -2350,7 +2354,7 @@ int gc_set_self_status(const Messenger *m, int group_number, Group_Peer_Status s
 static int handle_gc_status(const GC_Session *c, GC_Chat *chat, GC_Peer *peer, const uint8_t *data,
                             uint32_t length, void *userdata)
 {
-    if (length != sizeof(uint8_t)) {
+    if (length < sizeof(uint8_t)) {
         return -1;
     }
 
@@ -2765,7 +2769,7 @@ static int handle_gc_shared_state_error(GC_Chat *chat, GC_Connection *gconn)
 static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
                                   uint32_t length, void *userdata)
 {
-    if (length != GC_SHARED_STATE_ENC_PACKET_SIZE) {
+    if (length < GC_SHARED_STATE_ENC_PACKET_SIZE) {
         return handle_gc_shared_state_error(chat, gconn);
     }
 
@@ -3652,10 +3656,6 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
 static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *peer, const uint8_t *data,
                            uint32_t length, void *userdata)
 {
-    if (length > SIGNATURE_SIZE + MAX_GC_TOPIC_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE) {
-        return -1;
-    }
-
     if (length < SIGNATURE_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE) {
         return -1;
     }
@@ -3707,7 +3707,7 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *pe
  */
 static int handle_gc_key_exchange(GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint32_t length)
 {
-    if (length != 1 + ENC_PUBLIC_KEY_SIZE) {
+    if (length < 1 + ENC_PUBLIC_KEY_SIZE) {
         return -1;
     }
 
@@ -4724,7 +4724,7 @@ static int handle_gc_custom_packet(const GC_Session *c, GC_Chat *chat, const GC_
 static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer *setter_peer, const uint8_t *data,
                                uint32_t length, void *userdata)
 {
-    if (length != ENC_PUBLIC_KEY_SIZE) {
+    if (length < ENC_PUBLIC_KEY_SIZE) {
         return -1;
     }
 
@@ -4747,7 +4747,8 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer
         assert(target_peer != nullptr);
 
         if (c->moderation) {
-            c->moderation(c->messenger, chat->group_number, setter_peer->peer_id, target_peer->peer_id, MV_KICK, userdata);
+            c->moderation(c->messenger, chat->group_number, setter_peer->peer_id, target_peer->peer_id,
+                          MV_KICK, userdata);
         }
 
         for (uint32_t i = 1; i < chat->numpeers; ++i) {
@@ -4883,7 +4884,7 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
  */
 static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint32_t length)
 {
-    if (length != GC_LOSSLESS_ACK_PACKET_SIZE) {
+    if (length < GC_LOSSLESS_ACK_PACKET_SIZE) {
         return -1;
     }
 
