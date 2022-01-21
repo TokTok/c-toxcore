@@ -515,7 +515,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
         return 1;
     }
 
-    GC_Peer_Announce *new_announce = gca_add_announce(onion_a->mono_time, gc_announces_list, &public_announce);
+    const GC_Peer_Announce *new_announce = gca_add_announce(onion_a->mono_time, gc_announces_list, &public_announce);
 
     if (new_announce == nullptr) {
         LOGGER_ERROR(onion_a->log, "Failed to add group announce");

@@ -545,7 +545,7 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
  * Return -1 if the group handler object or chat object is null.
  * Return -2 if malloc fails.
  */
-int gc_disconnect_from_group(GC_Session *c, GC_Chat *chat);
+int gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat);
 
 /* Disconnects from all peers in a group and attempts to reconnect. All self
  * state and credentials are retained.
@@ -663,7 +663,7 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
  * Returns the number of peers added on success.
  * Returns -1 on failure.
  */
-int gc_add_peers_from_announces(GC_Chat *chat, GC_Announce *announces, uint8_t gc_announces_count);
+int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uint8_t gc_announces_count);
 
 #endif  // GROUP_CHATS_H
 

@@ -438,7 +438,7 @@ void gcc_peer_cleanup(GC_Connection *gconn)
     crypto_memzero(gconn, sizeof(GC_Connection));
 }
 
-void gcc_cleanup(GC_Chat *chat)
+void gcc_cleanup(const GC_Chat *chat)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
         GC_Connection *gconn = get_gc_connection(chat, i);

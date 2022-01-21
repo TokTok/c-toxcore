@@ -130,7 +130,6 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
 void gcc_peer_cleanup(GC_Connection *gconn);
 
 /* called on group exit */
-void gcc_cleanup(GC_Chat *chat);
+void gcc_cleanup(const GC_Chat *chat);
 
 #endif  // GROUP_CONNECTION_H
-

@@ -90,9 +90,9 @@ void mod_list_pack(const Moderation *moderation, uint8_t *data);
  * If num_mods is 0 the hash is zeroed.
  *
  * Returns 0 on sucess.
- * Returns -1 on failure;
+ * Returns -1 on failure.
  */
-int mod_list_make_hash(Moderation *moderation, uint8_t *hash);
+int mod_list_make_hash(const Moderation *moderation, uint8_t *hash);
 
 /* Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
  *
@@ -133,7 +133,7 @@ void mod_list_cleanup(Moderation *moderation);
  * Returns length of packed data on success.
  * Returns -1 on failure.
  */
-int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
+int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions);
 
 /* Unpack max_sanctions sanctions from data into sanctions, and unpacks credentials into creds.
@@ -198,7 +198,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
 bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *public_key);
 
 /* Returns true if sanction already exists in the sanctions list. */
-bool sanctions_list_entry_exists(const Moderation *moderation, Mod_Sanction *sanction);
+bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanction *sanction);
 
 /* Removes observer entry for public key from sanction list.
  * If creds is NULL we make new credentials (this should only be done by a moderator or founder)

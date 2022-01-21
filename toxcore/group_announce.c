@@ -64,7 +64,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         return -1;
     }
 
-    GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, chat_id);
+    const GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, chat_id);
 
     if (announces == nullptr) {
         return 0;

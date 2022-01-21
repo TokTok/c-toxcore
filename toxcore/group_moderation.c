@@ -73,7 +73,7 @@ void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_
     crypto_hash_sha256(hash, packed_mod_list, length);
 }
 
-int mod_list_make_hash(Moderation *moderation, uint8_t *hash)
+int mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
 {
     if (moderation->num_mods == 0) {
         memset(hash, 0, MOD_MODERATION_HASH_SIZE);
@@ -235,7 +235,7 @@ uint16_t sanctions_creds_pack(const Mod_Sanction_Creds *creds, uint8_t *data, ui
     return packed_len;
 }
 
-int sanctions_list_pack(uint8_t *data, uint16_t length, Mod_Sanction *sanctions,
+int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
     uint32_t packed_len = 0;
@@ -372,7 +372,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int sanctions_list_make_hash(Mod_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
+static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
                                     uint8_t *hash)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
@@ -496,7 +496,7 @@ int sanctions_list_make_creds(Moderation *moderation)
  * Returns -1 on failure.
  */
 static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *sanctions,
-                                    Mod_Sanction_Creds *creds, uint16_t num_sanctions)
+                                    const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
     if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
         LOGGER_WARNING(moderation->log, "Invalid credentials signature pk");
@@ -659,7 +659,7 @@ bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *pub
     return false;
 }
 
-bool sanctions_list_entry_exists(const Moderation *moderation, Mod_Sanction *sanction)
+bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanction *sanction)
 {
     if (sanction->type == SA_OBSERVER) {
         return sanctions_list_is_observer(moderation, sanction->target_public_enc_key);
