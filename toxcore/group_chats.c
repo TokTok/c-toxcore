@@ -1867,7 +1867,9 @@ static int handle_gc_sync_request(const GC_Chat *chat, uint32_t peer_number, con
         uint16_t password_length;
         net_unpack_u16(data + sizeof(uint16_t), &password_length);
 
-        if (!validate_password(chat, data + (sizeof(uint16_t) * 2), password_length)) {
+        const uint8_t *password = data + (sizeof(uint16_t) * 2);
+
+        if (!validate_password(chat, password, password_length)) {
             LOGGER_WARNING(chat->log, "Invalid password");
             return -2;
         }
@@ -2096,7 +2098,9 @@ static int handle_gc_invite_request(GC_Chat *chat, GC_Connection *gconn, const u
         uint16_t password_length;
         net_unpack_u16(data, &password_length);
 
-        if (!validate_password(chat, data + sizeof(uint16_t), password_length)) {
+        const uint8_t *password = data + sizeof(uint16_t);
+
+        if (!validate_password(chat, password, password_length)) {
             goto FAILED_INVITE;
         }
     }
