@@ -7370,9 +7370,18 @@ static uint32_t add_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn, con
 
 static bool copy_friend_ip_port_to_gconn(Messenger *m, int friend_number, GC_Connection *gconn)
 {
+    if (!friend_is_valid(m, friend_number)) {
+        return false;
+    }
+
     const Friend *f = &m->friendlist[friend_number];
     const int friend_connection_id = f->friendcon_id;
     const Friend_Conn *connection = get_conn(m->fr_c, friend_connection_id);
+
+    if (connection == nullptr) {
+        return false;
+    }
+
     const IP_Port *friend_ip_port = friend_conn_get_dht_ip_port(connection);
 
     if (!ipport_isset(friend_ip_port)) {
