@@ -68,6 +68,12 @@ static int del_peer(Peers *peers, uint32_t peer_id)
 
     --peers->num_peers;
 
+    if (peers->num_peers == 0) {
+        free(peers->peer_ids);
+        peers->peer_ids = nullptr;
+        return 0;
+    }
+
     if (peers->num_peers != i) {
         peers->peer_ids[i] = peers->peer_ids[peers->num_peers];
     }

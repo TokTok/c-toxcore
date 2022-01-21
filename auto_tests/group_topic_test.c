@@ -333,4 +333,4 @@ int main(void)
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN
 #undef PEER0_NICK
-#undef PEER0
+#undef PEER0_NICK_LEN
