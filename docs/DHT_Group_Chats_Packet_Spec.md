@@ -412,7 +412,7 @@ For further information on topic validation see: `docs/DHT-Group-Chats.md`
 `64 bytes: shared state signature`  
 `4 bytes: shared state version`  
 `64 bytes: founder extended public key`  
-`4 bytes: peer limit`  
+`2 bytes: peer limit`  
 `2 bytes: group name length`  
 `48 bytes: group name`  
 `1 byte: privacy state`  

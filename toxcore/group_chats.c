@@ -37,7 +37,7 @@
                                           GC_MIN_HS_PACKET_PAYLOAD_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 
 /* Size of a group's shared state in packed format */
-#define GC_PACKED_SHARED_STATE_SIZE (EXT_PUBLIC_KEY_SIZE + sizeof(uint32_t) + MAX_GC_GROUP_NAME_SIZE +\
+#define GC_PACKED_SHARED_STATE_SIZE (EXT_PUBLIC_KEY_SIZE + sizeof(uint16_t) + MAX_GC_GROUP_NAME_SIZE +\
                                      sizeof(uint16_t) + 1 + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE +\
                                      MOD_MODERATION_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t))
 
@@ -838,9 +838,9 @@ static void refresh_gc_saved_peers(GC_Chat *chat)
 }
 
 /* Returns the number of confirmed peers in peerlist. */
-static uint32_t get_gc_confirmed_numpeers(const GC_Chat *chat)
+static uint16_t get_gc_confirmed_numpeers(const GC_Chat *chat)
 {
-    uint32_t count = 0;
+    uint16_t count = 0;
 
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
         const GC_Connection *gconn = get_gc_connection(chat, i);
@@ -1155,8 +1155,8 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
 
     memcpy(data + packed_len, shared_state->founder_public_key, EXT_PUBLIC_KEY_SIZE);
     packed_len += EXT_PUBLIC_KEY_SIZE;
-    net_pack_u32(data + packed_len, shared_state->maxpeers);
-    packed_len += sizeof(uint32_t);
+    net_pack_u16(data + packed_len, shared_state->maxpeers);
+    packed_len += sizeof(uint16_t);
     net_pack_u16(data + packed_len, shared_state->group_name_len);
     packed_len += sizeof(uint16_t);
     memcpy(data + packed_len, shared_state->group_name, MAX_GC_GROUP_NAME_SIZE);
@@ -1193,8 +1193,8 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
 
     memcpy(shared_state->founder_public_key, data + len_processed, EXT_PUBLIC_KEY_SIZE);
     len_processed += EXT_PUBLIC_KEY_SIZE;
-    net_unpack_u32(data + len_processed, &shared_state->maxpeers);
-    len_processed += sizeof(uint32_t);
+    net_unpack_u16(data + len_processed, &shared_state->maxpeers);
+    len_processed += sizeof(uint16_t);
     net_unpack_u16(data + len_processed, &shared_state->group_name_len);
     shared_state->group_name_len = min_u16(shared_state->group_name_len, MAX_GC_GROUP_NAME_SIZE);
     len_processed += sizeof(uint16_t);
@@ -2199,7 +2199,7 @@ static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uin
 {
     uint16_t sync_flags = 0;
 
-    if (peers_checksum != chat->peers_checksum && peer_count >= (uint16_t) get_gc_confirmed_numpeers(chat)) {
+    if (peers_checksum != chat->peers_checksum && peer_count >= get_gc_confirmed_numpeers(chat)) {
         sync_flags |= GF_PEERS;
     }
 
@@ -4497,18 +4497,18 @@ int gc_founder_set_privacy_state(const Messenger *m, int group_number, Group_Pri
 }
 
 /* Returns the group peer limit. */
-uint32_t gc_get_max_peers(const GC_Chat *chat)
+uint16_t gc_get_max_peers(const GC_Chat *chat)
 {
     return chat->shared_state.maxpeers;
 }
 
-int gc_founder_set_max_peers(GC_Chat *chat, uint32_t max_peers)
+int gc_founder_set_max_peers(GC_Chat *chat, uint16_t max_peers)
 {
     if (!self_gc_is_founder(chat)) {
         return -1;
     }
 
-    const uint32_t old_maxpeers = chat->shared_state.maxpeers;
+    const uint16_t old_maxpeers = chat->shared_state.maxpeers;
 
     if (max_peers == chat->shared_state.maxpeers) {
         return 0;
@@ -6429,7 +6429,7 @@ static int ping_peer(const GC_Chat *chat, const GC_Connection *gconn)
     net_pack_u16(data, chat->peers_checksum);
     packed_len += sizeof(uint16_t);
 
-    net_pack_u16(data + packed_len, (uint16_t) get_gc_confirmed_numpeers(chat));
+    net_pack_u16(data + packed_len, get_gc_confirmed_numpeers(chat));
     packed_len += sizeof(uint16_t);
 
     net_pack_u32(data + packed_len, chat->shared_state.version);

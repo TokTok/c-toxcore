@@ -3529,7 +3529,7 @@ Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_num
     return (Tox_Group_Topic_Lock)topic_lock;
 }
 
-uint32_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
+uint16_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
 {
     assert(tox != nullptr);
 
@@ -3999,7 +3999,7 @@ bool tox_group_founder_set_topic_lock(const Tox *tox, uint32_t group_number, Tox
     return 0;
 }
 
-bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint32_t maxpeers,
+bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint16_t maxpeers,
                                       Tox_Err_Group_Founder_Set_Peer_Limit *error)
 {
     assert(tox != nullptr);

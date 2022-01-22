@@ -222,7 +222,7 @@ typedef struct GC_Peer {
 typedef struct GC_SharedState {
     uint32_t    version;
     uint8_t     founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint32_t    maxpeers;
+    uint16_t    maxpeers;
     uint16_t    group_name_len;
     uint8_t     group_name[MAX_GC_GROUP_NAME_SIZE];
     Group_Privacy_State privacy_state;   // GI_PUBLIC (uses DHT) or GI_PRIVATE (invite only)

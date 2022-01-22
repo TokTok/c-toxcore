@@ -266,7 +266,7 @@ Group_Topic_Lock gc_get_topic_lock_state(const GC_Chat *chat);
  *
  * The value returned is equal to the data receieved by the last peer_limit callback.
  */
-uint32_t gc_get_max_peers(const GC_Chat *chat);
+uint16_t gc_get_max_peers(const GC_Chat *chat);
 
 /* Sets your own nick to `nick`.
  *
@@ -442,7 +442,7 @@ int gc_founder_set_privacy_state(const Messenger *m, int group_number, Group_Pri
  * Returns -2 if the peer limit could not be set.
  * Returns -3 if the packet failed to send.
  */
-int gc_founder_set_max_peers(GC_Chat *chat, uint32_t max_peers);
+int gc_founder_set_max_peers(GC_Chat *chat, uint16_t max_peers);
 
 /* Removes peer designated by `peer_id` from peer list and sends a broadcast instructing
  * all other peers to remove the peer from their peerlist as well.

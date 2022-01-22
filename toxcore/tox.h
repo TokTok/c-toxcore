@@ -4155,7 +4155,7 @@ void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *callback);
  *
  * @see the `Group chat founder controls` section for the respective set function.
  */
-uint32_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error);
+uint16_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error);
 
 /**
  * @param group_number The group number of the group for which the peer limit has changed.
@@ -4964,7 +4964,7 @@ typedef enum Tox_Err_Group_Founder_Set_Peer_Limit {
  *
  * @return true on success.
  */
-bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint32_t max_peers,
+bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint16_t max_peers,
                                       Tox_Err_Group_Founder_Set_Peer_Limit *error);
 
 
