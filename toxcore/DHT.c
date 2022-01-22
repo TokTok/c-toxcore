@@ -8,6 +8,10 @@
  */
 #include "DHT.h"
 
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "LAN_discovery.h"
 #include "logger.h"
 #include "mono_time.h"
@@ -15,10 +19,6 @@
 #include "ping.h"
 #include "state.h"
 #include "util.h"
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 /* The timeout after which a node is discarded completely. */
 #define KILL_NODE_TIMEOUT (BAD_NODE_TIMEOUT + PING_INTERVAL)
@@ -1614,7 +1614,7 @@ int dht_getfriendip(const DHT *dht, const uint8_t *public_key, IP_Port *ip_port)
         return -1;
     }
 
-    DHT_Friend *const frnd = &dht->friends_list[friend_index];
+    const DHT_Friend *const frnd = &dht->friends_list[friend_index];
     const uint32_t client_index = index_of_client_pk(frnd->client_list, MAX_FRIEND_CLIENTS, public_key);
 
     if (client_index == -1) {

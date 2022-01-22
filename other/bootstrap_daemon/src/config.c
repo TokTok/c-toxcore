@@ -41,16 +41,14 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
 
         uint16_t default_ports[DEFAULT_TCP_RELAY_PORTS_COUNT] = {DEFAULT_TCP_RELAY_PORTS};
 
-        int i;
-
-        for (i = 0; i < DEFAULT_TCP_RELAY_PORTS_COUNT; i ++) {
+        for (int i = 0; i < DEFAULT_TCP_RELAY_PORTS_COUNT; ++i) {
             log_write(LOG_LEVEL_INFO, "Port #%d: %u\n", i, default_ports[i]);
         }
 
         // similar procedure to the one of reading config file below
         *tcp_relay_ports = (uint16_t *)malloc(DEFAULT_TCP_RELAY_PORTS_COUNT * sizeof(uint16_t));
 
-        for (i = 0; i < DEFAULT_TCP_RELAY_PORTS_COUNT; i ++) {
+        for (int i = 0; i < DEFAULT_TCP_RELAY_PORTS_COUNT; ++i) {
 
             (*tcp_relay_ports)[*tcp_relay_port_count] = default_ports[i];
 
@@ -61,7 +59,7 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
                 continue;
             }
 
-            (*tcp_relay_port_count) ++;
+            ++*tcp_relay_port_count;
         }
 
         // the loop above skips invalid ports, so we adjust the allocated memory size
@@ -90,9 +88,7 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
 
     *tcp_relay_ports = (uint16_t *)malloc(config_port_count * sizeof(uint16_t));
 
-    int i;
-
-    for (i = 0; i < config_port_count; i ++) {
+    for (int i = 0; i < config_port_count; ++i) {
         config_setting_t *elem = config_setting_get_elem(ports_array, i);
 
         if (elem == nullptr) {
@@ -115,7 +111,7 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
             continue;
         }
 
-        (*tcp_relay_port_count) ++;
+        ++*tcp_relay_port_count;
     }
 
     // the loop above skips invalid ports, so we adjust the allocated memory size
@@ -168,8 +164,9 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
         tmp_pid_file = DEFAULT_PID_FILE_PATH;
     }
 
-    *pid_file_path = (char *)malloc(strlen(tmp_pid_file) + 1);
-    strcpy(*pid_file_path, tmp_pid_file);
+    const size_t pid_file_path_len = strlen(tmp_pid_file) + 1;
+    *pid_file_path = (char *)malloc(pid_file_path_len);
+    memcpy(*pid_file_path, tmp_pid_file, pid_file_path_len);
 
     // Get keys file location
     const char *tmp_keys_file;
@@ -180,8 +177,9 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
         tmp_keys_file = DEFAULT_KEYS_FILE_PATH;
     }
 
-    *keys_file_path = (char *)malloc(strlen(tmp_keys_file) + 1);
-    strcpy(*keys_file_path, tmp_keys_file);
+    const size_t keys_file_path_len = strlen(tmp_keys_file) + 1;
+    *keys_file_path = (char *)malloc(keys_file_path_len);
+    memcpy(*keys_file_path, tmp_keys_file, keys_file_path_len);
 
     // Get IPv6 option
     if (config_lookup_bool(&cfg, NAME_ENABLE_IPV6, enable_ipv6) == CONFIG_FALSE) {
@@ -262,9 +260,8 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
             log_write(LOG_LEVEL_ERROR, "No TCP ports could be read.\n");
         } else {
             log_write(LOG_LEVEL_INFO, "Read %d TCP ports:\n", *tcp_relay_port_count);
-            int i;
 
-            for (i = 0; i < *tcp_relay_port_count; i ++) {
+            for (int i = 0; i < *tcp_relay_port_count; ++i) {
                 log_write(LOG_LEVEL_INFO, "Port #%d: %u\n", i, (*tcp_relay_ports)[i]);
             }
         }
@@ -298,9 +295,8 @@ static uint8_t *bootstrap_hex_string_to_bin(const char *hex_string)
     uint8_t *ret = (uint8_t *)malloc(len);
 
     const char *pos = hex_string;
-    size_t i;
 
-    for (i = 0; i < len; ++i, pos += 2) {
+    for (size_t i = 0; i < len; ++i, pos += 2) {
         unsigned int val;
         sscanf(pos, "%02x", &val);
         ret[i] = val;
@@ -409,7 +405,7 @@ next:
         // though it's freed when the element is removed, so we free it right away in order to keep memory
         // consumption minimal
         config_setting_remove_elem(node_list, 0);
-        i++;
+        ++i;
     }
 
     config_destroy(&cfg);

@@ -144,8 +144,8 @@ int main(int argc, char *argv[])
     Mono_Time *mono_time = mono_time_new();
     DHT *dht = new_dht(logger, mono_time, new_networking(logger, ip, PORT), true);
     Onion *onion = new_onion(logger, mono_time, dht);
+    const Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht);
     GC_Announces_List *gc_announces_list = new_gca_list();
-    const Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht, gc_announces_list);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
     bootstrap_set_callbacks(dht_get_net(dht), DHT_VERSION_NUMBER, DHT_MOTD, sizeof(DHT_MOTD));
@@ -160,7 +160,6 @@ int main(int argc, char *argv[])
 
     manage_keys(dht);
     printf("Public key: ");
-    uint32_t i;
 
 #ifdef TCP_RELAY_ENABLED
 #define NUM_PORTS 3
@@ -182,7 +181,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    for (i = 0; i < 32; i++) {
+    for (uint32_t i = 0; i < 32; ++i) {
         const uint8_t *const self_public_key = dht_get_self_public_key(dht);
         printf("%02X", self_public_key[i]);
         fprintf(file, "%02X", self_public_key[i]);
