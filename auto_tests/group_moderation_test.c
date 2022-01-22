@@ -55,7 +55,7 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-static bool all_peers_connected(Tox **toxes, State *state)
+static bool all_peers_connected(Tox **toxes, const State *state)
 {
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         if (state[i].num_peers != NUM_GROUP_TOXES - 1) {
@@ -130,7 +130,7 @@ static void check_mod_event(State *state, Tox **toxes, size_t num_peers, TOX_GRO
     } while (peers_recv_changes < num_peers - 1);
 }
 
-static uint32_t get_peer_id_by_nick(Peer *peers, uint32_t num_peers, const char *name)
+static uint32_t get_peer_id_by_nick(const Peer *peers, uint32_t num_peers, const char *name)
 {
     ck_assert(name != nullptr);
 
@@ -143,7 +143,7 @@ static uint32_t get_peer_id_by_nick(Peer *peers, uint32_t num_peers, const char 
     ck_assert_msg(0, "Failed to find peer id");
 }
 
-static size_t get_state_index_by_nick(State *state, size_t num_peers, const char *name, size_t name_length)
+static size_t get_state_index_by_nick(const State *state, size_t num_peers, const char *name, size_t name_length)
 {
     ck_assert(name != nullptr && name_length <= TOX_MAX_NAME_LENGTH);
 
@@ -300,7 +300,7 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 }
 
 /* Checks that `peer_id` sees itself with the role `role`. */
-static void check_self_role(State *state, Tox **toxes, uint32_t peer_id, TOX_GROUP_ROLE role)
+static void check_self_role(const State *state, Tox **toxes, uint32_t peer_id, TOX_GROUP_ROLE role)
 {
     TOX_ERR_GROUP_SELF_QUERY sq_err;
 

@@ -172,8 +172,8 @@ int sanctions_list_make_creds(Moderation *moderation);
  * Returns 0 if all entries are valid.
  * Returns -1 if one or more entries are invalid.
  */
-int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Creds *creds,
-                                   Mod_Sanction *sanctions, uint16_t num_sanctions);
+int sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanction_Creds *creds,
+                                   const Mod_Sanction *sanctions, uint16_t num_sanctions);
 
 /* Adds an entry to the sanctions list. The entry is first validated and the resulting
  * new sanction list is compared against the new credentials.
@@ -183,7 +183,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Cr
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod_Sanction_Creds *creds);
+int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds);
 
 /* Creates a new sanction entry for `public_key` where type is one GROUP_SANCTION_TYPE.
  * New entry is signed and placed in the sanctions list.
@@ -207,7 +207,7 @@ bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanctio
  * Returns -1 on failure or if entry was not found.
  */
 int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
-                                   Mod_Sanction_Creds *creds);
+                                   const Mod_Sanction_Creds *creds);
 
 /* Replaces all sanctions list signatures made by public_sig_key with the caller's.
  * This is called whenever the founder demotes a moderator.

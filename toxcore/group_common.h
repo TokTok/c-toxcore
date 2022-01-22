@@ -317,29 +317,29 @@ typedef struct GC_Chat {
 typedef struct Messenger Messenger;
 #endif /* MESSENGER_DEFINED */
 
-typedef void gc_message_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
+typedef void gc_message_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
                            const uint8_t *data, size_t length, void *user_data);
-typedef void gc_private_message_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
+typedef void gc_private_message_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
                                    const uint8_t *data, size_t length, void *user_data);
-typedef void gc_custom_packet_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
+typedef void gc_custom_packet_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
                                  size_t length, void *user_data);
-typedef void gc_moderation_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, uint32_t target_peer,
+typedef void gc_moderation_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, uint32_t target_peer,
                               unsigned int mod_event, void *user_data);
-typedef void gc_nick_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
+typedef void gc_nick_change_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
                                size_t length, void *user_data);
-typedef void gc_status_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int status,
+typedef void gc_status_change_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int status,
                                  void *user_data);
-typedef void gc_topic_change_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
+typedef void gc_topic_change_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
                                 size_t length, void *user_data);
-typedef void gc_topic_lock_cb(Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
-typedef void gc_peer_limit_cb(Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
-typedef void gc_privacy_state_cb(Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
-typedef void gc_password_cb(Messenger *m, uint32_t group_number, const uint8_t *data, size_t length, void *user_data);
-typedef void gc_peer_join_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data);
-typedef void gc_peer_exit_cb(Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int exit_type,
+typedef void gc_topic_lock_cb(const Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
+typedef void gc_peer_limit_cb(const Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
+typedef void gc_privacy_state_cb(const Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
+typedef void gc_password_cb(const Messenger *m, uint32_t group_number, const uint8_t *data, size_t length, void *user_data);
+typedef void gc_peer_join_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data);
+typedef void gc_peer_exit_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int exit_type,
                              const uint8_t *nick, size_t nick_len, const uint8_t *data, size_t length, void *user_data);
-typedef void gc_self_join_cb(Messenger *m, uint32_t group_number, void *user_data);
-typedef void gc_rejected_cb(Messenger *m, uint32_t group_number, unsigned int type, void *user_data);
+typedef void gc_self_join_cb(const Messenger *m, uint32_t group_number, void *user_data);
+typedef void gc_rejected_cb(const Messenger *m, uint32_t group_number, unsigned int type, void *user_data);
 
 typedef struct GC_Session {
     Messenger                 *messenger;

@@ -128,7 +128,7 @@ static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id
     state->topic_length = length;
 }
 
-static bool all_peers_connected(Tox **toxes, State *state, uint32_t groupnumber)
+static bool all_peers_connected(Tox **toxes, const State *state, uint32_t groupnumber)
 {
     for (uint32_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         // make sure we got an invite response
@@ -150,7 +150,7 @@ static bool all_peers_connected(Tox **toxes, State *state, uint32_t groupnumber)
     return true;
 }
 
-static unsigned int get_peer_roles_checksum(Tox *tox, State *state, uint32_t groupnumber)
+static unsigned int get_peer_roles_checksum(const Tox *tox, const State *state, uint32_t groupnumber)
 {
     Tox_Group_Role role = tox_group_self_get_role(tox, groupnumber, nullptr);
     unsigned int checksum = (unsigned int)role;
@@ -163,7 +163,7 @@ static unsigned int get_peer_roles_checksum(Tox *tox, State *state, uint32_t gro
     return checksum;
 }
 
-static bool all_peers_see_same_roles(Tox **toxes, State *state, uint32_t num_peers, uint32_t groupnumber)
+static bool all_peers_see_same_roles(Tox **toxes, const State *state, uint32_t num_peers, uint32_t groupnumber)
 {
     unsigned int expected_checksum = get_peer_roles_checksum(toxes[0], &state[0], groupnumber);
 
@@ -218,7 +218,7 @@ static void role_spam(Tox **toxes, State *state, uint32_t num_peers, uint32_t nu
  *
  * Return true if all peers successfully changed the topic.
  */
-static bool set_topic_all_peers(Tox **toxes, State *state, size_t num_peers, uint32_t groupnumber)
+static bool set_topic_all_peers(Tox **toxes, const State *state, size_t num_peers, uint32_t groupnumber)
 {
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
@@ -239,7 +239,7 @@ static bool set_topic_all_peers(Tox **toxes, State *state, size_t num_peers, uin
 /* Returns true if all peers have the same topic, and the topic from the get_topic API function
  * matches the last topic they received in the topic callback.
  */
-static bool all_peers_have_same_topic(Tox **toxes, State *state, uint32_t num_peers, uint32_t groupnumber)
+static bool all_peers_have_same_topic(Tox **toxes, const State *state, uint32_t num_peers, uint32_t groupnumber)
 {
     uint8_t expected_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
 

@@ -321,7 +321,7 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
         return -1;
     }
 
-    Friend_Conn *connection = get_conn(m->fr_c, friendcon_id);
+    const Friend_Conn *connection = get_conn(m->fr_c, friendcon_id);
 
     if (connection == nullptr) {
         return -1;
@@ -1038,7 +1038,8 @@ void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function
     m->conference_invite = function;
 }
 
-
+/* Set the callback for group invites.
+ */
 void m_callback_group_invite(Messenger *m, m_group_invite_cb *function)
 {
     m->group_invite = function;

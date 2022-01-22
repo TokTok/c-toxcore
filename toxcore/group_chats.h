@@ -199,7 +199,7 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
  * Returns -1 if the peer_id is invalid.
  * Returns -2 if the caller attempted to ignore himself.
  */
-int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore);
+int gc_toggle_ignore(const GC_Chat *chat, uint32_t peer_id, bool ignore);
 
 /* Sets the group topic and broadcasts it to the group.
  *
@@ -467,21 +467,21 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest);
 
 
 /* Group callbacks */
-void gc_callback_message(Messenger *m, gc_message_cb *function);
-void gc_callback_private_message(Messenger *m, gc_private_message_cb *function);
-void gc_callback_custom_packet(Messenger *m, gc_custom_packet_cb *function);
-void gc_callback_moderation(Messenger *m, gc_moderation_cb *function);
-void gc_callback_nick_change(Messenger *m, gc_nick_change_cb *function);
-void gc_callback_status_change(Messenger *m, gc_status_change_cb *function);
-void gc_callback_topic_change(Messenger *m, gc_topic_change_cb *function);
-void gc_callback_peer_limit(Messenger *m, gc_peer_limit_cb *function);
-void gc_callback_privacy_state(Messenger *m, gc_privacy_state_cb *function);
-void gc_callback_topic_lock(Messenger *m, gc_topic_lock_cb *function);
-void gc_callback_password(Messenger *m, gc_password_cb *function);
-void gc_callback_peer_join(Messenger *m, gc_peer_join_cb *function);
-void gc_callback_peer_exit(Messenger *m, gc_peer_exit_cb *function);
-void gc_callback_self_join(Messenger *m, gc_self_join_cb *function);
-void gc_callback_rejected(Messenger *m, gc_rejected_cb *function);
+void gc_callback_message(const Messenger *m, gc_message_cb *function);
+void gc_callback_private_message(const Messenger *m, gc_private_message_cb *function);
+void gc_callback_custom_packet(const Messenger *m, gc_custom_packet_cb *function);
+void gc_callback_moderation(const Messenger *m, gc_moderation_cb *function);
+void gc_callback_nick_change(const Messenger *m, gc_nick_change_cb *function);
+void gc_callback_status_change(const Messenger *m, gc_status_change_cb *function);
+void gc_callback_topic_change(const Messenger *m, gc_topic_change_cb *function);
+void gc_callback_peer_limit(const Messenger *m, gc_peer_limit_cb *function);
+void gc_callback_privacy_state(const Messenger *m, gc_privacy_state_cb *function);
+void gc_callback_topic_lock(const Messenger *m, gc_topic_lock_cb *function);
+void gc_callback_password(const Messenger *m, gc_password_cb *function);
+void gc_callback_peer_join(const Messenger *m, gc_peer_join_cb *function);
+void gc_callback_peer_exit(const Messenger *m, gc_peer_exit_cb *function);
+void gc_callback_self_join(const Messenger *m, gc_self_join_cb *function);
+void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function);
 
 /* The main loop. Should be called with every Messenger iteration. */
 void do_gc(GC_Session *c, void *userdata);
@@ -634,7 +634,7 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
  * Return 0 on success.
  * Return -1 on failure.
  */
-int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
+int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
 
 /* Return true if `chat_id` is not present in our group sessions array.
  *

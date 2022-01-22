@@ -50,7 +50,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
  * Returns 0 if state is correct.
  * Returns a value < 0 if state is incorrect.
  */
-static int has_correct_group_state(Tox *tox, uint32_t group_number, const uint8_t *expected_chat_id)
+static int has_correct_group_state(const Tox *tox, uint32_t group_number, const uint8_t *expected_chat_id)
 {
     TOX_ERR_GROUP_STATE_QUERIES query_err;
 
@@ -106,7 +106,7 @@ static int has_correct_group_state(Tox *tox, uint32_t group_number, const uint8_
     return 0;
 }
 
-static int has_correct_self_state(Tox *tox, uint32_t group_number, const uint8_t *expected_self_pk)
+static int has_correct_self_state(const Tox *tox, uint32_t group_number, const uint8_t *expected_self_pk)
 {
     TOX_ERR_GROUP_SELF_QUERY sq_err;
     size_t self_length = tox_group_self_get_name_size(tox, group_number, &sq_err);

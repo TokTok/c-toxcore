@@ -35,7 +35,7 @@ typedef struct State {
 #define SECRET_CODE "RONALD MCDONALD"
 #define SECRET_CODE_LEN (sizeof(SECRET_CODE) - 1)
 
-static bool group_has_full_graph(Tox **toxes, State *state, uint32_t group_number, uint32_t expected_peer_count)
+static bool group_has_full_graph(Tox **toxes, const State *state, uint32_t group_number, uint32_t expected_peer_count)
 {
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
         if (state[i].num_peers != expected_peer_count) {
@@ -52,7 +52,8 @@ static bool group_has_full_graph(Tox **toxes, State *state, uint32_t group_numbe
     return true;
 }
 
-static bool group_received_all_messages(Tox **toxes, State *state, uint32_t group_number, size_t expected_msg_count)
+static bool group_received_all_messages(Tox **toxes, const State *state, uint32_t group_number,
+                                        size_t expected_msg_count)
 {
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
         if (state[i].messages_received != expected_msg_count) {

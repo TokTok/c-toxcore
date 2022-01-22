@@ -108,7 +108,7 @@ static int set_topic(Tox *tox, uint32_t groupnumber, const char *topic, size_t l
 /* Returns 0 if group topic matches expected topic.
  * Returns a value < 0 on failure.
  */
-static int check_topic(Tox *tox, uint32_t groupnumber, const char *expected_topic, size_t expected_length)
+static int check_topic(const Tox *tox, uint32_t groupnumber, const char *expected_topic, size_t expected_length)
 {
     TOX_ERR_GROUP_STATE_QUERIES query_err;
     size_t topic_length = tox_group_get_topic_size(tox, groupnumber, &query_err);

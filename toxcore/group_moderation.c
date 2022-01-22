@@ -411,7 +411,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_validate_entry(const Moderation *moderation, Mod_Sanction *sanction)
+static int sanctions_list_validate_entry(const Moderation *moderation, const Mod_Sanction *sanction)
 {
     if (!mod_list_verify_sig_pk(moderation, sanction->setter_public_sig_key)) {
         return -1;
@@ -495,7 +495,7 @@ int sanctions_list_make_creds(Moderation *moderation)
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *sanctions,
+static int sanctions_creds_validate(const Moderation *moderation, const Mod_Sanction *sanctions,
                                     const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
     if (!mod_list_verify_sig_pk(moderation, creds->sig_pk)) {
@@ -535,8 +535,8 @@ static int sanctions_creds_validate(const Moderation *moderation, Mod_Sanction *
     return 0;
 }
 
-int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Creds *creds,
-                                   Mod_Sanction *sanctions, uint16_t num_sanctions)
+int sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanction_Creds *creds,
+                                   const Mod_Sanction *sanctions, uint16_t num_sanctions)
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
         if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
@@ -557,7 +557,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, Mod_Sanction_Cr
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, Mod_Sanction_Creds *creds)
+static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, const Mod_Sanction_Creds *creds)
 {
     if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
         return -1;
@@ -617,7 +617,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, M
 }
 
 int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
-                                   Mod_Sanction_Creds *creds)
+                                   const Mod_Sanction_Creds *creds)
 {
     for (uint16_t i = 0; i < moderation->num_sanctions; ++i) {
         const Mod_Sanction *curr_sanction = &moderation->sanctions[i];
@@ -670,7 +670,7 @@ bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanctio
 
 static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction);
 
-int sanctions_list_add_entry(Moderation *moderation, Mod_Sanction *sanction, Mod_Sanction_Creds *creds)
+int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds)
 {
     if (moderation->num_sanctions >= MOD_MAX_NUM_SANCTIONS) {
         LOGGER_WARNING(moderation->log, "num_sanctions %d exceeds maximum", moderation->num_sanctions);

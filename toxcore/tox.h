@@ -3497,7 +3497,7 @@ typedef enum Tox_Err_Group_Is_Connected {
  *
  * @param group_number The group number of the designated group.
  */
-bool tox_group_is_connected(Tox *tox, uint32_t group_number, Tox_Err_Group_Is_Connected *error);
+bool tox_group_is_connected(const Tox *tox, uint32_t group_number, Tox_Err_Group_Is_Connected *error);
 
 typedef enum Tox_Err_Group_Disconnect {
 
@@ -3531,7 +3531,7 @@ typedef enum Tox_Err_Group_Disconnect {
  *
  * @param group_number The group number of the designated group.
  */
-bool tox_group_disconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Disconnect *error);
+bool tox_group_disconnect(const Tox *tox, uint32_t group_number, Tox_Err_Group_Disconnect *error);
 
 typedef enum Tox_Err_Group_Reconnect {
 
@@ -3688,7 +3688,7 @@ typedef enum Tox_Err_Group_Self_Name_Set {
  *
  * @return true on success.
  */
-bool tox_group_self_set_name(Tox *tox, uint32_t group_number, const uint8_t *name, size_t length,
+bool tox_group_self_set_name(const Tox *tox, uint32_t group_number, const uint8_t *name, size_t length,
                              Tox_Err_Group_Self_Name_Set *error);
 
 /**
@@ -3745,7 +3745,7 @@ typedef enum Tox_Err_Group_Self_Status_Set {
  *
  * @return true on success.
  */
-bool tox_group_self_set_status(Tox *tox, uint32_t group_number, Tox_User_Status status,
+bool tox_group_self_set_status(const Tox *tox, uint32_t group_number, Tox_User_Status status,
                                Tox_Err_Group_Self_Status_Set *error);
 
 /**
@@ -4013,7 +4013,7 @@ typedef enum Tox_Err_Group_Topic_Set {
  *
  * @returns true on success.
  */
-bool tox_group_set_topic(Tox *tox, uint32_t group_number, const uint8_t *topic, size_t length,
+bool tox_group_set_topic(const Tox *tox, uint32_t group_number, const uint8_t *topic, size_t length,
                          Tox_Err_Group_Topic_Set *error);
 
 /**
@@ -4283,7 +4283,7 @@ typedef enum Tox_Err_Group_Send_Message {
  *
  * @return true on success.
  */
-bool tox_group_send_message(Tox *tox, uint32_t group_number, Tox_Message_Type type, const uint8_t *message,
+bool tox_group_send_message(const Tox *tox, uint32_t group_number, Tox_Message_Type type, const uint8_t *message,
                             size_t length, Tox_Err_Group_Send_Message *error);
 
 typedef enum Tox_Err_Group_Send_Private_Message {
@@ -4354,7 +4354,7 @@ typedef enum Tox_Err_Group_Send_Private_Message {
  *
  * @return true on success.
  */
-bool tox_group_send_private_message(Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Message_Type type,
+bool tox_group_send_private_message(const Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Message_Type type,
                                     const uint8_t *message, size_t length, Tox_Err_Group_Send_Private_Message *error);
 
 typedef enum Tox_Err_Group_Send_Custom_Packet {
@@ -4412,7 +4412,7 @@ typedef enum Tox_Err_Group_Send_Custom_Packet {
  *
  * @return true on success.
  */
-bool tox_group_send_custom_packet(Tox *tox, uint32_t group_number, bool lossless, const uint8_t *data, size_t length,
+bool tox_group_send_custom_packet(const Tox *tox, uint32_t group_number, bool lossless, const uint8_t *data, size_t length,
                                   Tox_Err_Group_Send_Custom_Packet *error);
 
 
@@ -4530,7 +4530,7 @@ typedef enum Tox_Err_Group_Invite_Friend {
  *
  * @return true on success.
  */
-bool tox_group_invite_friend(Tox *tox, uint32_t group_number, uint32_t friend_number,
+bool tox_group_invite_friend(const Tox *tox, uint32_t group_number, uint32_t friend_number,
                              Tox_Err_Group_Invite_Friend *error);
 
 typedef enum Tox_Err_Group_Invite_Accept {
@@ -4802,7 +4802,7 @@ typedef enum Tox_Err_Group_Founder_Set_Password {
  *
  * @return true on success.
  */
-bool tox_group_founder_set_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
+bool tox_group_founder_set_password(const Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
                                     Tox_Err_Group_Founder_Set_Password *error);
 
 typedef enum Tox_Err_Group_Founder_Set_Topic_Lock {
@@ -4860,7 +4860,7 @@ typedef enum Tox_Err_Group_Founder_Set_Topic_Lock {
  *
  * @return true on success.
  */
-bool tox_group_founder_set_topic_lock(Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
+bool tox_group_founder_set_topic_lock(const Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
                                       Tox_Err_Group_Founder_Set_Topic_Lock *error);
 
 typedef enum Tox_Err_Group_Founder_Set_Privacy_State {
@@ -4913,7 +4913,7 @@ typedef enum Tox_Err_Group_Founder_Set_Privacy_State {
  *
  * @return true on success.
  */
-bool tox_group_founder_set_privacy_state(Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
+bool tox_group_founder_set_privacy_state(const Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
         Tox_Err_Group_Founder_Set_Privacy_State *error);
 
 typedef enum Tox_Err_Group_Founder_Set_Peer_Limit {
@@ -4963,7 +4963,7 @@ typedef enum Tox_Err_Group_Founder_Set_Peer_Limit {
  *
  * @return true on success.
  */
-bool tox_group_founder_set_peer_limit(Tox *tox, uint32_t group_number, uint32_t max_peers,
+bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint32_t max_peers,
                                       Tox_Err_Group_Founder_Set_Peer_Limit *error);
 
 
@@ -5009,7 +5009,7 @@ typedef enum Tox_Err_Group_Toggle_Ignore {
  *
  * @return true on success.
  */
-bool tox_group_toggle_ignore(Tox *tox, uint32_t group_number, uint32_t peer_id, bool ignore,
+bool tox_group_toggle_ignore(const Tox *tox, uint32_t group_number, uint32_t peer_id, bool ignore,
                              Tox_Err_Group_Toggle_Ignore *error);
 
 typedef enum Tox_Err_Group_Mod_Set_Role {
@@ -5067,7 +5067,7 @@ typedef enum Tox_Err_Group_Mod_Set_Role {
  *
  * @return true on success.
  */
-bool tox_group_mod_set_role(Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Role role,
+bool tox_group_mod_set_role(const Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Role role,
                             Tox_Err_Group_Mod_Set_Role *error);
 
 typedef enum Tox_Err_Group_Mod_Kick_Peer {
@@ -5122,7 +5122,7 @@ typedef enum Tox_Err_Group_Mod_Kick_Peer {
  *
  * @return true on success.
  */
-bool tox_group_mod_kick_peer(Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Err_Group_Mod_Kick_Peer *error);
+bool tox_group_mod_kick_peer(const Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Err_Group_Mod_Kick_Peer *error);
 
 /**
  * Represents moderation events. These should be used with the `group_moderation` event.

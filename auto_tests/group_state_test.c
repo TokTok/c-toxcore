@@ -33,7 +33,7 @@ typedef struct State {
 
 #include "run_auto_test.h"
 
-static bool all_group_peers_connected(uint32_t tox_count, State *state, Tox **toxes, uint32_t groupnumber,
+static bool all_group_peers_connected(uint32_t tox_count, const State *state, Tox **toxes, uint32_t groupnumber,
                                       size_t name_length, uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
@@ -110,8 +110,9 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
 /* Returns 0 if group state is equal to the state passed to this function.
  * Returns negative integer if state is invalid.
  */
-static int check_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit, TOX_GROUP_PRIVACY_STATE priv_state,
-                             const uint8_t *password, size_t pass_len, TOX_GROUP_TOPIC_LOCK topic_lock)
+static int check_group_state(const Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
+                             TOX_GROUP_PRIVACY_STATE priv_state, const uint8_t *password, size_t pass_len,
+                             TOX_GROUP_TOPIC_LOCK topic_lock)
 {
     TOX_ERR_GROUP_STATE_QUERIES query_err;
 

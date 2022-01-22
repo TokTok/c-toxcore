@@ -1553,7 +1553,7 @@ static int send_gc_sync_response(const GC_Chat *chat, GC_Connection *gconn, cons
 static int send_gc_peer_exchange(const GC_Session *c, const GC_Chat *chat, GC_Connection *gconn);
 static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, uint8_t handshake_type,
                                     uint8_t request_type);
-static int send_gc_oob_handshake_request(const GC_Chat *chat, GC_Connection *gconn);
+static int send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connection *gconn);
 
 /* Unpacks a sync announce. If the announced peer is not already in our peer list, we attempt to
  * initiate a peer info exchange with them.
@@ -1720,7 +1720,7 @@ static int sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, u
     uint32_t num_announces = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        GC_Connection *peer_gconn = get_gc_connection(chat, i);
+        const GC_Connection *peer_gconn = get_gc_connection(chat, i);
 
         if (peer_gconn == nullptr || !peer_gconn->confirmed) {
             continue;
@@ -2334,7 +2334,7 @@ static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *da
 int gc_set_self_status(const Messenger *m, int group_number, Group_Peer_Status status)
 {
     const GC_Session *c = m->group_handler;
-    GC_Chat *chat = gc_get_group(c, group_number);
+    const GC_Chat *chat = gc_get_group(c, group_number);
 
     if (chat == nullptr) {
         return -1;
@@ -3987,7 +3987,7 @@ static int send_gc_set_mod(const GC_Chat *chat, const GC_Connection *gconn, bool
  * Returns 0 on success.
  * Returns -1 on failure.
  */
-static int founder_gc_set_moderator(GC_Chat *chat, GC_Connection *gconn, bool add_mod)
+static int founder_gc_set_moderator(GC_Chat *chat, const GC_Connection *gconn, bool add_mod)
 {
     if (!self_gc_is_founder(chat)) {
         return -1;
@@ -4279,7 +4279,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
  */
 static int apply_new_gc_role(GC_Chat *chat, uint32_t peer_number, Group_Role current_role, Group_Role new_role)
 {
-    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -1;
@@ -4957,7 +4957,7 @@ static int handle_gc_hs_response_ack(const GC_Chat *chat, GC_Connection *gconn)
     return 0;
 }
 
-int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore)
+int gc_toggle_ignore(const GC_Chat *chat, uint32_t peer_id, bool ignore)
 {
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
@@ -4965,11 +4965,13 @@ int gc_toggle_ignore(GC_Chat *chat, uint32_t peer_id, bool ignore)
         return -1;
     }
 
-    if (peer_number_is_self(peer_number)) {
+    GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
         return -2;
     }
 
-    chat->group[peer_number].ignore = ignore;
+    peer->ignore = ignore;
 
     return 0;
 }
@@ -5249,7 +5251,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int send_gc_oob_handshake_request(const GC_Chat *chat, GC_Connection *gconn)
+static int send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connection *gconn)
 {
     if (gconn == nullptr) {
         return -1;
@@ -6001,91 +6003,91 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
     }
 }
 
-void gc_callback_message(Messenger *m, gc_message_cb *function)
+void gc_callback_message(const Messenger *m, gc_message_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->message = function;
 }
 
-void gc_callback_private_message(Messenger *m, gc_private_message_cb *function)
+void gc_callback_private_message(const Messenger *m, gc_private_message_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->private_message = function;
 }
 
-void gc_callback_custom_packet(Messenger *m, gc_custom_packet_cb *function)
+void gc_callback_custom_packet(const Messenger *m, gc_custom_packet_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->custom_packet = function;
 }
 
-void gc_callback_moderation(Messenger *m, gc_moderation_cb *function)
+void gc_callback_moderation(const Messenger *m, gc_moderation_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->moderation = function;
 }
 
-void gc_callback_nick_change(Messenger *m, gc_nick_change_cb *function)
+void gc_callback_nick_change(const Messenger *m, gc_nick_change_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->nick_change = function;
 }
 
-void gc_callback_status_change(Messenger *m, gc_status_change_cb *function)
+void gc_callback_status_change(const Messenger *m, gc_status_change_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->status_change = function;
 }
 
-void gc_callback_topic_change(Messenger *m, gc_topic_change_cb *function)
+void gc_callback_topic_change(const Messenger *m, gc_topic_change_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->topic_change = function;
 }
 
-void gc_callback_topic_lock(Messenger *m, gc_topic_lock_cb *function)
+void gc_callback_topic_lock(const Messenger *m, gc_topic_lock_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->topic_lock = function;
 }
 
-void gc_callback_peer_limit(Messenger *m, gc_peer_limit_cb *function)
+void gc_callback_peer_limit(const Messenger *m, gc_peer_limit_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->peer_limit = function;
 }
 
-void gc_callback_privacy_state(Messenger *m, gc_privacy_state_cb *function)
+void gc_callback_privacy_state(const Messenger *m, gc_privacy_state_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->privacy_state = function;
 }
 
-void gc_callback_password(Messenger *m, gc_password_cb *function)
+void gc_callback_password(const Messenger *m, gc_password_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->password = function;
 }
 
-void gc_callback_peer_join(Messenger *m, gc_peer_join_cb *function)
+void gc_callback_peer_join(const Messenger *m, gc_peer_join_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->peer_join = function;
 }
 
-void gc_callback_peer_exit(Messenger *m, gc_peer_exit_cb *function)
+void gc_callback_peer_exit(const Messenger *m, gc_peer_exit_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->peer_exit = function;
 }
 
-void gc_callback_self_join(Messenger *m, gc_self_join_cb *function)
+void gc_callback_self_join(const Messenger *m, gc_self_join_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->self_join = function;
 }
 
-void gc_callback_rejected(Messenger *m, gc_rejected_cb *function)
+void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function)
 {
     GC_Session *c = m->group_handler;
     c->rejected = function;
@@ -7465,13 +7467,13 @@ static bool friend_was_invited(const Messenger *m, GC_Chat *chat, int friend_num
  * Return 0 on success.
  * Return -1 on failure.
  */
-int handle_gc_invite_accepted_packet(GC_Session *c, int friend_number, const uint8_t *data, uint32_t length)
+int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length)
 {
     if (length < GC_JOIN_DATA_LENGTH) {
         return -1;
     }
 
-    Messenger *m = c->messenger;
+    const Messenger *m = c->messenger;
 
     const uint8_t *chat_id = data;
 
