@@ -334,7 +334,8 @@ typedef void gc_topic_change_cb(const Messenger *m, uint32_t group_number, uint3
 typedef void gc_topic_lock_cb(const Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
 typedef void gc_peer_limit_cb(const Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
 typedef void gc_privacy_state_cb(const Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
-typedef void gc_password_cb(const Messenger *m, uint32_t group_number, const uint8_t *data, size_t length, void *user_data);
+typedef void gc_password_cb(const Messenger *m, uint32_t group_number, const uint8_t *data, size_t length,
+                            void *user_data);
 typedef void gc_peer_join_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data);
 typedef void gc_peer_exit_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int exit_type,
                              const uint8_t *nick, size_t nick_len, const uint8_t *data, size_t length, void *user_data);

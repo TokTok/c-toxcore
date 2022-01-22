@@ -4051,7 +4051,7 @@ bool tox_group_toggle_ignore(const Tox *tox, uint32_t group_number, uint32_t pee
 {
     assert(tox != nullptr);
 
-    GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
     if (chat == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_TOGGLE_IGNORE_GROUP_NOT_FOUND);

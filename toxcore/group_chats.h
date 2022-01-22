@@ -149,7 +149,7 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  */
 int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
                       uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id,
-                      uint8_t gp_packet_type, const uint8_t *target_pk, uint8_t net_packet_type);
+                      uint8_t gp_packet_type, uint8_t net_packet_type);
 
 /* Packs group info for `chat` into `temp`. */
 void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp);
@@ -627,7 +627,7 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
  * Return -1 on failure.
  */
 int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, const uint8_t *data,
-                              uint16_t length, uint64_t message_id, uint8_t packet_type, void *userdata);
+                              uint16_t length, uint8_t packet_type, void *userdata);
 
 /* Handles an invite accept packet.
  *

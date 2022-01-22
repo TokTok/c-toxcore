@@ -69,9 +69,8 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id)
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int create_array_entry(const Logger *log, const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry,
-                              const uint8_t *data, uint32_t length, uint8_t packet_type,
-                              uint64_t message_id)
+static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry, const uint8_t *data,
+                              uint32_t length, uint8_t packet_type, uint64_t message_id)
 {
     if (length > 0) {
         if (data == nullptr) {
@@ -115,7 +114,7 @@ int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Conn
         return -1;
     }
 
-    if (create_array_entry(log, mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
+    if (create_array_entry(mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
         LOGGER_WARNING(log, "Failed to create array entry");
         return -1;
     }
@@ -234,7 +233,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
             return -1;
         }
 
-        if (create_array_entry(log, mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
+        if (create_array_entry(mono_time, ary_entry, data, length, packet_type, message_id) == -1) {
             LOGGER_DEBUG(log, "Failed to create array entry");
             return -1;
         }
@@ -265,7 +264,7 @@ static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_C
     memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
-                    array_entry->message_id, array_entry->packet_type, userdata);
+                    array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
@@ -368,8 +367,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
     const int enc_len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
-                                          sizeof(packet), data, length, message_id, packet_type, gconn->addr.public_key,
-                                          NET_PACKET_GC_LOSSLESS);
+                                          sizeof(packet), data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
         LOGGER_WARNING(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);

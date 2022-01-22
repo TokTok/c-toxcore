@@ -4412,7 +4412,8 @@ typedef enum Tox_Err_Group_Send_Custom_Packet {
  *
  * @return true on success.
  */
-bool tox_group_send_custom_packet(const Tox *tox, uint32_t group_number, bool lossless, const uint8_t *data, size_t length,
+bool tox_group_send_custom_packet(const Tox *tox, uint32_t group_number, bool lossless, const uint8_t *data,
+                                  size_t length,
                                   Tox_Err_Group_Send_Custom_Packet *error);
 
 
@@ -5122,7 +5123,8 @@ typedef enum Tox_Err_Group_Mod_Kick_Peer {
  *
  * @return true on success.
  */
-bool tox_group_mod_kick_peer(const Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Err_Group_Mod_Kick_Peer *error);
+bool tox_group_mod_kick_peer(const Tox *tox, uint32_t group_number, uint32_t peer_id,
+                             Tox_Err_Group_Mod_Kick_Peer *error);
 
 /**
  * Represents moderation events. These should be used with the `group_moderation` event.
