@@ -53,13 +53,13 @@ uint16_t gcc_get_array_index(uint64_t message_id)
     return message_id % GCC_BUFFER_SIZE;
 }
 
-void gcc_set_send_message_id(GC_Connection *gconn, uint16_t id)
+void gcc_set_send_message_id(GC_Connection *gconn, uint64_t id)
 {
     gconn->send_message_id = id;
     gconn->send_array_start = id % GCC_BUFFER_SIZE;
 }
 
-void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id)
+void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
 {
     gconn->received_message_id = id;
 }
@@ -70,7 +70,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id)
  * Return -1 on failure.
  */
 static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry, const uint8_t *data,
-                              uint32_t length, uint8_t packet_type, uint64_t message_id)
+                              uint16_t length, uint8_t packet_type, uint64_t message_id)
 {
     if (length > 0) {
         if (data == nullptr) {
@@ -98,7 +98,7 @@ static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry
 }
 
 int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
-                          uint32_t length, uint8_t packet_type)
+                          uint16_t length, uint8_t packet_type)
 {
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
@@ -215,7 +215,7 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
 }
 
 int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
-                                const uint8_t *data, uint32_t length, uint8_t packet_type, uint64_t message_id,
+                                const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
                                 bool direct_conn)
 {
     /* Appears to be a duplicate packet so we discard it */
@@ -374,7 +374,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
         return -1;
     }
 
-    if (gcc_send_packet(chat, gconn, packet, enc_len) == -1) {
+    if (gcc_send_packet(chat, gconn, packet, (uint16_t)enc_len) == -1) {
         LOGGER_WARNING(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
         return -1;
     }
@@ -398,7 +398,7 @@ bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn
 }
 
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
-                           const uint8_t *part_message, size_t length)
+                           const uint8_t *part_message, uint16_t length)
 {
     if (gconn == nullptr) {
         return;

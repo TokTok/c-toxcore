@@ -71,7 +71,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     }
 
     // TODO(Jfreegman): add proper selection (what does that mean?)
-    size_t added_count = 0;
+    uint16_t added_count = 0;
 
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
         const size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;

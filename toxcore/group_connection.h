@@ -17,7 +17,7 @@
 
 /* Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
-                           const uint8_t *part_message, size_t length);
+                           const uint8_t *part_message, uint16_t length);
 
 /* Adds data of length to gconn's send_array.
  *
@@ -25,7 +25,7 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
  * Returns -1 on failure.
  */
 int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
-                          uint32_t length, uint8_t packet_type);
+                          uint16_t length, uint8_t packet_type);
 
 /* Decides if message need to be put in received_array or immediately handled.
  *
@@ -35,7 +35,7 @@ int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_C
  * Return -1 on failure
  */
 int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
-                                const uint8_t *data, uint32_t length, uint8_t packet_type, uint64_t message_id,
+                                const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
                                 bool direct_conn);
 
 /* Return array index for message_id */
@@ -51,10 +51,10 @@ int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id);
 /* Sets the send_message_id and send_array_start for `gconn` to `id`. This
  * should only be used to initialize a new lossless connection.
  */
-void gcc_set_send_message_id(GC_Connection *gconn, uint16_t id);
+void gcc_set_send_message_id(GC_Connection *gconn, uint64_t id);
 
 /* Sets the received_message_id for `gconn` to `id`. */
-void gcc_set_recv_message_id(GC_Connection *gconn, uint16_t id);
+void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id);
 
 /*
  * Returns true if the ip_port is set for gconn.

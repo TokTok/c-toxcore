@@ -76,7 +76,7 @@ typedef struct Moderation {
  * Returns length of unpacked data on success.
  * Returns -1 on failure.
  */
-int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods);
+int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length, uint16_t num_mods);
 
 /* Packs moderator list into data.
  * data must have room for `num_mods * MOD_LIST_ENTRY_SIZE` bytes.

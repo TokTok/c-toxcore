@@ -148,7 +148,7 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  * Return -3 if encryption fails.
  */
 int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
-                      uint32_t packet_size, const uint8_t *data, uint32_t length, uint64_t message_id,
+                      uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
                       uint8_t gp_packet_type, uint8_t net_packet_type);
 
 /* Packs group info for `chat` into `temp`. */
@@ -191,7 +191,7 @@ int gc_send_private_message(const GC_Chat *chat, uint32_t peer_id, uint8_t type,
  * Returns -2 if the message pointer is NULL or length is zero.
  * Returns -3 if the sender has the observer role.
  */
-int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *data, uint32_t length);
+int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *data, uint16_t length);
 
 /* Toggles ignore for peer_id.
  *

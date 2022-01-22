@@ -23,7 +23,7 @@
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 
-int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length, uint16_t num_mods)
+int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length, uint16_t num_mods)
 {
     if (length < num_mods * MOD_LIST_ENTRY_SIZE || num_mods > MOD_MAX_NUM_MODERATORS) {
         return -1;
@@ -41,7 +41,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint32_t length
         return -1;
     }
 
-    uint32_t unpacked_len = 0;
+    uint16_t unpacked_len = 0;
 
     for (uint16_t i = 0; i < num_mods; ++i) {
         tmp_list[i] = (uint8_t *)malloc(sizeof(uint8_t) * MOD_LIST_ENTRY_SIZE);
@@ -238,7 +238,7 @@ uint16_t sanctions_creds_pack(const Mod_Sanction_Creds *creds, uint8_t *data, ui
 int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
-    uint32_t packed_len = 0;
+    uint16_t packed_len = 0;
 
     for (uint16_t i = 0; i < num_sanctions && i < MOD_MAX_NUM_SANCTIONS; ++i) {
         if (packed_len + sizeof(uint8_t) + SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE > length) {
@@ -284,7 +284,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanc
         return -1;
     }
 
-    return (int)packed_len + cred_len;
+    return (int)(packed_len + cred_len);
 }
 
 uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data, uint16_t length)

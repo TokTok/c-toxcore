@@ -50,8 +50,8 @@ typedef enum Group_Exit_Type {
 } Group_Exit_Type;
 
 typedef struct GC_Exit_Info {
-    uint8_t part_message[MAX_GC_PART_MESSAGE_SIZE];
-    size_t  length;
+    uint8_t  part_message[MAX_GC_PART_MESSAGE_SIZE];
+    uint16_t length;
     Group_Exit_Type exit_type;
 } GC_Exit_Info;
 
@@ -62,7 +62,7 @@ typedef struct GC_PeerAddress {
 
 typedef struct GC_Message_Array_Entry {
     uint8_t *data;
-    uint32_t data_length;
+    uint16_t data_length;
     uint8_t  packet_type;
     uint64_t message_id;
     uint64_t time_added;
@@ -252,7 +252,7 @@ typedef struct GC_Chat {
     TCP_Connections *tcp_conn;
 
     bool            new_tcp_relay;   // true if we need to send peers a new TCP relay
-    uint16_t        tcp_connections; // the number of global TCP relays we're connected to
+    uint32_t        tcp_connections; // the number of global TCP relays we're connected to
     uint64_t        last_checked_tcp_relays;
 
     GC_Peer         *group;
