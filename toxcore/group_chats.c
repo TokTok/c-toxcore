@@ -973,7 +973,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
  * Broadcasts the shared state and moderator list on success, as well as the updated
  * sanctions list if necessary.
  *
- * TODO: Make this smarter in who to remove (e.g. the mod who hasn't been seen online in the longest time)
+ * TODO(Jfreegman): Make this smarter in who to remove (e.g. the mod who hasn't been seen online in the longest time)
  *
  * Returns 0 on success.
  * Returns -1 on failure or if no mods were removed.
@@ -3289,7 +3289,7 @@ static int handle_gc_nick(const GC_Session *c, GC_Chat *chat, GC_Peer *peer, con
     }
 
     // callback should come before we change the nick so a nick query returns the old nick instead of
-    // the new one. TODO (jfreegman): should this behaviour be uniform for all callbacks?
+    // the new one. TODO(jfreegman): should this behaviour be uniform for all callbacks?
     if (c->nick_change) {
         c->nick_change(c->messenger, chat->group_number, peer->peer_id, nick, length, userdata);
     }
@@ -3516,7 +3516,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     uint8_t old_topic_sig[SIGNATURE_SIZE];
     memcpy(old_topic_sig, chat->topic_sig, SIGNATURE_SIZE);
 
-    // TODO (jfreegman) improbable, but an overflow would break everything
+    // TODO(jfreegman): improbable, but an overflow would break everything
     if (chat->topic_info.version == UINT32_MAX) {
         return -3;
     }
@@ -6575,14 +6575,14 @@ static void do_self_connection(const GC_Session *c, GC_Chat *chat)
     const unsigned int self_udp_status = ipport_self_copy(m->dht, &chat->self_ip_port);
 
     // We flag a self announce if our udp status changes, or if we connect to a new tcp relay.
-    // TODO (Jfreegman): This should be flagged when the tcp relay count changes at all. However
+    // TODO(Jfreegman): This should be flagged when the tcp relay count changes at all. However
     // Doing this now on the testnet is pointless and causes spam due to a TCP implementation bug.
     if (((chat->self_udp_status != self_udp_status) && (self_udp_status != SELF_UDP_STATUS_NONE))
             || (tcp_connections > 0 && tcp_connections > chat->tcp_connections)) {
         chat->update_self_announces = true;
     }
 
-    if (tcp_connections > 0) {  // TODO (Jfreegman): Remove this before mainnet merge
+    if (tcp_connections > 0) {  // TODO(Jfreegman): Remove this before mainnet merge
         chat->tcp_connections = tcp_connections;
     }
 
