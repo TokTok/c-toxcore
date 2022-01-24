@@ -7395,7 +7395,7 @@ static bool copy_friend_ip_port_to_gconn(const Messenger *m, int friend_number, 
     return true;
 }
 
-int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length)
+int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint16_t length)
 {
     if (length < GC_JOIN_DATA_LENGTH) {
         return -1;
@@ -7466,7 +7466,7 @@ static bool friend_was_invited(const Messenger *m, GC_Chat *chat, int friend_num
  * Return 0 on success.
  * Return -1 on failure.
  */
-int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length)
+int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint16_t length)
 {
     if (length < GC_JOIN_DATA_LENGTH) {
         return -1;

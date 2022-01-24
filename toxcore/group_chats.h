@@ -572,7 +572,7 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
                      size_t nick_length, const uint8_t *passwd, uint16_t passwd_len);
 
 typedef int gc_send_group_invite_packet_cb(const Messenger *m, uint32_t friendnumber, const uint8_t *packet,
-        size_t length);
+        uint16_t length);
 
 /* Invites friend designated by `friendnumber` to chat.
  * Packet includes: Type, chat_id, TCP node or packed IP_Port.
@@ -634,7 +634,7 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
  * Return 0 on success.
  * Return -1 on failure.
  */
-int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
+int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint16_t length);
 
 /* Return true if `chat_id` is not present in our group sessions array.
  *
@@ -651,7 +651,7 @@ bool group_not_added(const GC_Session *c, const uint8_t *chat_id, uint32_t lengt
  * Return -4 if `friend_number` does not designate a valid friend.
  * Return -5 if data contains invalid connection info.
  */
-int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint32_t length);
+int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint16_t length);
 
 /* Returns the group designated by `public_key`.
  * Returns null if group does not exist.

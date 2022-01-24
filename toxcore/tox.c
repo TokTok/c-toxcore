@@ -3764,8 +3764,7 @@ bool tox_group_invite_friend(const Tox *tox, uint32_t group_number, uint32_t fri
         return 0;
     }
 
-    int ret = gc_invite_friend(tox->m->group_handler, chat, friend_number,
-                               send_group_invite_packet);
+    int ret = gc_invite_friend(tox->m->group_handler, chat, friend_number, send_group_invite_packet);
 
     switch (ret) {
         case 0: {

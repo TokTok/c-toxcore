@@ -607,7 +607,7 @@ int send_conference_invite_packet(const Messenger *m, int32_t friendnumber, cons
  *  return 0 on success
  *  return -1 on failure
  */
-int send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, size_t length);
+int send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length);
 
 
 /*** FILE SENDING */
