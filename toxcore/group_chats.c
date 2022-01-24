@@ -2381,22 +2381,26 @@ uint8_t gc_get_status(const GC_Chat *chat, uint32_t peer_id)
 {
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
+    const GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
         return (uint8_t) -1;
     }
 
-    return chat->group[peer_number].status;
+    return peer->status;
 }
 
 uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id)
 {
     int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
+    const GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
         return (uint8_t) -1;
     }
 
-    return chat->group[peer_number].role;
+    return peer->role;
 }
 
 void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest)
@@ -3250,12 +3254,14 @@ int gc_get_peer_nick(const GC_Chat *chat, uint32_t peer_id, uint8_t *name)
 {
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
+    const GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
         return -1;
     }
 
     if (name != nullptr) {
-        memcpy(name, chat->group[peer_number].nick, chat->group[peer_number].nick_length);
+        memcpy(name, peer->nick, peer->nick_length);
     }
 
     return 0;
@@ -3265,11 +3271,13 @@ int gc_get_peer_nick_size(const GC_Chat *chat, uint32_t peer_id)
 {
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
+    const GC_Peer *peer = get_gc_peer(chat, peer_number);
+
+    if (peer == nullptr) {
         return -1;
     }
 
-    return chat->group[peer_number].nick_length;
+    return peer->nick_length;
 }
 
 /* Handles a nick change broadcast.
@@ -4343,19 +4351,21 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Gro
 
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
-    const GC_Connection *gconn = get_gc_connection(chat, peer_number);
+    const GC_Peer *peer = get_gc_peer(chat, peer_number);
 
-    if (gconn == nullptr) {
+    if (peer == nullptr) {
         return -2;
     }
+
+    const GC_Connection *gconn = &peer->gconn;
 
     if (!gconn->confirmed) {
         return -2;
     }
 
-    const Group_Role current_role = chat->group[peer_number].role;
+    const Group_Role current_role = peer->role;
 
-    if (new_role == GR_FOUNDER || chat->group[peer_number].role == new_role) {
+    if (new_role == GR_FOUNDER || peer->role == new_role) {
         return -4;
     }
 
@@ -4807,36 +4817,32 @@ int gc_kick_peer(const Messenger *m, int group_number, uint32_t peer_id)
         return -6;
     }
 
-    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+    GC_Peer *peer = get_gc_peer(chat, peer_number);
 
-    if (gconn == nullptr) {
+    if (peer == nullptr) {
         return -2;
     }
 
-    if (!gconn->confirmed) {
-        return -2;
-    }
-
-    if (gc_get_self_role(chat) >= GR_USER || chat->group[peer_number].role == GR_FOUNDER) {
+    if (gc_get_self_role(chat) >= GR_USER || peer->role == GR_FOUNDER) {
         return -3;
     }
 
-    if (!self_gc_is_founder(chat) && chat->group[peer_number].role == GR_MODERATOR) {
+    if (!self_gc_is_founder(chat) && peer->role == GR_MODERATOR) {
         return -3;
     }
 
-    if (chat->group[peer_number].role == GR_MODERATOR || chat->group[peer_number].role == GR_OBSERVER) {
+    if (peer->role == GR_MODERATOR || peer->role == GR_OBSERVER) {
         /* this first removes peer from any lists they're on and broadcasts new lists to group */
         if (gc_set_peer_role(c->messenger, chat->group_number, peer_id, GR_USER) < 0) {
             return -4;
         }
     }
 
-    if (send_gc_kick_peer(chat, gconn) == -1) {
+    if (send_gc_kick_peer(chat, &peer->gconn) == -1) {
         return -5;
     }
 
-    gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_NO_CALLBACK, nullptr, 0);
+    gcc_mark_for_deletion(&peer->gconn, chat->tcp_conn, GC_EXIT_TYPE_NO_CALLBACK, nullptr, 0);
 
     return 0;
 }
@@ -4957,10 +4963,6 @@ static int handle_gc_hs_response_ack(const GC_Chat *chat, GC_Connection *gconn)
 int gc_toggle_ignore(const GC_Chat *chat, uint32_t peer_id, bool ignore)
 {
     const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
-
-    if (!gc_peer_number_is_valid(chat, peer_number)) {
-        return -1;
-    }
 
     GC_Peer *peer = get_gc_peer(chat, peer_number);
 
