@@ -71,7 +71,8 @@ static void test_save_friend(void)
     struct Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, enc_data, size2);
+    bool res = tox_options_set_savedata_data(options, enc_data, size2);
+    ck_assert(res == true);
 
     Tox_Err_New err2;
     Tox *tox3 = tox_new_log(options, &err2, nullptr);
@@ -82,7 +83,9 @@ static void test_save_friend(void)
     Tox_Err_Decryption err3;
     ret = tox_pass_decrypt(enc_data, size2, (const uint8_t *)"correcthorsebatterystaple", 25, dec_data, &err3);
     ck_assert_msg(ret, "failed to decrypt save: %d", err3);
-    tox_options_set_savedata_data(options, dec_data, size);
+    res = tox_options_set_savedata_data(options, dec_data, size);
+    ck_assert(res);
+
     tox3 = tox_new_log(options, &err2, nullptr);
     ck_assert_msg(err2 == TOX_ERR_NEW_OK, "failed to load from decrypted data: %d", err2);
     uint8_t address2[TOX_PUBLIC_KEY_SIZE];
@@ -114,7 +117,8 @@ static void test_save_friend(void)
 
     // and now with the code in use (I only bothered with manually to debug this, and it seems a waste
     // to remove the manual check now that it's there)
-    tox_options_set_savedata_data(options, out1, size);
+    res = tox_options_set_savedata_data(options, out1, size);
+    ck_assert(res == true);
     Tox *tox4 = tox_new_log(options, &err2, nullptr);
     ck_assert_msg(err2 == TOX_ERR_NEW_OK, "failed to new the third");
     uint8_t address5[TOX_PUBLIC_KEY_SIZE];

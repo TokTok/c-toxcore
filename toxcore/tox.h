@@ -575,11 +575,8 @@ struct Tox_Options {
      * format (TOX_MAX_HOSTNAME_LENGTH includes the NUL byte).
      *
      * This member is ignored (it can be NULL) if proxy_type is TOX_PROXY_TYPE_NONE.
-     *
-     * The data pointed at by this member is owned by the user, so must
-     * outlive the options object.
      */
-    const char *proxy_host;
+    char *proxy_host;
 
 
     /**
@@ -640,11 +637,8 @@ struct Tox_Options {
 
     /**
      * The savedata.
-     *
-     * The data pointed at by this member is owned by the user, so must
-     * outlive the options object.
      */
-    const uint8_t *savedata_data;
+    uint8_t *savedata_data;
 
 
     /**
@@ -699,7 +693,7 @@ void tox_options_set_proxy_type(struct Tox_Options *options, Tox_Proxy_Type type
 
 const char *tox_options_get_proxy_host(const struct Tox_Options *options);
 
-void tox_options_set_proxy_host(struct Tox_Options *options, const char *host);
+bool tox_options_set_proxy_host(struct Tox_Options *options, const char *host, size_t length);
 
 uint16_t tox_options_get_proxy_port(const struct Tox_Options *options);
 
@@ -727,7 +721,7 @@ void tox_options_set_savedata_type(struct Tox_Options *options, Tox_Savedata_Typ
 
 const uint8_t *tox_options_get_savedata_data(const struct Tox_Options *options);
 
-void tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length);
+bool tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length);
 
 size_t tox_options_get_savedata_length(const struct Tox_Options *options);
 
@@ -744,19 +738,6 @@ void tox_options_set_log_user_data(struct Tox_Options *options, void *user_data)
 bool tox_options_get_experimental_thread_safety(const struct Tox_Options *options);
 
 void tox_options_set_experimental_thread_safety(struct Tox_Options *options, bool thread_safety);
-
-/**
- * Initialises a Tox_Options object with the default options.
- *
- * The result of this function is independent of the original options. All
- * values will be overwritten, no values will be read (so it is permissible
- * to pass an uninitialised object).
- *
- * If options is NULL, this function has no effect.
- *
- * @param options An options object to be filled with default options.
- */
-void tox_options_default(struct Tox_Options *options);
 
 typedef enum Tox_Err_Options_New {
 

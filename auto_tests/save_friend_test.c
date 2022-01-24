@@ -113,7 +113,8 @@ int main(void)
 
     struct Tox_Options *const options = tox_options_new(nullptr);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, savedata, save_size);
+    bool res = tox_options_set_savedata_data(options, savedata, save_size);
+    ck_assert(res == true);
 
     Tox *const tox_to_compare = tox_new_log(options, nullptr, nullptr);
 

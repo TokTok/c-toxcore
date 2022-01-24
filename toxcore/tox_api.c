@@ -56,7 +56,6 @@ void tox_options_set_##ns##name(struct Tox_Options *options, type name) \
 ACCESSORS(bool,, ipv6_enabled)
 ACCESSORS(bool,, udp_enabled)
 ACCESSORS(Tox_Proxy_Type, proxy_, type)
-ACCESSORS(const char *, proxy_, host)
 ACCESSORS(uint16_t, proxy_, port)
 ACCESSORS(uint16_t,, start_port)
 ACCESSORS(uint16_t,, end_port)
@@ -71,46 +70,100 @@ ACCESSORS(bool,, experimental_thread_safety)
 
 //!TOKSTYLE+
 
+const char * tox_options_get_proxy_host(const struct Tox_Options *options)
+{
+    return options->proxy_host;
+}
+
+bool tox_options_set_proxy_host(struct Tox_Options *options, const char *host, size_t length)
+{
+    if (length > tox_max_hostname_length()) {
+        return false;
+    }
+
+    if ((length > 0) && (host[length - 1] != '\0')) {
+        // hostname not NUL terminated
+        return false;
+    }
+
+    free(options->proxy_host);
+
+    if ((host == nullptr) || (length == 0)) {
+        // Successfully removed proxy hostname
+        return true;
+    }
+
+    options->proxy_host = (char *) calloc(length, sizeof(char));
+
+    if (options->proxy_host == nullptr) {
+        // malloc error
+        return false;
+    }
+
+    memcpy(options->proxy_host, host, length);
+    return true;
+}
+
 const uint8_t *tox_options_get_savedata_data(const struct Tox_Options *options)
 {
     return options->savedata_data;
 }
 
-void tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length)
+bool tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *data, size_t length)
 {
-    options->savedata_data = data;
-    options->savedata_length = length;
-}
+    free(options->savedata_data);
 
-void tox_options_default(struct Tox_Options *options)
-{
-    if (options) {
-        struct Tox_Options default_options = { 0 };
-        *options = default_options;
-        tox_options_set_ipv6_enabled(options, true);
-        tox_options_set_udp_enabled(options, true);
-        tox_options_set_proxy_type(options, TOX_PROXY_TYPE_NONE);
-        tox_options_set_hole_punching_enabled(options, true);
-        tox_options_set_local_discovery_enabled(options, true);
-        tox_options_set_experimental_thread_safety(options, false);
+    if ((data == nullptr) || (length == 0)) {
+        // Successfully removed savedata
+        return true;
     }
+
+    options->savedata_data = (uint8_t *) malloc(length);
+
+    if (options->savedata_data == nullptr) {
+        // malloc error
+        options->savedata_length = 0;
+        return false;
+    }
+
+    memcpy(options->savedata_data, data, length);
+    options->savedata_length = length;
+    return true;
 }
 
 struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
 {
     struct Tox_Options *options = (struct Tox_Options *)calloc(1, sizeof(struct Tox_Options));
 
-    if (options) {
-        tox_options_default(options);
-        SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_OK);
-        return options;
+    if (options == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_MALLOC);
+        return nullptr;
     }
 
-    SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_MALLOC);
-    return nullptr;
+    struct Tox_Options default_options = { 0 };
+
+    *options = default_options;
+
+    tox_options_set_ipv6_enabled(options, true);
+
+    tox_options_set_udp_enabled(options, true);
+
+    tox_options_set_proxy_type(options, TOX_PROXY_TYPE_NONE);
+
+    tox_options_set_hole_punching_enabled(options, true);
+
+    tox_options_set_local_discovery_enabled(options, true);
+
+    tox_options_set_experimental_thread_safety(options, false);
+
+    return options;
 }
 
 void tox_options_free(struct Tox_Options *options)
 {
+    if(options) {
+        free(options->savedata_data);
+        free(options->proxy_host);
+    }
     free(options);
 }

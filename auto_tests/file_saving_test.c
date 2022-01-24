@@ -84,7 +84,8 @@ static void load_data_decrypted(void)
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
-    tox_options_set_savedata_data(options, clear, size);
+    bool res = tox_options_set_savedata_data(options, clear, size);
+    ck_assert(res == true);
 
     Tox_Err_New err;
 
