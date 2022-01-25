@@ -257,6 +257,7 @@ static void bootstrap_autotoxes(struct Tox_Options *options, uint32_t tox_count,
         }
     } else {
         printf("bootstrapping all toxes to tcp relays\n");
+
         for (uint32_t i = 0; i < tox_count; ++i) {
             bootstrap_tox_live_network(autotoxes[i].tox, true);
         }
