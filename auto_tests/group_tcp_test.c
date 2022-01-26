@@ -242,6 +242,7 @@ int main(void)
 
     Run_Auto_Options autotest_opts = default_run_auto_options;
     autotest_opts.graph = GRAPH_COMPLETE;
+
     run_auto_test(options, NUM_GROUP_TOXES, group_tcp_test, sizeof(State), &autotest_opts);
 
     tox_options_free(options);

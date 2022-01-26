@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <time.h>
 
+#include "auto_test_support.h"
 #include "check_compat.h"
 
 #define NUM_GROUP_TOXES 5
@@ -26,34 +27,32 @@
 #define PEER0_NICK_LEN (sizeof(PEER0_NICK) - 1)
 
 typedef struct State {
-    uint32_t index;
-    uint64_t clock;
     size_t  num_peers;
 } State;
 
-#include "run_auto_test.h"
-
-static bool all_group_peers_connected(uint32_t tox_count, const State *state, Tox **toxes, uint32_t groupnumber,
+static bool all_group_peers_connected(const AutoTox *autotoxes, uint32_t tox_count, uint32_t groupnumber,
                                       size_t name_length, uint32_t peer_limit)
 {
     for (uint32_t i = 0; i < tox_count; ++i) {
         // make sure we got an invite response
-        if (tox_group_get_name_size(toxes[i], groupnumber, nullptr) != name_length) {
+        if (tox_group_get_name_size(autotoxes[i].tox, groupnumber, nullptr) != name_length) {
             return false;
         }
 
         // make sure we got a sync response
-        if (tox_group_get_peer_limit(toxes[i], groupnumber, nullptr) != peer_limit) {
+        if (tox_group_get_peer_limit(autotoxes[i].tox, groupnumber, nullptr) != peer_limit) {
             return false;
         }
 
         // make sure we're actually connected
-        if (!tox_group_is_connected(toxes[i], groupnumber, nullptr)) {
+        if (!tox_group_is_connected(autotoxes[i].tox, groupnumber, nullptr)) {
             return false;
         }
 
+        const State *state = (const State *)autotoxes[i].state;
+
         // make sure all peers are connected to one another
-        if (state[i].num_peers < NUM_GROUP_TOXES - 1) {
+        if (state->num_peers < NUM_GROUP_TOXES - 1) {
             return false;
         }
     }
@@ -100,8 +99,10 @@ static void group_password_handler(Tox *tox, uint32_t groupnumber, const uint8_t
 
 static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
-    State *state = (State *)user_data;
-    ck_assert(state != nullptr);
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
 
     ++state->num_peers;
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
@@ -200,42 +201,44 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
                   lock_set_err);
 }
 
-static void group_state_test(Tox **toxes, State *state)
+static void group_state_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        tox_callback_group_privacy_state(toxes[i], group_privacy_state_handler);
-        tox_callback_group_peer_limit(toxes[i], group_peer_limit_handler);
-        tox_callback_group_password(toxes[i], group_password_handler);
-        tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
+        tox_callback_group_privacy_state(autotoxes[i].tox, group_privacy_state_handler);
+        tox_callback_group_peer_limit(autotoxes[i].tox, group_peer_limit_handler);
+        tox_callback_group_password(autotoxes[i].tox, group_password_handler);
+        tox_callback_group_peer_join(autotoxes[i].tox, group_peer_join_handler);
     }
+
+    Tox *tox0 = autotoxes[0].tox;
 
     /* Tox 0 creates a group and is the founder of a newly created group */
     TOX_ERR_GROUP_NEW new_err;
-    uint32_t groupnum = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
+    uint32_t groupnum = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
                                       (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
     /* Founder sets default group state before anyone else joins */
-    set_group_state(toxes[0], groupnum, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD, PASS_LEN,
+    set_group_state(tox0, groupnum, PEER_LIMIT_1, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)PASSWORD, PASS_LEN,
                     TOX_GROUP_TOPIC_LOCK_ENABLED);
 
     /* Founder gets the Chat ID and implicitly shares it publicly */
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
-    tox_group_get_chat_id(toxes[0], groupnum, chat_id, &id_err);
+    tox_group_get_chat_id(tox0, groupnum, chat_id, &id_err);
 
     ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "tox_group_get_chat_id failed %d", id_err);
 
     /* All other peers join the group using the Chat ID and password */
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
         TOX_ERR_GROUP_JOIN join_err;
-        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN,
+        tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN,
                        &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
     }
@@ -243,23 +246,23 @@ static void group_state_test(Tox **toxes, State *state)
     fprintf(stderr, "Peers attempting to join group\n");
 
     /* Keep checking if all instances have connected to the group until test times out */
-    while (!all_group_peers_connected(NUM_GROUP_TOXES, state, toxes, groupnum, GROUP_NAME_LEN, PEER_LIMIT_1)) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!all_group_peers_connected(autotoxes, NUM_GROUP_TOXES, groupnum, GROUP_NAME_LEN, PEER_LIMIT_1)) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     /* Change group state and check that all peers received the changes */
-    set_group_state(toxes[0], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
+    set_group_state(tox0, groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
                     TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     fprintf(stderr, "Changing state\n");
 
     while (1) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
         uint32_t count = 0;
 
         for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            if (check_group_state(toxes[i], groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
+            if (check_group_state(autotoxes[i].tox, groupnum, PEER_LIMIT_2, TOX_GROUP_PRIVACY_STATE_PRIVATE, nullptr, 0,
                                   TOX_GROUP_TOPIC_LOCK_DISABLED) == 0) {
                 ++count;
             }
@@ -273,7 +276,7 @@ static void group_state_test(Tox **toxes, State *state)
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         TOX_ERR_GROUP_LEAVE err_exit;
-        tox_group_leave(toxes[i], groupnum, nullptr, 0, &err_exit);
+        tox_group_leave(autotoxes[i].tox, groupnum, nullptr, 0, &err_exit);
         ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
     }
 
@@ -286,7 +289,10 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    run_auto_test(nullptr, NUM_GROUP_TOXES, group_state_test, false);
+    Run_Auto_Options autotest_opts = default_run_auto_options;
+    autotest_opts.graph = GRAPH_COMPLETE;
+
+    run_auto_test(nullptr, NUM_GROUP_TOXES, group_state_test, sizeof(State), &autotest_opts);
 
     return 0;
 }
