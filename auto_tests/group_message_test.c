@@ -7,11 +7,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "auto_test_support.h"
 #include "check_compat.h"
 
 typedef struct State {
-    uint32_t index;
-    uint64_t clock;
     uint32_t peer_id;
     bool peer_joined;
     bool message_sent;
@@ -21,9 +20,6 @@ typedef struct State {
     bool lossless_check;
     int last_msg_recv;
 } State;
-
-#include "run_auto_test.h"
-
 
 #define NUM_GROUP_TOXES 2
 #define MAX_NUM_MESSAGES 1000
@@ -66,7 +62,11 @@ static void group_join_fail_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_JO
 
 static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, void *user_data)
 {
-    State *state = (State *)user_data;
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
+
     printf("peer %u joined, sending message\n", peer_id);
     state->peer_joined = true;
     state->peer_id = peer_id;
@@ -109,7 +109,11 @@ static void group_custom_packet_handler(Tox *tox, uint32_t groupnumber, uint32_t
     printf("%s sent custom packet to %s: %s\n", peer_name, self_name, message_buf);
     ck_assert(memcmp(message_buf, TEST_CUSTOM_PACKET, length) == 0);
 
-    State *state = (State *)user_data;
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
+
     ++state->custom_packets_received;
 }
 
@@ -151,7 +155,11 @@ static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_
     printf("%s sent message to %s: %s\n", peer_name, self_name, message_buf);
     ck_assert(memcmp(message_buf, TEST_MESSAGE, length) == 0);
 
-    State *state = (State *)user_data;
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
+
     state->message_received = true;
 }
 
@@ -192,17 +200,24 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     printf("%s sent private action to %s: %s\n", peer_name, self_name, message_buf);
     ck_assert(memcmp(message_buf, TEST_PRIVATE_MESSAGE, length) == 0);
 
-    State *state = (State *)user_data;
     ck_assert(type == TOX_MESSAGE_TYPE_ACTION);
+
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
+
     state->private_message_received = true;
 }
 
 static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
                                     const uint8_t *message, size_t length, void *user_data)
 {
-    State *state = (State *)user_data;
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
 
-    ck_assert(state != nullptr);
+    State *state = (State *)autotox->state;
+
     ck_assert(length > 0 && length <= TOX_MAX_MESSAGE_LENGTH);
 
     char c[TOX_MAX_MESSAGE_LENGTH + 1];
@@ -221,67 +236,73 @@ static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t pee
     }
 }
 
-static void group_message_test(Tox **toxes, State *state)
+static void group_message_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 2, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
-    tox_callback_group_invite(toxes[1], group_invite_handler);
-    tox_callback_group_join_fail(toxes[1], group_join_fail_handler);
-    tox_callback_group_peer_join(toxes[1], group_peer_join_handler);
-    tox_callback_group_join_fail(toxes[0], group_join_fail_handler);
-    tox_callback_group_peer_join(toxes[0], group_peer_join_handler);
-    tox_callback_group_message(toxes[0], group_message_handler);
-    tox_callback_group_custom_packet(toxes[0], group_custom_packet_handler);
-    tox_callback_group_private_message(toxes[0], group_private_message_handler);
+    Tox *tox0 = autotoxes[0].tox;
+    Tox *tox1 = autotoxes[1].tox;
+
+    State *state0 = autotoxes[0].state;
+    State *state1 = autotoxes[1].state;
+
+    tox_callback_group_invite(tox1, group_invite_handler);
+    tox_callback_group_join_fail(tox1, group_join_fail_handler);
+    tox_callback_group_peer_join(tox1, group_peer_join_handler);
+    tox_callback_group_join_fail(tox0, group_join_fail_handler);
+    tox_callback_group_peer_join(tox0, group_peer_join_handler);
+    tox_callback_group_message(tox0, group_message_handler);
+    tox_callback_group_custom_packet(tox0, group_custom_packet_handler);
+    tox_callback_group_private_message(tox0, group_private_message_handler);
 
     TOX_ERR_GROUP_SEND_MESSAGE err_send;
 
     // tox0 makes new group.
     TOX_ERR_GROUP_NEW err_new;
-    uint32_t group_number = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)TEST_GROUP_NAME,
+    uint32_t group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)TEST_GROUP_NAME,
                                           TEST_GROUP_NAME_LEN, (const uint8_t *)PEER1_NICK, PEER1_NICK_LEN, &err_new);
 
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
 
     // tox0 invites tox1
     TOX_ERR_GROUP_INVITE_FRIEND err_invite;
-    tox_group_invite_friend(toxes[0], group_number, 0, &err_invite);
+    tox_group_invite_friend(tox0, group_number, 0, &err_invite);
     ck_assert(err_invite == TOX_ERR_GROUP_INVITE_FRIEND_OK);
 
-    while (!state[0].message_received) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state0->message_received) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
-        if (state[1].peer_joined && !state[1].message_sent) {
-            tox_group_send_message(toxes[1], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)TEST_MESSAGE,
+        if (state1->peer_joined && !state1->message_sent) {
+            tox_group_send_message(tox1, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)TEST_MESSAGE,
                                    TEST_MESSAGE_LEN, &err_send);
             ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
-            state[1].message_sent = true;
+            state1->message_sent = true;
         }
     }
 
     // tox0 ignores tox1
     TOX_ERR_GROUP_TOGGLE_IGNORE ig_err;
-    tox_group_toggle_ignore(toxes[0], group_number, state[0].peer_id, true, &ig_err);
+    tox_group_toggle_ignore(tox0, group_number, state0->peer_id, true, &ig_err);
     ck_assert_msg(ig_err == TOX_ERR_GROUP_TOGGLE_IGNORE_OK, "%d", ig_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     // tox1 sends group a message which should not be seen by tox0's message handler
-    tox_group_send_message(toxes[1], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)IGNORE_MESSAGE,
+    tox_group_send_message(tox1, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)IGNORE_MESSAGE,
                            IGNORE_MESSAGE_LEN, &err_send);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     // tox0 unignores tox1
-    tox_group_toggle_ignore(toxes[0], group_number, state[0].peer_id, false, &ig_err);
+    tox_group_toggle_ignore(tox0, group_number, state0->peer_id, false, &ig_err);
     ck_assert_msg(ig_err == TOX_ERR_GROUP_TOGGLE_IGNORE_OK, "%d", ig_err);
 
     fprintf(stderr, "Sending private message...\n");
 
     // tox0 sends a private action to tox1
     TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE m_err;
-    tox_group_send_private_message(toxes[1], group_number, state[1].peer_id, TOX_MESSAGE_TYPE_ACTION,
+    tox_group_send_private_message(tox1, group_number, state1->peer_id, TOX_MESSAGE_TYPE_ACTION,
                                    (const uint8_t *)TEST_PRIVATE_MESSAGE, TEST_PRIVATE_MESSAGE_LEN, &m_err);
     ck_assert_msg(m_err == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%d", m_err);
 
@@ -289,31 +310,31 @@ static void group_message_test(Tox **toxes, State *state)
 
     // tox0 sends a lossless and lossy custom packet to tox1
     TOX_ERR_GROUP_SEND_CUSTOM_PACKET c_err;
-    tox_group_send_custom_packet(toxes[1], group_number, true, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
+    tox_group_send_custom_packet(tox1, group_number, true, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
                                  &c_err);
     ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
 
-    tox_group_send_custom_packet(toxes[1], group_number, false, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
+    tox_group_send_custom_packet(tox1, group_number, false, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
                                  &c_err);
     ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
 
-    while (!state[0].private_message_received && state[0].custom_packets_received < 2) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state0->private_message_received && state0->custom_packets_received < 2) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     // tox0 spams messages to tox1
     fprintf(stderr, "Doing lossless packet test...\n");
 
-    tox_callback_group_message(toxes[1], group_message_handler_2);
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    tox_callback_group_message(tox1, group_message_handler_2);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
-    state[1].last_msg_recv = -1;
+    state1->last_msg_recv = -1;
 
     for (size_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
         char m[10] = {0};
         snprintf(m, sizeof(m), "%zu", i);
 
-        tox_group_send_message(toxes[0], group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, sizeof(m), &err_send);
+        tox_group_send_message(tox0, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, sizeof(m), &err_send);
 
         // fprintf(stderr, "Send: %zu\n", i);
         ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
@@ -321,13 +342,13 @@ static void group_message_test(Tox **toxes, State *state)
 
     fprintf(stderr, "Waiting for packets to be received...\n");
 
-    while (!state[1].lossless_check) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state1->lossless_check) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
         TOX_ERR_GROUP_LEAVE err_exit;
-        tox_group_leave(toxes[i], group_number, nullptr, 0, &err_exit);
+        tox_group_leave(autotoxes[i].tox, group_number, nullptr, 0, &err_exit);
         ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }
 
@@ -339,7 +360,10 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    run_auto_test(nullptr, NUM_GROUP_TOXES, group_message_test, false);
+    Run_Auto_Options autotest_opts = default_run_auto_options;
+    autotest_opts.graph = GRAPH_COMPLETE;
+
+    run_auto_test(nullptr, NUM_GROUP_TOXES, group_message_test, sizeof(State), &autotest_opts);
     return 0;
 }
 
