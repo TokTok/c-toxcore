@@ -8,9 +8,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "auto_test_support.h"
+
 typedef struct State {
-    uint32_t index;
-    uint64_t clock;
     size_t   peer_joined_count;
     size_t   self_joined_count;
     size_t   peer_exit_count;
@@ -19,8 +19,6 @@ typedef struct State {
     uint32_t peer_id;
     bool     is_founder;
 } State;
-
-#include "run_auto_test.h"
 
 #define NUM_GROUP_TOXES 2
 
@@ -403,7 +401,10 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    run_auto_test(nullptr, NUM_GROUP_TOXES, group_announce_test, false);
+    Run_Auto_Options options = default_run_auto_options;
+    options.graph = GRAPH_LINEAR;
+
+    run_auto_test(nullptr, NUM_GROUP_TOXES, group_announce_test, sizeof(State), &options);
 
     return 0;
 }
