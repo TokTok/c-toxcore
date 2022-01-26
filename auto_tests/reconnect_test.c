@@ -79,7 +79,7 @@ static void test_reconnect(AutoTox *autotoxes)
 
     do {
         iterate_all_wait(TOX_COUNT, autotoxes, ITERATION_INTERVAL);
-    } while (!all_friends_connected(TOX_COUNT, autotoxes));
+    } while (!all_friends_connected(autotoxes, TOX_COUNT));
 
     const uint64_t reconnect_time = autotoxes[0].clock - reconnect_start_time;
     ck_assert_msg(reconnect_time <= RECONNECT_TIME_MAX * 1000, "reconnection took %d seconds; expected at most %d seconds",
