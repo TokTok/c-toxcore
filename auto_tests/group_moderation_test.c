@@ -453,7 +453,7 @@ static void group_moderation_test(AutoTox *autotoxes)
     /* New moderator promotes second peer back to user */
     const uint32_t idx = get_state_index_by_nick(autotoxes, NUM_GROUP_TOXES, state0->peers[0].name,
                          state0->peers[0].name_length);
-    State *state1 = autotoxes[idx].state;
+    State *state1 = (State *)autotoxes[idx].state;
     Tox *tox1 = autotoxes[idx].tox;
 
     const uint32_t obs_peer_id = get_peer_id_by_nick(state1->peers, NUM_GROUP_TOXES - 1, state1->observer_name1);

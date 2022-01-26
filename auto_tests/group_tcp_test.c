@@ -82,8 +82,10 @@ static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_
 static void iterate_group(AutoTox *autotoxes, uint32_t num_toxes, size_t interval)
 {
     for (uint32_t i = 0; i < num_toxes; i++) {
-        tox_iterate(autotoxes[i].tox, &autotoxes[i]);
-        autotoxes[i].clock += interval;
+        if (autotoxes[i].alive) {
+            tox_iterate(autotoxes[i].tox, &autotoxes[i]);
+            autotoxes[i].clock += interval;
+        }
     }
 
     c_sleep(50);

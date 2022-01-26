@@ -244,8 +244,8 @@ static void group_message_test(AutoTox *autotoxes)
     Tox *tox0 = autotoxes[0].tox;
     Tox *tox1 = autotoxes[1].tox;
 
-    State *state0 = autotoxes[0].state;
-    State *state1 = autotoxes[1].state;
+    State *state0 = (State *)autotoxes[0].state;
+    State *state1 = (State *)autotoxes[1].state;
 
     tox_callback_group_invite(tox1, group_invite_handler);
     tox_callback_group_join_fail(tox1, group_join_fail_handler);
@@ -260,8 +260,8 @@ static void group_message_test(AutoTox *autotoxes)
 
     // tox0 makes new group.
     TOX_ERR_GROUP_NEW err_new;
-    uint32_t group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)TEST_GROUP_NAME,
-                                          TEST_GROUP_NAME_LEN, (const uint8_t *)PEER1_NICK, PEER1_NICK_LEN, &err_new);
+    const uint32_t group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)TEST_GROUP_NAME,
+                                  TEST_GROUP_NAME_LEN, (const uint8_t *)PEER1_NICK, PEER1_NICK_LEN, &err_new);
 
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
 

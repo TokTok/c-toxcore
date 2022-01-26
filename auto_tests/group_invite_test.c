@@ -161,12 +161,12 @@ static void group_invite_test(AutoTox *autotoxes)
     Tox *tox5 = autotoxes[5].tox;
     Tox *tox6 = autotoxes[6].tox;
 
-    State *state0 = autotoxes[0].state;
-    State *state2 = autotoxes[2].state;
-    State *state3 = autotoxes[3].state;
-    State *state4 = autotoxes[4].state;
-    State *state5 = autotoxes[5].state;
-    State *state6 = autotoxes[6].state;
+    State *state0 = (State *)autotoxes[0].state;
+    State *state2 = (State *)autotoxes[2].state;
+    State *state3 = (State *)autotoxes[3].state;
+    State *state4 = (State *)autotoxes[4].state;
+    State *state5 = (State *)autotoxes[5].state;
+    State *state6 = (State *)autotoxes[6].state;
 
     TOX_ERR_GROUP_NEW new_err;
     uint32_t groupnumber = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
