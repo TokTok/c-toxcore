@@ -10,19 +10,16 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "auto_test_support.h"
 #include "check_compat.h"
 
 typedef struct State {
-    uint32_t index;
-    uint64_t clock;
     uint32_t num_peers;
     bool peer_limit_fail;
     bool password_fail;
     bool connected;
     size_t messages_received;
 } State;
-
-#include "run_auto_test.h"
 
 #define NUM_GROUP_TOXES 8  // must be > 7
 
@@ -35,16 +32,22 @@ typedef struct State {
 #define SECRET_CODE "RONALD MCDONALD"
 #define SECRET_CODE_LEN (sizeof(SECRET_CODE) - 1)
 
-static bool group_has_full_graph(Tox **toxes, const State *state, uint32_t group_number, uint32_t expected_peer_count)
+static bool group_has_full_graph(const AutoTox *autotoxes, uint32_t group_number, uint32_t expected_peer_count)
 {
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
-        if (state[i].num_peers != expected_peer_count) {
+        const State *state = (const State *)autotoxes[i].state;
+
+        if (state->num_peers != expected_peer_count) {
             return false;
         }
     }
 
-    if (state[0].num_peers != expected_peer_count || state[1].num_peers != expected_peer_count
-            || state[5].num_peers != expected_peer_count) {
+    const State *state0 = (const State *)autotoxes[0].state;
+    const State *state1 = (const State *)autotoxes[1].state;
+    const State *state5 = (const State *)autotoxes[5].state;
+
+    if (state0->num_peers != expected_peer_count || state1->num_peers != expected_peer_count
+            || state5->num_peers != expected_peer_count) {
         return false;
     }
 
@@ -52,17 +55,22 @@ static bool group_has_full_graph(Tox **toxes, const State *state, uint32_t group
     return true;
 }
 
-static bool group_received_all_messages(Tox **toxes, const State *state, uint32_t group_number,
-                                        size_t expected_msg_count)
+static bool group_received_all_messages(const AutoTox *autotoxes, uint32_t group_number, size_t expected_msg_count)
 {
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
-        if (state[i].messages_received != expected_msg_count) {
+        const State *state = (const State *)autotoxes[i].state;
+
+        if (state->messages_received != expected_msg_count) {
             return false;
         }
     }
 
-    if (state[0].messages_received != expected_msg_count || state[1].messages_received != expected_msg_count
-            || state[5].messages_received != expected_msg_count) {
+    const State *state0 = (const State *)autotoxes[0].state;
+    const State *state1 = (const State *)autotoxes[1].state;
+    const State *state5 = (const State *)autotoxes[5].state;
+
+    if (state0->messages_received != expected_msg_count || state1->messages_received != expected_msg_count
+            || state5->messages_received != expected_msg_count) {
         return false;
     }
 
@@ -72,8 +80,10 @@ static bool group_received_all_messages(Tox **toxes, const State *state, uint32_
 
 static void group_join_fail_handler(Tox *tox, uint32_t group_number, TOX_GROUP_JOIN_FAIL fail_type, void *user_data)
 {
-    State *state = (State *)user_data;
-    ck_assert(state != nullptr);
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
 
     switch (fail_type) {
         case TOX_GROUP_JOIN_FAIL_PEER_LIMIT: {
@@ -99,8 +109,10 @@ static void group_join_fail_handler(Tox *tox, uint32_t group_number, TOX_GROUP_J
 static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
                                   const uint8_t *message, size_t length, void *user_data)
 {
-    State *state = (State *)user_data;
-    ck_assert(state != nullptr);
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
 
     ck_assert(length == SECRET_CODE_LEN);
     ck_assert(memcmp(message, SECRET_CODE, length) == 0);
@@ -110,156 +122,175 @@ static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_
 
 static void group_self_join_handler(Tox *tox, uint32_t group_number, void *user_data)
 {
-    State *state = (State *)user_data;
-    ck_assert(state != nullptr);
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
 
     state->connected = true;
 }
 
 static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
-    State *state = (State *)user_data;
-    ck_assert(state != nullptr);
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
 
     ++state->num_peers;
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
 
-static void group_invite_test(Tox **toxes, State *state)
+static void group_invite_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES > 7, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        tox_callback_group_peer_join(toxes[i], group_peer_join_handler);
-        tox_callback_group_join_fail(toxes[i], group_join_fail_handler);
-        tox_callback_group_self_join(toxes[i], group_self_join_handler);
-        tox_callback_group_message(toxes[i], group_message_handler);
+        tox_callback_group_peer_join(autotoxes[i].tox, group_peer_join_handler);
+        tox_callback_group_join_fail(autotoxes[i].tox, group_join_fail_handler);
+        tox_callback_group_self_join(autotoxes[i].tox, group_self_join_handler);
+        tox_callback_group_message(autotoxes[i].tox, group_message_handler);
     }
 
+    Tox *tox0 = autotoxes[0].tox;
+    Tox *tox1 = autotoxes[1].tox;
+    Tox *tox2 = autotoxes[2].tox;
+    Tox *tox3 = autotoxes[3].tox;
+    Tox *tox4 = autotoxes[4].tox;
+    Tox *tox5 = autotoxes[5].tox;
+    Tox *tox6 = autotoxes[6].tox;
+
+    State *state0 = autotoxes[0].state;
+    State *state2 = autotoxes[2].state;
+    State *state3 = autotoxes[3].state;
+    State *state4 = autotoxes[4].state;
+    State *state5 = autotoxes[5].state;
+    State *state6 = autotoxes[6].state;
+
     TOX_ERR_GROUP_NEW new_err;
-    uint32_t groupnumber = tox_group_new(toxes[0], TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
+    uint32_t groupnumber = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
                                          (const uint8_t *)"test", 4, &new_err);
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     TOX_ERR_GROUP_STATE_QUERIES id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
-    tox_group_get_chat_id(toxes[0], groupnumber, chat_id, &id_err);
+    tox_group_get_chat_id(tox0, groupnumber, chat_id, &id_err);
     ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", id_err);
 
     // peer 1 joins public group with no password
     TOX_ERR_GROUP_JOIN join_err;
-    tox_group_join(toxes[1], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
+    tox_group_join(tox1, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while (state[0].num_peers < 1) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (state0->num_peers < 1) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Peer 1 joined group\n");
 
     // founder sets a password
     TOX_ERR_GROUP_FOUNDER_SET_PASSWORD pass_set_err;
-    tox_group_founder_set_password(toxes[0], groupnumber, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
+    tox_group_founder_set_password(tox0, groupnumber, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "%d", pass_set_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, 5000);
 
     // peer 2 attempts to join with no password
-    tox_group_join(toxes[2], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
+    tox_group_join(tox2, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while (!state[2].password_fail) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state2->password_fail) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Peer 2 successfully blocked with no password\n");
 
     // peer 3 attempts to join with invalid password
-    tox_group_join(toxes[3], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)WRONG_PASS, WRONG_PASS_LEN, &join_err);
+    tox_group_join(tox3, chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)WRONG_PASS, WRONG_PASS_LEN, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while (!state[3].password_fail) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state3->password_fail) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Peer 3 successfully blocked with invalid password\n");
 
     // founder sets peer limit to 1
     TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT limit_set_err;
-    tox_group_founder_set_peer_limit(toxes[0], groupnumber, 1, &limit_set_err);
+    tox_group_founder_set_peer_limit(tox0, groupnumber, 1, &limit_set_err);
     ck_assert_msg(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK, "%d", limit_set_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, 5000);
 
     // peer 4 attempts to join with correct password
-    tox_group_join(toxes[4], chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN, &join_err);
+    tox_group_join(tox4, chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while (!state[4].peer_limit_fail) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state4->peer_limit_fail) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Peer 4 successfully blocked from joining full group\n");
 
     // founder removes password and increases peer limit to 100
-    tox_group_founder_set_password(toxes[0], groupnumber, nullptr, 0, &pass_set_err);
+    tox_group_founder_set_password(tox0, groupnumber, nullptr, 0, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "%d", pass_set_err);
 
-    tox_group_founder_set_peer_limit(toxes[0], groupnumber, 100, &limit_set_err);
+    tox_group_founder_set_peer_limit(tox0, groupnumber, 100, &limit_set_err);
     ck_assert_msg(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK, "%d", limit_set_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, 5000);
 
     // peer 5 attempts to join group
-    tox_group_join(toxes[5], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
+    tox_group_join(tox5, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
-    while (!state[5].connected) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!state5->connected) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Peer 5 successfully joined the group\n");
 
     // founder makes group private
     TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE priv_err;
-    tox_group_founder_set_privacy_state(toxes[0], groupnumber, TOX_GROUP_PRIVACY_STATE_PRIVATE, &priv_err);
+    tox_group_founder_set_privacy_state(tox0, groupnumber, TOX_GROUP_PRIVACY_STATE_PRIVATE, &priv_err);
     ck_assert_msg(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK, "%d", priv_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 5000);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, 5000);
 
     // peer 6 attempts to join group via chat ID
-    tox_group_join(toxes[6], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
+    tox_group_join(tox6, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
     // since we don't receive a fail packet in this case we just wait a while and check if we're in the group
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, 20000);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, 20000);
 
-    ck_assert(!state[6].connected);
+    ck_assert(!state6->connected);
 
     printf("Peer 6 failed to join private group via chat ID\n");
 
     // founder makes group public again
-    tox_group_founder_set_privacy_state(toxes[0], groupnumber, TOX_GROUP_PRIVACY_STATE_PUBLIC, &priv_err);
+    tox_group_founder_set_privacy_state(tox0, groupnumber, TOX_GROUP_PRIVACY_STATE_PUBLIC, &priv_err);
     ck_assert_msg(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK, "%d", priv_err);
 
-    iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     const uint32_t num_new_peers = NUM_GROUP_TOXES - 7;
     printf("Connecting %u peers at the same time\n", num_new_peers);
 
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
-        tox_group_join(toxes[i], chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
+        tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
     }
 
-    const uint32_t expected_peer_count = num_new_peers + state[0].num_peers + 1;
+    const uint32_t expected_peer_count = num_new_peers + state0->num_peers + 1;
 
-    while (!group_has_full_graph(toxes, state, groupnumber, expected_peer_count)) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!group_has_full_graph(autotoxes, groupnumber, expected_peer_count)) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Every peer sees every other peer\n");
@@ -267,19 +298,19 @@ static void group_invite_test(Tox **toxes, State *state)
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         // don't error check this call because all the peers who couldn't join will
         // fail to send a message
-        tox_group_send_message(toxes[i], groupnumber, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)SECRET_CODE,
+        tox_group_send_message(autotoxes[i].tox, groupnumber, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)SECRET_CODE,
                                SECRET_CODE_LEN, nullptr);
     }
 
-    while (!group_received_all_messages(toxes, state, groupnumber, expected_peer_count)) {
-        iterate_all_wait(NUM_GROUP_TOXES, toxes, state, ITERATION_INTERVAL);
+    while (!group_received_all_messages(autotoxes, groupnumber, expected_peer_count)) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
     printf("Every present peer received a message from every other peer\n");
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         TOX_ERR_GROUP_LEAVE err_exit;
-        tox_group_leave(toxes[i], groupnumber, nullptr, 0, &err_exit);
+        tox_group_leave(autotoxes[i].tox, groupnumber, nullptr, 0, &err_exit);
         ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
     }
 
@@ -292,7 +323,10 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    run_auto_test(nullptr, NUM_GROUP_TOXES, group_invite_test, false);
+    Run_Auto_Options autotest_opts = default_run_auto_options;
+    autotest_opts.graph = GRAPH_COMPLETE;
+
+    run_auto_test(nullptr, NUM_GROUP_TOXES, group_invite_test, sizeof(State), &autotest_opts);
 
     return 0;
 }
@@ -302,4 +336,3 @@ int main(void)
 #undef PASS_LEN
 #undef WRONG_PASS
 #undef WRONG_PASS_LEN
-
