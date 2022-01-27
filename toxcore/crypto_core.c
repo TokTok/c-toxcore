@@ -153,6 +153,7 @@ uint16_t random_u16(void)
 uint32_t random_u32(void)
 {
     uint32_t randnum;
+    // TODO(nurupo): maybe use libsodium's built-in random 32-bit function??/
     random_bytes((uint8_t *)&randnum, sizeof(randnum));
     return randnum;
 }
