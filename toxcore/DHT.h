@@ -230,13 +230,17 @@ void dht_get_shared_key_recv(DHT *dht, uint8_t *shared_key, const uint8_t *publi
  */
 void dht_get_shared_key_sent(DHT *dht, uint8_t *shared_key, const uint8_t *public_key);
 
-
 /** Sends a getnodes request to `ip_port` with the public key `public_key` for nodes
  * that are close to `client_id`.
  *
  * Return true on success.
  */
 bool dht_getnodes(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *client_id);
+
+typedef void dht_get_nodes_response_cb(const DHT *dht, const Node_format *node, void *userdata);
+
+/** Sets the callback to be triggered on a getnodes response. */
+void dht_callback_get_nodes_response(DHT *dht, dht_get_nodes_response_cb *function);
 
 typedef void dht_ip_cb(void *object, int32_t number, IP_Port ip_port);
 
