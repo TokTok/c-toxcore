@@ -306,21 +306,11 @@ static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format
         return;
     }
 
-    Tox_Dht_Node *tox_node = (Tox_Dht_Node *)calloc(1, sizeof(Tox_Dht_Node));
+    char ip[IP_NTOA_LEN];
+    ip_ntoa(&node->ip_port.ip, ip, sizeof(ip));
 
-    if (tox_node == nullptr) {
-        return;
-    }
-
-    tox_node->data = (Node_format *)calloc(1, sizeof(Node_format));
-
-    if (tox_node->data == nullptr) {
-        free(tox_node);
-        return;
-    }
-
-    memcpy(tox_node->data, node, sizeof(Node_format));
-    tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, (Tox_Dht_Node *)tox_node, tox_data->user_data);
+    tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, node->public_key, ip, net_ntohs(node->ip_port.port),
+            tox_data->user_data);
 }
 
 static void tox_friend_lossy_packet_handler(Messenger *m, uint32_t friend_number, uint8_t packet_id,
@@ -2559,81 +2549,78 @@ void tox_callback_dht_get_nodes_response(Tox *tox, tox_dht_get_nodes_response_cb
     tox->dht_get_nodes_response_callback = callback;
 }
 
-bool tox_dht_get_nodes(const Tox *tox, const Tox_Dht_Node *dest_node, const uint8_t *public_key,
-                       Tox_Err_Dht_Get_Nodes *error)
+bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
+                       const uint8_t *target_public_key, Tox_Err_Dht_Get_Nodes *error)
 {
     assert(tox != nullptr);
 
-    if (dest_node == nullptr || public_key == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
-        return false;
-    }
-
-    const Node_format *node = (const Node_format *)dest_node->data;
-
-    if (node == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
-        return false;
-    }
-
     lock(tox);
-    const bool ret = dht_getnodes(tox->m->dht, &node->ip_port, node->public_key, public_key);
-    unlock(tox);
+    const bool UDP_disabled = tox->m->options.udp_disabled;
 
-    if (!ret) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_FAIL);
+    if (UDP_disabled) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_UDP_DISABLED);
+        unlock(tox);
         return false;
     }
 
-    SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_OK);
-
-    return true;
-}
-
-uint16_t tox_dht_node_get_port(const Tox_Dht_Node *dht_node)
-{
-    if (dht_node == nullptr) {
-        return 0;
+    if (public_key == nullptr || ip == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
+        unlock(tox);
+        return false;
     }
 
-    const Node_format *node = (const Node_format *)dht_node->data;
-    return net_ntohs(node->ip_port.port);
-}
-
-void tox_dht_node_get_public_key(const Tox_Dht_Node *dht_node, uint8_t *public_key)
-{
-    if (dht_node == nullptr || public_key == nullptr) {
-        return;
+    if (port == 0) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_BAD_PORT);
+        unlock(tox);
+        return false;
     }
 
-    const Node_format *node = (const Node_format *)dht_node->data;
-    memcpy(public_key, node->public_key, CRYPTO_PUBLIC_KEY_SIZE);
-}
+    // IPv6 strings have an opening and closing bracket from ip_ntoa() formatting that need to be removed
+    char ipv6[IP_NTOA_LEN];
 
-size_t tox_dht_node_get_ip_string(const Tox_Dht_Node *dht_node, char *ip_str, size_t length)
-{
-    if (dht_node == nullptr) {
-        return 0;
-    }
+    if (ip[0] == '[') {
+        size_t len = strlen(ip);
 
-    const Node_format *node = (const Node_format *)dht_node->data;
-    ip_ntoa(&node->ip_port.ip, ip_str, length);
-
-    size_t i;
-
-    for (i = 0; i < length; ++i) {
-        if (ip_str[i] == '\0') {
-            break;
+        if (len > 2) {
+            memcpy(ipv6, ip + 1, len - 1);
+            ipv6[len - 2] = '\0';
+            ip = ipv6;
         }
     }
 
-    return i;
-}
+    IP_Port *root;
 
-void tox_dht_node_free(Tox_Dht_Node *dht_node)
-{
-    if (dht_node) {
-        free(dht_node->data);
-        free(dht_node);
+    const int32_t count = net_getipport(ip, &root, TOX_SOCK_DGRAM);
+
+    if (count < 1) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_BAD_IP);
+        net_freeipport(root);
+        unlock(tox);
+        return false;
     }
+
+    bool success = 0;
+
+    for (int32_t i = 0; i < count; ++i) {
+        root[i].port = net_htons(port);
+        const bool ret = dht_getnodes(tox->m->dht, &root[i], public_key, target_public_key);
+
+        if (!ret) {
+            continue;
+        }
+
+        success = true;
+    }
+
+    if (!success) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_FAIL);
+    } else {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_OK);
+    }
+
+    unlock(tox);
+
+    net_freeipport(root);
+
+    return true;
 }
