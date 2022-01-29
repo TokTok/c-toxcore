@@ -1773,10 +1773,10 @@ static void do_Close(DHT *dht)
     }
 }
 
-int dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id)
+bool dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id)
 {
     const int ret = getnodes(dht, *from_ipp, from_id, which_id);
-    return ret < 0 ? -1 : 0;
+    return ret < 0 ? false : true;
 }
 
 void dht_bootstrap(DHT *dht, IP_Port ip_port, const uint8_t *public_key)

@@ -13,12 +13,6 @@
 #include "tox.h"
 #include "tox_private.h"
 
-#if defined(OS_WIN32) || (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
-#include <winsock2.h>
-#else
-#include <arpa/inet.h>
-#endif
-
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -308,23 +302,25 @@ static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox_data->tox->dht_get_nodes_response_callback != nullptr) {
-        Tox_Dht_Node *tox_node = (Tox_Dht_Node *)calloc(1, sizeof(Tox_Dht_Node));
-
-        if (tox_node == nullptr) {
-            return;
-        }
-
-        tox_node->data = (Node_format *)calloc(1, sizeof(Node_format));
-
-        if (tox_node->data == nullptr) {
-            free(tox_node);
-            return;
-        }
-
-        memcpy(tox_node->data, node, sizeof(Node_format));
-        tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, (Tox_Dht_Node *)tox_node, tox_data->user_data);
+    if (tox_data->tox->dht_get_nodes_response_callback == nullptr) {
+        return;
     }
+
+    Tox_Dht_Node *tox_node = (Tox_Dht_Node *)calloc(1, sizeof(Tox_Dht_Node));
+
+    if (tox_node == nullptr) {
+        return;
+    }
+
+    tox_node->data = (Node_format *)calloc(1, sizeof(Node_format));
+
+    if (tox_node->data == nullptr) {
+        free(tox_node);
+        return;
+    }
+
+    memcpy(tox_node->data, node, sizeof(Node_format));
+    tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, (Tox_Dht_Node *)tox_node, tox_data->user_data);
 }
 
 static void tox_friend_lossy_packet_handler(Messenger *m, uint32_t friend_number, uint8_t packet_id,
@@ -2581,10 +2577,10 @@ bool tox_dht_get_nodes(const Tox *tox, const Tox_Dht_Node *dest_node, const uint
     }
 
     lock(tox);
-    const int ret = dht_getnodes(tox->m->dht, &node->ip_port, node->public_key, public_key);
+    const bool ret = dht_getnodes(tox->m->dht, &node->ip_port, node->public_key, public_key);
     unlock(tox);
 
-    if (ret < 0) {
+    if (!ret) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_FAIL);
         return false;
     }
@@ -2601,7 +2597,7 @@ uint16_t tox_dht_node_get_port(const Tox_Dht_Node *dht_node)
     }
 
     const Node_format *node = (const Node_format *)dht_node->data;
-    return ntohs(node->ip_port.port);
+    return net_ntohs(node->ip_port.port);
 }
 
 void tox_dht_node_get_public_key(const Tox_Dht_Node *dht_node, uint8_t *public_key)
