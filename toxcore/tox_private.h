@@ -73,7 +73,7 @@ uint32_t tox_dht_node_public_key_size(void);
  * @param port The node's port.
  */
 typedef void tox_dht_get_nodes_response_cb(Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
-                                           void *user_data);
+        void *user_data);
 
 
 /**
