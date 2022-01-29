@@ -13,6 +13,12 @@
 #include "tox.h"
 #include "tox_private.h"
 
+#if defined(OS_WIN32) || (defined(_WIN32) || defined(__WIN32__) || defined(WIN32))
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,6 +27,7 @@
 #include "group.h"
 #include "logger.h"
 #include "mono_time.h"
+#include "network.h"
 
 #include "../toxencryptsave/defines.h"
 
@@ -35,6 +42,10 @@ static_assert(TOX_HASH_LENGTH == CRYPTO_SHA256_SIZE,
               "TOX_HASH_LENGTH is assumed to be equal to CRYPTO_SHA256_SIZE");
 static_assert(FILE_ID_LENGTH == CRYPTO_SYMMETRIC_KEY_SIZE,
               "FILE_ID_LENGTH is assumed to be equal to CRYPTO_SYMMETRIC_KEY_SIZE");
+static_assert(TOX_DHT_NODE_IP_STRING_SIZE == IP_NTOA_LEN,
+              "TOX_DHT_NODE_IP_STRING_SIZE is assumed to be equal to IP_NTOA_LEN");
+static_assert(TOX_DHT_NODE_PUBLIC_KEY_SIZE == CRYPTO_PUBLIC_KEY_SIZE,
+              "TOX_DHT_NODE_PUBLIC_KEY_SIZE is assumed to be equal to CRYPTO_PUBLIC_KEY_SIZE");
 static_assert(TOX_FILE_ID_LENGTH == CRYPTO_SYMMETRIC_KEY_SIZE,
               "TOX_FILE_ID_LENGTH is assumed to be equal to CRYPTO_SYMMETRIC_KEY_SIZE");
 static_assert(TOX_FILE_ID_LENGTH == TOX_HASH_LENGTH,
@@ -47,7 +58,6 @@ static_assert(TOX_MAX_NAME_LENGTH == MAX_NAME_LENGTH,
               "TOX_MAX_NAME_LENGTH is assumed to be equal to MAX_NAME_LENGTH");
 static_assert(TOX_MAX_STATUS_MESSAGE_LENGTH == MAX_STATUSMESSAGE_LENGTH,
               "TOX_MAX_STATUS_MESSAGE_LENGTH is assumed to be equal to MAX_STATUSMESSAGE_LENGTH");
-
 struct Tox {
     // XXX: Messenger *must* be the first member, because toxav casts its
     // `Tox *` to `Messenger **`.
@@ -74,6 +84,7 @@ struct Tox {
     tox_conference_title_cb *conference_title_callback;
     tox_conference_peer_name_cb *conference_peer_name_callback;
     tox_conference_peer_list_changed_cb *conference_peer_list_changed_callback;
+    tox_dht_get_nodes_response_cb *dht_get_nodes_response_callback;
     tox_friend_lossy_packet_cb *friend_lossy_packet_callback_per_pktid[UINT8_MAX + 1];
     tox_friend_lossless_packet_cb *friend_lossless_packet_callback_per_pktid[UINT8_MAX + 1];
 
@@ -290,6 +301,29 @@ static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conf
 
     if (tox_data->tox->conference_peer_list_changed_callback != nullptr) {
         tox_data->tox->conference_peer_list_changed_callback(tox_data->tox, conference_number, tox_data->user_data);
+    }
+}
+
+static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format *node, void *user_data)
+{
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
+
+    if (tox_data->tox->dht_get_nodes_response_callback != nullptr) {
+        Tox_Dht_Node *tox_node = (Tox_Dht_Node *)calloc(1, sizeof(Tox_Dht_Node));
+
+        if (tox_node == nullptr) {
+            return;
+        }
+
+        tox_node->data = (Node_format *)calloc(1, sizeof(Node_format));
+
+        if (tox_node->data == nullptr) {
+            free(tox_node);
+            return;
+        }
+
+        memcpy(tox_node->data, node, sizeof(Node_format));
+        tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, (Tox_Dht_Node *)tox_node, tox_data->user_data);
     }
 }
 
@@ -588,6 +622,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     callback_file_reqchunk(tox->m, tox_file_chunk_request_handler);
     callback_file_sendrequest(tox->m, tox_file_recv_handler);
     callback_file_data(tox->m, tox_file_recv_chunk_handler);
+    dht_callback_get_nodes_response(tox->m->dht, tox_dht_get_nodes_response_handler);
     g_callback_group_invite(tox->m->conferences_object, tox_conference_invite_handler);
     g_callback_group_connected(tox->m->conferences_object, tox_conference_connected_handler);
     g_callback_group_message(tox->m->conferences_object, tox_conference_message_handler);
@@ -2520,4 +2555,89 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_NOT_BOUND);
     unlock(tox);
     return 0;
+}
+
+void tox_callback_dht_get_nodes_response(Tox *tox, tox_dht_get_nodes_response_cb *callback)
+{
+    assert(tox != nullptr);
+    tox->dht_get_nodes_response_callback = callback;
+}
+
+bool tox_dht_get_nodes(const Tox *tox, const Tox_Dht_Node *dest_node, const uint8_t *public_key,
+                       Tox_Err_Dht_Get_Nodes *error)
+{
+    assert(tox != nullptr);
+
+    if (dest_node == nullptr || public_key == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
+        return false;
+    }
+
+    const Node_format *node = (const Node_format *)dest_node->data;
+
+    if (node == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
+        return false;
+    }
+
+    lock(tox);
+    const int ret = dht_getnodes(tox->m->dht, &node->ip_port, node->public_key, public_key);
+    unlock(tox);
+
+    if (ret < 0) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_FAIL);
+        return false;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_OK);
+
+    return true;
+}
+
+uint16_t tox_dht_node_get_port(const Tox_Dht_Node *dht_node)
+{
+    if (dht_node == nullptr) {
+        return 0;
+    }
+
+    const Node_format *node = (const Node_format *)dht_node->data;
+    return ntohs(node->ip_port.port);
+}
+
+void tox_dht_node_get_public_key(const Tox_Dht_Node *dht_node, uint8_t *public_key)
+{
+    if (dht_node == nullptr || public_key == nullptr) {
+        return;
+    }
+
+    const Node_format *node = (const Node_format *)dht_node->data;
+    memcpy(public_key, node->public_key, CRYPTO_PUBLIC_KEY_SIZE);
+}
+
+size_t tox_dht_node_get_ip_string(const Tox_Dht_Node *dht_node, char *ip_str, size_t length)
+{
+    if (dht_node == nullptr) {
+        return 0;
+    }
+
+    const Node_format *node = (const Node_format *)dht_node->data;
+    ip_ntoa(&node->ip_port.ip, ip_str, length);
+
+    size_t i;
+
+    for (i = 0; i < length; ++i) {
+        if (ip_str[i] == '\0') {
+            break;
+        }
+    }
+
+    return i;
+}
+
+void tox_dht_node_free(Tox_Dht_Node *dht_node)
+{
+    if (dht_node) {
+        free(dht_node->data);
+        free(dht_node);
+    }
 }

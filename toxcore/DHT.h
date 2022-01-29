@@ -230,7 +230,17 @@ void dht_get_shared_key_recv(DHT *dht, uint8_t *shared_key, const uint8_t *publi
  */
 void dht_get_shared_key_sent(DHT *dht, uint8_t *shared_key, const uint8_t *public_key);
 
-void dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id);
+/** Sends a getnodes request to `from_ipp` with `from_id` for the public key `which_id`.
+ *
+ * Return 0 on success.
+ * Return -1 on failure.
+ */
+int dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id);
+
+typedef void dht_get_nodes_response_cb(const DHT *dht, const Node_format *node, void *userdata);
+
+/** Sets the callback to be triggered on a getnodes response. */
+void dht_callback_get_nodes_response(DHT *dht, dht_get_nodes_response_cb *function);
 
 typedef void dht_ip_cb(void *object, int32_t number, IP_Port ip_port);
 

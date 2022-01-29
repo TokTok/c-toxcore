@@ -105,6 +105,8 @@ struct DHT {
 
     Node_format to_bootstrap[MAX_CLOSE_TO_BOOTSTRAP_NODES];
     unsigned int num_to_bootstrap;
+
+    dht_get_nodes_response_cb *get_nodes_response;
 };
 
 const uint8_t *dht_friend_public_key(const DHT_Friend *dht_friend)
@@ -1499,6 +1501,10 @@ static int handle_sendnodes_ipv6(void *object, IP_Port source, const uint8_t *pa
         if (ipport_isset(&plain_nodes[i].ip_port)) {
             ping_node_from_getnodes_ok(dht, plain_nodes[i].public_key, plain_nodes[i].ip_port);
             returnedip_ports(dht, plain_nodes[i].ip_port, plain_nodes[i].public_key, packet + 1);
+
+            if (dht->get_nodes_response) {
+                dht->get_nodes_response(dht, &plain_nodes[i], userdata);
+            }
         }
     }
 
@@ -1767,15 +1773,17 @@ static void do_Close(DHT *dht)
     }
 }
 
-void dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id)
+int dht_getnodes(DHT *dht, const IP_Port *from_ipp, const uint8_t *from_id, const uint8_t *which_id)
 {
-    getnodes(dht, *from_ipp, from_id, which_id);
+    const int ret = getnodes(dht, *from_ipp, from_id, which_id);
+    return ret < 0 ? -1 : 0;
 }
 
 void dht_bootstrap(DHT *dht, IP_Port ip_port, const uint8_t *public_key)
 {
     getnodes(dht, ip_port, public_key, dht->self_public_key);
 }
+
 int dht_bootstrap_from_address(DHT *dht, const char *address, uint8_t ipv6enabled,
                                uint16_t port, const uint8_t *public_key)
 {
@@ -2400,6 +2408,11 @@ static int cryptopacket_handle(void *object, IP_Port source, const uint8_t *pack
     }
 
     return 1;
+}
+
+void dht_callback_get_nodes_response(DHT *dht, dht_get_nodes_response_cb *function)
+{
+    dht->get_nodes_response = function;
 }
 
 /*----------------------------------------------------------------------------------*/
