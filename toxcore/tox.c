@@ -2589,13 +2589,10 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
 
     for (int32_t i = 0; i < count; ++i) {
         root[i].port = net_htons(port);
-        const bool ret = dht_getnodes(tox->m->dht, &root[i], public_key, target_public_key);
 
-        if (!ret) {
-            continue;
+        if (dht_getnodes(tox->m->dht, &root[i], public_key, target_public_key)) {
+            success = true;
         }
-
-        success = true;
     }
 
     unlock(tox);
