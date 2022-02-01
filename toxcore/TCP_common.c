@@ -219,7 +219,7 @@ static uint16_t read_TCP_length(const Logger *logger, Socket sock, IP_Port ip_po
     const uint16_t count = net_socket_data_recv_buffer(sock);
 
     if (count >= sizeof(uint16_t)) {
-	uint8_t length_buf[sizeof(uint16_t)];
+        uint8_t length_buf[sizeof(uint16_t)];
         const int len = net_recv(logger, sock, length_buf, sizeof(length_buf), ip_port);
 
         if (len != sizeof(uint16_t)) {
@@ -228,7 +228,7 @@ static uint16_t read_TCP_length(const Logger *logger, Socket sock, IP_Port ip_po
         }
 
         uint16_t length;
-	net_unpack_u16(length_buf, &length);
+        net_unpack_u16(length_buf, &length);
 
         if (length > MAX_PACKET_SIZE) {
             LOGGER_WARNING(logger, "TCP packet too large: %d > %d", length, MAX_PACKET_SIZE);

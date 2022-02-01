@@ -1454,7 +1454,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
         }
 
         tmp[0] = parsed;
-	*res = tmp;
+        *res = tmp;
         return 1;
     }
 
