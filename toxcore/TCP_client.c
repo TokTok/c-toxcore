@@ -365,7 +365,8 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
  * return 0 if could not send packet.
  * return -1 on failure.
  */
-int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint8_t *public_key, const uint8_t *data, uint16_t length)
+int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint8_t *public_key, const uint8_t *data,
+                    uint16_t length)
 {
     if (length == 0 || length > TCP_MAX_OOB_DATA_LENGTH) {
         return -1;
@@ -503,7 +504,9 @@ void onion_response_handler(TCP_Client_Connection *con, tcp_onion_response_cb *o
 
 /** Create new TCP connection to ip_port/public_key
  */
-TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time *mono_time, IP_Port ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key, const TCP_Proxy_Info *proxy_info)
+TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time *mono_time, IP_Port ip_port,
+        const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
+        const TCP_Proxy_Info *proxy_info)
 {
     if (networking_at_startup() != 0) {
         return nullptr;
@@ -590,7 +593,8 @@ TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time 
 /** return 0 on success
  * return -1 on failure
  */
-static int handle_TCP_client_packet(const Logger *logger, TCP_Client_Connection *conn, const uint8_t *data, uint16_t length, void *userdata)
+static int handle_TCP_client_packet(const Logger *logger, TCP_Client_Connection *conn, const uint8_t *data,
+                                    uint16_t length, void *userdata)
 {
     if (length <= 1) {
         return -1;
@@ -864,7 +868,7 @@ void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
 
     if (tcp_connection->status == TCP_CLIENT_UNCONFIRMED) {
         uint8_t data[TCP_SERVER_HANDSHAKE_SIZE];
-	int len = read_TCP_packet(logger, tcp_connection->con.sock, data, sizeof(data), tcp_connection->con.ip_port);
+        int len = read_TCP_packet(logger, tcp_connection->con.sock, data, sizeof(data), tcp_connection->con.ip_port);
 
         if (sizeof(data) == len) {
             if (handle_handshake(tcp_connection, data) == 0) {

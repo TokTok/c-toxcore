@@ -122,7 +122,8 @@ bool add_priority(TCP_Connection *con, const uint8_t *packet, uint16_t size, uin
  * return 0 if could not send packet.
  * return -1 on failure (connection must be killed).
  */
-int write_packet_TCP_secure_connection(const Logger *logger, TCP_Connection *con, const uint8_t *data, uint16_t length, bool priority)
+int write_packet_TCP_secure_connection(const Logger *logger, TCP_Connection *con, const uint8_t *data, uint16_t length,
+                                       bool priority)
 {
     if (length + CRYPTO_MAC_SIZE > MAX_PACKET_SIZE) {
         return -1;
@@ -192,15 +193,15 @@ int read_TCP_packet(const Logger *logger, Socket sock, uint8_t *data, uint16_t l
     const uint16_t count = net_socket_data_recv_buffer(sock);
 
     if (count < length) {
-	LOGGER_INFO(logger, "recv buffer has %d bytes, but requested %d bytes", count, length);
-	return -1;
+        LOGGER_INFO(logger, "recv buffer has %d bytes, but requested %d bytes", count, length);
+        return -1;
     }
 
     const int len = net_recv(logger, sock, data, length, ip_port);
 
     if (len != length) {
-	LOGGER_ERROR(logger, "FAIL recv packet");
-	return -1;
+        LOGGER_ERROR(logger, "FAIL recv packet");
+        return -1;
     }
 
     return len;
@@ -229,7 +230,7 @@ static uint16_t read_TCP_length(const Logger *logger, Socket sock, IP_Port ip_po
         length = net_ntohs(length);
 
         if (length > MAX_PACKET_SIZE) {
-	    LOGGER_WARNING(logger, "TCP packet too large: %d > %d", length, MAX_PACKET_SIZE);
+            LOGGER_WARNING(logger, "TCP packet too large: %d > %d", length, MAX_PACKET_SIZE);
             return -1;
         }
 
@@ -243,7 +244,8 @@ static uint16_t read_TCP_length(const Logger *logger, Socket sock, IP_Port ip_po
  * return 0 if could not read any packet.
  * return -1 on failure (connection must be killed).
  */
-int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_t *next_packet_length, const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data, uint16_t max_len, IP_Port ip_port)
+int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_t *next_packet_length,
+                                      const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data, uint16_t max_len, IP_Port ip_port)
 {
     if (*next_packet_length == 0) {
         const uint16_t len = read_TCP_length(logger, sock, ip_port);
@@ -260,7 +262,7 @@ int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_
     }
 
     if (max_len + CRYPTO_MAC_SIZE < *next_packet_length) {
-	LOGGER_DEBUG(logger, "packet too large");
+        LOGGER_DEBUG(logger, "packet too large");
         return -1;
     }
 
@@ -268,7 +270,7 @@ int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_
     const int len_packet = read_TCP_packet(logger, sock, data_encrypted, *next_packet_length, ip_port);
 
     if (len_packet != *next_packet_length) {
-	LOGGER_WARNING(logger, "invalid packet length: %d, expected %d", len_packet, *next_packet_length);
+        LOGGER_WARNING(logger, "invalid packet length: %d, expected %d", len_packet, *next_packet_length);
         return 0;
     }
 
@@ -277,7 +279,7 @@ int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_
     const int len = decrypt_data_symmetric(shared_key, recv_nonce, data_encrypted, len_packet, data);
 
     if (len + CRYPTO_MAC_SIZE != len_packet) {
-	LOGGER_WARNING(logger, "decrypted length %d does not match expected length %d", len + CRYPTO_MAC_SIZE, len_packet);
+        LOGGER_WARNING(logger, "decrypted length %d does not match expected length %d", len + CRYPTO_MAC_SIZE, len_packet);
         return -1;
     }
 

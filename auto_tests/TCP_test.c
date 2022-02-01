@@ -97,7 +97,8 @@ static void test_basic(void)
                   "encrypt_data() call failed.");
 
     // Sending the handshake
-    ck_assert_msg(net_send(logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1, localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+    ck_assert_msg(net_send(logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "An attempt to send the initial handshake minus last byte failed.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
@@ -213,7 +214,8 @@ static struct sec_TCP_con *new_TCP_con(const Logger *logger, TCP_Server *tcp_s, 
     ck_assert_msg(ret == TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                   "Failed to encrypt the outgoing handshake.");
 
-    ck_assert_msg(net_send(logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1, localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+    ck_assert_msg(net_send(logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "Failed to send the first portion of the handshake to the TCP relay server.");
 
     do_TCP_server_delay(tcp_s, mono_time, 50);
@@ -242,7 +244,8 @@ static void kill_TCP_con(struct sec_TCP_con *con)
     free(con);
 }
 
-static int write_packet_TCP_test_connection(const Logger *logger, struct sec_TCP_con *con, const uint8_t *data, uint16_t length)
+static int write_packet_TCP_test_connection(const Logger *logger, struct sec_TCP_con *con, const uint8_t *data,
+        uint16_t length)
 {
     VLA(uint8_t, packet, sizeof(uint16_t) + length + CRYPTO_MAC_SIZE);
 
@@ -260,7 +263,8 @@ static int write_packet_TCP_test_connection(const Logger *logger, struct sec_TCP
     localhost.ip = get_loopback();
     localhost.port = 0;
 
-    ck_assert_msg(net_send(logger, con->sock, packet, SIZEOF_VLA(packet), localhost) == SIZEOF_VLA(packet), "Failed to send a packet.");
+    ck_assert_msg(net_send(logger, con->sock, packet, SIZEOF_VLA(packet), localhost) == SIZEOF_VLA(packet),
+                  "Failed to send a packet.");
     return 0;
 }
 
@@ -486,7 +490,8 @@ static void test_client(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr);
+    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f_public_key,
+                                  f_secret_key, nullptr);
     do_TCP_connection(logger, mono_time, conn, nullptr);
     c_sleep(50);
 
@@ -520,7 +525,8 @@ static void test_client(void)
     uint8_t f2_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(f2_public_key, f2_secret_key);
     ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
-    TCP_Client_Connection *conn2 = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f2_public_key, f2_secret_key, nullptr);
+    TCP_Client_Connection *conn2 = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f2_public_key,
+                                   f2_secret_key, nullptr);
 
     // The client should call this function (defined earlier) during the routing process.
     routing_response_handler(conn, response_callback, (char *)conn + 2);
@@ -608,7 +614,8 @@ static void test_client_invalid(void)
 
     ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
-    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr);
+    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, ip_port_tcp_s, self_public_key, f_public_key,
+                                  f_secret_key, nullptr);
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);

@@ -1445,13 +1445,16 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
 #else
     // Try parsing as IP address first.
     IP_Port parsed = {0};
+
     if (addr_parse_ip(node, &parsed.ip)) {
         *res = (IP_Port *)calloc(1, sizeof(IP_Port));
+
         if (*res == nullptr) {
             return -1;
         }
+
         (*res)[0] = parsed;
-	return 1;
+        return 1;
     }
 
     // It's not an IP address, so now we try doing a DNS lookup.
