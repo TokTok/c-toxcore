@@ -29,8 +29,17 @@
 #define MAX_GC_SAVED_TIMEOUTS 12
 #define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
 
-#define GROUP_SAVE_MAX_MODERATORS 30 // must be <= MOD_MAX_NUM_MODERATORS (temp fix to prevent save format breakage)
+#define GROUP_SAVE_MAX_MODERATORS 30
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
+
+/* Max number of messages to store in the send/recv arrays */
+#define GCC_BUFFER_SIZE 8192
+
+static_assert(GROUP_SAVE_MAX_MODERATORS <= MOD_MAX_NUM_MODERATORS,
+              "GROUP_SAVE_MAX_MODERATORS must <= MOD_MAX_NUM_MODERATORS to prevent save format breakage");
+static_assert(GCC_BUFFR_SIZE <= UINT16_MAX,
+              "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
+
 
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
@@ -68,9 +77,6 @@ typedef struct GC_Message_Array_Entry {
     uint64_t time_added;
     uint64_t last_send_try;
 } GC_Message_Array_Entry;
-
-/* Max number of messages to store in the send/recv arrays (must fit inside an uint16) */
-#define GCC_BUFFER_SIZE 8192
 
 typedef struct GC_Connection {
     uint64_t send_message_id;   /* message_id of the next message we send to peer */
