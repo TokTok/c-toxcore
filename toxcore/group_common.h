@@ -1,8 +1,8 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later
+/** SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2022 The TokTok team.
  */
 
-/*
+/**
  * Common groupchat data structures.
  */
 
@@ -37,7 +37,7 @@
 
 static_assert(GROUP_SAVE_MAX_MODERATORS <= MOD_MAX_NUM_MODERATORS,
               "GROUP_SAVE_MAX_MODERATORS must <= MOD_MAX_NUM_MODERATORS to prevent save format breakage");
-static_assert(GCC_BUFFR_SIZE <= UINT16_MAX,
+static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
 
 
@@ -47,7 +47,7 @@ typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_LAN  = 0x02,
 } Self_UDP_Status;
 
-/* Group exit types. */
+/** Group exit types. */
 typedef enum Group_Exit_Type {
     GC_EXIT_TYPE_QUIT              = 0x00,  // Peer left the group
     GC_EXIT_TYPE_TIMEOUT           = 0x01,  // Peer connection timed out
@@ -124,24 +124,24 @@ typedef struct GC_Connection {
     GC_Exit_Info exit_info;
 } GC_Connection;
 
-/**
+/***
  * Group roles. Roles are hierarchical in that each role has a set of privileges plus
  * all the privileges of the roles below it.
  */
 typedef enum Group_Role {
-    /* Group creator. All-powerful. Cannot be demoted or kicked. */
+    /** Group creator. All-powerful. Cannot be demoted or kicked. */
     GR_FOUNDER   = 0x00,
 
-    /*
+    /**
      * May promote or demote peers below them to any role below them.
      * May also kick peers below them and set the topic.
      */
     GR_MODERATOR = 0x01,
 
-    /* may interact normally with the group. */
+    /** may interact normally with the group. */
     GR_USER      = 0x02,
 
-    /* May not interact with the group but may observe. */
+    /** May not interact with the group but may observe. */
     GR_OBSERVER  = 0x03,
 } Group_Role;
 
@@ -184,7 +184,7 @@ typedef struct Saved_Group {
     uint8_t   self_status;
 } Saved_Group;
 
-/* Group connection states. */
+/** Group connection states. */
 typedef enum GC_Conn_State {
     CS_NONE         = 0x00,  // Indicates a group is not initialized
     CS_DISCONNECTED = 0x01,  // Not receiving or sending any packets
@@ -192,7 +192,7 @@ typedef enum GC_Conn_State {
     CS_CONNECTED    = 0x03,  // Has successfully received a sync response from a peer in the group
 } GC_Conn_State;
 
-/* Group privacy states. */
+/** Group privacy states. */
 typedef enum Group_Privacy_State {
     GI_PUBLIC   = 0x00,  // Anyone with the chat ID may join the group
     GI_PRIVATE  = 0x01,  // Peers may only join the group via a friend invite
@@ -204,7 +204,7 @@ typedef struct GC_SavedPeerInfo {
     IP_Port     ip_port;
 } GC_SavedPeerInfo;
 
-/* Holds info about peers who recently timed out */
+/** Holds info about peers who recently timed out */
 typedef struct GC_TimedOutPeer {
     GC_SavedPeerInfo addr;
     uint64_t    last_seen;  // the time the peer disconnected
@@ -299,7 +299,7 @@ typedef struct GC_Chat {
     int32_t     saved_invites[MAX_GC_SAVED_INVITES];
     uint8_t     saved_invites_index;
 
-    /* A list of recently seen peers in case we disconnect from a private group.
+    /** A list of recently seen peers in case we disconnect from a private group.
      * Peers are added once they're confirmed, and only if there are vacant
      * spots (older connections get priority). An entry is removed only when the list
      * is full, its respective peer goes offline, and an online peer who isn't yet

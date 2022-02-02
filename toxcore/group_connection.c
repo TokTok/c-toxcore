@@ -1,9 +1,9 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later
+/** SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2015 Tox project.
  */
 
-/*
+/**
  * An implementation of massive text only group chats.
  */
 
@@ -23,16 +23,16 @@
 
 #ifndef VANILLA_NACL
 
-/* Seconds since last direct UDP packet was received before the connection is considered dead */
+/** Seconds since last direct UDP packet was received before the connection is considered dead */
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
-/* Returns true if ary entry does not contain an active packet. */
+/** Returns true if ary entry does not contain an active packet. */
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
 {
     return array_entry->time_added == 0;
 }
 
-/* Clears an array entry.
+/** Clears an array entry.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -64,7 +64,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
     gconn->received_message_id = id;
 }
 
-/* Puts packet data in ary_entry.
+/** Puts packet data in ary_entry.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -106,7 +106,7 @@ int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Conn
         return -1;
     }
 
-    uint16_t idx = gcc_get_array_index(gconn->send_message_id);
+    const uint16_t idx = gcc_get_array_index(gconn->send_message_id);
     GC_Message_Array_Entry *array_entry = &gconn->send_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
@@ -250,7 +250,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
     return 2;
 }
 
-/* Handles peer_number's array entry with appropriate handler and clears it from array.
+/** Handles peer_number's array entry with appropriate handler and clears it from array.
  *
  * This function increments the received message ID for `gconn`.
  *
@@ -446,4 +446,4 @@ void gcc_cleanup(const GC_Chat *chat)
     }
 }
 
-#endif /* VANILLA_NACL */
+#endif // VANILLA_NACL

@@ -1,9 +1,9 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later
+/** SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2015 Tox project.
  */
 
-/*
+/**
  * An implementation of massive text only group chats.
  */
 
@@ -96,7 +96,7 @@ int mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
     return 0;
 }
 
-/* Returns moderator list index for public_sig_key.
+/** Returns moderator list index for public_sig_key.
  * Returns -1 if key is not in the list.
  */
 static int mod_list_index_of_sig_pk(const Moderation *moderation, const uint8_t *public_sig_key)
@@ -269,7 +269,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanc
             return -1;
         }
 
-        /* Signature must be packed last */
+        /** Signature must be packed last */
         memcpy(data + packed_len, sanctions[i].signature, SIGNATURE_SIZE);
         packed_len += SIGNATURE_SIZE;
     }
@@ -362,7 +362,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
 }
 
 
-/* Creates a new sanction list hash and puts it in hash.
+/** Creates a new sanction list hash and puts it in hash.
  *
  * The hash is derived from the signature of all entries plus the version number.
  * hash must have room for at least MOD_SANCTION_HASH_SIZE bytes.
@@ -406,7 +406,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
     return 0;
 }
 
-/* Verifies that sanction contains valid info and was assigned by a current mod or group founder.
+/** Verifies that sanction contains valid info and was assigned by a current mod or group founder.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
@@ -485,7 +485,7 @@ int sanctions_list_make_creds(Moderation *moderation)
     return 0;
 }
 
-/* Validates sanction list credentials. Verifies that:
+/** Validates sanction list credentials. Verifies that:
  * - the public signature key belongs to a mod or the founder
  * - the signature for the hash was made by the owner of the public signature key.
  * - the received hash matches our own hash of the new sanctions list
@@ -552,7 +552,7 @@ int sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanct
     return 0;
 }
 
-/* Removes index-th sanction list entry. New credentials will be validated if creds is non-null.
+/** Removes index-th sanction list entry. New credentials will be validated if creds is non-null.
  *
  * Returns 0 on success.
  * Returns -1 on failure.
@@ -579,7 +579,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
         return 0;
     }
 
-    /* Operate on a copy of the list in case something goes wrong. */
+    /** Operate on a copy of the list in case something goes wrong. */
     const size_t old_count =  moderation->num_sanctions;
     Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(old_count, sizeof(Mod_Sanction));
 
@@ -687,7 +687,7 @@ int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanctio
         return -1;
     }
 
-    /* Operate on a copy of the list in case something goes wrong. */
+    /** Operate on a copy of the list in case something goes wrong. */
     const size_t old_count = moderation->num_sanctions;
     Mod_Sanction *sanctions_copy = nullptr;
 
@@ -729,7 +729,7 @@ int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanctio
     return 0;
 }
 
-/* Signs packed sanction data.
+/** Signs packed sanction data.
  * This function must be called by the owner of the entry's public_sig_key.
  *
  * Returns 0 on success.
@@ -819,5 +819,4 @@ void sanctions_list_cleanup(Moderation *moderation)
     moderation->num_sanctions = 0;
 }
 
-#endif /* VANILLA_NACL */
-
+#endif // VANILLA_NACL
