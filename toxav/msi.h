@@ -115,7 +115,7 @@ int msi_kill(MSISession *session, const Logger *log);
 /**
  * Callback setter.
  */
-void msi_register_callback(MSISession *session, msi_action_cb *callback, MSICallbackID id);
+void msi_register_callback(MSISession *session, msi_action_cb callback, MSICallbackID id);
 /**
  * Send invite request to friend_number.
  */

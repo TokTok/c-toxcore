@@ -161,6 +161,7 @@ set(toxcore_PKGCONFIG_REQUIRES)
 # LAYER 1: Crypto core
 # --------------------
 set(toxcore_SOURCES ${toxcore_SOURCES}
+  toxcore/ccompat.c
   toxcore/ccompat.h
   toxcore/crypto_core.c
   toxcore/crypto_core.h)
@@ -240,9 +241,21 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/tox_api.c
   toxcore/tox.c
-  toxcore/tox_private.h
-  toxcore/tox.h)
+  toxcore/tox.h
+  toxcore/tox_events.c
+  toxcore/tox_events.h
+  toxcore/tox_private.h)
 set(toxcore_API_HEADERS ${toxcore_API_HEADERS} ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox)
+
+# LAYER 9: New async events API
+# -------------------
+set(toxcore_SOURCES ${toxcore_SOURCES}
+  toxcore/events/friend_message.c
+  toxcore/events/internal.c
+  toxcore/events/internal.h
+  toxcore/tox_events.c
+  toxcore/tox_events.h)
+set(toxcore_API_HEADERS ${toxcore_API_HEADERS} ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox)
 
 ################################################################################
 #
@@ -441,6 +454,7 @@ auto_test(save_load)
 auto_test(send_message)
 auto_test(set_name)
 auto_test(set_status_message)
+auto_test(tox_events)
 auto_test(tox_many)
 auto_test(tox_many_tcp)
 auto_test(tox_one)

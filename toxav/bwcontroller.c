@@ -59,7 +59,7 @@ static int bwc_handle_data(Messenger *m, uint32_t friendnumber, const uint8_t *d
 static int bwc_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
 static void send_update(BWController *bwc);
 
-BWController *bwc_new(Messenger *m, Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data,
+BWController *bwc_new(Messenger *m, Tox *tox, uint32_t friendnumber, m_cb mcb, void *mcb_user_data,
                       Mono_Time *bwc_mono_time)
 {
     BWController *retu = (BWController *)calloc(1, sizeof(BWController));

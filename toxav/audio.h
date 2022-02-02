@@ -64,7 +64,7 @@ typedef struct ACSession {
 } ACSession;
 
 ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
-                  toxav_audio_receive_frame_cb *cb, void *cb_data);
+                  toxav_audio_receive_frame_cb cb, void *cb_data);
 void ac_kill(ACSession *ac);
 void ac_iterate(ACSession *ac);
 int ac_queue_message(Mono_Time *mono_time, void *acp, struct RTPMessage *msg);
