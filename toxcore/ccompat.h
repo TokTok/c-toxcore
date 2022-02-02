@@ -10,6 +10,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 bool unused_for_tokstyle(void);
 
@@ -59,7 +60,11 @@ bool unused_for_tokstyle(void);
 #ifndef static_assert
 #define static_assert(cond, msg) extern const int unused_for_static_assert
 #endif
+#define new(T) (T *)salloc(sizeof(T), &(T){0})
+#define delete(obj) free(obj)
 #endif
+
+void *salloc(uint32_t size, const void *default_value);
 
 #ifdef __GNUC__
 #define GNU_PRINTF(f, a) __attribute__((__format__(__printf__, f, a)))

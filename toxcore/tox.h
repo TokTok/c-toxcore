@@ -1050,6 +1050,7 @@ uint32_t tox_iteration_interval(const Tox *tox);
 void tox_iterate(Tox *tox, void *user_data);
 
 
+
 /*******************************************************************************
  *
  * :: Internal client information (Tox address/id)

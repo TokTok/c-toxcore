@@ -224,7 +224,7 @@ static int recreate_encoder(Group_AV *group_av)
     return 0;
 }
 
-static Group_AV *new_group_av(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_cb *audio_callback,
+static Group_AV *new_group_av(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_cb audio_callback,
                               void *userdata)
 {
     if (!g_c) {
@@ -438,7 +438,7 @@ static int handle_group_audio_packet(void *object, uint32_t groupnumber, uint32_
  * return -1 on failure.
  */
 int groupchat_enable_av(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t groupnumber,
-                        audio_data_cb *audio_callback, void *userdata)
+                        audio_data_cb audio_callback, void *userdata)
 {
     if (group_get_type(g_c, groupnumber) != GROUPCHAT_TYPE_AV
             || group_get_object(g_c, groupnumber) != nullptr) {
@@ -527,7 +527,7 @@ bool groupchat_av_enabled(const Group_Chats *g_c, uint32_t groupnumber)
  * return group number on success.
  * return -1 on failure.
  */
-int add_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_cb *audio_callback, void *userdata)
+int add_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_cb audio_callback, void *userdata)
 {
     int groupnumber = add_groupchat(g_c, GROUPCHAT_TYPE_AV);
 
@@ -549,7 +549,7 @@ int add_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_c
  * returns -1 on failure.
  */
 int join_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, uint32_t friendnumber, const uint8_t *data,
-                      uint16_t length, audio_data_cb *audio_callback, void *userdata)
+                      uint16_t length, audio_data_cb audio_callback, void *userdata)
 {
     int groupnumber = join_groupchat(g_c, friendnumber, GROUPCHAT_TYPE_AV, data, length);
 

@@ -78,7 +78,7 @@ static void handle_msi_packet(Messenger *m, uint32_t friend_number, const uint8_
  * Public functions
  */
 
-void msi_register_callback(MSISession *session, msi_action_cb *callback, MSICallbackID id)
+void msi_register_callback(MSISession *session, msi_action_cb callback, MSICallbackID id)
 {
     if (!session) {
         return;
