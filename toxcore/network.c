@@ -1730,6 +1730,7 @@ char *net_new_strerror(int error)
     if (fmt_error != 0) {
         snprintf(str, 256, "error %d (strerror failed with error %d)", error, fmt_error);
     }
+
 #else
     char *retstr = strerror_r(error, str, 256);
 
@@ -1741,6 +1742,7 @@ char *net_new_strerror(int error)
         memmove(str, tmpstr, copy_len);
         str[copy_len] = '\0';
     }
+
 #endif
 
     return str;
