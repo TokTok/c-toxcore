@@ -716,7 +716,7 @@ static int expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 static void copy_gc_saved_peer(const GC_Connection *gconn, GC_SavedPeerInfo *addr)
 {
     gcc_copy_tcp_relay(&addr->tcp_relay, gconn);
-    memcpy(&addr->ip_port, &gconn->addr.ip_port, sizeof(IP_Port));
+    addr->ip_port = gconn->addr.ip_port;
     memcpy(addr->public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
@@ -1702,7 +1702,7 @@ static bool create_sync_announce(const GC_Chat *chat, const GC_Connection *gconn
     get_gc_peer_public_key(chat, peer_number, announce->peer_public_key);
 
     if (gcc_ip_port_is_set(gconn)) {
-        memcpy(&announce->ip_port, &gconn->addr.ip_port, sizeof(IP_Port));
+        announce->ip_port = gconn->addr.ip_port;
         announce->ip_port_is_set = true;
     } else {
         announce->ip_port_is_set = false;
@@ -7390,7 +7390,7 @@ static bool copy_friend_ip_port_to_gconn(const Messenger *m, int friend_number, 
         return false;
     }
 
-    memcpy(&gconn->addr.ip_port, friend_ip_port, sizeof(IP_Port));
+    gconn->addr.ip_port = *friend_ip_port;
 
     return true;
 }

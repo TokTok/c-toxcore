@@ -160,7 +160,7 @@ bool gcc_ip_port_is_set(const GC_Connection *gconn)
 void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
 {
     if (ipp != nullptr && ipport_isset(ipp)) {
-        memcpy(&gconn->addr.ip_port, ipp, sizeof(IP_Port));
+        gconn->addr.ip_port = *ipp;
     }
 }
 
@@ -180,7 +180,7 @@ int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
         return -1;
     }
 
-    memcpy(tcp_node, &gconn->connected_tcp_relays[rand_idx], sizeof(Node_format));
+    *tcp_node = gconn->connected_tcp_relays[rand_idx];
 
     return 0;
 }
@@ -209,7 +209,7 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
         ++gconn->tcp_relays_count;
     }
 
-    memcpy(&gconn->connected_tcp_relays[idx], tcp_node, sizeof(Node_format));
+    gconn->connected_tcp_relays[idx] = *tcp_node;
 
     return 0;
 }
