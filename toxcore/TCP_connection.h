@@ -42,8 +42,8 @@
 
 typedef struct TCP_Conn_to {
     uint32_t tcp_connection;
-    unsigned int status;
-    unsigned int connection_id;
+    uint8_t status;
+    uint8_t connection_id;
 } TCP_Conn_to;
 
 typedef struct TCP_Connection_to {
@@ -218,7 +218,8 @@ uint32_t tcp_copy_connected_relays(const TCP_Connections *tcp_c, Node_format *tc
  *
  * Returns NULL on failure.
  */
-TCP_Connections *new_tcp_connections(Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info);
+TCP_Connections *new_tcp_connections(const Logger *logger, Mono_Time *mono_time, const uint8_t *secret_key,
+                                     const TCP_Proxy_Info *proxy_info);
 
 int kill_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connections_number);
 

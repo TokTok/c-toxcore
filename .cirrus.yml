@@ -1,7 +1,7 @@
 ---
-bazel-release_task:
+bazel-opt_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-release
+    image: toxchat/toktok-stack:latest-release
     cpu: 2
     memory: 2G
   configure_script:
@@ -17,9 +17,9 @@ bazel-release_task:
         -//c-toxcore/auto_tests:tcp_relay_test
         -//c-toxcore/auto_tests:group_tcp_test # TODO(robinlinden): Why do these pass locally but not in Cirrus?
 
-bazel-debug_task:
+bazel-dbg_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-debug
+    image: toxchat/toktok-stack:latest-debug
     cpu: 2
     memory: 2G
   configure_script:
@@ -37,7 +37,7 @@ bazel-debug_task:
 
 bazel-asan_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-asan
+    image: toxchat/toktok-stack:latest-asan
     cpu: 2
     memory: 4G
   configure_script:
@@ -56,7 +56,7 @@ bazel-asan_task:
 # TODO(iphydf): Remove "|| true" once this works properly.
 bazel-msan_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-msan
+    image: toxchat/toktok-stack:latest-msan
     cpu: 2
     memory: 4G
   configure_script:
@@ -75,7 +75,7 @@ bazel-msan_task:
 # TODO(iphydf): Fix test timeouts.
 bazel-tsan_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-tsan
+    image: toxchat/toktok-stack:latest-tsan
     cpu: 2
     memory: 4G
   configure_script:
@@ -100,7 +100,7 @@ bazel-tsan_task:
 # TODO(iphydf): Fix timeouts so we can run more of the tests disabled below.
 bazel-valgrind_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-release
+    image: toxchat/toktok-stack:latest-release
     cpu: 2
     memory: 4G
   configure_script:
@@ -127,7 +127,7 @@ bazel-valgrind_task:
 
 cimple_task:
   container:
-    image: toxchat/toktok-stack:0.0.31-release
+    image: toxchat/toktok-stack:latest-release
     cpu: 2
     memory: 4G
   configure_script:

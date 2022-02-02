@@ -26,9 +26,39 @@ cc_binary(
 )
 
 cc_binary(
-    name = "minimal-save-generator",
+    name = "create_minimal_savedata",
     testonly = 1,
-    srcs = ["minimal-save-generator.c"],
+    srcs = [
+        "create_common.h",
+        "create_minimal_savedata.c",
+    ],
+    deps = [
+        "//c-toxcore/toxcore:ccompat",
+        "@libsodium",
+    ],
+)
+
+cc_binary(
+    name = "create_savedata",
+    testonly = 1,
+    srcs = [
+        "create_common.h",
+        "create_savedata.c",
+    ],
+    deps = [
+        "//c-toxcore/toxcore",
+        "//c-toxcore/toxcore:ccompat",
+        "@libsodium",
+    ],
+)
+
+cc_binary(
+    name = "create_bootstrap_keys",
+    testonly = 1,
+    srcs = [
+        "create_bootstrap_keys.c",
+        "create_common.h",
+    ],
     deps = [
         "//c-toxcore/toxcore:ccompat",
         "@libsodium",

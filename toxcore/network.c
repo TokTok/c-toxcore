@@ -493,21 +493,21 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
     if (res < 0) { /* Windows doesn't necessarily know `%zu` */
         int error = net_error();
         char *strerror = net_new_strerror(error);
-        LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %04x%04x",
+        LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, min_u16(buflen, 999), 'E',
                      ip_ntoa(&ip_port.ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port.port), error,
-                     strerror, data_0(buflen, buffer), data_1(buflen, buffer));
+                     strerror, data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
         net_kill_strerror(strerror);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
-        LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %04x%04x",
+        LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
                      ip_ntoa(&ip_port.ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port.port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer));
+                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
-        LOGGER_TRACE(log, "[%2u] %s %lu%c%u %s:%u (%u: %s) | %04x%04x",
+        LOGGER_TRACE(log, "[%2u] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, res, !res ? '!' : '>', buflen,
                      ip_ntoa(&ip_port.ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port.port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer));
+                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     }
 }
 
@@ -662,7 +662,7 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
     *length = (uint32_t)fail_or_len;
 
     if (addr.ss_family == AF_INET) {
-        struct sockaddr_in *addr_in = (struct sockaddr_in *)&addr;
+        const struct sockaddr_in *addr_in = (const struct sockaddr_in *)&addr;
 
         const Family *const family = make_tox_family(addr_in->sin_family);
         assert(family != nullptr);
@@ -675,7 +675,7 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
         get_ip4(&ip_port->ip.ip.v4, &addr_in->sin_addr);
         ip_port->port = addr_in->sin_port;
     } else if (addr.ss_family == AF_INET6) {
-        struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)&addr;
+        const struct sockaddr_in6 *addr_in6 = (const struct sockaddr_in6 *)&addr;
         const Family *const family = make_tox_family(addr_in6->sin6_family);
         assert(family != nullptr);
 
@@ -1209,7 +1209,6 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
  *   converts ip into a string
  *   ip_str must be of length at least IP_NTOA_LEN
  *
- *   IPv6 addresses are enclosed into square brackets, i.e. "[IPv6]"
  *   writes error message into the buffer on error
  *
  *   returns ip_str
@@ -1235,12 +1234,8 @@ const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
             struct in6_addr addr;
             fill_addr6(ip->ip.v6, &addr);
 
-            ip_str[0] = '[';
             assert(make_family(ip->family) == AF_INET6);
-            inet_ntop6(&addr, &ip_str[1], length - 3);
-            const size_t len = strlen(ip_str);
-            ip_str[len] = ']';
-            ip_str[len + 1] = '\0';
+            inet_ntop6(&addr, ip_str, length);
         } else {
             snprintf(ip_str, length, "(IP invalid, family %u)", ip->family.value);
         }
@@ -1342,12 +1337,12 @@ int addr_resolve(const char *address, IP *to, IP *extra)
         switch (walker->ai_family) {
             case AF_INET: {
                 if (walker->ai_family == family) { /* AF_INET requested, done */
-                    struct sockaddr_in *addr = (struct sockaddr_in *)(void *)walker->ai_addr;
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(void *)walker->ai_addr;
                     get_ip4(&to->ip.v4, &addr->sin_addr);
                     result = TOX_ADDR_RESOLVE_INET;
                     done = true;
                 } else if (!(result & TOX_ADDR_RESOLVE_INET)) { /* AF_UNSPEC requested, store away */
-                    struct sockaddr_in *addr = (struct sockaddr_in *)(void *)walker->ai_addr;
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(void *)walker->ai_addr;
                     get_ip4(&ip4.ip.v4, &addr->sin_addr);
                     result |= TOX_ADDR_RESOLVE_INET;
                 }
@@ -1358,14 +1353,14 @@ int addr_resolve(const char *address, IP *to, IP *extra)
             case AF_INET6: {
                 if (walker->ai_family == family) { /* AF_INET6 requested, done */
                     if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        struct sockaddr_in6 *addr = (struct sockaddr_in6 *)(void *)walker->ai_addr;
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
                         get_ip6(&to->ip.v6, &addr->sin6_addr);
                         result = TOX_ADDR_RESOLVE_INET6;
                         done = true;
                     }
                 } else if (!(result & TOX_ADDR_RESOLVE_INET6)) { /* AF_UNSPEC requested, store away */
                     if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        struct sockaddr_in6 *addr = (struct sockaddr_in6 *)(void *)walker->ai_addr;
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
                         get_ip6(&ip6.ip.v6, &addr->sin6_addr);
                         result |= TOX_ADDR_RESOLVE_INET6;
                     }
@@ -1406,7 +1401,7 @@ bool addr_resolve_or_parse_ip(const char *address, IP *to, IP *extra)
     return true;
 }
 
-int net_connect(Socket sock, IP_Port ip_port)
+int net_connect(const Logger *log, Socket sock, IP_Port ip_port)
 {
     struct sockaddr_storage addr = {0};
     size_t addrsize;
@@ -1432,6 +1427,7 @@ int net_connect(Socket sock, IP_Port ip_port)
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return 0;
 #else
+    LOGGER_DEBUG(log, "connecting socket %d", (int)sock.socket);
     return connect(sock.socket, (struct sockaddr *)&addr, addrsize);
 #endif
 }
@@ -1447,8 +1443,24 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
 
     return 1;
 #else
+    // Try parsing as IP address first.
+    IP_Port parsed = {0};
+
+    if (addr_parse_ip(node, &parsed.ip)) {
+        IP_Port *tmp = (IP_Port *)calloc(1, sizeof(IP_Port));
+
+        if (tmp == nullptr) {
+            return -1;
+        }
+
+        tmp[0] = parsed;
+        *res = tmp;
+        return 1;
+    }
+
+    // It's not an IP address, so now we try doing a DNS lookup.
     struct addrinfo *infos;
-    int ret = getaddrinfo(node, nullptr, nullptr, &infos);
+    const int ret = getaddrinfo(node, nullptr, nullptr, &infos);
     *res = nullptr;
 
     if (ret != 0) {
@@ -1457,11 +1469,10 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
 
     // Used to avoid calloc parameter overflow
     const size_t max_count = min_u64(SIZE_MAX, INT32_MAX) / sizeof(IP_Port);
-    int type = make_socktype(tox_type);
-    struct addrinfo *cur;
+    const int type = make_socktype(tox_type);
     size_t count = 0;
 
-    for (cur = infos; count < max_count && cur != nullptr; cur = cur->ai_next) {
+    for (struct addrinfo *cur = infos; count < max_count && cur != nullptr; cur = cur->ai_next) {
         if (cur->ai_socktype && type > 0 && cur->ai_socktype != type) {
             continue;
         }
@@ -1489,16 +1500,16 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
 
     IP_Port *ip_port = *res;
 
-    for (cur = infos; cur != nullptr; cur = cur->ai_next) {
+    for (struct addrinfo *cur = infos; cur != nullptr; cur = cur->ai_next) {
         if (cur->ai_socktype && type > 0 && cur->ai_socktype != type) {
             continue;
         }
 
         if (cur->ai_family == AF_INET) {
-            struct sockaddr_in *addr = (struct sockaddr_in *)(void *)cur->ai_addr;
+            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)cur->ai_addr;
             memcpy(&ip_port->ip.ip.v4, &addr->sin_addr, sizeof(IP4));
         } else if (cur->ai_family == AF_INET6) {
-            struct sockaddr_in6 *addr = (struct sockaddr_in6 *)(void *)cur->ai_addr;
+            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)cur->ai_addr;
             memcpy(&ip_port->ip.ip.v6, &addr->sin6_addr, sizeof(IP6));
         } else {
             continue;
@@ -1570,22 +1581,26 @@ Socket net_socket(Family domain, int type, int protocol)
 #endif
 }
 
-int net_send(Socket sock, const void *buf, size_t len)
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, IP_Port ip_port)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    int res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #else
-    return send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    int res = send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #endif
+    loglogdata(log, "T=>", buf, len, ip_port, res);
+    return res;
 }
 
-int net_recv(Socket sock, void *buf, size_t len)
+int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, IP_Port ip_port)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
+    int res = fuzz_recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
 #else
-    return recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
+    int res = recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
 #endif
+    loglogdata(log, "=>T", buf, len, ip_port, res);
+    return res;
 }
 
 int net_listen(Socket sock, int backlog)
@@ -1608,7 +1623,7 @@ Socket net_accept(Socket sock)
 #endif
 }
 
-size_t net_socket_data_recv_buffer(Socket sock)
+uint16_t net_socket_data_recv_buffer(Socket sock)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return 0;
@@ -1622,7 +1637,7 @@ size_t net_socket_data_recv_buffer(Socket sock)
     ioctl(sock.socket, FIONREAD, &count);
 #endif
 
-    return count;
+    return (uint16_t)count;
 #endif
 }
 

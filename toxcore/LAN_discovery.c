@@ -173,7 +173,7 @@ static void fetch_broadcast_info(uint16_t port)
             continue;
         }
 
-        struct sockaddr_in *sock4 = (struct sockaddr_in *)(void *)&i_faces[i].ifr_broadaddr;
+        const struct sockaddr_in *sock4 = (const struct sockaddr_in *)(void *)&i_faces[i].ifr_broadaddr;
 
         if (count >= MAX_INTERFACES) {
             break;
@@ -352,9 +352,6 @@ bool ip_is_lan(IP ip)
 static int handle_LANdiscovery(void *object, IP_Port source, const uint8_t *packet, uint16_t length, void *userdata)
 {
     DHT *dht = (DHT *)object;
-
-    char ip_str[IP_NTOA_LEN] = { 0 };
-    ip_ntoa(&source.ip, ip_str, sizeof(ip_str));
 
     if (!ip_is_lan(source.ip)) {
         return 1;

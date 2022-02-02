@@ -2213,7 +2213,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
     Messenger *m = (Messenger *)object;
     uint8_t packet_id = temp[0];
     const uint8_t *data = temp + 1;
-    uint32_t data_length = len - 1;
+    uint16_t data_length = len - 1;
 
     if (m->friendlist[i].status != FRIEND_ONLINE) {
         if (packet_id == PACKET_ID_ONLINE && len == 1) {
@@ -2384,7 +2384,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             memcpy(ft->id, data + 1 + sizeof(uint32_t) + sizeof(uint64_t), FILE_ID_LENGTH);
 
             VLA(uint8_t, filename_terminated, filename_length + 1);
-            uint8_t *filename = nullptr;
+            const uint8_t *filename = nullptr;
 
             if (filename_length) {
                 /* Force NULL terminate file name. */

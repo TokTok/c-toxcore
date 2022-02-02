@@ -43,44 +43,6 @@ extern const Family net_family_tcp_ipv6;
 extern const Family net_family_tox_tcp_ipv4;
 extern const Family net_family_tox_tcp_ipv6;
 
-typedef struct Socket {
-    int socket;
-} Socket;
-
-Socket net_socket(Family domain, int type, int protocol);
-
-/**
- * Check if socket is valid.
- *
- * @return true if valid, false otherwise.
- */
-bool sock_valid(Socket sock);
-
-extern const Socket net_invalid_socket;
-
-/**
- * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
- */
-int net_send(Socket sock, const void *buf, size_t len);
-/**
- * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
- */
-int net_recv(Socket sock, void *buf, size_t len);
-/**
- * Calls listen(sockfd, backlog).
- */
-int net_listen(Socket sock, int backlog);
-/**
- * Calls accept(sockfd, nullptr, nullptr).
- */
-Socket net_accept(Socket sock);
-
-/**
- * return the amount of data in the tcp recv buffer.
- * return 0 on failure.
- */
-size_t net_socket_data_recv_buffer(Socket sock);
-
 #define MAX_UDP_PACKET_SIZE 2048
 
 #ifdef USE_TEST_NETWORK
@@ -231,6 +193,44 @@ typedef struct IP_Port {
     uint16_t port;
 } IP_Port;
 
+typedef struct Socket {
+    int socket;
+} Socket;
+
+Socket net_socket(Family domain, int type, int protocol);
+
+/**
+ * Check if socket is valid.
+ *
+ * @return true if valid, false otherwise.
+ */
+bool sock_valid(Socket sock);
+
+extern const Socket net_invalid_socket;
+
+/**
+ * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
+ */
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, IP_Port ip_port);
+/**
+ * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
+ */
+int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, IP_Port ip_port);
+/**
+ * Calls listen(sockfd, backlog).
+ */
+int net_listen(Socket sock, int backlog);
+/**
+ * Calls accept(sockfd, nullptr, nullptr).
+ */
+Socket net_accept(Socket sock);
+
+/**
+ * return the size of data in the tcp recv buffer.
+ * return 0 on failure.
+ */
+uint16_t net_socket_data_recv_buffer(Socket sock);
+
 /** Convert values between host and network byte order.
  */
 uint32_t net_htonl(uint32_t hostlong);
@@ -264,7 +264,6 @@ bool ipv6_ipv4_in_v6(IP6 a);
  *   converts ip into a string
  *   ip_str must be of length at least IP_NTOA_LEN
  *
- *   IPv6 addresses are enclosed into square brackets, i.e. "[IPv6]"
  *   writes error message into the buffer on error
  *
  *   returns ip_str
@@ -450,7 +449,7 @@ void networking_poll(const Networking_Core *net, void *userdata);
  * Return 0 on success.
  * Return -1 on failure.
  */
-int net_connect(Socket sock, IP_Port ip_port);
+int net_connect(const Logger *log, Socket sock, IP_Port ip_port);
 
 /** High-level getaddrinfo implementation.
  * Given node, which identifies an Internet host, net_getipport() fills an array
