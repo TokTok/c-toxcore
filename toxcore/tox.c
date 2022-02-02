@@ -3701,7 +3701,7 @@ size_t tox_group_get_password_size(const Tox *tox, uint32_t group_number, Tox_Er
 
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_OK);
 
-    size_t ret = gc_get_password_size(chat);
+    const size_t ret = gc_get_password_size(chat);
     unlock(tox);
 
     return ret;

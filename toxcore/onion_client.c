@@ -405,7 +405,7 @@ static int random_path(const Onion_Client *onion_c, Onion_Client_Paths *onion_pa
     }
 
     if (path_timed_out(onion_c->mono_time, onion_paths, pathnum)) {
-        Node_format nodes[ONION_PATH_LENGTH] = {{{0}}};
+        Node_format nodes[ONION_PATH_LENGTH] = {0};
 
         if (random_nodes_path_onion(onion_c, nodes, ONION_PATH_LENGTH) != ONION_PATH_LENGTH) {
             return -1;
@@ -930,14 +930,14 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     IP_Port ip_port;
     uint32_t path_num;
-    uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
+    const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 
     if (num > onion_c->num_friends) {
         return 1;
     }
 
     uint8_t plain[1 + ONION_PING_ID_SIZE + ONION_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
-    int plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
+    const int plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
     int len;
 
     if (num == 0) {
@@ -960,14 +960,14 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         return 1;
     }
 
-    uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
+    const uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
 
     if (client_add_to_list(onion_c, num, public_key, ip_port, plain[0], plain + 1, path_used) == -1) {
         return 1;
     }
 
     uint16_t len_nodes = 0;
-    uint8_t nodes_count = plain[1 + ONION_PING_ID_SIZE];
+    const uint8_t nodes_count = plain[1 + ONION_PING_ID_SIZE];
 
     if (nodes_count > 0) {
         if (nodes_count > MAX_SENT_NODES) {
@@ -975,8 +975,8 @@ static int handle_announce_response(void *object, IP_Port source, const uint8_t 
         }
 
         Node_format nodes[MAX_SENT_NODES];
-        int num_nodes = unpack_nodes(nodes, nodes_count, &len_nodes, plain + 2 + ONION_PING_ID_SIZE,
-                                     plain_size - 2 - ONION_PING_ID_SIZE, 0);
+        const int num_nodes = unpack_nodes(nodes, nodes_count, &len_nodes, plain + 2 + ONION_PING_ID_SIZE,
+                                           plain_size - 2 - ONION_PING_ID_SIZE, 0);
 
         if (num_nodes < 0) {
             return 1;
@@ -1014,7 +1014,7 @@ static int handle_announce_response_old(void *object, IP_Port source, const uint
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     IP_Port ip_port;
     uint32_t path_num;
-    uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
+    const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 
     if (num > onion_c->num_friends) {
         return 1;
@@ -1043,7 +1043,7 @@ static int handle_announce_response_old(void *object, IP_Port source, const uint
         return 1;
     }
 
-    uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
+    const uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
 
     if (client_add_to_list(onion_c, num, public_key, ip_port, plain[0], plain + 1, path_used) == -1) {
         return 1;

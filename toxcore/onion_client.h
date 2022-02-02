@@ -10,10 +10,10 @@
 #ifndef C_TOXCORE_TOXCORE_ONION_CLIENT_H
 #define C_TOXCORE_TOXCORE_ONION_CLIENT_H
 
+#include "group_chats.h"
 #include "net_crypto.h"
 #include "onion_announce.h"
 #include "ping_array.h"
-#include "group_chats.h"
 
 #define MAX_ONION_CLIENTS 8
 #define MAX_ONION_CLIENTS_ANNOUNCE 12 // Number of nodes to announce ourselves to.

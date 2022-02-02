@@ -144,10 +144,10 @@ int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, con
     random_nonce(packet + 1);
     memcpy(packet + 1 + CRYPTO_NONCE_SIZE, public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
-    int len = encrypt_data(dest_client_id, secret_key, packet + 1, plain,
-                           encrypted_size, packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+    const int len = encrypt_data(dest_client_id, secret_key, packet + 1, plain,
+                                 encrypted_size, packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
 
-    uint32_t full_length = (uint32_t)len + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+    const uint32_t full_length = (uint32_t)len + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
     if (full_length != ONION_ANNOUNCE_REQUEST_MIN_SIZE + gc_data_length) {
         return -1;
@@ -590,9 +590,10 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
-    int index;
 
     uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+
+    int index;
 
     if (onion_ping_id_eq(ping_id1, plain)
             || onion_ping_id_eq(ping_id2, plain)) {
@@ -678,9 +679,10 @@ static int handle_announce_request_old(void *object, IP_Port source, const uint8
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
-    int index;
 
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+
+    int index;
 
     if (onion_ping_id_eq(ping_id1, plain)
             || onion_ping_id_eq(ping_id2, plain)) {

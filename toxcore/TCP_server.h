@@ -10,7 +10,6 @@
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
 #include "crypto_core.h"
-#include "list.h"
 #include "onion.h"
 
 #define MAX_INCOMING_CONNECTIONS 256

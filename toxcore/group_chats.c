@@ -3937,7 +3937,7 @@ static int handle_gc_set_mod(const GC_Session *c, GC_Chat *chat, uint32_t peer_n
 
     const bool add_mod = data[0] != 0;
 
-    int target_peer_number = validate_unpack_gc_set_mod(chat, peer_number, data, length, add_mod);
+    const int target_peer_number = validate_unpack_gc_set_mod(chat, peer_number, data, length, add_mod);
 
     if (target_peer_number == -1) {
         return -2;
