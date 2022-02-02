@@ -6755,7 +6755,7 @@ static int init_gc_tcp_connection(const GC_Session *c, GC_Chat *chat)
 {
     const Messenger *m = c->messenger;
 
-    chat->tcp_conn = new_tcp_connections(chat->mono_time, chat->self_secret_key, &m->options.proxy_info);
+    chat->tcp_conn = new_tcp_connections(chat->log, chat->mono_time, chat->self_secret_key, &m->options.proxy_info);
 
     if (chat->tcp_conn == nullptr) {
         return -1;
