@@ -28,7 +28,8 @@ int send_pending_data_nonpriority(const Logger *logger, TCP_Connection *con)
     }
 
     const uint16_t left = con->last_packet_length - con->last_packet_sent;
-    const int len = net_send(logger, con->sock, con->last_packet + con->last_packet_sent, left, con->ip_port, con->net_profile);
+    const int len = net_send(logger, con->sock, con->last_packet + con->last_packet_sent, left, con->ip_port,
+                             con->net_profile);
 
     if (len <= 0) {
         return -1;
