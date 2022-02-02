@@ -22,7 +22,7 @@ static uint64_t netprof_get_packet_count_id_range(const Net_Profile *profile, ui
     const uint64_t *arr = dir == DIR_SENT ? profile->packets_sent : profile->packets_recv;
     uint64_t count = 0;
 
-    for (uint8_t i = start_id; i < end_id; ++i) {
+    for (size_t i = start_id; i <= end_id; ++i) {
         count += arr[i];
     }
 
@@ -40,7 +40,7 @@ static uint64_t netprof_get_bytes_id_range(const Net_Profile *profile, uint8_t s
     const uint64_t *arr = dir == DIR_SENT ? profile->bytes_sent : profile->bytes_recv;
     uint64_t bytes = 0;
 
-    for (uint8_t i = start_id; i < end_id; ++i) {
+    for (size_t i = start_id; i <= end_id; ++i) {
         bytes += arr[i];
     }
 

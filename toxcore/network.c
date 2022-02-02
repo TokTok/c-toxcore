@@ -1602,10 +1602,10 @@ int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, IP_
     if (buf && ret == len) {
         const uint8_t *data = (const uint8_t *)buf;
         netprof_record_packet(net_profile, data[0], len, DIR_SENT);
-    
+
     }
 
-    loglogdata(log, "T=>", buf, len, ip_port, res);
+    loglogdata(log, "T=>", buf, len, ip_port, ret);
     return ret;
 }
 
