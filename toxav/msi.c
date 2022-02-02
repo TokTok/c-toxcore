@@ -79,7 +79,7 @@ static msi_action_cb *get_callback(MSISession *session, MSICallbackID id);
  * Public functions
  */
 
-void msi_register_callback(MSISession *session, msi_action_cb *callback, MSICallbackID id)
+void msi_register_callback(MSISession *session, msi_action_cb callback, MSICallbackID id)
 {
     if (!session) {
         return;
