@@ -1725,7 +1725,16 @@ char *net_new_strerror(int error)
 #else
     char *str = (char *)malloc(256);
 #ifdef _GNU_SOURCE
-    str = strerror_r(error, str, 256);
+    char *retstr = strerror_r(error, str, 256);
+
+    if (retstr != str) {
+        const size_t retstr_len = strlen(retstr) + 1;
+        const size_t copy_len = retstr_len > 256 ? 256 : retstr_len;
+        // memmove() instead of memcpy() just in case strerror_r() stores its
+        // data in the middle of str for some inexplicable reason.
+        memmove(str, tmpstr, copy_len);
+        str[copy_len] = '\0';
+    }
 #else
     const int fmt_error = strerror_r(error, str, 256);
 
