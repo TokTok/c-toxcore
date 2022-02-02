@@ -11,7 +11,8 @@
 #include "../toxcore/tox_events.h"
 #include "check_compat.h"
 
-static bool await_message(Tox **toxes) {
+static bool await_message(Tox **toxes)
+{
     for (uint32_t i = 0; i < 100; ++i) {
         // Ignore events on tox 1.
         tox_events_free(tox_events_iterate(toxes[0]));
@@ -24,7 +25,7 @@ static bool await_message(Tox **toxes) {
             ck_assert(tox_event_friend_message_get_message_length(msg_event) == sizeof("hello"));
             const uint8_t *msg = tox_event_friend_message_get_message(msg_event);
             ck_assert_msg(memcmp(msg, "hello", sizeof("hello")) == 0,
-                "message was not expected 'hello' but '%s'", (const char *)msg);
+                          "message was not expected 'hello' but '%s'", (const char *)msg);
             tox_events_free(events);
             return true;
         }
@@ -61,20 +62,20 @@ static void test_tox_events(void)
     tox_friend_add_norequest(toxes[0], pk, nullptr);
 
     printf("bootstrapping and connecting 2 toxes\n");
-    
+
     while (tox_self_get_connection_status(toxes[0]) == TOX_CONNECTION_NONE ||
-           tox_self_get_connection_status(toxes[1]) == TOX_CONNECTION_NONE) {
+            tox_self_get_connection_status(toxes[1]) == TOX_CONNECTION_NONE) {
         // Ignore connection events for now.
         tox_events_free(tox_events_iterate(toxes[0]));
         tox_events_free(tox_events_iterate(toxes[1]));
-   
+
         c_sleep(tox_iteration_interval(toxes[0]));
     }
 
     printf("toxes online, waiting for friend connection\n");
 
     while (tox_friend_get_connection_status(toxes[0], 0, nullptr) == TOX_CONNECTION_NONE ||
-           tox_friend_get_connection_status(toxes[1], 0, nullptr) == TOX_CONNECTION_NONE) {
+            tox_friend_get_connection_status(toxes[1], 0, nullptr) == TOX_CONNECTION_NONE) {
         // Ignore connection events for now.
         tox_events_free(tox_events_iterate(toxes[0]));
         tox_events_free(tox_events_iterate(toxes[1]));
@@ -90,7 +91,7 @@ static void test_tox_events(void)
     ck_assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
 
     ck_assert(await_message(toxes));
- 
+
     for (uint32_t i = 0; i < 2; ++i) {
         tox_kill(toxes[i]);
     }

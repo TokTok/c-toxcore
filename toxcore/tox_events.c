@@ -14,27 +14,30 @@
 
 
 /*****************************************************
- * 
+ *
  * :: Set up event handlers.
- * 
+ *
  *****************************************************/
 
 
-void tox_events_init(Tox *tox) {
+void tox_events_init(Tox *tox)
+{
     tox_callback_friend_message(tox, tox_events_handle_friend_message);
 }
 
-Tox_Events *tox_events_iterate(Tox *tox) {
+Tox_Events *tox_events_iterate(Tox *tox)
+{
     Tox_Events *events = nullptr;
     tox_iterate(tox, &events);
     return events;
 }
 
-void tox_events_free(Tox_Events *events) {
+void tox_events_free(Tox_Events *events)
+{
     if (events == nullptr) {
         return;
     }
 
     tox_events_clear_friend_messages(events);
-    delete(events);
+    delete (events);
 }

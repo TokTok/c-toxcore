@@ -10,11 +10,14 @@
 
 #include "../ccompat.h"
 
-Tox_Events *tox_events_alloc(void *user_data) {
+Tox_Events *tox_events_alloc(void *user_data)
+{
     Tox_Events **events_ptr = (Tox_Events **)user_data;
     assert(events_ptr != nullptr);
+
     if (*events_ptr == nullptr) {
-        *events_ptr = new(Tox_Events);
+        *events_ptr = new (Tox_Events);
     }
+
     return *events_ptr;
 }
