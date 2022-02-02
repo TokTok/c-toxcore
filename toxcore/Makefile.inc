@@ -6,6 +6,9 @@ libtoxcore_la_include_HEADERS = \
 libtoxcore_la_includedir = $(includedir)/tox
 
 libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
+                        ../toxcore/events/internal.h \
+                        ../toxcore/events/internal.c \
+                        ../toxcore/events/friend_message.c \
                         ../toxcore/DHT.h \
                         ../toxcore/DHT.c \
                         ../toxcore/mono_time.h \
@@ -31,8 +34,10 @@ libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
                         ../toxcore/state.h \
                         ../toxcore/state.c \
                         ../toxcore/tox.h \
-                        ../toxcore/tox_private.h \
                         ../toxcore/tox.c \
+                        ../toxcore/tox_events.h \
+                        ../toxcore/tox_events.c \
+                        ../toxcore/tox_private.h \
                         ../toxcore/tox_api.c \
                         ../toxcore/util.h \
                         ../toxcore/util.c \
