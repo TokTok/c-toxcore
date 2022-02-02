@@ -1746,18 +1746,27 @@ char *net_new_strerror(int error)
                    error, 0, (char *)&str, 0, nullptr);
     return str;
 #else
-    char *str = (char *)malloc(256);
+    #define STR_SIZE (256)
+    char *str = (char *)malloc(STR_SIZE);
+
 #ifdef _GNU_SOURCE
-    str = strerror_r(error, str, 256);
+    char tmp[STR_SIZE];
+    const char *retstr = strerror_r(error, tmp, STR_SIZE);
+    const size_t retstr_len = strlen(retstr);
+    const size_t copy_len = min_u32(retstr_len, STR_SIZE-1);
+    memcpy(str, retstr, copy_len);
+    str[copy_len] = '\0';
+
 #else
-    const int fmt_error = strerror_r(error, str, 256);
+    const int fmt_error = strerror_r(error, str, STR_SIZE);
 
     if (fmt_error != 0) {
-        snprintf(str, 256, "error %d (strerror failed with error %d)", error, fmt_error);
+        snprintf(str, STR_SIZE, "error %d (strerror failed with error %d)", error, fmt_error);
     }
 
 #endif
 
+    #undef STR_SIZE
     return str;
 #endif
 }
