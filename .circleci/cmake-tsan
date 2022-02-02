@@ -8,7 +8,6 @@ CACHEDIR="$HOME/cache"
 add_flag -Werror
 add_flag -fdiagnostics-color=always
 add_flag -fno-omit-frame-pointer
-add_flag -Wno-missing-braces
 add_flag -fsanitize=thread
 cmake -B_build -H. -GNinja \
   -DCMAKE_C_FLAGS="$C_FLAGS" \
