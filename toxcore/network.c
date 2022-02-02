@@ -1724,7 +1724,13 @@ char *net_new_strerror(int error)
     return str;
 #else
     char *str = (char *)malloc(256);
-#ifdef _GNU_SOURCE
+#ifdef (_POSIX_C_SOURCE >= 200112L) && ! _GNU_SOURCE
+    const int fmt_error = strerror_r(error, str, 256);
+
+    if (fmt_error != 0) {
+        snprintf(str, 256, "error %d (strerror failed with error %d)", error, fmt_error);
+    }
+#else
     char *retstr = strerror_r(error, str, 256);
 
     if (retstr != str) {
@@ -1735,13 +1741,6 @@ char *net_new_strerror(int error)
         memmove(str, tmpstr, copy_len);
         str[copy_len] = '\0';
     }
-#else
-    const int fmt_error = strerror_r(error, str, 256);
-
-    if (fmt_error != 0) {
-        snprintf(str, 256, "error %d (strerror failed with error %d)", error, fmt_error);
-    }
-
 #endif
 
     return str;
