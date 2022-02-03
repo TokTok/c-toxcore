@@ -741,6 +741,7 @@ static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction 
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
+        LOGGER_ERROR(moderation->log, "Failed to pack sanctions list: %d", packed_len);
         return -1;
     }
 
@@ -796,6 +797,7 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
         memcpy(moderation->sanctions[i].setter_public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
         if (sanctions_list_sign_entry(moderation, &moderation->sanctions[i]) != -1) {
+            LOGGER_ERROR(moderation->log, "Failed to sign sanction");
             ++count;
         }
     }

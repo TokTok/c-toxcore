@@ -16,7 +16,7 @@
 #include "DHT.h"
 #include "logger.h"
 
-/* Maximum number of allowed sanctions. This value must take into account the maxmimum allowed group packet size. */
+/* Maximum number of allowed sanctions. This value must take into account the maximum allowed group packet size. */
 #define MOD_MAX_NUM_SANCTIONS 12
 
 #define MOD_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE

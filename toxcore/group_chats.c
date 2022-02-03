@@ -2298,7 +2298,7 @@ static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *da
         return 0;
     }
 
-    uint64_t tm = mono_time_get(chat->mono_time);
+    const uint64_t tm = mono_time_get(chat->mono_time);
 
     gconn->last_received_ping_time = tm;
 
@@ -2354,7 +2354,7 @@ static int handle_gc_status(const GC_Session *c, const GC_Chat *chat, GC_Peer *p
         return -1;
     }
 
-    Group_Peer_Status status = (Group_Peer_Status) data[0];
+    Group_Peer_Status status = (Group_Peer_Status)data[0];
 
     if (status > GS_BUSY) {
         LOGGER_WARNING(chat->log, "Received invalid status %u", status);
@@ -2686,7 +2686,6 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
  */
 static int send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
 {
-
     if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
         return 0;
     }
@@ -4927,8 +4926,8 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
 
 /** Sends a handshake response ack to peer.
  *
- * Returns non-negative value on success.
- * Returns -1 on failure.
+ * Return 0 on success.
+ * Return -1 on failure.
  */
 static int send_gc_hs_response_ack(const GC_Chat *chat, GC_Connection *gconn)
 {

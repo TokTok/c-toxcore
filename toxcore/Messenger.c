@@ -2659,8 +2659,7 @@ uint32_t messenger_run_interval(const Messenger *m)
 #ifndef VANILLA_NACL
 static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *onion_friend)
 {
-    GC_Public_Announce announce;
-    memset(&announce, 0, sizeof(GC_Public_Announce));
+    GC_Public_Announce announce = {0};
 
     bool ip_port_is_set = chat->self_udp_status != SELF_UDP_STATUS_NONE;
     int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, announce.base_announce.tcp_relays,

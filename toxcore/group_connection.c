@@ -258,7 +258,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
  * Return -1 on failure.
  */
 static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                                        GC_Message_Array_Entry *array_entry, void *userdata)
+                                        GC_Message_Array_Entry *const array_entry, void *userdata)
 {
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
@@ -288,7 +288,7 @@ int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, GC_Connection *
                              void *userdata)
 {
     const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
-    GC_Message_Array_Entry *array_entry = &gconn->received_array[idx];
+    GC_Message_Array_Entry *const array_entry = &gconn->received_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
         return process_received_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
@@ -314,7 +314,7 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
             continue;
         }
 
-        uint64_t delta = array_entry->last_send_try - array_entry->time_added;
+        const uint64_t delta = array_entry->last_send_try - array_entry->time_added;
         array_entry->last_send_try = tm;
 
         /* if this occurrs less than once per second this won't be reliable */
