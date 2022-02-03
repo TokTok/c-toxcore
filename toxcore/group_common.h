@@ -85,7 +85,7 @@ typedef struct GC_Connection {
     GC_Message_Array_Entry *send_array;
 
     uint64_t received_message_id;   /* message_id of peer's last message to us */
-    GC_Message_Array_Entry *received_array;
+    GC_Message_Array_Entry *recv_array;
 
     GC_PeerAddress   addr;   /* holds peer's extended real public key and ip_port */
     uint32_t    public_key_hash;   /* Jenkins one at a time hash of peer's real encryption public key */

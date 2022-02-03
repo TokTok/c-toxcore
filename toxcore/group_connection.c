@@ -223,10 +223,10 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
         return 0;
     }
 
-    /* we're missing an older message from this peer so we store it in received_array */
+    /* we're missing an older message from this peer so we store it in recv_array */
     if (message_id > gconn->received_message_id + 1) {
         const uint16_t idx = gcc_get_array_index(message_id);
-        GC_Message_Array_Entry *ary_entry = &gconn->received_array[idx];
+        GC_Message_Array_Entry *ary_entry = &gconn->recv_array[idx];
 
         if (!array_entry_is_empty(ary_entry)) {
             LOGGER_DEBUG(log, "Recv array is not empty");
@@ -257,8 +257,8 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                                        GC_Message_Array_Entry *const array_entry, void *userdata)
+static int process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                                    GC_Message_Array_Entry *const array_entry, void *userdata)
 {
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
@@ -284,14 +284,14 @@ static int process_received_array_entry(const GC_Session *c, GC_Chat *chat, GC_C
     return 0;
 }
 
-int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                             void *userdata)
+int gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                         void *userdata)
 {
     const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
-    GC_Message_Array_Entry *const array_entry = &gconn->received_array[idx];
+    GC_Message_Array_Entry *const array_entry = &gconn->recv_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        return process_received_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
+        return process_recv_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
     }
 
     return 0;
@@ -423,10 +423,10 @@ void gcc_peer_cleanup(GC_Connection *gconn)
 {
     for (size_t i = 0; i < GCC_BUFFER_SIZE; ++i) {
         free(gconn->send_array[i].data);
-        free(gconn->received_array[i].data);
+        free(gconn->recv_array[i].data);
     }
 
-    free(gconn->received_array);
+    free(gconn->recv_array);
     free(gconn->send_array);
 
     crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));

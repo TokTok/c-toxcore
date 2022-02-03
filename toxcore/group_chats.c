@@ -6212,9 +6212,9 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
     GC_Connection *gconn = &chat->group[peer_number].gconn;
 
     gconn->send_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
-    gconn->received_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
+    gconn->recv_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
 
-    if (gconn->send_array == nullptr || gconn->received_array == nullptr) {
+    if (gconn->send_array == nullptr || gconn->recv_array == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
         return -1;
@@ -6343,7 +6343,7 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
             }
         }
 
-        gcc_check_received_array(c, chat, gconn, i, userdata);   // may change peer numbers
+        gcc_check_recv_array(c, chat, gconn, i, userdata);   // may change peer numbers
     }
 
     chat->new_tcp_relay = false;

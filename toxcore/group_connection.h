@@ -27,10 +27,10 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
 int gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
                           uint16_t length, uint8_t packet_type);
 
-/** Decides if message need to be put in received_array or immediately handled.
+/** Decides if message need to be put in recv_array or immediately handled.
  *
  * Return 2 if message is in correct sequence and may be handled immediately.
- * Return 1 if packet is out of sequence and added to received_array.
+ * Return 1 if packet is out of sequence and added to recv_array.
  * Return 0 if message is a duplicate.
  * Return -1 on failure
  */
@@ -82,14 +82,14 @@ int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn);
  */
 int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node);
 
-/** Checks for and handles messages that are in proper sequence in gconn's received_array.
+/** Checks for and handles messages that are in proper sequence in gconn's recv_array.
  * This should always be called after a new packet is successfully handled.
  *
  * Return 0 on success.
  * Return -1 on failure.
  */
-int gcc_check_received_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                             void *userdata);
+int gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                         void *userdata);
 
 /** Attempts to re-send lossless packets that have not yet received an ack. */
 void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn);
