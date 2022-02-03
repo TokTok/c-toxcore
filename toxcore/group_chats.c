@@ -697,19 +697,16 @@ static int set_gc_password_local(GC_Chat *chat, const uint8_t *passwd, uint16_t 
 /** Expands the chat_id into the extended chat public key (encryption key + signature key)
  * dest must have room for EXT_PUBLIC_KEY_SIZE bytes.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Return true on success.
  */
-static int expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
+static bool expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 {
-    int ret = -1;
+    assert(dest != nullptr);
 
-    if (dest) {
-        ret = crypto_sign_ed25519_pk_to_curve25519(dest, chat_id);
-        memcpy(dest + ENC_PUBLIC_KEY_SIZE, chat_id, SIG_PUBLIC_KEY_SIZE);
-    }
+    const int ret = crypto_sign_ed25519_pk_to_curve25519(dest, chat_id);
+    memcpy(dest + ENC_PUBLIC_KEY_SIZE, chat_id, SIG_PUBLIC_KEY_SIZE);
 
-    return ret;
+    return ret != -1;
 }
 
 /** Copies peer connect info from `gconn` to `addr`. */
@@ -755,7 +752,7 @@ static int saved_peer_index(const GC_Chat *chat, const uint8_t *public_key)
 static int saved_peers_get_new_index(const GC_Chat *chat, const uint8_t *public_key)
 {
     if (public_key != nullptr) {
-        int idx = saved_peer_index(chat, public_key);
+        const int idx = saved_peer_index(chat, public_key);
 
         if (idx != -1) {
             return idx;
@@ -1299,7 +1296,7 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
     }
 
     memcpy(data, chat->shared_state_sig, SIGNATURE_SIZE);
-    uint16_t header_len = SIGNATURE_SIZE;
+    const uint16_t header_len = SIGNATURE_SIZE;
 
     const uint16_t packed_len = pack_gc_shared_state(data + header_len, length - header_len, &chat->shared_state);
 
@@ -7156,7 +7153,7 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
         return -1;
     }
 
-    if (expand_chat_id(chat->chat_public_key, chat_id) != 0) {
+    if (!expand_chat_id(chat->chat_public_key, chat_id)) {
         return -1;
     }
 
@@ -7562,7 +7559,7 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
         return -2;
     }
 
-    if (expand_chat_id(chat->chat_public_key, chat_id) != 0) {
+    if (!expand_chat_id(chat->chat_public_key, chat_id)) {
         group_delete(c, chat);
         return -2;
     }
