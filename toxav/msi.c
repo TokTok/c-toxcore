@@ -390,6 +390,47 @@ static bool check_enum_high(const Logger *log, const uint8_t *bytes, uint8_t enu
     return true;
 }
 
+static const uint8_t *msg_parse_one(const Logger *log, MSIMessage *dest, const uint8_t *it, int *size_constraint) {
+    switch (*it) {
+        case ID_REQUEST: {
+            if (!check_size(log, it, size_constraint, 1) ||
+                    !check_enum_high(log, it, REQU_POP)) {
+                return nullptr;
+            }
+
+            dest->request.value = (MSIRequest)it[2];
+            dest->request.exists = true;
+            return it + 3;
+        }
+
+        case ID_ERROR: {
+            if (!check_size(log, it, size_constraint, 1) ||
+                    !check_enum_high(log, it, MSI_E_UNDISCLOSED)) {
+                return nullptr;
+            }
+
+            dest->error.value = (MSIError)it[2];
+            dest->error.exists = true;
+            return it + 3;
+        }
+
+        case ID_CAPABILITIES: {
+            if (!check_size(log, it, size_constraint, 1)) {
+                return nullptr;
+            }
+
+            dest->capabilities.value = it[2];
+            dest->capabilities.exists = true;
+            return it + 3;
+        }
+
+        default: {
+            LOGGER_ERROR(log, "Invalid id byte: %d", *it);
+            return nullptr;
+        }
+    }
+}
+
 static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data, uint16_t length)
 {
     /* Parse raw data received from socket into MSIMessage struct */
@@ -406,46 +447,9 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
     int size_constraint = length;
 
     while (*it) {/* until end byte is hit */
-        switch (*it) {
-            case ID_REQUEST: {
-                if (!check_size(log, it, &size_constraint, 1) ||
-                        !check_enum_high(log, it, REQU_POP)) {
-                    return -1;
-                }
-
-                dest->request.value = (MSIRequest)it[2];
-                dest->request.exists = true;
-                it += 3;
-                break;
-            }
-
-            case ID_ERROR: {
-                if (!check_size(log, it, &size_constraint, 1) ||
-                        !check_enum_high(log, it, MSI_E_UNDISCLOSED)) {
-                    return -1;
-                }
-
-                dest->error.value = (MSIError)it[2];
-                dest->error.exists = true;
-                it += 3;
-                break;
-            }
-
-            case ID_CAPABILITIES: {
-                if (!check_size(log, it, &size_constraint, 1)) {
-                    return -1;
-                }
-
-                dest->capabilities.value = it[2];
-                dest->capabilities.exists = true;
-                it += 3;
-                break;
-            }
-
-            default: {
-                LOGGER_ERROR(log, "Invalid id byte");
-                return -1;
-            }
+        it = msg_parse_one(log, dest, it, &size_constraint);
+        if (it == nullptr) {
+            return -1;
         }
     }
 
