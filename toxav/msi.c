@@ -390,7 +390,8 @@ static bool check_enum_high(const Logger *log, const uint8_t *bytes, uint8_t enu
     return true;
 }
 
-static const uint8_t *msg_parse_one(const Logger *log, MSIMessage *dest, const uint8_t *it, int *size_constraint) {
+static const uint8_t *msg_parse_one(const Logger *log, MSIMessage *dest, const uint8_t *it, int *size_constraint)
+{
     switch (*it) {
         case ID_REQUEST: {
             if (!check_size(log, it, size_constraint, 1) ||
@@ -448,6 +449,7 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
 
     while (*it) {/* until end byte is hit */
         it = msg_parse_one(log, dest, it, &size_constraint);
+
         if (it == nullptr) {
             return -1;
         }
