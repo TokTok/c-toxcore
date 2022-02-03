@@ -74,6 +74,10 @@ extern "C" {
 #define CRYPTO_PACKET_DHTPK         156
 #define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
 
+/* Max size of a packed node for IPV4 and IPV6 respectively */
+#define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
+#define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
+
 /** Create a request to peer.
  * send_public_key and send_secret_key are the pub/secret keys of the sender.
  * recv_public_key is public key of receiver.

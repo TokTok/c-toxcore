@@ -1892,7 +1892,7 @@ static int send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
         return 0;
     }
 
-    uint8_t data[sizeof(tcp_relays)];
+    uint8_t data[GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6];
     uint16_t length = 0;
 
     for (uint32_t i = 0; i < num_tcp_relays; ++i) {
@@ -7500,7 +7500,7 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
     }
 
     uint16_t len = GC_JOIN_DATA_LENGTH;
-    uint8_t send_data[GC_JOIN_DATA_LENGTH + sizeof(tcp_relays)];
+    uint8_t send_data[GC_JOIN_DATA_LENGTH + (GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6)];
 
     memcpy(send_data, chat_id, CHAT_ID_SIZE);
     memcpy(send_data + CHAT_ID_SIZE, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
