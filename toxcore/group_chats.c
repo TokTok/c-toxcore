@@ -1562,9 +1562,7 @@ static int send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connectio
  */
 static int unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const uint16_t length)
 {
-    GC_Announce announce = (GC_Announce) {
-        0
-    };
+    GC_Announce announce = {0};
 
     const int unpacked_announces = gca_unpack_announces_list(chat->log, data, length, &announce, 1);
 
@@ -1728,9 +1726,7 @@ static int sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, u
             continue;
         }
 
-        GC_Announce announce = (GC_Announce) {
-            0
-        };
+        GC_Announce announce = {0};
 
         if (!create_sync_announce(chat, peer_gconn, i, &announce)) {
             continue;
@@ -4506,7 +4502,6 @@ int gc_founder_set_privacy_state(const Messenger *m, int group_number, Group_Pri
     return 0;
 }
 
-/** Returns the group peer limit. */
 uint16_t gc_get_max_peers(const GC_Chat *chat)
 {
     return chat->shared_state.maxpeers;
@@ -5531,11 +5526,6 @@ static int handle_gc_handshake_packet(GC_Chat *chat, const uint8_t *sender_pk, c
     return peer_number;
 }
 
-/** Helper function for handle_gc_lossless_packet().
- *
- * Return 0 and send message ack if packet is successfully handled.
- * Return -1 on failure.
- */
 int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint8_t packet_type, void *userdata)
 {
