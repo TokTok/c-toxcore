@@ -6211,6 +6211,15 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 
     GC_Connection *gconn = &chat->group[peer_number].gconn;
 
+    gconn->send_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
+    gconn->received_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
+
+    if (gconn->send_array == nullptr || gconn->received_array == nullptr) {
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
+        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        return -1;
+    }
+
     gcc_set_ip_port(gconn, ipp);
     chat->group[peer_number].role = GR_USER;
     chat->group[peer_number].peer_id = peer_id;
@@ -6218,6 +6227,8 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 
     if (create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key) != 0) {
         LOGGER_FATAL(chat->log, "Failed to create session keypair");
+        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        gcc_peer_cleanup(gconn);
         return -1;
     }
 

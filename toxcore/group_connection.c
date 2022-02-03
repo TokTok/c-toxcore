@@ -422,14 +422,12 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
 void gcc_peer_cleanup(GC_Connection *gconn)
 {
     for (size_t i = 0; i < GCC_BUFFER_SIZE; ++i) {
-        if (gconn->send_array[i].data) {
-            free(gconn->send_array[i].data);
-        }
-
-        if (gconn->received_array[i].data) {
-            free(gconn->received_array[i].data);
-        }
+        free(gconn->send_array[i].data);
+        free(gconn->received_array[i].data);
     }
+
+    free(gconn->received_array);
+    free(gconn->send_array);
 
     crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
     crypto_memunlock(gconn->session_shared_key, sizeof(gconn->session_shared_key));
