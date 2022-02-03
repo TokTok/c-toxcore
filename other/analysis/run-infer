@@ -22,4 +22,4 @@ infer \
   /work/toxencryptsave/*.c
 EOF
 
-docker run --rm -it -v $PWD:/work toxchat/infer bash -c "$SCRIPT"
+docker run --rm -it -v "$PWD":/work toxchat/infer bash -c "$SCRIPT"
