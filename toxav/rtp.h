@@ -9,7 +9,6 @@
 
 #include "bwcontroller.h"
 
-#include "../toxcore/tox.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/tox.h"
 

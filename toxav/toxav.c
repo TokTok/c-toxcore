@@ -3,8 +3,6 @@
  * Copyright © 2013-2015 Tox project.
  */
 #include "toxav.h"
-#include "../toxcore/tox.h"
-#include "../toxcore/tox_private.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -20,6 +18,8 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/network.h"
+#include "../toxcore/tox.h"
+#include "../toxcore/tox_private.h"
 #include "../toxcore/util.h"
 
 // TODO(zoff99): don't hardcode this, let the application choose it

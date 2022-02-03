@@ -3,7 +3,6 @@
  * Copyright © 2013-2015 Tox project.
  */
 #include "bwcontroller.h"
-#include "toxav_hacks.h"
 
 #include <assert.h>
 #include <errno.h>
@@ -11,6 +10,7 @@
 #include <string.h>
 
 #include "ring_buffer.h"
+#include "toxav_hacks.h"
 
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
