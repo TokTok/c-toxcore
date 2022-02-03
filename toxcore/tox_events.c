@@ -28,9 +28,11 @@ Tox_Events *tox_events_iterate(Tox *tox, Tox_Err_Events_Iterate *error)
 {
     Tox_Events_State state = {0};
     tox_iterate(tox, &state);
+
     if (error != nullptr) {
         *error = state.error;
     }
+
     return state.events;
 }
 
