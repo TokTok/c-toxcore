@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
- * Copyright © 2013 Tox project.
+ * Copyright © 2022 The TokTok team.
  */
 
 #ifndef C_TOXCORE_TOXCORE_TOX_EVENTS_H
@@ -32,10 +31,28 @@ const Tox_Event_Friend_Message *tox_events_get_friend_message(const Tox_Events *
  */
 void tox_events_init(Tox *tox);
 
+typedef enum Tox_Err_Events_Iterate {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_EVENTS_ITERATE_OK,
+
+    /**
+     * The function failed to allocate enough memory to store the events.
+     *
+     * Some events may still be stored if the return value is NULL. The events
+     * object will always be valid (or NULL) but if this error code is set,
+     * the function may have missed some events.
+     */
+    TOX_ERR_EVENTS_ITERATE_MALLOC,
+
+} Tox_Err_Events_Iterate;
+
 /**
  * TODO(iphydf): Document.
  */
-Tox_Events *tox_events_iterate(Tox *tox);
+Tox_Events *tox_events_iterate(Tox *tox, Tox_Err_Events_Iterate *error);
 
 /**
  * TODO(iphydf): Document.

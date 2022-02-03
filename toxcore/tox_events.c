@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
- * Copyright © 2013 Tox project.
+ * Copyright © 2022 The TokTok team.
  */
 
 #include "tox_events.h"
@@ -25,11 +24,14 @@ void tox_events_init(Tox *tox)
     tox_callback_friend_message(tox, tox_events_handle_friend_message);
 }
 
-Tox_Events *tox_events_iterate(Tox *tox)
+Tox_Events *tox_events_iterate(Tox *tox, Tox_Err_Events_Iterate *error)
 {
-    Tox_Events *events = nullptr;
-    tox_iterate(tox, &events);
-    return events;
+    Tox_Events_State state = {0};
+    tox_iterate(tox, &state);
+    if (error != nullptr) {
+        *error = state.error;
+    }
+    return state.events;
 }
 
 void tox_events_free(Tox_Events *events)

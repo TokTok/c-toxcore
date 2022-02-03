@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
- * Copyright © 2013 Tox project.
+ * Copyright © 2022 The TokTok team.
  */
 
 #include "internal.h"
@@ -10,14 +9,19 @@
 
 #include "../ccompat.h"
 
-Tox_Events *tox_events_alloc(void *user_data)
+Tox_Events_State *tox_events_alloc(void *user_data)
 {
-    Tox_Events **events_ptr = (Tox_Events **)user_data;
-    assert(events_ptr != nullptr);
+    Tox_Events_State *state = (Tox_Events_State *)user_data;
+    assert(state != nullptr);
 
-    if (*events_ptr == nullptr) {
-        *events_ptr = new (Tox_Events);
+    if (state->events == nullptr) {
+        state->events = new (Tox_Events);
     }
 
-    return *events_ptr;
+    if (state->events == nullptr) {
+        // It's still null => allocation failed.
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+
+    return state;
 }

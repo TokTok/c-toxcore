@@ -1,6 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
- * Copyright © 2013 Tox project.
+ * Copyright © 2022 The TokTok team.
  */
 
 #include "internal.h"
@@ -165,15 +164,13 @@ const Tox_Event_Friend_Message *tox_events_get_friend_message(const Tox_Events *
 void tox_events_handle_friend_message(Tox *tox, uint32_t friend_number, Tox_Message_Type type, const uint8_t *message,
                                       size_t length, void *user_data)
 {
-    Tox_Events *events = tox_events_alloc(user_data);
+    Tox_Events_State *state = tox_events_alloc(user_data);
+    assert(state != nullptr);
 
-    if (events == nullptr) {
-        return;
-    }
-
-    Tox_Event_Friend_Message *friend_message = tox_events_add_friend_message(events);
+    Tox_Event_Friend_Message *friend_message = tox_events_add_friend_message(state->events);
 
     if (friend_message == nullptr) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
 
