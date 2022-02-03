@@ -6117,7 +6117,9 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
         chat->group[peer_number] = chat->group[chat->numpeers];
     }
 
-    memset(&chat->group[chat->numpeers], 0, sizeof(GC_Peer));
+    chat->group[chat->numpeers] = (GC_Peer) {
+        0
+    };
 
     GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, chat->numpeers * sizeof(GC_Peer));
 
@@ -6203,7 +6205,9 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
         return -1;
     }
 
-    memset(&tmp_group[peer_number], 0, sizeof(GC_Peer));
+    tmp_group[peer_number] = (GC_Peer) {
+        0
+    };
 
     ++chat->numpeers;
 
@@ -6248,7 +6252,9 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
 /** Copies own peer data to `peer`. */
 static void copy_self(const GC_Chat *chat, GC_Peer *peer)
 {
-    memset(peer, 0, sizeof(GC_Peer));
+    *peer = (GC_Peer) {
+        0
+    };
 
     peer->status = gc_get_self_status(chat);
     gc_get_self_nick(chat, peer->nick);
