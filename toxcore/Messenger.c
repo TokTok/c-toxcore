@@ -2005,7 +2005,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsig
     } else {
         IP ip;
         ip_init(&ip, options->ipv6enabled);
-        m->net = new_networking_ex(m->log, ip, options->port_range[0], options->port_range[1], &net_err);
+        m->net = new_networking_ex(m->log, &ip, options->port_range[0], options->port_range[1], &net_err);
     }
 
     if (m->net == nullptr) {
@@ -2735,7 +2735,7 @@ void do_messenger(Messenger *m, void *userdata)
         m->has_added_relays = true;
 
         for (uint16_t i = 0; i < m->num_loaded_relays; ++i) {
-            add_tcp_relay(m->net_crypto, m->loaded_relays[i].ip_port, m->loaded_relays[i].public_key);
+            add_tcp_relay(m->net_crypto, &m->loaded_relays[i].ip_port, m->loaded_relays[i].public_key);
         }
 
         m->num_loaded_relays = 0;
@@ -2746,8 +2746,7 @@ void do_messenger(Messenger *m, void *userdata)
             local_ip_port.port = m->options.tcp_server_port;
             local_ip_port.ip.family = net_family_ipv4;
             local_ip_port.ip.ip.v4 = get_ip4_loopback();
-            add_tcp_relay(m->net_crypto, local_ip_port,
-                          tcp_server_public_key(m->tcp_server));
+            add_tcp_relay(m->net_crypto, &local_ip_port, tcp_server_public_key(m->tcp_server));
         }
     }
 
@@ -3459,7 +3458,7 @@ static State_Load_Status load_path_nodes(Messenger *m, const uint8_t *data, uint
         }
 
         for (int i = 0; i < num; ++i) {
-            onion_add_bs_path_node(m->onion_c, nodes[i].ip_port, nodes[i].public_key);
+            onion_add_bs_path_node(m->onion_c, &nodes[i].ip_port, nodes[i].public_key);
         }
     }
 

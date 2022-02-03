@@ -211,11 +211,11 @@ extern const Socket net_invalid_socket;
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, IP_Port ip_port);
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
-int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, IP_Port ip_port);
+int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port);
 /**
  * Calls listen(sockfd, backlog).
  */
@@ -247,7 +247,7 @@ size_t net_unpack_u32(const uint8_t *bytes, uint32_t *v);
 size_t net_unpack_u64(const uint8_t *bytes, uint64_t *v);
 
 /** Does the IP6 struct a contain an IPv4 address in an IPv6 one? */
-bool ipv6_ipv4_in_v6(IP6 a);
+bool ipv6_ipv4_in_v6(const IP6 *a);
 
 #define TOX_ENABLE_IPV6_DEFAULT true
 
@@ -368,7 +368,7 @@ bool addr_resolve_or_parse_ip(const char *address, IP *to, IP *extra);
  * Packet data is put into data.
  * Packet length is put into length.
  */
-typedef int packet_handler_cb(void *object, IP_Port ip_port, const uint8_t *data, uint16_t len, void *userdata);
+typedef int packet_handler_cb(void *object, const IP_Port *ip_port, const uint8_t *data, uint16_t len, void *userdata);
 
 typedef struct Networking_Core Networking_Core;
 
@@ -429,14 +429,14 @@ typedef struct Packet {
 /**
  * Function to send a network packet to a given IP/port.
  */
-int send_packet(const Networking_Core *net, IP_Port ip_port, Packet packet);
+int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet);
 
 /**
  * Function to send packet(data) of length length to ip_port.
  *
  * @deprecated Use send_packet instead.
  */
-int sendpacket(const Networking_Core *net, IP_Port ip_port, const uint8_t *data, uint16_t length);
+int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length);
 
 /** Function to call when packet beginning with byte is received. */
 void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handler_cb *cb, void *object);
@@ -449,7 +449,7 @@ void networking_poll(const Networking_Core *net, void *userdata);
  * Return 0 on success.
  * Return -1 on failure.
  */
-int net_connect(const Logger *log, Socket sock, IP_Port ip_port);
+int net_connect(const Logger *log, Socket sock, const IP_Port *ip_port);
 
 /** High-level getaddrinfo implementation.
  * Given node, which identifies an Internet host, net_getipport() fills an array
@@ -504,7 +504,7 @@ void net_kill_strerror(char *strerror);
 /** Initialize networking.
  * Added for reverse compatibility with old new_networking calls.
  */
-Networking_Core *new_networking(const Logger *log, IP ip, uint16_t port);
+Networking_Core *new_networking(const Logger *log, const IP *ip, uint16_t port);
 /** Initialize networking.
  * Bind to ip and port.
  * ip must be in network order EX: 127.0.0.1 = (7F000001).
@@ -515,7 +515,8 @@ Networking_Core *new_networking(const Logger *log, IP ip, uint16_t port);
  *
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
-Networking_Core *new_networking_ex(const Logger *log, IP ip, uint16_t port_from, uint16_t port_to, unsigned int *error);
+Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t port_from, uint16_t port_to,
+                                   unsigned int *error);
 Networking_Core *new_networking_no_udp(const Logger *log);
 
 /** Function to cleanup networking stuff (doesn't do much right now). */

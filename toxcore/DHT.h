@@ -206,7 +206,7 @@ typedef struct Shared_Keys {
 
 /*----------------------------------------------------------------------------------*/
 
-typedef int cryptopacket_handler_cb(void *object, IP_Port ip_port, const uint8_t *source_pubkey,
+typedef int cryptopacket_handler_cb(void *object, const IP_Port *ip_port, const uint8_t *source_pubkey,
                                     const uint8_t *data, uint16_t len, void *userdata);
 
 typedef struct DHT DHT;
@@ -254,7 +254,7 @@ void dht_get_shared_key_sent(DHT *dht, uint8_t *shared_key, const uint8_t *publi
  */
 bool dht_getnodes(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *client_id);
 
-typedef void dht_ip_cb(void *object, int32_t number, IP_Port ip_port);
+typedef void dht_ip_cb(void *object, int32_t number, const IP_Port *ip_port);
 
 /** Add a new friend to the friends list.
  * public_key must be CRYPTO_PUBLIC_KEY_SIZE bytes long.
@@ -303,12 +303,12 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2);
  *
  * @return true iff the node was added to the list.
  */
-bool add_to_list(Node_format *nodes_list, uint32_t length, const uint8_t *pk, IP_Port ip_port,
+bool add_to_list(Node_format *nodes_list, uint32_t length, const uint8_t *pk, const IP_Port *ip_port,
                  const uint8_t *cmp_pk);
 
 /** Return 1 if node can be added to close list, 0 if it can't.
  */
-bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, IP_Port ip_port);
+bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port);
 
 /** Get the (maximum MAX_SENT_NODES) closest nodes to public_key we know
  * and put them in nodes_list (must be MAX_SENT_NODES big).
@@ -345,7 +345,8 @@ void do_dht(DHT *dht);
 /** Sends a "get nodes" request to the given node with ip, port and public_key
  *   to setup connections
  */
-void dht_bootstrap(DHT *dht, IP_Port ip_port, const uint8_t *public_key);
+void dht_bootstrap(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key);
+
 /** Resolves address into an IP address. If successful, sends a "get nodes"
  *   request to the given node with ip, port and public_key to setup connections
  *
@@ -418,7 +419,7 @@ bool dht_isconnected(const DHT *dht);
 bool dht_non_lan_connected(const DHT *dht);
 
 
-uint32_t addto_lists(DHT *dht, IP_Port ip_port, const uint8_t *public_key);
+uint32_t addto_lists(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key);
 
 /** Copies our own ip_port structure to `dest`. WAN addresses take priority over LAN addresses.
  *

@@ -799,7 +799,7 @@ static int reconnect_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connec
     uint8_t relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
     memcpy(relay_pk, tcp_con_public_key(tcp_con->connection), CRYPTO_PUBLIC_KEY_SIZE);
     kill_TCP_connection(tcp_con->connection);
-    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, ip_port, relay_pk, tcp_c->self_public_key,
+    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, &ip_port, relay_pk, tcp_c->self_public_key,
                           tcp_c->self_secret_key, &tcp_c->proxy_info);
 
     if (!tcp_con->connection) {
@@ -885,7 +885,7 @@ static int unsleep_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connecti
         return -1;
     }
 
-    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, tcp_con->ip_port, tcp_con->relay_pk,
+    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, &tcp_con->ip_port, tcp_con->relay_pk,
                           tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info);
 
     if (!tcp_con->connection) {
@@ -1137,15 +1137,17 @@ static int tcp_relay_on_online(TCP_Connections *tcp_c, int tcp_connections_numbe
     return 0;
 }
 
-static int add_tcp_relay_instance(TCP_Connections *tcp_c, IP_Port ip_port, const uint8_t *relay_pk)
+static int add_tcp_relay_instance(TCP_Connections *tcp_c, const IP_Port *ip_port, const uint8_t *relay_pk)
 {
-    if (net_family_is_tcp_ipv4(ip_port.ip.family)) {
-        ip_port.ip.family = net_family_ipv4;
-    } else if (net_family_is_tcp_ipv6(ip_port.ip.family)) {
-        ip_port.ip.family = net_family_ipv6;
+    IP_Port ipp_copy = *ip_port;
+
+    if (net_family_is_tcp_ipv4(ipp_copy.ip.family)) {
+        ipp_copy.ip.family = net_family_ipv4;
+    } else if (net_family_is_tcp_ipv6(ipp_copy.ip.family)) {
+        ipp_copy.ip.family = net_family_ipv6;
     }
 
-    if (!net_family_is_ipv4(ip_port.ip.family) && !net_family_is_ipv6(ip_port.ip.family)) {
+    if (!net_family_is_ipv4(ipp_copy.ip.family) && !net_family_is_ipv6(ipp_copy.ip.family)) {
         return -1;
     }
 
@@ -1157,7 +1159,7 @@ static int add_tcp_relay_instance(TCP_Connections *tcp_c, IP_Port ip_port, const
 
     TCP_con *tcp_con = &tcp_c->tcp_connections[tcp_connections_number];
 
-    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, ip_port, relay_pk, tcp_c->self_public_key,
+    tcp_con->connection = new_TCP_connection(tcp_c->logger, tcp_c->mono_time, &ipp_copy, relay_pk, tcp_c->self_public_key,
                           tcp_c->self_secret_key, &tcp_c->proxy_info);
 
     if (!tcp_con->connection) {
@@ -1174,7 +1176,7 @@ static int add_tcp_relay_instance(TCP_Connections *tcp_c, IP_Port ip_port, const
  * return 0 on success.
  * return -1 on failure.
  */
-int add_tcp_relay_global(TCP_Connections *tcp_c, IP_Port ip_port, const uint8_t *relay_pk)
+int add_tcp_relay_global(TCP_Connections *tcp_c, const IP_Port *ip_port, const uint8_t *relay_pk)
 {
     int tcp_connections_number = find_tcp_connection_relay(tcp_c, relay_pk);
 
@@ -1235,7 +1237,8 @@ int add_tcp_number_relay_connection(const TCP_Connections *tcp_c, int connection
  * return 0 on success.
  * return -1 on failure.
  */
-int add_tcp_relay_connection(TCP_Connections *tcp_c, int connections_number, IP_Port ip_port, const uint8_t *relay_pk)
+int add_tcp_relay_connection(TCP_Connections *tcp_c, int connections_number, const IP_Port *ip_port,
+                             const uint8_t *relay_pk)
 {
     TCP_Connection_to *con_to = get_connection(tcp_c, connections_number);
 
