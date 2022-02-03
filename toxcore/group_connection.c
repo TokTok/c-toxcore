@@ -1,4 +1,4 @@
-/** SPDX-License-Identifier: GPL-3.0-or-later
+/* SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2015 Tox project.
  */
@@ -341,14 +341,14 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
 
     if (gcc_direct_conn_is_possible(chat, gconn)) {
         if (gcc_conn_is_direct(chat->mono_time, gconn)) {
-            if ((uint16_t) sendpacket(chat->net, gconn->addr.ip_port, packet, length) == length) {
+            if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
                 return 0;
             }
 
             return -1;
         }
 
-        if ((uint16_t) sendpacket(chat->net, gconn->addr.ip_port, packet, length) == length) {
+        if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
             direct_send_attempt = true;
         }
     }

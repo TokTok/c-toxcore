@@ -131,7 +131,8 @@ static int handle_test_3(void *object, const IP_Port *source, const uint8_t *pac
 }
 
 /* TODO: DEPRECATE */
-static int handle_test_3_old(void *object, IP_Port source, const uint8_t *packet, uint16_t length, void *userdata)
+static int handle_test_3_old(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
+                             void *userdata)
 {
     Onion *onion = (Onion *)object;
 

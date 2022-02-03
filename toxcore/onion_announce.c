@@ -436,7 +436,8 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
     }
 }
 
-static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, const uint8_t *packet, uint16_t length)
+static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *source, const uint8_t *packet,
+                                       uint16_t length)
 {
     if (length > ANNOUNCE_REQUEST_MAX_SIZE_RECV || length <= ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
         return 1;
@@ -484,7 +485,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     /* Respond with a gc announce response packet */
     Node_format nodes_list[MAX_SENT_NODES];
     const unsigned int num_nodes = get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list,
-                                   net_family_unspec, ip_is_lan(source.ip));
+                                   net_family_unspec, ip_is_lan(&source->ip));
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
 
@@ -563,7 +564,8 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, IP_Port source, 
     return 0;
 }
 
-static int handle_announce_request(void *object, IP_Port source, const uint8_t *packet, uint16_t length, void *userdata)
+static int handle_announce_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
+                                   void *userdata)
 {
     Onion_Announce *onion_a = (Onion_Announce *)object;
 
@@ -607,7 +609,7 @@ static int handle_announce_request(void *object, IP_Port source, const uint8_t *
     /*Respond with a announce response packet*/
     Node_format nodes_list[MAX_SENT_NODES];
     unsigned int num_nodes =
-        get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec, ip_is_lan(source.ip));
+        get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec, ip_is_lan(&source->ip));
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
 

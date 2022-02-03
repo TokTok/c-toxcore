@@ -962,7 +962,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
 
     const uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
 
-    if (client_add_to_list(onion_c, num, public_key, ip_port, plain[0], plain + 1, path_used) == -1) {
+    if (client_add_to_list(onion_c, num, public_key, &ip_port, plain[0], plain + 1, path_used) == -1) {
         return 1;
     }
 

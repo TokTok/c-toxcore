@@ -1,4 +1,4 @@
-/** SPDX-License-Identifier: GPL-3.0-or-later
+/* SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2015 Tox project.
  */
@@ -1606,7 +1606,7 @@ static int unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const uin
 
         for (uint8_t i = 0; i < announce.tcp_relays_count; ++i) {
             int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, new_gconn->tcp_connection_num,
-                                 announce.tcp_relays[i].ip_port,
+                                 &announce.tcp_relays[i].ip_port,
                                  announce.tcp_relays[i].public_key);
 
             if (add_tcp_result == -1) {
@@ -1903,7 +1903,7 @@ static int send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
     uint16_t length = 0;
 
     for (uint32_t i = 0; i < num_tcp_relays; ++i) {
-        add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, tcp_relays[i].ip_port,
+        add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_relays[i].ip_port,
                                  tcp_relays[i].public_key);
     }
 
@@ -1945,7 +1945,7 @@ static int handle_gc_tcp_relays(GC_Chat *chat, GC_Connection *gconn, const uint8
     for (size_t i = 0; i < num_nodes; ++i) {
         const Node_format *tcp_node = &tcp_relays[i];
 
-        if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, tcp_node->ip_port,
+        if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_node->ip_port,
                                      tcp_node->public_key) == 0) {
             gcc_save_tcp_relay(gconn, tcp_node);
 
@@ -5221,7 +5221,7 @@ static int send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, u
     int ret = -1;
 
     if (gcc_direct_conn_is_possible(chat, gconn)) {
-        ret = sendpacket(chat->net, gconn->addr.ip_port, packet, (uint16_t)length);
+        ret = sendpacket(chat->net, &gconn->addr.ip_port, packet, (uint16_t)length);
     }
 
     if (ret != length) {
@@ -5445,7 +5445,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
 
     if (nodes_count > 0) {
         const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num,
-                                   node->ip_port, node->public_key);
+                                   &node->ip_port, node->public_key);
 
         if (add_tcp_result < 0 && is_new_peer && ipp == nullptr) {
             LOGGER_WARNING(chat->log, "broken tcp relay for new peer");
@@ -5940,7 +5940,8 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
     return 0;
 }
 
-static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet, uint16_t length, void *userdata)
+static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t *packet, uint16_t length,
+                                void *userdata)
 {
     if (length <= 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE || length > MAX_GC_PACKET_SIZE) {
         return -1;
@@ -5993,7 +5994,7 @@ static int handle_gc_udp_packet(void *object, IP_Port ipp, const uint8_t *packet
             payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
             payload = payload + ENC_PUBLIC_KEY_SIZE;
 
-            return handle_gc_handshake_packet(chat, sender_pk, &ipp, payload, payload_len, true, userdata);
+            return handle_gc_handshake_packet(chat, sender_pk, ipp, payload, payload_len, true, userdata);
         }
 
         default: {
@@ -6743,7 +6744,7 @@ static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat)
     const uint32_t num_copied = tcp_copy_connected_relays(nc_get_tcp_c(m->net_crypto), tcp_relays, (uint16_t)num_relays);
 
     for (uint32_t i = 0; i < num_copied; ++i) {
-        if (add_tcp_relay_global(chat->tcp_conn, tcp_relays[i].ip_port, tcp_relays[i].public_key) == 0) {
+        if (add_tcp_relay_global(chat->tcp_conn, &tcp_relays[i].ip_port, tcp_relays[i].public_key) == 0) {
             chat->new_tcp_relay = true;
         }
     }
@@ -6919,10 +6920,10 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
             continue;
         }
 
-        add_tcp_relay_global(chat->tcp_conn, addrs[i].tcp_relay.ip_port, addrs[i].tcp_relay.public_key);
+        add_tcp_relay_global(chat->tcp_conn, &addrs[i].tcp_relay.ip_port, addrs[i].tcp_relay.public_key);
 
         const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num,
-                                   addrs[i].tcp_relay.ip_port,
+                                   &addrs[i].tcp_relay.ip_port,
                                    addrs[i].tcp_relay.public_key);
 
         if (add_tcp_result == -1 && !ip_port_is_set) {
@@ -7357,7 +7358,7 @@ static uint32_t add_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn, con
 
     for (size_t i = 0; i < num_nodes; ++i) {
         const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn,
-                                   gconn->tcp_connection_num, tcp_relays[i].ip_port,
+                                   gconn->tcp_connection_num, &tcp_relays[i].ip_port,
                                    tcp_relays[i].public_key);
 
         if (add_tcp_result == 0) {
@@ -7794,7 +7795,7 @@ static uint32_t add_gc_tcp_relays_from_announce(const GC_Chat *chat, GC_Connecti
 
     for (uint8_t j = 0; j < announce->tcp_relays_count; ++j) {
         const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num,
-                                   announce->tcp_relays[j].ip_port,
+                                   &announce->tcp_relays[j].ip_port,
                                    announce->tcp_relays[j].public_key);
 
         if (add_tcp_result == -1) {
