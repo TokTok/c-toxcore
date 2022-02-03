@@ -29,7 +29,7 @@ typedef struct State {
 static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
                                  const uint8_t *group_name, size_t group_name_length, void *user_data)
 {
-    TOX_ERR_GROUP_INVITE_ACCEPT err_accept;
+    Tox_Err_Group_Invite_Accept err_accept;
     tox_group_invite_accept(tox, friend_number, invite_data, length, (const uint8_t *)"test2", 5,
                             nullptr, 0, &err_accept);
     ck_assert(err_accept == TOX_ERR_GROUP_INVITE_ACCEPT_OK);
@@ -52,9 +52,9 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
  */
 static int has_correct_group_state(const Tox *tox, uint32_t group_number, const uint8_t *expected_chat_id)
 {
-    TOX_ERR_GROUP_STATE_QUERIES query_err;
+    Tox_Err_Group_State_Queries query_err;
 
-    TOX_GROUP_PRIVACY_STATE priv_state = tox_group_get_privacy_state(tox, group_number, &query_err);
+    Tox_Group_Privacy_State priv_state = tox_group_get_privacy_state(tox, group_number, &query_err);
     ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
 
     if (priv_state != NEW_PRIV_STATE) {
@@ -86,14 +86,14 @@ static int has_correct_group_state(const Tox *tox, uint32_t group_number, const 
         return -4;
     }
 
-    TOX_GROUP_TOPIC_LOCK topic_lock = tox_group_get_topic_lock(tox, group_number, &query_err);
+    Tox_Group_Topic_Lock topic_lock = tox_group_get_topic_lock(tox, group_number, &query_err);
     ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
 
     if (topic_lock != TOX_GROUP_TOPIC_LOCK_DISABLED) {
         return -5;
     }
 
-    TOX_ERR_GROUP_STATE_QUERIES id_err;
+    Tox_Err_Group_State_Queries id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(tox, group_number, chat_id, &id_err);
 
@@ -108,7 +108,7 @@ static int has_correct_group_state(const Tox *tox, uint32_t group_number, const 
 
 static int has_correct_self_state(const Tox *tox, uint32_t group_number, const uint8_t *expected_self_pk)
 {
-    TOX_ERR_GROUP_SELF_QUERY sq_err;
+    Tox_Err_Group_Self_Query sq_err;
     size_t self_length = tox_group_self_get_name_size(tox, group_number, &sq_err);
     ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
 
@@ -127,7 +127,7 @@ static int has_correct_self_state(const Tox *tox, uint32_t group_number, const u
         return -2;
     }
 
-    TOX_GROUP_ROLE self_role = tox_group_self_get_role(tox, group_number, &sq_err);
+    Tox_Group_Role self_role = tox_group_self_get_role(tox, group_number, &sq_err);
     ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
 
     if (self_role != TOX_GROUP_ROLE_FOUNDER) {
@@ -161,7 +161,7 @@ static void group_save_test(AutoTox *autotoxes)
     const State *state0 = (State *)autotoxes[0].state;
     const State *state1 = (State *)autotoxes[1].state;
 
-    TOX_ERR_GROUP_NEW err_new;
+    Tox_Err_Group_New err_new;
     const uint32_t group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)GROUP_NAME,
                                   GROUP_NAME_LEN, (const uint8_t *)"test", 4, &err_new);
 
@@ -169,18 +169,18 @@ static void group_save_test(AutoTox *autotoxes)
 
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
-    TOX_ERR_GROUP_STATE_QUERIES id_err;
+    Tox_Err_Group_State_Queries id_err;
     tox_group_get_chat_id(tox0, group_number, chat_id, &id_err);
     ck_assert(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
 
     uint8_t founder_pk[TOX_GROUP_PEER_PUBLIC_KEY_SIZE];
 
-    TOX_ERR_GROUP_SELF_QUERY sq_err;
+    Tox_Err_Group_Self_Query sq_err;
     tox_group_self_get_public_key(tox0, group_number, founder_pk, &sq_err);
     ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
 
 
-    TOX_ERR_GROUP_INVITE_FRIEND err_invite;
+    Tox_Err_Group_Invite_Friend err_invite;
     tox_group_invite_friend(tox0, group_number, 0, &err_invite);
 
     ck_assert(err_invite == TOX_ERR_GROUP_INVITE_FRIEND_OK);
@@ -192,32 +192,32 @@ static void group_save_test(AutoTox *autotoxes)
     printf("tox0 invites tox1 to group\n");
 
     // change group state
-    TOX_ERR_GROUP_TOPIC_SET top_err;
+    Tox_Err_Group_Topic_Set top_err;
     tox_group_set_topic(tox0, group_number, (const uint8_t *)TOPIC, TOPIC_LEN, &top_err);
     ck_assert(top_err == TOX_ERR_GROUP_TOPIC_SET_OK);
 
-    TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK lock_set_err;
+    Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err;
     tox_group_founder_set_topic_lock(tox0, group_number, TOX_GROUP_TOPIC_LOCK_DISABLED, &lock_set_err);
     ck_assert(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK);
 
-    TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE priv_err;
+    Tox_Err_Group_Founder_Set_Privacy_State priv_err;
     tox_group_founder_set_privacy_state(tox0, group_number, NEW_PRIV_STATE, &priv_err);
     ck_assert(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK);
 
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD pass_set_err;
+    Tox_Err_Group_Founder_Set_Password pass_set_err;
     tox_group_founder_set_password(tox0, group_number, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
     ck_assert(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK);
 
-    TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT limit_set_err;
+    Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err;
     tox_group_founder_set_peer_limit(tox0, group_number, PEER_LIMIT, &limit_set_err);
     ck_assert(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK);
 
     // change self state
-    TOX_ERR_GROUP_SELF_NAME_SET n_err;
+    Tox_Err_Group_Self_Name_Set n_err;
     tox_group_self_set_name(tox0, group_number, (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &n_err);
     ck_assert(n_err == TOX_ERR_GROUP_SELF_NAME_SET_OK);
 
-    TOX_ERR_GROUP_SELF_STATUS_SET s_err;
+    Tox_Err_Group_Self_Status_Set s_err;
     tox_group_self_set_status(tox0, group_number, NEW_USER_STATUS, &s_err);
     ck_assert(s_err == TOX_ERR_GROUP_SELF_STATUS_SET_OK);
 

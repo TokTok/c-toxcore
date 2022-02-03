@@ -70,7 +70,7 @@ static bool all_peers_connected(AutoTox *autotoxes)
 /*
  * Waits for all peers to receive the mod event.
  */
-static void check_mod_event(AutoTox *autotoxes, size_t num_peers, TOX_GROUP_MOD_EVENT event)
+static void check_mod_event(AutoTox *autotoxes, size_t num_peers, Tox_Group_Mod_Event event)
 {
     uint32_t peers_recv_changes = 0;
 
@@ -156,7 +156,7 @@ static size_t get_state_index_by_nick(const AutoTox *autotoxes, size_t num_peers
     ck_assert_msg(0, "Failed to find index");
 }
 
-static void group_join_fail_handler(Tox *tox, uint32_t group_number, TOX_GROUP_JOIN_FAIL fail_type, void *user_data)
+static void group_join_fail_handler(Tox *tox, uint32_t group_number, Tox_Group_Join_Fail fail_type, void *user_data)
 {
     fprintf(stderr, "Failed to join group: %d", fail_type);
 }
@@ -172,7 +172,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
 
     char peer_name[TOX_MAX_NAME_LENGTH + 1];
 
-    TOX_ERR_GROUP_PEER_QUERY q_err;
+    Tox_Err_Group_Peer_Query q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, group_number, peer_id, &q_err);
 
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
@@ -193,7 +193,7 @@ static void group_peer_join_handler(Tox *tox, uint32_t group_number, uint32_t pe
     ck_assert(state->num_peers < NUM_GROUP_TOXES);
 }
 
-static void handle_mod(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+static void handle_mod(State *state, const char *peer_name, size_t peer_name_len, Tox_Group_Role role)
 {
     if (state->mod_event_count == 0) {
         ck_assert(memcmp(peer_name, state->mod_name1, peer_name_len) == 0);
@@ -208,7 +208,7 @@ static void handle_mod(State *state, const char *peer_name, size_t peer_name_len
     ck_assert(role == TOX_GROUP_ROLE_MODERATOR);
 }
 
-static void handle_observer(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+static void handle_observer(State *state, const char *peer_name, size_t peer_name_len, Tox_Group_Role role)
 {
     if (state->observer_event_count == 0) {
         ck_assert(memcmp(peer_name, state->observer_name1, peer_name_len) == 0);
@@ -223,7 +223,7 @@ static void handle_observer(State *state, const char *peer_name, size_t peer_nam
     ck_assert(role == TOX_GROUP_ROLE_OBSERVER);
 }
 
-static void handle_user(State *state, const char *peer_name, size_t peer_name_len, TOX_GROUP_ROLE role)
+static void handle_user(State *state, const char *peer_name, size_t peer_name_len, Tox_Group_Role role)
 {
     // event 1: observer1 gets promoted back to user
     // event 2: observer2 gets promoted to moderator
@@ -247,7 +247,7 @@ static void handle_user(State *state, const char *peer_name, size_t peer_name_le
 }
 
 static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t source_peer_id, uint32_t target_peer_id,
-                                    TOX_GROUP_MOD_EVENT event, void *user_data)
+                                    Tox_Group_Mod_Event event, void *user_data)
 {
     AutoTox *autotox = (AutoTox *)user_data;
     ck_assert(autotox != nullptr);
@@ -258,7 +258,7 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 
     char peer_name[TOX_MAX_NAME_LENGTH + 1];
 
-    TOX_ERR_GROUP_PEER_QUERY q_err;
+    Tox_Err_Group_Peer_Query q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, group_number, target_peer_id, &q_err);
 
     if (q_err == TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND) {  // may occurr on sync attempts
@@ -272,7 +272,7 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
     peer_name[peer_name_len] = 0;
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
 
-    TOX_GROUP_ROLE role = tox_group_peer_get_role(tox, group_number, target_peer_id, &q_err);
+    Tox_Group_Role role = tox_group_peer_get_role(tox, group_number, target_peer_id, &q_err);
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
 
     switch (event) {
@@ -305,9 +305,9 @@ static void group_mod_event_handler(Tox *tox, uint32_t group_number, uint32_t so
 }
 
 /* Checks that `peer_id` sees itself with the role `role`. */
-static void check_self_role(AutoTox *autotoxes, uint32_t peer_id, TOX_GROUP_ROLE role)
+static void check_self_role(AutoTox *autotoxes, uint32_t peer_id, Tox_Group_Role role)
 {
-    TOX_ERR_GROUP_SELF_QUERY sq_err;
+    Tox_Err_Group_Self_Query sq_err;
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         State *state = (State *)autotoxes[i].state;
@@ -316,7 +316,7 @@ static void check_self_role(AutoTox *autotoxes, uint32_t peer_id, TOX_GROUP_ROLE
         ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
 
         if (self_peer_id == peer_id) {
-            TOX_GROUP_ROLE self_role = tox_group_self_get_role(autotoxes[i].tox, state->group_number, &sq_err);
+            Tox_Group_Role self_role = tox_group_self_get_role(autotoxes[i].tox, state->group_number, &sq_err);
             ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
             ck_assert(self_role == role);
             return;
@@ -351,7 +351,7 @@ static void group_moderation_test(AutoTox *autotoxes)
     State *state0 = (State *)autotoxes[0].state;
     Tox *tox0 = autotoxes[0].tox;
 
-    TOX_ERR_GROUP_NEW err_new;
+    Tox_Err_Group_New err_new;
     state0->group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
                                          GROUP_NAME_LEN, (const uint8_t *)state0->self_name, state0->self_name_length,
                                          &err_new);
@@ -359,7 +359,7 @@ static void group_moderation_test(AutoTox *autotoxes)
     ck_assert_msg(err_new == TOX_ERR_GROUP_NEW_OK, "Failed to create group. error: %d\n", err_new);
 
     /* Founder gets chat ID */
-    TOX_ERR_GROUP_STATE_QUERIES id_err;
+    Tox_Err_Group_State_Queries id_err;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(tox0, state0->group_number, chat_id, &id_err);
 
@@ -371,7 +371,7 @@ static void group_moderation_test(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
         State *state = (State *)autotoxes[i].state;
-        TOX_ERR_GROUP_JOIN join_err;
+        Tox_Err_Group_Join join_err;
         state->group_number = tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)state->self_name,
                                              state->self_name_length,
                                              nullptr, 0, &join_err);
@@ -396,8 +396,8 @@ static void group_moderation_test(AutoTox *autotoxes)
     }
 
     /* founder checks his own role */
-    TOX_ERR_GROUP_SELF_QUERY sq_err;
-    TOX_GROUP_ROLE self_role = tox_group_self_get_role(tox0, state0->group_number, &sq_err);
+    Tox_Err_Group_Self_Query sq_err;
+    Tox_Group_Role self_role = tox_group_self_get_role(tox0, state0->group_number, &sq_err);
     ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
     ck_assert(self_role == TOX_GROUP_ROLE_FOUNDER);
 
@@ -412,7 +412,7 @@ static void group_moderation_test(AutoTox *autotoxes)
     /* founder sets first peer to moderator */
     fprintf(stderr, "Founder setting %s to moderator\n", state0->peers[0].name);
 
-    TOX_ERR_GROUP_MOD_SET_ROLE role_err;
+    Tox_Err_Group_Mod_Set_Role role_err;
     tox_group_mod_set_role(tox0, state0->group_number, state0->peers[0].peer_id, TOX_GROUP_ROLE_MODERATOR, &role_err);
     ck_assert_msg(role_err == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set moderator. error: %d", role_err);
 
@@ -489,7 +489,7 @@ static void group_moderation_test(AutoTox *autotoxes)
     tox_group_mod_set_role(tox1, state1->group_number, founder_peer_id, TOX_GROUP_ROLE_OBSERVER, &role_err);
     ck_assert_msg(role_err != TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Mod set founder to observer");
 
-    TOX_ERR_GROUP_MOD_KICK_PEER k_err;
+    Tox_Err_Group_Mod_Kick_Peer k_err;
     tox_group_mod_kick_peer(tox1, state1->group_number, founder_peer_id, &k_err);
     ck_assert_msg(k_err != TOX_ERR_GROUP_MOD_KICK_PEER_OK, "Mod kicked founder");
 
@@ -517,7 +517,7 @@ static void group_moderation_test(AutoTox *autotoxes)
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
         const State *state = (const State *)autotoxes[i].state;
-        TOX_ERR_GROUP_LEAVE err_exit;
+        Tox_Err_Group_Leave err_exit;
         tox_group_leave(autotoxes[i].tox, state->group_number, nullptr, 0, &err_exit);
         ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }

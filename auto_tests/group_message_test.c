@@ -49,13 +49,13 @@ static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t
                                  const uint8_t *group_name, size_t group_name_length, void *user_data)
 {
     printf("invite arrived; accepting\n");
-    TOX_ERR_GROUP_INVITE_ACCEPT err_accept;
+    Tox_Err_Group_Invite_Accept err_accept;
     tox_group_invite_accept(tox, friend_number, invite_data, length, (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN,
                             nullptr, 0, &err_accept);
     ck_assert(err_accept == TOX_ERR_GROUP_INVITE_ACCEPT_OK);
 }
 
-static void group_join_fail_handler(Tox *tox, uint32_t groupnumber, TOX_GROUP_JOIN_FAIL fail_type, void *user_data)
+static void group_join_fail_handler(Tox *tox, uint32_t groupnumber, Tox_Group_Join_Fail fail_type, void *user_data)
 {
     printf("join failed: %d\n", fail_type);
 }
@@ -81,7 +81,7 @@ static void group_custom_packet_handler(Tox *tox, uint32_t groupnumber, uint32_t
     memcpy(message_buf, data, length);
     message_buf[length] = 0;
 
-    TOX_ERR_GROUP_PEER_QUERY q_err;
+    Tox_Err_Group_Peer_Query q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, groupnumber, peer_id, &q_err);
 
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
@@ -94,7 +94,7 @@ static void group_custom_packet_handler(Tox *tox, uint32_t groupnumber, uint32_t
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
     ck_assert(memcmp(peer_name, PEER0_NICK, peer_name_len) == 0);
 
-    TOX_ERR_GROUP_SELF_QUERY s_err;
+    Tox_Err_Group_Self_Query s_err;
     size_t self_name_len = tox_group_self_get_name_size(tox, groupnumber, &s_err);
     ck_assert(s_err == TOX_ERR_GROUP_SELF_QUERY_OK);
     ck_assert(self_name_len <= TOX_MAX_NAME_LENGTH);
@@ -127,7 +127,7 @@ static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_
     memcpy(message_buf, message, length);
     message_buf[length] = 0;
 
-    TOX_ERR_GROUP_PEER_QUERY q_err;
+    Tox_Err_Group_Peer_Query q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, groupnumber, peer_id, &q_err);
 
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
@@ -140,7 +140,7 @@ static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
     ck_assert(memcmp(peer_name, PEER0_NICK, peer_name_len) == 0);
 
-    TOX_ERR_GROUP_SELF_QUERY s_err;
+    Tox_Err_Group_Self_Query s_err;
     size_t self_name_len = tox_group_self_get_name_size(tox, groupnumber, &s_err);
     ck_assert(s_err == TOX_ERR_GROUP_SELF_QUERY_OK);
     ck_assert(self_name_len <= TOX_MAX_NAME_LENGTH);
@@ -172,7 +172,7 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     memcpy(message_buf, message, length);
     message_buf[length] = 0;
 
-    TOX_ERR_GROUP_PEER_QUERY q_err;
+    Tox_Err_Group_Peer_Query q_err;
     size_t peer_name_len = tox_group_peer_get_name_size(tox, groupnumber, peer_id, &q_err);
 
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
@@ -185,7 +185,7 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     ck_assert(q_err == TOX_ERR_GROUP_PEER_QUERY_OK);
     ck_assert(memcmp(peer_name, PEER0_NICK, peer_name_len) == 0);
 
-    TOX_ERR_GROUP_SELF_QUERY s_err;
+    Tox_Err_Group_Self_Query s_err;
     size_t self_name_len = tox_group_self_get_name_size(tox, groupnumber, &s_err);
     ck_assert(s_err == TOX_ERR_GROUP_SELF_QUERY_OK);
     ck_assert(self_name_len <= TOX_MAX_NAME_LENGTH);
@@ -256,17 +256,17 @@ static void group_message_test(AutoTox *autotoxes)
     tox_callback_group_custom_packet(tox0, group_custom_packet_handler);
     tox_callback_group_private_message(tox0, group_private_message_handler);
 
-    TOX_ERR_GROUP_SEND_MESSAGE err_send;
+    Tox_Err_Group_Send_Message err_send;
 
     // tox0 makes new group.
-    TOX_ERR_GROUP_NEW err_new;
+    Tox_Err_Group_New err_new;
     const uint32_t group_number = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PRIVATE, (const uint8_t *)TEST_GROUP_NAME,
                                   TEST_GROUP_NAME_LEN, (const uint8_t *)PEER1_NICK, PEER1_NICK_LEN, &err_new);
 
     ck_assert(err_new == TOX_ERR_GROUP_NEW_OK);
 
     // tox0 invites tox1
-    TOX_ERR_GROUP_INVITE_FRIEND err_invite;
+    Tox_Err_Group_Invite_Friend err_invite;
     tox_group_invite_friend(tox0, group_number, 0, &err_invite);
     ck_assert(err_invite == TOX_ERR_GROUP_INVITE_FRIEND_OK);
 
@@ -282,7 +282,7 @@ static void group_message_test(AutoTox *autotoxes)
     }
 
     // tox0 ignores tox1
-    TOX_ERR_GROUP_TOGGLE_IGNORE ig_err;
+    Tox_Err_Group_Toggle_Ignore ig_err;
     tox_group_toggle_ignore(tox0, group_number, state0->peer_id, true, &ig_err);
     ck_assert_msg(ig_err == TOX_ERR_GROUP_TOGGLE_IGNORE_OK, "%d", ig_err);
 
@@ -301,7 +301,7 @@ static void group_message_test(AutoTox *autotoxes)
     fprintf(stderr, "Sending private message...\n");
 
     // tox0 sends a private action to tox1
-    TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE m_err;
+    Tox_Err_Group_Send_Private_Message m_err;
     tox_group_send_private_message(tox1, group_number, state1->peer_id, TOX_MESSAGE_TYPE_ACTION,
                                    (const uint8_t *)TEST_PRIVATE_MESSAGE, TEST_PRIVATE_MESSAGE_LEN, &m_err);
     ck_assert_msg(m_err == TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK, "%d", m_err);
@@ -309,7 +309,7 @@ static void group_message_test(AutoTox *autotoxes)
     fprintf(stderr, "Sending custom packets...\n");
 
     // tox0 sends a lossless and lossy custom packet to tox1
-    TOX_ERR_GROUP_SEND_CUSTOM_PACKET c_err;
+    Tox_Err_Group_Send_Custom_Packet c_err;
     tox_group_send_custom_packet(tox1, group_number, true, (const uint8_t *)TEST_CUSTOM_PACKET, TEST_CUSTOM_PACKET_LEN,
                                  &c_err);
     ck_assert_msg(c_err == TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK, "%d", c_err);
@@ -347,7 +347,7 @@ static void group_message_test(AutoTox *autotoxes)
     }
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
-        TOX_ERR_GROUP_LEAVE err_exit;
+        Tox_Err_Group_Leave err_exit;
         tox_group_leave(autotoxes[i].tox, group_number, nullptr, 0, &err_exit);
         ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }
