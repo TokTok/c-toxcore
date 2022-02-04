@@ -494,7 +494,7 @@ int m_friend_exists(const Messenger *m, int32_t friendnumber)
 int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, const uint8_t *message, uint32_t length,
                            uint32_t *message_id)
 {
-    if (type > MESSAGE_ACTION) {
+    if (type > MESSAGE_HIGH_LEVEL_ACK) {
         LOGGER_WARNING(m->log, "Message type %d is invalid", type);
         return -5;
     }
@@ -2218,7 +2218,8 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
         }
 
         case PACKET_ID_MESSAGE: // fall-through
-        case PACKET_ID_ACTION: {
+        case PACKET_ID_ACTION:
+        case PACKET_ID_HIGH_LEVEL_ACK: {
             if (data_length == 0) {
                 break;
             }

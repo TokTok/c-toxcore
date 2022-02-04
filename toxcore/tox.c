@@ -901,6 +901,17 @@ size_t tox_self_get_name_size(const Tox *tox)
     return ret;
 }
 
+bool tox_messagev3_get_new_message_id(uint8_t *msg_id)
+{
+    if (msg_id == nullptr) {
+        return false;
+    }
+
+    /* Tox keys are 32 bytes like TOX_MSGV3_MSGID_LENGTH. */
+    new_symmetric_key(msg_id);
+    return true;
+}
+
 void tox_self_get_name(const Tox *tox, uint8_t *name)
 {
     assert(tox != nullptr);

@@ -293,6 +293,13 @@ uint32_t tox_max_friend_request_length(void);
 
 uint32_t tox_max_message_length(void);
 
+
+#define TOX_MSGV3_MSGID_LENGTH         32
+#define TOX_MSGV3_TIMESTAMP_LENGTH     4
+#define TOX_MSGV3_GUARD                2
+#define TOX_MSGV3_MAX_MESSAGE_LENGTH   (TOX_MAX_MESSAGE_LENGTH - TOX_MSGV3_MSGID_LENGTH - TOX_MSGV3_TIMESTAMP_LENGTH - TOX_MSGV3_GUARD)
+
+
 /**
  * Maximum size of custom packets. TODO(iphydf): should be LENGTH?
  *
@@ -386,13 +393,18 @@ typedef enum Tox_Message_Type {
     /**
      * Normal text message. Similar to PRIVMSG on IRC.
      */
-    TOX_MESSAGE_TYPE_NORMAL,
+    TOX_MESSAGE_TYPE_NORMAL = 0,
 
     /**
      * A message describing an user action. This is similar to /me (CTCP ACTION)
      * on IRC.
      */
-    TOX_MESSAGE_TYPE_ACTION,
+    TOX_MESSAGE_TYPE_ACTION = 1,
+
+    /**
+     * A high level ACK for MSG ID (MSG V3 functionality)
+     */
+    TOX_MESSAGE_TYPE_HIGH_LEVEL_ACK = 2,
 
 } Tox_Message_Type;
 
@@ -1169,6 +1181,15 @@ size_t tox_self_get_name_size(const Tox *tox);
  *   If this parameter is NULL, the function has no effect.
  */
 void tox_self_get_name(const Tox *tox, uint8_t *name);
+
+/**
+ * Write new message ID to a byte array.
+ *
+ * @param msg_id A valid memory location at least TOX_HASH_LENGTH bytes in size.
+ *
+ * @return true on success.
+ */
+bool tox_messagev3_get_new_message_id(uint8_t *msg_id);
 
 /**
  * Set the client's status message.

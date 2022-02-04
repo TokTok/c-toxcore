@@ -29,8 +29,9 @@
 #define FRIEND_ADDRESS_SIZE (CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t))
 
 typedef enum Message_Type {
-    MESSAGE_NORMAL,
-    MESSAGE_ACTION,
+    MESSAGE_NORMAL = 0,
+    MESSAGE_ACTION = 1,
+    MESSAGE_HIGH_LEVEL_ACK = 2,
 } Message_Type;
 
 typedef struct Messenger Messenger;
