@@ -56,7 +56,6 @@ struct Tox {
     Messenger *m;
     Mono_Time *mono_time;
     pthread_mutex_t *mutex;
-    void *non_const_user_data;
 
     tox_self_connection_status_cb *self_connection_status_callback;
     tox_friend_name_cb *friend_name_callback;
@@ -1026,7 +1025,6 @@ void tox_iterate(Tox *tox, void *user_data)
     mono_time_update(tox->mono_time);
 
     struct Tox_Userdata tox_data = { tox, user_data };
-    tox->non_const_user_data = user_data;
     do_messenger(tox->m, &tox_data);
     do_groupchats(tox->m->conferences_object, &tox_data);
 
