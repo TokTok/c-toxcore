@@ -1749,6 +1749,10 @@ char *net_new_strerror(int error)
     #define STR_SIZE (256)
     char *str = (char *)malloc(STR_SIZE);
 
+    if (str == nullptr) {
+        return nullptr;
+    }
+
 #ifdef _GNU_SOURCE
     char tmp[STR_SIZE];
     const char *retstr = strerror_r(error, tmp, STR_SIZE);
