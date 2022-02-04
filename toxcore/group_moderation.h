@@ -95,10 +95,9 @@ void mod_list_pack(const Moderation *moderation, uint8_t *data);
  *
  * If num_mods is 0 the hash is zeroed.
  *
- * Returns 0 on sucess.
- * Returns -1 on failure.
+ * Returns true on sucess.
  */
-int mod_list_make_hash(const Moderation *moderation, uint8_t *hash);
+bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash);
 
 /** Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
  *
@@ -108,24 +107,21 @@ void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_
 
 /** Removes moderator at index-th position in the moderator list.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int mod_list_remove_index(Moderation *moderation, size_t index);
+bool mod_list_remove_index(Moderation *moderation, size_t index);
 
 /** Removes public_sig_key from the moderator list.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key);
+bool mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key);
 
 /** Adds a mod to the moderator list. mod_data must be MOD_LIST_ENTRY_SIZE bytes.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data);
+bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data);
 
 /** Returns true if the public signature key belongs to a moderator or the founder */
 bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk);
@@ -168,37 +164,34 @@ uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data, 
 /** Updates sanction list credentials: increment version, replace sig_pk with your own,
  * update hash to reflect new sanction list, and sign new hash signature.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int sanctions_list_make_creds(Moderation *moderation);
+bool sanctions_list_make_creds(Moderation *moderation);
 
 /** Validates all sanctions list entries as well as the list itself.
  *
- * Returns 0 if all entries are valid.
- * Returns -1 if one or more entries are invalid.
+ * Returns true if all entries are valid.
+ * Returns false if one or more entries are invalid.
  */
-int sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanction_Creds *creds,
-                                   const Mod_Sanction *sanctions, uint16_t num_sanctions);
+bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanction_Creds *creds,
+                                    const Mod_Sanction *sanctions, uint16_t num_sanctions);
 
 /** Adds an entry to the sanctions list. The entry is first validated and the resulting
  * new sanction list is compared against the new credentials.
  *
  * Entries must be unique.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds);
+bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds);
 
 /** Creates a new sanction entry for `public_key` where type is one GROUP_SANCTION_TYPE.
  * New entry is signed and placed in the sanctions list.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
-int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
-                              uint8_t type);
+bool sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
+                               uint8_t type);
 
 /** Returns true if public key is in the observer list. */
 bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *public_key);
@@ -209,11 +202,10 @@ bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanctio
 /** Removes observer entry for public key from sanction list.
  * If creds is NULL we make new credentials (this should only be done by a moderator or founder)
  *
- * Returns 0 on success.
- * Returns -1 on failure or if entry was not found.
+ * Returns false on failure or if entry was not found.
  */
-int sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
-                                   const Mod_Sanction_Creds *creds);
+bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
+                                    const Mod_Sanction_Creds *creds);
 
 /** Replaces all sanctions list signatures made by public_sig_key with the caller's.
  * This is called whenever the founder demotes a moderator.

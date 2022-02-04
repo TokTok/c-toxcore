@@ -97,13 +97,13 @@ static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry
     return 0;
 }
 
-int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
-                          uint16_t length, uint8_t packet_type)
+bool gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
+                           uint16_t length, uint8_t packet_type)
 {
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
         LOGGER_DEBUG(log, "Send array overflow");
-        return -1;
+        return false;
     }
 
     const uint16_t idx = gcc_get_array_index(gconn->send_message_id);
@@ -111,30 +111,30 @@ int gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Conn
 
     if (!array_entry_is_empty(array_entry)) {
         LOGGER_DEBUG(log, "Send array entry isn't empty");
-        return -1;
+        return false;
     }
 
     if (create_array_entry(mono_time, array_entry, data, length, packet_type, gconn->send_message_id) == -1) {
         LOGGER_WARNING(log, "Failed to create array entry");
-        return -1;
+        return false;
     }
 
     ++gconn->send_message_id;
 
-    return 0;
+    return true;
 }
 
-int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
+bool gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
 {
     uint16_t idx = gcc_get_array_index(message_id);
     GC_Message_Array_Entry *array_entry = &gconn->send_array[idx];
 
     if (array_entry_is_empty(array_entry)) {
-        return 0;
+        return true;
     }
 
     if (array_entry->message_id != message_id) {  // wrap-around indicates a connection problem
-        return -1;
+        return false;
     }
 
     clear_array_entry(array_entry);
@@ -149,7 +149,7 @@ int gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
         }
     }
 
-    return 0;
+    return true;
 }
 
 bool gcc_ip_port_is_set(const GC_Connection *gconn)
@@ -164,25 +164,25 @@ void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
     }
 }
 
-int gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
+bool gcc_copy_tcp_relay(Node_format *tcp_node, const GC_Connection *gconn)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
-        return -1;
+        return false;
     }
 
     if (gconn->tcp_relays_count == 0) {
-        return -1;
+        return false;
     }
 
     const uint32_t rand_idx = random_u32() % gconn->tcp_relays_count;
 
     if (!ipport_isset(&gconn->connected_tcp_relays[rand_idx].ip_port)) {
-        return -1;
+        return false;
     }
 
     *tcp_node = gconn->connected_tcp_relays[rand_idx];
 
-    return 0;
+    return true;
 }
 
 int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
@@ -284,17 +284,15 @@ static int process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Conne
     return 0;
 }
 
-int gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                         void *userdata)
+void gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+                          void *userdata)
 {
     const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
     GC_Message_Array_Entry *const array_entry = &gconn->recv_array[idx];
 
     if (!array_entry_is_empty(array_entry)) {
-        return process_recv_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
+        process_recv_array_entry(c, chat, gconn, peer_number, array_entry, userdata);
     }
-
-    return 0;
 }
 
 void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
@@ -331,10 +329,10 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     }
 }
 
-int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
+bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
 {
     if (packet == nullptr || length == 0) {
-        return -1;
+        return false;
     }
 
     bool direct_send_attempt = false;
@@ -342,10 +340,10 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
     if (gcc_direct_conn_is_possible(chat, gconn)) {
         if (gcc_conn_is_direct(chat->mono_time, gconn)) {
             if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
-                return 0;
+                return true;
             }
 
-            return -1;
+            return false;
         }
 
         if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
@@ -356,13 +354,13 @@ int gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8
     const int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
 
     if (ret == 0 || direct_send_attempt) {
-        return 0;
+        return true;
     }
 
-    return -1;
+    return false;
 }
 
-int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
     uint8_t packet[MAX_GC_PACKET_SIZE];
@@ -371,15 +369,15 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
 
     if (enc_len < 0) {
         LOGGER_WARNING(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
-        return -1;
+        return false;
     }
 
-    if (gcc_send_packet(chat, gconn, packet, (uint16_t)enc_len) == -1) {
+    if (!gcc_send_packet(chat, gconn, packet, (uint16_t)enc_len)) {
         LOGGER_WARNING(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
-        return -1;
+        return false;
     }
 
-    return 0;
+    return true;
 }
 
 void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
