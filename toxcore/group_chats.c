@@ -121,8 +121,7 @@ static int group_delete(GC_Session *c, GC_Chat *chat);
 static void group_cleanup(GC_Session *c, GC_Chat *chat);
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
-static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, Group_Exit_Type exit_type,
-                       const uint8_t *data, uint16_t length, void *userdata);
+static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
 static int create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key);
 static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
@@ -2575,13 +2574,13 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
 
     update_gc_peer_roles(chat);
 
-    if (c->peer_join && !was_confirmed) {
-        c->peer_join(c->messenger, chat->group_number, peer->peer_id, userdata);
-    }
-
     add_gc_saved_peers(chat, gconn);
 
     set_gc_peerlist_checksum(chat);
+
+    if (c->peer_join && !was_confirmed) {
+        c->peer_join(c->messenger, chat->group_number, peer->peer_id, userdata);
+    }
 
     return 0;
 }
@@ -2635,19 +2634,15 @@ static int broadcast_gc_shared_state(const GC_Chat *chat)
 static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const GC_SharedState *old_shared_state,
                                        void *userdata)
 {
-    /** Max peers changed */
+    /* Max peers changed */
     if (chat->shared_state.maxpeers != old_shared_state->maxpeers) {
         if (c->peer_limit) {
             c->peer_limit(c->messenger, chat->group_number, chat->shared_state.maxpeers, userdata);
         }
     }
 
-    /** privacy state changed */
+    /* privacy state changed */
     if (chat->shared_state.privacy_state != old_shared_state->privacy_state) {
-        if (c->privacy_state) {
-            c->privacy_state(c->messenger, chat->group_number, chat->shared_state.privacy_state, userdata);
-        }
-
         if (is_public_chat(chat)) {
             if (m_create_group_connection(c->messenger, chat) == -1) {
                 LOGGER_ERROR(chat->log, "Failed to initialize group friend connection");
@@ -2658,9 +2653,13 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
             m_kill_group_connection(c->messenger, chat);
             cleanup_gca(c->announces_list, get_chat_id(chat->chat_public_key));
         }
+
+        if (c->privacy_state) {
+            c->privacy_state(c->messenger, chat->group_number, chat->shared_state.privacy_state, userdata);
+        }
     }
 
-    /** password changed */
+    /* password changed */
     if (chat->shared_state.password_length != old_shared_state->password_length
             || memcmp(chat->shared_state.password, old_shared_state->password, old_shared_state->password_length) != 0) {
 
@@ -2670,7 +2669,7 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
         }
     }
 
-    /** topic lock state changed */
+    /* topic lock state changed */
     if (chat->shared_state.topic_lock != old_shared_state->topic_lock) {
         if (c->topic_lock) {
             const Group_Topic_Lock lock_state = group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
@@ -3288,14 +3287,12 @@ static int handle_gc_nick(const GC_Session *c, GC_Chat *chat, GC_Peer *peer, con
         return -1;
     }
 
-    // callback should come before we change the nick so a nick query returns the old nick instead of
-    // the new one. TODO(jfreegman): should this behaviour be uniform for all callbacks?
+    memcpy(peer->nick, nick, length);
+    peer->nick_length = length;
+
     if (c->nick_change) {
         c->nick_change(c->messenger, chat->group_number, peer->peer_id, nick, length, userdata);
     }
-
-    memcpy(peer->nick, nick, length);
-    peer->nick_length = length;
 
     return 0;
 }
@@ -4668,8 +4665,7 @@ static int handle_gc_private_message(const GC_Session *c, const GC_Chat *chat, c
     }
 
     if (c->private_message) {
-        c->private_message(c->messenger, chat->group_number, peer->peer_id,
-                           message_type, data + 1, length - 1, userdata);
+        c->private_message(c->messenger, chat->group_number, peer->peer_id, message_type, data + 1, length - 1, userdata);
     }
 
     return 0;
@@ -4751,11 +4747,6 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer
     if (peer_number_is_self(target_peer_number)) {
         assert(target_peer != nullptr);
 
-        if (c->moderation) {
-            c->moderation(c->messenger, chat->group_number, setter_peer->peer_id, target_peer->peer_id,
-                          MV_KICK, userdata);
-        }
-
         for (uint32_t i = 1; i < chat->numpeers; ++i) {
             GC_Connection *gconn = get_gc_connection(chat, i);
             assert(gconn != nullptr);
@@ -4765,6 +4756,11 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer
 
         chat->connection_state = CS_DISCONNECTED;
 
+        if (c->moderation) {
+            c->moderation(c->messenger, chat->group_number, setter_peer->peer_id, target_peer->peer_id,
+                          MV_KICK, userdata);
+        }
+
         return 0;
     }
 
@@ -4772,11 +4768,11 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer
         return 0;
     }
 
+    gcc_mark_for_deletion(&target_peer->gconn, chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
+
     if (c->moderation) {
         c->moderation(c->messenger, chat->group_number, setter_peer->peer_id, target_peer->peer_id, MV_KICK, userdata);
     }
-
-    gcc_mark_for_deletion(&target_peer->gconn, chat->tcp_conn, GC_EXIT_TYPE_KICKED, nullptr, 0);
 
     return 0;
 }
@@ -6086,27 +6082,25 @@ void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function)
  * Return 0 on success.
  * Return -1 on failure.
  */
-static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, Group_Exit_Type exit_type,
-                       const uint8_t *data, uint16_t length, void *userdata)
+static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata)
 {
-    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+    GC_Peer *peer = get_gc_peer(chat, peer_number);
 
-    if (gconn == nullptr) {
+    if (peer == nullptr) {
         return -1;
     }
 
-    const bool peer_confirmed = gconn->confirmed;
+    // We need to save some peer info for the callback before deleting it
+    const bool peer_confirmed = peer->gconn.confirmed;
+    const uint32_t peer_id = peer->peer_id;
+    uint8_t nick[MAX_GC_NICK_SIZE];
+    const uint16_t nick_length = peer->nick_length;
+    const GC_Exit_Info exit_info = peer->gconn.exit_info;
 
-    /** Needs to occur before peer is removed */
-    if (exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && peer_confirmed) {
-        const GC_Peer *peer = get_gc_peer(chat, peer_number);
-        assert(peer != nullptr);
+    assert(nick_length <= MAX_GC_NICK_SIZE);
+    memcpy(nick, peer->nick, nick_length);
 
-        c->peer_exit(c->messenger, chat->group_number, peer->peer_id, exit_type, peer->nick, peer->nick_length,
-                     data, length, userdata);
-    }
-
-    gcc_peer_cleanup(gconn);
+    gcc_peer_cleanup(&peer->gconn);
 
     --chat->numpeers;
 
@@ -6130,6 +6124,11 @@ static int peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
 
     if (peer_confirmed) {
         refresh_gc_saved_peers(chat);
+    }
+
+    if (exit_info.exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && peer_confirmed) {
+        c->peer_exit(c->messenger, chat->group_number, peer_id, exit_info.exit_type, nick,
+                     nick_length, exit_info.part_message, exit_info.length, userdata);
     }
 
     return 0;
@@ -6407,8 +6406,7 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
                 add_gc_peer_timeout_list(chat, gconn);
             }
 
-            if (peer_delete(c, chat, i, exit_info->exit_type, exit_info->part_message,
-                            exit_info->length, userdata) == -1) {
+            if (peer_delete(c, chat, i, userdata) == -1) {
                 LOGGER_ERROR(chat->log, "Failed to delete peer %u", i);
             }
 
