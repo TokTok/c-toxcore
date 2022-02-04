@@ -21,7 +21,8 @@ ALLOWLIST = (
 )
 
 out = subprocess.run(
-    ["grep", "-R", "^#include <.*>", "other", "toxav", "toxcore", "toxencryptsave"],
+    ["grep", "-R", "^#include <.*>", "other",
+        "toxav", "toxcore", "toxencryptsave"],
     check=True, capture_output=True).stdout.decode("utf-8").rstrip()
 
 errors = 0
@@ -40,8 +41,10 @@ for line in out.split("\n"):
     header = include[include.index("<")+1:include.index(">")]
     if header not in allowlist:
         source = filename[:-2] + ".c"
-        print(f"{filename}: includes system header <{header}>, which is not allowed in .h files")
-        print(" " * len(filename) + f"  consider including it in {source} and exporting an abstraction, instead")
+        print(
+            f"{filename}: includes system header <{header}>, which is not allowed in .h files")
+        print(" " * len(filename) +
+              f"  consider including it in {source} and exporting an abstraction, instead")
         errors += 1
 
 if errors:
