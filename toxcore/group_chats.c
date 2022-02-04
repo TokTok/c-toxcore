@@ -6217,6 +6217,8 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
     if (gconn->send_array == nullptr || gconn->recv_array == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        free(gconn->send_array);
+        free(gconn->recv_array);
         return -1;
     }
 
@@ -6228,7 +6230,8 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
     if (create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key) != 0) {
         LOGGER_FATAL(chat->log, "Failed to create session keypair");
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
-        gcc_peer_cleanup(gconn);
+        free(gconn->send_array);
+        free(gconn->recv_array);
         return -1;
     }
 
