@@ -687,8 +687,8 @@ static int set_gc_password_local(GC_Chat *chat, const uint8_t *passwd, uint16_t 
         memset(chat->shared_state.password, 0, MAX_GC_PASSWORD_SIZE);
     } else {
         chat->shared_state.password_length = length;
-        memcpy(chat->shared_state.password, passwd, length);
         crypto_memlock(chat->shared_state.password, sizeof(chat->shared_state.password));
+        memcpy(chat->shared_state.password, passwd, length);
     }
 
     return 0;
@@ -3747,12 +3747,13 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
 
     response[0] = 1;
 
+    crypto_memlock(new_session_sk, sizeof(new_session_sk));
+
     if (create_gc_session_keypair(new_session_pk, new_session_sk) != 0) {
         LOGGER_FATAL(chat->log, "Failed to create session keypair");
+        crypto_memunlock(new_session_sk, sizeof(new_session_sk));
         return -2;
     }
-
-    crypto_memlock(new_session_sk, sizeof(new_session_sk));
 
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
@@ -6227,18 +6228,19 @@ static int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key
     chat->group[peer_number].peer_id = peer_id;
     chat->group[peer_number].ignore = false;
 
+    crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
+
     if (create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key) != 0) {
         LOGGER_FATAL(chat->log, "Failed to create session keypair");
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
         free(gconn->send_array);
         free(gconn->recv_array);
+        crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
         return -1;
     }
 
-    crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
-
     if (peer_number > 0) {
-        memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  /** we get the sig key in the handshake */
+        memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  // we get the sig key in the handshake
     } else {
         memcpy(gconn->addr.public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
     }
@@ -7103,9 +7105,9 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
         return -3;
     }
 
-    create_extended_keypair(chat->chat_public_key, chat->chat_secret_key);
-
     crypto_memlock(chat->chat_secret_key, sizeof(chat->chat_secret_key));
+
+    create_extended_keypair(chat->chat_public_key, chat->chat_secret_key);
 
     if (init_gc_shared_state_founder(chat, privacy_state, group_name, group_name_length) == -1) {
         group_delete(c, chat);
@@ -7782,11 +7784,12 @@ static int create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key)
  */
 static int create_new_chat_ext_keypair(GC_Chat *chat)
 {
+    crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
+
     if (create_extended_keypair(chat->self_public_key, chat->self_secret_key) != 0) {
+        crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
         return -1;
     }
-
-    crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
 
     return 0;
 }
