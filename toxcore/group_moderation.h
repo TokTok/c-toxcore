@@ -24,9 +24,15 @@
 #define MOD_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define MOD_MAX_NUM_MODERATORS 30
 
-/* Corresponds to Mod_Sanction_Creds in group_chats.h */
+#define TIME_STAMP_SIZE sizeof(uint64_t)
+
+/* The packed size of a Mod_Sanction_Creds */
 #define MOD_SANCTIONS_CREDS_SIZE (sizeof(uint32_t) + MOD_SANCTION_HASH_SIZE + sizeof(uint16_t) +\
                                        SIG_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
+
+/* The packed size of a Mod_Sanction */
+#define MOD_SANCTION_PACKED_SIZE (SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
+
 
 typedef enum Mod_Sanction_Type {
     SA_OBSERVER = 0x00,

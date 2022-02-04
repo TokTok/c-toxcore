@@ -21,8 +21,6 @@
 
 #ifndef VANILLA_NACL
 
-#define TIME_STAMP_SIZE sizeof(uint64_t)
-
 int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length, uint16_t num_mods)
 {
     if (length < num_mods * MOD_LIST_ENTRY_SIZE || num_mods > MOD_MAX_NUM_MODERATORS) {
@@ -425,7 +423,7 @@ static int sanctions_list_validate_entry(const Moderation *moderation, const Mod
         return -1;
     }
 
-    uint8_t packed_data[sizeof(Mod_Sanction)];
+    uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
@@ -737,7 +735,7 @@ int sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanctio
  */
 static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction)
 {
-    uint8_t packed_data[sizeof(Mod_Sanction)];
+    uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
@@ -765,7 +763,7 @@ int sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key,
 
     memcpy(sanction->setter_public_sig_key, moderation->self_public_sig_key, SIG_PUBLIC_KEY_SIZE);
 
-    sanction->time_set = (uint64_t) time(nullptr);
+    sanction->time_set = (uint64_t)time(nullptr);
     sanction->type = type;
 
     if (sanctions_list_sign_entry(moderation, sanction) == -1) {

@@ -4210,7 +4210,7 @@ static int mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_obs
         return -1;
     }
 
-    uint8_t sanction_data[sizeof(Mod_Sanction) + sizeof(Mod_Sanction_Creds)];
+    uint8_t sanction_data[MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE];
     uint16_t length = 0;
 
     if (add_obs) {
