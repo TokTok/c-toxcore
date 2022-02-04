@@ -1746,7 +1746,7 @@ char *net_new_strerror(int error)
                    error, 0, (char *)&str, 0, nullptr);
     return str;
 #else
-    #define STR_SIZE (256)
+#define STR_SIZE (256)
     char *str = (char *)malloc(STR_SIZE);
 
     if (str == nullptr) {
@@ -1757,7 +1757,7 @@ char *net_new_strerror(int error)
     char tmp[STR_SIZE];
     const char *retstr = strerror_r(error, tmp, STR_SIZE);
     const size_t retstr_len = strlen(retstr);
-    const size_t copy_len = min_u32(retstr_len, STR_SIZE-1);
+    const size_t copy_len = min_u32(retstr_len, STR_SIZE - 1);
     memcpy(str, retstr, copy_len);
     str[copy_len] = '\0';
 
@@ -1770,7 +1770,7 @@ char *net_new_strerror(int error)
 
 #endif
 
-    #undef STR_SIZE
+#undef STR_SIZE
     return str;
 #endif
 }
