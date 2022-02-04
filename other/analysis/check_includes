@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import subprocess
 import sys
-
 from typing import Tuple
 
 ALLOWLIST: Tuple[str, ...] = (
