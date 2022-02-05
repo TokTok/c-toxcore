@@ -3,13 +3,13 @@
  * Copyright © 2013-2015 Tox project.
  */
 
-/** \page av Public audio/video API for Tox clients.
+/** @file
+ * @brief Public audio/video API for Tox clients.
  *
  * This API can handle multiple calls. Each call has its state, in very rare
  * occasions the library can change the state of the call without apps knowledge.
  *
- *
- * \subsection events Events and callbacks
+ * @section av_events Events and callbacks
  *
  * As in Core API, events are handled by callbacks. One callback can be
  * registered per event. All events have a callback function type named
@@ -21,8 +21,7 @@
  * library to drop calls before they are started. Hanging up call from a
  * callback causes undefined behaviour.
  *
- *
- * \subsection threading Threading implications
+ * @section av_threading Threading implications
  *
  * Only toxav_iterate is thread-safe, all other functions must run from the
  * tox thread.
@@ -43,7 +42,7 @@
  * fail if mutexes are held by tox thread in which case they will set SYNC
  * error code.
  *
- * \subsection multi-threading Separate audio and video threads
+ * @subsection av_multi_threading Separate audio and video threads
  *
  * ToxAV supports either a single thread for audio and video or decoding and
  * encoding them in separate threads. You have to choose one mode and can not
@@ -72,25 +71,20 @@ typedef struct Tox Tox;
 #endif /* TOX_DEFINED */
 
 /**
- * The ToxAV instance type. Each ToxAV instance can be bound to only one Tox
- * instance, and Tox instance can have only one ToxAV instance. One must make
- * sure to close ToxAV instance prior closing Tox instance otherwise undefined
- * behaviour occurs. Upon closing of ToxAV instance, all active calls will be
- * forcibly terminated without notifying peers.
+ * @brief The ToxAV instance type.
+ *
+ * Each ToxAV instance can be bound to only one Tox  instance, and Tox instance
+ * can have only one ToxAV instance. One must make sure to close ToxAV instance
+ * prior closing Tox instance otherwise undefined behaviour occurs. Upon
+ * closing of ToxAV instance, all active calls will be forcibly terminated
+ * without notifying peers.
  */
-#ifndef TOXAV_DEFINED
-#define TOXAV_DEFINED
 typedef struct ToxAV ToxAV;
-#endif /* TOXAV_DEFINED */
 
 
-/*******************************************************************************
- *
- * :: Creation and destruction
- *
- ******************************************************************************/
-
-
+/** @{
+ * @brief Creation and destruction
+ */
 
 typedef enum Toxav_Err_New {
 
@@ -137,14 +131,12 @@ void toxav_kill(ToxAV *av);
  */
 Tox *toxav_get_tox(const ToxAV *av);
 
-
-/*******************************************************************************
- *
- * :: A/V event loop, single thread
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief A/V event loop, single thread
+ */
 
 /**
  * Returns the interval in milliseconds when the next toxav_iterate call should
@@ -160,14 +152,12 @@ uint32_t toxav_iteration_interval(const ToxAV *av);
  */
 void toxav_iterate(ToxAV *av);
 
-
-/*******************************************************************************
- *
- * :: A/V event loop, multiple threads
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief A/V event loop, multiple threads
+ */
 
 /**
  * Returns the interval in milliseconds when the next toxav_audio_iterate call
@@ -201,14 +191,12 @@ uint32_t toxav_video_iteration_interval(const ToxAV *av);
  */
 void toxav_video_iterate(ToxAV *av);
 
-
-/*******************************************************************************
- *
- * :: Call setup
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief Call setup
+ */
 
 typedef enum Toxav_Err_Call {
 
@@ -339,14 +327,12 @@ typedef enum Toxav_Err_Answer {
 bool toxav_answer(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate,
                   Toxav_Err_Answer *error);
 
-
-/*******************************************************************************
- *
- * :: Call state graph
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief Call state graph
+ */
 
 enum Toxav_Friend_Call_State {
 
@@ -411,14 +397,12 @@ typedef void toxav_call_state_cb(ToxAV *av, uint32_t friend_number, uint32_t sta
  */
 void toxav_callback_call_state(ToxAV *av, toxav_call_state_cb *callback, void *user_data);
 
-
-/*******************************************************************************
- *
- * :: Call control
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief Call control
+ */
 
 typedef enum Toxav_Call_Control {
 
@@ -509,14 +493,12 @@ typedef enum Toxav_Err_Call_Control {
  */
 bool toxav_call_control(ToxAV *av, uint32_t friend_number, Toxav_Call_Control control, Toxav_Err_Call_Control *error);
 
-
-/*******************************************************************************
- *
- * :: Controlling bit rates
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief Controlling bit rates
+ */
 
 typedef enum Toxav_Err_Bit_Rate_Set {
 
@@ -547,15 +529,13 @@ typedef enum Toxav_Err_Bit_Rate_Set {
 
 } Toxav_Err_Bit_Rate_Set;
 
+/** @} */
 
 
-/*******************************************************************************
- *
- * :: A/V sending
- *
- ******************************************************************************/
 
-
+/** @{
+ * @brief A/V sending
+ */
 
 typedef enum Toxav_Err_Send_Frame {
 
@@ -704,14 +684,12 @@ typedef void toxav_video_bit_rate_cb(ToxAV *av, uint32_t friend_number, uint32_t
  */
 void toxav_callback_video_bit_rate(ToxAV *av, toxav_video_bit_rate_cb *callback, void *user_data);
 
-
-/*******************************************************************************
- *
- * :: A/V receiving
- *
- ******************************************************************************/
+/** @} */
 
 
+/** @{
+ * @brief A/V receiving
+ */
 
 /**
  * The function type for the audio_receive_frame callback. The callback can be
@@ -783,7 +761,7 @@ typedef void toxav_group_audio_cb(Tox *tox, uint32_t groupnumber, uint32_t peern
 typedef void toxav_audio_data_cb(void *tox, uint32_t groupnumber, uint32_t peernumber, const int16_t *pcm,
                                  uint32_t samples, uint8_t channels, uint32_t sample_rate, void *userdata);
 
-/* Create a new toxav group.
+/** Create a new toxav group.
  *
  * return group number on success.
  * return -1 on failure.
@@ -792,7 +770,7 @@ typedef void toxav_audio_data_cb(void *tox, uint32_t groupnumber, uint32_t peern
  */
 int toxav_add_av_groupchat(Tox *tox, toxav_audio_data_cb *audio_callback, void *userdata);
 
-/* Join a AV group (you need to have been invited first.)
+/** Join a AV group (you need to have been invited first.)
  *
  * returns group number on success
  * returns -1 on failure.
@@ -802,14 +780,14 @@ int toxav_add_av_groupchat(Tox *tox, toxav_audio_data_cb *audio_callback, void *
 int toxav_join_av_groupchat(Tox *tox, uint32_t friendnumber, const uint8_t *data, uint16_t length,
                             toxav_audio_data_cb *audio_callback, void *userdata);
 
-/* Send audio to the group chat.
+/** Send audio to the group chat.
  *
  * return 0 on success.
  * return -1 on failure.
  *
  * Note that total size of pcm in bytes is equal to `samples * channels * sizeof(int16_t)`.
  *
- * Valid number of samples are `(sample rate) * (audio length) / 1000` (Valid audio lengths are: 2.5, 5, 10, 20, 40 or 60 ms)
+ * Valid number of samples are `(sample rate) * (audio length) / 1000` (Valid values for audio length are: 2.5, 5, 10, 20, 40 or 60 ms)
  * Valid number of channels are 1 or 2.
  * Valid sample rates are 8000, 12000, 16000, 24000, or 48000.
  *
@@ -818,7 +796,7 @@ int toxav_join_av_groupchat(Tox *tox, uint32_t friendnumber, const uint8_t *data
 int toxav_group_send_audio(Tox *tox, uint32_t groupnumber, const int16_t *pcm, unsigned int samples, uint8_t channels,
                            uint32_t sample_rate);
 
-/* Enable A/V in a groupchat.
+/** Enable A/V in a groupchat.
  *
  * A/V must be enabled on a groupchat for audio to be sent to it and for
  * received audio to be handled.
@@ -836,22 +814,25 @@ int toxav_group_send_audio(Tox *tox, uint32_t groupnumber, const int16_t *pcm, u
 int toxav_groupchat_enable_av(Tox *tox, uint32_t groupnumber,
                               toxav_audio_data_cb *audio_callback, void *userdata);
 
-/* Disable A/V in a groupchat.
+/** Disable A/V in a groupchat.
  *
  * return 0 on success.
  * return -1 on failure.
  */
 int toxav_groupchat_disable_av(Tox *tox, uint32_t groupnumber);
 
-/* Return whether A/V is enabled in the groupchat.
+/** Return whether A/V is enabled in the groupchat.
  */
 bool toxav_groupchat_av_enabled(Tox *tox, uint32_t groupnumber);
+
+/** @} */
 
 #ifdef __cplusplus
 }
 #endif
 
 //!TOKSTYLE-
+#ifndef DOXYGEN_IGNORE
 
 typedef Toxav_Err_Call TOXAV_ERR_CALL;
 typedef Toxav_Err_New TOXAV_ERR_NEW;
@@ -862,6 +843,7 @@ typedef Toxav_Err_Send_Frame TOXAV_ERR_SEND_FRAME;
 typedef Toxav_Call_Control TOXAV_CALL_CONTROL;
 typedef enum Toxav_Friend_Call_State TOXAV_FRIEND_CALL_STATE;
 
+#endif
 //!TOKSTYLE+
 
 #endif // C_TOXCORE_TOXAV_TOXAV_H

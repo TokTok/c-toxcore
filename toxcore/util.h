@@ -4,7 +4,7 @@
  * Copyright © 2013 plutooo
  */
 
-/*
+/**
  * Utilities.
  */
 #ifndef C_TOXCORE_TOXCORE_UTIL_H
@@ -23,7 +23,7 @@ extern "C" {
 
 bool is_power_of_2(uint64_t x);
 
-/* Functions for groupchat extended keys */
+/** Functions for groupchat extended keys */
 const uint8_t *get_enc_key(const uint8_t *key);
 const uint8_t *get_sig_pk(const uint8_t *key);
 void set_sig_pk(uint8_t *key, const uint8_t *sig_pk);
@@ -32,7 +32,7 @@ void set_sig_sk(uint8_t *key, const uint8_t *sig_sk);
 const uint8_t *get_chat_id(const uint8_t *key);
 
 
-/* id functions */
+/** id functions */
 bool id_equal(const uint8_t *dest, const uint8_t *src);
 
 int id_cmp(const uint8_t *first_id, const uint8_t *second_id);

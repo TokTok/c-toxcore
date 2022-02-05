@@ -3,7 +3,7 @@
  * Copyright © 2013 Tox project.
  */
 
-/*
+/**
  * LAN discovery implementation.
  */
 #include "LAN_discovery.h"
@@ -209,7 +209,7 @@ static void fetch_broadcast_info(uint16_t port)
 
 #endif
 
-/* Send packet to all IPv4 broadcast addresses
+/** Send packet to all IPv4 broadcast addresses
  *
  *  return 1 if sent to at least one broadcast target.
  *  return 0 on failure to find any valid broadcast target.
@@ -233,7 +233,7 @@ static uint32_t send_broadcasts(const Networking_Core *net, uint16_t port, const
     return 1;
 }
 
-/* Return the broadcast ip. */
+/** Return the broadcast ip. */
 static IP broadcast_ip(Family family_socket, Family family_broadcast)
 {
     IP ip;
@@ -266,7 +266,9 @@ static bool ip4_is_local(const IP4 *ip4)
     return ip4->uint8[0] == 127;
 }
 
-/* Is IP a local ip or not. */
+/**
+ * Is IP a local ip or not.
+ */
 bool ip_is_local(const IP *ip)
 {
     if (net_family_is_ipv4(ip->family)) {
@@ -367,35 +369,35 @@ static int handle_LANdiscovery(void *object, const IP_Port *source, const uint8_
 }
 
 
-int lan_discovery_send(uint16_t port, const DHT *dht)
+bool lan_discovery_send(Networking_Core *net, const uint8_t *dht_pk, uint16_t port)
 {
     uint8_t data[CRYPTO_PUBLIC_KEY_SIZE + 1];
     data[0] = NET_PACKET_LAN_DISCOVERY;
-    id_copy(data + 1, dht_get_self_public_key(dht));
+    id_copy(data + 1, dht_pk);
 
-    send_broadcasts(dht_get_net(dht), port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE);
+    send_broadcasts(net, port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE);
 
-    int res = -1;
+    bool res = false;
     IP_Port ip_port;
     ip_port.port = port;
 
     /* IPv6 multicast */
-    if (net_family_is_ipv6(net_family(dht_get_net(dht)))) {
+    if (net_family_is_ipv6(net_family(net))) {
         ip_port.ip = broadcast_ip(net_family_ipv6, net_family_ipv6);
 
         if (ip_isset(&ip_port.ip)) {
-            if (sendpacket(dht_get_net(dht), &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
-                res = 1;
+            if (sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
+                res = true;
             }
         }
     }
 
     /* IPv4 broadcast (has to be IPv4-in-IPv6 mapping if socket is IPv6 */
-    ip_port.ip = broadcast_ip(net_family(dht_get_net(dht)), net_family_ipv4);
+    ip_port.ip = broadcast_ip(net_family(net), net_family_ipv4);
 
     if (ip_isset(&ip_port.ip)) {
-        if (sendpacket(dht_get_net(dht), &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE)) {
-            res = 1;
+        if (sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE)) {
+            res = true;
         }
     }
 

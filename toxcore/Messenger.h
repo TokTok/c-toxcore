@@ -3,7 +3,7 @@
  * Copyright © 2013 Tox project.
  */
 
-/*
+/**
  * An implementation of a simple text chat only messenger on the tox network
  * core.
  */
@@ -81,7 +81,7 @@ struct Receipts {
     struct Receipts *next;
 };
 
-/* Status definitions. */
+/** Status definitions. */
 typedef enum Friend_Status {
     NOFRIEND,
     FRIEND_ADDED,
@@ -90,7 +90,7 @@ typedef enum Friend_Status {
     FRIEND_ONLINE,
 } Friend_Status;
 
-/* Errors for m_addfriend
+/** Errors for m_addfriend
  * FAERR - Friend Add Error
  */
 typedef enum Friend_Add_Error {
@@ -104,7 +104,7 @@ typedef enum Friend_Add_Error {
 } Friend_Add_Error;
 
 
-/* Default start timeout in seconds between friend requests. */
+/** Default start timeout in seconds between friend requests. */
 #define FRIENDREQUEST_TIMEOUT 5
 
 typedef enum Connection_Status {
@@ -113,7 +113,7 @@ typedef enum Connection_Status {
     CONNECTION_UDP,
 } Connection_Status;
 
-/* USERSTATUS -
+/** USERSTATUS -
  * Represents userstatuses someone can have.
  */
 
@@ -314,33 +314,37 @@ struct Messenger {
  */
 bool friend_is_valid(const Messenger *m, int32_t friendnumber);
 
-/* Format: `[real_pk (32 bytes)][nospam number (4 bytes)][checksum (2 bytes)]`
+/** Format: `[real_pk (32 bytes)][nospam number (4 bytes)][checksum (2 bytes)]`
  *
  *  return FRIEND_ADDRESS_SIZE byte address to give to others.
  */
 void getaddress(const Messenger *m, uint8_t *address);
 
-/* Add a friend.
+/**
+ * Add a friend.
+ *
  * Set the data that will be sent along with friend request.
- * address is the address of the friend (returned by getaddress of the friend
+ *
+ * @param address is the address of the friend (returned by getaddress of the friend
  *   you wish to add) it must be FRIEND_ADDRESS_SIZE bytes.
  *   TODO(irungentoo): add checksum.
- * data is the data and length is the length.
+ * @param data is the data.
+ * @param length is the length.
  *
  *  return the friend number if success.
- *  return -1 if message length is too long.
- *  return -2 if no message (message length must be >= 1 byte).
- *  return -3 if user's own key.
- *  return -4 if friend request already sent or already a friend.
- *  return -6 if bad checksum in address.
- *  return -7 if the friend was already there but the nospam was different.
+ *  return FA_TOOLONG if message length is too long.
+ *  return FAERR_NOMESSAGE if no message (message length must be >= 1 byte).
+ *  return FAERR_OWNKEY if user's own key.
+ *  return FAERR_ALREADYSENT if friend request already sent or already a friend.
+ *  return FAERR_BADCHECKSUM if bad checksum in address.
+ *  return FAERR_SETNEWNOSPAM if the friend was already there but the nospam was different.
  *  (the nospam for that friend was set to the new one).
- *  return -8 if increasing the friend list size fails.
+ *  return FAERR_NOMEM if increasing the friend list size fails.
  */
 int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, uint16_t length);
 
 
-/* Add a friend without sending a friendrequest.
+/** Add a friend without sending a friendrequest.
  *  return the friend number if success.
  *  return -3 if user's own key.
  *  return -4 if friend request already sent or already a friend.
@@ -361,32 +365,32 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat);
  */
 void m_kill_group_connection(Messenger *m, const GC_Chat *chat);
 
-/*  return the friend number associated to that client id.
+/** return the friend number associated to that public key.
  *  return -1 if no such friend.
  */
 int32_t getfriend_id(const Messenger *m, const uint8_t *real_pk);
 
-/* Copies the public key associated to that friend id into real_pk buffer.
+/** Copies the public key associated to that friend id into real_pk buffer.
  * Make sure that real_pk is of size CRYPTO_PUBLIC_KEY_SIZE.
  *
- *  return 0 if success
- *  return -1 if failure
+ *  return 0 if success.
+ *  return -1 if failure.
  */
 int get_real_pk(const Messenger *m, int32_t friendnumber, uint8_t *real_pk);
 
-/*  return friend connection id on success.
+/**  return friend connection id on success.
  *  return -1 if failure.
  */
 int getfriendcon_id(const Messenger *m, int32_t friendnumber);
 
-/* Remove a friend.
+/** Remove a friend.
  *
- *  return 0 if success
- *  return -1 if failure
+ *  return 0 if success.
+ *  return -1 if failure.
  */
 int m_delfriend(Messenger *m, int32_t friendnumber);
 
-/* Checks friend's connection status.
+/** Checks friend's connection status.
  *
  *  return CONNECTION_UDP (2) if friend is directly connected to us (Online UDP).
  *  return CONNECTION_TCP (1) if friend is connected to us (Online TCP).
@@ -395,14 +399,14 @@ int m_delfriend(Messenger *m, int32_t friendnumber);
  */
 int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber);
 
-/* Checks if there exists a friend with given friendnumber.
+/** Checks if there exists a friend with given friendnumber.
  *
  *  return 1 if friend exists.
  *  return 0 if friend doesn't exist.
  */
 int m_friend_exists(const Messenger *m, int32_t friendnumber);
 
-/* Send a message of type to an online friend.
+/** Send a message of type to an online friend.
  *
  * return -1 if friend not valid.
  * return -2 if too large.
@@ -417,7 +421,7 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
                            uint32_t *message_id);
 
 
-/* Set the name and name_length of a friend.
+/** Set the name and name_length of a friend.
  * name must be a string of maximum MAX_NAME_LENGTH length.
  * length must be at least 1 byte.
  * length is the length of name with the NULL terminator.
@@ -427,7 +431,7 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
  */
 int setfriendname(Messenger *m, int32_t friendnumber, const uint8_t *name, uint16_t length);
 
-/* Set our nickname.
+/** Set our nickname.
  * name must be a string of maximum MAX_NAME_LENGTH length.
  * length must be at least 1 byte.
  * length is the length of name with the NULL terminator.
@@ -437,7 +441,7 @@ int setfriendname(Messenger *m, int32_t friendnumber, const uint8_t *name, uint1
  */
 int setname(Messenger *m, const uint8_t *name, uint16_t length);
 
-/*
+/**
  * Get your nickname.
  * m - The messenger context to use.
  * name needs to be a valid memory location with a size of at least MAX_NAME_LENGTH bytes.
@@ -447,7 +451,7 @@ int setname(Messenger *m, const uint8_t *name, uint16_t length);
  */
 uint16_t getself_name(const Messenger *m, uint8_t *name);
 
-/* Get name of friendnumber and put it in name.
+/** Get name of friendnumber and put it in name.
  * name needs to be a valid memory location with a size of at least MAX_NAME_LENGTH (128) bytes.
  *
  *  return length of name if success.
@@ -455,13 +459,13 @@ uint16_t getself_name(const Messenger *m, uint8_t *name);
  */
 int getname(const Messenger *m, int32_t friendnumber, uint8_t *name);
 
-/*  return the length of name, including null on success.
+/**  return the length of name, including null on success.
  *  return -1 on failure.
  */
 int m_get_name_size(const Messenger *m, int32_t friendnumber);
 int m_get_self_name_size(const Messenger *m);
 
-/* Set our user status.
+/** Set our user status.
  * You are responsible for freeing status after.
  *
  *  returns 0 on success.
@@ -470,23 +474,26 @@ int m_get_self_name_size(const Messenger *m);
 int m_set_statusmessage(Messenger *m, const uint8_t *status, uint16_t length);
 int m_set_userstatus(Messenger *m, uint8_t status);
 
-/*  return the length of friendnumber's status message, including null on success.
- *  return -1 on failure.
+/**
+ * Guaranteed to be at most MAX_STATUSMESSAGE_LENGTH.
+ *
+ * returns the length of friendnumber's status message, including null on success.
+ * returns -1 on failure.
  */
 int m_get_statusmessage_size(const Messenger *m, int32_t friendnumber);
 int m_get_self_statusmessage_size(const Messenger *m);
 
-/* Copy friendnumber's status message into buf, truncating if size is over maxlen.
+/** Copy friendnumber's status message into buf, truncating if size is over maxlen.
  * Get the size you need to allocate from m_get_statusmessage_size.
  * The self variant will copy our own status message.
  *
  * returns the length of the copied data on success
- * retruns -1 on failure.
+ * returns -1 on failure.
  */
 int m_copy_statusmessage(const Messenger *m, int32_t friendnumber, uint8_t *buf, uint32_t maxlen);
 int m_copy_self_statusmessage(const Messenger *m, uint8_t *buf);
 
-/*  return one of Userstatus values.
+/**  return one of Userstatus values.
  *  Values unknown to your application should be represented as USERSTATUS_NONE.
  *  As above, the self variant will return our own Userstatus.
  *  If friendnumber is invalid, this shall return USERSTATUS_INVALID.
@@ -495,12 +502,12 @@ uint8_t m_get_userstatus(const Messenger *m, int32_t friendnumber);
 uint8_t m_get_self_userstatus(const Messenger *m);
 
 
-/* returns timestamp of last time friendnumber was seen online or 0 if never seen.
+/** returns timestamp of last time friendnumber was seen online or 0 if never seen.
  * if friendnumber is invalid this function will return UINT64_MAX.
  */
 uint64_t m_get_last_online(const Messenger *m, int32_t friendnumber);
 
-/* Set our typing status for a friend.
+/** Set our typing status for a friend.
  * You are responsible for turning it on or off.
  *
  * returns 0 on success.
@@ -508,48 +515,39 @@ uint64_t m_get_last_online(const Messenger *m, int32_t friendnumber);
  */
 int m_set_usertyping(Messenger *m, int32_t friendnumber, uint8_t is_typing);
 
-/* Get the typing status of a friend.
+/** Get the typing status of a friend.
  *
  * returns 0 if friend is not typing.
  * returns 1 if friend is typing.
  */
 int m_get_istyping(const Messenger *m, int32_t friendnumber);
 
-/* Set the function that will be executed when a friend request is received.
- *  Function format is `function(uint8_t * public_key, uint8_t * data, size_t length)`
- */
+/** Set the function that will be executed when a friend request is received. */
 void m_callback_friendrequest(Messenger *m, m_friend_request_cb *function);
 
-/* Set the function that will be executed when a message from a friend is received.
- *  Function format is: `function(uint32_t friendnumber, unsigned int type, uint8_t * message, uint32_t length)`
- */
+/** Set the function that will be executed when a message from a friend is received. */
 void m_callback_friendmessage(Messenger *m, m_friend_message_cb *function);
 
-/* Set the callback for name changes.
- *  `Function(uint32_t friendnumber, uint8_t *newname, size_t length)`
+/** Set the callback for name changes.
  *  You are not responsible for freeing newname.
  */
 void m_callback_namechange(Messenger *m, m_friend_name_cb *function);
 
-/* Set the callback for status message changes.
- *  `Function(uint32_t friendnumber, uint8_t *newstatus, size_t length)`
+/** Set the callback for status message changes.
  *
  *  You are not responsible for freeing newstatus
  */
 void m_callback_statusmessage(Messenger *m, m_friend_status_message_cb *function);
 
-/* Set the callback for status type changes.
- *  `Function(uint32_t friendnumber, Userstatus kind)`
+/** Set the callback for status type changes.
  */
 void m_callback_userstatus(Messenger *m, m_friend_status_cb *function);
 
-/* Set the callback for typing changes.
- *  `Function(uint32_t friendnumber, uint8_t is_typing)`
+/** Set the callback for typing changes.
  */
 void m_callback_typingchange(Messenger *m, m_friend_typing_cb *function);
 
-/* Set the callback for read receipts.
- *  `Function(uint32_t friendnumber, uint32_t receipt)`
+/** Set the callback for read receipts.
  *
  *  If you are keeping a record of returns from m_sendmessage,
  *  receipt might be one of those values, meaning the message
@@ -559,8 +557,7 @@ void m_callback_typingchange(Messenger *m, m_friend_typing_cb *function);
  */
 void m_callback_read_receipt(Messenger *m, m_friend_read_receipt_cb *function);
 
-/* Set the callback for connection status changes.
- *  `function(uint32_t friendnumber, uint8_t status)`
+/** Set the callback for connection status changes.
  *
  *  Status:
  *    0 -- friend went offline after being previously online.
@@ -572,19 +569,18 @@ void m_callback_read_receipt(Messenger *m, m_friend_read_receipt_cb *function);
  */
 void m_callback_connectionstatus(Messenger *m, m_friend_connection_status_cb *function);
 
-/* Same as previous but for internal A/V core usage only */
+/** Same as previous but for internal A/V core usage only */
 void m_callback_connectionstatus_internal_av(Messenger *m, m_friend_connectionstatuschange_internal_cb *function,
         void *userdata);
 
 
-/* Set the callback for typing changes.
- *  Function(unsigned int connection_status (0 = not connected, 1 = TCP only, 2 = UDP + TCP))
+/** Set the callback for typing changes.
  */
 void m_callback_core_connection(Messenger *m, m_self_connection_status_cb *function);
 
 /*** CONFERENCES */
 
-/* Set the callback for conference invites.
+/** Set the callback for conference invites.
  */
 void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function);
 
@@ -592,7 +588,7 @@ void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function
  */
 void m_callback_group_invite(Messenger *m, m_group_invite_cb *function);
 
-/* Send a conference invite packet.
+/** Send a conference invite packet.
  *
  *  return 1 on success
  *  return 0 on failure
@@ -613,25 +609,25 @@ int send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const ui
 /*** FILE SENDING */
 
 
-/* Set the callback for file send requests.
+/** Set the callback for file send requests.
  */
 void callback_file_sendrequest(Messenger *m, m_file_recv_cb *function);
 
 
-/* Set the callback for file control requests.
+/** Set the callback for file control requests.
  */
 void callback_file_control(Messenger *m, m_file_recv_control_cb *function);
 
-/* Set the callback for file data.
+/** Set the callback for file data.
  */
 void callback_file_data(Messenger *m, m_file_recv_chunk_cb *function);
 
-/* Set the callback for file request chunk.
+/** Set the callback for file request chunk.
  */
 void callback_file_reqchunk(Messenger *m, m_file_chunk_request_cb *function);
 
 
-/* Copy the file transfer file id to file_id
+/** Copy the file transfer file id to file_id
  *
  * return 0 on success.
  * return -1 if friend not valid.
@@ -639,7 +635,7 @@ void callback_file_reqchunk(Messenger *m, m_file_chunk_request_cb *function);
  */
 int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint8_t *file_id);
 
-/* Send a file send request.
+/** Send a file send request.
  * Maximum filename length is 255 bytes.
  *  return file number on success
  *  return -1 if friend not found.
@@ -651,7 +647,7 @@ int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, u
 long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_type, uint64_t filesize,
                         const uint8_t *file_id, const uint8_t *filename, uint16_t filename_length);
 
-/* Send a file control request.
+/** Send a file control request.
  *
  *  return 0 on success
  *  return -1 if friend not valid.
@@ -665,7 +661,7 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
  */
 int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, unsigned int control);
 
-/* Send a seek file control request.
+/** Send a seek file control request.
  *
  *  return 0 on success
  *  return -1 if friend not valid.
@@ -678,7 +674,7 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
  */
 int file_seek(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position);
 
-/* Send file data.
+/** Send file data.
  *
  *  return 0 on success
  *  return -1 if friend not valid.
@@ -694,18 +690,18 @@ int file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uin
 
 /*** A/V related */
 
-/* Set the callback for msi packets.
+/** Set the callback for msi packets.
  */
 void m_callback_msi_packet(Messenger *m, m_msi_packet_cb *function, void *userdata);
 
-/* Send an msi packet.
+/** Send an msi packet.
  *
  *  return 1 on success
  *  return 0 on failure
  */
 int m_msi_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length);
 
-/* Set handlers for lossy rtp packets.
+/** Set handlers for lossy rtp packets.
  *
  * return -1 on failure.
  * return 0 on success.
@@ -715,12 +711,19 @@ int m_callback_rtp_packet(Messenger *m, int32_t friendnumber, uint8_t byte,
 
 /*** CUSTOM PACKETS */
 
-/* Set handlers for custom lossy packets.
+/** Set handlers for custom lossy packets.
  *
  */
 void custom_lossy_packet_registerhandler(Messenger *m, m_friend_lossy_packet_cb *lossy_packethandler);
 
-/* High level function to send custom lossy packets.
+/** High level function to send custom lossy packets.
+ *
+ * TODO(oxij): this name is confusing, because this function sends both av and custom lossy packets.
+ * Meanwhile, m_handle_lossy_packet routes custom packets to custom_lossy_packet_registerhandler
+ * as you would expect from its name.
+ *
+ * I.e. custom_lossy_packet_registerhandler's "custom lossy packet" and this "custom lossy packet"
+ * are not the same set of packets.
  *
  * return -1 if friend invalid.
  * return -2 if length wrong.
@@ -732,12 +735,12 @@ void custom_lossy_packet_registerhandler(Messenger *m, m_friend_lossy_packet_cb 
 int m_send_custom_lossy_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint32_t length);
 
 
-/* Set handlers for custom lossless packets.
+/** Set handlers for custom lossless packets.
  *
  */
 void custom_lossless_packet_registerhandler(Messenger *m, m_friend_lossless_packet_cb *lossless_packethandler);
 
-/* High level function to send custom lossless packets.
+/** High level function to send custom lossless packets.
  *
  * return -1 if friend invalid.
  * return -2 if length wrong.
@@ -757,7 +760,7 @@ typedef enum Messenger_Error {
     MESSENGER_ERROR_OTHER,
 } Messenger_Error;
 
-/* Run this at startup.
+/** Run this at startup.
  *  return allocated instance of Messenger on success.
  *  return 0 if there are problems.
  *
@@ -765,15 +768,15 @@ typedef enum Messenger_Error {
  */
 Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsigned int *error);
 
-/* Run this before closing shop
+/** Run this before closing shop
  * Free all datastructures.
  */
 void kill_messenger(Messenger *m);
 
-/* The main loop that needs to be run at least 20 times per second. */
+/** The main loop that needs to be run at least 20 times per second. */
 void do_messenger(Messenger *m, void *userdata);
 
-/* Return the time in milliseconds before do_messenger() should be called again
+/** Return the time in milliseconds before do_messenger() should be called again
  * for optimal performance.
  *
  * returns time (in ms) before the next do_messenger() needs to be run on success.
@@ -782,7 +785,7 @@ uint32_t messenger_run_interval(const Messenger *m);
 
 /* SAVING AND LOADING FUNCTIONS: */
 
-/* Registers a state plugin for saving, loadding, and getting the size of a section of the save
+/** Registers a state plugin for saving, loadding, and getting the size of a section of the save
  *
  * returns true on success
  * returns false on error
@@ -790,13 +793,13 @@ uint32_t messenger_run_interval(const Messenger *m);
 bool m_register_state_plugin(Messenger *m, State_Type type, m_state_size_cb size_callback,
                              m_state_load_cb load_callback, m_state_save_cb save_callback);
 
-/* return size of the messenger data (for saving). */
+/** return size of the messenger data (for saving). */
 uint32_t messenger_size(const Messenger *m);
 
-/* Save the messenger in data (must be allocated memory of size at least Messenger_size()) */
+/** Save the messenger in data (must be allocated memory of size at least Messenger_size()) */
 uint8_t *messenger_save(const Messenger *m, uint8_t *data);
 
-/* Load a state section.
+/** Load a state section.
  *
  * @param data Data to load.
  * @param length Length of data.
@@ -807,12 +810,12 @@ uint8_t *messenger_save(const Messenger *m, uint8_t *data);
 bool messenger_load_state_section(Messenger *m, const uint8_t *data, uint32_t length, uint16_t type,
                                   State_Load_Status *status);
 
-/* Return the number of friends in the instance m.
+/** Return the number of friends in the instance m.
  * You should use this to determine how much memory to allocate
  * for copy_friendlist. */
 uint32_t count_friendlist(const Messenger *m);
 
-/* Copy a list of valid friend IDs into the array out_list.
+/** Copy a list of valid friend IDs into the array out_list.
  * If out_list is NULL, returns 0.
  * Otherwise, returns the number of elements copied.
  * If the array was too small, the contents

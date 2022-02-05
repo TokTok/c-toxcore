@@ -3,7 +3,7 @@
  * Copyright © 2013 Tox project.
  */
 
-/*
+/**
  * Functions for the core crypto.
  *
  * NOTE: This code has to be perfect. We don't mess around with encryption.
@@ -199,6 +199,15 @@ uint64_t random_u64(void)
     return randnum;
 }
 
+uint32_t random_range_u32(uint32_t upper_bound)
+{
+#ifdef VANILLA_NACL
+    return random_u32() % upper_bound;
+#else
+    return randombytes_uniform(upper_bound);
+#endif  // VANILLA_NACL
+}
+
 bool public_key_valid(const uint8_t *public_key)
 {
     if (public_key[31] >= 128) { /* Last bit of key is always zero. */
@@ -208,11 +217,6 @@ bool public_key_valid(const uint8_t *public_key)
     return 1;
 }
 
-/**
- * Fast encrypt/decrypt operations. Use if this is not a one-time communication.
- * encrypt_precompute does the shared-key generation once so it does not have
- * to be performed on every encrypt/decrypt.
- */
 int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
                            uint8_t *shared_key)
 {
@@ -346,10 +350,6 @@ int32_t decrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const
     return ret;
 }
 
-/**
- * Increment the given nonce by 1 in big endian (rightmost byte incremented
- * first).
- */
 void increment_nonce(uint8_t *nonce)
 {
     /* TODO(irungentoo): use `increment_nonce_number(nonce, 1)` or
@@ -369,10 +369,6 @@ void increment_nonce(uint8_t *nonce)
     }
 }
 
-/**
- * Increment the given nonce by a given number. The number should be in host
- * byte order.
- */
 void increment_nonce_number(uint8_t *nonce, uint32_t increment)
 {
     /* NOTE don't use breaks inside this loop
@@ -395,17 +391,11 @@ void increment_nonce_number(uint8_t *nonce, uint32_t increment)
     }
 }
 
-/**
- * Fill the given nonce with random bytes.
- */
 void random_nonce(uint8_t *nonce)
 {
     random_bytes(nonce, crypto_box_NONCEBYTES);
 }
 
-/**
- * Fill a key CRYPTO_SYMMETRIC_KEY_SIZE big with random bytes.
- */
 void new_symmetric_key(uint8_t *key)
 {
     random_bytes(key, CRYPTO_SYMMETRIC_KEY_SIZE);

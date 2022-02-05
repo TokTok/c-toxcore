@@ -3,7 +3,7 @@
  * Copyright © 2014 Tox project.
  */
 
-/*
+/**
  * Slightly better groupchats implementation.
  */
 #include "group.h"
@@ -2375,12 +2375,11 @@ static unsigned int send_message_all_connections(const Group_Chats *g_c, const G
  * return number of messages sent.
  */
 static unsigned int send_lossy_all_connections(const Group_Chats *g_c, const Group_c *g, const uint8_t *data,
-        uint16_t length,
-        int receiver)
+        uint16_t length, int receiver)
 {
     unsigned int sent = 0;
     unsigned int num_connected_closest = 0;
-    unsigned int connected_closest[DESIRED_CLOSEST];
+    unsigned int connected_closest[DESIRED_CLOSEST] = {0};
 
     for (unsigned int i = 0; i < MAX_GROUP_CONNECTIONS; ++i) {
         if (g->connections[i].type != GROUPCHAT_CONNECTION_ONLINE) {
@@ -3030,7 +3029,7 @@ void *group_peer_get_object(const Group_Chats *g_c, uint32_t groupnumber, uint32
     return g->group[peernumber].object;
 }
 
-/* Interval in seconds to send ping messages */
+/** Interval in seconds to send ping messages */
 #define GROUP_PING_INTERVAL 20
 
 static bool ping_groupchat(const Group_Chats *g_c, uint32_t groupnumber)
@@ -3050,7 +3049,7 @@ static bool ping_groupchat(const Group_Chats *g_c, uint32_t groupnumber)
     return true;
 }
 
-/* Seconds of inactivity after which to freeze a peer */
+/** Seconds of inactivity after which to freeze a peer */
 #define FREEZE_TIMEOUT (GROUP_PING_INTERVAL * 3)
 
 static bool groupchat_freeze_timedout(Group_Chats *g_c, uint32_t groupnumber, void *userdata)
@@ -3218,7 +3217,7 @@ static uint32_t saved_conf_size(const Group_c *g)
     return len;
 }
 
-/* Save a future message number. The save will remain valid until we have sent
+/** Save a future message number. The save will remain valid until we have sent
  * this many more messages. */
 #define SAVE_OFFSET_MESSAGE_NUMBER (1 << 16)
 #define SAVE_OFFSET_LOSSY_MESSAGE_NUMBER (1 << 13)

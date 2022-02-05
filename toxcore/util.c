@@ -4,7 +4,7 @@
  * Copyright © 2013 plutooo
  */
 
-/*
+/**
  * Utilities.
  */
 #ifndef _XOPEN_SOURCE
@@ -63,7 +63,7 @@ const uint8_t *get_chat_id(const uint8_t *key)
 }
 
 
-/* id functions */
+/** id functions */
 bool id_equal(const uint8_t *dest, const uint8_t *src)
 {
     return public_key_cmp(dest, src) == 0;
