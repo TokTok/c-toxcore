@@ -3311,6 +3311,26 @@ typedef enum Tox_Group_Topic_Lock {
 
 } Tox_Group_Topic_Lock;
 
+/**
+ * Represents the group voice state, which determines which Group Roles have permission to speak
+ * in the group chat. The voice state does not have any effect private messages or topic setting.
+ */
+typedef enum Tox_Group_Voice_State {
+    /**
+     * All group roles above Observer have permission to speak.
+     */
+    TOX_GROUP_VOICE_STATE_ALL,
+
+    /**
+     * Moderators and Founders have permission to speak.
+     */
+    TOX_GROUP_VOICE_STATE_MODERATOR,
+
+    /**
+     * Only the founder may speak.
+     */
+    TOX_GROUP_VOICE_STATE_FOUNDER,
+} Tox_Group_Voice_State;
 
 /**
  * Represents group roles.
@@ -4106,7 +4126,7 @@ Tox_Group_Privacy_State tox_group_get_privacy_state(const Tox *tox, uint32_t gro
         Tox_Err_Group_State_Queries *error);
 
 /**
- * @param group_number The group number of the group the topic change is intended for.
+ * @param group_number The group number of the group the privacy state is intended for.
  * @param privacy_state The new privacy state.
  */
 typedef void tox_group_privacy_state_cb(Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
@@ -4119,6 +4139,32 @@ typedef void tox_group_privacy_state_cb(Tox *tox, uint32_t group_number, Tox_Gro
  * This event is triggered when the group founder changes the privacy state.
  */
 void tox_callback_group_privacy_state(Tox *tox, tox_group_privacy_state_cb *callback);
+
+/**
+ * Return the voice state of the group designated by the given group number. If group number
+ * is invalid, the return value is unspecified.
+ *
+ * The value returned is equal to the data received by the last `group_voice_state` callback.
+ *
+ * @see the `Group chat founder controls` section for the respective set function.
+ */
+Tox_Group_Voice_State tox_group_get_voice_state(const Tox *tox, uint32_t group_number,
+        Tox_Err_Group_State_Queries *error);
+
+/**
+* @param group_number The group number of the group the voice state change is intended for.
+* @param voice_state The new voice state.
+*/
+typedef void tox_group_voice_state_cb(Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
+                                      void *user_data);
+
+
+/**
+ * Set the callback for the `group_privacy_state` event. Pass NULL to unset.
+ *
+ * This event is triggered when the group founder changes the voice state.
+ */
+void tox_callback_group_voice_state(Tox *tox, tox_group_voice_state_cb *callback);
 
 /**
  * Return the topic lock status of the group designated by the given group number. If group number
@@ -4137,6 +4183,7 @@ Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_num
  * @param topic_lock The new topic lock state.
  */
 typedef void tox_group_topic_lock_cb(Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock, void *user_data);
+
 
 
 /**
@@ -4864,6 +4911,58 @@ typedef enum Tox_Err_Group_Founder_Set_Topic_Lock {
 bool tox_group_founder_set_topic_lock(const Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
                                       Tox_Err_Group_Founder_Set_Topic_Lock *error);
 
+typedef enum Tox_Err_Group_Founder_Set_Voice_State {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_GROUP_NOT_FOUND,
+
+    /**
+     * The caller does not have the required permissions to set the privacy state.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_PERMISSIONS,
+
+    /**
+     * The voice state could not be set. This may occur due to an error related to
+     * cryptographic signing of the new shared state.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_FAIL_SET,
+
+    /**
+     * The packet failed to send.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_FAIL_SEND,
+
+    /**
+     * The group is disconnected.
+     */
+    TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_DISCONNECTED,
+
+} Tox_Err_Group_Founder_Set_Voice_State;
+
+/**
+ * Set the group voice state.
+ *
+ * This function sets the group's voice state, creates a new group shared state
+ * including the change, and distributes it to the rest of the group.
+ *
+ * If an attempt is made to set the voice state to the same state that the group is already
+ * in, the function call will be successful and no action will be taken.
+ *
+ * @param group_number The group number of the group for which we wish to change the privacy state.
+ * @param voice_state The voice state we wish to set the group to.
+ *
+ * @return true on success.
+ */
+bool tox_group_founder_set_voice_state(const Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
+                                       Tox_Err_Group_Founder_Set_Voice_State *error);
+
 typedef enum Tox_Err_Group_Founder_Set_Privacy_State {
 
     /**
@@ -4898,7 +4997,6 @@ typedef enum Tox_Err_Group_Founder_Set_Privacy_State {
     TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_DISCONNECTED,
 
 } Tox_Err_Group_Founder_Set_Privacy_State;
-
 
 /**
  * Set the group privacy state.

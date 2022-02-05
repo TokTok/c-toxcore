@@ -145,6 +145,20 @@ typedef enum Group_Role {
     GR_OBSERVER  = 0x03,
 } Group_Role;
 
+/**
+ * Group voice states. The state determines which Group Roles have permission to speak.
+ */
+typedef enum Group_Voice_State {
+    /** Every group role except Observers may speak. */
+    GV_ALL       = 0x00,
+
+    /** Only Moderators and the Founder may speak. */
+    GV_MODS      = 0x01,
+
+    /** Only the Founder may speak. */
+    GV_FOUNDER   = 0x02,
+} Group_Voice_State;
+
 typedef struct Saved_Group {
     /* Group shared state */
     uint32_t  shared_state_version;
@@ -158,6 +172,7 @@ typedef struct Saved_Group {
     uint8_t   password[MAX_GC_PASSWORD_SIZE];
     uint8_t   mod_list_hash[MOD_MODERATION_HASH_SIZE];
     uint32_t  topic_lock;
+    uint8_t   voice_state;
 
     /* Topic info */
     uint16_t  topic_length;
@@ -236,6 +251,7 @@ typedef struct GC_SharedState {
     uint8_t     password[MAX_GC_PASSWORD_SIZE];
     uint8_t     mod_list_hash[MOD_MODERATION_HASH_SIZE];
     uint32_t    topic_lock; // non-zero value when lock is enabled
+    Group_Voice_State voice_state;
 } GC_SharedState;
 
 typedef struct GC_TopicInfo {
@@ -338,6 +354,7 @@ typedef void gc_status_change_cb(const Messenger *m, uint32_t group_number, uint
 typedef void gc_topic_change_cb(const Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *data,
                                 size_t length, void *user_data);
 typedef void gc_topic_lock_cb(const Messenger *m, uint32_t group_number, unsigned int topic_lock, void *user_data);
+typedef void gc_voice_state_cb(const Messenger *m, uint32_t group_number, unsigned int voice_state, void *user_data);
 typedef void gc_peer_limit_cb(const Messenger *m, uint32_t group_number, uint32_t max_peers, void *user_data);
 typedef void gc_privacy_state_cb(const Messenger *m, uint32_t group_number, unsigned int state, void *user_data);
 typedef void gc_password_cb(const Messenger *m, uint32_t group_number, const uint8_t *data, size_t length,
@@ -363,6 +380,7 @@ typedef struct GC_Session {
     gc_status_change_cb *status_change;
     gc_topic_change_cb *topic_change;
     gc_topic_lock_cb *topic_lock;
+    gc_voice_state_cb *voice_state;
     gc_peer_limit_cb *peer_limit;
     gc_privacy_state_cb *privacy_state;
     gc_password_cb *password;

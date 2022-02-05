@@ -162,7 +162,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp);
  * Returns -1 if the message is too long.
  * Returns -2 if the message pointer is NULL or length is zero.
  * Returns -3 if the message type is invalid.
- * Returns -4 if the sender has the observer role.
+ * Returns -4 if the sender does not have permission to speak.
  * Returns -5 if the packet fails to send.
  */
 int gc_send_message(const GC_Chat *chat, const uint8_t *message, uint16_t length, uint8_t type);
@@ -261,6 +261,12 @@ Group_Privacy_State gc_get_privacy_state(const GC_Chat *chat);
  * The value returned is equal to the data received by the last last topic_lock callback.
  */
 Group_Topic_Lock gc_get_topic_lock_state(const GC_Chat *chat);
+
+/** Returns the group voice state.
+ *
+ * The value returned is equal to the data received by the last voice_state callback.
+ */
+Group_Voice_State gc_get_voice_state(const GC_Chat *chat);
 
 /** Returns the group peer limit.
  *
@@ -433,6 +439,22 @@ int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_
  */
 int gc_founder_set_privacy_state(const Messenger *m, int group_number, Group_Privacy_State new_privacy_state);
 
+/** Sets the group voice state and distributes the new shared state to the group.
+ *
+ * This function requires that the shared state be re-signed and will only work for the group founder.
+ *
+ * If an attempt is made to set the voice state to the same state that the group is already
+ * in, the function call will be successful and no action will be taken.
+ *
+ * Returns 0 on success.
+ * Returns -1 if group_number is invalid.
+ * Returns -2 if the caller does not have sufficient permissions for this action.
+ * Returns -3 if the group is disconnected.
+ * Returns -4 if the voice state could not be set.
+ * Returns -5 if the packet failed to send.
+ */
+int gc_founder_set_voice_state(const Messenger *m, int group_number, Group_Voice_State new_voice_state);
+
 /** Sets the peer limit to maxpeers and distributes the new shared state to the group.
  *
  * This function requires that the shared state be re-signed and will only work for the group founder.
@@ -482,6 +504,7 @@ void gc_callback_peer_join(const Messenger *m, gc_peer_join_cb *function);
 void gc_callback_peer_exit(const Messenger *m, gc_peer_exit_cb *function);
 void gc_callback_self_join(const Messenger *m, gc_self_join_cb *function);
 void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function);
+void gc_callback_voice_state(const Messenger *m, gc_voice_state_cb *function);
 
 /** The main loop. Should be called with every Messenger iteration. */
 void do_gc(GC_Session *c, void *userdata);

@@ -39,7 +39,7 @@
 /* Size of a group's shared state in packed format */
 #define GC_PACKED_SHARED_STATE_SIZE (EXT_PUBLIC_KEY_SIZE + sizeof(uint16_t) + MAX_GC_GROUP_NAME_SIZE +\
                                      sizeof(uint16_t) + 1 + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE +\
-                                     MOD_MODERATION_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t))
+                                     MOD_MODERATION_HASH_SIZE + sizeof(uint32_t) + sizeof(uint32_t) + 1)
 
 /* Minimum size of a topic packet; includes topic length, public signature key, topic version and checksum */
 #define GC_MIN_PACKED_TOPIC_INFO_SIZE (sizeof(uint16_t) + SIG_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t))
@@ -282,6 +282,28 @@ static void self_gc_set_ext_public_key(const GC_Chat *chat, const uint8_t *ext_p
     }
 }
 
+/**
+ * Return true if `peer` has permission to speak according to the `voice_state`.
+ */
+static bool peer_has_voice(const GC_Peer *peer, Group_Voice_State voice_state)
+{
+    const Group_Role role = peer->role;
+
+    switch (voice_state) {
+        case GV_ALL:
+            return role <= GR_USER;
+
+        case GV_MODS:
+            return role <= GR_MODERATOR;
+
+        case GV_FOUNDER:
+            return role == GR_FOUNDER;
+
+        default:
+            return false;
+    }
+}
+
 static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
 
 /** Packs all valid entries from saved peerlist into `data`.
@@ -413,6 +435,7 @@ void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
     memcpy(temp->mod_list_hash, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
     temp->topic_lock = net_htonl(chat->shared_state.topic_lock);
     temp->topic_length = net_htons(chat->topic_info.length);
+    temp->voice_state = chat->shared_state.voice_state;
     memcpy(temp->topic, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
     memcpy(temp->topic_public_sig_key, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE);
     temp->topic_version = net_htonl(chat->topic_info.version);
@@ -1117,6 +1140,8 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     }
 
     const uint8_t privacy_state = shared_state->privacy_state;
+    const uint8_t voice_state = shared_state->voice_state;
+
     uint16_t packed_len = 0;
 
     // version is always first
@@ -1141,6 +1166,8 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     packed_len += MOD_MODERATION_HASH_SIZE;
     net_pack_u32(data + packed_len, shared_state->topic_lock);
     packed_len += sizeof(uint32_t);
+    memcpy(data + packed_len, &voice_state, sizeof(uint8_t));
+    packed_len += sizeof(uint8_t);
 
     return packed_len;
 }
@@ -1184,7 +1211,12 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     net_unpack_u32(data + len_processed, &shared_state->topic_lock);
     len_processed += sizeof(uint32_t);
 
-    shared_state->privacy_state = (Group_Privacy_State) privacy_state;
+    uint8_t voice_state;
+    memcpy(&voice_state, data + len_processed, sizeof(uint8_t));
+    len_processed += sizeof(uint8_t);
+
+    shared_state->voice_state = (Group_Voice_State)voice_state;
+    shared_state->privacy_state = (Group_Privacy_State)privacy_state;
 
     return len_processed;
 }
@@ -1280,10 +1312,10 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
     return (int)(header_len + packed_len);
 }
 
-/** Creates a signature for the group's shared state in packed form and increments the version.
- * This should only be called by the founder.
+/** Creates a signature for the group's shared state in packed form. This function only works
+ * for the Founder.
  *
- * Returns true on success.
+ * Returns true on success and increments the shared state version.
  */
 static bool sign_gc_shared_state(GC_Chat *chat)
 {
@@ -2584,10 +2616,8 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
                                        void *userdata)
 {
     /* Max peers changed */
-    if (chat->shared_state.maxpeers != old_shared_state->maxpeers) {
-        if (c->peer_limit) {
-            c->peer_limit(c->messenger, chat->group_number, chat->shared_state.maxpeers, userdata);
-        }
+    if (chat->shared_state.maxpeers != old_shared_state->maxpeers && c->peer_limit) {
+        c->peer_limit(c->messenger, chat->group_number, chat->shared_state.maxpeers, userdata);
     }
 
     /* privacy state changed */
@@ -2619,11 +2649,14 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
     }
 
     /* topic lock state changed */
-    if (chat->shared_state.topic_lock != old_shared_state->topic_lock) {
-        if (c->topic_lock) {
-            const Group_Topic_Lock lock_state = group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
-            c->topic_lock(c->messenger, chat->group_number, lock_state, userdata);
-        }
+    if (chat->shared_state.topic_lock != old_shared_state->topic_lock && c->topic_lock) {
+        const Group_Topic_Lock lock_state = group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
+        c->topic_lock(c->messenger, chat->group_number, lock_state, userdata);
+    }
+
+    /* voice state changed */
+    if (chat->shared_state.voice_state != old_shared_state->voice_state && c->voice_state) {
+        c->voice_state(c->messenger, chat->group_number, chat->shared_state.voice_state, userdata);
     }
 }
 
@@ -2659,7 +2692,8 @@ static bool validate_gc_shared_state(const GC_SharedState *state)
            && state->password_length <= MAX_GC_PASSWORD_SIZE
            && state->group_name_len > 0
            && state->group_name_len <= MAX_GC_GROUP_NAME_SIZE
-           && state->privacy_state <= GI_PRIVATE;
+           && state->privacy_state <= GI_PRIVATE
+           && state->voice_state <= GV_FOUNDER;
 }
 
 /** Handles a shared state error and attempts to send a sync request to a random peer.
@@ -4293,6 +4327,11 @@ Group_Topic_Lock gc_get_topic_lock_state(const GC_Chat *chat)
     return group_topic_lock_enabled(chat) ? TL_ENABLED : TL_DISABLED;
 }
 
+Group_Voice_State gc_get_voice_state(const GC_Chat *chat)
+{
+    return chat->shared_state.voice_state;
+}
+
 int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_Lock new_lock_state)
 {
     const GC_Session *c = m->group_handler;
@@ -4339,6 +4378,43 @@ int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_
     // TODO(Jfreegman): handle this failure properly
     if (!broadcast_gc_shared_state(chat)) {
         return -6;
+    }
+
+    return 0;
+}
+
+int gc_founder_set_voice_state(const Messenger *m, int group_number, Group_Voice_State new_voice_state)
+{
+    const GC_Session *c = m->group_handler;
+    GC_Chat *chat = gc_get_group(c, group_number);
+
+    if (chat == nullptr) {
+        return -1;
+    }
+
+    if (!self_gc_is_founder(chat)) {
+        return -2;
+    }
+
+    if (chat->connection_state == CS_DISCONNECTED || chat->connection_state == CS_NONE) {
+        return -3;
+    }
+
+    const Group_Voice_State old_voice_state = chat->shared_state.voice_state;
+
+    if (new_voice_state == old_voice_state) {
+        return 0;
+    }
+
+    chat->shared_state.voice_state = new_voice_state;
+
+    if (!sign_gc_shared_state(chat)) {
+        chat->shared_state.voice_state = old_voice_state;
+        return -4;
+    }
+
+    if (!broadcast_gc_shared_state(chat)) {
+        return -5;
     }
 
     return 0;
@@ -4437,7 +4513,10 @@ int gc_send_message(const GC_Chat *chat, const uint8_t *message, uint16_t length
         return -3;
     }
 
-    if (gc_get_self_role(chat) >= GR_OBSERVER) {
+    const GC_Peer *self = get_gc_peer(chat, 0);
+    assert(self != nullptr);
+
+    if (gc_get_self_role(chat) >= GR_OBSERVER || !peer_has_voice(self, chat->shared_state.voice_state)) {
         return -4;
     }
 
@@ -4462,7 +4541,7 @@ static int handle_gc_message(const GC_Session *c, const GC_Chat *chat, const GC_
         return -1;
     }
 
-    if (peer->ignore || peer->role >= GR_OBSERVER) {
+    if (peer->ignore || peer->role >= GR_OBSERVER || !peer_has_voice(peer, chat->shared_state.voice_state)) {
         return 0;
     }
 
@@ -5923,6 +6002,12 @@ void gc_callback_topic_lock(const Messenger *m, gc_topic_lock_cb *function)
     c->topic_lock = function;
 }
 
+void gc_callback_voice_state(const Messenger *m, gc_voice_state_cb *function)
+{
+    GC_Session *c = m->group_handler;
+    c->voice_state = function;
+}
+
 void gc_callback_peer_limit(const Messenger *m, gc_peer_limit_cb *function)
 {
     GC_Session *c = m->group_handler;
@@ -6667,6 +6752,7 @@ static void init_gc_shared_state(GC_Chat *chat)
     chat->shared_state.maxpeers = MAX_GC_PEERS_DEFAULT;
     chat->shared_state.privacy_state = GI_PUBLIC;
     chat->shared_state.topic_lock = 0;
+    chat->shared_state.voice_state = GV_ALL;
 }
 
 /** Initializes the group shared state for the founder.
@@ -6875,13 +6961,13 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     memcpy(chat->shared_state.founder_public_key, save->founder_public_key, EXT_PUBLIC_KEY_SIZE);
     chat->shared_state.group_name_len = min_u16(MAX_GC_GROUP_NAME_SIZE, net_ntohs(save->group_name_length));
     memcpy(chat->shared_state.group_name, save->group_name, MAX_GC_GROUP_NAME_SIZE);
-    chat->shared_state.privacy_state = (Group_Privacy_State) save->privacy_state;
+    chat->shared_state.privacy_state = (Group_Privacy_State)save->privacy_state;
+    chat->shared_state.voice_state = (Group_Voice_State)save->voice_state;
     chat->shared_state.maxpeers = net_ntohs(save->maxpeers);
     chat->shared_state.password_length = min_u16(MAX_GC_PASSWORD_SIZE, net_ntohs(save->password_length));
     memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
     memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, MOD_MODERATION_HASH_SIZE);
     chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
-
     chat->topic_info.length = min_u16(MAX_GC_TOPIC_SIZE, net_ntohs(save->topic_length));
     memcpy(chat->topic_info.topic, save->topic, MAX_GC_TOPIC_SIZE);
     memcpy(chat->topic_info.public_sig_key, save->topic_public_sig_key, SIG_PUBLIC_KEY_SIZE);

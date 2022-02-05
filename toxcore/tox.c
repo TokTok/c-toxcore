@@ -83,6 +83,7 @@ struct Tox {
     tox_group_topic_cb *group_topic_callback;
     tox_group_privacy_state_cb *group_privacy_state_callback;
     tox_group_topic_lock_cb *group_topic_lock_callback;
+    tox_group_voice_state_cb *group_voice_state_callback;
     tox_group_peer_limit_cb *group_peer_limit_callback;
     tox_group_password_cb *group_password_callback;
     tox_group_message_cb *group_message_callback;
@@ -379,6 +380,17 @@ static void tox_group_topic_lock_handler(const Messenger *m, uint32_t group_numb
 
     if (tox_data->tox->group_topic_lock_callback != nullptr) {
         tox_data->tox->group_topic_lock_callback(tox_data->tox, group_number, (Tox_Group_Topic_Lock)topic_lock,
+                tox_data->user_data);
+    }
+}
+
+static void tox_group_voice_state_handler(const Messenger *m, uint32_t group_number, unsigned int voice_state,
+        void *user_data)
+{
+    struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
+
+    if (tox_data->tox->group_voice_state_callback != nullptr) {
+        tox_data->tox->group_voice_state_callback(tox_data->tox, group_number, (Tox_Group_Voice_State)voice_state,
                 tox_data->user_data);
     }
 }
@@ -808,6 +820,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     gc_callback_peer_exit(tox->m, tox_group_peer_exit_handler);
     gc_callback_self_join(tox->m, tox_group_self_join_handler);
     gc_callback_rejected(tox->m, tox_group_join_fail_handler);
+    gc_callback_voice_state(tox->m, tox_group_voice_state_handler);
 #endif
 
     tox_options_free(default_options);
@@ -2800,6 +2813,12 @@ void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *function)
     tox->group_topic_lock_callback = function;
 }
 
+void tox_callback_group_voice_state(Tox *tox, tox_group_voice_state_cb *function)
+{
+    assert(tox != nullptr);
+    tox->group_voice_state_callback = function;
+}
+
 void tox_callback_group_peer_limit(Tox *tox, tox_group_peer_limit_cb *function)
 {
     assert(tox != nullptr);
@@ -3663,6 +3682,28 @@ Tox_Group_Topic_Lock tox_group_get_topic_lock(const Tox *tox, uint32_t group_num
     return (Tox_Group_Topic_Lock)topic_lock;
 }
 
+Tox_Group_Voice_State tox_group_get_voice_state(const Tox *tox, uint32_t group_number,
+        Tox_Err_Group_State_Queries *error)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_GROUP_NOT_FOUND);
+        unlock(tox);
+        return (Tox_Group_Voice_State) - 1;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERIES_OK);
+
+    const Group_Voice_State voice_state = gc_get_voice_state(chat);
+    unlock(tox);
+
+    return (Tox_Group_Voice_State)voice_state;
+}
+
 uint16_t tox_group_get_peer_limit(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Queries *error)
 {
     assert(tox != nullptr);
@@ -4174,6 +4215,53 @@ bool tox_group_founder_set_topic_lock(const Tox *tox, uint32_t group_number, Tox
     LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
 
     return 0;
+}
+
+bool tox_group_founder_set_voice_state(const Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
+                                       Tox_Err_Group_Founder_Set_Voice_State *error)
+{
+    assert(tox != nullptr);
+
+    lock(tox);
+    const int ret = gc_founder_set_voice_state(tox->m, group_number, (Group_Voice_State)voice_state);
+    unlock(tox);
+
+    switch (ret) {
+        case 0: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK);
+            return true;
+        }
+
+        case -1: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_GROUP_NOT_FOUND);
+            return false;
+        }
+
+        case -2: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_PERMISSIONS);
+            return false;
+        }
+
+        case -3: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_DISCONNECTED);
+            return false;
+        }
+
+        case -4: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_FAIL_SET);
+            return false;
+        }
+
+        case -5: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_FAIL_SEND);
+            return false;
+        }
+    }
+
+    /* can't happen */
+    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+
+    return false;
 }
 
 bool tox_group_founder_set_peer_limit(const Tox *tox, uint32_t group_number, uint16_t maxpeers,
