@@ -308,7 +308,7 @@ int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk)
         return FAERR_OWNKEY;
     }
 
-    return m_add_friend_contact_no_request(m, real_pk);
+    return m_add_friend_contact_norequest(m, real_pk);
 }
 
 /* Initializes the friend connection and onion connection for a groupchat.
