@@ -28,6 +28,28 @@ build() {
   cd /tmp
   rm -rf /tmp/*
 
+  echo "
+        SET(CMAKE_SYSTEM_NAME Windows)
+
+        SET(CMAKE_C_COMPILER   $WINDOWS_TOOLCHAIN-gcc)
+        SET(CMAKE_CXX_COMPILER $WINDOWS_TOOLCHAIN-g++)
+        SET(CMAKE_RC_COMPILER  $WINDOWS_TOOLCHAIN-windres)
+
+        SET(CMAKE_FIND_ROOT_PATH /usr/$WINDOWS_TOOLCHAIN $DEP_PREFIX_DIR)
+    " >windows_toolchain.cmake
+
+  echo
+  echo "=== Building Msgpack $VERSION_MSGPACK $ARCH ==="
+  curl $CURL_OPTIONS -O "https://github.com/msgpack/msgpack-c/releases/download/c-$VERSION_MSGPACK/msgpack-c-$VERSION_MSGPACK.tar.gz"
+  tar -xf "msgpack-c-$VERSION_MSGPACK.tar.gz"
+  cd "msgpack-c-$VERSION_MSGPACK"
+  cmake -DCMAKE_TOOLCHAIN_FILE=../windows_toolchain.cmake \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX_DIR" \
+    -DBUILD_SHARED_LIBS=OFF \
+    .
+  cmake --build . --target install -- -j"$(nproc)"
+  cd ..
+
   echo
   echo "=== Building Sodium $VERSION_SODIUM $ARCH ==="
   curl $CURL_OPTIONS -O "https://download.libsodium.org/libsodium/releases/libsodium-$VERSION_SODIUM.tar.gz"
