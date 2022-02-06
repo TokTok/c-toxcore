@@ -4179,9 +4179,9 @@ Tox_Group_Voice_State tox_group_get_voice_state(const Tox *tox, uint32_t group_n
         Tox_Err_Group_State_Queries *error);
 
 /**
-* @param group_number The group number of the group the voice state change is intended for.
-* @param voice_state The new voice state.
-*/
+ * @param group_number The group number of the group the voice state change is intended for.
+ * @param voice_state The new voice state.
+ */
 typedef void tox_group_voice_state_cb(Tox *tox, uint32_t group_number, Tox_Group_Voice_State voice_state,
                                       void *user_data);
 

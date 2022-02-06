@@ -2606,6 +2606,29 @@ static bool broadcast_gc_shared_state(const GC_Chat *chat)
     return true;
 }
 
+/** Helper function for do_gc_shared_state_changes().
+ *
+ * If the privacy state has been set to private, we kill our group's connection to the DHT.
+ * Otherwise, we create a new connection with the DHT and flat an announcement.
+ */
+static void do_privacy_state_change(const GC_Session *c, GC_Chat *chat, void *userdata)
+{
+    if (is_public_chat(chat)) {
+        if (m_create_group_connection(c->messenger, chat) == -1) {
+            LOGGER_ERROR(chat->log, "Failed to initialize group friend connection");
+        } else {
+            chat->update_self_announces = true;
+        }
+    } else {
+        m_kill_group_connection(c->messenger, chat);
+        cleanup_gca(c->announces_list, get_chat_id(chat->chat_public_key));
+    }
+
+    if (c->privacy_state) {
+        c->privacy_state(c->messenger, chat->group_number, chat->shared_state.privacy_state, userdata);
+    }
+}
+
 /** Compares old_shared_state with the chat instance's current shared state and triggers the
  * appropriate callback depending on what piece of state information changed. Also
  * handles DHT announcement/removal if the privacy state changed.
@@ -2622,20 +2645,7 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
 
     /* privacy state changed */
     if (chat->shared_state.privacy_state != old_shared_state->privacy_state) {
-        if (is_public_chat(chat)) {
-            if (m_create_group_connection(c->messenger, chat) == -1) {
-                LOGGER_ERROR(chat->log, "Failed to initialize group friend connection");
-            } else {
-                chat->update_self_announces = true;
-            }
-        } else {
-            m_kill_group_connection(c->messenger, chat);
-            cleanup_gca(c->announces_list, get_chat_id(chat->chat_public_key));
-        }
-
-        if (c->privacy_state) {
-            c->privacy_state(c->messenger, chat->group_number, chat->shared_state.privacy_state, userdata);
-        }
+        do_privacy_state_change(c, chat, userdata);
     }
 
     /* password changed */

@@ -3,7 +3,7 @@
  * Copyright © 2015 Tox project.
  */
 
-/*
+/**
  * Similar to ping.h, but designed for group chat purposes
  */
 #ifndef GROUP_ANNOUNCE_H

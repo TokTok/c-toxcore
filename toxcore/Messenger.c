@@ -320,7 +320,7 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
 {
     random_bytes(chat->m_group_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
-    int friendcon_id = new_friend_connection(m->fr_c, chat->m_group_public_key);
+    const int friendcon_id = new_friend_connection(m->fr_c, chat->m_group_public_key);
 
     if (friendcon_id == -1) {
         return -1;
@@ -341,7 +341,7 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
         send_online_packet(m, friendcon_id);
     }
 
-    int onion_friend_number = friend_conn_get_onion_friendnum(connection);
+    const int onion_friend_number = friend_conn_get_onion_friendnum(connection);
     Onion_Friend *onion_friend = onion_get_friend(m->onion_c, (uint16_t)onion_friend_number);
 
     onion_friend_set_gc_public_key(onion_friend, get_chat_id(chat->chat_public_key));
