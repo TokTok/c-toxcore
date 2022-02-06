@@ -86,26 +86,33 @@ void msi_register_callback(MSISession *session, msi_action_cb *callback, MSICall
     }
 
     pthread_mutex_lock(session->mutex);
+
     switch (id) {
         case MSI_ON_INVITE:
             session->invite_callback = callback;
             break;
+
         case MSI_ON_START:
             session->start_callback = callback;
             break;
+
         case MSI_ON_END:
             session->end_callback = callback;
             break;
+
         case MSI_ON_ERROR:
             session->error_callback = callback;
             break;
+
         case MSI_ON_PEERTIMEOUT:
             session->peertimeout_callback = callback;
             break;
+
         case MSI_ON_CAPABILITIES:
             session->capabilities_callback = callback;
             break;
     }
+
     pthread_mutex_unlock(session->mutex);
 }
 MSISession *msi_new(Messenger *m)
@@ -879,14 +886,27 @@ static void handle_msi_packet(Messenger *m, uint32_t friend_number, const uint8_
     pthread_mutex_unlock(session->mutex);
 }
 
-static msi_action_cb *get_callback(MSISession *session, MSICallbackID id) {
+static msi_action_cb *get_callback(MSISession *session, MSICallbackID id)
+{
     switch (id) {
-        case MSI_ON_INVITE: return session->invite_callback;
-        case MSI_ON_START: return session->start_callback;
-        case MSI_ON_END: return session->end_callback;
-        case MSI_ON_ERROR: return session->error_callback;
-        case MSI_ON_PEERTIMEOUT: return session->peertimeout_callback;
-        case MSI_ON_CAPABILITIES: return session->capabilities_callback;
+        case MSI_ON_INVITE:
+            return session->invite_callback;
+
+        case MSI_ON_START:
+            return session->start_callback;
+
+        case MSI_ON_END:
+            return session->end_callback;
+
+        case MSI_ON_ERROR:
+            return session->error_callback;
+
+        case MSI_ON_PEERTIMEOUT:
+            return session->peertimeout_callback;
+
+        case MSI_ON_CAPABILITIES:
+            return session->capabilities_callback;
     }
+
     return nullptr;
 }
