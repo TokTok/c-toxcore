@@ -2341,7 +2341,7 @@ static int handle_gc_status(const GC_Session *c, const GC_Chat *chat, GC_Peer *p
         return -1;
     }
 
-    Group_Peer_Status status = (Group_Peer_Status)data[0];
+    const Group_Peer_Status status = (Group_Peer_Status)data[0];
 
     if (status > GS_BUSY) {
         LOGGER_WARNING(chat->log, "Received invalid status %u", status);

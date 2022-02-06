@@ -37,7 +37,7 @@ static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
  * Return 0 on success.
  * Return -1 on failure.
  */
-static void clear_array_entry(GC_Message_Array_Entry *array_entry)
+static void clear_array_entry(GC_Message_Array_Entry *const array_entry)
 {
     if (array_entry->data) {
         free(array_entry->data);
