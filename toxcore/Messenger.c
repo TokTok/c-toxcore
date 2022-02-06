@@ -345,7 +345,7 @@ int32_t m_create_group_connection(Messenger *m, GC_Chat *chat)
     Onion_Friend *onion_friend = onion_get_friend(m->onion_c, (uint16_t)onion_friend_number);
 
     onion_friend_set_gc_public_key(onion_friend, get_chat_id(chat->chat_public_key));
-    onion_friend_set_gc_data(onion_friend, nullptr, -1);
+    onion_friend_set_gc_data(onion_friend, nullptr, 0);
 
     return 0;
 }
@@ -2702,7 +2702,7 @@ static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *
                                             GCA_MAX_ANNOUNCED_TCP_RELAYS);
 
     if (tcp_num == 0 && !ip_port_is_set) {
-        onion_friend_set_gc_data(onion_friend, nullptr, -1);
+        onion_friend_set_gc_data(onion_friend, nullptr, 0);
         return -1;
     }
 
@@ -2720,16 +2720,16 @@ static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *
     int length = gca_pack_public_announce(m->log, gc_data, GCA_MAX_DATA_LENGTH, &announce);
 
     if (length <= 0) {
-        onion_friend_set_gc_data(onion_friend, nullptr, -1);
+        onion_friend_set_gc_data(onion_friend, nullptr, 0);
         return -1;
     }
 
     if (gca_add_announce(m->mono_time, m->group_announce, &announce) == nullptr) {
-        onion_friend_set_gc_data(onion_friend, nullptr, -1);
+        onion_friend_set_gc_data(onion_friend, nullptr, 0);
         return -1;
     }
 
-    onion_friend_set_gc_data(onion_friend, gc_data, (int16_t)length);
+    onion_friend_set_gc_data(onion_friend, gc_data, (uint16_t)length);
     chat->update_self_announces = false;
 
     LOGGER_DEBUG(chat->log, "Published group announce. TCP relays: %d, UDP status: %d", tcp_num,
@@ -2743,9 +2743,8 @@ static void do_gc_onion_friends(const Messenger *m)
 
     for (uint16_t i = 0; i < num_friends; ++i) {
         Onion_Friend *onion_friend = onion_get_friend(m->onion_c, i);
-        const int16_t gc_data_length = onion_friend_gc_data_length(onion_friend);
 
-        if (gc_data_length == 0) {
+        if (!onion_friend_is_groupchat(onion_friend)) {
             continue;
         }
 

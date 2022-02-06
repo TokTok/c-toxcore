@@ -87,9 +87,10 @@ struct Onion_Friend {
 
     uint32_t run_count;
 
-    uint8_t gc_data[GCA_MAX_DATA_LENGTH];
-    uint8_t gc_public_key[ENC_PUBLIC_KEY_SIZE];
-    int16_t gc_data_length;
+    uint8_t  gc_data[GCA_MAX_DATA_LENGTH];
+    uint8_t  gc_public_key[ENC_PUBLIC_KEY_SIZE];
+    uint16_t gc_data_length;
+    bool     is_groupchat;
 };
 
 typedef struct Onion_Data_Handler {
@@ -159,20 +160,20 @@ void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint
     memcpy(onion_friend->gc_public_key, public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
-void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, int16_t gc_data_length)
+void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, uint16_t gc_data_length)
 {
-    if (gc_data_length >= 0) {
+    if (gc_data_length > 0) {
         memcpy(onion_friend->gc_data, gc_data, gc_data_length);
     }
 
     onion_friend->gc_data_length = gc_data_length;
+    onion_friend->is_groupchat = true;
 }
 
-int16_t onion_friend_gc_data_length(const Onion_Friend *const onion_friend)
+bool onion_friend_is_groupchat(const Onion_Friend *const onion_friend)
 {
-    return onion_friend->gc_data_length;
+    return onion_friend->is_groupchat;
 }
-
 
 DHT *onion_get_dht(const Onion_Client *onion_c)
 {
@@ -635,8 +636,8 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
                                           onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                                           zero_ping_id, sendback);
         } else if (onion_friend->gc_data_length > 0)  { // contact is a gc
-
 #ifndef VANILLA_NACL
+            onion_friend->is_groupchat = true;
             len = create_gca_announce_request(request, sizeof(request), dest_pubkey, onion_friend->temp_public_key,
                                               onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                                               zero_ping_id, sendback, onion_friend->gc_data,

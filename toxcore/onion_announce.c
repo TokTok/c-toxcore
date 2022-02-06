@@ -115,9 +115,9 @@ int create_announce_request(uint8_t *packet, uint16_t max_packet_length, const u
 int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
                                 const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id,
                                 const uint8_t *client_id, const uint8_t *data_public_key, uint64_t sendback_data,
-                                const uint8_t *gc_data, int16_t gc_data_length)
+                                const uint8_t *gc_data, uint16_t gc_data_length)
 {
-    if (max_packet_length < ONION_ANNOUNCE_REQUEST_MAX_SIZE || gc_data_length <= 0) {
+    if (max_packet_length < ONION_ANNOUNCE_REQUEST_MAX_SIZE || gc_data_length == 0) {
         return -1;
     }
 
@@ -138,7 +138,7 @@ int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, con
     memcpy(position_in_plain, &sendback_data, sizeof(sendback_data));
     position_in_plain += sizeof(sendback_data);
 
-    memcpy(position_in_plain, gc_data, (size_t)gc_data_length);
+    memcpy(position_in_plain, gc_data, gc_data_length);
 
     packet[0] = NET_PACKET_ANNOUNCE_REQUEST;
     random_nonce(packet + 1);

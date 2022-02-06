@@ -191,7 +191,7 @@ uint16_t onion_get_friend_count(const Onion_Client *const onion_c);
 Onion_Friend *onion_get_friend(const Onion_Client *const onion_c, uint16_t friend_num);
 const uint8_t *onion_friend_get_gc_public_key(const Onion_Friend *const onion_friend);
 void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint8_t *public_key);
-void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, int16_t gc_data_length);
-int16_t onion_friend_gc_data_length(const Onion_Friend *const onion_friend);
+void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, uint16_t gc_data_length);
+bool onion_friend_is_groupchat(const Onion_Friend *const onion_friend);
 
 #endif
