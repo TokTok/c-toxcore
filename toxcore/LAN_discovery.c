@@ -206,7 +206,7 @@ static Broadcast_Info *fetch_broadcast_info(uint16_t port)
  * @retval false on failure to find any valid broadcast target.
  */
 static bool send_broadcasts(const Networking_Core *net, const Broadcast_Info *broadcast, uint16_t port,
-                                const uint8_t *data, uint16_t length)
+                            const uint8_t *data, uint16_t length)
 {
     if (broadcast->count == 0) {
         return false;
