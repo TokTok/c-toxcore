@@ -347,7 +347,8 @@ static int handle_TCP_handshake(const Logger *logger, TCP_Secure_Connection *con
 
     IP_Port ipp = {0};
 
-    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp, con->con.net_profile)) {
+    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp,
+            con->con.net_profile)) {
         crypto_memzero(shared_key, sizeof(shared_key));
         return -1;
     }

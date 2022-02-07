@@ -166,7 +166,8 @@ extern const Socket net_invalid_socket;
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
 non_null(1, 3, 5) nullable(6)
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile);
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
+             Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */

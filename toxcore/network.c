@@ -1608,7 +1608,8 @@ Socket net_socket(Family domain, int type, int protocol)
 #endif
 }
 
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
+int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
+             Net_Profile *net_profile)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     int res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
@@ -1619,7 +1620,7 @@ int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, con
     if (buf && res == len) {
         const uint8_t *data = (const uint8_t *)buf;
         netprof_record_packet(net_profile, data[0], len, DIR_SENT);
-    
+
     }
 
     loglogdata(log, "T=>", buf, len, ip_port, res);
