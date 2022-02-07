@@ -309,6 +309,10 @@ void tox_events_free(Tox_Events *events);
 uint32_t tox_events_bytes_size(const Tox_Events *events);
 void tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes);
 
+Tox_Events *tox_events_load(const uint8_t *bytes, uint32_t bytes_size);
+
+bool tox_events_equal(const Tox_Events *a, const Tox_Events *b);
+
 void tox_events_print(const Tox_Events *events);
 
 #ifdef __cplusplus
