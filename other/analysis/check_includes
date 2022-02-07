@@ -21,15 +21,14 @@ ALLOWLIST: Tuple[str, ...] = (
     "vpx/vpx_image.h",
 )
 
-out = (
-    subprocess.run(
-        ["grep", "-R", "^#include <.*>", "other", "toxav", "toxcore", "toxencryptsave"],
-        check=True,
-        capture_output=True,
-    )
-    .stdout.decode("utf-8")
-    .rstrip()
-)
+out = (subprocess.run(
+    [
+        "grep", "-R", "^#include <.*>", "other", "toxav", "toxcore",
+        "toxencryptsave"
+    ],
+    check=True,
+    capture_output=True,
+).stdout.decode("utf-8").rstrip())
 
 errors = 0
 for line in out.split("\n"):
@@ -44,15 +43,15 @@ for line in out.split("\n"):
     allowlist = ALLOWLIST
     if filename == "toxcore/ccompat.h":
         allowlist += ("alloca.h", "malloc.h", "stdlib.h")
-    header = include[include.index("<") + 1 : include.index(">")]
+    header = include[include.index("<") + 1:include.index(">")]
     if header not in allowlist:
         source = filename[:-2] + ".c"
         print(
             f"{filename}: includes system header <{header}>, which is not allowed in .h files"
         )
         print(
-            " " * len(filename)
-            + f"  consider including it in {source} and exporting an abstraction, instead"
+            " " * len(filename) +
+            f"  consider including it in {source} and exporting an abstraction, instead"
         )
         errors += 1
 
