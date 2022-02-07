@@ -26,15 +26,6 @@ struct Tox_Event_Friend_Status_Message {
     size_t status_message_length;
 };
 
-static void tox_event_friend_status_message_pack(const Tox_Event_Friend_Status_Message *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_bin(mp, event->status_message_length);
-    msgpack_pack_bin_body(mp, event->status_message, event->status_message_length);
-}
-
 static void tox_event_friend_status_message_construct(Tox_Event_Friend_Status_Message *friend_status_message)
 {
     *friend_status_message = (Tox_Event_Friend_Status_Message) {
@@ -90,6 +81,15 @@ const uint8_t *tox_event_friend_status_message_get_status_message(const Tox_Even
 {
     assert(friend_status_message != nullptr);
     return friend_status_message->status_message;
+}
+
+static void tox_event_friend_status_message_pack(const Tox_Event_Friend_Status_Message *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_bin(mp, event->status_message_length);
+    msgpack_pack_bin_body(mp, event->status_message, event->status_message_length);
 }
 
 

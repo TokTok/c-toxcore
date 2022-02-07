@@ -29,18 +29,6 @@ struct Tox_Event_File_Recv {
     size_t filename_length;
 };
 
-static void tox_event_file_recv_pack(const Tox_Event_File_Recv *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 5);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_uint32(mp, event->file_number);
-    msgpack_pack_uint32(mp, event->kind);
-    msgpack_pack_uint64(mp, event->file_size);
-    msgpack_pack_bin(mp, event->filename_length);
-    msgpack_pack_bin_body(mp, event->filename, event->filename_length);
-}
-
 static void tox_event_file_recv_construct(Tox_Event_File_Recv *file_recv)
 {
     *file_recv = (Tox_Event_File_Recv) {
@@ -130,6 +118,18 @@ const uint8_t *tox_event_file_recv_get_filename(const Tox_Event_File_Recv *file_
 {
     assert(file_recv != nullptr);
     return file_recv->filename;
+}
+
+static void tox_event_file_recv_pack(const Tox_Event_File_Recv *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 5);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_uint32(mp, event->file_number);
+    msgpack_pack_uint32(mp, event->kind);
+    msgpack_pack_uint64(mp, event->file_size);
+    msgpack_pack_bin(mp, event->filename_length);
+    msgpack_pack_bin_body(mp, event->filename, event->filename_length);
 }
 
 

@@ -26,15 +26,6 @@ struct Tox_Event_File_Recv_Control {
     Tox_File_Control control;
 };
 
-static void tox_event_file_recv_control_pack(const Tox_Event_File_Recv_Control *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 3);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_uint32(mp, event->file_number);
-    msgpack_pack_uint32(mp, event->control);
-}
-
 static void tox_event_file_recv_control_construct(Tox_Event_File_Recv_Control *file_recv_control)
 {
     *file_recv_control = (Tox_Event_File_Recv_Control) {
@@ -80,6 +71,15 @@ Tox_File_Control tox_event_file_recv_control_get_control(const Tox_Event_File_Re
 {
     assert(file_recv_control != nullptr);
     return file_recv_control->control;
+}
+
+static void tox_event_file_recv_control_pack(const Tox_Event_File_Recv_Control *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 3);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_uint32(mp, event->file_number);
+    msgpack_pack_uint32(mp, event->control);
 }
 
 

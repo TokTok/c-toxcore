@@ -27,16 +27,6 @@ struct Tox_Event_File_Chunk_Request {
     size_t length;
 };
 
-static void tox_event_file_chunk_request_pack(const Tox_Event_File_Chunk_Request *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 4);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_uint32(mp, event->file_number);
-    msgpack_pack_uint64(mp, event->position);
-    msgpack_pack_uint16(mp, event->length);
-}
-
 static void tox_event_file_chunk_request_construct(Tox_Event_File_Chunk_Request *file_chunk_request)
 {
     *file_chunk_request = (Tox_Event_File_Chunk_Request) {
@@ -93,6 +83,16 @@ size_t tox_event_file_chunk_request_get_length(const Tox_Event_File_Chunk_Reques
 {
     assert(file_chunk_request != nullptr);
     return file_chunk_request->length;
+}
+
+static void tox_event_file_chunk_request_pack(const Tox_Event_File_Chunk_Request *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 4);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_uint32(mp, event->file_number);
+    msgpack_pack_uint64(mp, event->position);
+    msgpack_pack_uint16(mp, event->length);
 }
 
 

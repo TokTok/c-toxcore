@@ -25,14 +25,6 @@ struct Tox_Event_Friend_Connection_Status {
     Tox_Connection connection_status;
 };
 
-static void tox_event_friend_connection_status_pack(const Tox_Event_Friend_Connection_Status *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_uint32(mp, event->connection_status);
-}
-
 static void tox_event_friend_connection_status_construct(Tox_Event_Friend_Connection_Status *friend_connection_status)
 {
     *friend_connection_status = (Tox_Event_Friend_Connection_Status) {
@@ -68,6 +60,14 @@ Tox_Connection tox_event_friend_connection_status_get_connection_status(const To
 {
     assert(friend_connection_status != nullptr);
     return friend_connection_status->connection_status;
+}
+
+static void tox_event_friend_connection_status_pack(const Tox_Event_Friend_Connection_Status *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_uint32(mp, event->connection_status);
 }
 
 

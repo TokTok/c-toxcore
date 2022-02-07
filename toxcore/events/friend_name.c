@@ -26,15 +26,6 @@ struct Tox_Event_Friend_Name {
     size_t name_length;
 };
 
-static void tox_event_friend_name_pack(const Tox_Event_Friend_Name *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_bin(mp, event->name_length);
-    msgpack_pack_bin_body(mp, event->name, event->name_length);
-}
-
 static void tox_event_friend_name_construct(Tox_Event_Friend_Name *friend_name)
 {
     *friend_name = (Tox_Event_Friend_Name) {
@@ -88,6 +79,15 @@ const uint8_t *tox_event_friend_name_get_name(const Tox_Event_Friend_Name *frien
 {
     assert(friend_name != nullptr);
     return friend_name->name;
+}
+
+static void tox_event_friend_name_pack(const Tox_Event_Friend_Name *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint32(mp, event->friend_number);
+    msgpack_pack_bin(mp, event->name_length);
+    msgpack_pack_bin_body(mp, event->name, event->name_length);
 }
 
 

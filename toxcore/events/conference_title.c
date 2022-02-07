@@ -27,16 +27,6 @@ struct Tox_Event_Conference_Title {
     size_t title_length;
 };
 
-static void tox_event_conference_title_pack(const Tox_Event_Conference_Title *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 3);
-    msgpack_pack_uint32(mp, event->conference_number);
-    msgpack_pack_uint32(mp, event->peer_number);
-    msgpack_pack_bin(mp, event->title_length);
-    msgpack_pack_bin_body(mp, event->title, event->title_length);
-}
-
 static void tox_event_conference_title_construct(Tox_Event_Conference_Title *conference_title)
 {
     *conference_title = (Tox_Event_Conference_Title) {
@@ -102,6 +92,16 @@ const uint8_t *tox_event_conference_title_get_title(const Tox_Event_Conference_T
 {
     assert(conference_title != nullptr);
     return conference_title->title;
+}
+
+static void tox_event_conference_title_pack(const Tox_Event_Conference_Title *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 3);
+    msgpack_pack_uint32(mp, event->conference_number);
+    msgpack_pack_uint32(mp, event->peer_number);
+    msgpack_pack_bin(mp, event->title_length);
+    msgpack_pack_bin_body(mp, event->title, event->title_length);
 }
 
 

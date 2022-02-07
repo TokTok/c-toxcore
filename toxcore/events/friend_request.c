@@ -26,16 +26,6 @@ struct Tox_Event_Friend_Request {
     size_t message_length;
 };
 
-static void tox_event_friend_request_pack(const Tox_Event_Friend_Request *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_bin(mp, TOX_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, event->public_key, TOX_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin(mp, event->message_length);
-    msgpack_pack_bin_body(mp, event->message, event->message_length);
-}
-
 static void tox_event_friend_request_construct(Tox_Event_Friend_Request *friend_request)
 {
     *friend_request = (Tox_Event_Friend_Request) {
@@ -90,6 +80,16 @@ const uint8_t *tox_event_friend_request_get_message(const Tox_Event_Friend_Reque
 {
     assert(friend_request != nullptr);
     return friend_request->message;
+}
+
+static void tox_event_friend_request_pack(const Tox_Event_Friend_Request *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_bin(mp, TOX_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, event->public_key, TOX_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin(mp, event->message_length);
+    msgpack_pack_bin_body(mp, event->message, event->message_length);
 }
 
 

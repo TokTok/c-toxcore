@@ -25,19 +25,6 @@ struct Tox_Event_Friend_Typing {
     bool typing;
 };
 
-static void tox_event_friend_typing_pack(const Tox_Event_Friend_Typing *event, msgpack_packer *mp)
-{
-    assert(event != nullptr);
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_uint32(mp, event->friend_number);
-
-    if (event->typing) {
-        msgpack_pack_true(mp);
-    } else {
-        msgpack_pack_false(mp);
-    }
-}
-
 static void tox_event_friend_typing_construct(Tox_Event_Friend_Typing *friend_typing)
 {
     *friend_typing = (Tox_Event_Friend_Typing) {
@@ -70,6 +57,19 @@ bool tox_event_friend_typing_get_typing(const Tox_Event_Friend_Typing *friend_ty
 {
     assert(friend_typing != nullptr);
     return friend_typing->typing;
+}
+
+static void tox_event_friend_typing_pack(const Tox_Event_Friend_Typing *event, msgpack_packer *mp)
+{
+    assert(event != nullptr);
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint32(mp, event->friend_number);
+
+    if (event->typing) {
+        msgpack_pack_true(mp);
+    } else {
+        msgpack_pack_false(mp);
+    }
 }
 
 

@@ -84,6 +84,35 @@ void tox_events_pack(const Tox_Events *events, msgpack_packer *mp)
     tox_events_pack_self_connection_status(events, mp);
 }
 
+bool tox_events_unpack(Tox_Events *events, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 21) {
+        return false;
+    }
+
+    return tox_events_unpack_conference_connected(events, &obj->via.array.ptr[0])
+        && tox_events_unpack_conference_invite(events, &obj->via.array.ptr[1])
+        && tox_events_unpack_conference_message(events, &obj->via.array.ptr[2])
+        && tox_events_unpack_conference_peer_list_changed(events, &obj->via.array.ptr[3])
+        && tox_events_unpack_conference_peer_name(events, &obj->via.array.ptr[4])
+        && tox_events_unpack_conference_title(events, &obj->via.array.ptr[5])
+        && tox_events_unpack_file_chunk_request(events, &obj->via.array.ptr[6])
+        && tox_events_unpack_file_recv_chunk(events, &obj->via.array.ptr[7])
+        && tox_events_unpack_file_recv_control(events, &obj->via.array.ptr[8])
+        && tox_events_unpack_file_recv(events, &obj->via.array.ptr[9])
+        && tox_events_unpack_friend_connection_status(events, &obj->via.array.ptr[10])
+        && tox_events_unpack_friend_lossless_packet(events, &obj->via.array.ptr[11])
+        && tox_events_unpack_friend_lossy_packet(events, &obj->via.array.ptr[12])
+        && tox_events_unpack_friend_message(events, &obj->via.array.ptr[13])
+        && tox_events_unpack_friend_name(events, &obj->via.array.ptr[14])
+        && tox_events_unpack_friend_read_receipt(events, &obj->via.array.ptr[15])
+        && tox_events_unpack_friend_request(events, &obj->via.array.ptr[16])
+        && tox_events_unpack_friend_status_message(events, &obj->via.array.ptr[17])
+        && tox_events_unpack_friend_status(events, &obj->via.array.ptr[18])
+        && tox_events_unpack_friend_typing(events, &obj->via.array.ptr[19])
+        && tox_events_unpack_self_connection_status(events, &obj->via.array.ptr[20]);
+}
+
 static int count_bytes(void *data, const char *buf, size_t len)
 {
     uint32_t *count = (uint32_t *)data;
@@ -115,6 +144,32 @@ void tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
     msgpack_packer mp;
     msgpack_packer_init(&mp, &bytes, write_bytes);
     tox_events_pack(events, &mp);
+}
+
+Tox_Events *tox_events_load(const uint8_t *bytes, uint32_t bytes_size)
+{
+    msgpack_zone mempool;
+    msgpack_zone_init(&mempool, 2048);
+
+    msgpack_object obj;
+    msgpack_unpack((const char *)bytes, bytes_size, nullptr, &mempool, &obj);
+
+    Tox_Events *events = (Tox_Events *)calloc(1, sizeof(Tox_Events));
+    *events = (Tox_Events) {nullptr};
+
+    if (events == nullptr) {
+        msgpack_zone_destroy(&mempool);
+        return nullptr;
+    }
+
+    if (!tox_events_unpack(events, &obj)) {
+        tox_events_free(events);
+        msgpack_zone_destroy(&mempool);
+        return nullptr;
+    }
+
+    msgpack_zone_destroy(&mempool);
+    return events;
 }
 
 void tox_events_print(const Tox_Events *events)
