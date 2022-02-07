@@ -108,13 +108,14 @@ static void tox_event_conference_invite_pack(const Tox_Event_Conference_Invite *
 static bool tox_event_conference_invite_unpack(Tox_Event_Conference_Invite *event, const msgpack_object *obj)
 {
     assert(event != nullptr);
+
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 3) {
         return false;
     }
 
     return tox_unpack_u32(&event->friend_number, &obj->via.array.ptr[0])
-        && tox_unpack_u32(&event->type, &obj->via.array.ptr[1])
-        && tox_unpack_bin(&event->cookie, &event->cookie_length, &obj->via.array.ptr[1]);
+           && tox_unpack_u32(&event->type, &obj->via.array.ptr[1])
+           && tox_unpack_bin(&event->cookie, &event->cookie_length, &obj->via.array.ptr[1]);
 }
 
 
@@ -201,6 +202,7 @@ bool tox_events_unpack_conference_invite(Tox_Events *events, const msgpack_objec
 
     for (uint32_t i = 0; i < obj->via.array.size; ++i) {
         Tox_Event_Conference_Invite *event = tox_events_add_conference_invite(events);
+
         if (event == nullptr) {
             return false;
         }

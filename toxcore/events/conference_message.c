@@ -122,14 +122,15 @@ static void tox_event_conference_message_pack(const Tox_Event_Conference_Message
 static bool tox_event_conference_message_unpack(Tox_Event_Conference_Message *event, const msgpack_object *obj)
 {
     assert(event != nullptr);
+
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 4) {
         return false;
     }
 
     return tox_unpack_u32(&event->conference_number, &obj->via.array.ptr[0])
-        && tox_unpack_u32(&event->peer_number, &obj->via.array.ptr[1])
-        && tox_unpack_message_type(&event->type, &obj->via.array.ptr[2])
-        && tox_unpack_bin(&event->message, &event->message_length, &obj->via.array.ptr[3]);
+           && tox_unpack_u32(&event->peer_number, &obj->via.array.ptr[1])
+           && tox_unpack_message_type(&event->type, &obj->via.array.ptr[2])
+           && tox_unpack_bin(&event->message, &event->message_length, &obj->via.array.ptr[3]);
 }
 
 
@@ -216,6 +217,7 @@ bool tox_events_unpack_conference_message(Tox_Events *events, const msgpack_obje
 
     for (uint32_t i = 0; i < obj->via.array.size; ++i) {
         Tox_Event_Conference_Message *event = tox_events_add_conference_message(events);
+
         if (event == nullptr) {
             return false;
         }

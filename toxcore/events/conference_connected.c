@@ -59,6 +59,7 @@ static void tox_event_conference_connected_pack(const Tox_Event_Conference_Conne
 static bool tox_event_conference_connected_unpack(Tox_Event_Conference_Connected *event, const msgpack_object *obj)
 {
     assert(event != nullptr);
+
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 1) {
         return false;
     }
@@ -151,6 +152,7 @@ bool tox_events_unpack_conference_connected(Tox_Events *events, const msgpack_ob
 
     for (uint32_t i = 0; i < obj->via.array.size; ++i) {
         Tox_Event_Conference_Connected *event = tox_events_add_conference_connected(events);
+
         if (event == nullptr) {
             return false;
         }

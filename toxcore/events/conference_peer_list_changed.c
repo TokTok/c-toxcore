@@ -50,7 +50,8 @@ uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_
     return conference_peer_list_changed->conference_number;
 }
 
-static void tox_event_conference_peer_list_changed_pack(const Tox_Event_Conference_Peer_List_Changed *event, msgpack_packer *mp)
+static void tox_event_conference_peer_list_changed_pack(const Tox_Event_Conference_Peer_List_Changed *event,
+        msgpack_packer *mp)
 {
     assert(event != nullptr);
     msgpack_pack_array(mp, 1);
