@@ -1,8 +1,12 @@
 #!/bin/bash
 
+CHECKS="*"
+
+# __attribute__((nonnull)) causes this warning on defensive null checks.
+CHECKS="$CHECKS,-clang-diagnostic-pointer-bool-conversion"
+
 # TODO(iphydf): We might want some of these. For the ones we don't want, add a
 # comment explaining why not.
-CHECKS="*"
 CHECKS="$CHECKS,-altera-unroll-loops"
 CHECKS="$CHECKS,-android-cloexec-accept"
 CHECKS="$CHECKS,-android-cloexec-fopen"
