@@ -7,9 +7,12 @@ RUN apt-get update && \
  clang \
  cmake \
  libconfig-dev \
+ libgtest-dev \
+ libmsgpack-dev \
  libopus-dev \
  libsodium-dev \
  libvpx-dev \
+ llvm-dev \
  ninja-build \
  pkg-config \
  && apt-get clean \

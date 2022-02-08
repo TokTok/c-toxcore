@@ -9,6 +9,7 @@ workflows:
       - asan
       - tsan
       - msan
+      - ubsan
       # Static analysis
       - clang-analyze
       - clang-tidy
@@ -32,6 +33,7 @@ jobs:
             git
             libconfig-dev
             libgtest-dev
+            libmsgpack-dev
             libopus-dev
             libsodium-dev
             libvpx-dev
@@ -50,6 +52,16 @@ jobs:
       - run: *apt_install
       - checkout
       - run: CC=clang .circleci/cmake-tsan
+
+  ubsan:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: CC=clang .circleci/cmake-ubsan
 
   msan:
     working_directory: ~/work
@@ -76,9 +88,10 @@ jobs:
           testing/misc_tools.c
           toxav/*.c
           toxcore/*.c
+          toxcore/*/*.c
           toxencryptsave/*.c
           -lpthread
-          $(pkg-config --cflags --libs libsodium opus vpx)
+          $(pkg-config --cflags --libs libsodium msgpack opus vpx)
 
   static-analysis:
     working_directory: ~/work

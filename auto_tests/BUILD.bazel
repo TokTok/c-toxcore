@@ -59,6 +59,8 @@ flaky_tests = {
         "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:onion",
         "//c-toxcore/toxcore:onion_announce",
+        "//c-toxcore/toxcore:tox_dispatch",
+        "//c-toxcore/toxcore:tox_events",
         "//c-toxcore/toxencryptsave",
         "@libsodium",
         "@libvpx",

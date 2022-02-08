@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([tox], [0.2.14])
+AC_INIT([tox], [0.2.15])
 AC_CONFIG_AUX_DIR(configure_aux)
 AC_CONFIG_SRCDIR([toxcore/net_crypto.c])
 AM_INIT_AUTOMAKE([foreign 1.10 -Wall subdir-objects tar-ustar])
@@ -310,6 +310,14 @@ PKG_CHECK_MODULES([LIBSODIUM], [libsodium],
     ],
     [
         LIBSODIUM_FOUND="no"
+    ])
+
+PKG_CHECK_MODULES([MSGPACK], [msgpack],
+    [
+        MSGPACK_FOUND="yes"
+    ],
+    [
+        MSGPACK_FOUND="no"
     ])
 
 if test "x$WANT_NACL" = "xyes"; then

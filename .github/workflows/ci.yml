@@ -95,12 +95,14 @@ jobs:
           sudo apt-get install -y --no-install-recommends
             tcc
             libconfig-dev
+            libmsgpack-dev
             libopus-dev
             libsodium-dev
             libvpx-dev
       - name: Build with TCC
         run:
           tcc
+            -Dinline=static
             -o send_message_test
             -Wall -Werror
             -bench -g
@@ -109,8 +111,9 @@ jobs:
             testing/misc_tools.c
             toxav/*.c
             toxcore/*.c
+            toxcore/*/*.c
             toxencryptsave/*.c
-            $(pkg-config --cflags --libs libsodium opus vpx)
+            $(pkg-config --cflags --libs libsodium msgpack opus vpx)
       - name: Run the test
         run: "./send_message_test | grep 'tox clients connected'"
       - name: Build amalgamation file with TCC
@@ -123,7 +126,7 @@ jobs:
             -o send_message_test
             -Wall -Werror
             -bench -g
-            $(pkg-config --cflags --libs libsodium opus vpx)
+            $(pkg-config --cflags --libs libsodium msgpack opus vpx)
       - name: Run the test again
         run: "./send_message_test | grep 'tox clients connected'"
 
@@ -146,9 +149,10 @@ jobs:
             testing/misc_tools.c
             toxav/*.c
             toxcore/*.c
+            toxcore/*/*.c
             toxencryptsave/*.c
-            -D__COMPCERT__ -DDISABLE_VLA
-            -lpthread $(pkg-config --cflags --libs libsodium opus vpx)
+            -D__COMPCERT__ -DDISABLE_VLA -Dinline=
+            -lpthread $(pkg-config --cflags --libs libsodium msgpack opus vpx)
       - name: Run the test
         run: "./send_message_test | grep 'tox clients connected'"
 
