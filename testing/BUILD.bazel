@@ -17,6 +17,7 @@ sh_test(
         "-Wno-enum-names",
         "-Wno-large-struct-params",
         "-Wno-memcpy-structs",
+        "-Wno-missing-non-null",
         "+RTS",
         "-N3",
     ],
