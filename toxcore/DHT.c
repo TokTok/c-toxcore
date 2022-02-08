@@ -671,6 +671,7 @@ nullable(1) nonnull(3)
 static uint32_t index_of_client_pk(const Client_data *array, uint32_t size, const uint8_t *pk)
 {
     assert(size == 0 || array != nullptr);
+
     for (uint32_t i = 0; i < size; ++i) {
         if (id_equal(array[i].public_key, pk)) {
             return i;
@@ -684,6 +685,7 @@ nullable(1) nonnull(3)
 static uint32_t index_of_friend_pk(const DHT_Friend *array, uint32_t size, const uint8_t *pk)
 {
     assert(size == 0 || array != nullptr);
+
     for (uint32_t i = 0; i < size; ++i) {
         if (id_equal(array[i].public_key, pk)) {
             return i;
@@ -697,6 +699,7 @@ nullable(1) nonnull(3)
 static uint32_t index_of_node_pk(const Node_format *array, uint32_t size, const uint8_t *pk)
 {
     assert(size == 0 || array != nullptr);
+
     for (uint32_t i = 0; i < size; ++i) {
         if (id_equal(array[i].public_key, pk)) {
             return i;
@@ -715,6 +718,7 @@ nonnull(3)
 static uint32_t index_of_client_ip_port(const Client_data *array, uint32_t size, const IP_Port *ip_port)
 {
     assert(size == 0 || array != nullptr);
+
     for (uint32_t i = 0; i < size; ++i) {
         if ((net_family_is_ipv4(ip_port->ip.family) && ipport_equal(&array[i].assoc4.ip_port, ip_port)) ||
                 (net_family_is_ipv6(ip_port->ip.family) && ipport_equal(&array[i].assoc6.ip_port, ip_port))) {
