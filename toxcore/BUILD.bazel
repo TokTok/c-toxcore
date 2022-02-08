@@ -411,7 +411,9 @@ cc_library(
         ":net_crypto",
         ":onion_announce",
         ":state",
+        ":tox_unpack",
         "@libsodium",
+        "@msgpack-c",
     ],
 )
 

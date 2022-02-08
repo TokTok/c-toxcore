@@ -21,6 +21,7 @@
 #include "group_moderation.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_unpack.h"
 #include "util.h"
 
 #ifndef VANILLA_NACL
@@ -417,55 +418,89 @@ static int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t le
     return count;
 }
 
-void gc_pack_group_info(const GC_Chat *chat, Saved_Group *temp)
+void gc_pack_group_info(const GC_Chat *chat, msgpack_packer *mp)
 {
-    *temp = (Saved_Group) {
-        0
-    };
+    msgpack_pack_array(mp, 6);
 
-    temp->shared_state_version = net_htonl(chat->shared_state.version);
-    memcpy(temp->shared_state_signature, chat->shared_state_sig, SIGNATURE_SIZE);
-    memcpy(temp->founder_public_key, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
-    temp->group_name_length = net_htons(chat->shared_state.group_name_len);
-    memcpy(temp->group_name, chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE);
-    temp->privacy_state = chat->shared_state.privacy_state;
-    temp->maxpeers = net_htons(chat->shared_state.maxpeers);
-    temp->password_length = net_htons(chat->shared_state.password_length);
-    memcpy(temp->password, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
-    memcpy(temp->mod_list_hash, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
-    temp->topic_lock = net_htonl(chat->shared_state.topic_lock);
-    temp->topic_length = net_htons(chat->topic_info.length);
-    temp->voice_state = chat->shared_state.voice_state;
-    memcpy(temp->topic, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
-    memcpy(temp->topic_public_sig_key, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE);
-    temp->topic_version = net_htonl(chat->topic_info.version);
-    memcpy(temp->topic_signature, chat->topic_sig, SIGNATURE_SIZE);
-
-    memcpy(temp->chat_public_key, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(temp->chat_secret_key, chat->chat_secret_key, EXT_SECRET_KEY_SIZE);  /** empty for non-founders */
-
-    temp->num_mods = net_htons(chat->moderation.num_mods);
-    mod_list_pack(&chat->moderation, temp->mod_list);
+    // group state
+    msgpack_pack_array(mp, 13);
 
     const bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
-    temp->group_connection_state = is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED;
+    msgpack_pack_uint8(mp, is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED);
+    msgpack_pack_uint16(mp, chat->shared_state.group_name_len);
+    msgpack_pack_uint8(mp, chat->shared_state.privacy_state);
+    msgpack_pack_uint16(mp, chat->shared_state.maxpeers);
+    msgpack_pack_uint16(mp, chat->shared_state.password_length);
+    msgpack_pack_uint32(mp, chat->shared_state.version);
+    msgpack_pack_uint32(mp, chat->shared_state.topic_lock);
+    msgpack_pack_uint8(mp, chat->shared_state.voice_state);
 
-    memcpy(temp->self_public_key, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(temp->self_secret_key, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin(mp, SIGNATURE_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state_sig, SIGNATURE_SIZE);
+    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin(mp, MAX_GC_GROUP_NAME_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE);
+    msgpack_pack_bin(mp, MAX_GC_PASSWORD_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
+    msgpack_pack_bin(mp, MOD_MODERATION_HASH_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
 
-    gc_get_self_nick(chat, temp->self_nick);
-    temp->self_nick_length = net_htons(gc_get_self_nick_size(chat));
-    temp->self_role = gc_get_self_role(chat);
-    temp->self_status = gc_get_self_status(chat);
+    // Topic info
+    msgpack_pack_array(mp, 5);
+    msgpack_pack_uint32(mp, chat->topic_info.version);
+    msgpack_pack_uint16(mp, chat->topic_info.length);
+    msgpack_pack_bin(mp, MAX_GC_TOPIC_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
+    msgpack_pack_bin(mp, SIG_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin(mp, SIGNATURE_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE);
 
-    const int packed_num = pack_gc_saved_peers(chat, temp->saved_peers, (uint16_t)sizeof(temp->saved_peers));
+    // Mod list
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint16(mp, chat->moderation.num_mods);
 
-    if (packed_num == -1) {
+    uint8_t packed_mod_list[GROUP_SAVE_MAX_MODERATORS * MOD_LIST_ENTRY_SIZE];
+    mod_list_pack(&chat->moderation, packed_mod_list);
+
+    msgpack_pack_bin(mp, sizeof(packed_mod_list));
+    msgpack_pack_bin_body(mp, packed_mod_list, sizeof(packed_mod_list));
+
+    // Keys
+    msgpack_pack_array(mp, 4);
+    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
+
+    // Self info
+    msgpack_pack_array(mp, 4);
+    uint8_t self_nick[MAX_GC_NICK_SIZE];
+    gc_get_self_nick(chat, self_nick);
+    msgpack_pack_bin(mp, sizeof(self_nick));
+    msgpack_pack_bin_body(mp, self_nick, sizeof(self_nick));
+    msgpack_pack_uint16(mp, gc_get_self_nick_size(chat));
+    msgpack_pack_uint8(mp, gc_get_self_role(chat));
+    msgpack_pack_uint8(mp, gc_get_self_status(chat));
+
+    // Saved peers
+    uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
+    int packed_num = pack_gc_saved_peers(chat, saved_peers, (uint16_t)sizeof(saved_peers));
+
+    if (packed_num < 0) {
+        packed_num = 0;
         LOGGER_WARNING(chat->log, "Failed to pack saved peers");
-        temp->num_saved_peers = 0;
-    } else {
-        temp->num_saved_peers = net_htons((uint16_t)packed_num);
     }
+
+    msgpack_pack_array(mp, 2);
+    msgpack_pack_uint8(mp, packed_num);
+    msgpack_pack_bin(mp, sizeof(saved_peers));
+    msgpack_pack_bin_body(mp, saved_peers, sizeof(saved_peers));
 }
 
 /** Returns true if chat privacy state is set to public. */
@@ -6943,7 +6978,159 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
     return count;
 }
 
-int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
+static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
+        return false;
+    }
+
+    const msgpack_object *cur = &obj->via.array.ptr[0];
+
+    // Shared state
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 13) {
+        return false;
+    }
+
+    uint8_t connection_state = 0;
+    uint8_t privacy_state = 0;
+    uint8_t voice_state = 0;
+
+    if (!(tox_unpack_u08(&connection_state, &cur->via.array.ptr[0])
+            && tox_unpack_u16(&chat->shared_state.group_name_len, &cur->via.array.ptr[1])
+            && tox_unpack_u08(&privacy_state, &cur->via.array.ptr[2])
+            && tox_unpack_u16(&chat->shared_state.maxpeers, &cur->via.array.ptr[3])
+            && tox_unpack_u16(&chat->shared_state.password_length, &cur->via.array.ptr[4])
+            && tox_unpack_u32(&chat->shared_state.version, &cur->via.array.ptr[5])
+            && tox_unpack_u32(&chat->shared_state.topic_lock, &cur->via.array.ptr[6])
+            && tox_unpack_u08(&voice_state, &cur->via.array.ptr[7]))) {
+        return false;
+    }
+
+    const bool is_active_chat = connection_state == SGCS_CONNECTED ? true : false;
+    chat->connection_state = is_active_chat ? CS_CONNECTING : CS_DISCONNECTED;
+    chat->shared_state.privacy_state = (Group_Privacy_State)privacy_state;
+    chat->shared_state.voice_state = (Group_Voice_State)voice_state;
+
+    if (!(tox_unpack_bin_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &cur->via.array.ptr[8])
+            && tox_unpack_bin_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE,
+                                    &cur->via.array.ptr[9])
+            && tox_unpack_bin_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &cur->via.array.ptr[10])
+            && tox_unpack_bin_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &cur->via.array.ptr[11])
+            && tox_unpack_bin_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
+                                    &cur->via.array.ptr[12]))) {
+        return false;
+    }
+
+    // Topic info
+    cur = &obj->via.array.ptr[1];
+
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 5) {
+        return false;
+    }
+
+    if (!(tox_unpack_u32(&chat->topic_info.version, &cur->via.array.ptr[0])
+            && tox_unpack_u16(&chat->topic_info.length, &cur->via.array.ptr[1])
+            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &cur->via.array.ptr[2])
+            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &cur->via.array.ptr[3])
+            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &cur->via.array.ptr[4]))) {
+        return false;
+    }
+
+    // Mod list
+    cur = &obj->via.array.ptr[2];
+
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 2) {
+        return false;
+    }
+
+    uint8_t packed_mod_list[GROUP_SAVE_MAX_MODERATORS * MOD_LIST_ENTRY_SIZE];
+
+    if (!(tox_unpack_u16(&chat->moderation.num_mods, &cur->via.array.ptr[0])
+            && tox_unpack_bin_fixed(packed_mod_list, sizeof(packed_mod_list), &cur->via.array.ptr[1]))) {
+        return false;
+    }
+
+    if (mod_list_unpack(&chat->moderation, packed_mod_list, sizeof(packed_mod_list), chat->moderation.num_mods)) {
+        return false;
+    }
+
+    // Keys
+    cur = &obj->via.array.ptr[3];
+
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 4) {
+        return false;
+    }
+
+    if (!(tox_unpack_bin_fixed(chat->chat_public_key, EXT_PUBLIC_KEY_SIZE, &cur->via.array.ptr[0])
+            && tox_unpack_bin_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &cur->via.array.ptr[1])
+            && tox_unpack_bin_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &cur->via.array.ptr[2])
+            && tox_unpack_bin_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &cur->via.array.ptr[3]))) {
+        return false;
+    }
+
+    // Self info
+    cur = &obj->via.array.ptr[4];
+
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 4) {
+        return false;
+    }
+
+    uint8_t self_nick[MAX_GC_NICK_SIZE];
+    uint16_t self_nick_len = 0;
+    uint8_t self_role = GR_USER;
+    uint8_t self_status = GS_NONE;
+
+    if (!(tox_unpack_bin_fixed(self_nick, sizeof(self_nick), &cur->via.array.ptr[0])
+            && tox_unpack_u16(&self_nick_len, &cur->via.array.ptr[1])
+            && tox_unpack_u08(&self_role, &cur->via.array.ptr[2])
+            && tox_unpack_u08(&self_status, &cur->via.array.ptr[3]))) {
+        return false;
+    }
+
+    assert(self_nick_len <= MAX_GC_NICK_SIZE);
+
+    // we have to add ourself before setting self info
+    if (peer_add(chat, nullptr, chat->self_public_key) != 0) {
+        return false;
+    }
+
+    self_gc_set_ext_public_key(chat, chat->self_public_key);
+
+    if (!self_gc_set_nick(chat, self_nick, self_nick_len)) {
+        return false;
+    }
+
+    self_gc_set_role(chat, (Group_Role)self_role);
+    self_gc_set_status(chat, (Group_Peer_Status)self_status);
+    self_gc_set_confirmed(chat, true);
+
+    cur = &obj->via.array.ptr[5];
+
+    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 2) {
+        return false;
+    }
+
+    // Saved peers
+    uint8_t num_saved_peers = 0;
+
+    if (!tox_unpack_u08(&num_saved_peers, &cur->via.array.ptr[0])) {
+        return false;
+    }
+
+    uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
+
+    if (!tox_unpack_bin_fixed(saved_peers, sizeof(saved_peers), &cur->via.array.ptr[1])) {
+        return false;
+    }
+
+    if (unpack_gc_saved_peers(chat, saved_peers, sizeof(saved_peers), num_saved_peers) == -1) {
+        return false;
+    }
+
+    return true;
+}
+
+int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
 {
     group_number = group_number == -1 ? get_new_group_index(c) : group_number;
 
@@ -6956,88 +7143,25 @@ int gc_group_load(GC_Session *c, const Saved_Group *save, int group_number)
     Messenger *m = c->messenger;
     GC_Chat *chat = &c->chats[group_number];
 
-    const bool is_active_chat = save->group_connection_state != SGCS_DISCONNECTED;
-
     chat->group_number = group_number;
     chat->numpeers = 0;
-    chat->connection_state = is_active_chat ? CS_CONNECTING : CS_DISCONNECTED;
     chat->net = m->net;
     chat->mono_time = m->mono_time;
     chat->log = m->log;
     chat->last_ping_interval = tm;
 
-    chat->shared_state.version = net_ntohl(save->shared_state_version);
-    memcpy(chat->shared_state_sig, save->shared_state_signature, SIGNATURE_SIZE);
-    memcpy(chat->shared_state.founder_public_key, save->founder_public_key, EXT_PUBLIC_KEY_SIZE);
-    chat->shared_state.group_name_len = min_u16(MAX_GC_GROUP_NAME_SIZE, net_ntohs(save->group_name_length));
-    memcpy(chat->shared_state.group_name, save->group_name, MAX_GC_GROUP_NAME_SIZE);
-    chat->shared_state.privacy_state = (Group_Privacy_State)save->privacy_state;
-    chat->shared_state.voice_state = (Group_Voice_State)save->voice_state;
-    chat->shared_state.maxpeers = net_ntohs(save->maxpeers);
-    chat->shared_state.password_length = min_u16(MAX_GC_PASSWORD_SIZE, net_ntohs(save->password_length));
-    memcpy(chat->shared_state.password, save->password, MAX_GC_PASSWORD_SIZE);
-    memcpy(chat->shared_state.mod_list_hash, save->mod_list_hash, MOD_MODERATION_HASH_SIZE);
-    chat->shared_state.topic_lock = net_ntohl(save->topic_lock);
-    chat->topic_info.length = min_u16(MAX_GC_TOPIC_SIZE, net_ntohs(save->topic_length));
-    memcpy(chat->topic_info.topic, save->topic, MAX_GC_TOPIC_SIZE);
-    memcpy(chat->topic_info.public_sig_key, save->topic_public_sig_key, SIG_PUBLIC_KEY_SIZE);
-    chat->topic_info.version = net_ntohl(save->topic_version);
-    memcpy(chat->topic_sig, save->topic_signature, SIGNATURE_SIZE);
-
-    set_gc_topic_checksum(&chat->topic_info);
-
-    memcpy(chat->chat_public_key, save->chat_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->chat_secret_key, save->chat_secret_key, EXT_SECRET_KEY_SIZE);
-
-    memcpy(chat->self_public_key, save->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    memcpy(chat->self_secret_key, save->self_secret_key, EXT_SECRET_KEY_SIZE);
-
-    chat->self_public_key_hash = gc_get_pk_jenkins_hash(chat->self_public_key);
-
-    const uint16_t num_mods = min_u16(GROUP_SAVE_MAX_MODERATORS, net_ntohs(save->num_mods));
-
-    if (mod_list_unpack(&chat->moderation, save->mod_list, (uint16_t)sizeof(save->mod_list), num_mods) == -1) {
-        LOGGER_ERROR(chat->log, "Failed to unpack mod list");
-        return -1;
-    }
-
-    if (peer_add(chat, nullptr, save->self_public_key) != 0) {
-        return -1;
-    }
-
-    self_gc_set_ext_public_key(chat, chat->self_public_key);
-
-    const uint16_t self_nick_length = min_u16(MAX_GC_NICK_SIZE, net_ntohs(save->self_nick_length));
-
-    if (!self_gc_set_nick(chat, save->self_nick, self_nick_length)) {
+    if (!unpack_group_info(chat, obj)) {
         return -1;
     }
 
     init_gc_moderation(chat);
-
-    self_gc_set_role(chat, (Group_Role) save->self_role);
-    self_gc_set_status(chat, (Group_Peer_Status) save->self_status);
-    self_gc_set_confirmed(chat, true);
-
-    if (self_gc_is_founder(chat)) {
-        if (!init_gc_sanctions_creds(chat)) {
-            LOGGER_ERROR(chat->log, "Failed to init sanctions credentials");
-            return -1;
-        }
-    }
 
     if (init_gc_tcp_connection(c, chat) == -1) {
         LOGGER_ERROR(chat->log, "Failed to init tcp connection");
         return -1;
     }
 
-    const uint16_t num_saved_peers = min_u16(GC_MAX_SAVED_PEERS, net_ntohs(save->num_saved_peers));
-
-    if (unpack_gc_saved_peers(chat, save->saved_peers, sizeof(save->saved_peers), num_saved_peers) == -1) {
-        LOGGER_ERROR(chat->log, "failed to unpack saved peers list");
-    }
-
-    if (!is_active_chat) {
+    if (chat->connection_state == CS_CONNECTING) {
         return group_number;
     }
 

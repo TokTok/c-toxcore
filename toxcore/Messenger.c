@@ -9,6 +9,7 @@
 #include "Messenger.h"
 
 #include <assert.h>
+#include <msgpack.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -3261,80 +3262,106 @@ static State_Load_Status friends_list_load(Messenger *m, const uint8_t *data, ui
 }
 
 #ifndef VANILLA_NACL
-static uint32_t saved_groups_size(const Messenger *m)
+// TODO(Jfreegman): This is a duplicate of count_bytes in tox_events.c.
+static int count_gc_bytes(void *data, const char *buf, size_t len)
 {
-    return gc_count_groups(m->group_handler) * sizeof(Saved_Group);
+    uint32_t *count = (uint32_t *)data;
+    assert(count != nullptr);
+    *count += len;
+    return 0;
 }
 
-static uint8_t *groups_save(const Messenger *m, uint8_t *data)
+static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
 {
-    Saved_Group *temp = (Saved_Group *)calloc(1, sizeof(Saved_Group));
+    assert(mp != nullptr && c != nullptr);
 
-    if (temp == nullptr) {
-        LOGGER_ERROR(m->log, "Failed to allocate memory for saved group");
-        return data;
-    }
-
-    crypto_memlock(temp, sizeof(Saved_Group));
-
-    const GC_Session *c = m->group_handler;
-
-    data = state_write_section_header(data, STATE_COOKIE_TYPE, saved_groups_size(m),
-                                      STATE_TYPE_GROUPS);
-
-    const size_t saved_group_size = sizeof(Saved_Group);
-
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < gc_count_groups(c); ++i) {
         const GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
             continue;
         }
 
-        gc_pack_group_info(chat, temp);
+        gc_pack_group_info(chat, mp);
+    }
+}
 
-        memcpy(data, temp, saved_group_size);
-        data += saved_group_size;
+static uint32_t saved_groups_size(const Messenger *m)
+{
+    GC_Session *c = m->group_handler;
+
+    uint32_t count = 0;
+
+    msgpack_packer mp;
+    msgpack_packer_init(&mp, &count, count_gc_bytes);
+    msgpack_pack_array(&mp, c->num_chats);
+
+    pack_groupchats(c, &mp);
+
+    return count;
+}
+
+static uint8_t *groups_save(const Messenger *m, uint8_t *data)
+{
+    const GC_Session *c = m->group_handler;
+
+    const uint32_t len = m_plugin_size(m, STATE_TYPE_GROUPS);
+
+    if (len == 0) {
+        return data;
     }
 
-    crypto_memunlock(temp, sizeof(Saved_Group));
+    data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_GROUPS);
 
-    free(temp);
+    msgpack_sbuffer sbuf;
+    msgpack_sbuffer_init(&sbuf);
+
+    msgpack_packer mp;
+    msgpack_packer_init(&mp, &sbuf, msgpack_sbuffer_write);
+
+    msgpack_pack_array(&mp, c->num_chats);
+
+    pack_groupchats(c, &mp);
+
+    assert(sbuf.size == len);
+    memcpy(data, sbuf.data, sbuf.size);
+    data += len;
+
+    msgpack_sbuffer_destroy(&sbuf);
 
     return data;
 }
 
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    const size_t saved_group_size = sizeof(Saved_Group);
+    msgpack_unpacked msg;
+    msgpack_unpacked_init(&msg);
 
-    if (length % saved_group_size != 0) {
-        return STATE_LOAD_STATUS_ERROR; // TODO(endoffile78): error or continue?
-    }
-
-    Saved_Group *temp = (Saved_Group *)calloc(1, sizeof(Saved_Group));
-
-    if (temp == nullptr) {
+    if (msgpack_unpack_next(&msg, (const char *)data, length, nullptr) != MSGPACK_UNPACK_SUCCESS) {
+        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchat");
+        msgpack_unpacked_destroy(&msg);
         return STATE_LOAD_STATUS_ERROR;
     }
 
-    crypto_memlock(temp, sizeof(Saved_Group));
+    msgpack_object obj = msg.data;
 
-    const uint32_t num = length / saved_group_size;
+    if (obj.type != MSGPACK_OBJECT_ARRAY) {
+        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array");
+        msgpack_unpacked_destroy(&msg);
+        return STATE_LOAD_STATUS_ERROR;
+    }
 
-    for (uint32_t i = 0; i < num; ++i) {
-        memcpy(temp, data + i * saved_group_size, saved_group_size);
+    const uint32_t num_groups = obj.via.array.size;
 
-        int group_number = gc_group_load(m->group_handler, temp, -1);
+    for (uint32_t i = 0; i < num_groups; ++i) {
+        const int group_number = gc_group_load(m->group_handler, -1, &obj.via.array.ptr[i]);
 
         if (group_number < 0) {
-            LOGGER_WARNING(m->log, "Failed to join group (%d)", group_number);
+            LOGGER_WARNING(m->log, "Failed to load group %u", i);
         }
     }
 
-    crypto_memunlock(temp, sizeof(Saved_Group));
-
-    free(temp);
+    msgpack_unpacked_destroy(&msg);
 
     return STATE_LOAD_STATUS_CONTINUE;
 }

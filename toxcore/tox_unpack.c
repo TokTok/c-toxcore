@@ -18,6 +18,16 @@ bool tox_unpack_bool(bool *val, const msgpack_object *obj)
     return true;
 }
 
+bool tox_unpack_u08(uint8_t *val, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 > UINT8_MAX) {
+        return false;
+    }
+
+    *val = (uint8_t)obj->via.u64;
+    return true;
+}
+
 bool tox_unpack_u16(uint16_t *val, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 > UINT16_MAX) {
@@ -138,3 +148,4 @@ bool tox_unpack_user_status(Tox_User_Status *val, const msgpack_object *obj)
     *val = (Tox_User_Status)u32;
     return true;
 }
+
