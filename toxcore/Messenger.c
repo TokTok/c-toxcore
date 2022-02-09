@@ -3305,6 +3305,10 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
     const GC_Session *c = m->group_handler;
 
+    if (gc_count_groups(c) == 0) {
+        return data;
+    }
+
     const uint32_t len = m_plugin_size(m, STATE_TYPE_GROUPS);
 
     if (len == 0) {
@@ -3326,7 +3330,6 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     assert(sbuf.size == len);
     memcpy(data, sbuf.data, sbuf.size);
     data += len;
-
     msgpack_sbuffer_destroy(&sbuf);
 
     return data;

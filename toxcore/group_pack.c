@@ -90,7 +90,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    if (mod_list_unpack(&chat->moderation, packed_mod_list, sizeof(packed_mod_list), chat->moderation.num_mods)) {
+    if (mod_list_unpack(&chat->moderation, packed_mod_list, sizeof(packed_mod_list), chat->moderation.num_mods) == -1) {
         LOGGER_ERROR(chat->log, "Failed to unpack mod list info");
         return false;
     }
@@ -271,7 +271,6 @@ static void save_pack_self_info(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_array(mp, 4);
 
     const GC_Peer *self = &chat->group[0];
-    assert(self != nullptr);
 
     msgpack_pack_uint16(mp, self->nick_length); // 1
     msgpack_pack_bin(mp, sizeof(self->nick));
@@ -299,6 +298,11 @@ static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
 
 void gc_save_pack_group(const GC_Chat *chat, msgpack_packer *mp)
 {
+    if (chat->numpeers == 0) {
+        LOGGER_ERROR(chat->log, "Failed to pack group: numpeers is 0");
+        return;
+    }
+
     msgpack_pack_array(mp, 6);
 
     save_pack_state(chat, mp); // 1
