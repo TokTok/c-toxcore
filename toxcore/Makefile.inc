@@ -75,6 +75,8 @@ libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
                         ../toxcore/group_common.h \
                         ../toxcore/group_connection.c \
                         ../toxcore/group_connection.h \
+                        ../toxcore/group_pack.c \
+                        ../toxcore/group_pack.h \
                         ../toxcore/group_moderation.c \
                         ../toxcore/group_moderation.h \
                         ../toxcore/onion.h \

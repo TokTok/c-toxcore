@@ -381,6 +381,7 @@ cc_library(
         "group_chats.c",
         "group_connection.c",
         "group_moderation.c",
+        "group_pack.c",
         "onion_client.c",
     ],
     hdrs = [
@@ -392,6 +393,7 @@ cc_library(
         "group_common.h",
         "group_connection.h",
         "group_moderation.h",
+        "group_pack.h",
         "onion_client.h",
     ],
     visibility = [

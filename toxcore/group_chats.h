@@ -48,22 +48,6 @@ typedef enum Group_Invite_Message_Type {
     GROUP_INVITE_CONFIRMATION = 0x02,  // Peer has confirmed the accepted invite
 } Group_Invite_Message_Type;
 
-typedef enum Group_Peer_Status {
-    GS_NONE    = 0x00,
-    GS_AWAY    = 0x01,
-    GS_BUSY    = 0x02,
-} Group_Peer_Status;
-
-/***
- * Group save connection state.
- *
- * Used to determine whether or not a group should auto-connect the next time it's loaded.
- */
-typedef enum Saved_GC_Conn_State {
-    SGCS_DISCONNECTED = 0x00,  // The saved group is currently disconnected
-    SGCS_CONNECTED    = 0x01,  // The saved group is currently connected
-} Saved_GC_Conn_State;
-
 /** Group join rejection types. */
 typedef enum Group_Join_Rejected {
     GJ_GROUP_FULL       = 0x00,
@@ -151,9 +135,6 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
 int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
                       uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
                       uint8_t gp_packet_type, uint8_t net_packet_type);
-
-/** Packs group info for `chat` into `temp`. */
-void gc_save_pack_group(const GC_Chat *chat, msgpack_packer *mp);
 
 /** Sends a plain message or an action, depending on type.
  *
@@ -527,6 +508,11 @@ void kill_dht_groupchats(GC_Session *c);
  */
 int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj);
 
+/**
+ * Saves info from `chat` to `mp` in binary format.
+ */
+void gc_group_save(const GC_Chat *chat, msgpack_packer *mp);
+
 /** Creates a new group and adds it to the group sessions group array.
  *
  * The caller of this function has founder role privileges.
@@ -690,4 +676,3 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
 int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uint8_t gc_announces_count);
 
 #endif  // GROUP_CHATS_H
-

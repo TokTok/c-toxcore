@@ -145,6 +145,22 @@ typedef enum Group_Role {
     GR_OBSERVER  = 0x03,
 } Group_Role;
 
+typedef enum Group_Peer_Status {
+    GS_NONE    = 0x00,
+    GS_AWAY    = 0x01,
+    GS_BUSY    = 0x02,
+} Group_Peer_Status;
+
+/***
+ * Group save connection state.
+ *
+ * Used to determine whether or not a group should auto-connect the next time it's loaded.
+ */
+typedef enum Saved_GC_Conn_State {
+    SGCS_DISCONNECTED = 0x00,  // The saved group is currently disconnected
+    SGCS_CONNECTED    = 0x01,  // The saved group is currently connected
+} Saved_GC_Conn_State;
+
 /**
  * Group voice states. The state determines which Group Roles have permission to speak.
  */
@@ -389,5 +405,28 @@ typedef struct GC_Session {
     gc_self_join_cb *self_join;
     gc_rejected_cb *rejected;
 } GC_Session;
+
+/** Adds a new peer to group_number's peer list.
+ *
+ * Return peer_number if success.
+ * Return -1 on failure.
+ * Return -2 if a peer with public_key is already in our peerlist.
+ */
+int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
+
+/** Unpacks saved peers from `data` of size `length` into `chat`.
+ *
+ * Returns the number of unpacked peers on success.
+ * Returns -1 on failure.
+ */
+
+int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length, uint16_t max_num);
+
+/** Packs all valid entries from saved peerlist into `data`.
+ *
+ * Return the number of packed saved peers on success.
+ * Return -1 if buffer is too small.
+ */
+int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length);
 
 #endif  // GROUP_COMMON_H
