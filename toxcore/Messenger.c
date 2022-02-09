@@ -3330,6 +3330,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     assert(sbuf.size == len);
     memcpy(data, sbuf.data, sbuf.size);
     data += len;
+
     msgpack_sbuffer_destroy(&sbuf);
 
     return data;

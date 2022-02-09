@@ -8,6 +8,7 @@ This document details the groupchat implementation, giving a high level overview
 - [Group types](#Group_types)
   - [Public](#Public)
   - [Private](#Private)
+- [Voice state](#Voice_state)
 - [Cryptography](#Cryptography)
   - [Permanent keypairs](#Permanent_keypairs)
   - [Session keypair](#Session_keypair)
@@ -34,14 +35,14 @@ This document details the groupchat implementation, giving a high level overview
 * Persistence across client restarts
 * Ability to set peer limits
 * Group roles (founder, moderators, users, observers)
-* Moderation (kicking, silencing)
+* Moderation (kicking, silencing, controlling which roles may speak)
 * Permanent group names (set on creation)
 * Topics (permission to modify is set by founder)
 * Password protection
 * Self-repairing (auto-rejoin on disconnect, group split protection, state syncing)
 * Identity separation from the Tox ID
 * Ability to ignore peers
-* Unique nicknames which can be set on a per-group basis
+* Nicknames can be set on a per-group basis
 * Peer statuses (online, away, busy) which can be set on a per-group basis
 * Sending group name in invites
 * Ability to disconnect from group and join later with the same credentials
@@ -74,6 +75,16 @@ Anyone may join the group using the Chat ID. If the group is public, information
 ### Private
 
 The only way to join a private group is by having someone in your friend list send you an invite. If the group is private, no peer/group information (mentioned in the Public section) is present in the DHT; the DHT is not used for any purpose at all. If a public group is set to private, all DHT information related to the group will expire within a few minutes.
+
+<a name="Voice_state" />
+
+## Voice state
+
+The voice state, which may only be set by the founder, determines which group roles have permission to speak. There are three voice states:
+
+* **Founder** - Only the founder may speak.
+* **Moderator** - The founder and moderators may speak.
+* **All** - Everyone except observers may speak.
 
 <a name="Cryptography" />
 
@@ -124,12 +135,13 @@ The peer who creates the group is the group's founder. Founders have a set of ad
 * Setting the group's privacy state
 * Setting group passwords
 * Toggling the topic lock
+* Setting the voice state
 
 <a name="Shared_state" />
 
 ### Shared state
 
-Groups contain a data structure called the **shared state** which is given to every peer who joins the group. Within this structure resides all data pertaining to the group that may only be modified by the group founder. This includes the group name, the group type, the peer limit, the topic lock, and the password. The shared state holds a copy of the group founder's public encryption and signature keys, which is how other peers in the group are able to verify the identity of the group founder. It also contains a hash of the moderator list.
+Groups contain a data structure called the **shared state** which is given to every peer who joins the group. Within this structure resides all data pertaining to the group that may only be modified by the group founder. This includes the group name, the group type, the peer limit, the topic lock, the password, and the voice state. The shared state holds a copy of the group founder's public encryption and signature keys, which is how other peers in the group are able to verify the identity of the group founder. It also contains a hash of the moderator list.
 
 The shared state is signed by the founder using the group secret signature key. As the founder is the only peer who holds this secret key, the shared state can be shared with new peers and cryptographically verified even in the absence of the founder.
 
