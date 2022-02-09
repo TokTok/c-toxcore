@@ -418,77 +418,91 @@ static int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t le
     return count;
 }
 
-void gc_pack_group_info(const GC_Chat *chat, msgpack_packer *mp)
+static void save_pack_state(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 6);
-
-    // group state
     msgpack_pack_array(mp, 13);
 
     const bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
-    msgpack_pack_uint8(mp, is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED);
-    msgpack_pack_uint16(mp, chat->shared_state.group_name_len);
-    msgpack_pack_uint8(mp, chat->shared_state.privacy_state);
-    msgpack_pack_uint16(mp, chat->shared_state.maxpeers);
-    msgpack_pack_uint16(mp, chat->shared_state.password_length);
-    msgpack_pack_uint32(mp, chat->shared_state.version);
-    msgpack_pack_uint32(mp, chat->shared_state.topic_lock);
-    msgpack_pack_uint8(mp, chat->shared_state.voice_state);
 
+    msgpack_pack_uint8(mp, is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED); // 1
+    msgpack_pack_uint16(mp, chat->shared_state.group_name_len); // 2
+    msgpack_pack_uint8(mp, chat->shared_state.privacy_state); // 3
+    msgpack_pack_uint16(mp, chat->shared_state.maxpeers); // 4
+    msgpack_pack_uint16(mp, chat->shared_state.password_length); // 5
+    msgpack_pack_uint32(mp, chat->shared_state.version); // 6
+    msgpack_pack_uint32(mp, chat->shared_state.topic_lock); // 7
+    msgpack_pack_uint8(mp, chat->shared_state.voice_state); // 8
     msgpack_pack_bin(mp, SIGNATURE_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state_sig, SIGNATURE_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state_sig, SIGNATURE_SIZE); // 9
     msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE); // 10
     msgpack_pack_bin(mp, MAX_GC_GROUP_NAME_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE); // 11
     msgpack_pack_bin(mp, MAX_GC_PASSWORD_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.password, MAX_GC_PASSWORD_SIZE); // 12
     msgpack_pack_bin(mp, MOD_MODERATION_HASH_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE);
+    msgpack_pack_bin_body(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 13
+}
 
-    // Topic info
+static void save_pack_topic_info(const GC_Chat *chat, msgpack_packer *mp)
+{
     msgpack_pack_array(mp, 5);
-    msgpack_pack_uint32(mp, chat->topic_info.version);
-    msgpack_pack_uint16(mp, chat->topic_info.length);
-    msgpack_pack_bin(mp, MAX_GC_TOPIC_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_info.topic, MAX_GC_TOPIC_SIZE);
-    msgpack_pack_bin(mp, SIG_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin(mp, SIGNATURE_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE);
 
-    // Mod list
+    msgpack_pack_uint32(mp, chat->topic_info.version); // 1
+    msgpack_pack_uint16(mp, chat->topic_info.length); // 2
+    msgpack_pack_bin(mp, MAX_GC_TOPIC_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_info.topic, MAX_GC_TOPIC_SIZE); // 3
+    msgpack_pack_bin(mp, SIG_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 4
+    msgpack_pack_bin(mp, SIGNATURE_SIZE);
+    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE); // 5
+}
+
+
+static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
+{
     msgpack_pack_array(mp, 2);
-    msgpack_pack_uint16(mp, chat->moderation.num_mods);
 
     uint8_t packed_mod_list[GROUP_SAVE_MAX_MODERATORS * MOD_LIST_ENTRY_SIZE];
     mod_list_pack(&chat->moderation, packed_mod_list);
 
+    msgpack_pack_uint16(mp, chat->moderation.num_mods); // 1
     msgpack_pack_bin(mp, sizeof(packed_mod_list));
-    msgpack_pack_bin_body(mp, packed_mod_list, sizeof(packed_mod_list));
+    msgpack_pack_bin_body(mp, packed_mod_list, sizeof(packed_mod_list)); // 2
+}
 
-    // Keys
+static void save_pack_keys(const GC_Chat *chat, msgpack_packer *mp)
+{
     msgpack_pack_array(mp, 4);
-    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE);
-    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE);
 
-    // Self info
+    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
+    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
+    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
+    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
+    msgpack_pack_bin_body(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
+}
+
+static void save_pack_self_info(const GC_Chat *chat, msgpack_packer *mp)
+{
     msgpack_pack_array(mp, 4);
+
     uint8_t self_nick[MAX_GC_NICK_SIZE];
     gc_get_self_nick(chat, self_nick);
-    msgpack_pack_bin(mp, sizeof(self_nick));
-    msgpack_pack_bin_body(mp, self_nick, sizeof(self_nick));
-    msgpack_pack_uint16(mp, gc_get_self_nick_size(chat));
-    msgpack_pack_uint8(mp, gc_get_self_role(chat));
-    msgpack_pack_uint8(mp, gc_get_self_status(chat));
 
-    // Saved peers
+    msgpack_pack_uint16(mp, gc_get_self_nick_size(chat)); // 1
+    msgpack_pack_bin(mp, sizeof(self_nick));
+    msgpack_pack_bin_body(mp, self_nick, sizeof(self_nick)); // 2
+    msgpack_pack_uint8(mp, gc_get_self_role(chat)); // 3
+    msgpack_pack_uint8(mp, gc_get_self_status(chat)); // 4
+}
+
+static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
+{
+    msgpack_pack_array(mp, 2);
+
     uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
     int packed_num = pack_gc_saved_peers(chat, saved_peers, (uint16_t)sizeof(saved_peers));
 
@@ -497,10 +511,21 @@ void gc_pack_group_info(const GC_Chat *chat, msgpack_packer *mp)
         LOGGER_WARNING(chat->log, "Failed to pack saved peers");
     }
 
-    msgpack_pack_array(mp, 2);
-    msgpack_pack_uint8(mp, packed_num);
+    msgpack_pack_uint8(mp, packed_num); // 1
     msgpack_pack_bin(mp, sizeof(saved_peers));
-    msgpack_pack_bin_body(mp, saved_peers, sizeof(saved_peers));
+    msgpack_pack_bin_body(mp, saved_peers, sizeof(saved_peers)); // 2
+}
+
+void gc_save_pack_group(const GC_Chat *chat, msgpack_packer *mp)
+{
+    msgpack_pack_array(mp, 6);
+
+    save_pack_state(chat, mp); // 1
+    save_pack_topic_info(chat, mp); // 2
+    save_pack_mod_list(chat, mp); // 3
+    save_pack_keys(chat, mp); // 4
+    save_pack_self_info(chat, mp); // 5
+    save_pack_saved_peers(chat, mp); // 6
 }
 
 /** Returns true if chat privacy state is set to public. */
@@ -6978,16 +7003,9 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
     return count;
 }
 
-static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
+static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
-        return false;
-    }
-
-    const msgpack_object *cur = &obj->via.array.ptr[0];
-
-    // Shared state
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 13) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 13) {
         return false;
     }
 
@@ -6995,14 +7013,14 @@ static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
     uint8_t privacy_state = 0;
     uint8_t voice_state = 0;
 
-    if (!(tox_unpack_u08(&connection_state, &cur->via.array.ptr[0])
-            && tox_unpack_u16(&chat->shared_state.group_name_len, &cur->via.array.ptr[1])
-            && tox_unpack_u08(&privacy_state, &cur->via.array.ptr[2])
-            && tox_unpack_u16(&chat->shared_state.maxpeers, &cur->via.array.ptr[3])
-            && tox_unpack_u16(&chat->shared_state.password_length, &cur->via.array.ptr[4])
-            && tox_unpack_u32(&chat->shared_state.version, &cur->via.array.ptr[5])
-            && tox_unpack_u32(&chat->shared_state.topic_lock, &cur->via.array.ptr[6])
-            && tox_unpack_u08(&voice_state, &cur->via.array.ptr[7]))) {
+    if (!(tox_unpack_u08(&connection_state, &obj->via.array.ptr[0])
+            && tox_unpack_u16(&chat->shared_state.group_name_len, &obj->via.array.ptr[1])
+            && tox_unpack_u08(&privacy_state, &obj->via.array.ptr[2])
+            && tox_unpack_u16(&chat->shared_state.maxpeers, &obj->via.array.ptr[3])
+            && tox_unpack_u16(&chat->shared_state.password_length, &obj->via.array.ptr[4])
+            && tox_unpack_u32(&chat->shared_state.version, &obj->via.array.ptr[5])
+            && tox_unpack_u32(&chat->shared_state.topic_lock, &obj->via.array.ptr[6])
+            && tox_unpack_u08(&voice_state, &obj->via.array.ptr[7]))) {
         return false;
     }
 
@@ -7011,42 +7029,46 @@ static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
     chat->shared_state.privacy_state = (Group_Privacy_State)privacy_state;
     chat->shared_state.voice_state = (Group_Voice_State)voice_state;
 
-    if (!(tox_unpack_bin_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &cur->via.array.ptr[8])
+    if (!(tox_unpack_bin_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &obj->via.array.ptr[8])
             && tox_unpack_bin_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE,
-                                    &cur->via.array.ptr[9])
-            && tox_unpack_bin_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &cur->via.array.ptr[10])
-            && tox_unpack_bin_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &cur->via.array.ptr[11])
+                                    &obj->via.array.ptr[9])
+            && tox_unpack_bin_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &obj->via.array.ptr[10])
+            && tox_unpack_bin_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &obj->via.array.ptr[11])
             && tox_unpack_bin_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
-                                    &cur->via.array.ptr[12]))) {
+                                    &obj->via.array.ptr[12]))) {
         return false;
     }
 
-    // Topic info
-    cur = &obj->via.array.ptr[1];
+    return true;
 
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 5) {
+}
+static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 5) {
         return false;
     }
 
-    if (!(tox_unpack_u32(&chat->topic_info.version, &cur->via.array.ptr[0])
-            && tox_unpack_u16(&chat->topic_info.length, &cur->via.array.ptr[1])
-            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &cur->via.array.ptr[2])
-            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &cur->via.array.ptr[3])
-            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &cur->via.array.ptr[4]))) {
+    if (!(tox_unpack_u32(&chat->topic_info.version, &obj->via.array.ptr[0])
+            && tox_unpack_u16(&chat->topic_info.length, &obj->via.array.ptr[1])
+            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[2])
+            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[3])
+            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[4]))) {
         return false;
     }
 
-    // Mod list
-    cur = &obj->via.array.ptr[2];
+    return true;
+}
 
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 2) {
+static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
         return false;
     }
 
     uint8_t packed_mod_list[GROUP_SAVE_MAX_MODERATORS * MOD_LIST_ENTRY_SIZE];
 
-    if (!(tox_unpack_u16(&chat->moderation.num_mods, &cur->via.array.ptr[0])
-            && tox_unpack_bin_fixed(packed_mod_list, sizeof(packed_mod_list), &cur->via.array.ptr[1]))) {
+    if (!(tox_unpack_u16(&chat->moderation.num_mods, &obj->via.array.ptr[0])
+            && tox_unpack_bin_fixed(packed_mod_list, sizeof(packed_mod_list), &obj->via.array.ptr[1]))) {
         return false;
     }
 
@@ -7054,24 +7076,27 @@ static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    // Keys
-    cur = &obj->via.array.ptr[3];
-
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 4) {
+    return true;
+}
+static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
         return false;
     }
 
-    if (!(tox_unpack_bin_fixed(chat->chat_public_key, EXT_PUBLIC_KEY_SIZE, &cur->via.array.ptr[0])
-            && tox_unpack_bin_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &cur->via.array.ptr[1])
-            && tox_unpack_bin_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &cur->via.array.ptr[2])
-            && tox_unpack_bin_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &cur->via.array.ptr[3]))) {
+    if (!(tox_unpack_bin_fixed(chat->chat_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[0])
+            && tox_unpack_bin_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[1])
+            && tox_unpack_bin_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[2])
+            && tox_unpack_bin_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[3]))) {
         return false;
     }
 
-    // Self info
-    cur = &obj->via.array.ptr[4];
+    return true;
+}
 
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 4) {
+static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
         return false;
     }
 
@@ -7080,14 +7105,12 @@ static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
     uint8_t self_role = GR_USER;
     uint8_t self_status = GS_NONE;
 
-    if (!(tox_unpack_bin_fixed(self_nick, sizeof(self_nick), &cur->via.array.ptr[0])
-            && tox_unpack_u16(&self_nick_len, &cur->via.array.ptr[1])
-            && tox_unpack_u08(&self_role, &cur->via.array.ptr[2])
-            && tox_unpack_u08(&self_status, &cur->via.array.ptr[3]))) {
+    if (!(tox_unpack_u16(&self_nick_len, &obj->via.array.ptr[0])
+            && tox_unpack_bin_fixed(self_nick, sizeof(self_nick), &obj->via.array.ptr[1])
+            && tox_unpack_u08(&self_role, &obj->via.array.ptr[2])
+            && tox_unpack_u08(&self_status, &obj->via.array.ptr[3]))) {
         return false;
     }
-
-    assert(self_nick_len <= MAX_GC_NICK_SIZE);
 
     // we have to add ourself before setting self info
     if (peer_add(chat, nullptr, chat->self_public_key) != 0) {
@@ -7104,30 +7127,52 @@ static bool unpack_group_info(GC_Chat *chat, const msgpack_object *obj)
     self_gc_set_status(chat, (Group_Peer_Status)self_status);
     self_gc_set_confirmed(chat, true);
 
-    cur = &obj->via.array.ptr[5];
+    return true;
+}
 
-    if (cur->type != MSGPACK_OBJECT_ARRAY || cur->via.array.size != 2) {
+static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
         return false;
     }
 
     // Saved peers
     uint8_t num_saved_peers = 0;
 
-    if (!tox_unpack_u08(&num_saved_peers, &cur->via.array.ptr[0])) {
+    if (!tox_unpack_u08(&num_saved_peers, &obj->via.array.ptr[0])) {
         return false;
     }
 
     uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
 
-    if (!tox_unpack_bin_fixed(saved_peers, sizeof(saved_peers), &cur->via.array.ptr[1])) {
+    if (!tox_unpack_bin_fixed(saved_peers, sizeof(saved_peers), &obj->via.array.ptr[1])) {
         return false;
     }
 
     if (unpack_gc_saved_peers(chat, saved_peers, sizeof(saved_peers), num_saved_peers) == -1) {
-        return false;
+        LOGGER_WARNING(chat->log, "Failed to unpack saved peers");  // recoverable error
     }
 
     return true;
+}
+
+/**
+ * Unpacks binary group data from `obj` into `chat`. Parallel to the `save_pack*` functions.
+ *
+ * Return true if unpacking is successful.
+ */
+static bool load_unpack_group(GC_Chat *chat, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
+        return false;
+    }
+
+    return load_unpack_state(chat,          &obj->via.array.ptr[0])
+           && load_unpack_topic_info(chat,  &obj->via.array.ptr[1])
+           && load_unpack_mod_list(chat,    &obj->via.array.ptr[2])
+           && load_unpack_keys(chat,        &obj->via.array.ptr[3])
+           && load_unpack_self_info(chat,   &obj->via.array.ptr[4])
+           && load_unpack_saved_peers(chat, &obj->via.array.ptr[5]);
 }
 
 int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
@@ -7150,7 +7195,7 @@ int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
     chat->log = m->log;
     chat->last_ping_interval = tm;
 
-    if (!unpack_group_info(chat, obj)) {
+    if (!load_unpack_group(chat, obj)) {
         return -1;
     }
 

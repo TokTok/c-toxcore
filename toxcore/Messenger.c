@@ -3282,7 +3282,7 @@ static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
             continue;
         }
 
-        gc_pack_group_info(chat, mp);
+        gc_save_pack_group(chat, mp);
     }
 }
 

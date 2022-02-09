@@ -153,7 +153,7 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
                       uint8_t gp_packet_type, uint8_t net_packet_type);
 
 /** Packs group info for `chat` into `temp`. */
-void gc_pack_group_info(const GC_Chat *chat, msgpack_packer *mp);
+void gc_save_pack_group(const GC_Chat *chat, msgpack_packer *mp);
 
 /** Sends a plain message or an action, depending on type.
  *
