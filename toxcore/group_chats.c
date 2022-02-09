@@ -4290,6 +4290,10 @@ int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_
         return -1;
     }
 
+    if (new_lock_state > TL_DISABLED) {
+        return -2;
+    }
+
     if (!self_gc_is_founder(chat)) {
         return -3;
     }
