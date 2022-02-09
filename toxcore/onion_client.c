@@ -401,6 +401,7 @@ static bool onion_node_timed_out(const Onion_Node *node, const Mono_Time *mono_t
  * TODO(irungentoo): Make this function better, it currently probably is
  * vulnerable to some attacks that could deanonimize us.
  */
+non_null()
 static int random_path(const Onion_Client *onion_c, Onion_Client_Paths *onion_paths, uint32_t pathnum, Onion_Path *path)
 {
     if (pathnum == UINT32_MAX) {

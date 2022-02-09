@@ -50,6 +50,7 @@ struct Onion_Announce {
     Shared_Keys shared_keys_recv;
 };
 
+non_null()
 static bool onion_ping_id_eq(const uint8_t *a, const uint8_t *b)
 {
     return public_key_cmp(a, b) == 0;
@@ -282,6 +283,7 @@ int send_data_request(const Networking_Core *net, const Onion_Path *path, const 
 }
 
 /** Generate a ping_id and put it in ping_id */
+non_null()
 static void generate_ping_id(const Onion_Announce *onion_a, uint64_t time, const uint8_t *public_key,
                              const IP_Port *ret_ip_port, uint8_t *ping_id)
 {
@@ -299,6 +301,7 @@ static void generate_ping_id(const Onion_Announce *onion_a, uint64_t time, const
  * return -1 if no
  * return position in list if yes
  */
+non_null()
 static int in_entries(const Onion_Announce *onion_a, const uint8_t *public_key)
 {
     for (unsigned int i = 0; i < ONION_ANNOUNCE_MAX_ENTRIES; ++i) {
@@ -317,6 +320,7 @@ typedef struct Cmp_Data {
     Onion_Announce_Entry entry;
 } Cmp_Data;
 
+non_null()
 static int cmp_entry(const void *a, const void *b)
 {
     const Cmp_Data *cmp1 = (const Cmp_Data *)a;
@@ -353,6 +357,7 @@ static int cmp_entry(const void *a, const void *b)
     return 0;
 }
 
+non_null()
 static void sort_onion_announce_list(Onion_Announce_Entry *list, unsigned int length, const Mono_Time *mono_time,
                                      const uint8_t *comp_public_key)
 {
@@ -378,6 +383,7 @@ static void sort_onion_announce_list(Onion_Announce_Entry *list, unsigned int le
  * return -1 if failure
  * return position if added
  */
+non_null()
 static int add_to_entries(Onion_Announce *onion_a, const IP_Port *ret_ip_port, const uint8_t *public_key,
                           const uint8_t *data_public_key, const uint8_t *ret)
 {
@@ -413,6 +419,7 @@ static int add_to_entries(Onion_Announce *onion_a, const IP_Port *ret_ip_port, c
     return in_entries(onion_a, public_key);
 }
 
+non_null()
 static void make_announce_payload_helper(const Onion_Announce *onion_a, const uint8_t *ping_id2, uint8_t *pl, int index,
         const uint8_t *packet_public_key, const uint8_t *data_public_key)
 {
@@ -738,6 +745,7 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
     return 0;
 }
 
+non_null()
 static int handle_data_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
                                void *userdata)
 {

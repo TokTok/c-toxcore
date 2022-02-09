@@ -8,10 +8,11 @@
 #ifndef C_TOXCORE_TOXCORE_CCOMPAT_H
 #define C_TOXCORE_TOXCORE_CCOMPAT_H
 
-#include <stdbool.h>
 #include <stdint.h>
 
-bool unused_for_tokstyle(void);
+#include "attributes.h"
+
+/* No declarations here. */
 
 //!TOKSTYLE-
 

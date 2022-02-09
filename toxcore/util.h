@@ -38,15 +38,14 @@ bool id_equal(const uint8_t *dest, const uint8_t *src);
 int id_cmp(const uint8_t *first_id, const uint8_t *second_id);
 
 /** compares two group chat_id's */
-bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
-
-uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
+non_null() bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
+non_null() uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
 
 /** frees all pointers in a uint8_t pointer array, as well as the array itself. */
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items);
 
 /** Returns -1 if failed or 0 if success */
-int create_recursive_mutex(pthread_mutex_t *mutex);
+non_null() int create_recursive_mutex(pthread_mutex_t *mutex);
 
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of

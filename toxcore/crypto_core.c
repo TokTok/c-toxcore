@@ -104,6 +104,7 @@ static uint8_t *crypto_malloc(size_t bytes)
     return ptr;
 }
 
+nullable(1)
 static void crypto_free(uint8_t *ptr, size_t bytes)
 {
     if (ptr != nullptr) {

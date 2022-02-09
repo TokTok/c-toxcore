@@ -99,6 +99,7 @@ struct Tox {
     void *toxav_object; // workaround to store a ToxAV object (setter and getter functions are available)
 };
 
+non_null()
 static void lock(const Tox *tox)
 {
     if (tox->mutex != nullptr) {
@@ -106,6 +107,7 @@ static void lock(const Tox *tox)
     }
 }
 
+non_null()
 static void unlock(const Tox *tox)
 {
     if (tox->mutex != nullptr) {
@@ -118,6 +120,7 @@ struct Tox_Userdata {
     void *user_data;
 };
 
+non_null(1) nullable(3)
 static void tox_self_connection_status_handler(Messenger *m, unsigned int connection_status, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -127,6 +130,7 @@ static void tox_self_connection_status_handler(Messenger *m, unsigned int connec
     }
 }
 
+non_null(1, 3) nullable(5)
 static void tox_friend_name_handler(Messenger *m, uint32_t friend_number, const uint8_t *name, size_t length,
                                     void *user_data)
 {
@@ -137,6 +141,7 @@ static void tox_friend_name_handler(Messenger *m, uint32_t friend_number, const 
     }
 }
 
+non_null(1, 3) nullable(5)
 static void tox_friend_status_message_handler(Messenger *m, uint32_t friend_number, const uint8_t *message,
         size_t length, void *user_data)
 {
@@ -147,6 +152,7 @@ static void tox_friend_status_message_handler(Messenger *m, uint32_t friend_numb
     }
 }
 
+non_null(1) nullable(4)
 static void tox_friend_status_handler(Messenger *m, uint32_t friend_number, unsigned int status, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -156,6 +162,7 @@ static void tox_friend_status_handler(Messenger *m, uint32_t friend_number, unsi
     }
 }
 
+non_null(1) nullable(4)
 static void tox_friend_connection_status_handler(Messenger *m, uint32_t friend_number, unsigned int connection_status,
         void *user_data)
 {
@@ -167,6 +174,7 @@ static void tox_friend_connection_status_handler(Messenger *m, uint32_t friend_n
     }
 }
 
+non_null(1) nullable(4)
 static void tox_friend_typing_handler(Messenger *m, uint32_t friend_number, bool is_typing, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -176,6 +184,7 @@ static void tox_friend_typing_handler(Messenger *m, uint32_t friend_number, bool
     }
 }
 
+non_null(1) nullable(4)
 static void tox_friend_read_receipt_handler(Messenger *m, uint32_t friend_number, uint32_t message_id, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -185,6 +194,7 @@ static void tox_friend_read_receipt_handler(Messenger *m, uint32_t friend_number
     }
 }
 
+non_null(1, 2, 3) nullable(5)
 static void tox_friend_request_handler(Messenger *m, const uint8_t *public_key, const uint8_t *message, size_t length,
                                        void *user_data)
 {
@@ -195,6 +205,7 @@ static void tox_friend_request_handler(Messenger *m, const uint8_t *public_key, 
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_friend_message_handler(Messenger *m, uint32_t friend_number, unsigned int type, const uint8_t *message,
                                        size_t length, void *user_data)
 {
@@ -206,6 +217,7 @@ static void tox_friend_message_handler(Messenger *m, uint32_t friend_number, uns
     }
 }
 
+non_null(1) nullable(5)
 static void tox_file_recv_control_handler(Messenger *m, uint32_t friend_number, uint32_t file_number,
         unsigned int control, void *user_data)
 {
@@ -217,6 +229,7 @@ static void tox_file_recv_control_handler(Messenger *m, uint32_t friend_number, 
     }
 }
 
+non_null(1) nullable(6)
 static void tox_file_chunk_request_handler(Messenger *m, uint32_t friend_number, uint32_t file_number,
         uint64_t position, size_t length, void *user_data)
 {
@@ -228,6 +241,7 @@ static void tox_file_chunk_request_handler(Messenger *m, uint32_t friend_number,
     }
 }
 
+non_null(1, 6) nullable(8)
 static void tox_file_recv_handler(Messenger *m, uint32_t friend_number, uint32_t file_number, uint32_t kind,
                                   uint64_t file_size, const uint8_t *filename, size_t filename_length, void *user_data)
 {
@@ -239,6 +253,7 @@ static void tox_file_recv_handler(Messenger *m, uint32_t friend_number, uint32_t
     }
 }
 
+non_null(1, 5) nullable(7)
 static void tox_file_recv_chunk_handler(Messenger *m, uint32_t friend_number, uint32_t file_number, uint64_t position,
                                         const uint8_t *data, size_t length, void *user_data)
 {
@@ -250,6 +265,7 @@ static void tox_file_recv_chunk_handler(Messenger *m, uint32_t friend_number, ui
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_conference_invite_handler(Messenger *m, uint32_t friend_number, int type, const uint8_t *cookie,
         size_t length, void *user_data)
 {
@@ -261,6 +277,7 @@ static void tox_conference_invite_handler(Messenger *m, uint32_t friend_number, 
     }
 }
 
+non_null(1) nullable(3)
 static void tox_conference_connected_handler(Messenger *m, uint32_t conference_number, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -270,6 +287,7 @@ static void tox_conference_connected_handler(Messenger *m, uint32_t conference_n
     }
 }
 
+non_null(1, 5) nullable(7)
 static void tox_conference_message_handler(Messenger *m, uint32_t conference_number, uint32_t peer_number, int type,
         const uint8_t *message, size_t length, void *user_data)
 {
@@ -281,6 +299,7 @@ static void tox_conference_message_handler(Messenger *m, uint32_t conference_num
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_conference_title_handler(Messenger *m, uint32_t conference_number, uint32_t peer_number,
         const uint8_t *title, size_t length, void *user_data)
 {
@@ -292,6 +311,7 @@ static void tox_conference_title_handler(Messenger *m, uint32_t conference_numbe
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_conference_peer_name_handler(Messenger *m, uint32_t conference_number, uint32_t peer_number,
         const uint8_t *name, size_t length, void *user_data)
 {
@@ -303,6 +323,7 @@ static void tox_conference_peer_name_handler(Messenger *m, uint32_t conference_n
     }
 }
 
+non_null(1) nullable(3)
 static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conference_number, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -312,6 +333,7 @@ static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conf
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_friend_lossy_packet_handler(Messenger *m, uint32_t friend_number, uint8_t packet_id,
         const uint8_t *data, size_t length, void *user_data)
 {
@@ -326,6 +348,7 @@ static void tox_friend_lossy_packet_handler(Messenger *m, uint32_t friend_number
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_friend_lossless_packet_handler(Messenger *m, uint32_t friend_number, uint8_t packet_id,
         const uint8_t *data, size_t length, void *user_data)
 {
@@ -533,6 +556,7 @@ bool tox_version_is_compatible(uint32_t major, uint32_t minor, uint32_t patch)
     return TOX_VERSION_IS_API_COMPATIBLE(major, minor, patch);
 }
 
+non_null()
 static State_Load_Status state_load_callback(void *outer, const uint8_t *data, uint32_t length, uint16_t type)
 {
     const Tox *tox = (const Tox *)outer;
@@ -558,6 +582,7 @@ static State_Load_Status state_load_callback(void *outer, const uint8_t *data, u
 }
 
 /** Load tox from data of size length. */
+non_null()
 static int tox_load(Tox *tox, const uint8_t *data, uint32_t length)
 {
     uint32_t data32[2];
@@ -858,6 +883,7 @@ static uint32_t end_size(void)
     return 2 * sizeof(uint32_t);
 }
 
+non_null()
 static void end_save(uint8_t *data)
 {
     state_write_section_header(data, STATE_COOKIE_TYPE, 0, STATE_TYPE_END);
@@ -1200,6 +1226,7 @@ Tox_User_Status tox_self_get_status(const Tox *tox)
     return (Tox_User_Status)status;
 }
 
+non_null(1) nullable(3)
 static void set_friend_error(const Logger *log, int32_t ret, Tox_Err_Friend_Add *error)
 {
     switch (ret) {
@@ -1575,6 +1602,7 @@ bool tox_self_set_typing(Tox *tox, uint32_t friend_number, bool typing, Tox_Err_
     return 1;
 }
 
+non_null(1) nullable(3)
 static void set_message_error(const Logger *log, int ret, Tox_Err_Friend_Send_Message *error)
 {
     switch (ret) {
@@ -2556,6 +2584,7 @@ uint32_t tox_conference_by_uid(const Tox *tox, const uint8_t *uid, Tox_Err_Confe
     return res;
 }
 
+nullable(2)
 static void set_custom_packet_error(int ret, Tox_Err_Friend_Custom_Packet *error)
 {
     switch (ret) {

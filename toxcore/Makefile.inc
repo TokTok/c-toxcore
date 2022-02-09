@@ -5,7 +5,9 @@ libtoxcore_la_include_HEADERS = \
 
 libtoxcore_la_includedir = $(includedir)/tox
 
-libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
+libtoxcore_la_SOURCES = ../toxcore/attributes.h \
+                        ../toxcore/ccompat.c \
+                        ../toxcore/ccompat.h \
                         ../toxcore/events/conference_connected.c \
                         ../toxcore/events/conference_invite.c \
                         ../toxcore/events/conference_message.c \
@@ -19,7 +21,6 @@ libtoxcore_la_SOURCES = ../toxcore/ccompat.h \
                         ../toxcore/events/friend_connection_status.c \
                         ../toxcore/events/friend_lossless_packet.c \
                         ../toxcore/events/friend_lossy_packet.c \
-                        ../toxcore/events/friend_message.c \
                         ../toxcore/events/friend_message.c \
                         ../toxcore/events/friend_name.c \
                         ../toxcore/events/friend_read_receipt.c \
