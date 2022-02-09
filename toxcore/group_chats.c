@@ -6902,6 +6902,7 @@ int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
     chat->last_ping_interval = tm;
 
     if (!gc_load_unpack_group(chat, obj)) {
+        LOGGER_ERROR(chat->log, "Failed to unpack group");
         return -1;
     }
 

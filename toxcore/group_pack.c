@@ -17,6 +17,7 @@
 static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 13) {
+        LOGGER_ERROR(chat->log, "Group state array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -32,6 +33,7 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
             && tox_unpack_u32(&chat->shared_state.version, &obj->via.array.ptr[5])
             && tox_unpack_u32(&chat->shared_state.topic_lock, &obj->via.array.ptr[6])
             && tox_unpack_u08(&voice_state, &obj->via.array.ptr[7]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack state value");
         return false;
     }
 
@@ -47,6 +49,7 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
             && tox_unpack_bin_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &obj->via.array.ptr[11])
             && tox_unpack_bin_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
                                     &obj->via.array.ptr[12]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack state binary data");
         return false;
     }
 
@@ -56,6 +59,7 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 5) {
+        LOGGER_ERROR(chat->log, "Group topic array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -64,6 +68,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
             && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[2])
             && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[3])
             && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[4]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
     }
 
@@ -73,6 +78,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
+        LOGGER_ERROR(chat->log, "Group mod list array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -80,10 +86,12 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 
     if (!(tox_unpack_u16(&chat->moderation.num_mods, &obj->via.array.ptr[0])
             && tox_unpack_bin_fixed(packed_mod_list, sizeof(packed_mod_list), &obj->via.array.ptr[1]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack mod list binary data");
         return false;
     }
 
     if (mod_list_unpack(&chat->moderation, packed_mod_list, sizeof(packed_mod_list), chat->moderation.num_mods)) {
+        LOGGER_ERROR(chat->log, "Failed to unpack mod list info");
         return false;
     }
 
@@ -92,6 +100,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
+        LOGGER_ERROR(chat->log, "Group keys array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -99,6 +108,7 @@ static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
             && tox_unpack_bin_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[1])
             && tox_unpack_bin_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[2])
             && tox_unpack_bin_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[3]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack keys");
         return false;
     }
 
@@ -108,6 +118,7 @@ static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
 static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
+        LOGGER_ERROR(chat->log, "Group self info array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -120,11 +131,13 @@ static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
             && tox_unpack_bin_fixed(self_nick, sizeof(self_nick), &obj->via.array.ptr[1])
             && tox_unpack_u08(&self_role, &obj->via.array.ptr[2])
             && tox_unpack_u08(&self_status, &obj->via.array.ptr[3]))) {
+        LOGGER_ERROR(chat->log, "Failed to unpack self info");
         return false;
     }
 
     // we have to add ourself before setting self info
     if (peer_add(chat, nullptr, chat->self_public_key) != 0) {
+        LOGGER_ERROR(chat->log, "Failed to add self to peer list");
         return false;
     }
 
@@ -146,6 +159,7 @@ static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
 static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
+        LOGGER_ERROR(chat->log, "Group saved peers array malformed (type: %d)", obj->type);
         return false;
     }
 
@@ -153,12 +167,14 @@ static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
     uint8_t num_saved_peers = 0;
 
     if (!tox_unpack_u08(&num_saved_peers, &obj->via.array.ptr[0])) {
+        LOGGER_ERROR(chat->log, "Failed to unpack saved peers value");
         return false;
     }
 
     uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
 
     if (!tox_unpack_bin_fixed(saved_peers, sizeof(saved_peers), &obj->via.array.ptr[1])) {
+        LOGGER_ERROR(chat->log, "Failed to unpack saved peers binary data");
         return false;
     }
 
@@ -172,6 +188,7 @@ static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
 bool gc_load_unpack_group(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
+        LOGGER_ERROR(chat->log, "Group info array malformed (type %d)", obj->type);
         return false;
     }
 
