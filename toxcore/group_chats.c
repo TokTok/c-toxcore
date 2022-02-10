@@ -447,7 +447,7 @@ static GC_Chat *get_chat_by_id(const GC_Session *c, const uint8_t *id)
         return nullptr;
     }
 
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
@@ -6574,7 +6574,7 @@ void do_gc(GC_Session *c, void *userdata)
         return;
     }
 
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         GC_Chat *chat = &c->chats[i];
 
         const GC_Conn_State state = chat->connection_state;
@@ -6628,17 +6628,17 @@ static int get_new_group_index(GC_Session *c)
         return -1;
     }
 
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         if (c->chats[i].connection_state == CS_NONE) {
             return i;
         }
     }
 
-    if (!realloc_groupchats(c, c->num_chats + 1)) {
+    if (!realloc_groupchats(c, c->chats_index + 1)) {
         return -1;
     }
 
-    int new_index = c->num_chats;
+    int new_index = c->chats_index;
 
     c->chats[new_index] = (GC_Chat) {
         nullptr
@@ -6646,7 +6646,7 @@ static int get_new_group_index(GC_Session *c)
 
     memset(&c->chats[new_index].saved_invites, -1, sizeof(c->chats[new_index].saved_invites));
 
-    ++c->num_chats;
+    ++c->chats_index;
 
     return new_index;
 }
@@ -7522,16 +7522,16 @@ static void group_delete(GC_Session *c, GC_Chat *chat)
 
     uint32_t i;
 
-    for (i = c->num_chats; i > 0; --i) {
+    for (i = c->chats_index; i > 0; --i) {
         if (c->chats[i - 1].connection_state != CS_NONE) {
             break;
         }
     }
 
-    if (c->num_chats != i) {
-        c->num_chats = i;
+    if (c->chats_index != i) {
+        c->chats_index = i;
 
-        if (!realloc_groupchats(c, c->num_chats)) {
+        if (!realloc_groupchats(c, c->chats_index)) {
             LOGGER_ERROR(chat->log, "Failed to reallocate groupchats array");
         }
     }
@@ -7546,7 +7546,7 @@ int gc_group_exit(GC_Session *c, GC_Chat *chat, const uint8_t *message, uint16_t
 
 void kill_dht_groupchats(GC_Session *c)
 {
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
@@ -7571,7 +7571,7 @@ void kill_dht_groupchats(GC_Session *c)
 /** Return true if `group_number` designates an active group in session `c`. */
 static bool group_number_valid(const GC_Session *c, int group_number)
 {
-    if (group_number < 0 || group_number >= c->num_chats) {
+    if (group_number < 0 || group_number >= c->chats_index) {
         return false;
     }
 
@@ -7586,7 +7586,7 @@ uint32_t gc_count_groups(const GC_Session *c)
 {
     uint32_t count = 0;
 
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         if (c->chats[i].connection_state != CS_NONE) {
             ++count;
         }
@@ -7606,7 +7606,7 @@ GC_Chat *gc_get_group(const GC_Session *c, int group_number)
 
 GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_key)
 {
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
@@ -7624,7 +7624,7 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
 /** Return True if chat_id exists in the session chat array */
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 {
-    for (uint32_t i = 0; i < c->num_chats; ++i) {
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
         const GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {

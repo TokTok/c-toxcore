@@ -3106,7 +3106,7 @@ static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
 {
     assert(mp != nullptr && c != nullptr);
 
-    for (uint32_t i = 0; i < c->num_chats; ++i) { // this loop must match the one in gc_count_groups()
+    for (uint32_t i = 0; i < c->chats_index; ++i) { // this loop must match the one in gc_count_groups()
         const GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
@@ -3125,7 +3125,7 @@ static uint32_t saved_groups_size(const Messenger *m)
 
     msgpack_packer mp;
     msgpack_packer_init(&mp, &count, count_gc_bytes);
-    msgpack_pack_array(&mp, c->num_chats);
+    msgpack_pack_array(&mp, c->chats_index);
 
     pack_groupchats(c, &mp);
 

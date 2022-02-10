@@ -384,7 +384,7 @@ typedef struct GC_Session {
     GC_Chat                   *chats;
     struct GC_Announces_List  *announces_list;
 
-    uint32_t     num_chats;
+    uint32_t     chats_index;
 
     gc_message_cb *message;
     gc_private_message_cb *private_message;
