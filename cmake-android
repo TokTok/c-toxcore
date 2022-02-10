@@ -36,9 +36,9 @@ PREFIX=$PWD/_android_prefix
 TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64
 SYSROOT=$TOOLCHAIN/sysroot
 
-export CC=$TOOLCHAIN/bin/$TARGET$NDK_API-clang
+export CC="$TOOLCHAIN/bin/$TARGET$NDK_API"-clang
 export LDFLAGS=-static-libstdc++
-export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+export PKG_CONFIG_PATH="$PREFIX"/lib/pkgconfig
 
 COMMON_CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cmake -DANDROID_ABI=$ABI -DCMAKE_INSTALL_PREFIX=$PREFIX -DCMAKE_PREFIX_PATH=$PREFIX"
 
@@ -49,8 +49,8 @@ fi
 cd libsodium
 git clean -ffdx
 autoreconf -fi
-./configure --prefix=$PREFIX --host=$TARGET --with-sysroot=$SYSROOT --disable-shared
-make -j`nproc` install
+./configure --prefix="$PREFIX" --host="$TARGET" --with-sysroot="$SYSROOT" --disable-shared
+make -j"$(nproc)" install
 cd ..
 
 # Build msgpack
@@ -60,7 +60,7 @@ fi
 rm -rf msgpack-c/build
 mkdir -p msgpack-c/build
 cd msgpack-c/build
-cmake .. $COMMON_CMAKE_ARGS -DMSGPACK_BUILD_EXAMPLES=OFF
+cmake .. "$COMMON_CMAKE_ARGS" -DMSGPACK_BUILD_EXAMPLES=OFF
 cmake --build . --target install
 cd ../..
 
@@ -68,5 +68,5 @@ cd ../..
 rm -rf _build
 mkdir -p _build
 cd _build
-cmake .. $COMMON_CMAKE_ARGS -DBUILD_TOXAV=OFF -DBOOTSTRAP_DAEMON=OFF
+cmake .. "$COMMON_CMAKE_ARGS" -DBUILD_TOXAV=OFF -DBOOTSTRAP_DAEMON=OFF
 cmake --build .
