@@ -254,6 +254,7 @@ void kill_tcp_connections(TCP_Connections *tcp_c);
 /** Returns a pointer to the tcp client net profile associated with `tcp_c`.
  * Returns null if `tcp_c` is null.
  */
+non_null()
 const Net_Profile *tcp_connection_get_client_net_profile(const TCP_Connections *tcp_c);
 
 #endif

@@ -517,6 +517,7 @@ void kill_networking(Networking_Core *net);
 /** Returns a pointer to the network net_profile object associated with `net`
  * Returns null if `net` is null.
  */
+non_null()
 const Net_Profile *net_get_net_profile(const Networking_Core *net);
 
 #ifdef __cplusplus

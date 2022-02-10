@@ -52,6 +52,7 @@ void kill_TCP_server(TCP_Server *tcp_server);
 /** Returns a pointer to the net profile associated with `tcp_server`.
  * Returns null if `tcp_server` is null.
  */
+non_null(1)
 const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server);
 
 

@@ -12,6 +12,7 @@
 #define NETPROF_TCP_DATA_PACKET_ID 0x10
 
 /** Returns the number of sent or received packets for all ID's between `start_id` and `end_id`. */
+nullable(1)
 static uint64_t netprof_get_packet_count_id_range(const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
         Packet_Direction dir)
 {
@@ -30,6 +31,7 @@ static uint64_t netprof_get_packet_count_id_range(const Net_Profile *profile, ui
 }
 
 /** Returns the number of sent or received bytes for all ID's between `start_id` and `end_id`. */
+nullable(1)
 static uint64_t netprof_get_bytes_id_range(const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
         Packet_Direction dir)
 {
