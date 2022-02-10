@@ -44,7 +44,7 @@ COMMON_CMAKE_ARGS="-DCMAKE_TOOLCHAIN_FILE=$NDK/build/cmake/android.toolchain.cma
 
 # Build libsodium
 if [ ! -d libsodium ]; then
-    git clone --branch=1.0.18 https://github.com/jedisct1/libsodium.git
+  git clone --branch=1.0.18 https://github.com/jedisct1/libsodium.git
 fi
 cd libsodium
 git clean -ffdx
@@ -55,7 +55,7 @@ cd ..
 
 # Build msgpack
 if [ ! -d msgpack-c ]; then
-    git clone --branch=c-4.0.0 https://github.com/msgpack/msgpack-c.git
+  git clone --branch=c-4.0.0 https://github.com/msgpack/msgpack-c.git
 fi
 rm -rf msgpack-c/build
 mkdir -p msgpack-c/build
