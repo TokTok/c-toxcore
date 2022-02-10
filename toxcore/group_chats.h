@@ -506,7 +506,7 @@ void kill_dht_groupchats(GC_Session *c);
  * Returns group_number on success.
  * Returns -1 on failure.
  */
-int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj);
+int gc_group_load(GC_Session *c, const msgpack_object *obj);
 
 /**
  * Saves info from `chat` to `mp` in binary format.

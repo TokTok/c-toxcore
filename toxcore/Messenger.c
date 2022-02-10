@@ -3189,7 +3189,7 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
     const uint32_t num_groups = obj.via.array.size;
 
     for (uint32_t i = 0; i < num_groups; ++i) {
-        const int group_number = gc_group_load(m->group_handler, -1, &obj.via.array.ptr[i]);
+        const int group_number = gc_group_load(m->group_handler,  &obj.via.array.ptr[i]);
 
         if (group_number < 0) {
             LOGGER_WARNING(m->log, "Failed to load group %u", i);

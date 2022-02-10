@@ -316,8 +316,6 @@ typedef struct GC_Chat {
     uint8_t     self_public_key[EXT_PUBLIC_KEY_SIZE];
     uint8_t     self_secret_key[EXT_SECRET_KEY_SIZE];
 
-    uint32_t    self_public_key_hash;  // Jenkins one at a time hash of our self public encryption key
-
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
     uint64_t    last_sync_request;

@@ -6726,6 +6726,7 @@ static void init_gc_moderation(GC_Chat *chat)
     chat->moderation.self_public_sig_key = get_sig_pk(chat->self_public_key);
     chat->moderation.self_secret_sig_key = get_sig_sk(chat->self_secret_key);
     chat->moderation.shared_state_version = &chat->shared_state.version;
+    chat->moderation.log = chat->log;
 }
 
 static bool create_new_chat_ext_keypair(GC_Chat *chat);
@@ -6750,7 +6751,6 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     GC_Chat *chat = &c->chats[group_number];
 
     chat->log = m->log;
-    chat->moderation.log = chat->log;
 
     const uint64_t tm = mono_time_get(m->mono_time);
 
@@ -6885,11 +6885,11 @@ void gc_group_save(const GC_Chat *chat, msgpack_packer *mp)
     gc_save_pack_group(chat, mp);
 }
 
-int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
+int gc_group_load(GC_Session *c, const msgpack_object *obj)
 {
-    group_number = group_number == -1 ? get_new_group_index(c) : group_number;
+    const int group_number = get_new_group_index(c);
 
-    if (group_number == -1) {
+    if (group_number < 0) {
         return -1;
     }
 
@@ -6912,12 +6912,19 @@ int gc_group_load(GC_Session *c, int group_number, const msgpack_object *obj)
 
     init_gc_moderation(chat);
 
+    if (self_gc_is_founder(chat)) {
+        if (!init_gc_sanctions_creds(chat)) {
+            LOGGER_ERROR(chat->log, "Failed to init sanctions creds");
+            return -1;
+        }
+    }
+
     if (init_gc_tcp_connection(c, chat) == -1) {
         LOGGER_ERROR(chat->log, "Failed to init tcp connection");
         return -1;
     }
 
-    if (chat->connection_state == CS_CONNECTING) {
+    if (chat->connection_state == CS_DISCONNECTED) {
         return group_number;
     }
 
