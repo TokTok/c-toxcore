@@ -27,6 +27,7 @@
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
 /** Returns true if ary entry does not contain an active packet. */
+non_null()
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
 {
     return array_entry->time_added == 0;
@@ -37,6 +38,7 @@ static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
  * Return 0 on success.
  * Return -1 on failure.
  */
+non_null()
 static void clear_array_entry(GC_Message_Array_Entry *const array_entry)
 {
     if (array_entry->data) {
@@ -69,6 +71,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
  * Return 0 on success.
  * Return -1 on failure.
  */
+non_null(1, 2) nullable(3)
 static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry, const uint8_t *data,
                               uint16_t length, uint8_t packet_type, uint64_t message_id)
 {
@@ -257,6 +260,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
  * Return 0 on success.
  * Return -1 on failure.
  */
+non_null(1, 2, 3, 5) nullable(6)
 static int process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                                     GC_Message_Array_Entry *const array_entry, void *userdata)
 {

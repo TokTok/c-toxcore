@@ -97,6 +97,7 @@ bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
 /** Returns moderator list index for public_sig_key.
  * Returns -1 if key is not in the list.
  */
+non_null()
 static int mod_list_index_of_sig_pk(const Moderation *moderation, const uint8_t *public_sig_key)
 {
     for (uint16_t i = 0; i < moderation->num_mods; ++i) {
@@ -363,15 +364,15 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
  *
  * If num_sanctions is 0 the hash is zeroed.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Return true on success.
  */
+non_null(4) nullable(1)
 static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
                                     uint8_t *hash)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
         memset(hash, 0, MOD_SANCTION_HASH_SIZE);
-        return 0;
+        return true;
     }
 
     const size_t sig_data_size = num_sanctions * SIGNATURE_SIZE;
@@ -379,13 +380,13 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
 
     // check for integer overflower
     if (data_buf_size < num_sanctions) {
-        return -1;
+        return false;
     }
 
     uint8_t *data = (uint8_t *)malloc(data_buf_size);
 
     if (data == nullptr) {
-        return -1;
+        return false;
     }
 
     for (uint16_t i = 0; i < num_sanctions; ++i) {
@@ -397,7 +398,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
 
     free(data);
 
-    return 0;
+    return false;
 }
 
 /** Verifies that sanction contains valid info and was assigned by a current mod or group founder.
@@ -405,6 +406,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
  * Returns 0 on success.
  * Returns -1 on failure.
  */
+non_null()
 static int sanctions_list_validate_entry(const Moderation *moderation, const Mod_Sanction *sanction)
 {
     if (!mod_list_verify_sig_pk(moderation, sanction->setter_public_sig_key)) {
@@ -434,6 +436,7 @@ static int sanctions_list_validate_entry(const Moderation *moderation, const Mod
     return 0;
 }
 
+non_null()
 static uint16_t sanctions_creds_get_checksum(const Mod_Sanction_Creds *creds)
 {
     uint16_t sum = 0;
@@ -445,6 +448,7 @@ static uint16_t sanctions_creds_get_checksum(const Mod_Sanction_Creds *creds)
     return sum;
 }
 
+non_null()
 static void sanctions_creds_set_checksum(Mod_Sanction_Creds *creds)
 {
     creds->checksum = sanctions_creds_get_checksum(creds);
@@ -460,8 +464,8 @@ bool sanctions_list_make_creds(Moderation *moderation)
 
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
-    if (sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
-                                 moderation->num_sanctions, hash) == -1) {
+    if (!sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
+                                 moderation->num_sanctions, hash)) {
         moderation->sanctions_creds = old_creds;
         return false;
     }
@@ -488,6 +492,7 @@ bool sanctions_list_make_creds(Moderation *moderation)
  *
  * Returns true on success.
  */
+non_null(1, 3) nullable(2)
 static bool sanctions_creds_validate(const Moderation *moderation, const Mod_Sanction *sanctions,
                                      const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
@@ -498,7 +503,7 @@ static bool sanctions_creds_validate(const Moderation *moderation, const Mod_San
 
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
-    if (sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash) == -1) {
+    if (!sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash)) {
         return false;
     }
 
@@ -546,6 +551,7 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
  * Returns 0 on success.
  * Returns -1 on failure.
  */
+non_null(1) nullable(3)
 static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, const Mod_Sanction_Creds *creds)
 {
     if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
@@ -657,6 +663,7 @@ bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanctio
     return false;
 }
 
+non_null()
 static int sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction);
 
 bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds)

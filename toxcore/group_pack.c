@@ -14,6 +14,7 @@
 
 #include "tox_unpack.h"
 
+non_null()
 static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 13) {
@@ -56,6 +57,8 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
     return true;
 
 }
+
+non_null()
 static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
@@ -76,6 +79,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
     return true;
 }
 
+non_null()
 static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
@@ -98,6 +102,8 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 
     return true;
 }
+
+non_null()
 static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
@@ -116,6 +122,7 @@ static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
     return true;
 }
 
+non_null()
 static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
@@ -157,6 +164,7 @@ static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
     return true;
 }
 
+non_null()
 static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
@@ -201,6 +209,7 @@ bool gc_load_unpack_group(GC_Chat *chat, const msgpack_object *obj)
            && load_unpack_saved_peers(chat, &obj->via.array.ptr[5]);
 }
 
+non_null()
 static void save_pack_state(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 13);
@@ -227,6 +236,7 @@ static void save_pack_state(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_bin_body(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 13
 }
 
+non_null()
 static void save_pack_topic_info(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 6);
@@ -242,6 +252,7 @@ static void save_pack_topic_info(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
+non_null()
 static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 2);
@@ -254,6 +265,7 @@ static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_bin_body(mp, packed_mod_list, sizeof(packed_mod_list)); // 2
 }
 
+non_null()
 static void save_pack_keys(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 4);
@@ -268,6 +280,7 @@ static void save_pack_keys(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_bin_body(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
 }
 
+non_null()
 static void save_pack_self_info(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 4);
@@ -281,6 +294,7 @@ static void save_pack_self_info(const GC_Chat *chat, msgpack_packer *mp)
     msgpack_pack_uint8(mp, (uint8_t)self->status); // 4
 }
 
+non_null()
 static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 2);

@@ -82,16 +82,19 @@ GC_Announces_List *new_gca_list(void);
 /**
  * Frees all dynamically allocated memroy associated with `announces_list`.
  */
+non_null()
 void kill_gca(GC_Announces_List *announces_list);
 
 /**
  * Main loop for group announcements.
  */
+non_null()
 void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list);
 
 /**
  * Frees all dynamically allocated memory for the entry in `gc_announces_list` designated by `chat_id`.
  */
+non_null()
 void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
 
 /**
@@ -102,6 +105,7 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
  * Returns the number of added nodes on success.
  * Returns -1 on failure.
  */
+non_null()
 int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
                       const uint8_t *chat_id, const uint8_t *except_public_key);
 
@@ -111,6 +115,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
  * Returns the peer announce on success.
  * Returns null on failure.
  */
+non_null()
 GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list,
                                    const GC_Public_Announce *public_announce);
 
@@ -120,6 +125,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
+non_null()
 int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce);
 
 /**
@@ -130,9 +136,9 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
  * Returns the number of packed announces on success.
  * Returns -1 on failure.
  */
+non_null(1, 2, 4) nullable(6)
 int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
-                            uint8_t announces_count,
-                            size_t *processed);
+                            uint8_t announces_count, size_t *processed);
 
 /**
  * Unpacks a maximum of `max_count` announces from `data` buffer of size `length` and puts them in `annoucnes`.
@@ -140,6 +146,7 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
  * Returns the number of unpacked announces on success.
  * Returns -1 on failure.
  */
+non_null()
 int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
                               uint8_t max_count);
 
@@ -149,6 +156,7 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
  * Returns the size of the packed data on success.
  * Returns -1 on failure.
  */
+non_null()
 int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
                              const GC_Public_Announce *public_announce);
 
@@ -158,6 +166,7 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
+non_null()
 int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
                                GC_Public_Announce *public_announce);
 
@@ -166,6 +175,7 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
  *
  * An announce is considered valid if either there is at least one TCP relay, or the ip_port is set.
  */
+non_null()
 bool gca_is_valid_announce(const GC_Announce *announce);
 
 #endif // GROUP_ANNOUNCE_H

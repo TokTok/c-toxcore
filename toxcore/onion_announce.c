@@ -443,6 +443,7 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
     }
 }
 
+non_null()
 static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *source, const uint8_t *packet,
                                        uint16_t length)
 {
@@ -571,6 +572,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
     return 0;
 }
 
+non_null(2, 3) nullable(1, 5)
 static int handle_announce_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
                                    void *userdata)
 {
@@ -659,6 +661,7 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
 }
 
 /* TODO(Jfreegman): DEPRECATE */
+non_null(2, 3) nullable(1, 5)
 static int handle_announce_request_old(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
                                        void *userdata)
 {

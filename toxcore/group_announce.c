@@ -18,6 +18,7 @@
 /**
  * Removes `announces` from `gc_announces_list`.
  */
+non_null()
 static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *announces)
 {
     if (announces == nullptr || gc_announces_list == nullptr) {
@@ -41,6 +42,7 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
  * Returns the announce designated by `chat_id`.
  * Returns null if no announce is found.
  */
+non_null()
 static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announces_list,  const uint8_t *chat_id)
 {
     GC_Announces *announces = gc_announces_list->root_announces;
@@ -154,6 +156,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
+non_null()
 static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announce)
 {
     if (length < GCA_ANNOUNCE_MIN_SIZE) {
