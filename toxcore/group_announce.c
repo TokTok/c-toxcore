@@ -428,7 +428,11 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
         if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
             GC_Announces *announces_to_delete = announces;
             announces = announces->next_announce;
-            remove_announces(gc_announces_list, announces_to_delete);
+
+            if (announces != nullptr) {
+                remove_announces(gc_announces_list, announces_to_delete);
+            }
+
             continue;
         }
 
@@ -443,5 +447,8 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
     }
 
     GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, chat_id);
-    remove_announces(gc_announces_list, announces);
+
+    if (announces != nullptr) {
+        remove_announces(gc_announces_list, announces);
+    }
 }

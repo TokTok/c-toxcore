@@ -398,7 +398,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
 
     free(data);
 
-    return false;
+    return true;
 }
 
 /** Verifies that sanction contains valid info and was assigned by a current mod or group founder.
@@ -465,7 +465,7 @@ bool sanctions_list_make_creds(Moderation *moderation)
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
     if (!sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
-                                 moderation->num_sanctions, hash)) {
+                                  moderation->num_sanctions, hash)) {
         moderation->sanctions_creds = old_creds;
         return false;
     }

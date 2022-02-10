@@ -386,6 +386,7 @@ static void tox_friend_lossless_packet_handler(Messenger *m, uint32_t friend_num
 }
 
 #ifndef VANILLA_NACL
+non_null(1, 4) nullable(6)
 static void tox_group_peer_name_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
                                         const uint8_t *name, size_t length, void *user_data)
 {
@@ -396,9 +397,9 @@ static void tox_group_peer_name_handler(const Messenger *m, uint32_t group_numbe
     }
 }
 
+non_null(1) nullable(5)
 static void tox_group_peer_status_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
-        unsigned int status,
-        void *user_data)
+        unsigned int status, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
@@ -408,6 +409,7 @@ static void tox_group_peer_status_handler(const Messenger *m, uint32_t group_num
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_group_topic_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id, const uint8_t *topic,
                                     size_t length, void *user_data)
 {
@@ -418,6 +420,7 @@ static void tox_group_topic_handler(const Messenger *m, uint32_t group_number, u
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_topic_lock_handler(const Messenger *m, uint32_t group_number, unsigned int topic_lock,
         void *user_data)
 {
@@ -429,6 +432,7 @@ static void tox_group_topic_lock_handler(const Messenger *m, uint32_t group_numb
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_voice_state_handler(const Messenger *m, uint32_t group_number, unsigned int voice_state,
         void *user_data)
 {
@@ -440,6 +444,7 @@ static void tox_group_voice_state_handler(const Messenger *m, uint32_t group_num
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_peer_limit_handler(const Messenger *m, uint32_t group_number, uint32_t peer_limit,
         void *user_data)
 {
@@ -450,6 +455,7 @@ static void tox_group_peer_limit_handler(const Messenger *m, uint32_t group_numb
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_privacy_state_handler(const Messenger *m, uint32_t group_number, unsigned int privacy_state,
         void *user_data)
 {
@@ -461,9 +467,9 @@ static void tox_group_privacy_state_handler(const Messenger *m, uint32_t group_n
     }
 }
 
+non_null(1) nullable(3, 5)
 static void tox_group_password_handler(const Messenger *m, uint32_t group_number, const uint8_t *password,
-                                       size_t length,
-                                       void *user_data)
+                                       size_t length, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
@@ -472,6 +478,7 @@ static void tox_group_password_handler(const Messenger *m, uint32_t group_number
     }
 }
 
+non_null(1, 5) nullable(7)
 static void tox_group_message_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id, unsigned int type,
                                       const uint8_t *message, size_t length, void *user_data)
 {
@@ -483,6 +490,7 @@ static void tox_group_message_handler(const Messenger *m, uint32_t group_number,
     }
 }
 
+non_null(1, 5) nullable(7)
 static void tox_group_private_message_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
         unsigned int type, const uint8_t *message, size_t length, void *user_data)
 {
@@ -495,9 +503,9 @@ static void tox_group_private_message_handler(const Messenger *m, uint32_t group
     }
 }
 
+non_null(1, 4) nullable(6)
 static void tox_group_custom_packet_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
-        const uint8_t *data,
-        size_t length, void *user_data)
+        const uint8_t *data, size_t length, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
@@ -506,9 +514,9 @@ static void tox_group_custom_packet_handler(const Messenger *m, uint32_t group_n
     }
 }
 
+non_null(1, 3, 5) nullable(7)
 static void tox_group_invite_handler(const Messenger *m, uint32_t friend_number, const uint8_t *invite_data,
-                                     size_t length,
-                                     const uint8_t *group_name, size_t group_name_length, void *user_data)
+                                     size_t length, const uint8_t *group_name, size_t group_name_length, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
@@ -518,6 +526,7 @@ static void tox_group_invite_handler(const Messenger *m, uint32_t friend_number,
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_peer_join_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -527,6 +536,7 @@ static void tox_group_peer_join_handler(const Messenger *m, uint32_t group_numbe
     }
 }
 
+non_null(1, 5) nullable(7, 9)
 static void tox_group_peer_exit_handler(const Messenger *m, uint32_t group_number, uint32_t peer_id,
                                         unsigned int exit_type, const uint8_t *name, size_t name_length,
                                         const uint8_t *part_message, size_t length, void *user_data)
@@ -540,6 +550,7 @@ static void tox_group_peer_exit_handler(const Messenger *m, uint32_t group_numbe
     }
 }
 
+non_null(1) nullable(3)
 static void tox_group_self_join_handler(const Messenger *m, uint32_t group_number, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
@@ -549,6 +560,7 @@ static void tox_group_self_join_handler(const Messenger *m, uint32_t group_numbe
     }
 }
 
+non_null(1) nullable(4)
 static void tox_group_join_fail_handler(const Messenger *m, uint32_t group_number, unsigned int fail_type,
                                         void *user_data)
 {
@@ -560,6 +572,7 @@ static void tox_group_join_fail_handler(const Messenger *m, uint32_t group_numbe
     }
 }
 
+non_null(1) nullable(6)
 static void tox_group_moderation_handler(const Messenger *m, uint32_t group_number, uint32_t source_peer_number,
         uint32_t target_peer_number, unsigned int mod_type, void *user_data)
 {

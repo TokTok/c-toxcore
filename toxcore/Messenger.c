@@ -32,7 +32,6 @@ static_assert(MAX_CONCURRENT_FILE_PIPES <= UINT8_MAX + 1,
  *
  * @param friendnumber The index in the friend list.
  */
-non_null()
 bool friend_is_valid(const Messenger *m, int32_t friendnumber)
 {
     return (unsigned int)friendnumber < m->numfriends && m->friendlist[friendnumber].status != 0;
@@ -143,6 +142,7 @@ static int send_online_packet(Messenger *m, int friendcon_id)
                              sizeof(packet), 0) != -1;
 }
 
+non_null()
 static int send_offline_packet(Messenger *m, int friendcon_id)
 {
     uint8_t packet = PACKET_ID_OFFLINE;
@@ -290,6 +290,7 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
     return ret;
 }
 
+non_null()
 static int32_t m_add_friend_contact_norequest(Messenger *m, const uint8_t *real_pk)
 {
     if (getfriend_id(m, real_pk) != -1) {
@@ -2515,6 +2516,7 @@ uint32_t messenger_run_interval(const Messenger *m)
  * Returns -1 on failure.
  */
 #ifndef VANILLA_NACL
+non_null()
 static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *onion_friend)
 {
     GC_Public_Announce announce = {0};
@@ -2559,6 +2561,7 @@ static int self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *
     return 0;
 }
 
+non_null()
 static void do_gc_onion_friends(const Messenger *m)
 {
     const uint16_t num_friends = onion_get_friend_count(m->onion_c);
@@ -3094,6 +3097,7 @@ static State_Load_Status friends_list_load(Messenger *m, const uint8_t *data, ui
 
 #ifndef VANILLA_NACL
 // TODO(Jfreegman): This is a duplicate of count_bytes in tox_events.c.
+non_null()
 static int count_gc_bytes(void *data, const char *buf, size_t len)
 {
     uint32_t *count = (uint32_t *)data;
@@ -3102,6 +3106,7 @@ static int count_gc_bytes(void *data, const char *buf, size_t len)
     return 0;
 }
 
+non_null()
 static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
 {
     assert(mp != nullptr && c != nullptr);
@@ -3117,6 +3122,7 @@ static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
     }
 }
 
+non_null()
 static uint32_t saved_groups_size(const Messenger *m)
 {
     GC_Session *c = m->group_handler;
@@ -3132,6 +3138,7 @@ static uint32_t saved_groups_size(const Messenger *m)
     return count;
 }
 
+non_null()
 static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
     const GC_Session *c = m->group_handler;
@@ -3171,6 +3178,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     return data;
 }
 
+non_null()
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
     msgpack_unpacked msg;

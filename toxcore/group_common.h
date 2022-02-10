@@ -410,6 +410,7 @@ typedef struct GC_Session {
  * Return -1 on failure.
  * Return -2 if a peer with public_key is already in our peerlist.
  */
+non_null(1, 3) nullable(2)
 int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
 
 /** Unpacks saved peers from `data` of size `length` into `chat`.
@@ -417,7 +418,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
  * Returns the number of unpacked peers on success.
  * Returns -1 on failure.
  */
-
+non_null()
 int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length, uint16_t max_num);
 
 /** Packs all valid entries from saved peerlist into `data`.
@@ -425,6 +426,7 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length, u
  * Return the number of packed saved peers on success.
  * Return -1 if buffer is too small.
  */
+non_null()
 int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length);
 
 #endif  // GROUP_COMMON_H

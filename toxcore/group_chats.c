@@ -852,7 +852,7 @@ non_null() static bool broadcast_gc_shared_state(const GC_Chat *chat);
 non_null() static bool update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, const uint8_t *sanction_data,
-                                 uint16_t length, bool add_obs);
+        uint16_t length, bool add_obs);
 
 /** Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 non_null()
@@ -1534,7 +1534,7 @@ static bool send_gc_sync_response(const GC_Chat *chat, GC_Connection *gconn, con
 
 non_null() static bool send_gc_peer_exchange(const GC_Chat *chat, GC_Connection *gconn);
 non_null() static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, uint8_t handshake_type,
-                                                uint8_t request_type);
+        uint8_t request_type);
 non_null() static bool send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connection *gconn);
 
 /** Unpacks a sync announce. If the announced peer is not already in our peer list, we attempt to
@@ -5937,7 +5937,7 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
     }
 }
 
-non_null(2, 4) nullable(1, 6)
+non_null(1, 2, 4) nullable(6)
 static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                                     const uint8_t *packet, uint16_t length, void *userdata)
 {
@@ -5988,7 +5988,7 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
     return 0;
 }
 
-non_null(2, 3) nullable(1, 5)
+non_null(1, 2, 3) nullable(5)
 static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t *packet, uint16_t length,
                                 void *userdata)
 {

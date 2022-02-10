@@ -130,7 +130,7 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
  *
  * Return true on success.
  */
-non_null()
+non_null(1, 2) nullable(3)
 bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t gp_packet_type);
 

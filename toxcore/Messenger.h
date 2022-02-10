@@ -312,6 +312,7 @@ struct Messenger {
  *
  * @param friendnumber The index in the friend list.
  */
+non_null()
 bool friend_is_valid(const Messenger *m, int32_t friendnumber);
 
 /** Format: `[real_pk (32 bytes)][nospam number (4 bytes)][checksum (2 bytes)]`
@@ -361,11 +362,13 @@ int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk);
  * Return 0 on success.
  * Return -1 on failure.
  */
+non_null()
 int32_t m_create_group_connection(Messenger *m, GC_Chat *chat);
 
 /*
  * Kills the friend connection for a groupchat.
  */
+non_null()
 void m_kill_group_connection(Messenger *m, const GC_Chat *chat);
 
 /** return the friend number associated to that public key.
@@ -604,6 +607,7 @@ void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function
 
 /* Set the callback for group invites.
  */
+non_null(1) nullable(2)
 void m_callback_group_invite(Messenger *m, m_group_invite_cb *function);
 
 /** Send a conference invite packet.
@@ -622,6 +626,7 @@ int send_conference_invite_packet(const Messenger *m, int32_t friendnumber, cons
  *  return 0 on success
  *  return -1 on failure
  */
+non_null()
 int send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length);
 
 
