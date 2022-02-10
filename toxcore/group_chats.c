@@ -1622,7 +1622,7 @@ static bool create_sync_announce(const GC_Chat *chat, const GC_Connection *gconn
     }
 
     if (gconn->tcp_relays_count > 0) {
-        if (!gcc_copy_tcp_relay(&announce->tcp_relays[0], gconn)) {
+        if (gcc_copy_tcp_relay(&announce->tcp_relays[0], gconn)) {
             announce->tcp_relays_count = 1;
         }
     }
