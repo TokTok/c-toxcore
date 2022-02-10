@@ -135,7 +135,7 @@ non_null()
 bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk);
 
 /** Frees all memory associated with the moderator list and sets num_mods to 0. */
-non_null()
+nullable(1)
 void mod_list_cleanup(Moderation *moderation);
 
 /** Packs num_sanctions sanctions into data of maxlength length. Additionally packs the
@@ -144,7 +144,7 @@ void mod_list_cleanup(Moderation *moderation);
  * Returns length of packed data on success.
  * Returns -1 on failure.
  */
-non_null(1, 3) nullable(4)
+non_null(1) nullable(3, 4)
 int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions);
 

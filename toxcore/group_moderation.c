@@ -9,6 +9,7 @@
 
 #include "group_moderation.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include "mono_time.h"
@@ -233,6 +234,8 @@ uint16_t sanctions_creds_pack(const Mod_Sanction_Creds *creds, uint8_t *data, ui
 int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions)
 {
+    assert(sanctions != nullptr || num_sanctions == 0);
+
     uint16_t packed_len = 0;
 
     for (uint16_t i = 0; i < num_sanctions && i < MOD_MAX_NUM_SANCTIONS; ++i) {

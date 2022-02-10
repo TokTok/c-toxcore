@@ -47,7 +47,7 @@ non_null()
 uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
 
 /** frees all pointers in a uint8_t pointer array, as well as the array itself. */
-non_null()
+nullable(1)
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items);
 
 /** Returns -1 if failed or 0 if success */
