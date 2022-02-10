@@ -3106,7 +3106,7 @@ static void pack_groupchats(const GC_Session *c, msgpack_packer *mp)
 {
     assert(mp != nullptr && c != nullptr);
 
-    for (uint32_t i = 0; i < gc_count_groups(c); ++i) {
+    for (uint32_t i = 0; i < c->num_chats; ++i) { // this loop must match the one in gc_count_groups()
         const GC_Chat *chat = &c->chats[i];
 
         if (chat->connection_state == CS_NONE) {
@@ -3136,7 +3136,9 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 {
     const GC_Session *c = m->group_handler;
 
-    if (gc_count_groups(c) == 0) {
+    const uint32_t num_groups = gc_count_groups(c);
+
+    if (num_groups == 0) {
         return data;
     }
 
@@ -3154,7 +3156,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
     msgpack_packer mp;
     msgpack_packer_init(&mp, &sbuf, msgpack_sbuffer_write);
 
-    msgpack_pack_array(&mp, c->num_chats);
+    msgpack_pack_array(&mp, num_groups);
 
     pack_groupchats(c, &mp);
 
@@ -3164,6 +3166,8 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
     msgpack_sbuffer_destroy(&sbuf);
 
+    LOGGER_DEBUG(m->log, "Saved %u groups (length %u)", num_groups, len);
+
     return data;
 }
 
@@ -3172,8 +3176,10 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
     msgpack_unpacked msg;
     msgpack_unpacked_init(&msg);
 
-    if (msgpack_unpack_next(&msg, (const char *)data, length, nullptr) != MSGPACK_UNPACK_SUCCESS) {
-        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchat");
+    const int ret = msgpack_unpack_next(&msg, (const char *)data, length, nullptr);
+
+    if (ret != MSGPACK_UNPACK_SUCCESS) {
+        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchat (return code: %d)", ret);
         msgpack_unpacked_destroy(&msg);
         return STATE_LOAD_STATUS_ERROR;
     }
@@ -3181,12 +3187,14 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
     msgpack_object obj = msg.data;
 
     if (obj.type != MSGPACK_OBJECT_ARRAY) {
-        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array");
+        LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array (unexpected obj type: %d)", obj.type);
         msgpack_unpacked_destroy(&msg);
         return STATE_LOAD_STATUS_ERROR;
     }
 
     const uint32_t num_groups = obj.via.array.size;
+
+    LOGGER_DEBUG(m->log, "Loading %u groups (length %u)", num_groups, length);
 
     for (uint32_t i = 0; i < num_groups; ++i) {
         const int group_number = gc_group_load(m->group_handler,  &obj.via.array.ptr[i]);

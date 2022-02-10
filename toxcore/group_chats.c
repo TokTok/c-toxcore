@@ -450,6 +450,10 @@ static GC_Chat *get_chat_by_id(const GC_Session *c, const uint8_t *id)
     for (uint32_t i = 0; i < c->num_chats; ++i) {
         GC_Chat *chat = &c->chats[i];
 
+        if (chat->connection_state == CS_NONE) {
+            continue;
+        }
+
         if (memcmp(id, chat->self_public_key, ENC_PUBLIC_KEY_SIZE) == 0) {
             return chat;
         }
@@ -6912,13 +6916,6 @@ int gc_group_load(GC_Session *c, const msgpack_object *obj)
 
     init_gc_moderation(chat);
 
-    if (self_gc_is_founder(chat)) {
-        if (!init_gc_sanctions_creds(chat)) {
-            LOGGER_ERROR(chat->log, "Failed to init sanctions creds");
-            return -1;
-        }
-    }
-
     if (init_gc_tcp_connection(c, chat) == -1) {
         LOGGER_ERROR(chat->log, "Failed to init tcp connection");
         return -1;
@@ -7552,6 +7549,10 @@ void kill_dht_groupchats(GC_Session *c)
     for (uint32_t i = 0; i < c->num_chats; ++i) {
         GC_Chat *chat = &c->chats[i];
 
+        if (chat->connection_state == CS_NONE) {
+            continue;
+        }
+
         if (group_can_handle_packets(chat)) {
             send_gc_self_exit(chat, nullptr, 0);
         }
@@ -7606,8 +7607,14 @@ GC_Chat *gc_get_group(const GC_Session *c, int group_number)
 GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_key)
 {
     for (uint32_t i = 0; i < c->num_chats; ++i) {
-        if (memcmp(public_key, get_chat_id(c->chats[i].chat_public_key), CHAT_ID_SIZE) == 0) {
-            return &c->chats[i];
+        GC_Chat *chat = &c->chats[i];
+
+        if (chat->connection_state == CS_NONE) {
+            continue;
+        }
+
+        if (memcmp(public_key, get_chat_id(chat->chat_public_key), CHAT_ID_SIZE) == 0) {
+            return chat;
         }
     }
 
@@ -7618,7 +7625,13 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
 static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 {
     for (uint32_t i = 0; i < c->num_chats; ++i) {
-        if (memcmp(get_chat_id(c->chats[i].chat_public_key), chat_id, CHAT_ID_SIZE) == 0) {
+        const GC_Chat *chat = &c->chats[i];
+
+        if (chat->connection_state == CS_NONE) {
+            continue;
+        }
+
+        if (memcmp(get_chat_id(chat->chat_public_key), chat_id, CHAT_ID_SIZE) == 0) {
             return true;
         }
     }
