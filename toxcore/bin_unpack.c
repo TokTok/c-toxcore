@@ -18,6 +18,16 @@ bool bin_unpack_bool(bool *val, const msgpack_object *obj)
     return true;
 }
 
+bool bin_unpack_u08(uint8_t *val, const msgpack_object *obj)
+{
+    if (obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 > UINT8_MAX) {
+        return false;
+    }
+
+    *val = (uint8_t)obj->via.u64;
+    return true;
+}
+
 bool bin_unpack_u16(uint16_t *val, const msgpack_object *obj)
 {
     if (obj->type != MSGPACK_OBJECT_POSITIVE_INTEGER || obj->via.u64 > UINT16_MAX) {

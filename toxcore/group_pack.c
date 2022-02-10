@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <stdint.h>
 
-#include "tox_unpack.h"
+#include "bin_unpack.h"
 
 non_null()
 static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
@@ -26,14 +26,14 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
     uint8_t privacy_state = 0;
     uint8_t voice_state = 0;
 
-    if (!(tox_unpack_u08(&connection_state, &obj->via.array.ptr[0])
-            && tox_unpack_u16(&chat->shared_state.group_name_len, &obj->via.array.ptr[1])
-            && tox_unpack_u08(&privacy_state, &obj->via.array.ptr[2])
-            && tox_unpack_u16(&chat->shared_state.maxpeers, &obj->via.array.ptr[3])
-            && tox_unpack_u16(&chat->shared_state.password_length, &obj->via.array.ptr[4])
-            && tox_unpack_u32(&chat->shared_state.version, &obj->via.array.ptr[5])
-            && tox_unpack_u32(&chat->shared_state.topic_lock, &obj->via.array.ptr[6])
-            && tox_unpack_u08(&voice_state, &obj->via.array.ptr[7]))) {
+    if (!(bin_unpack_u08(&connection_state, &obj->via.array.ptr[0])
+            && bin_unpack_u16(&chat->shared_state.group_name_len, &obj->via.array.ptr[1])
+            && bin_unpack_u08(&privacy_state, &obj->via.array.ptr[2])
+            && bin_unpack_u16(&chat->shared_state.maxpeers, &obj->via.array.ptr[3])
+            && bin_unpack_u16(&chat->shared_state.password_length, &obj->via.array.ptr[4])
+            && bin_unpack_u32(&chat->shared_state.version, &obj->via.array.ptr[5])
+            && bin_unpack_u32(&chat->shared_state.topic_lock, &obj->via.array.ptr[6])
+            && bin_unpack_u08(&voice_state, &obj->via.array.ptr[7]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack state value");
         return false;
     }
@@ -43,13 +43,13 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
     chat->shared_state.privacy_state = (Group_Privacy_State)privacy_state;
     chat->shared_state.voice_state = (Group_Voice_State)voice_state;
 
-    if (!(tox_unpack_bin_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &obj->via.array.ptr[8])
-            && tox_unpack_bin_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE,
-                                    &obj->via.array.ptr[9])
-            && tox_unpack_bin_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &obj->via.array.ptr[10])
-            && tox_unpack_bin_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &obj->via.array.ptr[11])
-            && tox_unpack_bin_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
-                                    &obj->via.array.ptr[12]))) {
+    if (!(bin_unpack_bytes_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &obj->via.array.ptr[8])
+            && bin_unpack_bytes_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE,
+                                      &obj->via.array.ptr[9])
+            && bin_unpack_bytes_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &obj->via.array.ptr[10])
+            && bin_unpack_bytes_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &obj->via.array.ptr[11])
+            && bin_unpack_bytes_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
+                                      &obj->via.array.ptr[12]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack state binary data");
         return false;
     }
@@ -66,12 +66,12 @@ static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    if (!(tox_unpack_u32(&chat->topic_info.version, &obj->via.array.ptr[0])
-            && tox_unpack_u16(&chat->topic_info.length, &obj->via.array.ptr[1])
-            && tox_unpack_u16(&chat->topic_info.checksum, &obj->via.array.ptr[2])
-            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[3])
-            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[4])
-            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[5]))) {
+    if (!(bin_unpack_u32(&chat->topic_info.version, &obj->via.array.ptr[0])
+            && bin_unpack_u16(&chat->topic_info.length, &obj->via.array.ptr[1])
+            && bin_unpack_u16(&chat->topic_info.checksum, &obj->via.array.ptr[2])
+            && bin_unpack_bytes_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[3])
+            && bin_unpack_bytes_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[4])
+            && bin_unpack_bytes_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[5]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
     }
@@ -89,8 +89,8 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 
     uint8_t packed_mod_list[GROUP_SAVE_MAX_MODERATORS * MOD_LIST_ENTRY_SIZE];
 
-    if (!(tox_unpack_u16(&chat->moderation.num_mods, &obj->via.array.ptr[0])
-            && tox_unpack_bin_fixed(packed_mod_list, sizeof(packed_mod_list), &obj->via.array.ptr[1]))) {
+    if (!(bin_unpack_u16(&chat->moderation.num_mods, &obj->via.array.ptr[0])
+            && bin_unpack_bytes_fixed(packed_mod_list, sizeof(packed_mod_list), &obj->via.array.ptr[1]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack mod list binary data");
         return false;
     }
@@ -111,10 +111,10 @@ static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    if (!(tox_unpack_bin_fixed(chat->chat_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[0])
-            && tox_unpack_bin_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[1])
-            && tox_unpack_bin_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[2])
-            && tox_unpack_bin_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[3]))) {
+    if (!(bin_unpack_bytes_fixed(chat->chat_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[0])
+            && bin_unpack_bytes_fixed(chat->chat_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[1])
+            && bin_unpack_bytes_fixed(chat->self_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[2])
+            && bin_unpack_bytes_fixed(chat->self_secret_key, EXT_SECRET_KEY_SIZE, &obj->via.array.ptr[3]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack keys");
         return false;
     }
@@ -135,10 +135,10 @@ static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
     uint8_t self_role = GR_USER;
     uint8_t self_status = GS_NONE;
 
-    if (!(tox_unpack_u16(&self_nick_len, &obj->via.array.ptr[0])
-            && tox_unpack_bin_fixed(self_nick, sizeof(self_nick), &obj->via.array.ptr[1])
-            && tox_unpack_u08(&self_role, &obj->via.array.ptr[2])
-            && tox_unpack_u08(&self_status, &obj->via.array.ptr[3]))) {
+    if (!(bin_unpack_u16(&self_nick_len, &obj->via.array.ptr[0])
+            && bin_unpack_bytes_fixed(self_nick, sizeof(self_nick), &obj->via.array.ptr[1])
+            && bin_unpack_u08(&self_role, &obj->via.array.ptr[2])
+            && bin_unpack_u08(&self_status, &obj->via.array.ptr[3]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack self info");
         return false;
     }
@@ -175,14 +175,14 @@ static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
     // Saved peers
     uint8_t num_saved_peers = 0;
 
-    if (!tox_unpack_u08(&num_saved_peers, &obj->via.array.ptr[0])) {
+    if (!bin_unpack_u08(&num_saved_peers, &obj->via.array.ptr[0])) {
         LOGGER_ERROR(chat->log, "Failed to unpack saved peers value");
         return false;
     }
 
     uint8_t saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
 
-    if (!tox_unpack_bin_fixed(saved_peers, sizeof(saved_peers), &obj->via.array.ptr[1])) {
+    if (!bin_unpack_bytes_fixed(saved_peers, sizeof(saved_peers), &obj->via.array.ptr[1])) {
         LOGGER_ERROR(chat->log, "Failed to unpack saved peers binary data");
         return false;
     }
