@@ -58,16 +58,17 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 }
 static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 5) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
         LOGGER_ERROR(chat->log, "Group topic array malformed (type: %d)", obj->type);
         return false;
     }
 
     if (!(tox_unpack_u32(&chat->topic_info.version, &obj->via.array.ptr[0])
             && tox_unpack_u16(&chat->topic_info.length, &obj->via.array.ptr[1])
-            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[2])
-            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[3])
-            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[4]))) {
+            && tox_unpack_u16(&chat->topic_info.checksum, &obj->via.array.ptr[2])
+            && tox_unpack_bin_fixed(chat->topic_info.topic, MAX_GC_TOPIC_SIZE, &obj->via.array.ptr[3])
+            && tox_unpack_bin_fixed(chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE, &obj->via.array.ptr[4])
+            && tox_unpack_bin_fixed(chat->topic_sig, SIGNATURE_SIZE, &obj->via.array.ptr[5]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
     }
@@ -228,16 +229,17 @@ static void save_pack_state(const GC_Chat *chat, msgpack_packer *mp)
 
 static void save_pack_topic_info(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 5);
+    msgpack_pack_array(mp, 6);
 
     msgpack_pack_uint32(mp, chat->topic_info.version); // 1
     msgpack_pack_uint16(mp, chat->topic_info.length); // 2
+    msgpack_pack_uint16(mp, chat->topic_info.checksum); // 3
     msgpack_pack_bin(mp, MAX_GC_TOPIC_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_info.topic, MAX_GC_TOPIC_SIZE); // 3
+    msgpack_pack_bin_body(mp, chat->topic_info.topic, MAX_GC_TOPIC_SIZE); // 4
     msgpack_pack_bin(mp, SIG_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 4
+    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
     msgpack_pack_bin(mp, SIGNATURE_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE); // 5
+    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
 static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
