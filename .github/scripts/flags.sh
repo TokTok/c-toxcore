@@ -33,3 +33,6 @@ add_cxx_flag -std=c++11
 
 add_flag -g3
 add_flag -ftrapv
+
+# Enable extra checks.
+add_flag -D_DEBUG
