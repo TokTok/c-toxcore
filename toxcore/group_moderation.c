@@ -520,7 +520,7 @@ static bool sanctions_creds_validate(const Moderation *moderation, const Mod_San
         return false;
     }
 
-    if (*moderation->shared_state_version > 0) {
+    if (moderation->shared_state_version > 0) {
         if ((creds->version < moderation->sanctions_creds.version)
                 && !(creds->version == 0 && moderation->sanctions_creds.version == UINT32_MAX)) {
             LOGGER_WARNING(moderation->log, "Invalid version");

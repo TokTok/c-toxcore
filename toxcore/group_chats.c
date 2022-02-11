@@ -680,6 +680,16 @@ static bool set_gc_password_local(GC_Chat *chat, const uint8_t *passwd, uint16_t
     return true;
 }
 
+/** Sets the local shared state to `version`. This should always be called instead of
+ * setting the variables manually.
+ */
+non_null()
+static void set_gc_shared_state_version(GC_Chat *chat, uint32_t version)
+{
+    chat->shared_state.version = version;
+    chat->moderation.shared_state_version = version;
+}
+
 /** Expands the chat_id into the extended chat public key (encryption key + signature key)
  * dest must have room for EXT_PUBLIC_KEY_SIZE bytes.
  *
@@ -959,7 +969,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
     }
 
     if (conflicts && !self_gc_is_founder(chat)) {
-        chat->shared_state.version = 0;  // need a new shared state
+        set_gc_shared_state_version(chat, 0);  // need a new shared state
     }
 }
 
@@ -1313,7 +1323,7 @@ static bool sign_gc_shared_state(GC_Chat *chat)
     }
 
     if (chat->shared_state.version != UINT32_MAX) { /** improbable, but an overflow would break everything */
-        ++chat->shared_state.version;
+        set_gc_shared_state_version(chat, chat->shared_state.version + 1);
     } else {
         LOGGER_WARNING(chat->log, "Shared state version wraparound");
     }
@@ -1322,7 +1332,7 @@ static bool sign_gc_shared_state(GC_Chat *chat)
     const uint16_t packed_len = pack_gc_shared_state(shared_state, sizeof(shared_state), &chat->shared_state);
 
     if (packed_len != GC_PACKED_SHARED_STATE_SIZE) {
-        --chat->shared_state.version;
+        set_gc_shared_state_version(chat, chat->shared_state.version - 1);
         LOGGER_ERROR(chat->log, "Failed to pack shared state");
         return false;
     }
@@ -1331,7 +1341,7 @@ static bool sign_gc_shared_state(GC_Chat *chat)
                                          get_sig_sk(chat->chat_secret_key));
 
     if (ret != 0) {
-        --chat->shared_state.version;
+        set_gc_shared_state_version(chat, chat->shared_state.version - 1);
         LOGGER_ERROR(chat->log, "Failed to sign shared state (%d)", ret);
         return false;
     }
@@ -2807,9 +2817,16 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, GC_Connect
         return 0;
     }
 
+    if (chat->shared_state.version == 0) {  // init founder public sig key in moderation object
+        memcpy(chat->moderation.founder_public_sig_key,
+               get_sig_pk(new_shared_state.founder_public_key), SIG_PUBLIC_KEY_SIZE);
+    }
+
     chat->shared_state = new_shared_state;
 
     memcpy(chat->shared_state_sig, signature, sizeof(chat->shared_state_sig));
+
+    set_gc_shared_state_version(chat, chat->shared_state.version);
 
     do_gc_shared_state_changes(c, chat, &old_shared_state, userdata);
 
@@ -6886,10 +6903,11 @@ static bool init_gc_shared_state_founder(GC_Chat *chat, Group_Privacy_State priv
 non_null()
 static void init_gc_moderation(GC_Chat *chat)
 {
-    chat->moderation.founder_public_sig_key = get_sig_pk(chat->shared_state.founder_public_key);
-    chat->moderation.self_public_sig_key = get_sig_pk(chat->self_public_key);
-    chat->moderation.self_secret_sig_key = get_sig_sk(chat->self_secret_key);
-    chat->moderation.shared_state_version = &chat->shared_state.version;
+    memcpy(chat->moderation.founder_public_sig_key,
+           get_sig_pk(chat->shared_state.founder_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
+    memcpy(chat->moderation.self_secret_sig_key, get_sig_pk(chat->self_secret_key), SIG_SECRET_KEY_SIZE);
+    chat->moderation.shared_state_version = chat->shared_state.version;
     chat->moderation.log = chat->log;
 }
 
@@ -6968,11 +6986,6 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
 non_null()
 static bool init_gc_sanctions_creds(GC_Chat *chat)
 {
-    if (chat->moderation.founder_public_sig_key == nullptr || chat->moderation.self_secret_sig_key == nullptr) {
-        LOGGER_FATAL(chat->log, "moderation object is not initialized");
-        return false;
-    }
-
     if (!sanctions_list_make_creds(&chat->moderation)) {
         return false;
     }
