@@ -316,7 +316,7 @@ static bool peer_has_voice(const GC_Peer *peer, Group_Voice_State voice_state)
 non_null()
 static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
 
-int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length)
+int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length, uint16_t *processed)
 {
     uint16_t packed_len = 0;
     uint16_t count = 0;
@@ -368,15 +368,19 @@ int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length)
         }
     }
 
+    if (processed) {
+        *processed = packed_len;
+    }
+
     return count;
 }
 
-int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length, uint16_t max_num)
+int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length)
 {
     uint16_t count = 0;
     uint16_t unpacked_len = 0;
 
-    for (size_t i = 0; i < max_num && unpacked_len < length; ++i) {
+    for (size_t i = 0; unpacked_len < length; ++i) {
         GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
         if (unpacked_len > length) {

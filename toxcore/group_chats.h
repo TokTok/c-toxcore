@@ -693,7 +693,7 @@ int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mess
  * Return 0 if packet is successfully handled.
  * Return -1 on failure.
  */
-non_null(1, 2, 4) nullable(7)
+non_null(1, 2) nullable(4, 7)
 int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, const uint8_t *data,
                               uint16_t length, uint8_t packet_type, void *userdata);
 

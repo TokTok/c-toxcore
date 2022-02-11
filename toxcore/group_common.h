@@ -29,7 +29,7 @@
 #define MAX_GC_SAVED_TIMEOUTS 12
 #define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
 
-#define GROUP_SAVE_MAX_MODERATORS 30
+#define GROUP_SAVE_MAX_MODERATORS 500  // a high but sane value just to be safe
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
 
 /* Max number of messages to store in the send/recv arrays */
@@ -409,14 +409,15 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
  * Returns -1 on failure.
  */
 non_null()
-int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length, uint16_t max_num);
+int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length);
 
-/** Packs all valid entries from saved peerlist into `data`.
+/** Packs all valid entries from saved peerlist into `data`. If `processed` is non-null
+ * it will be set to the length of the packed data.
  *
  * Return the number of packed saved peers on success.
  * Return -1 if buffer is too small.
  */
-non_null()
-int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length);
+non_null(1, 2) nullable(4)
+int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length, uint16_t *processed);
 
 #endif  // GROUP_COMMON_H
