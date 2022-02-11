@@ -151,16 +151,6 @@ typedef enum Group_Peer_Status {
     GS_BUSY    = 0x02,
 } Group_Peer_Status;
 
-/***
- * Group save connection state.
- *
- * Used to determine whether or not a group should auto-connect the next time it's loaded.
- */
-typedef enum Saved_GC_Conn_State {
-    SGCS_DISCONNECTED = 0x00,  // The saved group is currently disconnected
-    SGCS_CONNECTED    = 0x01,  // The saved group is currently connected
-} Saved_GC_Conn_State;
-
 /**
  * Group voice states. The state determines which Group Roles have permission to speak.
  */

@@ -22,11 +22,11 @@ static bool load_unpack_state_values(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    uint8_t connection_state = 0;
+    bool manually_disconnected = 0;
     uint8_t privacy_state = 0;
     uint8_t voice_state = 0;
 
-    if (!(bin_unpack_u08(&connection_state, &obj->via.array.ptr[0])
+    if (!(bin_unpack_bool(&manually_disconnected, &obj->via.array.ptr[0])
             && bin_unpack_u16(&chat->shared_state.group_name_len, &obj->via.array.ptr[1])
             && bin_unpack_u08(&privacy_state, &obj->via.array.ptr[2])
             && bin_unpack_u16(&chat->shared_state.maxpeers, &obj->via.array.ptr[3])
@@ -38,9 +38,7 @@ static bool load_unpack_state_values(GC_Chat *chat, const msgpack_object *obj)
         return false;
     }
 
-    const bool is_active_chat = connection_state == SGCS_CONNECTED ? true : false;
-
-    chat->connection_state = is_active_chat ? CS_CONNECTING : CS_DISCONNECTED;
+    chat->connection_state = manually_disconnected ? CS_DISCONNECTED : CS_CONNECTING;
     chat->shared_state.privacy_state = (Group_Privacy_State)privacy_state;
     chat->shared_state.voice_state = (Group_Voice_State)voice_state;
 
@@ -56,12 +54,10 @@ static bool load_unpack_state_bin(GC_Chat *chat, const msgpack_object *obj)
     }
 
     if (!(bin_unpack_bytes_fixed(chat->shared_state_sig, SIGNATURE_SIZE, &obj->via.array.ptr[0])
-            && bin_unpack_bytes_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE,
-                                      &obj->via.array.ptr[1])
+            && bin_unpack_bytes_fixed(chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE, &obj->via.array.ptr[1])
             && bin_unpack_bytes_fixed(chat->shared_state.group_name, MAX_GC_GROUP_NAME_SIZE, &obj->via.array.ptr[2])
             && bin_unpack_bytes_fixed(chat->shared_state.password, MAX_GC_PASSWORD_SIZE, &obj->via.array.ptr[3])
-            && bin_unpack_bytes_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE,
-                                      &obj->via.array.ptr[4]))) {
+            && bin_unpack_bytes_fixed(chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE, &obj->via.array.ptr[4]))) {
         LOGGER_ERROR(chat->log, "Failed to unpack state binary data");
         return false;
     }
@@ -226,9 +222,11 @@ static void save_pack_state_values(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 8);
 
-    const bool is_manually_disconnected = chat->connection_state == CS_DISCONNECTED;
-
-    msgpack_pack_uint8(mp, is_manually_disconnected ? SGCS_DISCONNECTED : SGCS_CONNECTED); // 1
+    if (chat->connection_state == CS_DISCONNECTED) { // 1
+        msgpack_pack_true(mp);
+    } else {
+        msgpack_pack_false(mp);
+    }
     msgpack_pack_uint16(mp, chat->shared_state.group_name_len); // 2
     msgpack_pack_uint8(mp, chat->shared_state.privacy_state); // 3
     msgpack_pack_uint16(mp, chat->shared_state.maxpeers); // 4
