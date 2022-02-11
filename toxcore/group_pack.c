@@ -17,7 +17,7 @@
 non_null()
 static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 13) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 13) {
         LOGGER_ERROR(chat->log, "Group state array malformed (type: %d)", obj->type);
         return false;
     }
@@ -61,7 +61,7 @@ static bool load_unpack_state(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 6) {
         LOGGER_ERROR(chat->log, "Group topic array malformed (type: %d)", obj->type);
         return false;
     }
@@ -82,7 +82,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 2) {
         LOGGER_ERROR(chat->log, "Group mod list array malformed (type: %d)", obj->type);
         return false;
     }
@@ -106,7 +106,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 4) {
         LOGGER_ERROR(chat->log, "Group keys array malformed (type: %d)", obj->type);
         return false;
     }
@@ -125,7 +125,7 @@ static bool load_unpack_keys(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 4) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 4) {
         LOGGER_ERROR(chat->log, "Group self info array malformed (type: %d)", obj->type);
         return false;
     }
@@ -167,7 +167,7 @@ static bool load_unpack_self_info(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 2) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 2) {
         LOGGER_ERROR(chat->log, "Group saved peers array malformed (type: %d)", obj->type);
         return false;
     }
@@ -196,7 +196,7 @@ static bool load_unpack_saved_peers(GC_Chat *chat, const msgpack_object *obj)
 
 bool gc_load_unpack_group(GC_Chat *chat, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size != 6) {
+    if (obj->type != MSGPACK_OBJECT_ARRAY || obj->via.array.size < 6) {
         LOGGER_ERROR(chat->log, "Group info array malformed (type %d)", obj->type);
         return false;
     }
