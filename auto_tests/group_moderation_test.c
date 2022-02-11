@@ -324,6 +324,112 @@ static void check_self_role(AutoTox *autotoxes, uint32_t peer_id, Tox_Group_Role
     }
 }
 
+/* Makes sure that a peer's role respects the voice state  */
+static void voice_state_message_test(AutoTox *autotox, Tox_Group_Voice_State voice_state)
+{
+    const State *state = (State *)autotox->state;
+
+    Tox_Err_Group_Self_Query sq_err;
+    Tox_Group_Role self_role = tox_group_self_get_role(autotox->tox, state->group_number, &sq_err);
+    assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    Tox_Err_Group_Send_Message msg_err;
+    bool send_ret = tox_group_send_message(autotox->tox, state->group_number, TOX_MESSAGE_TYPE_NORMAL,
+                                           (const uint8_t *)"test", 4, &msg_err);
+
+    switch (self_role) {
+        case TOX_GROUP_ROLE_OBSERVER: {
+            ck_assert(!send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_PERMISSIONS);
+            break;
+        }
+
+        case TOX_GROUP_ROLE_USER: {
+            if (voice_state != TOX_GROUP_VOICE_STATE_ALL) {
+                ck_assert_msg(!send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_PERMISSIONS,
+                              "%d, %d", send_ret, msg_err);
+            } else {
+                ck_assert(send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_OK);
+            }
+
+            break;
+        }
+
+        case TOX_GROUP_ROLE_MODERATOR: {
+            if (voice_state != TOX_GROUP_VOICE_STATE_FOUNDER) {
+                ck_assert(send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_OK);
+            } else {
+                ck_assert(!send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_PERMISSIONS);
+            }
+
+            break;
+        }
+
+        case TOX_GROUP_ROLE_FOUNDER: {
+            ck_assert(send_ret && msg_err == TOX_ERR_GROUP_SEND_MESSAGE_OK);
+            break;
+        }
+    }
+}
+
+static bool all_peers_got_voice_state_change(AutoTox *autotoxes, uint32_t num_toxes,
+        Tox_Group_Voice_State expected_voice_state)
+{
+    Tox_Err_Group_State_Queries query_err;
+
+    for (uint32_t i = 0; i < num_toxes; ++i) {
+        const State *state = (State *)autotoxes[i].state;
+
+        Tox_Group_Voice_State voice_state = tox_group_get_voice_state(autotoxes[i].tox, state->group_number, &query_err);
+        ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
+
+        if (voice_state != expected_voice_state) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+static void check_voice_state(AutoTox *autotoxes, uint32_t num_toxes)
+{
+    // founder sets voice state to Moderator
+    const State *state = (State *)autotoxes[0].state;
+    Tox_Err_Group_Founder_Set_Voice_State voice_set_err;
+    tox_group_founder_set_voice_state(autotoxes[0].tox, state->group_number, TOX_GROUP_VOICE_STATE_MODERATOR,
+                                      &voice_set_err);
+    ck_assert(voice_set_err == TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK);
+
+    for (uint32_t i = 0; i < num_toxes; ++i) {
+        do {
+            iterate_all_wait(autotoxes, num_toxes, ITERATION_INTERVAL);
+        } while (!all_peers_got_voice_state_change(autotoxes, num_toxes, TOX_GROUP_VOICE_STATE_MODERATOR));
+
+        voice_state_message_test(&autotoxes[i], TOX_GROUP_VOICE_STATE_MODERATOR);
+    }
+
+    tox_group_founder_set_voice_state(autotoxes[0].tox, state->group_number, TOX_GROUP_VOICE_STATE_FOUNDER, &voice_set_err);
+    ck_assert(voice_set_err == TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK);
+
+    for (uint32_t i = 0; i < num_toxes; ++i) {
+        do {
+            iterate_all_wait(autotoxes, num_toxes, ITERATION_INTERVAL);
+        } while (!all_peers_got_voice_state_change(autotoxes, num_toxes, TOX_GROUP_VOICE_STATE_FOUNDER));
+
+        voice_state_message_test(&autotoxes[i], TOX_GROUP_VOICE_STATE_FOUNDER);
+    }
+
+    tox_group_founder_set_voice_state(autotoxes[0].tox, state->group_number, TOX_GROUP_VOICE_STATE_ALL, &voice_set_err);
+    ck_assert(voice_set_err == TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK);
+
+    for (uint32_t i = 0; i < num_toxes; ++i) {
+        do {
+            iterate_all_wait(autotoxes, num_toxes, ITERATION_INTERVAL);
+        } while (!all_peers_got_voice_state_change(autotoxes, num_toxes, TOX_GROUP_VOICE_STATE_ALL));
+
+        voice_state_message_test(&autotoxes[i], TOX_GROUP_VOICE_STATE_ALL);
+    }
+}
+
 static void group_moderation_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
@@ -449,6 +555,11 @@ static void group_moderation_test(AutoTox *autotoxes)
     check_self_role(autotoxes, state0->peers[1].peer_id, TOX_GROUP_ROLE_OBSERVER);
 
     fprintf(stderr, "All peers successfully received observer event 2\n");
+
+    /* do voice state test here since we have at least one peer of each role */
+    check_voice_state(autotoxes, NUM_GROUP_TOXES);
+
+    fprintf(stderr, "Voice state respected by all peers\n");
 
     /* New moderator promotes second peer back to user */
     const uint32_t idx = get_state_index_by_nick(autotoxes, NUM_GROUP_TOXES, state0->peers[0].name,
