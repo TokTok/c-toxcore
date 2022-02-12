@@ -40,6 +40,16 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
                                 const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
                                 bool direct_conn);
 
+/** Handles a packet fragment. If the fragment is incomplete, it gets stored in the recv
+ * array. Otherwise the segment is re-assembled into a complete payload and processed.
+ *
+ * Return true if fragment is successfully handled.
+ */
+non_null(1, 2, 4) nullable(5, 9)
+bool gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
+                                const uint8_t *chunk, uint16_t length, uint8_t packet_type,  uint64_t message_id,
+                                void *userdata);
+
 /** Return array index for message_id */
 uint16_t gcc_get_array_index(uint64_t message_id);
 
