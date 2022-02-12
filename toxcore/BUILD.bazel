@@ -459,7 +459,7 @@ cc_library(
 )
 
 cc_library(
-    name = "toxcore",
+    name = "tox",
     srcs = [
         "tox.c",
         "tox_api.c",
@@ -488,7 +488,7 @@ cc_library(
     deps = [
         ":bin_unpack",
         ":ccompat",
-        ":toxcore",
+        ":tox",
         "@msgpack-c",
     ],
 )
@@ -504,8 +504,8 @@ cc_library(
     deps = [
         ":bin_unpack",
         ":ccompat",
+        ":tox",
         ":tox_unpack",
-        ":toxcore",
         "@msgpack-c",
     ],
 )
@@ -519,6 +519,12 @@ cc_library(
         ":ccompat",
         ":tox_events",
     ],
+)
+
+alias(
+    name = "toxcore",
+    actual = ":tox_dispatch",
+    visibility = ["//c-toxcore:__subpackages__"],
 )
 
 sh_library(

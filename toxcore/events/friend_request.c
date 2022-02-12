@@ -93,6 +93,8 @@ static void tox_event_friend_request_pack(
 {
     assert(event != nullptr);
     msgpack_pack_array(mp, 2);
+    msgpack_pack_uint32(mp, TOX_EVENT_FRIEND_REQUEST);
+    msgpack_pack_array(mp, 2);
     msgpack_pack_bin(mp, TOX_PUBLIC_KEY_SIZE);
     msgpack_pack_bin_body(mp, event->public_key, TOX_PUBLIC_KEY_SIZE);
     msgpack_pack_bin(mp, event->message_length);
@@ -183,8 +185,6 @@ void tox_events_pack_friend_request(const Tox_Events *events, msgpack_packer *mp
 {
     const uint32_t size = tox_events_get_friend_request_size(events);
 
-    msgpack_pack_array(mp, size);
-
     for (uint32_t i = 0; i < size; ++i) {
         tox_event_friend_request_pack(tox_events_get_friend_request(events, i), mp);
     }
@@ -192,23 +192,13 @@ void tox_events_pack_friend_request(const Tox_Events *events, msgpack_packer *mp
 
 bool tox_events_unpack_friend_request(Tox_Events *events, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY) {
+    Tox_Event_Friend_Request *event = tox_events_add_friend_request(events);
+
+    if (event == nullptr) {
         return false;
     }
 
-    for (uint32_t i = 0; i < obj->via.array.size; ++i) {
-        Tox_Event_Friend_Request *event = tox_events_add_friend_request(events);
-
-        if (event == nullptr) {
-            return false;
-        }
-
-        if (!tox_event_friend_request_unpack(event, &obj->via.array.ptr[i])) {
-            return false;
-        }
-    }
-
-    return true;
+    return tox_event_friend_request_unpack(event, obj);
 }
 
 
