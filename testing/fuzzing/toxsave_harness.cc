@@ -17,9 +17,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   Tox_Err_New error_new;
   Tox *tox = tox_new(tox_options, &error_new);
 
-  assert(tox != nullptr);
-  assert(error_new == TOX_ERR_NEW_OK);
-
   tox_options_free(tox_options);
 
   tox_kill(tox);
