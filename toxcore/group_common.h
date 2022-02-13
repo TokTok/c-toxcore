@@ -52,6 +52,9 @@ static_assert(MAX_GC_PACKET_CHUNK_SIZE >= 171,
 static_assert(MAX_GC_PACKET_SIZE >= 50000,
               "MAX_GC_PACKET_SIZE doesn't match constants in group_moderation.h");
 
+static_assert(MAX_GC_PACKET_SIZE <= UINT16_MAX - MAX_GC_PACKET_CHUNK_SIZE,
+              "MAX_GC_PACKET_SIZE must be <= UINT16_MAX - MAX_GC_PACKET_CHUNK_SIZE");
+
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
     SELF_UDP_STATUS_WAN  = 0x01,

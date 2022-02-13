@@ -299,7 +299,7 @@ static bool store_in_recv_array(const Logger *log, const Mono_Time *mono_time, G
 }
 
 non_null()
-static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, size_t max_size, GC_Connection *gconn,
+static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, uint16_t max_size, GC_Connection *gconn,
                                   uint8_t packet_type, uint64_t message_id)
 {
     uint16_t end_idx = gcc_get_array_index(message_id - 1);
@@ -336,6 +336,7 @@ static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, size_t ma
         }
 
         assert(entry->data != nullptr);
+        assert((uint16_t)(processed + entry->data_length) > processed);
 
         memcpy(payload + processed, entry->data, entry->data_length);
         processed += entry->data_length;
