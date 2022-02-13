@@ -40,8 +40,17 @@
 
 static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
+
 static_assert(MAX_GC_PACKET_CHUNK_SIZE < MAX_GC_PACKET_SIZE,
               "MAX_GC_PACKET_CHUNK_SIZE must be < MAX_GC_PACKET_SIZE");
+
+// size of a lossless handshake packet - lossless packets can't/shouldn't be split up
+static_assert(MAX_GC_PACKET_CHUNK_SIZE >= 171,
+              "MAX_GC_PACKET_CHUNK_SIZE must be >= 171");
+
+// group_moderation constants assume this is the max packet size.
+static_assert(MAX_GC_PACKET_SIZE >= 50000,
+              "MAX_GC_PACKET_SIZE doesn't match constants in group_moderation.h");
 
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,

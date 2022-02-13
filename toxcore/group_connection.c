@@ -360,18 +360,29 @@ bool gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t pee
         return true;
     }
 
-    uint8_t payload[MAX_GC_PACKET_SIZE];
+    // TODO(Jfreegman): Reduce the size of this allocation since most packets will never
+    // come close to the max size
+    uint8_t *payload = (uint8_t *)malloc(MAX_GC_PACKET_SIZE);
 
-    const uint16_t processed_len = reassemble_packet(chat->log, payload, sizeof(payload), gconn,
+    if (payload == nullptr) {
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for payload buffer");
+        return false;
+    }
+
+    const uint16_t processed_len = reassemble_packet(chat->log, payload, MAX_GC_PACKET_SIZE, gconn,
                                    packet_type, message_id);
 
     if (processed_len == 0) {
+        free(payload);
         return false;
     }
 
     if (handle_gc_lossless_helper(c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata) < 0) {
+        free(payload);
         return false;
     }
+
+    free(payload);
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
 
@@ -519,19 +530,30 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
 bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
-    uint8_t packet[MAX_GC_PACKET_SIZE];
+    const uint16_t packet_size = gc_get_wrapped_packet_size(length, NET_PACKET_GC_LOSSLESS);
+    uint8_t *packet = (uint8_t *)malloc(packet_size);
+
+    if (packet == nullptr) {
+        LOGGER_WARNING(chat->log, "Failed to allocate memory for packet buffer");
+        return false;
+    }
+
     const int enc_len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
-                                          sizeof(packet), data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
+                                          packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
         LOGGER_WARNING(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
+        free(packet);
         return false;
     }
 
     if (!gcc_send_packet(chat, gconn, packet, (uint16_t)enc_len)) {
         LOGGER_WARNING(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
+        free(packet);
         return false;
     }
+
+    free(packet);
 
     return true;
 }

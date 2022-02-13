@@ -267,7 +267,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanc
             return -1;
         }
 
-        /** Signature must be packed last */
+        /* Signature must be packed last */
         memcpy(data + packed_len, sanctions[i].signature, SIGNATURE_SIZE);
         packed_len += SIGNATURE_SIZE;
     }

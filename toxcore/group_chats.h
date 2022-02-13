@@ -141,6 +141,12 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
                       uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
                       uint8_t gp_packet_type, uint8_t net_packet_type);
 
+/** Returns the size of a wrapped/encrypted packet with a plain size of `length`.
+ *
+ * `pakcket_type` must be either NET_PACKET_GC_LOSSY or NET_PACKET_GC_LOSSLESS.
+ */
+uint16_t gc_get_wrapped_packet_size(uint16_t length, uint8_t packet_type);
+
 /** Sends a plain message or an action, depending on type.
  *
  * `length` must not exceept MAX_GC_MESSAGE_SIZE and must not be equal to zero.

@@ -136,7 +136,7 @@ bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn
 non_null()
 bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
 
-/** Sends a lossless packet to `gconn` comprised of `data` of size `length.
+/** Sends a lossless packet to `gconn` comprised of `data` of size `length`.
  *
  * This function will add the packet to the lossless send array, encrypt/wrap it using the
  * shared key associated with `gconn`, and send it over the wire.

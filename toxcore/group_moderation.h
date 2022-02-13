@@ -30,14 +30,14 @@
 #define MOD_SANCTION_PACKED_SIZE (SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
 
 /* These values must take into account the maximum allowed packet size and headers. */
-#define MOD_MAX_NUM_MODERATORS (((50000 - 100) / (MOD_LIST_ENTRY_SIZE)))
-#define MOD_MAX_NUM_SANCTIONS  (((50000 - 100 - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE)))
+#define MOD_MAX_NUM_MODERATORS (((49900) / (MOD_LIST_ENTRY_SIZE)))
+#define MOD_MAX_NUM_SANCTIONS  (((49900 - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE)))
 
-static_assert(MOD_SANCTIONS_CREDS_SIZE <= 50000 - 100,
+static_assert(MOD_SANCTIONS_CREDS_SIZE <= 49900,
               "MOD_SANCTIONS_CREDS_SIZE must be <= 49900");
-static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= MAX_GC_PACKET_SIZE - 100,
+static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= 49900,
               "MOD_MAX_NUM_SANCTIONS must be abel to fit inside the maximum allowed payload size)");
-static_assert(MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE <= MAX_GC_PACKET_SIZE - 100,
+static_assert(MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE <= 49900,
               "MOD_MAX_NUM_MODERATORS must be able to fit insize the maximum allowed payload size)");
 
 typedef enum Mod_Sanction_Type {

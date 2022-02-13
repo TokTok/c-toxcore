@@ -126,6 +126,20 @@ static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number
 non_null() static bool create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
+uint16_t gc_get_wrapped_packet_size(uint16_t length, uint8_t packet_type)
+{
+    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+
+    const uint16_t min_header_size = packet_type == NET_PACKET_GC_LOSSY
+                                     ? GC_MIN_LOSSY_PAYLOAD_SIZE
+                                     : GC_MIN_LOSSLESS_PAYLOAD_SIZE;
+    const uint16_t header_size = ENC_PUBLIC_KEY_SIZE + GC_MAX_PACKET_PADDING + min_header_size;
+
+    assert(length <= UINT16_MAX - header_size);
+
+    return length + header_size;
+}
+
 /** Return true if `peer_number` is our own. */
 static bool peer_number_is_self(int peer_number)
 {
@@ -161,7 +175,7 @@ GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
 /** Returns the amount of empty padding a packet of designated length should have. */
 static uint16_t group_packet_padding_length(uint16_t length)
 {
-    return (MAX_GC_PACKET_SIZE - length) % GC_MAX_PACKET_PADDING;
+    return (MAX_GC_PACKET_CHUNK_SIZE - length) % GC_MAX_PACKET_PADDING;
 }
 
 void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick)
@@ -1372,17 +1386,24 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
         return -1;
     }
 
-    uint8_t plain[MAX_GC_PACKET_SIZE];
+    uint8_t *plain = (uint8_t *)malloc(length);
+
+    if (plain == nullptr) {
+        LOGGER_ERROR(log, "Failed to allocate memory for plain data buffer");
+        return -1;
+    }
+
     int plain_len = decrypt_data_symmetric(gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
                                            length - CRYPTO_NONCE_SIZE, plain);
 
     if (plain_len <= 0) {
+        free(plain);
         return -2;
     }
 
     const int min_plain_len = message_id != nullptr ? 1 + GC_MESSAGE_ID_BYTES : 1;
 
-    /** remove padding */
+    /* remove padding */
     const uint8_t *real_plain = plain;
 
     while (real_plain[0] == 0) {
@@ -1390,6 +1411,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
         --plain_len;
 
         if (plain_len < min_plain_len) {
+            free(plain);
             return -3;
         }
     }
@@ -1406,6 +1428,8 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
 
     memcpy(data, real_plain + header_len, plain_len);
 
+    free(plain);
+
     return plain_len;
 }
 
@@ -1416,10 +1440,20 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     const uint16_t padding_len = group_packet_padding_length(length);
 
     if (length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE > packet_size) {
+        LOGGER_ERROR(log, "Invalid packet buffer size: %u", packet_size);
         return -1;
     }
 
-    uint8_t plain[MAX_GC_PACKET_SIZE] = {0};
+    if (length > MAX_GC_PACKET_CHUNK_SIZE) {
+        LOGGER_ERROR(log, "Invalid packet buffer size: %u", packet_size);
+        return -1;
+    }
+
+    uint8_t *plain = (uint8_t *)calloc(1, packet_size);
+
+    if (plain == nullptr) {
+        return -1;
+    }
 
     uint16_t enc_header_len = sizeof(uint8_t);
     plain[padding_len] = gp_packet_type;
@@ -1442,10 +1476,13 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     uint8_t *encrypt = (uint8_t *)malloc(encrypt_buf_size);
 
     if (encrypt == nullptr) {
+        free(plain);
         return -2;
     }
 
     const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
+
+    free(plain);
 
     if (enc_len != encrypt_buf_size) {
         LOGGER_ERROR(log, "encryption failed. packet type: 0x%02x, enc_len: %d", gp_packet_type, enc_len);
@@ -1471,6 +1508,8 @@ non_null()
 static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
                                     uint16_t length, uint8_t packet_type)
 {
+    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+
     if (!gconn->handshaked || gconn->pending_delete) {
         return false;
     }
@@ -1479,16 +1518,27 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
         return false;
     }
 
-    uint8_t packet[MAX_GC_PACKET_SIZE];
-    const int len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
-                                      sizeof(packet), data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
+    const uint16_t packet_size = gc_get_wrapped_packet_size(length, NET_PACKET_GC_LOSSY);
+    uint8_t *packet = (uint8_t *)malloc(packet_size);
 
-    if (len < 0) {
-        LOGGER_WARNING(chat->log, "group_packet_wrap failed (type: 0x%02x, error: %d)", packet_type, len);
+    if (packet == nullptr) {
         return false;
     }
 
-    return gcc_send_packet(chat, gconn, packet, (uint16_t)len);
+    const int len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
+                                      packet_size, data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
+
+    if (len < 0) {
+        LOGGER_ERROR(chat->log, "Failed to encrypt packet (type: 0x%02x, error: %d)", packet_type, len);
+        free(packet);
+        return false;
+    }
+
+    const bool ret = gcc_send_packet(chat, gconn, packet, (uint16_t)len);
+
+    free(packet);
+
+    return ret;
 }
 
 /** Sends a lossless packet to peer_number in chat instance.
@@ -1712,11 +1762,16 @@ static bool create_sync_announce(const GC_Chat *chat, const GC_Connection *gconn
 non_null()
 static int sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number)
 {
-    uint8_t response[MAX_GC_PACKET_SIZE];
-    uint16_t response_len = 0;
+    uint8_t *response = (uint8_t *)malloc(MAX_GC_PACKET_CHUNK_SIZE);
+
+    if (response == nullptr) {
+        return -1;
+    }
+
     size_t num_announces = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
+        uint16_t response_len = 0;
         const GC_Connection *peer_gconn = get_gc_connection(chat, i);
 
         if (peer_gconn == nullptr || !peer_gconn->confirmed) {
@@ -1733,9 +1788,14 @@ static int sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, u
             continue;
         }
 
+        if (response_len > MAX_GC_PACKET_CHUNK_SIZE) {
+            LOGGER_ERROR(chat->log, "Invalid sync response size: %u", response_len);
+            continue;
+        }
+
         const int packed_length = gca_pack_announce(chat->log,
                                   response + response_len,
-                                  sizeof(response) - response_len,
+                                  MAX_GC_PACKET_CHUNK_SIZE - response_len,
                                   &announce);
 
         if (packed_length < 0) {
@@ -1753,11 +1813,13 @@ static int sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, u
         ++num_announces;
     }
 
+    free(response);
+
     if (num_announces == 0) {
         // we send an empty sync response even if we didn't send any peers as an acknowledgement
         if (!send_gc_sync_response(chat, gconn, nullptr, 0)) {
             LOGGER_WARNING(chat->log, "Failed to send peer announce info");
-            return -6;
+            return -1;
         }
     }
 
@@ -2436,7 +2498,12 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
 
     copy_self(chat, self);
 
-    uint8_t data[MAX_GC_PACKET_SIZE];
+    const uint16_t data_size = PACKED_GC_PEER_SIZE + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE;
+    uint8_t *data = (uint8_t *)malloc(data_size);
+
+    if (data == nullptr) {
+        return false;
+    }
 
     uint16_t length = 0;
 
@@ -2448,17 +2515,29 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
         length += MAX_GC_PASSWORD_SIZE;
     }
 
-    const int packed_len = pack_gc_peer(data + length, sizeof(data) - length, self);
+
+    if (data_size < length) {
+        free(data);
+        LOGGER_ERROR(chat->log, "Invalid data size");
+        return false;
+    }
+
+    const int packed_len = pack_gc_peer(data + length, data_size - length, self);
     length += packed_len;
 
     free(self);
 
     if (packed_len <= 0) {
         LOGGER_DEBUG(chat->log, "pack_gc_peer failed in handle_gc_peer_info_request_request %d", packed_len);
+        free(data);
         return false;
     }
 
-    return send_lossless_group_packet(chat, gconn, data, length, GP_PEER_INFO_RESPONSE);
+    const bool ret = send_lossless_group_packet(chat, gconn, data, length, GP_PEER_INFO_RESPONSE);
+
+    free(data);
+
+    return ret;
 }
 
 /** Handles a peer info request packet.
@@ -2978,7 +3057,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, const ui
     net_unpack_u16(data, &num_sanctions);
 
     if (num_sanctions > MOD_MAX_NUM_SANCTIONS) {
-        LOGGER_WARNING(chat->log, "num_sanctions: %u exceeds maximum: %d", num_sanctions, MOD_MAX_NUM_SANCTIONS);
+        LOGGER_WARNING(chat->log, "num_sanctions: %u exceeds maximum", num_sanctions);
         return handle_gc_sanctions_list_error(chat);
     }
 
@@ -3130,14 +3209,27 @@ static bool send_peer_sanctions_list(const GC_Chat *chat, GC_Connection *gconn)
         return true;
     }
 
-    uint8_t packet[MAX_GC_PACKET_SIZE];
-    const int packet_len = make_gc_sanctions_list_packet(chat, packet, sizeof(packet));
+    const uint16_t packet_size = MOD_SANCTION_PACKED_SIZE * chat->moderation.num_sanctions +
+                                 sizeof(uint16_t) + MOD_SANCTIONS_CREDS_SIZE;
 
-    if (packet_len == -1) {
+    uint8_t *packet = (uint8_t *)malloc(packet_size);
+
+    if (packet == nullptr) {
         return false;
     }
 
-    return send_lossless_group_packet(chat, gconn, packet, (uint16_t)packet_len, GP_SANCTIONS_LIST);
+    const int packet_len = make_gc_sanctions_list_packet(chat, packet, packet_size);
+
+    if (packet_len == -1) {
+        free(packet);
+        return false;
+    }
+
+    const bool ret = send_lossless_group_packet(chat, gconn, packet, (uint16_t)packet_len, GP_SANCTIONS_LIST);
+
+    free(packet);
+
+    return ret;
 }
 
 /** Sends the sanctions list to all peers in group.
@@ -3147,14 +3239,26 @@ static bool send_peer_sanctions_list(const GC_Chat *chat, GC_Connection *gconn)
 non_null()
 static bool broadcast_gc_sanctions_list(const GC_Chat *chat)
 {
-    uint8_t packet[MAX_GC_PACKET_SIZE];
-    const int packet_len = make_gc_sanctions_list_packet(chat, packet, sizeof(packet));
+    const uint16_t packet_size = MOD_SANCTION_PACKED_SIZE * chat->moderation.num_sanctions +
+                                 sizeof(uint16_t) + MOD_SANCTIONS_CREDS_SIZE;
+
+    uint8_t *packet = (uint8_t *)malloc(packet_size);
+
+    if (packet == nullptr) {
+        return false;
+    }
+
+    const int packet_len = make_gc_sanctions_list_packet(chat, packet, packet_size);
 
     if (packet_len == -1) {
+        free(packet);
         return false;
     }
 
     send_gc_lossless_packet_all_peers(chat, packet, (uint16_t)packet_len, GP_SANCTIONS_LIST);
+
+    free(packet);
+
     return true;
 }
 
@@ -5730,7 +5834,7 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
         return 0;
     }
 
-    uint8_t data[MAX_GC_PACKET_SIZE];
+    uint8_t *data = (uint8_t *)malloc(length);
     uint8_t packet_type;
     uint64_t message_id;
 
@@ -5738,11 +5842,13 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
 
     if (len < 0) {
         LOGGER_DEBUG(chat->log, "Failed to unwrap lossless packet: %d", len);
+        free(data);
         return -1;
     }
 
     if (!gconn->handshaked && (packet_type != GP_HS_RESPONSE_ACK && packet_type != GP_INVITE_REQUEST)) {
         LOGGER_DEBUG(chat->log, "Got lossless packet type 0x%02x from unconfirmed peer", packet_type);
+        free(data);
         return -1;
     }
 
@@ -5752,16 +5858,19 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
     if (message_id == 3 && is_invite_packet && gconn->received_message_id <= 1) {
         // we missed initial handshake request. Drop this packet and wait for another handshake request.
         LOGGER_WARNING(chat->log, "Missed handshake packet, type: 0x%02x", packet_type);
+        free(data);
         return -1;
     }
 
     if (packet_type == GP_FRAGMENT) {
         if (!gcc_handle_packet_fragment(c, chat, peer_number, gconn, data, (uint16_t)len, packet_type,
                                         message_id, userdata)) {
+            free(data);
             return -1;
         }
 
         gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
+        free(data);
         return 0;
     }
 
@@ -5769,17 +5878,20 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
                              packet_type, message_id, direct_conn);
 
     if (packet_type == GP_INVITE_REQUEST && !gconn->handshaked) {  // Both peers sent request at same time
+        free(data);
         return 0;
     }
 
     if (lossless_ret < 0) {
         LOGGER_WARNING(chat->log, "failed to handle packet %llu (type: 0x%02x, id: %llu)",
                        (unsigned long long)message_id, packet_type, (unsigned long long)message_id);
+        free(data);
         return -1;
     }
 
     /* Duplicate packet */
     if (lossless_ret == 0) {
+        free(data);
         return gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
 
@@ -5787,10 +5899,13 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
     if (lossless_ret == 1) {
         LOGGER_DEBUG(chat->log, "received out of order packet from peer %u. expected %llu, got %llu", peer_number,
                      (unsigned long long)gconn->received_message_id + 1, (unsigned long long)message_id);
+        free(data);
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
     }
 
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, data, (uint16_t)len, packet_type, userdata);
+
+    free(data);
 
     if (ret < 0) {
         return -1;
@@ -5837,13 +5952,20 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
         return -1;
     }
 
-    uint8_t data[MAX_GC_PACKET_SIZE];
+    uint8_t *data = (uint8_t *)malloc(length);
+
+    if (data == nullptr) {
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for packet buffer");
+        return -1;
+    }
+
     uint8_t packet_type;
 
     const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
         LOGGER_DEBUG(chat->log, "Failed to unwrap lossy packet: %d", len);
+        free(data);
         return -1;
     }
 
@@ -5873,9 +5995,12 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
 
         default: {
             LOGGER_WARNING(chat->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
+            free(data);
             return -1;
         }
     }
+
+    free(data);
 
     if (ret >= 0 && direct_conn) {
         gconn->last_received_direct_time = mono_time_get(chat->mono_time);
@@ -5903,16 +6028,23 @@ static bool group_can_handle_packets(const GC_Chat *chat)
  * Returns non-negative value on success.
  * Returns -1 on failure.
  */
+#define MIN_TCP_PACKET_SIZE (1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 non_null(1, 3) nullable(5)
 static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uint16_t length, void *userdata)
 {
-    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE || length > MAX_GC_PACKET_SIZE) {
-        return -1;
-    }
-
     const Messenger *m = (Messenger *)object;
 
     if (m == nullptr) {
+        return -1;
+    }
+
+    if (length <= MIN_TCP_PACKET_SIZE) {
+        LOGGER_WARNING(m->log, "Got tcp packet with invalid length: %u", length);
+        return -1;
+    }
+
+    if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
+        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u", length);
         return -1;
     }
 
@@ -5967,21 +6099,25 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
     }
 }
 
+#define MIN_TCP_OOB_PACKET_SIZE (1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 non_null(1, 2, 4) nullable(6)
 static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                                     const uint8_t *packet, uint16_t length, void *userdata)
 {
-    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
-        return -1;
-    }
-
-    if (length > MAX_GC_PACKET_SIZE) {
-        return -1;
-    }
-
     const Messenger *m = (Messenger *)object;
 
     if (m == nullptr) {
+        return -1;
+    }
+
+
+    if (length <= MIN_TCP_OOB_PACKET_SIZE) {
+        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u", length);
+        return -1;
+    }
+
+    if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE) {
+        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u", length);
         return -1;
     }
 
@@ -6018,17 +6154,24 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
     return 0;
 }
 
+#define MIN_UDP_PACKET_SIZE (1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 non_null(1, 2, 3) nullable(5)
 static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t *packet, uint16_t length,
                                 void *userdata)
 {
-    if (length <= 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE || length > MAX_GC_PACKET_SIZE) {
-        return -1;
-    }
-
     const Messenger *m = (Messenger *)object;
 
     if (m == nullptr) {
+        return -1;
+    }
+
+    if (length <= MIN_UDP_PACKET_SIZE) {
+        LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u", length);
+        return -1;
+    }
+
+    if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
+        LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u", length);
         return -1;
     }
 
@@ -7312,7 +7455,16 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
         return -1;
     }
 
-    uint8_t packet[MAX_GC_PACKET_SIZE];
+    const size_t group_name_length = chat->shared_state.group_name_len;
+
+    assert(group_name_length <= MAX_GC_GROUP_NAME_SIZE);
+
+    uint8_t *packet = (uint8_t *)malloc(2 + CHAT_ID_SIZE + ENC_PUBLIC_KEY_SIZE + group_name_length);
+
+    if (packet == nullptr) {
+        return -1;
+    }
+
     packet[0] = GP_FRIEND_INVITE;
     packet[1] = GROUP_INVITE;
 
@@ -7322,14 +7474,18 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
     memcpy(packet + length, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
     length += ENC_PUBLIC_KEY_SIZE;
 
-    const size_t group_name_length = chat->shared_state.group_name_len;
 
     memcpy(packet + length, chat->shared_state.group_name, group_name_length);
     length += group_name_length;
 
+    assert(length <= MAX_GC_PACKET_SIZE);
+
     if (send_group_invite_packet(c->messenger, friend_number, packet, length) == -1) {
+        free(packet);
         return -2;
     }
+
+    free(packet);
 
     chat->saved_invites[chat->saved_invites_index] = friend_number;
     chat->saved_invites_index = (chat->saved_invites_index + 1) % MAX_GC_SAVED_INVITES;
@@ -7393,15 +7549,28 @@ static bool send_gc_invite_confirmed_packet(const Messenger *m, const GC_Chat *c
         return false;
     }
 
-    uint8_t packet[MAX_GC_PACKET_SIZE];
+    if (length > MAX_GC_PACKET_SIZE) {
+        return false;
+    }
+
+    const size_t packet_length = 2 + length;
+    uint8_t *packet = (uint8_t *)malloc(packet_length);
+
+    if (packet == nullptr) {
+        return false;
+    }
+
     packet[0] = GP_FRIEND_INVITE;
     packet[1] = GROUP_INVITE_CONFIRMATION;
 
     memcpy(packet + 2, data, length);
 
-    if (send_group_invite_packet(m, friend_number, packet, length + 2) == -1) {
+    if (send_group_invite_packet(m, friend_number, packet, packet_length) == -1) {
+        free(packet);
         return false;
     }
+
+    free(packet);
 
     return true;
 }
