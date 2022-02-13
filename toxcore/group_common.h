@@ -30,10 +30,10 @@
 #define GROUP_SAVE_MAX_MODERATORS 500  // a high but sane value just to be safe
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
 
-/* Max size of a complete encrypted packet payload including headers. */
+/* Max size of a complete encrypted packet including headers. */
 #define MAX_GC_PACKET_SIZE 1400
 
-/* Max size of a packet payload. Larger packets must be split up. */
+/* Max size of a packet chunk. Packets larger than this must be split up. */
 #define MAX_GC_PACKET_CHUNK_SIZE 200
 
 /* Max number of messages to store in the send/recv arrays */
@@ -44,7 +44,7 @@ static_assert(GROUP_SAVE_MAX_MODERATORS <= MOD_MAX_NUM_MODERATORS,
 static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
 static_assert(MAX_GC_PACKET_CHUNK_SIZE < MAX_GC_PACKET_SIZE,
-              "MAX_GC_PLAYLOAD_CHUNK_SIZE must be < MAX_GC_PACKET_SIZE");
+              "MAX_GC_PACKET_CHUNK_SIZE must be < MAX_GC_PACKET_SIZE");
 
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,

@@ -1491,63 +1491,6 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
     return gcc_send_packet(chat, gconn, packet, (uint16_t)len);
 }
 
-non_null(1, 2) nullable(3)
-static bool send_lossless_helper(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
-                                 uint8_t packet_type)
-{
-    const uint64_t message_id = gconn->send_message_id;
-
-    if (!gcc_add_to_send_array(chat->log, chat->mono_time, gconn, data, length, packet_type)) {
-        LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: %d, length: %d)", packet_type, length);
-        return false;
-    }
-
-    if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, data, length, message_id, packet_type)) {
-        LOGGER_WARNING(chat->log, "Failed to send payload: (type: %d, length: %d)", packet_type, length);
-        return false;
-    }
-
-    return true;
-}
-
-/** Splits a lossless packet up into fragments, wraps/encrypts each fragment
- * and sends them in succession.
- *
- * Return true on success.
- */
-non_null()
-static bool send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
-        uint16_t length, uint8_t packet_type)
-{
-    assert(length > MAX_GC_PACKET_CHUNK_SIZE && data != nullptr);
-
-    // First chunk is comprised of packet type + first chunk
-    uint8_t chunk[MAX_GC_PACKET_CHUNK_SIZE];
-    chunk[0] = packet_type;
-    memcpy(chunk + 1, data, MAX_GC_PACKET_CHUNK_SIZE - 1);
-
-    if (!send_lossless_helper(chat, gconn, chunk, MAX_GC_PACKET_CHUNK_SIZE, GP_FRAGMENT)) {
-        return false;
-    }
-
-    uint16_t processed = MAX_GC_PACKET_CHUNK_SIZE - 1;
-
-    // The rest of payload is sent in chunks
-    while (length > processed) {
-        const uint16_t chunk_len = min_u16(MAX_GC_PACKET_CHUNK_SIZE, length - processed);
-
-        memcpy(chunk, data + processed, chunk_len);
-        processed += chunk_len;
-
-        if (!send_lossless_helper(chat, gconn, chunk, chunk_len, GP_FRAGMENT)) {
-            return false;
-        }
-    }
-
-    // empty packet signals the end of the packet payload
-    return send_lossless_helper(chat, gconn, nullptr, 0, GP_FRAGMENT);
-}
-
 /** Sends a lossless packet to peer_number in chat instance.
  *
  * Returns true on success.
@@ -1563,10 +1506,10 @@ static bool send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn
     }
 
     if (length > MAX_GC_PACKET_CHUNK_SIZE) {
-        return send_lossless_packet_fragments(chat, gconn, data, length, packet_type);
+        return gcc_send_lossless_packet_fragments(chat, gconn, data, length, packet_type);
     }
 
-    return send_lossless_helper(chat, gconn, data, length, packet_type);
+    return gcc_send_lossless_packet(chat, gconn, data, length, packet_type);
 }
 
 /** Sends a group sync request to peer.
@@ -5039,7 +4982,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
     const uint64_t tm = mono_time_get(chat->mono_time);
     const uint16_t idx = gcc_get_array_index(message_id);
 
-    /** re-send requested packet */
+    /* re-send requested packet */
     if (gconn->send_array[idx].message_id == message_id) {
         if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data,
                 gconn->send_array[idx].data_length,

@@ -128,15 +128,38 @@ bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
 non_null()
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn);
 
-/** Sends a lossless packet to the peer associated with gconn.
+/** Sends a packet to the peer associated with gconn. This is a lower level function
+ * that does not encrypt or wrap the packet.
  *
  * Return true on success.
  */
 non_null()
 bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
 
-/** Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key associated with
- * `gconn` and sends lossless packet.
+/** Sends a lossless packet to `gconn` comprised of `data` of size `length.
+ *
+ * This function will add the packet to the lossless send array, encrypt/wrap it using the
+ * shared key associated with `gconn`, and send it over the wire.
+ *
+ * Return true on success.
+ */
+non_null(1, 2) nullable(3)
+bool gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+                              uint8_t packet_type);
+
+/** Splits a lossless packet up into fragments, wraps each fragment in a GP_FRAGMENT
+ * header, encrypts them, and send them in succession.
+ *
+ * Return true on success.
+ */
+non_null()
+bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
+                                        uint16_t length, uint8_t packet_type);
+
+
+/** Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key
+ * associated with `gconn` and sends lossless packet over the wire. This function does
+ * not add the packet to the send array.
  *
  * Return true on success.
  */
