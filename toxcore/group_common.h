@@ -27,20 +27,17 @@
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_SAVED_TIMEOUTS 12
 #define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
-#define GROUP_SAVE_MAX_MODERATORS 500  // a high but sane value just to be safe
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
 
-/* Max size of a complete encrypted packet including headers. */
-#define MAX_GC_PACKET_SIZE 1400
-
 /* Max size of a packet chunk. Packets larger than this must be split up. */
-#define MAX_GC_PACKET_CHUNK_SIZE 200
+#define MAX_GC_PACKET_CHUNK_SIZE 500
+
+/* Max size of a complete encrypted packet including headers. */
+#define MAX_GC_PACKET_SIZE (MAX_GC_PACKET_CHUNK_SIZE * 100)
 
 /* Max number of messages to store in the send/recv arrays */
 #define GCC_BUFFER_SIZE 8192
 
-static_assert(GROUP_SAVE_MAX_MODERATORS <= MOD_MAX_NUM_MODERATORS,
-              "GROUP_SAVE_MAX_MODERATORS must <= MOD_MAX_NUM_MODERATORS to prevent save format breakage");
 static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
 static_assert(MAX_GC_PACKET_CHUNK_SIZE < MAX_GC_PACKET_SIZE,
@@ -169,46 +166,6 @@ typedef enum Group_Voice_State {
     /** Only the Founder may speak. */
     GV_FOUNDER   = 0x02,
 } Group_Voice_State;
-
-typedef struct Saved_Group {
-    /* Group shared state */
-    uint32_t  shared_state_version;
-    uint8_t   shared_state_signature[SIGNATURE_SIZE];
-    uint8_t   founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint16_t  maxpeers;
-    uint16_t  group_name_length;
-    uint8_t   group_name[MAX_GC_GROUP_NAME_SIZE];
-    uint8_t   privacy_state;
-    uint16_t  password_length;
-    uint8_t   password[MAX_GC_PASSWORD_SIZE];
-    uint8_t   mod_list_hash[MOD_MODERATION_HASH_SIZE];
-    uint32_t  topic_lock;
-    uint8_t   voice_state;
-
-    /* Topic info */
-    uint16_t  topic_length;
-    uint8_t   topic[MAX_GC_TOPIC_SIZE];
-    uint8_t   topic_public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    uint32_t  topic_version;
-    uint8_t   topic_signature[SIGNATURE_SIZE];
-
-    /* Other group info */
-    uint8_t   chat_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t   chat_secret_key[EXT_SECRET_KEY_SIZE];
-    uint16_t  num_mods;
-    uint8_t   mod_list[MOD_LIST_ENTRY_SIZE * GROUP_SAVE_MAX_MODERATORS];
-    uint8_t   group_connection_state;
-    uint8_t   saved_peers[GC_SAVED_PEER_SIZE * GC_MAX_SAVED_PEERS];
-    uint16_t  num_saved_peers;
-
-    /* self info */
-    uint8_t   self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t   self_secret_key[EXT_SECRET_KEY_SIZE];
-    uint8_t   self_nick[MAX_GC_NICK_SIZE];
-    uint16_t  self_nick_length;
-    uint8_t   self_role;
-    uint8_t   self_status;
-} Saved_Group;
 
 /** Group connection states. */
 typedef enum GC_Conn_State {

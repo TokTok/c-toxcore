@@ -106,7 +106,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
         return true;
     }
 
-    assert(chat->moderation.num_mods <= GROUP_SAVE_MAX_MODERATORS);
+    assert(chat->moderation.num_mods <= MOD_MAX_NUM_MODERATORS);
 
     uint8_t *packed_mod_list = (uint8_t *)calloc(chat->moderation.num_mods, MOD_LIST_ENTRY_SIZE);
 
@@ -323,7 +323,7 @@ static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
 {
     msgpack_pack_array(mp, 2);
 
-    const uint16_t num_mods = min_u16(chat->moderation.num_mods, GROUP_SAVE_MAX_MODERATORS);
+    const uint16_t num_mods = min_u16(chat->moderation.num_mods, MOD_MAX_NUM_MODERATORS);
 
     if (num_mods == 0) {
         msgpack_pack_uint16(mp, num_mods); // 1

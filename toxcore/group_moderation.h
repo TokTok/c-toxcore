@@ -16,13 +16,9 @@
 #include "DHT.h"
 #include "logger.h"
 
-/* Maximum number of allowed sanctions. This value must take into account the maximum allowed group packet size. */
-#define MOD_MAX_NUM_SANCTIONS 12
-
 #define MOD_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
 #define MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
 #define MOD_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
-#define MOD_MAX_NUM_MODERATORS 500
 
 #define TIME_STAMP_SIZE sizeof(uint64_t)
 
@@ -33,6 +29,16 @@
 /* The packed size of a Mod_Sanction */
 #define MOD_SANCTION_PACKED_SIZE (SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
 
+/* These values must take into account the maximum allowed packet size and headers. */
+#define MOD_MAX_NUM_MODERATORS (((50000 - 100) / (MOD_LIST_ENTRY_SIZE)))
+#define MOD_MAX_NUM_SANCTIONS  (((50000 - 100 - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE)))
+
+static_assert(MOD_SANCTIONS_CREDS_SIZE <= 50000 - 100,
+              "MOD_SANCTIONS_CREDS_SIZE must be <= 49900");
+static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= MAX_GC_PACKET_SIZE - 100,
+              "MOD_MAX_NUM_SANCTIONS must be abel to fit inside the maximum allowed payload size)");
+static_assert(MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE <= MAX_GC_PACKET_SIZE - 100,
+              "MOD_MAX_NUM_MODERATORS must be able to fit insize the maximum allowed payload size)");
 
 typedef enum Mod_Sanction_Type {
     SA_OBSERVER = 0x00,
