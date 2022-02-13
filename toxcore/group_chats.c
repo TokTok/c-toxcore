@@ -1509,7 +1509,7 @@ static bool send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn
         return gcc_send_lossless_packet_fragments(chat, gconn, data, length, packet_type);
     }
 
-    return gcc_send_lossless_packet(chat, gconn, data, length, packet_type);
+    return gcc_send_lossless_packet(chat, gconn, data, length, packet_type) == 0;
 }
 
 /** Sends a group sync request to peer.
@@ -4984,7 +4984,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
 
     /* re-send requested packet */
     if (gconn->send_array[idx].message_id == message_id) {
-        if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data,
+        if (gcc_encrypt_and_send_lossless_packet(chat, gconn, gconn->send_array[idx].data,
                 gconn->send_array[idx].data_length,
                 gconn->send_array[idx].message_id,
                 gconn->send_array[idx].packet_type)) {

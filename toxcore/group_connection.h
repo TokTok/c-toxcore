@@ -141,11 +141,13 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
  * This function will add the packet to the lossless send array, encrypt/wrap it using the
  * shared key associated with `gconn`, and send it over the wire.
  *
- * Return true on success.
+ * Return 0 on success.
+ * Return -1 if the packet couldn't be added to the send array.
+ * Return -2 if the packet failed to be encrypted or failed to send.
  */
 non_null(1, 2) nullable(3)
-bool gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
-                              uint8_t packet_type);
+int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+                             uint8_t packet_type);
 
 /** Splits a lossless packet up into fragments, wraps each fragment in a GP_FRAGMENT
  * header, encrypts them, and send them in succession.

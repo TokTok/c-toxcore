@@ -128,22 +128,22 @@ bool gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Con
     return true;
 }
 
-bool gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
-                              uint8_t packet_type)
+int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+                             uint8_t packet_type)
 {
     const uint64_t message_id = gconn->send_message_id;
 
     if (!gcc_add_to_send_array(chat->log, chat->mono_time, gconn, data, length, packet_type)) {
         LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: %d, length: %d)", packet_type, length);
-        return false;
+        return -1;
     }
 
     if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, data, length, message_id, packet_type)) {
         LOGGER_WARNING(chat->log, "Failed to send payload: (type: %d, length: %d)", packet_type, length);
-        return false;
+        return -2;
     }
 
-    return true;
+    return 0;
 }
 
 bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
@@ -156,7 +156,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
     chunk[0] = packet_type;
     memcpy(chunk + 1, data, MAX_GC_PACKET_CHUNK_SIZE - 1);
 
-    if (!gcc_send_lossless_packet(chat, gconn, chunk, MAX_GC_PACKET_CHUNK_SIZE, GP_FRAGMENT)) {
+    if (gcc_send_lossless_packet(chat, gconn, chunk, MAX_GC_PACKET_CHUNK_SIZE, GP_FRAGMENT) != 0) {
         return false;
     }
 
@@ -169,13 +169,17 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
         memcpy(chunk, data + processed, chunk_len);
         processed += chunk_len;
 
-        if (!gcc_send_lossless_packet(chat, gconn, chunk, chunk_len, GP_FRAGMENT)) {
+        // If the chunk fails to send (ret == -2) we should still keep adding chunks to the
+        // send array because we don't want to end up in a scenario where a broken sequence
+        // ends up in the send array. TODO(Jfreegman): It might be better to add the entire
+        // sequence of chunks to the send array first, and then send them.
+        if (gcc_send_lossless_packet(chat, gconn, chunk, chunk_len, GP_FRAGMENT) == -1) {
             return false;
         }
     }
 
     // empty packet signals the end of the segment
-    return gcc_send_lossless_packet(chat, gconn, nullptr, 0, GP_FRAGMENT);
+    return gcc_send_lossless_packet(chat, gconn, nullptr, 0, GP_FRAGMENT) == 0;
 }
 
 
