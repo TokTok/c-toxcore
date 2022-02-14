@@ -13,6 +13,7 @@
 
 non_null() void bin_pack_array(msgpack_packer *mp, size_t size);
 non_null() void bin_pack_bool(msgpack_packer *mp, bool val);
+non_null() void bin_pack_u08(msgpack_packer *mp, uint8_t val);
 non_null() void bin_pack_u16(msgpack_packer *mp, uint16_t val);
 non_null() void bin_pack_u32(msgpack_packer *mp, uint32_t val);
 non_null() void bin_pack_u64(msgpack_packer *mp, uint64_t val);

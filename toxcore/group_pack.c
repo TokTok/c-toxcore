@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include "bin_pack.h"
 #include "bin_unpack.h"
 #include "util.h"
 
@@ -261,73 +262,52 @@ bool gc_load_unpack_group(GC_Chat *chat, const msgpack_object *obj)
 non_null()
 static void save_pack_state_values(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 8);
-
-    if (chat->connection_state == CS_DISCONNECTED) { // 1
-        msgpack_pack_true(mp);
-    } else {
-        msgpack_pack_false(mp);
-    }
-
-    msgpack_pack_uint16(mp, chat->shared_state.group_name_len); // 2
-    msgpack_pack_uint8(mp, chat->shared_state.privacy_state); // 3
-    msgpack_pack_uint16(mp, chat->shared_state.maxpeers); // 4
-    msgpack_pack_uint16(mp, chat->shared_state.password_length); // 5
-    msgpack_pack_uint32(mp, chat->shared_state.version); // 6
-    msgpack_pack_uint32(mp, chat->shared_state.topic_lock); // 7
-    msgpack_pack_uint8(mp, chat->shared_state.voice_state); // 8
+    bin_pack_array(mp, 8);
+    bin_pack_bool(mp, chat->connection_state == CS_DISCONNECTED);
+    bin_pack_u16(mp, chat->shared_state.group_name_len); // 2
+    bin_pack_u08(mp, chat->shared_state.privacy_state); // 3
+    bin_pack_u16(mp, chat->shared_state.maxpeers); // 4
+    bin_pack_u16(mp, chat->shared_state.password_length); // 5
+    bin_pack_u32(mp, chat->shared_state.version); // 6
+    bin_pack_u32(mp, chat->shared_state.topic_lock); // 7
+    bin_pack_u08(mp, chat->shared_state.voice_state); // 8
 }
 
 non_null()
 static void save_pack_state_bin(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 5);
+    bin_pack_array(mp, 5);
 
-    msgpack_pack_bin(mp, SIGNATURE_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state_sig, SIGNATURE_SIZE); // 1
-
-    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE); // 2
-
-    msgpack_pack_bin(mp, chat->shared_state.group_name_len);
-    msgpack_pack_bin_body(mp, chat->shared_state.group_name, chat->shared_state.group_name_len); // 3
-
-    msgpack_pack_bin(mp, chat->shared_state.password_length);
-    msgpack_pack_bin_body(mp, chat->shared_state.password, chat->shared_state.password_length); // 4
-
-    msgpack_pack_bin(mp, MOD_MODERATION_HASH_SIZE);
-    msgpack_pack_bin_body(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
+    bin_pack_bytes(mp, chat->shared_state_sig, SIGNATURE_SIZE); // 1
+    bin_pack_bytes(mp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE); // 2
+    bin_pack_bytes(mp, chat->shared_state.group_name, chat->shared_state.group_name_len); // 3
+    bin_pack_bytes(mp, chat->shared_state.password, chat->shared_state.password_length); // 4
+    bin_pack_bytes(mp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
 }
 
 non_null()
 static void save_pack_topic_info(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 6);
+    bin_pack_array(mp, 6);
 
-    msgpack_pack_uint32(mp, chat->topic_info.version); // 1
-    msgpack_pack_uint16(mp, chat->topic_info.length); // 2
-    msgpack_pack_uint16(mp, chat->topic_info.checksum); // 3
-
-    msgpack_pack_bin(mp, chat->topic_info.length);
-    msgpack_pack_bin_body(mp, chat->topic_info.topic, chat->topic_info.length); // 4
-
-    msgpack_pack_bin(mp, SIG_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
-
-    msgpack_pack_bin(mp, SIGNATURE_SIZE);
-    msgpack_pack_bin_body(mp, chat->topic_sig, SIGNATURE_SIZE); // 6
+    bin_pack_u32(mp, chat->topic_info.version); // 1
+    bin_pack_u16(mp, chat->topic_info.length); // 2
+    bin_pack_u16(mp, chat->topic_info.checksum); // 3
+    bin_pack_bytes(mp, chat->topic_info.topic, chat->topic_info.length); // 4
+    bin_pack_bytes(mp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
+    bin_pack_bytes(mp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
 non_null()
 static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 2);
+    bin_pack_array(mp, 2);
 
     const uint16_t num_mods = min_u16(chat->moderation.num_mods, MOD_MAX_NUM_MODERATORS);
 
     if (num_mods == 0) {
-        msgpack_pack_uint16(mp, num_mods); // 1
-        msgpack_pack_false(mp); // 2 (dummy value)
+        bin_pack_u16(mp, num_mods); // 1
+        bin_pack_bool(mp, false); // 2 (dummy value)
         return;
     }
 
@@ -335,20 +315,19 @@ static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
 
     // we can still recover without the mod list
     if (packed_mod_list == nullptr) {
-        msgpack_pack_uint16(mp, 0); // 1
-        msgpack_pack_false(mp); // 2 (dummy value)
+        bin_pack_u16(mp, 0); // 1
+        bin_pack_bool(mp, false); // 2 (dummy value)
         LOGGER_ERROR(chat->log, "Failed to allocate memory for moderatin list");
         return;
     }
 
-    msgpack_pack_uint16(mp, num_mods); // 1
+    bin_pack_u16(mp, num_mods); // 1
 
     mod_list_pack(&chat->moderation, packed_mod_list);
 
     const size_t packed_size = num_mods * MOD_LIST_ENTRY_SIZE;
 
-    msgpack_pack_bin(mp, packed_size);
-    msgpack_pack_bin_body(mp, packed_mod_list, packed_size); // 2
+    bin_pack_bytes(mp, packed_mod_list, packed_size); // 2
 
     free(packed_mod_list);
 }
@@ -356,49 +335,40 @@ static void save_pack_mod_list(const GC_Chat *chat, msgpack_packer *mp)
 non_null()
 static void save_pack_keys(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 4);
+    bin_pack_array(mp, 4);
 
-    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
-
-    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
-
-    msgpack_pack_bin(mp, EXT_PUBLIC_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
-
-    msgpack_pack_bin(mp, EXT_SECRET_KEY_SIZE);
-    msgpack_pack_bin_body(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
+    bin_pack_bytes(mp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
+    bin_pack_bytes(mp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
+    bin_pack_bytes(mp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
+    bin_pack_bytes(mp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
 }
 
 non_null()
 static void save_pack_self_info(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 4);
+    bin_pack_array(mp, 4);
 
     const GC_Peer *self = &chat->group[0];
 
     assert(self->nick_length <= MAX_GC_NICK_SIZE);
 
-    msgpack_pack_uint16(mp, self->nick_length); // 1
-    msgpack_pack_uint8(mp, (uint8_t)self->role); // 2
-    msgpack_pack_uint8(mp, (uint8_t)self->status); // 3
-
-    msgpack_pack_bin(mp, self->nick_length);
-    msgpack_pack_bin_body(mp, self->nick, self->nick_length); // 4
+    bin_pack_u16(mp, self->nick_length); // 1
+    bin_pack_u08(mp, (uint8_t)self->role); // 2
+    bin_pack_u08(mp, (uint8_t)self->status); // 3
+    bin_pack_bytes(mp, self->nick, self->nick_length); // 4
 }
 
 non_null()
 static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
 {
-    msgpack_pack_array(mp, 2);
+    bin_pack_array(mp, 2);
 
     uint8_t *saved_peers = (uint8_t *)calloc(GC_MAX_SAVED_PEERS, GC_SAVED_PEER_SIZE);
 
     // we can still recover without the saved peers list
     if (saved_peers == nullptr) {
-        msgpack_pack_uint16(mp, 0); // 1
-        msgpack_pack_false(mp); // 2 (dummy value)
+        bin_pack_u16(mp, 0); // 1
+        bin_pack_bool(mp, false); // 2 (dummy value)
         LOGGER_ERROR(chat->log, "Failed to allocate memory for saved peers list");
         return;
     }
@@ -410,16 +380,15 @@ static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
         LOGGER_ERROR(chat->log, "Failed to pack saved peers");
     }
 
-    msgpack_pack_uint16(mp, packed_size); // 1
+    bin_pack_u16(mp, packed_size); // 1
 
     if (packed_size == 0) {
         free(saved_peers);
-        msgpack_pack_false(mp); // 2 (dummy value)
+        bin_pack_bool(mp, false); // 2 (dummy value)
         return;
     }
 
-    msgpack_pack_bin(mp, packed_size);
-    msgpack_pack_bin_body(mp, saved_peers, packed_size); // 2
+    bin_pack_bytes(mp, saved_peers, packed_size); // 2
 
     free(saved_peers);
 }
@@ -431,7 +400,7 @@ void gc_save_pack_group(const GC_Chat *chat, msgpack_packer *mp)
         return;
     }
 
-    msgpack_pack_array(mp, 7);
+    bin_pack_array(mp, 7);
 
     save_pack_state_values(chat, mp); // 1
     save_pack_state_bin(chat, mp); // 2

@@ -435,6 +435,7 @@ cc_library(
         ":DHT",
         ":TCP_connection",
         ":TCP_server",
+        ":bin_pack",
         ":bin_unpack",
         ":crypto_core",
         ":logger",

@@ -20,6 +20,11 @@ void bin_pack_bool(msgpack_packer *mp, bool val)
     }
 }
 
+void bin_pack_u08(msgpack_packer *mp, uint8_t val)
+{
+    msgpack_pack_uint8(mp, val);
+}
+
 void bin_pack_u16(msgpack_packer *mp, uint16_t val)
 {
     msgpack_pack_uint16(mp, val);
