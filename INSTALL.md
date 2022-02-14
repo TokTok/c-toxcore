@@ -32,13 +32,13 @@ These instructions will guide you through the process of building and installing
 
 This repository, although called `toxcore`, in fact contains several libraries besides `toxcore` which complement it, as well as several executables. However, note that although these are separate libraries, at the moment, when building the libraries, they are all merged into a single `toxcore` library. Here is the full list of the main components that can be built using the CMake, their dependencies and descriptions.
 
-| Name             | Type       | Dependencies                                  | Platform       | Description                                                                |
-|------------------|------------|-----------------------------------------------|----------------|----------------------------------------------------------------------------|
-| `toxcore`        | Library    | libnacl or libsodium, libm, libpthread, librt | Cross-platform | The main Tox library that provides the messenger functionality.            |
-| `toxav`          | Library    | libtoxcore, libopus, libvpx                   | Cross-platform | Provides audio/video functionality.                                        |
-| `toxencryptsave` | Library    | libtoxcore, libnacl or libsodium              | Cross-platform | Provides encryption of Tox profiles (savedata), as well as arbitrary data. |
-| `DHT_bootstrap`  | Executable | libtoxcore                                    | Cross-platform | A simple DHT bootstrap node.                                               |
-| `tox-bootstrapd` | Executable | libtoxcore, libconfig                         | Unix-like      | Highly configurable DHT bootstrap node daemon (systemd, SysVinit, Docker). |
+| Name             | Type       | Dependencies                                              | Platform       | Description                                                                |
+|------------------|------------|-----------------------------------------------------------|----------------|----------------------------------------------------------------------------|
+| `toxcore`        | Library    | libnacl or libsodium, libm, libpthread, librt, libmsgpack | Cross-platform | The main Tox library that provides the messenger functionality.            |
+| `toxav`          | Library    | libtoxcore, libopus, libvpx                               | Cross-platform | Provides audio/video functionality.                                        |
+| `toxencryptsave` | Library    | libtoxcore, libnacl or libsodium                          | Cross-platform | Provides encryption of Tox profiles (savedata), as well as arbitrary data. |
+| `DHT_bootstrap`  | Executable | libtoxcore                                                | Cross-platform | A simple DHT bootstrap node.                                               |
+| `tox-bootstrapd` | Executable | libtoxcore, libconfig                                     | Unix-like      | Highly configurable DHT bootstrap node daemon (systemd, SysVinit, Docker). |
 
 #### Secondary
 
@@ -105,16 +105,24 @@ There are some options that are available to configure the build.
 |------------------------|-----------------------------------------------------------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------|
 | `AUTOTEST`             | Enable autotests (mainly for CI).                                                             | ON or OFF                                                                 | OFF                                               |
 | `BOOTSTRAP_DAEMON`     | Enable building of tox-bootstrapd, the DHT bootstrap node daemon. For Unix-like systems only. | ON or OFF                                                                 | ON                                                |
+| `BUILD_FUZZ_TESTS`     | Build fuzzing harnesses.                                                                      | ON or OFF                                                                 | OFF                                               |
 | `BUILD_MISC_TESTS`     | Build additional tests.                                                                       | ON or OFF                                                                 | OFF                                               |
-| `BUILD_TOXAV`          | Whether to build the tox AV library.                                                          | ON or OFF                                                                 | ON                                                |
+| `BUILD_TOXAV`          | Whether to build the toxav library.                                                           | ON or OFF                                                                 | ON                                                |
 | `CMAKE_INSTALL_PREFIX` | Path to where everything should be installed.                                                 | Directory path.                                                           | Platform-dependent. Refer to CMake documentation. |
+| `CMAKE_BUILD_TYPE`     | Specifies the build type on single-configuration generators (e.g. make or ninja).             | Debug, Release, RelWithDebInfo, MinSizeRel                                | Empty string.                                     |
 | `DHT_BOOTSTRAP`        | Enable building of `DHT_bootstrap`                                                            | ON or OFF                                                                 | ON                                                |
 | `ENABLE_SHARED`        | Build shared (dynamic) libraries for all modules.                                             | ON or OFF                                                                 | ON                                                |
 | `ENABLE_STATIC`        | Build static libraries for all modules.                                                       | ON or OFF                                                                 | ON                                                |
+| `EXECUTION_TRACE`      | Print a function trace during execution (for debugging).                                      | ON or OFF                                                                 | OFF                                               |
+| `FULLY_STATIC`         | Build fully static executables.                                                               | ON or OFF                                                                 | OFF                                               |
 | `MIN_LOGGER_LEVEL`     | Logging level to use.                                                                         | TRACE, DEBUG, INFO, WARNING, ERROR or nothing (empty string) for default. | Empty string.                                     |
+| `MSVC_STATIC_SODIUM`   | Whether to link libsodium statically for MSVC.                                                | ON or OFF                                                                 | OFF                                               |
+| `MUST_BUILD_TOXAV`     | Fail the build if toxav cannot be built.                                                      | ON or OFF                                                                 | OFF                                               |
+| `NON_HERMETIC_TESTS`   | Whether to build and run tests that depend on an internet connection.                         | ON or OFF                                                                 | OFF                                               |
 | `STRICT_ABI`           | Enforce strict ABI export in dynamic libraries.                                               | ON or OFF                                                                 | OFF                                               |
 | `TEST_TIMEOUT_SECONDS` | Limit runtime of each test to the number of seconds specified.                                | Positive number or nothing (empty string).                                | Empty string.                                     |
 | `USE_IPV6`             | Use IPv6 in tests.                                                                            | ON or OFF                                                                 | ON                                                |
+| `USE_STDERR_LOGGER`    | Enable logging to stderr when the logger is NULL.                                             | ON or OFF                                                                 | OFF                                               |
 
 You can get this list of option using the following commands
 
@@ -130,8 +138,9 @@ Example of calling cmake with options
 ```sh
 cmake \
   -D ENABLE_STATIC=OFF \
-  -D MIN_LOGGER_LEVEL=DEBUG \
-  -D CMAKE_INSTALL_PREFIX=/opt \
+  -D ENABLE_SHARED=ON \
+  -D CMAKE_INSTALL_PREFIX="${PWD}/prefix" \
+  -D CMAKE_BUILD_TYPE=Release \
   -D TEST_TIMEOUT_SECONDS=120 \
   ..
 ```
@@ -238,9 +247,10 @@ Build the container image based on the Dockerfile. The following options are ava
 | `SUPPORT_ARCH_x86_64` | Support building 64-bit toxcore.                               | "true" or "false" (case sensitive). | true          |
 | `SUPPORT_TEST`        | Support running toxcore automated tests.                       | "true" or "false" (case sensitive). | false         |
 | `CROSS_COMPILE`       | Cross-compiling. True for Docker, false for Cygwin.            | "true" or "false" (case sensitive). | true          |
+| `VERSION_MSGPACK`     | Version of libmsgpackc to build toxcore with.                  | Numeric version number.             | 4.0.0         |
 | `VERSION_OPUS`        | Version of libopus to build toxcore with.                      | Numeric version number.             | 1.3.1         |
 | `VERSION_SODIUM`      | Version of libsodium to build toxcore with.                    | Numeric version number.             | 1.0.18        |
-| `VERSION_VPX`         | Version of libvpx to build toxcore with.                       | Numeric version number.             | 1.9.0         |
+| `VERSION_VPX`         | Version of libvpx to build toxcore with.                       | Numeric version number.             | 1.11.0        |
 
 Example of building a container image with options
 

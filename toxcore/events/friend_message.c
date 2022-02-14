@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
 #include "../tox.h"
@@ -105,11 +106,12 @@ static void tox_event_friend_message_pack(
     const Tox_Event_Friend_Message *event, msgpack_packer *mp)
 {
     assert(event != nullptr);
-    msgpack_pack_array(mp, 3);
-    msgpack_pack_uint32(mp, event->friend_number);
-    msgpack_pack_uint32(mp, event->type);
-    msgpack_pack_bin(mp, event->message_length);
-    msgpack_pack_bin_body(mp, event->message, event->message_length);
+    bin_pack_array(mp, 2);
+    bin_pack_u32(mp, TOX_EVENT_FRIEND_MESSAGE);
+    bin_pack_array(mp, 3);
+    bin_pack_u32(mp, event->friend_number);
+    bin_pack_u32(mp, event->type);
+    bin_pack_bytes(mp, event->message, event->message_length);
 }
 
 non_null()
@@ -197,8 +199,6 @@ void tox_events_pack_friend_message(const Tox_Events *events, msgpack_packer *mp
 {
     const uint32_t size = tox_events_get_friend_message_size(events);
 
-    msgpack_pack_array(mp, size);
-
     for (uint32_t i = 0; i < size; ++i) {
         tox_event_friend_message_pack(tox_events_get_friend_message(events, i), mp);
     }
@@ -206,23 +206,13 @@ void tox_events_pack_friend_message(const Tox_Events *events, msgpack_packer *mp
 
 bool tox_events_unpack_friend_message(Tox_Events *events, const msgpack_object *obj)
 {
-    if (obj->type != MSGPACK_OBJECT_ARRAY) {
+    Tox_Event_Friend_Message *event = tox_events_add_friend_message(events);
+
+    if (event == nullptr) {
         return false;
     }
 
-    for (uint32_t i = 0; i < obj->via.array.size; ++i) {
-        Tox_Event_Friend_Message *event = tox_events_add_friend_message(events);
-
-        if (event == nullptr) {
-            return false;
-        }
-
-        if (!tox_event_friend_message_unpack(event, &obj->via.array.ptr[i])) {
-            return false;
-        }
-    }
-
-    return true;
+    return tox_event_friend_message_unpack(event, obj);
 }
 
 
