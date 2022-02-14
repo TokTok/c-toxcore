@@ -178,7 +178,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
         }
     }
 
-    // empty packet signals the end of the segment
+    // empty packet signals the end of the sequence
     return gcc_send_lossless_packet(chat, gconn, nullptr, 0, GP_FRAGMENT) == 0;
 }
 
@@ -298,16 +298,40 @@ static bool store_in_recv_array(const Logger *log, const Mono_Time *mono_time, G
     return true;
 }
 
-non_null()
-static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, uint16_t max_size, GC_Connection *gconn,
-                                  uint8_t packet_type, uint64_t message_id)
+/** Reassambles a fragmented packet sequence ending with the data in the receive
+ * array at slot `message_id - 1` and starting with the last found slot containing
+ * a GP_FRAGMENT packet when searching backwards in the array.
+ *
+ * The fully reassembled packet is stored in `payload`, which must be passed as a
+ * null pointer, and must be free'd by the caller.
+ *
+ * Return the length of the fully reassembled packet on success.
+ * Return 0 on failure.
+ */
+non_null(1, 3) nullable(2)
+static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8_t **payload, uint64_t message_id)
 {
     uint16_t end_idx = gcc_get_array_index(message_id - 1);
     uint16_t start_idx = end_idx;
+    uint16_t packet_length = 0;
+
     GC_Message_Array_Entry *entry = &gconn->recv_array[end_idx];
 
     // search backwards in recv array until we find an empty slot or a non-fragment packet type
     while (!array_entry_is_empty(entry) && entry->packet_type == GP_FRAGMENT) {
+        assert(entry->data != nullptr);
+        assert(entry->data_length <= MAX_GC_PACKET_CHUNK_SIZE);
+
+        const uint16_t diff = packet_length + entry->data_length;
+
+        assert(diff > packet_length);  // overflow check
+        packet_length = diff;
+
+        if (packet_length > MAX_GC_PACKET_SIZE) {
+            LOGGER_ERROR(log, "Payload exceeded max packet size");  // should never happen
+            return 0;
+        }
+
         start_idx = start_idx > 0 ? start_idx - 1 : GCC_BUFFER_SIZE - 1;
         entry = &gconn->recv_array[start_idx];
 
@@ -315,6 +339,18 @@ static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, uint16_t 
             LOGGER_ERROR(log, "Packet reassemble wrap-around");
             return 0;
         }
+    }
+
+    if (packet_length == 0) {
+        return 0;
+    }
+
+    assert(*payload == nullptr);
+    *payload = (uint8_t *)malloc(packet_length);
+
+    if (*payload == nullptr) {
+        LOGGER_ERROR(log, "Failed to allocate %u bytes for payload buffer", packet_length);
+        return 0;
     }
 
     start_idx = (start_idx + 1) % GCC_BUFFER_SIZE;
@@ -325,20 +361,8 @@ static uint16_t reassemble_packet(const Logger *log, uint8_t *payload, uint16_t 
     for (uint16_t i = start_idx; i != end_idx; i = (i + 1) % GCC_BUFFER_SIZE) {
         entry = &gconn->recv_array[i];
 
-        if (entry->data_length == 0 || entry->data_length > MAX_GC_PACKET_CHUNK_SIZE) {
-            LOGGER_ERROR(log, "Packet chunk contained invalid length %u", entry->data_length);
-            return 0;
-        }
-
-        if (processed + entry->data_length > max_size) {
-            LOGGER_ERROR(log, "Payload exceeded max packet size");  // should never happen
-            return 0;
-        }
-
-        assert(entry->data != nullptr);
-        assert((uint16_t)(processed + entry->data_length) > processed);
-
-        memcpy(payload + processed, entry->data, entry->data_length);
+        assert(processed + entry->data_length <= packet_length);
+        memcpy(*payload + processed, entry->data, entry->data_length);
         processed += entry->data_length;
 
         clear_array_entry(entry);
@@ -361,17 +385,9 @@ bool gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t pee
         return true;
     }
 
-    // TODO(Jfreegman): Reduce the size of this allocation since most packets will never
-    // come close to the max size
-    uint8_t *payload = (uint8_t *)malloc(MAX_GC_PACKET_SIZE);
+    uint8_t *payload = nullptr;
 
-    if (payload == nullptr) {
-        LOGGER_ERROR(chat->log, "Failed to allocate memory for payload buffer");
-        return false;
-    }
-
-    const uint16_t processed_len = reassemble_packet(chat->log, payload, MAX_GC_PACKET_SIZE, gconn,
-                                   packet_type, message_id);
+    const uint16_t processed_len = reassemble_packet(chat->log, gconn, &payload, message_id);
 
     if (processed_len == 0) {
         free(payload);

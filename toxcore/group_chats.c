@@ -5835,6 +5835,12 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
     }
 
     uint8_t *data = (uint8_t *)malloc(length);
+
+    if (data == nullptr) {
+        LOGGER_DEBUG(chat->log, "Failed to allocate memory for packet data buffer");
+        return -1;
+    }
+
     uint8_t packet_type;
     uint64_t message_id;
 
@@ -7455,7 +7461,7 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
         return -1;
     }
 
-    const size_t group_name_length = chat->shared_state.group_name_len;
+    const uint16_t group_name_length = chat->shared_state.group_name_len;
 
     assert(group_name_length <= MAX_GC_GROUP_NAME_SIZE);
 
@@ -7553,7 +7559,7 @@ static bool send_gc_invite_confirmed_packet(const Messenger *m, const GC_Chat *c
         return false;
     }
 
-    const size_t packet_length = 2 + length;
+    const uint16_t packet_length = 2 + length;
     uint8_t *packet = (uint8_t *)malloc(packet_length);
 
     if (packet == nullptr) {
