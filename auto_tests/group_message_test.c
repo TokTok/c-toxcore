@@ -9,6 +9,7 @@
 
 #include "auto_test_support.h"
 #include "check_compat.h"
+#include "../toxcore/util.h"
 
 typedef struct State {
     uint32_t peer_id;
@@ -18,11 +19,11 @@ typedef struct State {
     bool private_message_received;
     size_t custom_packets_received;
     bool lossless_check;
-    int last_msg_recv;
+    int32_t last_msg_recv;
 } State;
 
 #define NUM_GROUP_TOXES 2
-#define MAX_NUM_MESSAGES 1000
+#define MAX_NUM_MESSAGES 9001
 
 #define TEST_MESSAGE "Where is it I've read that someone condemned to death says or thinks, an hour before his death, that if he had to live on some high rock, on such a narrow ledge that he'd only room to stand, and the ocean, everlasting darkness, everlasting solitude, everlasting tempest around him, if he had to remain standing on a square yard of space all his life, a thousand years, eternity, it were better to live so than to die at once. Only to live, to live and live! Life, whatever it may be!"
 #define TEST_MESSAGE_LEN (sizeof(TEST_MESSAGE) - 1)
@@ -218,18 +219,18 @@ static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t pee
 
     State *state = (State *)autotox->state;
 
-    ck_assert(length > 0 && length <= TOX_MAX_MESSAGE_LENGTH);
+    ck_assert(length >= sizeof(uint16_t) * 2 && length <= TOX_MAX_MESSAGE_LENGTH);
 
-    char c[TOX_MAX_MESSAGE_LENGTH + 1];
-    memcpy(c, message, length);
-    c[length] = 0;
+    uint16_t start;
+    uint16_t end;
+    memcpy(&start, message, sizeof(uint16_t));
+    memcpy(&end, message + length - sizeof(uint16_t), sizeof(uint16_t));
 
-    int n = strtol((const char *) c, nullptr, 10);
+    //fprintf(stderr, "got %d %d of size %zu\n", start, end, length);
 
-    ck_assert_msg(n == state->last_msg_recv + 1, "Expected %d, got %d", state->last_msg_recv + 1, n);
-    state->last_msg_recv = n;
-
-    // fprintf(stderr, "Got %d\n", state->last_msg_recv);
+    ck_assert_msg(start == state->last_msg_recv + 1, "Expected %u, got start %u", state->last_msg_recv + 1, start);
+    ck_assert_msg(end == state->last_msg_recv + 1, "Expected %u, got end %u", state->last_msg_recv + 1, end);
+    state->last_msg_recv = start;
 
     if (state->last_msg_recv == MAX_NUM_MESSAGES) {
         state->lossless_check = true;
@@ -330,17 +331,22 @@ static void group_message_test(AutoTox *autotoxes)
 
     state1->last_msg_recv = -1;
 
-    for (size_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
-        char m[10] = {0};
-        snprintf(m, sizeof(m), "%zu", i);
+    uint8_t m[TOX_MAX_MESSAGE_LENGTH] = {0};
 
-        tox_group_send_message(tox0, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, sizeof(m), &err_send);
+    for (uint16_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
+        if (i % 10 == 0) {
+            iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
+        }
 
-        // fprintf(stderr, "Send: %zu\n", i);
+        uint16_t message_size = min_u16(4 + (random_u16() % TOX_MAX_MESSAGE_LENGTH), TOX_MAX_MESSAGE_LENGTH);
+
+        memcpy(m, &i, sizeof(uint16_t));
+        memcpy(m + message_size - sizeof(uint16_t), &i, sizeof(uint16_t));
+
+        tox_group_send_message(tox0, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, message_size, &err_send);
+
         ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
     }
-
-    fprintf(stderr, "Waiting for packets to be received...\n");
 
     while (!state1->lossless_check) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
