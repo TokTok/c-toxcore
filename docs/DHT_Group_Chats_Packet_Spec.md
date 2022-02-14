@@ -11,6 +11,7 @@ All packet fields are considred mandatory unless flagged as `optional`. The mini
   - [MESSAGE_ACK (0x02)](#message_ack)
   - [INVITE_RESPONSE_REJECT (0x03)](#invite_response_reject)
 - [Lossless Packet Payloads](#lossless_packets)
+  - [FRAGMENT (0xef)](#fragment)
   - [KEY_ROTATION (0xf0)](#key_rotation)
   - [TCP_RELAYS (0xf1)](#tcp_relays)
   - [CUSTOM_PACKET (0xf2)](#custom_packet)
@@ -159,6 +160,19 @@ Rejection types are defined by an enumerator beginning at zero as follows:
 <a name="lossless_packets"/>
 
 ## Lossless Packet Payloads
+<a name="fragment"/>
+
+### FRAGMENT (0xef)
+#### Structure
+`1 byte: lossless packet type` (First chunk only)  
+`variable bytes: arbitrary data`  
+
+#### Description
+Represents a segment in a sequence of packet fragments that comprise one full lossless packet payload which exceeds the maximum allowed packet chunk size (500 bytes). The first byte in the first chunk must be a lossless packet type. Each chunk in the sequence must be sent in succession.
+
+The end of the sequence is signaled by a fragment packet with a length of zero.
+
+A fully assembled packet must be no greater than 50,000 bytes.
 
 <a name="key_rotation"/>
 
