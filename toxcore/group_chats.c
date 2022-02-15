@@ -5405,11 +5405,6 @@ static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, 
         }
     }
 
-
-    if (request_type == HS_PEER_INFO_EXCHANGE) {
-        gconn->handshaked = true;
-    }
-
     if (gconn->is_pending_handshake_response) {
         gcc_set_send_message_id(gconn, 3);  // handshake response is always second packet
     }  else {

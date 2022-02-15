@@ -101,8 +101,13 @@ static int create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry
     return 0;
 }
 
-bool gcc_add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
-                           uint16_t length, uint8_t packet_type)
+/** Adds data of length to gconn's send_array.
+ *
+ * Returns true on success and increments gconn's send_message_id.
+ */
+non_null(1, 2, 3) nullable(4)
+static bool add_to_send_array(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
+                              uint16_t length, uint8_t packet_type)
 {
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
@@ -133,7 +138,7 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
 {
     const uint64_t message_id = gconn->send_message_id;
 
-    if (!gcc_add_to_send_array(chat->log, chat->mono_time, gconn, data, length, packet_type)) {
+    if (!add_to_send_array(chat->log, chat->mono_time, gconn, data, length, packet_type)) {
         LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: %d, length: %d)", packet_type, length);
         return -1;
     }

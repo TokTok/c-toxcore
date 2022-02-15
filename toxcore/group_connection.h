@@ -20,14 +20,6 @@ non_null(1, 2) nullable(4)
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
                            const uint8_t *part_message, uint16_t length);
 
-/** Adds data of length to gconn's send_array.
- *
- * Returns true on success and increments gconn's send_message_id.
- */
-non_null(1, 2, 3) nullable(4)
-bool gcc_add_to_send_array(const Logger *logger, const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data,
-                           uint16_t length, uint8_t packet_type);
-
 /** Decides if message need to be put in recv_array or immediately handled.
  *
  * Return 2 if message is in correct sequence and may be handled immediately.
