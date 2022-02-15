@@ -1,6 +1,7 @@
 /*
  * Tests that we can invite a friend to a private group chat and exchange messages with them.
- * In addition, we spam many messages at once and ensure that they all arrive in the correct order.
+ * In addition, we spam many varialbe sized messages at once and ensure that they all arrive
+ * in the correct order, with the correct contents.
  */
 
 #include <stdbool.h>
@@ -45,6 +46,17 @@ typedef struct State {
 
 #define PEER1_NICK "Winslow"
 #define PEER1_NICK_LEN (sizeof(PEER1_NICK) - 1)
+
+static uint16_t get_message_checksum(const uint8_t *message, uint16_t length)
+{
+    uint16_t sum = 0;
+
+    for (size_t i = 0; i < length; ++i) {
+        sum += message[i];
+    }
+
+    return sum;
+}
 
 static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
                                  const uint8_t *group_name, size_t group_name_length, void *user_data)
@@ -219,17 +231,16 @@ static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t pee
 
     State *state = (State *)autotox->state;
 
-    ck_assert(length >= sizeof(uint16_t) * 2 && length <= TOX_MAX_MESSAGE_LENGTH);
+    ck_assert(length >= 4 && length <= TOX_MAX_MESSAGE_LENGTH);
 
     uint16_t start;
-    uint16_t end;
+    uint16_t checksum;
     memcpy(&start, message, sizeof(uint16_t));
-    memcpy(&end, message + length - sizeof(uint16_t), sizeof(uint16_t));
-
-    //fprintf(stderr, "got %d %d of size %zu\n", start, end, length);
+    memcpy(&checksum, message + sizeof(uint16_t), sizeof(uint16_t));
 
     ck_assert_msg(start == state->last_msg_recv + 1, "Expected %u, got start %u", state->last_msg_recv + 1, start);
-    ck_assert_msg(end == state->last_msg_recv + 1, "Expected %u, got end %u", state->last_msg_recv + 1, end);
+    ck_assert_msg(checksum == get_message_checksum(message + 4, length - 4), "Wrong checksum");
+
     state->last_msg_recv = start;
 
     if (state->last_msg_recv == MAX_NUM_MESSAGES) {
@@ -331,6 +342,8 @@ static void group_message_test(AutoTox *autotoxes)
 
     state1->last_msg_recv = -1;
 
+    // first two bytes are the message number, second two bytes are the checksum of the full packet
+    // and the remaining bytes are random data
     uint8_t m[TOX_MAX_MESSAGE_LENGTH] = {0};
 
     for (uint16_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
@@ -341,7 +354,14 @@ static void group_message_test(AutoTox *autotoxes)
         uint16_t message_size = min_u16(4 + (random_u16() % TOX_MAX_MESSAGE_LENGTH), TOX_MAX_MESSAGE_LENGTH);
 
         memcpy(m, &i, sizeof(uint16_t));
-        memcpy(m + message_size - sizeof(uint16_t), &i, sizeof(uint16_t));
+
+        for (size_t j = 4; j < message_size; ++j) {
+            m[j] = random_u32();
+        }
+
+        const uint16_t checksum = get_message_checksum(m + 4, message_size - 4);
+
+        memcpy(m + 2, &checksum, sizeof(uint16_t));
 
         tox_group_send_message(tox0, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, message_size, &err_send);
 
