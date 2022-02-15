@@ -504,22 +504,22 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
                            uint32_t *message_id)
 {
     if (type > MESSAGE_ACTION) {
-        LOGGER_WARNING(m->log, "Message type %d is invalid", type);
+        LOGGER_WARNING(m->log, "message type %d is invalid", type);
         return -5;
     }
 
     if (!friend_is_valid(m, friendnumber)) {
-        LOGGER_WARNING(m->log, "Friend number %d is invalid", friendnumber);
+        LOGGER_WARNING(m->log, "friend number %d is invalid", friendnumber);
         return -1;
     }
 
     if (length >= MAX_CRYPTO_DATA_SIZE) {
-        LOGGER_WARNING(m->log, "Message length %u is too large", length);
+        LOGGER_WARNING(m->log, "message length %u is too large", length);
         return -2;
     }
 
     if (m->friendlist[friendnumber].status != FRIEND_ONLINE) {
-        LOGGER_WARNING(m->log, "Friend %d is not online", friendnumber);
+        LOGGER_WARNING(m->log, "friend %d is not online", friendnumber);
         return -3;
     }
 
@@ -534,7 +534,7 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
                                            m->friendlist[friendnumber].friendcon_id), packet, length + 1, 0);
 
     if (packet_num == -1) {
-        LOGGER_WARNING(m->log, "Failed to write crypto packet for message of length %d to friend %d",
+        LOGGER_WARNING(m->log, "failed to write crypto packet for message of length %d to friend %d",
                        length, friendnumber);
         return -4;
     }
@@ -3202,7 +3202,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsig
 
     if (!options->udp_disabled && options->proxy_info.proxy_type != TCP_PROXY_NONE) {
         // We don't currently support UDP over proxy.
-        LOGGER_WARNING(m->log, "UDP enabled and proxy set: disabling UDP");
+        LOGGER_INFO(m->log, "UDP enabled and proxy set: disabling UDP");
         options->udp_disabled = true;
     }
 

@@ -301,12 +301,12 @@ static int handle_TCP_handshake(const Logger *logger, TCP_Secure_Connection *con
                                 const uint8_t *self_secret_key)
 {
     if (length != TCP_CLIENT_HANDSHAKE_SIZE) {
-        LOGGER_WARNING(logger, "invalid handshake length: %d != %d", length, TCP_CLIENT_HANDSHAKE_SIZE);
+        LOGGER_ERROR(logger, "invalid handshake length: %d != %d", length, TCP_CLIENT_HANDSHAKE_SIZE);
         return -1;
     }
 
     if (con->status != TCP_STATUS_CONNECTED) {
-        LOGGER_WARNING(logger, "TCP connection %u not connected", (unsigned int)con->identifier);
+        LOGGER_ERROR(logger, "TCP connection %u not connected", (unsigned int)con->identifier);
         return -1;
     }
 
@@ -317,7 +317,7 @@ static int handle_TCP_handshake(const Logger *logger, TCP_Secure_Connection *con
                                      data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE, plain);
 
     if (len != TCP_HANDSHAKE_PLAIN_SIZE) {
-        LOGGER_WARNING(logger, "invalid TCP handshake decrypted length: %d != %d", len, TCP_HANDSHAKE_PLAIN_SIZE);
+        LOGGER_ERROR(logger, "invalid TCP handshake decrypted length: %d != %d", len, TCP_HANDSHAKE_PLAIN_SIZE);
         crypto_memzero(shared_key, sizeof(shared_key));
         return -1;
     }
@@ -956,7 +956,7 @@ static int do_incoming(TCP_Server *tcp_server, uint32_t i)
     TCP_Secure_Connection *conn_new = &tcp_server->unconfirmed_connection_queue[index_new];
 
     if (conn_new->status != TCP_STATUS_NO_STATUS) {
-        LOGGER_WARNING(tcp_server->logger, "incoming connection %d would overwrite existing", i);
+        LOGGER_ERROR(tcp_server->logger, "incoming connection %d would overwrite existing", i);
         kill_TCP_secure_connection(conn_new);
     }
 
