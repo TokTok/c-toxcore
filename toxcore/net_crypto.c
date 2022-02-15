@@ -1177,7 +1177,8 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
                                     uint8_t congestion_control)
 {
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE) {
-        LOGGER_ERROR(c->log, "rejecting too large (or empty) packet of size %d on crypt connection %d", length, crypt_connection_id);
+        LOGGER_ERROR(c->log, "rejecting too large (or empty) packet of size %d on crypt connection %d", length,
+                     crypt_connection_id);
         return -1;
     }
 
@@ -2875,7 +2876,8 @@ int64_t write_cryptpacket(Net_Crypto *c, int crypt_connection_id, const uint8_t 
     }
 
     if (congestion_control && conn->packets_left == 0) {
-        LOGGER_ERROR(c->log, "congestion control: rejecting packet of length %d on crypt connection %d", length, crypt_connection_id);
+        LOGGER_ERROR(c->log, "congestion control: rejecting packet of length %d on crypt connection %d", length,
+                     crypt_connection_id);
         return -1;
     }
 
