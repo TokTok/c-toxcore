@@ -6433,33 +6433,38 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
         }
     }
 
+    GC_Message_Array_Entry *send = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
+    GC_Message_Array_Entry *recv = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
+
+    if (send == nullptr || recv == nullptr) {
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
+        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        free(send);
+        free(recv);
+        return -1;
+    }
+
     GC_Peer *tmp_group = (GC_Peer *)realloc(chat->group, (chat->numpeers + 1) * sizeof(GC_Peer));
 
     if (tmp_group == nullptr) {
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for group realloc");
         kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        free(send);
+        free(recv);
         return -1;
     }
 
-    tmp_group[peer_number] = (GC_Peer) {
+    ++chat->numpeers;
+    chat->group = tmp_group;
+
+    chat->group[peer_number] = (GC_Peer) {
         0
     };
 
-    ++chat->numpeers;
-
-    chat->group = tmp_group;
-
     GC_Connection *gconn = &chat->group[peer_number].gconn;
 
-    gconn->send_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
-    gconn->recv_array = (GC_Message_Array_Entry *)calloc(GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry));
-
-    if (gconn->send_array == nullptr || gconn->recv_array == nullptr) {
-        LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
-        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
-        free(gconn->send_array);
-        free(gconn->recv_array);
-        return -1;
-    }
+    gconn->send_array = send;
+    gconn->recv_array = recv;
 
     gcc_set_ip_port(gconn, ipp);
     chat->group[peer_number].role = GR_USER;
@@ -6468,14 +6473,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
 
-    if (!create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key)) {
-        LOGGER_FATAL(chat->log, "Failed to create session keypair");
-        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
-        free(gconn->send_array);
-        free(gconn->recv_array);
-        crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
-        return -1;
-    }
+    create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key);
 
     if (peer_number > 0) {
         memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  // we get the sig key in the handshake
@@ -6495,7 +6493,6 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
     gconn->self_is_closer = id_closest(get_chat_id(chat->chat_public_key),
                                        get_enc_key(chat->self_public_key),
                                        get_enc_key(gconn->addr.public_key)) == 1;
-
     return peer_number;
 }
 
