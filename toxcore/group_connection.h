@@ -22,6 +22,7 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
 
 /** Decides if message need to be put in recv_array or immediately handled.
  *
+ * Return 3 if message is in correct sequence and is a fragment packet.
  * Return 2 if message is in correct sequence and may be handled immediately.
  * Return 1 if packet is out of sequence and added to recv_array.
  * Return 0 if message is a duplicate.

@@ -5856,18 +5856,6 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
         return -1;
     }
 
-    if (packet_type == GP_FRAGMENT) {
-        if (!gcc_handle_packet_fragment(c, chat, peer_number, gconn, data, (uint16_t)len, packet_type,
-                                        message_id, userdata)) {
-            free(data);
-            return -1;
-        }
-
-        gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
-        free(data);
-        return 0;
-    }
-
     const int lossless_ret = gcc_handle_received_message(chat->log, chat->mono_time, gconn, data, (uint16_t) len,
                              packet_type, message_id, direct_conn);
 
@@ -5895,6 +5883,20 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
                      (unsigned long long)gconn->received_message_id + 1, (unsigned long long)message_id);
         free(data);
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
+    }
+
+    if (lossless_ret == 3) {
+        if (!gcc_handle_packet_fragment(c, chat, peer_number, gconn, data, (uint16_t)len, packet_type,
+                                        message_id, userdata)) {
+            free(data);
+            return -1;
+        }
+
+        free(data);
+
+        gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
+
+        return 0;
     }
 
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, data, (uint16_t)len, packet_type, userdata);
