@@ -101,6 +101,8 @@ typedef struct GC_Connection {
     uint64_t received_message_id;   /* message_id of peer's last message to us */
     GC_Message_Array_Entry *recv_array;
 
+    uint64_t    last_chunk_id;  /* The message ID of the last packet fragment we received */
+
     GC_PeerAddress   addr;   /* holds peer's extended real public key and ip_port */
     uint32_t    public_key_hash;   /* Jenkins one at a time hash of peer's real encryption public key */
 

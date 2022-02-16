@@ -5795,6 +5795,33 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
     return 0;
 }
 
+non_null(1, 2, 4) nullable(5, 9)
+static int handle_gc_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
+                                     const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
+                                     void *userdata)
+{
+    if (gconn->last_chunk_id != 0 && message_id != gconn->last_chunk_id + 1) {
+        return gc_send_message_ack(chat, gconn, gconn->last_chunk_id + 1, GR_ACK_REQ);
+    }
+
+    if (gconn->last_chunk_id == 0 && message_id != gconn->received_message_id + 1) {
+        return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
+    }
+
+    const int frag_ret = gcc_handle_packet_fragment(c, chat, peer_number, gconn, data, length, packet_type,
+                         message_id, userdata);
+
+    if (frag_ret == -1) {
+        return -1;
+    }
+
+    if (frag_ret == 0) {
+        gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
+    }
+
+    return 0;
+}
+
 /** Handles lossless groupchat packets.
  *
  * This function assumes the length has already been validated.
@@ -5885,18 +5912,12 @@ static int handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const u
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
     }
 
+    /* handle packet fragment */
     if (lossless_ret == 3) {
-        if (!gcc_handle_packet_fragment(c, chat, peer_number, gconn, data, (uint16_t)len, packet_type,
-                                        message_id, userdata)) {
-            free(data);
-            return -1;
-        }
-
+        const int frag_ret = handle_gc_packet_fragment(c, chat, peer_number, gconn, data, (uint16_t)len, packet_type,
+                             message_id, userdata);
         free(data);
-
-        gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
-
-        return 0;
+        return frag_ret;
     }
 
     const int ret = handle_gc_lossless_helper(c, chat, peer_number, data, (uint16_t)len, packet_type, userdata);

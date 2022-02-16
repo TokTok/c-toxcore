@@ -36,10 +36,12 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
 /** Handles a packet fragment. If the fragment is incomplete, it gets stored in the recv
  * array. Otherwise the segment is re-assembled into a complete payload and processed.
  *
- * Return true if fragment is successfully handled.
+ * Return 1 if fragment is successfully handled and is not the end of the sequence.
+ * Return 0 if fragment is the end of a sequence and successfully handled.
+ * Return -1 on failure.
  */
 non_null(1, 2, 4) nullable(5, 9)
-bool gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
+int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
                                 const uint8_t *chunk, uint16_t length, uint8_t packet_type,  uint64_t message_id,
                                 void *userdata);
 

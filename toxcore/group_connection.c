@@ -215,10 +215,8 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
         assert(!array_entry_is_empty(entry));
         assert(entry->packet_type == GP_FRAGMENT);
 
-        if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, entry->data, entry->data_length,
-                entry->message_id, entry->packet_type)) {
-            return false;
-        }
+        gcc_encrypt_and_send_lossless_packet(chat, gconn, entry->data, entry->data_length,
+                                             entry->message_id, entry->packet_type);
     }
 
     return true;
@@ -413,37 +411,39 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
     return processed;
 }
 
-bool gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
-                                GC_Connection *gconn, const uint8_t *chunk, uint16_t length, uint8_t packet_type,
-                                uint64_t message_id, void *userdata)
+int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
+                               GC_Connection *gconn, const uint8_t *chunk, uint16_t length, uint8_t packet_type,
+                               uint64_t message_id, void *userdata)
 {
     if (length > 0) {
         if (!store_in_recv_array(chat->log, chat->mono_time, gconn, chunk, length, packet_type, message_id)) {
-            return false;
+            return -1;
         }
 
-        return true;
+        gconn->last_chunk_id = message_id;
+
+        return 1;
     }
 
     uint8_t *payload = nullptr;
-
     const uint16_t processed_len = reassemble_packet(chat->log, gconn, &payload, message_id);
 
     if (processed_len == 0) {
         free(payload);
-        return false;
+        return -1;
     }
 
     if (handle_gc_lossless_helper(c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata) < 0) {
         free(payload);
-        return false;
+        return -1;
     }
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
+    gconn->last_chunk_id = 0;
 
     free(payload);
 
-    return true;
+    return 0;
 }
 
 int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
@@ -473,6 +473,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
     }
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
+
     return 2;
 }
 
