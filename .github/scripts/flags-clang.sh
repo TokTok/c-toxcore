@@ -22,6 +22,8 @@ add_flag -Wno-disabled-macro-expansion
 add_flag -Wno-documentation-deprecated-sync
 # Bootstrap daemon does this.
 add_flag -Wno-format-nonliteral
+# We use foo = (Foo) {} for zeroing out values.
+add_flag -Wno-gnu-empty-initializer
 # struct Foo foo = {0}; is a common idiom. Missing braces means we'd need to
 # write {{{0}}} in some cases, which is ugly and a maintenance burden.
 add_flag -Wno-missing-braces
