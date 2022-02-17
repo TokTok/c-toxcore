@@ -382,8 +382,8 @@ int main(int argc, char *argv[])
             free(motd);
         } else {
             log_write(LOG_LEVEL_ERROR, "Couldn't set MOTD: %s. Exiting.\n", motd);
-            kill_gca(group_announce);
             kill_onion_announce(onion_a);
+            kill_gca(group_announce);
             kill_onion(onion);
             kill_dht(dht);
             mono_time_free(mono_time);
@@ -401,8 +401,8 @@ int main(int argc, char *argv[])
         free(keys_file_path);
     } else {
         log_write(LOG_LEVEL_ERROR, "Couldn't read/write: %s. Exiting.\n", keys_file_path);
-        kill_gca(group_announce);
         kill_onion_announce(onion_a);
+        kill_gca(group_announce);
         kill_onion(onion);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -418,8 +418,8 @@ int main(int argc, char *argv[])
     if (enable_tcp_relay) {
         if (tcp_relay_port_count == 0) {
             log_write(LOG_LEVEL_ERROR, "No TCP relay ports read. Exiting.\n");
-            kill_gca(group_announce);
             kill_onion_announce(onion_a);
+            kill_gca(group_announce);
             kill_onion(onion);
             kill_dht(dht);
             mono_time_free(mono_time);
@@ -462,8 +462,8 @@ int main(int argc, char *argv[])
             }
         } else {
             log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox TCP server. Exiting.\n");
-            kill_gca(group_announce);
             kill_onion_announce(onion_a);
+            kill_gca(group_announce);
             kill_onion(onion);
             kill_dht(dht);
             mono_time_free(mono_time);
@@ -477,9 +477,9 @@ int main(int argc, char *argv[])
         log_write(LOG_LEVEL_INFO, "List of bootstrap nodes read successfully.\n");
     } else {
         log_write(LOG_LEVEL_ERROR, "Couldn't read list of bootstrap nodes in %s. Exiting.\n", cfg_file_path);
-        kill_gca(group_announce);
         kill_TCP_server(tcp_server);
         kill_onion_announce(onion_a);
+        kill_gca(group_announce);
         kill_onion(onion);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -561,9 +561,9 @@ int main(int argc, char *argv[])
         lan_discovery_kill(dht, broadcast);
     }
 
-    kill_gca(group_announce);
     kill_TCP_server(tcp_server);
     kill_onion_announce(onion_a);
+    kill_gca(group_announce);
     kill_onion(onion);
     kill_dht(dht);
     mono_time_free(mono_time);
