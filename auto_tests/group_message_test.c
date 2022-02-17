@@ -1,7 +1,9 @@
 /*
- * Tests that we can invite a friend to a private group chat and exchange messages with them.
- * In addition, we spam many varialbe sized messages at once and ensure that they all arrive
- * in the correct order, with the correct contents.
+ * Tests message sending capabilities, including:
+ * - The ability to send/receive plain, action, and custom messages
+ * - The lossless UDP implementation
+ * - The packet splitting implementation
+ * - The ignore feature
  */
 
 #include <stdbool.h>
@@ -20,11 +22,13 @@ typedef struct State {
     bool private_message_received;
     size_t custom_packets_received;
     bool lossless_check;
+    bool wraparound_check;
     int32_t last_msg_recv;
 } State;
 
 #define NUM_GROUP_TOXES 2
-#define MAX_NUM_MESSAGES 9001
+#define MAX_NUM_MESSAGES_LOSSLESS_TEST 300
+#define MAX_NUM_MESSAGES_WRAPAROUND_TEST 9001
 
 #define TEST_MESSAGE "Where is it I've read that someone condemned to death says or thinks, an hour before his death, that if he had to live on some high rock, on such a narrow ledge that he'd only room to stand, and the ocean, everlasting darkness, everlasting solitude, everlasting tempest around him, if he had to remain standing on a square yard of space all his life, a thousand years, eternity, it were better to live so than to die at once. Only to live, to live and live! Life, whatever it may be!"
 #define TEST_MESSAGE_LEN (sizeof(TEST_MESSAGE) - 1)
@@ -79,6 +83,8 @@ static void group_peer_join_handler(Tox *tox, uint32_t groupnumber, uint32_t pee
     ck_assert(autotox != nullptr);
 
     State *state = (State *)autotox->state;
+
+    ck_assert_msg(state->peer_joined == false, "Peer timedout");
 
     printf("peer %u joined, sending message\n", peer_id);
     state->peer_joined = true;
@@ -223,8 +229,8 @@ static void group_private_message_handler(Tox *tox, uint32_t groupnumber, uint32
     state->private_message_received = true;
 }
 
-static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
-                                    const uint8_t *message, size_t length, void *user_data)
+static void group_message_handler_lossless_test(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
+        const uint8_t *message, size_t length, void *user_data)
 {
     AutoTox *autotox = (AutoTox *)user_data;
     ck_assert(autotox != nullptr);
@@ -243,8 +249,30 @@ static void group_message_handler_2(Tox *tox, uint32_t groupnumber, uint32_t pee
 
     state->last_msg_recv = start;
 
-    if (state->last_msg_recv == MAX_NUM_MESSAGES) {
+    if (state->last_msg_recv == MAX_NUM_MESSAGES_LOSSLESS_TEST) {
         state->lossless_check = true;
+    }
+}
+static void group_message_handler_wraparound_test(Tox *tox, uint32_t groupnumber, uint32_t peer_id,
+        TOX_MESSAGE_TYPE type,
+        const uint8_t *message, size_t length, void *user_data)
+{
+    AutoTox *autotox = (AutoTox *)user_data;
+    ck_assert(autotox != nullptr);
+
+    State *state = (State *)autotox->state;
+
+    ck_assert(length == 2);
+
+    uint16_t num;
+    memcpy(&num, message, sizeof(uint16_t));
+
+    ck_assert_msg(num == state->last_msg_recv + 1, "Expected %u, got start %u", state->last_msg_recv + 1, num);
+
+    state->last_msg_recv = num;
+
+    if (state->last_msg_recv == MAX_NUM_MESSAGES_WRAPAROUND_TEST) {
+        state->wraparound_check = true;
     }
 }
 
@@ -334,19 +362,15 @@ static void group_message_test(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
-    // tox0 spams messages to tox1
-    fprintf(stderr, "Doing lossless packet test...\n");
-
-    tox_callback_group_message(tox1, group_message_handler_2);
-    iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
-
-    state1->last_msg_recv = -1;
-
-    // first two bytes are the message number, second two bytes are the checksum of the full packet
-    // and the remaining bytes are random data
     uint8_t m[TOX_MAX_MESSAGE_LENGTH] = {0};
 
-    for (uint16_t i = 0; i <= MAX_NUM_MESSAGES; ++i) {
+    fprintf(stderr, "Doing lossless packet test...\n");
+
+    tox_callback_group_message(tox1, group_message_handler_lossless_test);
+    state1->last_msg_recv = -1;
+
+    // lossless and packet splitting/reassembly test
+    for (uint16_t i = 0; i <= MAX_NUM_MESSAGES_LOSSLESS_TEST; ++i) {
         if (i % 10 == 0) {
             iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
         }
@@ -369,6 +393,27 @@ static void group_message_test(AutoTox *autotoxes)
     }
 
     while (!state1->lossless_check) {
+        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
+    }
+
+    state1->last_msg_recv = -1;
+    tox_callback_group_message(tox1, group_message_handler_wraparound_test);
+
+    fprintf(stderr, "Doing wraparound test...\n");
+
+    // packet array wrap-around test
+    for (uint16_t i = 0; i <= MAX_NUM_MESSAGES_WRAPAROUND_TEST; ++i) {
+        if (i % 10 == 0) {
+            iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
+        }
+
+        memcpy(m, &i, sizeof(uint16_t));
+
+        tox_group_send_message(tox0, group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)m, 2, &err_send);
+        ck_assert(err_send == TOX_ERR_GROUP_SEND_MESSAGE_OK);
+    }
+
+    while (!state1->wraparound_check) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     }
 
@@ -406,4 +451,5 @@ int main(void)
 #undef TEST_CUSTOM_PACKET_LEN
 #undef IGNORE_MESSAGE
 #undef IGNORE_MESSAGE_LEN
-#undef MAX_NUM_MESSAGES
+#undef MAX_NUM_MESSAGES_LOSSLESS_TEST
+#undef MAX_NUM_MESSAGES_WRAPAROUND_TEST

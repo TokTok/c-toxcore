@@ -435,7 +435,6 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     if (handle_gc_lossless_helper(c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata) < 0) {
         free(payload);
-        exit(0);
         return -1;
     }
 
