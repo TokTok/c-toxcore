@@ -118,7 +118,7 @@ typedef struct GC_Connection {
     Node_format connected_tcp_relays[MAX_FRIEND_TCP_CONNECTIONS];
     uint16_t    tcp_relays_count;
 
-    uint64_t    last_received_ping_time;
+    uint64_t    last_received_packet_time;  /* The last time we successfully processed any packet from this peer */
     uint64_t    last_requested_packet_time;  /* The last time we requested a missing packet from this peer */
     uint64_t    last_sent_ping_time;
     uint64_t    last_sync_response;  /* the last time we sent this peer a sync response */

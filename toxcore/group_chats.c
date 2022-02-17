@@ -2362,7 +2362,7 @@ static bool do_gc_peer_state_sync(const GC_Chat *chat, GC_Connection *gconn, con
  * shared state version, topic version, and sanction credentials version.
  *
  * Return 0 if packet is handled correctly.
- * Return -1 if packet is invalid size.
+ * Return -1 if packet is invalid size or peer is not confirmed.
  */
 non_null()
 static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length)
@@ -2372,16 +2372,12 @@ static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *da
     }
 
     if (!gconn->confirmed) {
-        return 0;
+        return -1;
     }
-
-    const uint64_t tm = mono_time_get(chat->mono_time);
-
-    gconn->last_received_ping_time = tm;
 
     if (mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
         if (do_gc_peer_state_sync(chat, gconn, data, length)) {
-            chat->last_sync_request = tm;
+            chat->last_sync_request = mono_time_get(chat->mono_time);
         }
     }
 
@@ -5792,6 +5788,12 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
         return -1;
     }
 
+    peer = get_gc_peer(chat, peer_number);
+
+    if (peer != nullptr) {
+        peer->gconn.last_requested_packet_time = mono_time_get(chat->mono_time);
+    }
+
     return 0;
 }
 
@@ -5829,6 +5831,8 @@ static int handle_gc_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_
     if (frag_ret == 0) {
         gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
+
+    gconn->last_received_packet_time = mono_time_get(chat->mono_time);
 
     return 0;
 }
@@ -6030,15 +6034,19 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
 
     free(data);
 
-    if (ret >= 0 && direct_conn) {
-        gconn->last_received_direct_time = mono_time_get(chat->mono_time);
-    }
-
     if (ret < 0) {
         LOGGER_WARNING(chat->log, "Lossy packet handle error %d: type: 0x%02x, peernumber %d", ret, packet_type,
                        peer_number);
         return -1;
     }
+
+    const uint64_t tm = mono_time_get(chat->mono_time);
+
+    if (direct_conn) {
+        gconn->last_received_direct_time = tm;
+    }
+
+    gconn->last_received_packet_time = tm;
 
     return 0;
 }
@@ -6512,7 +6520,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     gcc_set_send_message_id(gconn, 1);
     gconn->public_key_hash = gc_get_pk_jenkins_hash(public_key);
-    gconn->last_received_ping_time = tm;
+    gconn->last_received_packet_time = tm;
     gconn->last_key_rotation = tm;
     gconn->tcp_connection_num = tcp_connection_num;
     gconn->last_sent_ip_time = tm;
@@ -6543,7 +6551,7 @@ static void copy_self(const GC_Chat *chat, GC_Peer *peer)
 non_null()
 static bool peer_timed_out(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
-    return mono_time_is_timeout(mono_time, gconn->last_received_ping_time, gconn->confirmed
+    return mono_time_is_timeout(mono_time, gconn->last_received_packet_time, gconn->confirmed
                                 ? GC_CONFIRMED_PEER_TIMEOUT
                                 : GC_UNCONFIRMED_PEER_TIMEOUT);
 }
@@ -7230,7 +7238,7 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
         gconn->is_oob_handshake = !gcc_direct_conn_is_possible(chat, gconn);
         gconn->is_pending_handshake_response = false;
         gconn->pending_handshake_type = HS_INVITE_REQUEST;
-        gconn->last_received_ping_time = tm;
+        gconn->last_received_packet_time = tm;
         gconn->last_key_rotation = tm;
 
         ++count;

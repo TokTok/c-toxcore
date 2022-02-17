@@ -232,7 +232,7 @@ bool gcc_handle_ack(const Logger *log, GC_Connection *gconn, uint64_t message_id
     }
 
     if (array_entry->message_id != message_id) {  // wrap-around indicates a connection problem
-        LOGGER_WARNING(log, "Wrap-around on message %llu", (long long unsigned)message_id);
+        LOGGER_WARNING(log, "Wrap-around on message %llu", (unsigned long long)message_id);
         return false;
     }
 
