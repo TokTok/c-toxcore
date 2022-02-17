@@ -10,6 +10,8 @@
 #ifndef C_TOXCORE_TOXCORE_MESSENGER_H
 #define C_TOXCORE_TOXCORE_MESSENGER_H
 
+#include <time.h>
+
 #include "TCP_server.h"
 #include "friend_connection.h"
 #include "friend_requests.h"

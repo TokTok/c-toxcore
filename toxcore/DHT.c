@@ -543,7 +543,7 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
     }
 
     *ip_port = (IP_Port) {
-        0
+        {{0}}
     };
 
     if (is_ipv4) {
@@ -641,7 +641,7 @@ int unpack_nodes(Node_format *nodes, uint16_t max_num_nodes, uint16_t *processed
         assert(increment == PACKED_NODE_SIZE_IP4 || increment == PACKED_NODE_SIZE_IP6);
     }
 
-    if (processed_data_len) {
+    if (processed_data_len != nullptr) {
         *processed_data_len = len_processed;
     }
 
@@ -800,7 +800,7 @@ static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_ti
 
     /* kill the other address, if it was set */
     *assoc = (IPPTsPng) {
-        0
+        {{{0}}}
     };
     return 1;
 }
@@ -1251,7 +1251,7 @@ uint32_t addto_lists(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key
     }
 
     for (uint32_t i = 0; i < friend_foundip->lock_count; ++i) {
-        if (friend_foundip->callbacks[i].ip_callback) {
+        if (friend_foundip->callbacks[i].ip_callback != nullptr) {
             friend_foundip->callbacks[i].ip_callback(friend_foundip->callbacks[i].data,
                     friend_foundip->callbacks[i].number, &ipp_copy);
         }
@@ -1567,7 +1567,7 @@ static int handle_sendnodes_ipv6(void *object, const IP_Port *source, const uint
             ping_node_from_getnodes_ok(dht, plain_nodes[i].public_key, &plain_nodes[i].ip_port);
             returnedip_ports(dht, &plain_nodes[i].ip_port, plain_nodes[i].public_key, packet + 1);
 
-            if (dht->get_nodes_response) {
+            if (dht->get_nodes_response != nullptr) {
                 dht->get_nodes_response(dht, &plain_nodes[i], userdata);
             }
         }
@@ -1589,7 +1589,7 @@ static void dht_friend_lock(DHT_Friend *const dht_friend, dht_ip_cb *ip_callback
     dht_friend->callbacks[lock_num].data = data;
     dht_friend->callbacks[lock_num].number = number;
 
-    if (lock_count) {
+    if (lock_count != nullptr) {
         *lock_count = lock_num + 1;
     }
 }
