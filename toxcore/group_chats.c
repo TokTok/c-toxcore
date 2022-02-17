@@ -5795,6 +5795,17 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
     return 0;
 }
 
+/** Handles a packet fragment.
+ *
+ * If the fragment is the last one in a sequence we send an ack. Otherwise we
+ * store the fragment in the receive array and wait for the next segment.
+ *
+ * Segments must be processed in correct sequence, and we cannot handle
+ * non-fragment packets while a sequence is incomplete.
+ *
+ * Return 0 if packet is handled successfully.
+ * Return -1 on failure.
+ */
 non_null(1, 2, 4) nullable(5, 9)
 static int handle_gc_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
                                      const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,

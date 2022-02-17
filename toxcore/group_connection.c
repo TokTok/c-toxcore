@@ -435,6 +435,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     if (handle_gc_lossless_helper(c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata) < 0) {
         free(payload);
+        exit(0);
         return -1;
     }
 
@@ -459,7 +460,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
         return 0;
     }
 
-    if (packet_type == GP_FRAGMENT) {
+    if (packet_type == GP_FRAGMENT) { // we handle packet fragments as a special case
         return 3;
     }
 
@@ -514,6 +515,10 @@ static bool process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Conn
 void gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                           void *userdata)
 {
+    if (gconn->last_chunk_id != 0) {  // dont check array if we have an unfinished fragment sequence
+        return;
+    }
+
     const uint16_t idx = (gconn->received_message_id + 1) % GCC_BUFFER_SIZE;
     GC_Message_Array_Entry *const array_entry = &gconn->recv_array[idx];
 
