@@ -543,7 +543,10 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
     }
 
     *ip_port = (IP_Port) {
-        {{0}}
+        {{
+                0
+            }
+        }
     };
 
     if (is_ipv4) {
@@ -800,7 +803,11 @@ static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_ti
 
     /* kill the other address, if it was set */
     *assoc = (IPPTsPng) {
-        {{{0}}}
+        {{{
+                    0
+                }
+            }
+        }
     };
     return 1;
 }
