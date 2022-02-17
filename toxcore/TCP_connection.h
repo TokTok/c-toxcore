@@ -238,7 +238,7 @@ uint32_t tcp_copy_connected_relays(const TCP_Connections *tcp_c, Node_format *tc
  */
 non_null()
 uint32_t tcp_copy_connected_relays_index(const TCP_Connections *tcp_c, Node_format *tcp_relays, uint16_t max_num,
-                                         uint32_t idx);
+        uint32_t idx);
 
 /** Returns a new TCP_Connections object associated with the secret_key.
  *
