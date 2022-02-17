@@ -187,7 +187,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
 
     uint16_t processed = MAX_GC_PACKET_CHUNK_SIZE - 1;
 
-    // The rest of the segments are sent in chunks
+    // The rest of the segments are added in chunks
     while (length > processed) {
         const uint16_t chunk_len = min_u16(MAX_GC_PACKET_CHUNK_SIZE, length - processed);
 
@@ -222,7 +222,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
     return true;
 }
 
-bool gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
+bool gcc_handle_ack(const Logger *log, GC_Connection *gconn, uint64_t message_id)
 {
     uint16_t idx = gcc_get_array_index(message_id);
     GC_Message_Array_Entry *array_entry = &gconn->send_array[idx];
@@ -232,6 +232,7 @@ bool gcc_handle_ack(GC_Connection *gconn, uint64_t message_id)
     }
 
     if (array_entry->message_id != message_id) {  // wrap-around indicates a connection problem
+        LOGGER_WARNING(log, "Wrap-around on message %llu", (long long unsigned)message_id);
         return false;
     }
 
@@ -404,7 +405,6 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
         memcpy(*payload + processed, entry->data, entry->data_length);
         processed += entry->data_length;
 
-        gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
         clear_array_entry(entry);
     }
 
@@ -420,6 +420,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
             return -1;
         }
 
+        gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
         gconn->last_chunk_id = message_id;
 
         return 1;
@@ -532,8 +533,20 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     const uint16_t start = gconn->send_array_start;
     const uint16_t end = gconn->send_message_id % GCC_BUFFER_SIZE;
 
+    GC_Message_Array_Entry *array_entry = &gconn->send_array[start];
+
+    if (array_entry_is_empty(array_entry)) {
+        return;
+    }
+
+    if (mono_time_is_timeout(chat->mono_time, array_entry->time_added, GC_CONFIRMED_PEER_TIMEOUT)) {
+        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
+        LOGGER_DEBUG(chat->log, "Send array stuck; timing out peer");
+        return;
+    }
+
     for (uint16_t i = start; i != end; i = (i + 1) % GCC_BUFFER_SIZE) {
-        GC_Message_Array_Entry *array_entry = &gconn->send_array[i];
+        array_entry = &gconn->send_array[i];
 
         if (array_entry_is_empty(array_entry)) {
             continue;
@@ -550,12 +563,6 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
         if (delta > 1 && is_power_of_2(delta)) {
             gcc_encrypt_and_send_lossless_packet(chat, gconn, array_entry->data, array_entry->data_length,
                                                  array_entry->message_id, array_entry->packet_type);
-            continue;
-        }
-
-        if (mono_time_is_timeout(chat->mono_time, array_entry->time_added, GC_CONFIRMED_PEER_TIMEOUT)) {
-            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
-            return;
         }
     }
 }

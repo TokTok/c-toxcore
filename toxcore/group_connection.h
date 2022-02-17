@@ -53,7 +53,7 @@ uint16_t gcc_get_array_index(uint64_t message_id);
  * Return true if success.
  */
 non_null()
-bool gcc_handle_ack(GC_Connection *gconn, uint64_t message_id);
+bool gcc_handle_ack(const Logger *log, GC_Connection *gconn, uint64_t message_id);
 
 /** Sets the send_message_id and send_array_start for `gconn` to `id`. This
  * should only be used to initialize a new lossless connection.
@@ -147,7 +147,11 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
 /** Splits a lossless packet up into fragments, wraps each fragment in a GP_FRAGMENT
  * header, encrypts them, and send them in succession.
  *
- * Return true on success.
+ * This function will first try to add each packet fragment to the send array as an atomic
+ * unit. If any chunk fails to be added the process will be reversed and an error will be
+ * returned. Otherwise it will then try to send all the fragments in succession.
+ *
+ * Return true if all fragments are successfully added to the send array.
  */
 non_null()
 bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,

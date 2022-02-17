@@ -5065,7 +5065,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
     const Group_Message_Ack_Type type = (Group_Message_Ack_Type) data[0];
 
     if (type == GR_ACK_RECV) {
-        if (!gcc_handle_ack(gconn, message_id)) {
+        if (!gcc_handle_ack(chat->log, gconn, message_id)) {
             return -2;
         }
 
