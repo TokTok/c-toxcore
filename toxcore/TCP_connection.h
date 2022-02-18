@@ -190,7 +190,7 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
  * return 0 on failure.
  */
 non_null()
-unsigned int tcp_connection_to_online_tcp_relays(const TCP_Connections *tcp_c, int connections_number);
+uint32_t tcp_connection_to_online_tcp_relays(const TCP_Connections *tcp_c, int connections_number);
 
 /** Add a TCP relay tied to a connection.
  *
@@ -230,6 +230,15 @@ int add_tcp_relay_global(TCP_Connections *tcp_c, const IP_Port *ip_port, const u
  */
 non_null()
 uint32_t tcp_copy_connected_relays(const TCP_Connections *tcp_c, Node_format *tcp_relays, uint16_t max_num);
+
+/** Copy a maximum of `max_num` TCP relays we are connected to starting at the index in the TCP relay array
+ * for `tcp_c` designated by `idx`. If idx is greater than the array length a modulo operation is performed.
+ *
+ * Returns the number of relays successfully copied.
+ */
+non_null()
+uint32_t tcp_copy_connected_relays_index(const TCP_Connections *tcp_c, Node_format *tcp_relays, uint16_t max_num,
+        uint32_t idx);
 
 /** Returns a new TCP_Connections object associated with the secret_key.
  *

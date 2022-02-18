@@ -520,7 +520,7 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
         LOGGER_TRACE(log, "[%2u] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
-                     buffer[0], message, res, !res ? '!' : '>', buflen,
+                     buffer[0], message, res, res == 0 ? '!' : '>', buflen,
                      ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port->port), 0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     }
@@ -670,7 +670,7 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
 
         if (!should_ignore_recv_error(error)) {
             char *strerror = net_new_strerror(error);
-            LOGGER_ERROR(log, "Unexpected error reading from socket: %u, %s", error, strerror);
+            LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", error, strerror);
             net_kill_strerror(strerror);
         }
 
@@ -835,7 +835,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
         port_to = temp;
     }
 
-    if (error) {
+    if (error != nullptr) {
         *error = 2;
     }
 
@@ -867,11 +867,11 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     if (!sock_valid(temp->sock)) {
         int neterror = net_error();
         char *strerror = net_new_strerror(neterror);
-        LOGGER_ERROR(log, "Failed to get a socket?! %d, %s", neterror, strerror);
+        LOGGER_ERROR(log, "failed to get a socket?! %d, %s", neterror, strerror);
         net_kill_strerror(strerror);
         free(temp);
 
-        if (error) {
+        if (error != nullptr) {
             *error = 1;
         }
 
@@ -884,11 +884,11 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     int n = 1024 * 1024 * 2;
 
     if (setsockopt(temp->sock.socket, SOL_SOCKET, SO_RCVBUF, (const char *)&n, sizeof(n)) != 0) {
-        LOGGER_WARNING(log, "Failed to set socket option %d", SO_RCVBUF);
+        LOGGER_ERROR(log, "failed to set socket option %d", SO_RCVBUF);
     }
 
     if (setsockopt(temp->sock.socket, SOL_SOCKET, SO_SNDBUF, (const char *)&n, sizeof(n)) != 0) {
-        LOGGER_WARNING(log, "Failed to set socket option %d", SO_SNDBUF);
+        LOGGER_ERROR(log, "failed to set socket option %d", SO_SNDBUF);
     }
 
 #endif
@@ -898,7 +898,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     int broadcast = 1;
 
     if (setsockopt(temp->sock.socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0) {
-        LOGGER_WARNING(log, "Failed to set socket option %d", SO_BROADCAST);
+        LOGGER_ERROR(log, "failed to set socket option %d", SO_BROADCAST);
     }
 
 #endif
@@ -907,7 +907,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     if (!set_socket_nosigpipe(temp->sock)) {
         kill_networking(temp);
 
-        if (error) {
+        if (error != nullptr) {
             *error = 1;
         }
 
@@ -918,7 +918,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     if (!set_socket_nonblock(temp->sock)) {
         kill_networking(temp);
 
-        if (error) {
+        if (error != nullptr) {
             *error = 1;
         }
 
@@ -961,7 +961,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
 #ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 
     if (net_family_is_ipv6(ip->family)) {
-        const int is_dualstack = set_socket_dualstack(temp->sock);
+        const bool is_dualstack = set_socket_dualstack(temp->sock);
         LOGGER_DEBUG(log, "Dual-stack socket: %s",
                      is_dualstack ? "enabled" : "Failed to enable, won't be able to receive from/send to IPv4 addresses");
         /* multicast local nodes */
@@ -1028,7 +1028,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
                 errno = 0;
             }
 
-            if (error) {
+            if (error != nullptr) {
                 *error = 0;
             }
 
@@ -1047,12 +1047,12 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     char ip_str[IP_NTOA_LEN];
     int neterror = net_error();
     char *strerror = net_new_strerror(neterror);
-    LOGGER_ERROR(log, "Failed to bind socket: %d, %s IP: %s port_from: %u port_to: %u", neterror, strerror,
+    LOGGER_ERROR(log, "failed to bind socket: %d, %s IP: %s port_from: %u port_to: %u", neterror, strerror,
                  ip_ntoa(ip, ip_str, sizeof(ip_str)), port_from, port_to);
     net_kill_strerror(strerror);
     kill_networking(temp);
 
-    if (error) {
+    if (error != nullptr) {
         *error = 1;
     }
 
@@ -1080,7 +1080,7 @@ Networking_Core *new_networking_no_udp(const Logger *log)
 /** Function to cleanup networking stuff (doesn't do much right now). */
 void kill_networking(Networking_Core *net)
 {
-    if (!net) {
+    if (net == nullptr) {
         return;
     }
 
@@ -1151,7 +1151,7 @@ bool ipport_equal(const IP_Port *a, const IP_Port *b)
 /** nulls out ip */
 void ip_reset(IP *ip)
 {
-    if (!ip) {
+    if (ip == nullptr) {
         return;
     }
 
@@ -1161,7 +1161,7 @@ void ip_reset(IP *ip)
 /** nulls out ip_port */
 void ipport_reset(IP_Port *ipport)
 {
-    if (!ipport) {
+    if (ipport == nullptr) {
         return;
     }
 
@@ -1171,7 +1171,7 @@ void ipport_reset(IP_Port *ipport)
 /** nulls out ip, sets family according to flag */
 void ip_init(IP *ip, bool ipv6enabled)
 {
-    if (!ip) {
+    if (ip == nullptr) {
         return;
     }
 
@@ -1182,7 +1182,7 @@ void ip_init(IP *ip, bool ipv6enabled)
 /** checks if ip is valid */
 bool ip_isset(const IP *ip)
 {
-    if (!ip) {
+    if (ip == nullptr) {
         return false;
     }
 
@@ -1192,7 +1192,7 @@ bool ip_isset(const IP *ip)
 /** checks if ip is valid */
 bool ipport_isset(const IP_Port *ipport)
 {
-    if (!ipport) {
+    if (ipport == nullptr) {
         return false;
     }
 
@@ -1238,7 +1238,7 @@ const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
         return ip_str;
     }
 
-    if (ip) {
+    if (ip != nullptr) {
         if (net_family_is_ipv4(ip->family)) {
             /* returns standard quad-dotted notation */
             struct in_addr addr;
@@ -1462,7 +1462,7 @@ int32_t net_getipport(const char *node, IP_Port **res, int tox_type)
     return 1;
 #else
     // Try parsing as IP address first.
-    IP_Port parsed = {0};
+    IP_Port parsed = {{{0}}};
 
     if (addr_parse_ip(node, &parsed.ip)) {
         IP_Port *tmp = (IP_Port *)calloc(1, sizeof(IP_Port));

@@ -214,21 +214,21 @@ int create_data_request(uint8_t *packet, uint16_t max_packet_length, const uint8
  * return -1 on failure.
  * return 0 on success.
  */
-int send_announce_request(const Networking_Core *net, const Onion_Path *path, Node_format dest,
+int send_announce_request(const Networking_Core *net, const Onion_Path *path, const Node_format *dest,
                           const uint8_t *public_key, const uint8_t *secret_key,
                           const uint8_t *ping_id, const uint8_t *client_id,
                           const uint8_t *data_public_key, uint64_t sendback_data)
 {
     uint8_t request[ONION_ANNOUNCE_REQUEST_MIN_SIZE];
-    int len = create_announce_request(request, sizeof(request), dest.public_key, public_key, secret_key, ping_id, client_id,
-                                      data_public_key, sendback_data);
+    int len = create_announce_request(request, sizeof(request), dest->public_key, public_key, secret_key, ping_id,
+                                      client_id, data_public_key, sendback_data);
 
     if (len != sizeof(request)) {
         return -1;
     }
 
     uint8_t packet[ONION_MAX_PACKET_SIZE];
-    len = create_onion_packet(packet, sizeof(packet), path, &dest.ip_port, request, sizeof(request));
+    len = create_onion_packet(packet, sizeof(packet), path, &dest->ip_port, request, sizeof(request));
 
     if (len == -1) {
         return -1;
@@ -329,8 +329,8 @@ static int cmp_entry(const void *a, const void *b)
     const Onion_Announce_Entry entry2 = cmp2->entry;
     const uint8_t *cmp_public_key = cmp1->base_public_key;
 
-    const int t1 = mono_time_is_timeout(cmp1->mono_time, entry1.time, ONION_ANNOUNCE_TIMEOUT);
-    const int t2 = mono_time_is_timeout(cmp1->mono_time, entry2.time, ONION_ANNOUNCE_TIMEOUT);
+    const bool t1 = mono_time_is_timeout(cmp1->mono_time, entry1.time, ONION_ANNOUNCE_TIMEOUT);
+    const bool t2 = mono_time_is_timeout(cmp1->mono_time, entry2.time, ONION_ANNOUNCE_TIMEOUT);
 
     if (t1 && t2) {
         return 0;
@@ -698,6 +698,7 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
+    int index;
 
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 

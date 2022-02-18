@@ -684,8 +684,8 @@ static int onion_client_cmp_entry(const void *a, const void *b)
     const Onion_Node entry2 = cmp2->entry;
     const uint8_t *cmp_public_key = cmp1->base_public_key;
 
-    const int t1 = onion_node_timed_out(&entry1, cmp1->mono_time);
-    const int t2 = onion_node_timed_out(&entry2, cmp2->mono_time);
+    const bool t1 = onion_node_timed_out(&entry1, cmp1->mono_time);
+    const bool t2 = onion_node_timed_out(&entry2, cmp2->mono_time);
 
     if (t1 && t2) {
         return 0;
@@ -1132,7 +1132,7 @@ static int handle_data_response(void *object, const IP_Port *source, const uint8
         return 1;
     }
 
-    if (!onion_c->onion_data_handlers[plain[0]].function) {
+    if (onion_c->onion_data_handlers[plain[0]].function == nullptr) {
         return 1;
     }
 
@@ -1171,7 +1171,7 @@ static int handle_dhtpk_announce(void *object, const uint8_t *source_pubkey, con
 
     onion_c->friends_list[friend_num].last_noreplay = no_replay;
 
-    if (onion_c->friends_list[friend_num].dht_pk_callback) {
+    if (onion_c->friends_list[friend_num].dht_pk_callback != nullptr) {
         onion_c->friends_list[friend_num].dht_pk_callback(onion_c->friends_list[friend_num].dht_pk_callback_object,
                 onion_c->friends_list[friend_num].dht_pk_callback_number, data + 1 + sizeof(uint64_t), userdata);
     }
@@ -1196,7 +1196,7 @@ static int handle_dhtpk_announce(void *object, const uint8_t *source_pubkey, con
             if (net_family_is_ipv4(family) || net_family_is_ipv6(family)) {
                 dht_getnodes(onion_c->dht, &nodes[i].ip_port, nodes[i].public_key, onion_c->friends_list[friend_num].dht_public_key);
             } else if (net_family_is_tcp_ipv4(family) || net_family_is_tcp_ipv6(family)) {
-                if (onion_c->friends_list[friend_num].tcp_relay_node_callback) {
+                if (onion_c->friends_list[friend_num].tcp_relay_node_callback != nullptr) {
                     void *obj = onion_c->friends_list[friend_num].tcp_relay_node_callback_object;
                     uint32_t number = onion_c->friends_list[friend_num].tcp_relay_node_callback_number;
                     onion_c->friends_list[friend_num].tcp_relay_node_callback(obj, number, &nodes[i].ip_port, nodes[i].public_key);
@@ -1215,7 +1215,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
         return 1;
     }
 
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {{{0}}};
     ip_port.ip.family = net_family_tcp_family;
 
     if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE) {
@@ -1739,7 +1739,7 @@ static void populate_path_nodes_tcp(Onion_Client *onion_c)
 #define RUN_COUNT_FRIEND_ANNOUNCE_BEGINNING 17
 
 #define ONION_FRIEND_BACKOFF_FACTOR 4
-#define ONION_FRIEND_MAX_PING_INTERVAL (5*60*MAX_ONION_CLIENTS)
+#define ONION_FRIEND_MAX_PING_INTERVAL (uint64_t)(5*60*MAX_ONION_CLIENTS)
 
 non_null()
 static void do_friend(Onion_Client *onion_c, uint16_t friendnum)
@@ -2006,21 +2006,17 @@ static int onion_isconnected(const Onion_Client *onion_c)
 
 #define ONION_CONNECTION_SECONDS 3
 
-/**  return 0 if we are not connected to the network.
- *  return 1 if we are connected with TCP only.
- *  return 2 if we are also connected with UDP.
- */
-unsigned int onion_connection_status(const Onion_Client *onion_c)
+Onion_Connection_Status onion_connection_status(const Onion_Client *onion_c)
 {
     if (onion_c->onion_connected >= ONION_CONNECTION_SECONDS) {
         if (onion_c->udp_connected) {
-            return 2;
+            return ONION_CONNECTION_STATUS_UDP;
         }
 
-        return 1;
+        return ONION_CONNECTION_STATUS_TCP;
     }
 
-    return 0;
+    return ONION_CONNECTION_STATUS_NONE;
 }
 
 void do_onion_client(Onion_Client *onion_c)
@@ -2052,7 +2048,7 @@ void do_onion_client(Onion_Client *onion_c)
         set_tcp_onion_status(nc_get_tcp_c(onion_c->c), !onion_c->udp_connected);
     }
 
-    if (onion_connection_status(onion_c)) {
+    if (onion_connection_status(onion_c) != ONION_CONNECTION_STATUS_NONE) {
         for (unsigned i = 0; i < onion_c->num_friends; ++i) {
             do_friend(onion_c, i);
         }

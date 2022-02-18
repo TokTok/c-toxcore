@@ -163,7 +163,7 @@ typedef enum Filekind {
 } Filekind;
 
 
-typedef void m_self_connection_status_cb(Messenger *m, unsigned int connection_status, void *user_data);
+typedef void m_self_connection_status_cb(Messenger *m, Onion_Connection_Status connection_status, void *user_data);
 typedef void m_friend_status_cb(Messenger *m, uint32_t friend_number, unsigned int status, void *user_data);
 typedef void m_friend_connection_status_cb(Messenger *m, uint32_t friend_number, unsigned int connection_status,
         void *user_data);
@@ -265,7 +265,8 @@ struct Messenger {
     Friend *friendlist;
     uint32_t numfriends;
 
-    time_t lastdump;
+    uint64_t lastdump;
+    uint8_t is_receiving_file;
 
     GC_Session *group_handler;
     GC_Announces_List *group_announce;
@@ -302,7 +303,7 @@ struct Messenger {
     m_friend_lossless_packet_cb *lossless_packethandler;
 
     m_self_connection_status_cb *core_connection_change;
-    unsigned int last_connection_status;
+    Onion_Connection_Status last_connection_status;
 
     Messenger_Options options;
 };
@@ -802,7 +803,7 @@ typedef enum Messenger_Error {
  *  if error is not NULL it will be set to one of the values in the enum above.
  */
 non_null()
-Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, unsigned int *error);
+Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messenger_Error *error);
 
 /** Run this before closing shop
  * Free all datastructures.
@@ -868,5 +869,8 @@ uint32_t count_friendlist(const Messenger *m);
  * of out_list will be truncated to list_size. */
 non_null()
 uint32_t copy_friendlist(const Messenger *m, uint32_t *out_list, uint32_t list_size);
+
+non_null()
+bool is_receiving_file(Messenger *m);
 
 #endif

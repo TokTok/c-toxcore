@@ -29,7 +29,7 @@
 
 #define SET_ERROR_PARAMETER(param, x) \
     do {                              \
-        if (param) {                  \
+        if (param != nullptr) {       \
             *param = x;               \
         }                             \
     } while (0)
@@ -127,7 +127,7 @@ struct Tox_Userdata {
 };
 
 non_null(1) nullable(3)
-static void tox_self_connection_status_handler(Messenger *m, unsigned int connection_status, void *user_data)
+static void tox_self_connection_status_handler(Messenger *m, Onion_Connection_Status connection_status, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
@@ -805,12 +805,12 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     lock(tox);
 
-    unsigned int m_error;
+    Messenger_Error m_error;
     tox->m = new_messenger(tox->mono_time, &m_options, &m_error);
 
     // TODO(iphydf): Clarify this code, check for NULL before new_groupchats, so
     // new_groupchats can assume m is non-NULL.
-    if (!new_groupchats(tox->mono_time, tox->m)) {
+    if (new_groupchats(tox->mono_time, tox->m) == nullptr) {
         kill_messenger(tox->m);
 
         if (m_error == MESSENGER_ERROR_PORT) {
@@ -990,6 +990,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
     }
 
     lock(tox);
+    assert(count >= 0);
 
     for (int32_t i = 0; i < count; ++i) {
         root[i].port = net_htons(port);
@@ -1005,7 +1006,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
 
     net_freeipport(root);
 
-    if (count) {
+    if (count > 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_OK);
         return 1;
     }
@@ -1041,6 +1042,7 @@ bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t 
     }
 
     lock(tox);
+    assert(count >= 0);
 
     for (int32_t i = 0; i < count; ++i) {
         root[i].port = net_htons(port);
@@ -1052,7 +1054,7 @@ bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t 
 
     net_freeipport(root);
 
-    if (count) {
+    if (count > 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_OK);
         return 1;
     }
@@ -1065,18 +1067,21 @@ Tox_Connection tox_self_get_connection_status(const Tox *tox)
 {
     assert(tox != nullptr);
     lock(tox);
-    const unsigned int ret = onion_connection_status(tox->m->onion_c);
+    const Onion_Connection_Status ret = onion_connection_status(tox->m->onion_c);
     unlock(tox);
 
-    if (ret == 2) {
-        return TOX_CONNECTION_UDP;
+    switch (ret) {
+        case ONION_CONNECTION_STATUS_NONE:
+            return TOX_CONNECTION_NONE;
+
+        case ONION_CONNECTION_STATUS_TCP:
+            return TOX_CONNECTION_TCP;
+
+        case ONION_CONNECTION_STATUS_UDP:
+            return TOX_CONNECTION_UDP;
     }
 
-    if (ret == 1) {
-        return TOX_CONNECTION_TCP;
-    }
-
-    return TOX_CONNECTION_NONE;
+    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
 }
 
 
@@ -1091,6 +1096,11 @@ uint32_t tox_iteration_interval(const Tox *tox)
     assert(tox != nullptr);
     lock(tox);
     uint32_t ret = messenger_run_interval(tox->m);
+
+    if (is_receiving_file(tox->m)) {
+        ret = 1;
+    }
+
     unlock(tox);
     return ret;
 }
@@ -1113,7 +1123,7 @@ void tox_self_get_address(const Tox *tox, uint8_t *address)
 {
     assert(tox != nullptr);
 
-    if (address) {
+    if (address != nullptr) {
         lock(tox);
         getaddress(tox->m, address);
         unlock(tox);
@@ -1141,7 +1151,7 @@ void tox_self_get_public_key(const Tox *tox, uint8_t *public_key)
 {
     assert(tox != nullptr);
 
-    if (public_key) {
+    if (public_key != nullptr) {
         lock(tox);
         memcpy(public_key, nc_get_self_public_key(tox->m->net_crypto), CRYPTO_PUBLIC_KEY_SIZE);
         unlock(tox);
@@ -1152,7 +1162,7 @@ void tox_self_get_secret_key(const Tox *tox, uint8_t *secret_key)
 {
     assert(tox != nullptr);
 
-    if (secret_key) {
+    if (secret_key != nullptr) {
         lock(tox);
         memcpy(secret_key, nc_get_self_secret_key(tox->m->net_crypto), CRYPTO_SECRET_KEY_SIZE);
         unlock(tox);
@@ -1196,7 +1206,7 @@ void tox_self_get_name(const Tox *tox, uint8_t *name)
 {
     assert(tox != nullptr);
 
-    if (name) {
+    if (name != nullptr) {
         lock(tox);
         getself_name(tox->m, name);
         unlock(tox);
@@ -1238,7 +1248,7 @@ void tox_self_get_status_message(const Tox *tox, uint8_t *status_message)
 {
     assert(tox != nullptr);
 
-    if (status_message) {
+    if (status_message != nullptr) {
         lock(tox);
         m_copy_self_statusmessage(tox->m, status_message);
         unlock(tox);
@@ -1337,7 +1347,7 @@ uint32_t tox_friend_add_norequest(Tox *tox, const uint8_t *public_key, Tox_Err_F
 {
     assert(tox != nullptr);
 
-    if (!public_key) {
+    if (public_key == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_ADD_NULL);
         return UINT32_MAX;
     }
@@ -1377,7 +1387,7 @@ uint32_t tox_friend_by_public_key(const Tox *tox, const uint8_t *public_key, Tox
 {
     assert(tox != nullptr);
 
-    if (!public_key) {
+    if (public_key == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_BY_PUBLIC_KEY_NULL);
         return UINT32_MAX;
     }
@@ -1400,7 +1410,7 @@ bool tox_friend_get_public_key(const Tox *tox, uint32_t friend_number, uint8_t *
 {
     assert(tox != nullptr);
 
-    if (!public_key) {
+    if (public_key == nullptr) {
         return 0;
     }
 
@@ -1455,7 +1465,7 @@ void tox_self_get_friend_list(const Tox *tox, uint32_t *friend_list)
 {
     assert(tox != nullptr);
 
-    if (friend_list) {
+    if (friend_list != nullptr) {
         lock(tox);
         // TODO(irungentoo): size parameter?
         copy_friendlist(tox->m, friend_list, count_friendlist(tox->m));
@@ -1483,7 +1493,7 @@ bool tox_friend_get_name(const Tox *tox, uint32_t friend_number, uint8_t *name, 
 {
     assert(tox != nullptr);
 
-    if (!name) {
+    if (name == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_QUERY_NULL);
         return 0;
     }
@@ -1528,7 +1538,7 @@ bool tox_friend_get_status_message(const Tox *tox, uint32_t friend_number, uint8
 {
     assert(tox != nullptr);
 
-    if (!status_message) {
+    if (status_message == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_QUERY_NULL);
         return false;
     }
@@ -1685,12 +1695,12 @@ uint32_t tox_friend_send_message(Tox *tox, uint32_t friend_number, Tox_Message_T
 {
     assert(tox != nullptr);
 
-    if (!message) {
+    if (message == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_SEND_MESSAGE_NULL);
         return 0;
     }
 
-    if (!length) {
+    if (length == 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_SEND_MESSAGE_EMPTY);
         return 0;
     }
@@ -1856,7 +1866,7 @@ bool tox_file_get_file_id(const Tox *tox, uint32_t friend_number, uint32_t file_
 {
     assert(tox != nullptr);
 
-    if (!file_id) {
+    if (file_id == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FILE_GET_NULL);
         return 0;
     }
@@ -1891,7 +1901,7 @@ uint32_t tox_file_send(Tox *tox, uint32_t friend_number, uint32_t kind, uint64_t
 
     uint8_t f_id[FILE_ID_LENGTH];
 
-    if (!file_id) {
+    if (file_id == nullptr) {
         /* Tox keys are 32 bytes like FILE_ID_LENGTH. */
         new_symmetric_key(f_id);
         file_id = f_id;
@@ -2575,7 +2585,7 @@ uint32_t tox_conference_by_id(const Tox *tox, const uint8_t *id, Tox_Err_Confere
 {
     assert(tox != nullptr);
 
-    if (!id) {
+    if (id == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_BY_ID_NULL);
         return UINT32_MAX;
     }
@@ -2661,7 +2671,7 @@ bool tox_friend_send_lossy_packet(Tox *tox, uint32_t friend_number, const uint8_
 {
     assert(tox != nullptr);
 
-    if (!data) {
+    if (data == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_NULL);
         return 0;
     }
@@ -2713,7 +2723,7 @@ bool tox_friend_send_lossless_packet(Tox *tox, uint32_t friend_number, const uin
 {
     assert(tox != nullptr);
 
-    if (!data) {
+    if (data == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_NULL);
         return 0;
     }
@@ -2759,7 +2769,7 @@ void tox_self_get_dht_id(const Tox *tox, uint8_t *dht_id)
 {
     assert(tox != nullptr);
 
-    if (dht_id) {
+    if (dht_id != nullptr) {
         lock(tox);
         memcpy(dht_id, dht_get_self_public_key(tox->m->dht), CRYPTO_PUBLIC_KEY_SIZE);
         unlock(tox);
@@ -2804,7 +2814,7 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     assert(tox != nullptr);
     lock(tox);
 
-    if (tox->m->tcp_server) {
+    if (tox->m->tcp_server != nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_OK);
         uint16_t ret = tox->m->options.tcp_server_port;
         unlock(tox);

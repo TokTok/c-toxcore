@@ -620,7 +620,7 @@ static int add_ip_port_connection(Net_Crypto *c, int crypt_connection_id, const 
 non_null()
 static IP_Port return_ip_port_connection(const Net_Crypto *c, int crypt_connection_id)
 {
-    const IP_Port empty = {0};
+    const IP_Port empty = {{{0}}};
 
     const Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
@@ -766,7 +766,7 @@ static int add_data_to_buffer(Packets_Array *array, uint32_t number, const Packe
 
     uint32_t num = number % CRYPTO_PACKET_BUFFER_SIZE;
 
-    if (array->buffer[num]) {
+    if (array->buffer[num] != nullptr) {
         return -1;
     }
 
@@ -803,7 +803,7 @@ static int get_data_pointer(const Packets_Array *array, Packet_Data **data, uint
 
     uint32_t num = number % CRYPTO_PACKET_BUFFER_SIZE;
 
-    if (!array->buffer[num]) {
+    if (array->buffer[num] == nullptr) {
         return 0;
     }
 
@@ -817,17 +817,19 @@ static int get_data_pointer(const Packets_Array *array, Packet_Data **data, uint
  * return packet number on success.
  */
 non_null()
-static int64_t add_data_end_of_buffer(Packets_Array *array, const Packet_Data *data)
+static int64_t add_data_end_of_buffer(const Logger *logger, Packets_Array *array, const Packet_Data *data)
 {
     const uint32_t num_spots = num_packets_array(array);
 
     if (num_spots >= CRYPTO_PACKET_BUFFER_SIZE) {
+        LOGGER_WARNING(logger, "crypto packet buffer size exceeded; rejecting packet of length %d", data->length);
         return -1;
     }
 
     Packet_Data *new_d = (Packet_Data *)calloc(1, sizeof(Packet_Data));
 
     if (new_d == nullptr) {
+        LOGGER_ERROR(logger, "packet data allocation failed");
         return -1;
     }
 
@@ -852,7 +854,7 @@ static int64_t read_data_beg_buffer(Packets_Array *array, Packet_Data *data)
 
     const uint32_t num = array->buffer_start % CRYPTO_PACKET_BUFFER_SIZE;
 
-    if (!array->buffer[num]) {
+    if (array->buffer[num] == nullptr) {
         return -1;
     }
 
@@ -883,7 +885,7 @@ static int clear_buffer_until(Packets_Array *array, uint32_t number)
     for (i = array->buffer_start; i != number; ++i) {
         uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
 
-        if (array->buffer[num]) {
+        if (array->buffer[num] != nullptr) {
             free(array->buffer[num]);
             array->buffer[num] = nullptr;
         }
@@ -901,7 +903,7 @@ static int clear_buffer(Packets_Array *array)
     for (i = array->buffer_start; i != array->buffer_end; ++i) {
         uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
 
-        if (array->buffer[num]) {
+        if (array->buffer[num] != nullptr) {
             free(array->buffer[num]);
             array->buffer[num] = nullptr;
         }
@@ -961,7 +963,7 @@ static int generate_request_packet(uint8_t *data, uint16_t length, const Packets
     for (uint32_t i = recv_array->buffer_start; i != recv_array->buffer_end; ++i) {
         uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
 
-        if (!recv_array->buffer[num]) {
+        if (recv_array->buffer[num] == nullptr) {
             data[cur_len] = n;
             n = 0;
             ++cur_len;
@@ -1025,7 +1027,7 @@ static int handle_request_packet(Mono_Time *mono_time, Packets_Array *send_array
         uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
 
         if (n == data[0]) {
-            if (send_array->buffer[num]) {
+            if (send_array->buffer[num] != nullptr) {
                 uint64_t sent_time = send_array->buffer[num]->sent_time;
 
                 if ((sent_time + rtt_time) < temp_time) {
@@ -1038,7 +1040,7 @@ static int handle_request_packet(Mono_Time *mono_time, Packets_Array *send_array
             n = 0;
             ++requested;
         } else {
-            if (send_array->buffer[num]) {
+            if (send_array->buffer[num] != nullptr) {
                 l_sent_time = max_u64(l_sent_time, send_array->buffer[num]->sent_time);
 
                 free(send_array->buffer[num]);
@@ -1080,14 +1082,14 @@ static int send_data_packet(Net_Crypto *c, int crypt_connection_id, const uint8_
     const uint16_t max_length = MAX_CRYPTO_PACKET_SIZE - (1 + sizeof(uint16_t) + CRYPTO_MAC_SIZE);
 
     if (length == 0 || length > max_length) {
-        LOGGER_WARNING(c->log, "zero-length or too large data packet: %d (max: %d)", length, max_length);
+        LOGGER_ERROR(c->log, "zero-length or too large data packet: %d (max: %d)", length, max_length);
         return -1;
     }
 
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
     if (conn == nullptr) {
-        LOGGER_WARNING(c->log, "connection id %d not found", crypt_connection_id);
+        LOGGER_ERROR(c->log, "connection id %d not found", crypt_connection_id);
         return -1;
     }
 
@@ -1099,7 +1101,7 @@ static int send_data_packet(Net_Crypto *c, int crypt_connection_id, const uint8_
     const int len = encrypt_data_symmetric(conn->shared_key, conn->sent_nonce, data, length, packet + 1 + sizeof(uint16_t));
 
     if (len + 1 + sizeof(uint16_t) != packet_size) {
-        LOGGER_WARNING(c->log, "encryption failed: %d", len);
+        LOGGER_ERROR(c->log, "encryption failed: %d", len);
         pthread_mutex_unlock(conn->mutex);
         return -1;
     }
@@ -1120,7 +1122,7 @@ static int send_data_packet_helper(Net_Crypto *c, int crypt_connection_id, uint3
                                    const uint8_t *data, uint16_t length)
 {
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE) {
-        LOGGER_WARNING(c->log, "zero-length or too large data packet: %d (max: %d)", length, MAX_CRYPTO_PACKET_SIZE);
+        LOGGER_ERROR(c->log, "zero-length or too large data packet: %d (max: %d)", length, MAX_CRYPTO_PACKET_SIZE);
         return -1;
     }
 
@@ -1175,6 +1177,8 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
                                     uint8_t congestion_control)
 {
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE) {
+        LOGGER_ERROR(c->log, "rejecting too large (or empty) packet of size %d on crypt connection %d", length,
+                     crypt_connection_id);
         return -1;
     }
 
@@ -1189,6 +1193,7 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
     reset_max_speed_reached(c, crypt_connection_id);
 
     if (conn->maximum_speed_reached && congestion_control) {
+        LOGGER_INFO(c->log, "congestion control: maximum speed reached on crypt connection %d", crypt_connection_id);
         return -1;
     }
 
@@ -1197,7 +1202,7 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
     dt.length = length;
     memcpy(dt.data, data, length);
     pthread_mutex_lock(conn->mutex);
-    const int64_t packet_num = add_data_end_of_buffer(&conn->send_array, &dt);
+    const int64_t packet_num = add_data_end_of_buffer(c->log, &conn->send_array, &dt);
     pthread_mutex_unlock(conn->mutex);
 
     if (packet_num == -1) {
@@ -1382,7 +1387,7 @@ static int new_temp_packet(const Net_Crypto *c, int crypt_connection_id, const u
         return -1;
     }
 
-    if (conn->temp_packet) {
+    if (conn->temp_packet != nullptr) {
         free(conn->temp_packet);
     }
 
@@ -1408,7 +1413,7 @@ static int clear_temp_packet(const Net_Crypto *c, int crypt_connection_id)
         return -1;
     }
 
-    if (conn->temp_packet) {
+    if (conn->temp_packet != nullptr) {
         free(conn->temp_packet);
     }
 
@@ -1434,7 +1439,7 @@ static int send_temp_packet(Net_Crypto *c, int crypt_connection_id)
         return -1;
     }
 
-    if (!conn->temp_packet) {
+    if (conn->temp_packet == nullptr) {
         return -1;
     }
 
@@ -1506,7 +1511,7 @@ static void connection_kill(Net_Crypto *c, int crypt_connection_id, void *userda
         return;
     }
 
-    if (conn->connection_status_callback) {
+    if (conn->connection_status_callback != nullptr) {
         conn->connection_status_callback(conn->connection_status_callback_object, conn->connection_status_callback_id, 0,
                                          userdata);
     }
@@ -1514,7 +1519,7 @@ static void connection_kill(Net_Crypto *c, int crypt_connection_id, void *userda
     while (1) { /* TODO(irungentoo): is this really the best way to do this? */
         pthread_mutex_lock(&c->connections_mutex);
 
-        if (!c->connection_use_counter) {
+        if (c->connection_use_counter == 0) {
             break;
         }
 
@@ -1593,7 +1598,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
         clear_temp_packet(c, crypt_connection_id);
         conn->status = CRYPTO_CONN_ESTABLISHED;
 
-        if (conn->connection_status_callback) {
+        if (conn->connection_status_callback != nullptr) {
             conn->connection_status_callback(conn->connection_status_callback_object, conn->connection_status_callback_id, 1,
                                              userdata);
         }
@@ -1635,7 +1640,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
                 break;
             }
 
-            if (conn->connection_data_callback) {
+            if (conn->connection_data_callback != nullptr) {
                 conn->connection_data_callback(conn->connection_data_callback_object, conn->connection_data_callback_id, dt.data,
                                                dt.length, userdata);
             }
@@ -1654,7 +1659,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
 
         set_buffer_end(&conn->recv_array, num);
 
-        if (conn->connection_lossy_data_callback) {
+        if (conn->connection_lossy_data_callback != nullptr) {
             conn->connection_lossy_data_callback(conn->connection_lossy_data_callback_object,
                                                  conn->connection_lossy_data_callback_id, real_data, real_length, userdata);
         }
@@ -1741,7 +1746,7 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
 
         conn->status = CRYPTO_CONN_NOT_CONFIRMED;
     } else {
-        if (conn->dht_pk_callback) {
+        if (conn->dht_pk_callback != nullptr) {
             conn->dht_pk_callback(conn->dht_pk_callback_object, conn->dht_pk_callback_number, dht_public_key, userdata);
         }
     }
@@ -1831,7 +1836,7 @@ static int create_crypto_connection(Net_Crypto *c)
     while (1) { /* TODO(irungentoo): is this really the best way to do this? */
         pthread_mutex_lock(&c->connections_mutex);
 
-        if (!c->connection_use_counter) {
+        if (c->connection_use_counter == 0) {
             break;
         }
 
@@ -2339,7 +2344,7 @@ int send_tcp_onion_request(Net_Crypto *c, unsigned int tcp_connections_number, c
     return ret;
 }
 
-/** Copy a maximum of num TCP relays we are connected to to tcp_relays.
+/** Copy a maximum of num random TCP relays we are connected to to tcp_relays.
  * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
  *
  * return number of relays copied to tcp_relays on success.
@@ -2353,6 +2358,19 @@ unsigned int copy_connected_tcp_relays(Net_Crypto *c, Node_format *tcp_relays, u
 
     pthread_mutex_lock(&c->tcp_mutex);
     unsigned int ret = tcp_copy_connected_relays(c->tcp_c, tcp_relays, num);
+    pthread_mutex_unlock(&c->tcp_mutex);
+
+    return ret;
+}
+
+uint32_t copy_connected_tcp_relays_index(Net_Crypto *c, Node_format *tcp_relays, uint16_t num, uint32_t idx)
+{
+    if (num == 0) {
+        return 0;
+    }
+
+    pthread_mutex_lock(&c->tcp_mutex);
+    uint32_t ret = tcp_copy_connected_relays_index(c->tcp_c, tcp_relays, num, idx);
     pthread_mutex_unlock(&c->tcp_mutex);
 
     return ret;
@@ -2627,7 +2645,7 @@ static void send_crypto_packets(Net_Crypto *c)
             }
 
             if ((PACKET_COUNTER_AVERAGE_INTERVAL + conn->packet_counter_set) < temp_time) {
-                const double dt = temp_time - conn->packet_counter_set;
+                const double dt = (double)(temp_time - conn->packet_counter_set);
 
                 conn->packet_recv_rate = (double)conn->packet_counter / (dt / 1000.0);
                 conn->packet_counter = 0;
@@ -2848,28 +2866,35 @@ int64_t write_cryptpacket(Net_Crypto *c, int crypt_connection_id, const uint8_t 
                           uint8_t congestion_control)
 {
     if (length == 0) {
+        // We need at least a packet id.
+        LOGGER_ERROR(c->log, "rejecting empty packet for crypto connection %d", crypt_connection_id);
         return -1;
     }
 
     if (data[0] < PACKET_ID_RANGE_LOSSLESS_START || data[0] > PACKET_ID_RANGE_LOSSLESS_END) {
+        LOGGER_ERROR(c->log, "rejecting lossless packet with out-of-range id %d", data[0]);
         return -1;
     }
 
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
     if (conn == nullptr) {
+        LOGGER_WARNING(c->log, "invalid crypt connection id %d", crypt_connection_id);
         return -1;
     }
 
     if (conn->status != CRYPTO_CONN_ESTABLISHED) {
+        LOGGER_WARNING(c->log, "attempted to send packet to non-established connection %d", crypt_connection_id);
         return -1;
     }
 
     if (congestion_control && conn->packets_left == 0) {
+        LOGGER_ERROR(c->log, "congestion control: rejecting packet of length %d on crypt connection %d", length,
+                     crypt_connection_id);
         return -1;
     }
 
-    int64_t ret = send_lossless_packet(c, crypt_connection_id, data, length, congestion_control);
+    const int64_t ret = send_lossless_packet(c, crypt_connection_id, data, length, congestion_control);
 
     if (ret == -1) {
         return -1;
@@ -2941,7 +2966,7 @@ int send_lossy_cryptpacket(Net_Crypto *c, int crypt_connection_id, const uint8_t
 
     int ret = -1;
 
-    if (conn) {
+    if (conn != nullptr) {
         pthread_mutex_lock(conn->mutex);
         uint32_t buffer_start = conn->recv_array.buffer_start;
         uint32_t buffer_end = conn->send_array.buffer_end;
@@ -2967,7 +2992,7 @@ int crypto_kill(Net_Crypto *c, int crypt_connection_id)
 
     int ret = -1;
 
-    if (conn) {
+    if (conn != nullptr) {
         if (conn->status == CRYPTO_CONN_ESTABLISHED) {
             send_kill_packet(c, crypt_connection_id);
         }
@@ -2988,7 +3013,7 @@ int crypto_kill(Net_Crypto *c, int crypt_connection_id)
 }
 
 bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool *direct_connected,
-                              unsigned int *online_tcp_relays)
+                              uint32_t *online_tcp_relays)
 {
     const Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
@@ -2996,7 +3021,7 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
         return false;
     }
 
-    if (direct_connected) {
+    if (direct_connected != nullptr) {
         *direct_connected = 0;
 
         const uint64_t current_time = mono_time_get(c->mono_time);
@@ -3008,7 +3033,7 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
         }
     }
 
-    if (online_tcp_relays) {
+    if (online_tcp_relays != nullptr) {
         *online_tcp_relays = tcp_connection_to_online_tcp_relays(c->tcp_c, conn->connection_number_tcp);
     }
 
