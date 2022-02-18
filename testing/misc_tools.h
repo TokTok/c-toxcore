@@ -17,6 +17,7 @@ void to_hex(char *out, uint8_t *in, int size);
 int tox_strncasecmp(const char *s1, const char *s2, size_t n);
 int cmdline_parsefor_ipv46(int argc, char **argv, bool *ipv6enabled);
 
+const char *tox_log_level_name(Tox_Log_Level level);
 void print_debug_log(Tox *m, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
                      const char *message, void *user_data);
 
