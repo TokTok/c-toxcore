@@ -16,5 +16,5 @@ gcc -pthread -g \
 
 time perf record -g --call-graph dwarf --freq=999 "/work/$TEST" /work/c-toxcore/auto_tests/
 perf report | head -n50
-perf script -F +pid > "$OUTPUT"
+perf script -F +pid >"$OUTPUT"
 chown 1000:100 "$OUTPUT"
