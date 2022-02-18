@@ -150,6 +150,7 @@ static bool wipe_group_chat(Group_Chats *g_c, uint32_t groupnumber)
     }
 
     uint16_t i;
+
     for (i = g_c->num_chats; i != 0; --i) {
         if (g_c->chats[i - 1].status != GROUPCHAT_STATUS_NONE) {
             break;
