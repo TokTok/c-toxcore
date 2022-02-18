@@ -3497,7 +3497,7 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
 
     id_copy(g->real_pk, nc_get_self_public_key(g_c->m->net_crypto));
 
-    return (uint32_t) (data - init_data);
+    return (uint32_t)(data - init_data);
 }
 
 non_null()
@@ -3516,7 +3516,7 @@ static State_Load_Status load_conferences(Group_Chats *g_c, const uint8_t *data,
 
         Group_c *g = &g_c->chats[groupnumber];
 
-        uint32_t consumed = load_group(g, g_c, data, length - (uint32_t) (data - init_data));
+        uint32_t consumed = load_group(g, g_c, data, length - (uint32_t)(data - init_data));
 
         if (consumed == 0) {
             // remove partially loaded stuff
@@ -3541,13 +3541,13 @@ static State_Load_Status load_conferences(Group_Chats *g_c, const uint8_t *data,
 
     return STATE_LOAD_STATUS_CONTINUE;
 
-    LOAD_ERROR:
+LOAD_ERROR:
     // Cleanup all Group_c
 
     // save locally, because wipe_group_chat(...) modifies it
     num_groups = g_c->num_chats;
 
-    for(uint16_t i = 0; i < num_groups; i++) {
+    for (uint16_t i = 0; i < num_groups; i++) {
         wipe_group_chat(g_c, i);
     }
 
