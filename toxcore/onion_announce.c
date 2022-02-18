@@ -698,8 +698,6 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
     uint8_t ping_id2[ONION_PING_ID_SIZE];
     generate_ping_id(onion_a, mono_time_get(onion_a->mono_time) + PING_ID_TIMEOUT, packet_public_key, source, ping_id2);
 
-    int index;
-
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
     int index;
