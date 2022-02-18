@@ -139,13 +139,17 @@ static int32_t create_group_chat(Group_Chats *g_c)
 non_null()
 static bool wipe_group_chat(Group_Chats *g_c, uint32_t groupnumber)
 {
-    if (!is_groupnumber_valid(g_c, groupnumber)) {
+    if (groupnumber >= g_c->num_chats || g_c->chats == nullptr) {
         return false;
     }
 
-    uint16_t i;
-    crypto_memzero(&g_c->chats[groupnumber], sizeof(Group_c));
+    {
+        Group_c *g = &g_c->chats[groupnumber];
+        free(g->frozen);
+        crypto_memzero(&g, sizeof(Group_c));
+    }
 
+    uint16_t i;
     for (i = g_c->num_chats; i != 0; --i) {
         if (g_c->chats[i - 1].status != GROUPCHAT_STATUS_NONE) {
             break;
