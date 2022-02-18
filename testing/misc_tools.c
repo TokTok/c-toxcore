@@ -136,7 +136,7 @@ int cmdline_parsefor_ipv46(int argc, char **argv, bool *ipv6enabled)
     return argvoffset;
 }
 
-static const char *tox_log_level_name(Tox_Log_Level level)
+const char *tox_log_level_name(Tox_Log_Level level)
 {
     switch (level) {
         case TOX_LOG_LEVEL_TRACE:
