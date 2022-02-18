@@ -167,7 +167,8 @@ int send_announce_request(const Networking_Core *net, const Onion_Path *path, co
                           const uint8_t *data_public_key, uint64_t sendback_data)
 {
     uint8_t request[ONION_ANNOUNCE_REQUEST_SIZE];
-    int len = create_announce_request(request, sizeof(request), dest->public_key, public_key, secret_key, ping_id, client_id,
+    int len = create_announce_request(request, sizeof(request), dest->public_key, public_key, secret_key, ping_id,
+                                      client_id,
                                       data_public_key, sendback_data);
 
     if (len != sizeof(request)) {
