@@ -14,13 +14,11 @@ branches:
         contexts:
           - "bazel-asan"
           - "bazel-dbg"
-          - "bazel-msan"
           - "bazel-opt"
           - "bazel-tsan"
           - "bazel-valgrind"
           - "build-compcert"
           - "build-macos"
-          - "build-msan"
           - "build-nacl"
           - "build-tcc"
           - "build-win32"
