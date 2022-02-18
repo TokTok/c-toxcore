@@ -25,13 +25,13 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
         return;
     }
 
-    if (announces->prev_announce) {
+    if (announces->prev_announce != nullptr) {
         announces->prev_announce->next_announce = announces->next_announce;
     } else {
         gc_announces_list->root_announces = announces->next_announce;
     }
 
-    if (announces->next_announce) {
+    if (announces->next_announce != nullptr) {
         announces->next_announce->prev_announce = announces->prev_announce;
     }
 
@@ -47,7 +47,7 @@ static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announ
 {
     GC_Announces *announces = gc_announces_list->root_announces;
 
-    while (announces) {
+    while (announces != nullptr) {
         if (memcmp(announces->chat_id, chat_id, CHAT_ID_SIZE) == 0) {
             return announces;
         }
@@ -346,7 +346,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
         announces->index = 0;
         announces->prev_announce = nullptr;
 
-        if (gc_announces_list->root_announces) {
+        if (gc_announces_list->root_announces != nullptr) {
             gc_announces_list->root_announces->prev_announce = announces;
         }
 
@@ -424,7 +424,7 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 
     GC_Announces *announces = gc_announces_list->root_announces;
 
-    while (announces) {
+    while (announces != nullptr) {
         if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
             GC_Announces *announces_to_delete = announces;
             announces = announces->next_announce;

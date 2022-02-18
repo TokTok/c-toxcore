@@ -11,6 +11,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #include "mono_time.h"
 #include "network.h"
@@ -352,7 +353,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
         return -1;
     }
 
-    if (processed_data_len) {
+    if (processed_data_len != nullptr) {
         *processed_data_len = len_processed + creds_len;
     }
 
@@ -564,7 +565,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
     const uint16_t new_num = moderation->num_sanctions - 1;
 
     if (new_num == 0) {
-        if (creds) {
+        if (creds != nullptr) {
             if (!sanctions_creds_validate(moderation, nullptr, creds, 0)) {
                 return -1;
             }
@@ -598,7 +599,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
         return -1;
     }
 
-    if (creds) {
+    if (creds != nullptr) {
         if (!sanctions_creds_validate(moderation, new_list, creds, new_num)) {
             free(new_list);
             return -1;
@@ -710,7 +711,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
 
     new_list[index] = *sanction;
 
-    if (creds) {
+    if (creds != nullptr) {
         if (!sanctions_creds_validate(moderation, new_list, creds, index + 1)) {
             LOGGER_WARNING(moderation->log, "Failed to validate credentials");
             free(new_list);
@@ -812,7 +813,7 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
 
 void sanctions_list_cleanup(Moderation *moderation)
 {
-    if (moderation->sanctions) {
+    if (moderation->sanctions != nullptr) {
         free(moderation->sanctions);
     }
 
