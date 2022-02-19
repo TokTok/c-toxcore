@@ -10,7 +10,6 @@ restylers:
   - autopep8
   - black
   - clang-format:
-      arguments: ["-style={BasedOnStyle: Google, ColumnLimit: 100}"]
       include:
         - "**/*.cc"
   - prettier-yaml
