@@ -13,8 +13,7 @@
 #include "../toxcore/tox.h"
 #include "misc_tools.h"
 
-namespace
-{
+namespace {
 
 // Whether to write log messages when handling callbacks.
 constexpr bool LOG_CALLBACKS = false;
@@ -35,19 +34,13 @@ constexpr uint32_t MAX_ACTION_ATTEMPTS = 100;
 constexpr uint32_t ITERATIONS_PER_ACTION = 1;
 
 struct Tox_Options_Deleter {
-    void operator()(Tox_Options *options) const
-    {
-        tox_options_free(options);
-    }
+    void operator()(Tox_Options *options) const { tox_options_free(options); }
 };
 
 using Tox_Options_Ptr = std::unique_ptr<Tox_Options, Tox_Options_Deleter>;
 
 struct Tox_Deleter {
-    void operator()(Tox *tox) const
-    {
-        tox_kill(tox);
-    }
+    void operator()(Tox *tox) const { tox_kill(tox); }
 };
 
 using Tox_Ptr = std::unique_ptr<Tox, Tox_Deleter>;
@@ -62,14 +55,8 @@ struct Local_State {
     {
     }
 
-    Tox *tox() const
-    {
-        return tox_.get();
-    }
-    uint32_t id() const
-    {
-        return id_;
-    }
+    Tox *tox() const { return tox_.get(); }
+    uint32_t id() const { return id_; }
 
 private:
     Tox_Ptr tox_;
@@ -132,18 +119,9 @@ struct Global_State : std::vector<Local_State> {
     {
     }
 
-    Action const &action(size_t id) const
-    {
-        return actions_.at(id);
-    }
-    Random *rnd()
-    {
-        return &rnd_;
-    }
-    std::vector<unsigned> &action_counter()
-    {
-        return action_counter_;
-    }
+    Action const &action(size_t id) const { return actions_.at(id); }
+    Random *rnd() { return &rnd_; }
+    std::vector<unsigned> &action_counter() { return action_counter_; }
 
 private:
     std::vector<Action> const &actions_;
@@ -167,7 +145,7 @@ void handle_friend_connection_status(
 }
 
 void handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Conference_Type type,
-                              const uint8_t *cookie, size_t length, void *user_data)
+    const uint8_t *cookie, size_t length, void *user_data)
 {
     Local_State *state = static_cast<Local_State *>(user_data);
 
@@ -181,13 +159,13 @@ void handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Conference_T
 }
 
 void handle_conference_message(Tox *tox, uint32_t conference_number, uint32_t peer_number,
-                               Tox_Message_Type type, const uint8_t *message, size_t length, void *user_data)
+    Tox_Message_Type type, const uint8_t *message, size_t length, void *user_data)
 {
     Local_State *state = static_cast<Local_State *>(user_data);
 
     if (LOG_CALLBACKS) {
         std::printf("Tox #%u received a message of length %u\n", state->id(),
-                    static_cast<unsigned>(length));
+            static_cast<unsigned>(length));
     }
 }
 
@@ -267,9 +245,7 @@ Global_State make_toxes(std::vector<Action> const &actions)
 bool all_connected(Global_State const &toxes)
 {
     return std::all_of(toxes.begin(), toxes.end(),
-    [](Local_State const & state) {
-        return state.friends_online == NUM_TOXES - 1;
-    });
+        [](Local_State const &state) { return state.friends_online == NUM_TOXES - 1; });
 }
 
 bool bootstrap_toxes(Global_State *toxes)
@@ -332,12 +308,10 @@ int main()
         {
             10,
             "creates a new conference",
-            [](Local_State const & state)
-            {
+            [](Local_State const &state) {
                 return tox_conference_get_chatlist_size(state.tox()) < MAX_CONFERENCES_PER_USER;
             },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 Tox_Err_Conference_New err;
                 tox_conference_new(state->tox(), &err);
                 assert(err == TOX_ERR_CONFERENCE_NEW_OK);
@@ -346,17 +320,15 @@ int main()
         {
             10,
             "invites a random friend to a conference",
-            [](Local_State const & state)
-            {
+            [](Local_State const &state) {
                 return tox_conference_get_chatlist_size(state.tox()) != 0;
             },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 size_t chat_count = tox_conference_get_chatlist_size(state->tox());
                 assert(chat_count != 0);  // Condition above.
                 Tox_Err_Conference_Invite err;
                 tox_conference_invite(state->tox(), rnd->friend_selector(*rng),
-                                      state->next_invite % chat_count, &err);
+                    state->next_invite % chat_count, &err);
                 state->next_invite++;
                 assert(err == TOX_ERR_CONFERENCE_INVITE_OK);
             },
@@ -364,12 +336,10 @@ int main()
         {
             10,
             "deletes the last conference",
-            [](Local_State const & state)
-            {
+            [](Local_State const &state) {
                 return tox_conference_get_chatlist_size(state.tox()) != 0;
             },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 Tox_Err_Conference_Delete err;
                 tox_conference_delete(
                     state->tox(), tox_conference_get_chatlist_size(state->tox()) - 1, &err);
@@ -379,12 +349,10 @@ int main()
         {
             10,
             "sends a message to the last conference",
-            [](Local_State const & state)
-            {
+            [](Local_State const &state) {
                 return tox_conference_get_chatlist_size(state.tox()) != 0;
             },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 std::vector<uint8_t> message(rnd->message_length_selector(*rng));
 
                 for (uint8_t &byte : message) {
@@ -393,8 +361,8 @@ int main()
 
                 Tox_Err_Conference_Send_Message err;
                 tox_conference_send_message(state->tox(),
-                                            tox_conference_get_chatlist_size(state->tox()) - 1, TOX_MESSAGE_TYPE_NORMAL,
-                                            message.data(), message.size(), &err);
+                    tox_conference_get_chatlist_size(state->tox()) - 1, TOX_MESSAGE_TYPE_NORMAL,
+                    message.data(), message.size(), &err);
 
                 if (err == TOX_ERR_CONFERENCE_SEND_MESSAGE_OK) {
                     printf(" (OK, length = %u)", static_cast<unsigned>(message.size()));
@@ -406,9 +374,8 @@ int main()
         {
             10,
             "changes their name",
-            [](Local_State const & state) { return true; },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State const &state) { return true; },
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 std::vector<uint8_t> name(rnd->name_length_selector(*rng));
 
                 for (uint8_t &byte : name) {
@@ -425,9 +392,8 @@ int main()
         {
             10,
             "sets their name to empty",
-            [](Local_State const & state) { return true; },
-            [](Local_State * state, Random * rnd, std::mt19937 * rng)
-            {
+            [](Local_State const &state) { return true; },
+            [](Local_State *state, Random *rnd, std::mt19937 *rng) {
                 Tox_Err_Set_Info err;
                 tox_self_set_name(state->tox(), nullptr, 0, &err);
                 assert(err == TOX_ERR_SET_INFO_OK);
@@ -449,7 +415,7 @@ int main()
         if (!attempt_action(&toxes, &rng)) {
             std::printf("System is stuck after %u actions: none of the toxes can perform an action "
                         "anymore\n",
-                        action_number);
+                action_number);
             return EXIT_FAILURE;
         }
 

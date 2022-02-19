@@ -2,8 +2,7 @@
 
 #include <gtest/gtest.h>
 
-namespace
-{
+namespace {
 
 TEST(MonoTime, UnixTimeIncreasesOverTime)
 {
