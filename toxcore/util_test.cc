@@ -4,7 +4,8 @@
 
 #include "crypto_core.h"
 
-namespace {
+namespace
+{
 
 TEST(Util, TwoRandomIdsAreNotEqual)
 {

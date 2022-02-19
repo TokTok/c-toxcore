@@ -2,7 +2,8 @@
 
 #include <gtest/gtest.h>
 
-namespace {
+namespace
+{
 
 // TODO(Jfreegman) make this useful or remove it after NGC is merged
 TEST(friend_connection, NullTest)
