@@ -42,9 +42,11 @@
  * There are a few filter options you can apply below. Note that you'll need
  * addr2line in your PATH for this to work.
  */
-namespace {
+namespace
+{
 
-class CString {
+class CString
+{
     char const *str_;
 
 public:
@@ -54,11 +56,14 @@ public:
     {
     }
 
-    friend bool operator<(CString lhs, CString rhs) { return strcmp(lhs.str_, rhs.str_) < 0; }
+    friend bool operator<(CString lhs, CString rhs)
+    {
+        return strcmp(lhs.str_, rhs.str_) < 0;
+    }
 };
 
 template <std::size_t N>
-bool contains(CString const (&array)[N], std::string const &str)
+bool contains(CString const(&array)[N], std::string const &str)
 {
     return std::binary_search(array, array + N, str.c_str());
 }
@@ -90,11 +95,13 @@ constexpr CString filter_sources[] = {
     "onion_client.c",
 };
 
-class ExecutionTrace {
+class ExecutionTrace
+{
     using Process = std::unique_ptr<FILE, decltype(&pclose)>;
     using File = std::unique_ptr<FILE, decltype(&fclose)>;
 
-    std::string const exe = []() {
+    std::string const exe = []()
+    {
         std::array<char, PATH_MAX> result;
         ssize_t const count = readlink("/proc/self/exe", result.data(), result.size());
         assert(count > 0);
@@ -102,9 +109,9 @@ class ExecutionTrace {
     }();
 
 #if LOG_TO_STDOUT
-    File const log_file{stdout, std::fclose};
+    File const log_file {stdout, std::fclose};
 #else
-    File const log_file{std::fopen("trace.log", "w"), std::fclose};
+    File const log_file {std::fopen("trace.log", "w"), std::fclose};
 #endif
     unsigned nesting = 0;
     std::map<void *, Symbol> symbols;
@@ -113,13 +120,17 @@ class ExecutionTrace {
     {
         std::string result;
         Process pipe(popen(cmd.c_str(), "r"), pclose);
+
         if (!pipe) {
             return "<popen-failed>";
         }
+
         std::array<char, 128> buffer;
+
         while (std::fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
             result += buffer.data();
         }
+
         return result;
     }
 
@@ -127,14 +138,15 @@ class ExecutionTrace {
     {
         // Already in the cache.
         auto const found = symbols.find(fn);
+
         if (found != symbols.end()) {
             return found->second;
         }
 
         // 0x<64 bit number>\0
-        std::array<char, 16 + 3> addr;
+        std::array < char, 16 + 3 > addr;
         std::snprintf(addr.data(), addr.size(), "0x%lx",
-            static_cast<unsigned long>(reinterpret_cast<uintptr_t>(fn)));
+                      static_cast<unsigned long>(reinterpret_cast<uintptr_t>(fn)));
 
         std::string const output = sh("addr2line -fs -e " + exe + " " + addr.data());
 
@@ -168,6 +180,7 @@ class ExecutionTrace {
                 return true;
             }
         }
+
         return contains(exclusions, sym.name);
     }
 
@@ -175,6 +188,7 @@ public:
     void enter(void *fn)
     {
         Symbol const &sym = resolve(fn);
+
         if (!excluded(sym)) {
             print("->", sym);
             ++nesting;
@@ -184,6 +198,7 @@ public:
     void exit(void *fn)
     {
         Symbol const &sym = resolve(fn);
+
         if (!excluded(sym)) {
             --nesting;
             print("<-", sym);
@@ -197,17 +212,18 @@ static ExecutionTrace *trace;
 }  // namespace
 
 extern "C" void __cyg_profile_func_enter(void *this_fn, void *call_site)
-    __attribute__((__no_instrument_function__));
+__attribute__((__no_instrument_function__));
 void __cyg_profile_func_enter(void *this_fn, void *call_site)
 {
     if (trace == nullptr) {
         trace = new ExecutionTrace();
     }
+
     trace->enter(this_fn);
 }
 
 extern "C" void __cyg_profile_func_exit(void *this_fn, void *call_site)
-    __attribute__((__no_instrument_function__));
+__attribute__((__no_instrument_function__));
 void __cyg_profile_func_exit(void *this_fn, void *call_site)
 {
     assert(trace != nullptr);

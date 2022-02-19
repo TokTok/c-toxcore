@@ -6,16 +6,23 @@
 
 #include "mono_time.h"
 
-namespace {
+namespace
+{
 
 struct Ping_Array_Deleter {
-    void operator()(Ping_Array *arr) { ping_array_kill(arr); }
+    void operator()(Ping_Array *arr)
+    {
+        ping_array_kill(arr);
+    }
 };
 
 using Ping_Array_Ptr = std::unique_ptr<Ping_Array, Ping_Array_Deleter>;
 
 struct Mono_Time_Deleter {
-    void operator()(Mono_Time *arr) { mono_time_free(arr); }
+    void operator()(Mono_Time *arr)
+    {
+        mono_time_free(arr);
+    }
 };
 
 using Mono_Time_Ptr = std::unique_ptr<Mono_Time, Mono_Time_Deleter>;
@@ -52,7 +59,7 @@ TEST(PingArray, StoredDataCanBeRetrieved)
     Mono_Time_Ptr const mono_time(mono_time_new());
 
     uint64_t const ping_id
-        = ping_array_add(arr.get(), mono_time.get(), std::vector<uint8_t>{1, 2, 3, 4}.data(), 4);
+        = ping_array_add(arr.get(), mono_time.get(), std::vector<uint8_t> {1, 2, 3, 4}.data(), 4);
     EXPECT_NE(ping_id, 0);
 
     std::vector<uint8_t> data(4);
@@ -66,7 +73,7 @@ TEST(PingArray, RetrievingDataWithTooSmallOutputBufferHasNoEffect)
     Mono_Time_Ptr const mono_time(mono_time_new());
 
     uint64_t const ping_id
-        = ping_array_add(arr.get(), mono_time.get(), (std::vector<uint8_t>{1, 2, 3, 4}).data(), 4);
+        = ping_array_add(arr.get(), mono_time.get(), (std::vector<uint8_t> {1, 2, 3, 4}).data(), 4);
     EXPECT_NE(ping_id, 0);
 
     std::vector<uint8_t> data(4);

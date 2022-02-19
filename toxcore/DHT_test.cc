@@ -7,12 +7,13 @@
 
 #include "crypto_core.h"
 
-namespace {
+namespace
+{
 
 using PublicKey = std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;
 
 template <typename T, size_t N>
-std::array<T, N> to_array(T const (&arr)[N])
+std::array<T, N> to_array(T const(&arr)[N])
 {
     std::array<T, N> stdarr;
     memcpy(stdarr.data(), arr, N);

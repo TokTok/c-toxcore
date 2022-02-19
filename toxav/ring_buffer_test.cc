@@ -6,24 +6,38 @@
 #include <cassert>
 #include <vector>
 
-namespace {
+namespace
+{
 
 template <typename T>
 class TypedRingBuffer;
 
 template <typename T>
-class TypedRingBuffer<T *> {
+class TypedRingBuffer<T *>
+{
 public:
     explicit TypedRingBuffer(int size)
         : rb_(rb_new(size))
     {
     }
-    ~TypedRingBuffer() { rb_kill(rb_); }
+    ~TypedRingBuffer()
+    {
+        rb_kill(rb_);
+    }
     TypedRingBuffer(TypedRingBuffer const &) = delete;
 
-    bool full() const { return rb_full(rb_); }
-    bool empty() const { return rb_empty(rb_); }
-    T *write(T *p) { return static_cast<T *>(rb_write(rb_, p)); }
+    bool full() const
+    {
+        return rb_full(rb_);
+    }
+    bool empty() const
+    {
+        return rb_empty(rb_);
+    }
+    T *write(T *p)
+    {
+        return static_cast<T *>(rb_write(rb_, p));
+    }
     bool read(T **p)
     {
         void *vp;
@@ -32,14 +46,19 @@ public:
         return res;
     }
 
-    uint16_t size() const { return rb_size(rb_); }
+    uint16_t size() const
+    {
+        return rb_size(rb_);
+    }
     uint16_t data(T **dest) const
     {
         std::vector<void *> vdest(size());
         uint16_t res = rb_data(rb_, vdest.data());
+
         for (uint16_t i = 0; i < size(); i++) {
             dest[i] = static_cast<T *>(vdest.at(i));
         }
+
         return res;
     }
 
@@ -50,7 +69,10 @@ public:
         return std::find(elts.begin(), elts.end(), p) != elts.end();
     }
 
-    bool ok() const { return rb_ != nullptr; }
+    bool ok() const
+    {
+        return rb_ != nullptr;
+    }
 
 private:
     RingBuffer *rb_;
