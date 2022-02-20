@@ -3536,6 +3536,7 @@ static State_Load_Status load_conferences_helper(Group_Chats *g_c, const uint8_t
                 // wipe_group_chat(...) must be able to wipe partially allocated groups
                 assert(ret == true);
             }
+
             return STATE_LOAD_STATUS_ERROR;
         }
 
