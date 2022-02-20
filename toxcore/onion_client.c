@@ -1749,7 +1749,7 @@ static void do_announce(Onion_Client *onion_c)
 
     // check if list needs to be re-populated
     if (count <= MAX_ONION_CLIENTS_ANNOUNCE / 2
-                || mono_time_is_timeout(onion_c->mono_time, onion_c->last_populated, ANNOUNCE_POPULATE_TIMEOUT)) {
+            || mono_time_is_timeout(onion_c->mono_time, onion_c->last_populated, ANNOUNCE_POPULATE_TIMEOUT)) {
         uint16_t num_nodes;
         const Node_format *path_nodes;
 
