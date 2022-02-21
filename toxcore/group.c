@@ -3452,7 +3452,7 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
         }
 
         // This is inefficient, but allows us to check data consistency before allocating memory
-        g->frozen = (Group_Peer *)realloc(g->frozen, (j+1) * sizeof(Group_Peer));
+        g->frozen = (Group_Peer *)realloc(g->frozen, (j + 1) * sizeof(Group_Peer));
 
         if (g->frozen == nullptr) {
             // Memory allocation failure
