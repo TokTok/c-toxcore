@@ -364,7 +364,8 @@ int create_request(const uint8_t *send_public_key, const uint8_t *send_secret_ke
 int handle_request(const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
                    uint8_t *request_id, const uint8_t *packet, uint16_t length)
 {
-    if (self_public_key == nullptr || public_key == nullptr || data == nullptr || request_id == nullptr || packet == nullptr) {
+    if (self_public_key == nullptr || public_key == nullptr || data == nullptr || request_id == nullptr
+            || packet == nullptr) {
         return -1;
     }
 

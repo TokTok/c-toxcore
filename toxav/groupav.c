@@ -623,7 +623,8 @@ int group_send_audio(Group_Chats *g_c, uint32_t groupnumber, const int16_t *pcm,
         return -1;
     }
 
-    if (group_av->audio_encoder == nullptr || group_av->audio_channels != channels || group_av->audio_sample_rate != sample_rate) {
+    if (group_av->audio_encoder == nullptr || group_av->audio_channels != channels
+            || group_av->audio_sample_rate != sample_rate) {
         group_av->audio_channels = channels;
         group_av->audio_sample_rate = sample_rate;
 

@@ -244,7 +244,8 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
 int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
                                const uint8_t *encrypted, size_t length, uint8_t *plain)
 {
-    if (length <= crypto_box_BOXZEROBYTES || secret_key == nullptr || nonce == nullptr || encrypted == nullptr || plain == nullptr) {
+    if (length <= crypto_box_BOXZEROBYTES || secret_key == nullptr || nonce == nullptr || encrypted == nullptr
+            || plain == nullptr) {
         return -1;
     }
 
