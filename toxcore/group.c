@@ -3426,15 +3426,6 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
     lendian_bytes_to_host32(&g->numfrozen, data);
     data += sizeof(uint32_t);
 
-    if (g->numfrozen > 0) {
-        g->frozen = (Group_Peer *)calloc(g->numfrozen, sizeof(Group_Peer));
-
-        if (g->frozen == nullptr) {
-            // Memory allocation failure
-            return 0;
-        }
-    }
-
     g->title_len = *data;
 
     if (g->title_len > MAX_NAME_LENGTH) {
@@ -3457,6 +3448,14 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
         assert((data - init_data) < UINT32_MAX);
 
         if (length < (uint32_t)(data - init_data) + SAVED_PEER_SIZE_CONSTANT) {
+            return 0;
+        }
+
+        // This is inefficient, but allows us to check data consistency before allocating memory
+        g->frozen = (Group_Peer *)realloc(g->frozen, (j+1) * sizeof(Group_Peer));
+
+        if (g->frozen == nullptr) {
+            // Memory allocation failure
             return 0;
         }
 
