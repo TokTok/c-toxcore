@@ -148,7 +148,7 @@ static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events 
     if (events->conference_invite_size == events->conference_invite_capacity) {
         const uint32_t new_conference_invite_capacity = events->conference_invite_capacity * 2 + 1;
         events->conference_invite = (Tox_Event_Conference_Invite *)realloc(
-                    events->conference_invite, new_conference_invite_capacity * sizeof(Tox_Event_Conference_Invite));
+                                        events->conference_invite, new_conference_invite_capacity * sizeof(Tox_Event_Conference_Invite));
 
         if (events->conference_invite == nullptr) {
             return nullptr;
