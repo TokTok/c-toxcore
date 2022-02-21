@@ -190,10 +190,10 @@ int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
     return crypto_box_beforenm(shared_key, public_key, secret_key);
 }
 
-int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
+int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
                                const uint8_t *plain, size_t length, uint8_t *encrypted)
 {
-    if (length == 0 || !secret_key || !nonce || !plain || !encrypted) {
+    if (length == 0 || !shared_key || !nonce || !plain || !encrypted) {
         return -1;
     }
 
@@ -226,7 +226,7 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     memcpy(temp_plain + crypto_box_ZEROBYTES, plain, length);
 
     if (crypto_box_afternm(temp_encrypted, temp_plain, length + crypto_box_ZEROBYTES, nonce,
-                           secret_key) != 0) {
+                           shared_key) != 0) {
         crypto_free(temp_plain, size_temp_plain);
         crypto_free(temp_encrypted, size_temp_encrypted);
         return -1;
@@ -241,10 +241,10 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     return length + crypto_box_MACBYTES;
 }
 
-int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
+int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
                                const uint8_t *encrypted, size_t length, uint8_t *plain)
 {
-    if (length <= crypto_box_BOXZEROBYTES || !secret_key || !nonce || !encrypted || !plain) {
+    if (length <= crypto_box_BOXZEROBYTES || !shared_key || !nonce || !encrypted || !plain) {
         return -1;
     }
 
@@ -275,7 +275,7 @@ int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     memcpy(temp_encrypted + crypto_box_BOXZEROBYTES, encrypted, length);
 
     if (crypto_box_open_afternm(temp_plain, temp_encrypted, length + crypto_box_BOXZEROBYTES, nonce,
-                                secret_key) != 0) {
+                                shared_key) != 0) {
         crypto_free(temp_plain, size_temp_plain);
         crypto_free(temp_encrypted, size_temp_encrypted);
         return -1;
@@ -395,11 +395,11 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
     crypto_hash_sha512(hash, data, length);
 }
 
-void random_bytes(uint8_t *data, size_t length)
+void random_bytes(uint8_t *bytes, size_t length)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    fuzz_random_bytes(data, length);
+    fuzz_random_bytes(bytes, length);
 #else
-    randombytes(data, length);
+    randombytes(bytes, length);
 #endif
 }
