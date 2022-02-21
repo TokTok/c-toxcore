@@ -1273,15 +1273,19 @@ bool ip_parse_addr(const IP *ip, char *address, size_t length)
     }
 
     if (net_family_is_ipv4(ip->family)) {
-        const struct in_addr *addr = (const struct in_addr *)&ip->ip.v4;
+        struct in_addr addr;
+        addr.s_addr = ip->ip.v4.uint32;
         assert(make_family(ip->family) == AF_INET);
-        return inet_ntop4(addr, address, length) != nullptr;
+        return inet_ntop4(&addr, address, length) != nullptr;
     }
 
     if (net_family_is_ipv6(ip->family)) {
-        const struct in6_addr *addr = (const struct in6_addr *)&ip->ip.v6;
+        struct in6_addr addr;
+        static_assert(sizeof(addr.s6_addr) == sizeof(ip->ip.v6.uint8),
+                "assumption does not hold: s6_addr should be 16 bytes");
+        memcpy(addr.s6_addr, ip->ip.v6.uint8, sizeof(ip->ip.v6.uint8));
         assert(make_family(ip->family) == AF_INET6);
-        return inet_ntop6(addr, address, length) != nullptr;
+        return inet_ntop6(&addr, address, length) != nullptr;
     }
 
     return false;
