@@ -369,8 +369,8 @@ bool toxav_call(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, uint
 
     pthread_mutex_lock(av->mutex);
 
-    if ((audio_bit_rate && audio_bit_rate_invalid(audio_bit_rate))
-            || (video_bit_rate && video_bit_rate_invalid(video_bit_rate))) {
+    if ((audio_bit_rate != 0 && audio_bit_rate_invalid(audio_bit_rate))
+            || (video_bit_rate != 0 && video_bit_rate_invalid(video_bit_rate))) {
         rc = TOXAV_ERR_CALL_INVALID_BIT_RATE;
         goto RETURN;
     }
@@ -426,8 +426,8 @@ bool toxav_answer(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, ui
         goto RETURN;
     }
 
-    if ((audio_bit_rate && audio_bit_rate_invalid(audio_bit_rate))
-            || (video_bit_rate && video_bit_rate_invalid(video_bit_rate))
+    if ((audio_bit_rate != 0 && audio_bit_rate_invalid(audio_bit_rate))
+            || (video_bit_rate != 0 && video_bit_rate_invalid(video_bit_rate))
        ) {
         rc = TOXAV_ERR_ANSWER_INVALID_BIT_RATE;
         goto RETURN;
@@ -1071,7 +1071,7 @@ static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, 
 
     pthread_mutex_lock(call->av->mutex);
 
-    if (call->video_bit_rate) {
+    if (call->video_bit_rate != 0) {
         if (call->av->vbcb == nullptr) {
             pthread_mutex_unlock(call->av->mutex);
             LOGGER_WARNING(call->av->m->log, "No callback to report loss on");
@@ -1081,7 +1081,7 @@ static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, 
         call->av->vbcb(call->av, friend_number,
                        call->video_bit_rate - (call->video_bit_rate * loss),
                        call->av->vbcb_user_data);
-    } else if (call->audio_bit_rate) {
+    } else if (call->audio_bit_rate != 0) {
         if (call->av->abcb == nullptr) {
             pthread_mutex_unlock(call->av->mutex);
             LOGGER_WARNING(call->av->m->log, "No callback to report loss on");
