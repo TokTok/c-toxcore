@@ -680,11 +680,11 @@ static bool tcp_connection_in_conn(const TCP_Connection_to *con_to, unsigned int
 {
     for (unsigned int i = 0; i < MAX_FRIEND_TCP_CONNECTIONS; ++i) {
         if (con_to->connections[i].tcp_connection == (tcp_connections_number + 1)) {
-            return 1;
+            return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
 /** return index on success.

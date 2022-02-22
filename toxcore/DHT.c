@@ -1113,7 +1113,7 @@ static bool is_pk_in_client_list(const Client_data *list, unsigned int client_li
     const uint32_t index = index_of_client_pk(list, client_list_length, public_key);
 
     if (index == UINT32_MAX) {
-        return 0;
+        return false;
     }
 
     const IPPTsPng *assoc = net_family_is_ipv4(ip_port->ip.family)

@@ -1441,7 +1441,7 @@ static bool send_packet_group_peer(const Friend_Connections *fr_c, int friendcon
                                    uint16_t group_num, const uint8_t *data, uint16_t length)
 {
     if (1 + sizeof(uint16_t) + length > MAX_CRYPTO_DATA_SIZE) {
-        return 0;
+        return false;
     }
 
     group_num = net_htons(group_num);
@@ -1463,7 +1463,7 @@ static bool send_lossy_group_peer(const Friend_Connections *fr_c, int friendcon_
                                   uint16_t group_num, const uint8_t *data, uint16_t length)
 {
     if (1 + sizeof(uint16_t) + length > MAX_CRYPTO_DATA_SIZE) {
-        return 0;
+        return false;
     }
 
     group_num = net_htons(group_num);
