@@ -410,7 +410,7 @@ static int send_packet_online(const Friend_Connections *fr_c, int friendcon_id, 
 
 non_null()
 static int add_conn_to_groupchat(Group_Chats *g_c, int friendcon_id, Group_c *g, uint8_t reason,
-                                 uint8_t lock);
+                                 bool lock);
 
 non_null(1) nullable(3)
 static void add_closest_connections(Group_Chats *g_c, uint32_t groupnumber, void *userdata)
@@ -1073,7 +1073,7 @@ static int handle_lossy(void *object, int friendcon_id, const uint8_t *data, uin
  * return -1 on failure.
  */
 static int add_conn_to_groupchat(Group_Chats *g_c, int friendcon_id, Group_c *g, uint8_t reason,
-                                 uint8_t lock)
+                                 bool lock)
 {
     uint16_t empty = MAX_GROUP_CONNECTIONS;
     uint16_t ind = MAX_GROUP_CONNECTIONS;
@@ -1095,7 +1095,7 @@ static int add_conn_to_groupchat(Group_Chats *g_c, int friendcon_id, Group_c *g,
             return -1;
         }
 
-        if (lock != 0) {
+        if (lock) {
             friend_connection_lock(g_c->fr_c, friendcon_id);
         }
 
@@ -1530,7 +1530,7 @@ static bool try_send_rejoin(Group_Chats *g_c, Group_c *g, const uint8_t *real_pk
         return false;
     }
 
-    add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, 1);
+    add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, true);
 
     return true;
 }
@@ -1632,10 +1632,10 @@ static bool send_invite_response(Group_Chats *g_c, int groupnumber, uint32_t fri
         return false;
     }
 
-    const int connection_index = add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, 1);
+    const int connection_index = add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, true);
 
     if (member) {
-        add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCING, 0);
+        add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCING, false);
     }
 
     if (connection_index != -1) {
@@ -2036,10 +2036,10 @@ static void handle_friend_invite_packet(Messenger *m, uint32_t friendnumber, con
 
             addpeer(g_c, groupnum, real_pk, temp_pk, peer_number, userdata, true, true);
             const int connection_index = add_conn_to_groupchat(g_c, friendcon_id, g,
-                                         GROUPCHAT_CONNECTION_REASON_INTRODUCING, 1);
+                                         GROUPCHAT_CONNECTION_REASON_INTRODUCING, true);
 
             if (member) {
-                add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, 0);
+                add_conn_to_groupchat(g_c, friendcon_id, g, GROUPCHAT_CONNECTION_REASON_INTRODUCER, false);
                 send_peer_query(g_c, friendcon_id, other_groupnum);
             }
 
@@ -2200,7 +2200,7 @@ static int handle_packet_rejoin(Group_Chats *g_c, int friendcon_id, const uint8_
 
     addpeer(g_c, groupnum, real_pk, temp_pk, peer_number, userdata, true, true);
     const int connection_index = add_conn_to_groupchat(g_c, friendcon_id, g,
-                                 GROUPCHAT_CONNECTION_REASON_INTRODUCING, 1);
+                                 GROUPCHAT_CONNECTION_REASON_INTRODUCING, true);
 
     if (connection_index != -1) {
         send_packet_online(g_c->fr_c, friendcon_id, groupnum, g->type, g->id);
