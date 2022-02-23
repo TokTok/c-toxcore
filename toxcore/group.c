@@ -292,13 +292,13 @@ static bool add_to_closest(Group_c *g, const uint8_t *real_pk, const uint8_t *te
     unsigned int index = DESIRED_CLOSEST;
 
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (g->closest_peers[i].entry && public_key_cmp(real_pk, g->closest_peers[i].real_pk) == 0) {
+        if (g->closest_peers[i].active && public_key_cmp(real_pk, g->closest_peers[i].real_pk) == 0) {
             return true;
         }
     }
 
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (!g->closest_peers[i].entry) {
+        if (!g->closest_peers[i].active) {
             index = i;
             break;
         }
@@ -337,13 +337,13 @@ static bool add_to_closest(Group_c *g, const uint8_t *real_pk, const uint8_t *te
     uint8_t old_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
     bool old = false;
 
-    if (g->closest_peers[index].entry) {
+    if (g->closest_peers[index].active) {
         memcpy(old_real_pk, g->closest_peers[index].real_pk, CRYPTO_PUBLIC_KEY_SIZE);
         memcpy(old_temp_pk, g->closest_peers[index].temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
         old = true;
     }
 
-    g->closest_peers[index].entry = true;
+    g->closest_peers[index].active = true;
     memcpy(g->closest_peers[index].real_pk, real_pk, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(g->closest_peers[index].temp_pk, temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
 
@@ -362,7 +362,7 @@ non_null()
 static bool pk_in_closest_peers(const Group_c *g, const uint8_t *real_pk)
 {
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (!g->closest_peers[i].entry) {
+        if (!g->closest_peers[i].active) {
             continue;
         }
 
@@ -422,7 +422,7 @@ static void add_closest_connections(Group_Chats *g_c, uint32_t groupnumber, void
     }
 
     for (uint32_t i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (!g->closest_peers[i].entry) {
+        if (!g->closest_peers[i].active) {
             continue;
         }
 
@@ -716,9 +716,9 @@ non_null()
 static void remove_from_closest(Group_c *g, int peer_index)
 {
     for (uint32_t i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (g->closest_peers[i].entry
+        if (g->closest_peers[i].active
                 && id_equal(g->closest_peers[i].real_pk, g->group[peer_index].real_pk)) {
-            g->closest_peers[i].entry = false;
+            g->closest_peers[i].active = false;
             g->changed = GROUPCHAT_CLOSEST_CHANGE_REMOVED;
             break;
         }
