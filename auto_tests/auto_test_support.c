@@ -8,6 +8,9 @@
 
 #include "auto_test_support.h"
 
+// Maximum number of log lines at level >DEBUG.
+#define MAX_LOG_COUNT 50
+
 const Run_Auto_Options default_run_auto_options = { GRAPH_COMPLETE, nullptr };
 
 // List of live bootstrap nodes. These nodes should have TCP server enabled.
@@ -359,6 +362,21 @@ void print_debug_log(Tox *m, Tox_Log_Level level, const char *file, uint32_t lin
 
     if (level == TOX_LOG_LEVEL_ERROR) {
         fputs("Aborting test program\n", stderr);
+        abort();
+    }
+
+    // Count the number of log calls with level greater than DEBUG. In
+    // production deployments, clients will typically use the default minimum of
+    // INFO, and we don't want to spam their logs with excessive
+    // INFO/WARNING/ERROR logging.
+    static int log_count = 0;
+
+    if (level > TOX_LOG_LEVEL_DEBUG) {
+        ++log_count;
+    }
+
+    if (log_count > MAX_LOG_COUNT) {
+        fprintf(stderr, "test program exceeded max log count of %d (excessive logging in toxcore?)\n", MAX_LOG_COUNT);
         abort();
     }
 }

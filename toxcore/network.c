@@ -558,6 +558,12 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
 {
     IP_Port ipp_copy = *ip_port;
 
+    if (net_family_is_unspec(ip_port->ip.family)) {
+        // TODO(iphydf): Make this an error. Currently this fails sometimes when
+        // called from DHT.c:do_ping_and_sendnode_requests.
+        return -1;
+    }
+
     if (net_family_is_unspec(net->family)) { /* Socket not initialized */
         // TODO(iphydf): Make this an error. Currently, the onion client calls
         // this via DHT getnodes.
@@ -611,9 +617,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         addr6->sin6_flowinfo = 0;
         addr6->sin6_scope_id = 0;
     } else {
-        // TODO(iphydf): Make this an error. Currently this fails sometimes when
-        // called from DHT.c:do_ping_and_sendnode_requests.
-        LOGGER_WARNING(net->log, "unknown address type: %d", ipp_copy.ip.family.value);
+        LOGGER_ERROR(net->log, "unknown address type: %d", ipp_copy.ip.family.value);
         return -1;
     }
 
@@ -743,7 +747,9 @@ void networking_poll(const Networking_Core *net, void *userdata)
         const Packet_Handler *const handler = &net->packethandlers[data[0]];
 
         if (handler->function == nullptr) {
-            LOGGER_WARNING(net->log, "[%02u] -- Packet has no handler", data[0]);
+            // TODO(https://github.com/TokTok/c-toxcore/issues/1115): Make this
+            // a warning or error again.
+            LOGGER_DEBUG(net->log, "[%02u] -- Packet has no handler", data[0]);
             continue;
         }
 

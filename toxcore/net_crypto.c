@@ -820,7 +820,7 @@ static int64_t add_data_end_of_buffer(const Logger *logger, Packets_Array *array
     const uint32_t num_spots = num_packets_array(array);
 
     if (num_spots >= CRYPTO_PACKET_BUFFER_SIZE) {
-        LOGGER_WARNING(logger, "crypto packet buffer size exceeded; rejecting packet of length %d", data->length);
+        LOGGER_DEBUG(logger, "crypto packet buffer size exceeded; rejecting packet of length %d", data->length);
         return -1;
     }
 
