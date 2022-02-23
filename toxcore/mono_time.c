@@ -67,7 +67,7 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
      * GetTickCount64 for backwards compatibility, so we handle wraparound
      * ourselves.
      */
-    uint32_t ticks = GetTickCount();
+    const uint32_t ticks = GetTickCount();
 
     /* the higher 32 bits count the number of wrap arounds */
     uint64_t old_ovf = mono_time->time & ~((uint64_t)UINT32_MAX);
@@ -239,7 +239,7 @@ uint64_t current_time_monotonic(Mono_Time *mono_time)
      * but must protect against other threads */
     pthread_mutex_lock(&mono_time->last_clock_lock);
 #endif
-    uint64_t time = mono_time->current_time_callback(mono_time, mono_time->user_data);
+    const uint64_t time = mono_time->current_time_callback(mono_time, mono_time->user_data);
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
