@@ -1044,7 +1044,7 @@ static bool prune_gc_sanctions_list(GC_Chat *chat)
     uint8_t target_ext_pk[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     for (uint16_t i = 0; i < chat->moderation.num_sanctions; ++i) {
-        int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].target_public_enc_key, true);
+        const int peer_number = get_peer_number_of_enc_pk(chat, chat->moderation.sanctions[i].target_public_enc_key, true);
 
         if (peer_number == -1) {
             sanction = &chat->moderation.sanctions[i];
@@ -1645,9 +1645,9 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
         uint32_t added_tcp_relays = 0;
 
         for (uint8_t i = 0; i < announce.tcp_relays_count; ++i) {
-            int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, new_gconn->tcp_connection_num,
-                                 &announce.tcp_relays[i].ip_port,
-                                 announce.tcp_relays[i].public_key);
+            const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, new_gconn->tcp_connection_num,
+                                       &announce.tcp_relays[i].ip_port,
+                                       announce.tcp_relays[i].public_key);
 
             if (add_tcp_result == -1) {
                 continue;
@@ -2340,8 +2340,8 @@ static bool do_gc_peer_state_sync(const GC_Chat *chat, GC_Connection *gconn, con
         return false;
     }
 
-    uint16_t sync_flags = get_sync_flags(chat, peers_checksum, peer_count, sstate_version, screds_version,
-                                         roles_checksum, topic_version, topic_checksum);
+    const uint16_t sync_flags = get_sync_flags(chat, peers_checksum, peer_count, sstate_version, screds_version,
+                                roles_checksum, topic_version, topic_checksum);
 
     if (sync_flags > 0) {
         if (!send_gc_sync_request(chat, gconn, sync_flags)) {
@@ -2443,7 +2443,7 @@ static int handle_gc_status(const GC_Session *c, const GC_Chat *chat, GC_Peer *p
 
 uint8_t gc_get_status(const GC_Chat *chat, uint32_t peer_id)
 {
-    int peer_number = get_peer_number_of_peer_id(chat, peer_id);
+    const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
     const GC_Peer *peer = get_gc_peer(chat, peer_number);
 
@@ -2456,7 +2456,7 @@ uint8_t gc_get_status(const GC_Chat *chat, uint32_t peer_id)
 
 uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id)
 {
-    int peer_number = get_peer_number_of_peer_id(chat, peer_id);
+    const int peer_number = get_peer_number_of_peer_id(chat, peer_id);
 
     const GC_Peer *peer = get_gc_peer(chat, peer_number);
 
@@ -3633,7 +3633,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     }
 
 
-    GC_TopicInfo old_topic_info = chat->topic_info;
+    const GC_TopicInfo old_topic_info = chat->topic_info;
 
     uint8_t old_topic_sig[SIGNATURE_SIZE];
     memcpy(old_topic_sig, chat->topic_sig, SIGNATURE_SIZE);
@@ -5148,7 +5148,7 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
         return -1;
     }
 
-    uint8_t broadcast_type = data[0];
+    const uint8_t broadcast_type = data[0];
 
     const uint16_t m_len = length - 1;
     const uint8_t *message = data + 1;
@@ -5647,7 +5647,7 @@ static int handle_gc_handshake_packet(GC_Chat *chat, const uint8_t *sender_pk, c
         return -1;
     }
 
-    uint8_t handshake_type = data[0];
+    const uint8_t handshake_type = data[0];
 
     const uint8_t *real_data = data + 1;
     const uint16_t real_len = (uint16_t)plain_len - 1;
@@ -5993,7 +5993,7 @@ static int handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uint
     }
 
     int ret = -1;
-    uint16_t payload_len = (uint16_t)len;
+    const uint16_t payload_len = (uint16_t)len;
 
     switch (packet_type) {
         case GP_MESSAGE_ACK: {
@@ -6693,7 +6693,7 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
 non_null()
 static bool ping_peer(const GC_Chat *chat, const GC_Connection *gconn)
 {
-    uint16_t buf_size = GC_PING_PACKET_MIN_DATA_SIZE + sizeof(IP_Port);
+    const uint16_t buf_size = GC_PING_PACKET_MIN_DATA_SIZE + sizeof(IP_Port);
     uint8_t *data = (uint8_t *)malloc(buf_size);
 
     if (data == nullptr) {
@@ -6988,7 +6988,7 @@ static int get_new_group_index(GC_Session *c)
         return -1;
     }
 
-    int new_index = c->chats_index;
+    const int new_index = c->chats_index;
 
     c->chats[new_index] = (GC_Chat) {
         nullptr
@@ -8105,7 +8105,7 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
             continue;
         }
 
-        uint32_t added_tcp_relays = add_gc_tcp_relays_from_announce(chat, gconn, announce);
+        const uint32_t added_tcp_relays = add_gc_tcp_relays_from_announce(chat, gconn, announce);
 
         if (!ip_port_set && added_tcp_relays == 0) {
             LOGGER_WARNING(chat->log, "Got invalid announcement: %u relays, IPP set: %d",

@@ -374,7 +374,7 @@ static void save_pack_saved_peers(const GC_Chat *chat, msgpack_packer *mp)
     }
 
     uint16_t packed_size = 0;
-    int count = pack_gc_saved_peers(chat, saved_peers, GC_MAX_SAVED_PEERS * GC_SAVED_PEER_SIZE, &packed_size);
+    const int count = pack_gc_saved_peers(chat, saved_peers, GC_MAX_SAVED_PEERS * GC_SAVED_PEER_SIZE, &packed_size);
 
     if (count < 0) {
         LOGGER_ERROR(chat->log, "Failed to pack saved peers");
