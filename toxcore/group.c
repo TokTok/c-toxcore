@@ -1040,7 +1040,7 @@ static int g_handle_any_status(void *object, int friendcon_id, bool status, void
 {
     Group_Chats *g_c = (Group_Chats *)object;
 
-    if (status != 0) {
+    if (status) {
         rejoin_frozen_friend(g_c, friendcon_id);
     }
 
@@ -1052,7 +1052,7 @@ static int g_handle_status(void *object, int friendcon_id, bool status, void *us
 {
     Group_Chats *g_c = (Group_Chats *)object;
 
-    if (status != 0) { /* Went online */
+    if (status) { /* Went online */
         set_conns_status_groups(g_c, friendcon_id, GROUPCHAT_CONNECTION_ONLINE, userdata);
     } else { /* Went offline */
         set_conns_status_groups(g_c, friendcon_id, GROUPCHAT_CONNECTION_CONNECTING, userdata);

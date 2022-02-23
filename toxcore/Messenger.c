@@ -1299,7 +1299,7 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
 
     if (send_file_control_packet(m, friendnumber, send_receive, file_number, control, nullptr, 0)) {
         if (control == FILECONTROL_KILL) {
-            if (send_receive == 0 && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
+            if (!send_receive && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
                 // We are actively sending that file, remove from list
                 --m->friendlist[friendnumber].num_sending_files;
             }
