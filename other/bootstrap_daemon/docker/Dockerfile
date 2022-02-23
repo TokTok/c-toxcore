@@ -31,6 +31,8 @@ COPY testing/misc_tools.[ch] testing/
 COPY toxcore toxcore
 COPY toxencryptsave toxencryptsave
 COPY CMakeLists.txt so.version ./
+COPY other/bootstrap_daemon/CMakeLists.txt other/bootstrap_daemon/CMakeLists.txt
+COPY testing/CMakeLists.txt testing/CMakeLists.txt
 
 RUN cmake -B_build -H. \
       -GNinja \
