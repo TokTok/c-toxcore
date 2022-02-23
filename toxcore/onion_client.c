@@ -55,7 +55,7 @@ typedef struct Last_Pinged {
     uint64_t    timestamp;
 } Last_Pinged;
 
-typedef struct Onion_Friend {
+struct Onion_Friend {
     uint8_t status; /* 0 if friend is not valid, 1 if friend is valid.*/
     uint8_t is_online; /* Set by the onion_set_friend_status function. */
 
@@ -91,7 +91,7 @@ typedef struct Onion_Friend {
     uint8_t  gc_public_key[ENC_PUBLIC_KEY_SIZE];
     uint16_t gc_data_length;
     bool     is_groupchat;
-} Onion_Friend;
+};
 
 typedef struct Onion_Data_Handler {
     oniondata_handler_cb *function;
