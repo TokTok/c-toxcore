@@ -25,6 +25,8 @@ CPPCHECK+=("--suppress=shadowFunction")
 CPPCHECK+=("--suppress=signConversion")
 # TODO(iphydf): Fixed in the toxav refactor PR.
 CPPCHECK+=("--suppress=redundantAssignment")
+# TODO(iphydf): False positives
+CPPCHECK+=("--suppress=doubleFree")
 
 run() {
   echo "Running cppcheck in variant '$*'"
