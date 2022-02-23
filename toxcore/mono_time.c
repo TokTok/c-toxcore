@@ -40,7 +40,7 @@
 
 /** don't call into system billions of times for no reason */
 struct Mono_Time {
-    uint64_t time;
+    uint64_t cur_time;
     uint64_t base_time;
 #ifdef OS_WIN32
     /* protect `last_clock_update` and `last_clock_mono` from concurrent access */
@@ -59,7 +59,6 @@ struct Mono_Time {
 non_null(1) nullable(2)
 static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_data)
 {
-    uint64_t time = 0;
 #ifdef OS_WIN32
     /* Must hold mono_time->last_clock_lock here */
 
@@ -70,7 +69,7 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
     uint32_t ticks = GetTickCount();
 
     /* the higher 32 bits count the number of wrap arounds */
-    uint64_t old_ovf = mono_time->time & ~((uint64_t)UINT32_MAX);
+    uint64_t old_ovf = mono_time->cur_time & ~((uint64_t)UINT32_MAX);
 
     /* Check if time has decreased because of 32 bit wrap from GetTickCount() */
     if (ticks < mono_time->last_clock_mono) {
@@ -84,7 +83,7 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
     }
 
     /* splice the low and high bits back together */
-    time = old_ovf + ticks;
+    return old_ovf + ticks;
 #else
     struct timespec clock_mono;
 #if defined(__APPLE__)
@@ -100,9 +99,8 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
 #else
     clock_gettime(CLOCK_MONOTONIC, &clock_mono);
 #endif
-    time = 1000ULL * clock_mono.tv_sec + (clock_mono.tv_nsec / 1000000ULL);
+    return 1000ULL * clock_mono.tv_sec + (clock_mono.tv_nsec / 1000000ULL);
 #endif
-    return time;
 }
 
 
@@ -155,7 +153,7 @@ Mono_Time *mono_time_new(void)
 
 #endif
 
-    mono_time->time = 0;
+    mono_time->cur_time = 0;
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     mono_time->base_time = 0; // Maximum reproducibility
 #else
@@ -179,20 +177,20 @@ void mono_time_free(Mono_Time *mono_time)
 
 void mono_time_update(Mono_Time *mono_time)
 {
-    uint64_t time = 0;
+    uint64_t cur_time = 0;
 #ifdef OS_WIN32
     /* we actually want to update the overflow state of mono_time here */
     pthread_mutex_lock(&mono_time->last_clock_lock);
     mono_time->last_clock_update = true;
 #endif
-    time = mono_time->current_time_callback(mono_time, mono_time->user_data) / 1000ULL;
-    time += mono_time->base_time;
+    cur_time = mono_time->current_time_callback(mono_time, mono_time->user_data) / 1000ULL;
+    cur_time += mono_time->base_time;
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
 
     pthread_rwlock_wrlock(mono_time->time_update_lock);
-    mono_time->time = time;
+    mono_time->cur_time = cur_time;
     pthread_rwlock_unlock(mono_time->time_update_lock);
 }
 
@@ -200,13 +198,12 @@ uint64_t mono_time_get(const Mono_Time *mono_time)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     // Fuzzing is only single thread for now, no locking needed */
-    return mono_time->time;
+    return mono_time->cur_time;
 #else
-    uint64_t time = 0;
     pthread_rwlock_rdlock(mono_time->time_update_lock);
-    time = mono_time->time;
+    const uint64_t cur_time = mono_time->cur_time;
     pthread_rwlock_unlock(mono_time->time_update_lock);
-    return time;
+    return cur_time;
 #endif
 }
 
@@ -239,9 +236,9 @@ uint64_t current_time_monotonic(Mono_Time *mono_time)
      * but must protect against other threads */
     pthread_mutex_lock(&mono_time->last_clock_lock);
 #endif
-    uint64_t time = mono_time->current_time_callback(mono_time, mono_time->user_data);
+    const uint64_t cur_time = mono_time->current_time_callback(mono_time, mono_time->user_data);
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
-    return time;
+    return cur_time;
 }
