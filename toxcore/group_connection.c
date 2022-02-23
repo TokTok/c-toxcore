@@ -577,11 +577,7 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
 
     if (gcc_direct_conn_is_possible(chat, gconn)) {
         if (gcc_conn_is_direct(chat->mono_time, gconn)) {
-            if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
-                return true;
-            }
-
-            return false;
+            return (uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length;
         }
 
         if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
@@ -590,12 +586,7 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
     }
 
     const int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
-
-    if (ret == 0 || direct_send_attempt) {
-        return true;
-    }
-
-    return false;
+    return ret == 0 || direct_send_attempt;
 }
 
 bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,

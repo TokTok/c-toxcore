@@ -461,11 +461,7 @@ static bool validate_password(const GC_Chat *chat, const uint8_t *password, uint
         return false;
     }
 
-    if (memcmp(chat->shared_state.password, password, length) != 0) {
-        return false;
-    }
-
-    return true;
+    return memcmp(chat->shared_state.password, password, length) == 0;
 }
 
 /** Returns the chat object that contains a self_public_key equal to `id`.
@@ -3723,11 +3719,7 @@ static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key)
         return true;
     }
 
-    if (gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) != 0) {
-        return false;
-    }
-
-    return true;
+    return gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) == 0;
 }
 
 /** Validates `topic_info`.
@@ -4151,11 +4143,7 @@ static bool founder_gc_set_moderator(GC_Chat *chat, const GC_Connection *gconn, 
         return false;
     }
 
-    if (!send_gc_set_mod(chat, gconn, add_mod)) {
-        return false;
-    }
-
-    return true;
+    return send_gc_set_mod(chat, gconn, add_mod);
 }
 
 /** Validates `data` containing a changes for the sanction list and unpacks it
@@ -7175,11 +7163,7 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
 non_null()
 static bool init_gc_sanctions_creds(GC_Chat *chat)
 {
-    if (!sanctions_list_make_creds(&chat->moderation)) {
-        return false;
-    }
-
-    return true;
+    return sanctions_list_make_creds(&chat->moderation);
 }
 
 /** Attempts to add `num_addrs` peers from `addrs` to our peerlist and initiate invite requests
