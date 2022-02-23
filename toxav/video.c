@@ -73,7 +73,7 @@ static vpx_codec_iface_t *video_codec_encoder_interface(void)
 
 static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int16_t kf_max_dist)
 {
-    vpx_codec_err_t rc = vpx_codec_enc_config_default(video_codec_encoder_interface(), cfg, 0);
+    const vpx_codec_err_t rc = vpx_codec_enc_config_default(video_codec_encoder_interface(), cfg, 0);
 
     if (rc != VPX_CODEC_OK) {
         LOGGER_ERROR(log, "vc_init_encoder_cfg:Failed to get config: %s", vpx_codec_err_to_string(rc));
@@ -157,7 +157,7 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
         return nullptr;
     }
 
-    int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
+    const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
 
     vc->vbuf_raw = rb_new(VIDEO_DECODE_BUFFER_SIZE);
 
@@ -193,7 +193,7 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
 
     if (VIDEO_VP8_DECODER_POST_PROCESSING_ENABLED == 1) {
         vp8_postproc_cfg_t pp = {VP8_DEBLOCK, 1, 0};
-        vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
+        const vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
 
         if (cc_res != VPX_CODEC_OK) {
             LOGGER_WARNING(log, "Failed to turn on postproc");
@@ -300,13 +300,13 @@ void vc_iterate(VCSession *vc)
         return;
     }
 
-    uint16_t log_rb_size = rb_size(vc->vbuf_raw);
+    const uint16_t log_rb_size = rb_size(vc->vbuf_raw);
     pthread_mutex_unlock(vc->queue_mutex);
     const struct RTPHeader *const header = &p->header;
 
     uint32_t full_data_len;
 
-    if (header->flags & RTP_LARGE_FRAME) {
+    if ((header->flags & RTP_LARGE_FRAME) != 0) {
         full_data_len = header->data_length_full;
         LOGGER_DEBUG(vc->log, "vc_iterate:001:full_data_len=%d", (int)full_data_len);
     } else {
@@ -332,7 +332,7 @@ void vc_iterate(VCSession *vc)
             dest = vpx_codec_get_frame(vc->decoder, &iter)) {
         if (vc->vcb != nullptr) {
             vc->vcb(vc->av, vc->friend_number, dest->d_w, dest->d_h,
-                    (const uint8_t *)dest->planes[0], (const uint8_t *)dest->planes[1], (const uint8_t *)dest->planes[2],
+                    dest->planes[0], dest->planes[1], dest->planes[2],
                     dest->stride[0], dest->stride[1], dest->stride[2], vc->vcb_user_data);
         }
 
@@ -346,10 +346,8 @@ int vc_queue_message(Mono_Time *mono_time, void *vcp, struct RTPMessage *msg)
      * they have already been assembled.
      * this function gets called from handle_rtp_packet() and handle_rtp_packet_v3()
      */
-    if (!vcp || !msg) {
-        if (msg != nullptr) {
-            free(msg);
-        }
+    if (vcp == nullptr || msg == nullptr) {
+        free(msg);
 
         return -1;
     }
@@ -371,14 +369,14 @@ int vc_queue_message(Mono_Time *mono_time, void *vcp, struct RTPMessage *msg)
 
     pthread_mutex_lock(vc->queue_mutex);
 
-    if ((header->flags & RTP_LARGE_FRAME) && header->pt == RTP_TYPE_VIDEO % 128) {
+    if ((header->flags & RTP_LARGE_FRAME) != 0 && header->pt == RTP_TYPE_VIDEO % 128) {
         LOGGER_DEBUG(vc->log, "rb_write msg->len=%d b0=%d b1=%d", (int)msg->len, (int)msg->data[0], (int)msg->data[1]);
     }
 
     free(rb_write(vc->vbuf_raw, msg));
 
     /* Calculate time it took for peer to send us this frame */
-    uint32_t t_lcfd = current_time_monotonic(mono_time) - vc->linfts;
+    const uint32_t t_lcfd = current_time_monotonic(mono_time) - vc->linfts;
     vc->lcfd = t_lcfd > 100 ? vc->lcfd : t_lcfd;
     vc->linfts = current_time_monotonic(mono_time);
     pthread_mutex_unlock(vc->queue_mutex);
@@ -428,7 +426,7 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
             return -1;
         }
 
-        int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
+        const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
 
         rc = vpx_codec_control(&new_c, VP8E_SET_CPUUSED, cpu_used_value);
 

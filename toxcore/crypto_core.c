@@ -10,6 +10,7 @@
  */
 #include "crypto_core.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -40,7 +41,6 @@
 
 //!TOKSTYLE-
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-#include <assert.h>
 #include "../testing/fuzzing/fuzz_adapter.h"
 #endif
 //!TOKSTYLE+
@@ -213,10 +213,10 @@ uint32_t random_range_u32(uint32_t upper_bound)
 bool public_key_valid(const uint8_t *public_key)
 {
     if (public_key[31] >= 128) { /* Last bit of key is always zero. */
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
@@ -225,10 +225,10 @@ int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
     return crypto_box_beforenm(shared_key, public_key, secret_key);
 }
 
-int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
+int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
                                const uint8_t *plain, size_t length, uint8_t *encrypted)
 {
-    if (length == 0 || !secret_key || !nonce || !plain || !encrypted) {
+    if (length == 0 || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
         return -1;
     }
 
@@ -261,7 +261,7 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     memcpy(temp_plain + crypto_box_ZEROBYTES, plain, length);
 
     if (crypto_box_afternm(temp_encrypted, temp_plain, length + crypto_box_ZEROBYTES, nonce,
-                           secret_key) != 0) {
+                           shared_key) != 0) {
         crypto_free(temp_plain, size_temp_plain);
         crypto_free(temp_encrypted, size_temp_encrypted);
         return -1;
@@ -273,13 +273,15 @@ int32_t encrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     crypto_free(temp_plain, size_temp_plain);
     crypto_free(temp_encrypted, size_temp_encrypted);
 #endif
-    return length + crypto_box_MACBYTES;
+    assert(length < INT32_MAX - crypto_box_MACBYTES);
+    return (int32_t)(length + crypto_box_MACBYTES);
 }
 
-int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
+int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
                                const uint8_t *encrypted, size_t length, uint8_t *plain)
 {
-    if (length <= crypto_box_BOXZEROBYTES || !secret_key || !nonce || !encrypted || !plain) {
+    if (length <= crypto_box_BOXZEROBYTES || shared_key == nullptr || nonce == nullptr || encrypted == nullptr
+            || plain == nullptr) {
         return -1;
     }
 
@@ -310,7 +312,7 @@ int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     memcpy(temp_encrypted + crypto_box_BOXZEROBYTES, encrypted, length);
 
     if (crypto_box_open_afternm(temp_plain, temp_encrypted, length + crypto_box_BOXZEROBYTES, nonce,
-                                secret_key) != 0) {
+                                shared_key) != 0) {
         crypto_free(temp_plain, size_temp_plain);
         crypto_free(temp_encrypted, size_temp_encrypted);
         return -1;
@@ -321,19 +323,21 @@ int32_t decrypt_data_symmetric(const uint8_t *secret_key, const uint8_t *nonce,
     crypto_free(temp_plain, size_temp_plain);
     crypto_free(temp_encrypted, size_temp_encrypted);
 #endif
-    return length - crypto_box_MACBYTES;
+    assert(length > crypto_box_MACBYTES);
+    assert(length < INT32_MAX);
+    return (int32_t)(length - crypto_box_MACBYTES);
 }
 
 int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce,
                      const uint8_t *plain, size_t length, uint8_t *encrypted)
 {
-    if (!public_key || !secret_key) {
+    if (public_key == nullptr || secret_key == nullptr) {
         return -1;
     }
 
     uint8_t k[crypto_box_BEFORENMBYTES];
     encrypt_precompute(public_key, secret_key, k);
-    int ret = encrypt_data_symmetric(k, nonce, plain, length, encrypted);
+    const int ret = encrypt_data_symmetric(k, nonce, plain, length, encrypted);
     crypto_memzero(k, sizeof(k));
     return ret;
 }
@@ -341,13 +345,13 @@ int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const
 int32_t decrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce,
                      const uint8_t *encrypted, size_t length, uint8_t *plain)
 {
-    if (!public_key || !secret_key) {
+    if (public_key == nullptr || secret_key == nullptr) {
         return -1;
     }
 
     uint8_t k[crypto_box_BEFORENMBYTES];
     encrypt_precompute(public_key, secret_key, k);
-    int ret = decrypt_data_symmetric(k, nonce, encrypted, length, plain);
+    const int ret = decrypt_data_symmetric(k, nonce, encrypted, length, plain);
     crypto_memzero(k, sizeof(k));
     return ret;
 }
@@ -430,11 +434,11 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
     crypto_hash_sha512(hash, data, length);
 }
 
-void random_bytes(uint8_t *data, size_t length)
+void random_bytes(uint8_t *bytes, size_t length)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    fuzz_random_bytes(data, length);
+    fuzz_random_bytes(bytes, length);
 #else
-    randombytes(data, length);
+    randombytes(bytes, length);
 #endif
 }

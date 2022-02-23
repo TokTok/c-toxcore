@@ -276,6 +276,7 @@ struct Messenger {
     uint16_t num_loaded_relays;
     Node_format loaded_relays[NUM_SAVED_TCP_RELAYS]; // Relays loaded from config
 
+    m_friend_request_cb *friend_request;
     m_friend_message_cb *friend_message;
     m_friend_name_cb *friend_namechange;
     m_friend_status_message_cb *friend_statusmessagechange;
@@ -715,8 +716,7 @@ int file_seek(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uin
  *  return -7 if wrong position.
  */
 non_null(1) nullable(5)
-int file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position, const uint8_t *data,
-              uint16_t length);
+int send_file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position, const uint8_t *data, uint16_t length);
 
 /*** A/V related */
 

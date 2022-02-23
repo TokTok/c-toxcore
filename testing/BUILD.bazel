@@ -16,6 +16,7 @@ sh_test(
         "-Wno-callback-names",
         "-Wno-enum-names",
         "-Wno-memcpy-structs",
+        "-Wno-type-check",
         "+RTS",
         "-N3",
     ],
@@ -27,7 +28,7 @@ sh_test(
     name = "cimplefmt_test",
     size = "small",
     srcs = ["//hs-cimple/tools:cimplefmt"],
-    args = ["$(locations %s)" % f for f in CIMPLE_FILES],
+    args = ["--reparse"] + ["$(locations %s)" % f for f in CIMPLE_FILES],
     data = CIMPLE_FILES,
     tags = ["haskell"],
 )
@@ -42,26 +43,6 @@ cc_library(
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:tox",
         "@libsodium",
-    ],
-)
-
-cc_library(
-    name = "trace",
-    testonly = 1,
-    srcs = ["trace.cc"],
-    visibility = ["//c-toxcore:__subpackages__"],
-    alwayslink = True,
-)
-
-cc_binary(
-    name = "DHT_test",
-    testonly = 1,
-    srcs = ["DHT_test.c"],
-    deps = [
-        ":misc_tools",
-        "//c-toxcore/toxcore:DHT",
-        "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:mono_time",
     ],
 )
 

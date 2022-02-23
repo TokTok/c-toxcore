@@ -82,7 +82,7 @@ static Broadcast_Info *fetch_broadcast_info(uint16_t port)
     if (ret == NO_ERROR) {
         IP_ADAPTER_INFO *pAdapter = pAdapterInfo;
 
-        while (pAdapter) {
+        while (pAdapter != nullptr) {
             IP gateway = {0};
             IP subnet_mask = {0};
 
@@ -91,9 +91,9 @@ static Broadcast_Info *fetch_broadcast_info(uint16_t port)
                 if (net_family_is_ipv4(gateway.family) && net_family_is_ipv4(subnet_mask.family)) {
                     IP_Port *ip_port = &broadcast->ip_ports[broadcast->count];
                     ip_port->ip.family = net_family_ipv4;
-                    uint32_t gateway_ip = net_ntohl(gateway.ip.v4.uint32);
-                    uint32_t subnet_ip = net_ntohl(subnet_mask.ip.v4.uint32);
-                    uint32_t broadcast_ip = gateway_ip + ~subnet_ip - 1;
+                    const uint32_t gateway_ip = net_ntohl(gateway.ip.v4.uint32);
+                    const uint32_t subnet_ip = net_ntohl(subnet_mask.ip.v4.uint32);
+                    const uint32_t broadcast_ip = gateway_ip + ~subnet_ip - 1;
                     ip_port->ip.ip.v4.uint32 = net_htonl(broadcast_ip);
                     ip_port->port = port;
                     ++broadcast->count;
@@ -108,7 +108,7 @@ static Broadcast_Info *fetch_broadcast_info(uint16_t port)
         }
     }
 
-    if (pAdapterInfo) {
+    if (pAdapterInfo != nullptr) {
         free(pAdapterInfo);
     }
 
@@ -155,7 +155,7 @@ static Broadcast_Info *fetch_broadcast_info(uint16_t port)
      * a larger array, not done (640kB and 16 interfaces shall be
      * enough, for everybody!)
      */
-    int n = ifc.ifc_len / sizeof(struct ifreq);
+    const int n = ifc.ifc_len / sizeof(struct ifreq);
 
     for (int i = 0; i < n; ++i) {
         /* there are interfaces with are incapable of broadcast */
@@ -271,11 +271,7 @@ bool ip_is_local(const IP *ip)
     }
 
     /* localhost in IPv6 (::1) */
-    if (ip->ip.v6.uint64[0] == 0 && ip->ip.v6.uint32[2] == 0 && ip->ip.v6.uint32[3] == net_htonl(1)) {
-        return true;
-    }
-
-    return false;
+    return ip->ip.v6.uint64[0] == 0 && ip->ip.v6.uint32[2] == 0 && ip->ip.v6.uint32[3] == net_htonl(1);
 }
 
 non_null()
@@ -304,11 +300,7 @@ static bool ip4_is_lan(const IP4 *ip4)
 
     /* RFC 6598: 100.64.0.0 to 100.127.255.255 (100.64.0.0/10)
      * (shared address space to stack another layer of NAT) */
-    if ((ip4->uint8[0] == 100) && ((ip4->uint8[1] & 0xC0) == 0x40)) {
-        return true;
-    }
-
-    return false;
+    return (ip4->uint8[0] == 100) && ((ip4->uint8[1] & 0xC0) == 0x40);
 }
 
 bool ip_is_lan(const IP *ip)

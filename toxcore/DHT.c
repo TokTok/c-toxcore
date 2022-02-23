@@ -326,7 +326,7 @@ void dht_get_shared_key_sent(DHT *dht, uint8_t *shared_key, const uint8_t *publi
 int create_request(const uint8_t *send_public_key, const uint8_t *send_secret_key, uint8_t *packet,
                    const uint8_t *recv_public_key, const uint8_t *data, uint32_t length, uint8_t request_id)
 {
-    if (!send_public_key || !packet || !recv_public_key || !data) {
+    if (send_public_key == nullptr || packet == nullptr || recv_public_key == nullptr || data == nullptr) {
         return -1;
     }
 
@@ -340,7 +340,7 @@ int create_request(const uint8_t *send_public_key, const uint8_t *send_secret_ke
     memcpy(temp + 1, data, length);
     temp[0] = request_id;
     const int len = encrypt_data(recv_public_key, send_secret_key, nonce, temp, length + 1,
-                                 CRYPTO_SIZE + packet);
+                                 packet + CRYPTO_SIZE);
 
     if (len == -1) {
         crypto_memzero(temp, MAX_CRYPTO_REQUEST_SIZE);
@@ -364,7 +364,8 @@ int create_request(const uint8_t *send_public_key, const uint8_t *send_secret_ke
 int handle_request(const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
                    uint8_t *request_id, const uint8_t *packet, uint16_t length)
 {
-    if (!self_public_key || !public_key || !data || !request_id || !packet) {
+    if (self_public_key == nullptr || public_key == nullptr || data == nullptr || request_id == nullptr
+            || packet == nullptr) {
         return -1;
     }
 
@@ -941,13 +942,13 @@ static int dht_cmp_entry(const void *a, const void *b)
         return 1;
     }
 
-    const int close = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
+    const int closest = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
 
-    if (close == 1) {
+    if (closest == 1) {
         return 1;
     }
 
-    if (close == 2) {
+    if (closest == 2) {
         return -1;
     }
 
@@ -1112,7 +1113,7 @@ static bool is_pk_in_client_list(const Client_data *list, unsigned int client_li
     const uint32_t index = index_of_client_pk(list, client_list_length, public_key);
 
     if (index == UINT32_MAX) {
-        return 0;
+        return false;
     }
 
     const IPPTsPng *assoc = net_family_is_ipv4(ip_port->ip.family)
@@ -1354,11 +1355,7 @@ bool dht_getnodes(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, c
         return false;
     }
 
-    if (sendpacket(dht->net, ip_port, data, len) > 0) {
-        return true;
-    }
-
-    return false;
+    return sendpacket(dht->net, ip_port, data, len) > 0;
 }
 
 /** Send a send nodes response: message for IPv6 nodes */
@@ -1385,7 +1382,7 @@ static int sendnodes_ipv6(const DHT *dht, const IP_Port *ip_port, const uint8_t 
 
     int nodes_length = 0;
 
-    if (num_nodes) {
+    if (num_nodes > 0) {
         nodes_length = pack_nodes(plain + 1, node_format_size * MAX_SENT_NODES, nodes_list, num_nodes);
 
         if (nodes_length <= 0) {
@@ -1466,11 +1463,7 @@ static bool sent_getnode_to_node(DHT *dht, const uint8_t *public_key, const IP_P
         return false;
     }
 
-    if (!ipport_equal(&test.ip_port, node_ip_port) || !id_equal(test.public_key, public_key)) {
-        return false;
-    }
-
-    return true;
+    return ipport_equal(&test.ip_port, node_ip_port) && id_equal(test.public_key, public_key);
 }
 
 non_null()
@@ -1765,7 +1758,7 @@ static uint8_t do_ping_and_sendnode_requests(DHT *dht, uint64_t *lastgetnode, co
         sort_client_list(list, dht->cur_time, list_count, public_key);
     }
 
-    if ((num_nodes != 0) && (mono_time_is_timeout(dht->mono_time, *lastgetnode, GET_NODE_INTERVAL)
+    if (num_nodes > 0 && (mono_time_is_timeout(dht->mono_time, *lastgetnode, GET_NODE_INTERVAL)
                              || *bootstrap_times < MAX_BOOTSTRAP_TIMES)) {
         uint32_t rand_node = random_range_u32(num_nodes);
 
@@ -1817,7 +1810,7 @@ static void do_Close(DHT *dht)
 
     dht->num_to_bootstrap = 0;
 
-    uint8_t not_killed = do_ping_and_sendnode_requests(
+    const uint8_t not_killed = do_ping_and_sendnode_requests(
                              dht, &dht->close_lastgetnodes, dht->self_public_key, dht->close_clientlist, LCLIENT_LIST, &dht->close_bootstrap_times,
                              0);
 
@@ -1841,7 +1834,7 @@ static void do_Close(DHT *dht)
         for (IPPTsPng * const *it = assocs; *it; ++it) {
             IPPTsPng *const assoc = *it;
 
-            if (assoc->timestamp) {
+            if (assoc->timestamp != 0) {
                 assoc->timestamp = badonly;
             }
         }
@@ -2178,7 +2171,7 @@ static int handle_NATping(void *object, const IP_Port *source, const uint8_t *so
     uint64_t ping_id;
     memcpy(&ping_id, packet + 1, sizeof(uint64_t));
 
-    uint32_t friendnumber = index_of_friend_pk(dht->friends_list, dht->num_friends, source_pubkey);
+    const uint32_t friendnumber = index_of_friend_pk(dht->friends_list, dht->num_friends, source_pubkey);
 
     if (friendnumber == UINT32_MAX) {
         return 1;
@@ -2567,7 +2560,7 @@ void do_dht(DHT *dht)
     dht->cur_time = cur_time;
 
     // Load friends/clients if first call to do_dht
-    if (dht->loaded_num_nodes) {
+    if (dht->loaded_num_nodes > 0) {
         dht_connect_after_load(dht);
     }
 

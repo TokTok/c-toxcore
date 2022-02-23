@@ -314,8 +314,8 @@ static void update_bwc_values(const Logger *log, RTPSession *session, const stru
     if (session->first_packets_counter < DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT) {
         ++session->first_packets_counter;
     } else {
-        uint32_t data_length_full = msg->header.data_length_full; // without header
-        uint32_t received_length_full = msg->header.received_length_full; // without header
+        const uint32_t data_length_full = msg->header.data_length_full; // without header
+        const uint32_t received_length_full = msg->header.received_length_full; // without header
         bwc_add_recv(session->bwc, data_length_full);
 
         if (received_length_full < data_length_full) {
@@ -441,7 +441,7 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
 {
     RTPSession *session = (RTPSession *)object;
 
-    if (!session || length < RTP_HEADER_SIZE + 1) {
+    if (session == nullptr || length < RTP_HEADER_SIZE + 1) {
         LOGGER_WARNING(m->log, "No session or invalid length of received buffer!");
         return -1;
     }
@@ -467,7 +467,7 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
         return -1;
     }
 
-    if (header.flags & RTP_LARGE_FRAME && header.offset_full >= header.data_length_full) {
+    if ((header.flags & RTP_LARGE_FRAME) != 0 && header.offset_full >= header.data_length_full) {
         LOGGER_ERROR(m->log, "Invalid video packet: frame offset (%u) >= full frame length (%u)",
                      (unsigned)header.offset_full, (unsigned)header.data_length_full);
         return -1;
@@ -483,7 +483,7 @@ static int handle_rtp_packet(Messenger *m, uint32_t friendnumber, const uint8_t 
 
     // The sender uses the new large-frame capable protocol and is sending a
     // video packet.
-    if ((header.flags & RTP_LARGE_FRAME) && header.pt == (RTP_TYPE_VIDEO % 128)) {
+    if ((header.flags & RTP_LARGE_FRAME) != 0 && header.pt == (RTP_TYPE_VIDEO % 128)) {
         return handle_video_packet(session, &header, data + RTP_HEADER_SIZE, length - RTP_HEADER_SIZE, m->log);
     }
 
@@ -846,7 +846,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         /* Send remaining */
         piece = length - sent;
 
-        if (piece) {
+        if (piece != 0) {
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 

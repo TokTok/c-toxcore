@@ -8,7 +8,6 @@ CPPFLAGS+=("-Iother/bootstrap_daemon/src")
 CPPFLAGS+=("-Iother/fun")
 CPPFLAGS+=("-Itesting")
 CPPFLAGS+=("-Itesting/fuzzing")
-CPPFLAGS+=("-Itesting/groupchats")
 CPPFLAGS+=("-Itoxcore")
 CPPFLAGS+=("-Itoxcore/events")
 CPPFLAGS+=("-Itoxav")
@@ -55,7 +54,6 @@ FIND_QUERY="$FIND_QUERY -and -not -name amalgamation.cc"
 FIND_QUERY="$FIND_QUERY -and -not -name av_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -name cracker.c"
 FIND_QUERY="$FIND_QUERY -and -not -name dht_test.c"
-FIND_QUERY="$FIND_QUERY -and -not -name trace.cc"
 FIND_QUERY="$FIND_QUERY -and -not -name version_test.c"
 FIND_QUERY="$FIND_QUERY -and -not -wholename './testing/fuzzing/*'"
 

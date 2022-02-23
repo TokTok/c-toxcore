@@ -464,7 +464,7 @@ bool set_socket_dualstack(Socket sock)
 #else
     int ipv6only = 0;
     socklen_t optsize = sizeof(ipv6only);
-    int res = getsockopt(sock.socket, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&ipv6only, &optsize);
+    const int res = getsockopt(sock.socket, IPPROTO_IPV6, IPV6_V6ONLY, (char *)&ipv6only, &optsize);
 
     if ((res == 0) && (ipv6only == 0)) {
         return true;
@@ -506,7 +506,7 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
     char ip_str[IP_NTOA_LEN];
 
     if (res < 0) { /* Windows doesn't necessarily know `%zu` */
-        int error = net_error();
+        const int error = net_error();
         char *strerror = net_new_strerror(error);
         LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, min_u16(buflen, 999), 'E',
@@ -660,13 +660,13 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
     *length = 0;
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    int fail_or_len = fuzz_recvfrom(sock.socket, (char *) data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
+    const int fail_or_len = fuzz_recvfrom(sock.socket, (char *) data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
 #else
     int fail_or_len = recvfrom(sock.socket, (char *) data, MAX_UDP_PACKET_SIZE, 0, (struct sockaddr *)&addr, &addrlen);
 #endif
 
     if (fail_or_len < 0) {
-        int error = net_error();
+        const int error = net_error();
 
         if (!should_ignore_recv_error(error)) {
             char *strerror = net_new_strerror(error);
@@ -830,9 +830,9 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
     } else if (port_from != 0 && port_to == 0) {
         port_to = port_from;
     } else if (port_from > port_to) {
-        uint16_t temp = port_from;
+        const uint16_t temp_port = port_from;
         port_from = port_to;
-        port_to = temp;
+        port_to = temp_port;
     }
 
     if (error != nullptr) {
@@ -865,7 +865,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
 
     /* Check for socket error. */
     if (!sock_valid(temp->sock)) {
-        int neterror = net_error();
+        const int neterror = net_error();
         char *strerror = net_new_strerror(neterror);
         LOGGER_ERROR(log, "failed to get a socket?! %d, %s", neterror, strerror);
         net_kill_strerror(strerror);
@@ -1095,7 +1095,7 @@ void kill_networking(Networking_Core *net)
 
 bool ip_equal(const IP *a, const IP *b)
 {
-    if (!a || !b) {
+    if (a == nullptr || b == nullptr) {
         return false;
     }
 
@@ -1137,11 +1137,11 @@ bool ip_equal(const IP *a, const IP *b)
 
 bool ipport_equal(const IP_Port *a, const IP_Port *b)
 {
-    if (!a || !b) {
+    if (a == nullptr || b == nullptr) {
         return false;
     }
 
-    if (!a->port || (a->port != b->port)) {
+    if (a->port == 0 || (a->port != b->port)) {
         return false;
     }
 
@@ -1206,7 +1206,7 @@ bool ipport_isset(const IP_Port *ipport)
 /** copies an ip structure (careful about direction!) */
 void ip_copy(IP *target, const IP *source)
 {
-    if (!source || !target) {
+    if (source == nullptr || target == nullptr) {
         return;
     }
 
@@ -1216,7 +1216,7 @@ void ip_copy(IP *target, const IP *source)
 /** copies an ip_port structure (careful about direction!) */
 void ipport_copy(IP_Port *target, const IP_Port *source)
 {
-    if (!source || !target) {
+    if (source == nullptr || target == nullptr) {
         return;
     }
 
@@ -1238,27 +1238,14 @@ const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
         return ip_str;
     }
 
-    if (ip != nullptr) {
-        if (net_family_is_ipv4(ip->family)) {
-            /* returns standard quad-dotted notation */
-            struct in_addr addr;
-            fill_addr4(&ip->ip.v4, &addr);
-
-            ip_str[0] = '\0';
-            assert(make_family(ip->family) == AF_INET);
-            inet_ntop4(&addr, ip_str, length);
-        } else if (net_family_is_ipv6(ip->family)) {
-            /* returns hex-groups enclosed into square brackets */
-            struct in6_addr addr;
-            fill_addr6(&ip->ip.v6, &addr);
-
-            assert(make_family(ip->family) == AF_INET6);
-            inet_ntop6(&addr, ip_str, length);
-        } else {
-            snprintf(ip_str, length, "(IP invalid, family %u)", ip->family.value);
-        }
-    } else {
+    if (ip == nullptr) {
         snprintf(ip_str, length, "(IP invalid: NULL)");
+        return ip_str;
+    }
+
+    if (!ip_parse_addr(ip, ip_str, length)) {
+        snprintf(ip_str, length, "(IP invalid, family %u)", ip->family.value);
+        return ip_str;
     }
 
     /* brute force protection against lacking termination */
@@ -1268,20 +1255,26 @@ const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
 
 bool ip_parse_addr(const IP *ip, char *address, size_t length)
 {
-    if (!address || !ip) {
+    if (address == nullptr || ip == nullptr) {
         return false;
     }
 
     if (net_family_is_ipv4(ip->family)) {
-        const struct in_addr *addr = (const struct in_addr *)&ip->ip.v4;
+        struct in_addr addr;
+        static_assert(sizeof(addr) == sizeof(ip->ip.v4.uint32),
+                      "assumption does not hold: in_addr should be 4 bytes");
         assert(make_family(ip->family) == AF_INET);
-        return inet_ntop4(addr, address, length) != nullptr;
+        fill_addr4(&ip->ip.v4, &addr);
+        return inet_ntop4(&addr, address, length) != nullptr;
     }
 
     if (net_family_is_ipv6(ip->family)) {
-        const struct in6_addr *addr = (const struct in6_addr *)&ip->ip.v6;
+        struct in6_addr addr;
+        static_assert(sizeof(addr) == sizeof(ip->ip.v6.uint8),
+                      "assumption does not hold: in6_addr should be 16 bytes");
         assert(make_family(ip->family) == AF_INET6);
-        return inet_ntop6(addr, address, length) != nullptr;
+        fill_addr6(&ip->ip.v6, &addr);
+        return inet_ntop6(&addr, address, length) != nullptr;
     }
 
     return false;
@@ -1289,7 +1282,7 @@ bool ip_parse_addr(const IP *ip, char *address, size_t length)
 
 bool addr_parse_ip(const char *address, IP *to)
 {
-    if (!address || !to) {
+    if (address == nullptr || to == nullptr) {
         return false;
     }
 
@@ -1318,12 +1311,12 @@ int addr_resolve(const char *address, IP *to, IP *extra)
     return false;
 #else
 
-    if (!address || !to) {
+    if (address == nullptr || to == nullptr) {
         return 0;
     }
 
-    Family tox_family = to->family;
-    int family = make_family(tox_family);
+    const Family tox_family = to->family;
+    const int family = make_family(tox_family);
 
     struct addrinfo hints;
     memset(&hints, 0, sizeof(hints));
@@ -1602,7 +1595,7 @@ Socket net_socket(Family domain, int type, int protocol)
 int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    int res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
+    const int res = fuzz_send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #else
     int res = send(sock.socket, (const char *)buf, len, MSG_NOSIGNAL);
 #endif
@@ -1613,7 +1606,7 @@ int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, con
 int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    int res = fuzz_recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
+    const int res = fuzz_recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
 #else
     int res = recv(sock.socket, (char *)buf, len, MSG_NOSIGNAL);
 #endif
@@ -1704,8 +1697,8 @@ size_t net_pack_u64(uint8_t *bytes, uint64_t v)
 
 size_t net_unpack_u16(const uint8_t *bytes, uint16_t *v)
 {
-    uint8_t hi = bytes[0];
-    uint8_t lo = bytes[1];
+    const uint8_t hi = bytes[0];
+    const uint8_t lo = bytes[1];
     *v = ((uint16_t)hi << 8) | lo;
     return sizeof(*v);
 }
@@ -1746,9 +1739,9 @@ int net_error(void)
 #endif
 }
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 char *net_new_strerror(int error)
 {
-#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
     char *str = nullptr;
     // Windows API is weird. The 5th function arg is of char* type, but we
     // have to pass char** so that it could assign new memory block to our
@@ -1760,29 +1753,42 @@ char *net_new_strerror(int error)
     FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
                    error, 0, (char *)&str, 0, nullptr);
     return str;
+}
 #else
+#ifdef _GNU_SOURCE
+non_null()
+static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
+{
+    const char *retstr = strerror_r(error, tmp, tmp_size);
+
+    if (errno != 0) {
+        snprintf(tmp, tmp_size, "error %d (strerror_r failed with errno %d)", error, errno);
+    }
+
+    return retstr;
+}
+#else
+non_null()
+static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
+{
+    const int fmt_error = strerror_r(error, tmp, tmp_size);
+
+    if (fmt_error != 0) {
+        snprintf(tmp, tmp_size, "error %d (strerror_r failed with error %d, errno %d)", error, fmt_error, errno);
+    }
+
+    return tmp;
+}
+#endif
+char *net_new_strerror(int error)
+{
     char tmp[256];
 
     errno = 0;
 
-#ifdef _GNU_SOURCE
-    const char *retstr = strerror_r(error, tmp, sizeof(tmp));
-
-    if (errno != 0) {
-        snprintf(tmp, sizeof(tmp), "error %d (strerror_r failed with errno %d)", error, errno);
-    }
-
-#else
-    const int fmt_error = strerror_r(error, tmp, sizeof(tmp));
-
-    if (fmt_error != 0) {
-        snprintf(tmp, sizeof(tmp), "error %d (strerror_r failed with error %d, errno %d)", error, fmt_error, errno);
-    }
-
-    const char *retstr = tmp;
-#endif
-
+    const char *retstr = net_strerror_r(error, tmp, sizeof(tmp));
     const size_t retstr_len = strlen(retstr);
+
     char *str = (char *)malloc(retstr_len + 1);
 
     if (str == nullptr) {
@@ -1792,8 +1798,8 @@ char *net_new_strerror(int error)
     memcpy(str, retstr, retstr_len + 1);
 
     return str;
-#endif
 }
+#endif
 
 void net_kill_strerror(char *strerror)
 {

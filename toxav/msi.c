@@ -170,7 +170,7 @@ int msi_kill(MSISession *session, const Logger *log)
 
         MSICall *it = get_call(session, session->calls_head);
 
-        while (it) {
+        while (it != nullptr) {
             send_message(session->messenger, it->friend_number, &msg);
             MSICall *temp_it = it;
             it = it->next;
@@ -231,7 +231,7 @@ int msi_invite(MSISession *session, MSICall **call, uint32_t friend_number, uint
 }
 int msi_hangup(MSICall *call)
 {
-    if (!call || !call->session) {
+    if (call == nullptr || call->session == nullptr) {
         return -1;
     }
 
@@ -262,7 +262,7 @@ int msi_hangup(MSICall *call)
 }
 int msi_answer(MSICall *call, uint8_t capabilities)
 {
-    if (!call || !call->session) {
+    if (call == nullptr || call->session == nullptr) {
         return -1;
     }
 
@@ -301,7 +301,7 @@ int msi_answer(MSICall *call, uint8_t capabilities)
 }
 int msi_change_capabilities(MSICall *call, uint8_t capabilities)
 {
-    if (!call || !call->session) {
+    if (call == nullptr || call->session == nullptr) {
         return -1;
     }
 

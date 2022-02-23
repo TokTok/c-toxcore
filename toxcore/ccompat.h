@@ -48,18 +48,18 @@
 #endif
 #endif
 
-#define ALLOC_VLA(type, name, size)                     \
-  const size_t name##_vla_size = (size) * sizeof(type); \
-  type *const name = (type *)alloca(name##_vla_size)
+#define ALLOC_VLA(type, name, size)                       \
+    const size_t name##_vla_size = (size) * sizeof(type); \
+    type *const name = (type *)alloca(name##_vla_size)
 #define SIZEOF_VLA(name) name##_vla_size
 
 #endif
 
 #ifdef MAX_VLA_SIZE
 #include <assert.h>
-#define VLA(type, name, size) \
-  ALLOC_VLA(type, name, size); \
-  assert((size_t)(size) * sizeof(type) <= MAX_VLA_SIZE)
+#define VLA(type, name, size)    \
+    ALLOC_VLA(type, name, size); \
+    assert((size_t)(size) * sizeof(type) <= MAX_VLA_SIZE)
 #else
 #define VLA ALLOC_VLA
 #endif
@@ -67,9 +67,13 @@
 #if !defined(__cplusplus) || __cplusplus < 201103L
 #define nullptr NULL
 #ifndef static_assert
+#ifdef __GNUC__
+#define static_assert(cond, msg) extern __attribute__((__unused__)) const int unused_for_static_assert
+#else // !__GNUC__
 #define static_assert(cond, msg) extern const int unused_for_static_assert
-#endif
-#endif
+#endif // !__GNUC__
+#endif // !static_assert
+#endif // !__cplusplus
 
 #ifdef __GNUC__
 #define GNU_PRINTF(f, a) __attribute__((__format__(__printf__, f, a)))
