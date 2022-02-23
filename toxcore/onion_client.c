@@ -27,7 +27,7 @@ typedef struct Onion_Node {
     IP_Port     ip_port;
     uint8_t     ping_id[ONION_PING_ID_SIZE];
     uint8_t     data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t     is_stored;
+    bool        is_stored;
 
     uint64_t    added_time;
 
@@ -683,7 +683,7 @@ static void sort_onion_node_list(Onion_Node *list, unsigned int length, const Mo
 
 non_null()
 static int client_add_to_list(Onion_Client *onion_c, uint32_t num, const uint8_t *public_key, const IP_Port *ip_port,
-                              uint8_t is_stored, const uint8_t *pingid_or_key, uint32_t path_used)
+                              bool is_stored, const uint8_t *pingid_or_key, uint32_t path_used)
 {
     if (num > onion_c->num_friends) {
         return -1;
@@ -698,15 +698,11 @@ static int client_add_to_list(Onion_Client *onion_c, uint32_t num, const uint8_t
         reference_id = nc_get_self_public_key(onion_c->c);
         list_length = MAX_ONION_CLIENTS_ANNOUNCE;
 
-        if (is_stored == 1 && public_key_cmp(pingid_or_key, onion_c->temp_public_key) != 0) {
-            is_stored = 0;
+        if (is_stored && public_key_cmp(pingid_or_key, onion_c->temp_public_key) != 0) {
+            is_stored = false;
         }
     } else {
-        if (is_stored >= 2) {
-            return -1;
-        }
-
-        if (is_stored == 1) {
+        if (is_stored) {
             onion_c->friends_list[num - 1].last_seen = mono_time_get(onion_c->mono_time);
         }
 
@@ -743,7 +739,7 @@ static int client_add_to_list(Onion_Client *onion_c, uint32_t num, const uint8_t
     // TODO(irungentoo): remove this and find a better source of nodes to use for paths.
     onion_add_path_node(onion_c, ip_port, public_key);
 
-    if (is_stored == 1) {
+    if (is_stored) {
         memcpy(list_nodes[index].data_public_key, pingid_or_key, CRYPTO_PUBLIC_KEY_SIZE);
     } else {
         memcpy(list_nodes[index].ping_id, pingid_or_key, ONION_PING_ID_SIZE);
@@ -890,7 +886,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
 
     const uint32_t path_used = set_path_timeouts(onion_c, num, path_num);
 
-    if (client_add_to_list(onion_c, num, public_key, &ip_port, plain[0], plain + 1, path_used) == -1) {
+    if (client_add_to_list(onion_c, num, public_key, &ip_port, plain[0] != 0, plain + 1, path_used) == -1) {
         return 1;
     }
 
@@ -1078,7 +1074,7 @@ int send_onion_data(Onion_Client *onion_c, int friend_num, const uint8_t *data, 
 
         ++num_nodes;
 
-        if (list_nodes[i].is_stored != 0) {
+        if (list_nodes[i].is_stored) {
             good_nodes[num_good] = i;
             ++num_good;
         }
@@ -1705,7 +1701,7 @@ static void do_announce(Onion_Client *onion_c)
 
         unsigned int interval = ANNOUNCE_INTERVAL_NOT_ANNOUNCED;
 
-        if (list_nodes[i].is_stored != 0 && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, list_nodes[i].path_used)) {
+        if (list_nodes[i].is_stored && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, list_nodes[i].path_used)) {
             interval = ANNOUNCE_INTERVAL_ANNOUNCED;
 
             const uint32_t pathnum = list_nodes[i].path_used % NUMBER_ONION_PATHS;
@@ -1788,7 +1784,7 @@ static int onion_isconnected(const Onion_Client *onion_c)
         if (!onion_node_timed_out(&onion_c->clients_announce_list[i], onion_c->mono_time)) {
             ++num;
 
-            if (onion_c->clients_announce_list[i].is_stored != 0) {
+            if (onion_c->clients_announce_list[i].is_stored) {
                 ++announced;
             }
         }
