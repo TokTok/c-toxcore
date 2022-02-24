@@ -28,9 +28,9 @@ def run_mallocfail(exe: str, iteration: int) -> bool:
     if os.path.exists(_HASHES):
         shutil.copy(_HASHES, _HASHES_PREV)
     try:
-        proc = subprocess.run(
-            [exe], timeout=_TIMEOUT, env={"LD_PRELOAD": _MALLOCFAIL_SO}
-        )
+        proc = subprocess.run([exe],
+                              timeout=_TIMEOUT,
+                              env={"LD_PRELOAD": _MALLOCFAIL_SO})
     except subprocess.TimeoutExpired:
         print(f"\x1b[1;34mProgram {exe} timed out\x1b[0m")
         return True
