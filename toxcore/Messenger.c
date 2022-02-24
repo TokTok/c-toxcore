@@ -2357,7 +2357,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
                 break;
             }
 
-            if (m->group_invite && data[1] == GROUP_INVITE && data_length != 2 + GC_JOIN_DATA_LENGTH) {
+            if (m->group_invite != nullptr && data[1] == GROUP_INVITE && data_length != 2 + GC_JOIN_DATA_LENGTH) {
                 if (group_not_added(m->group_handler, data + 2, data_length - 1)) {
                     m->group_invite(m, i, data + 2, GC_JOIN_DATA_LENGTH,
                                     data + 2 + GC_JOIN_DATA_LENGTH, data_length - 2 - GC_JOIN_DATA_LENGTH, userdata);

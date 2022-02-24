@@ -947,7 +947,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
         }
 
         const uint8_t first_byte = gconn->addr.public_key[0];
-        const uint8_t is_founder = peer_is_founder(chat, i);
+        const bool is_founder = peer_is_founder(chat, i);
 
         if (is_founder) {
             chat->group[i].role = GR_FOUNDER;
@@ -955,9 +955,9 @@ static void update_gc_peer_roles(GC_Chat *chat)
             continue;
         }
 
-        const uint8_t is_observer  = peer_is_observer(chat, i);
-        const uint8_t is_moderator = peer_is_moderator(chat, i);
-        const uint8_t is_user      = !(is_founder || is_moderator || is_observer);
+        const bool is_observer  = peer_is_observer(chat, i);
+        const bool is_moderator = peer_is_moderator(chat, i);
+        const bool is_user = !(is_founder || is_moderator || is_observer);
 
         if (is_observer && is_moderator) {
             conflicts = true;
@@ -1623,7 +1623,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
         return false;
     }
 
-    const IP_Port *ip_port = announce.ip_port_is_set ? &announce.ip_port : nullptr;
+    const IP_Port *ip_port = announce.ip_port_is_set == 1 ? &announce.ip_port : nullptr;
     const int new_peer_number = peer_add(chat, ip_port, announce.peer_public_key);
 
     if (new_peer_number == -1) {
@@ -1658,7 +1658,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
             }
         }
 
-        if (!announce.ip_port_is_set && added_tcp_relays == 0) {
+        if (announce.ip_port_is_set == 0 && added_tcp_relays == 0) {
             gcc_mark_for_deletion(new_gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
             LOGGER_WARNING(chat->log, "Sync error: Invalid peer connection info");
             return false;
@@ -1710,7 +1710,7 @@ static int handle_gc_sync_response(const GC_Session *c, GC_Chat *chat, uint32_t 
         LOGGER_WARNING(chat->log, "Failed to send peer exchange on sync response");
     }
 
-    if (c->self_join && chat->time_connected == 0) {
+    if (c->self_join != nullptr && chat->time_connected == 0) {
         c->self_join(c->messenger, chat->group_number, userdata);
         chat->time_connected = mono_time_get(chat->mono_time);
     }
@@ -1831,7 +1831,7 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
                                      uint16_t sync_flags)
 {
     /** Do not change the order of these four send calls or else */
-    if ((sync_flags & GF_STATE) && chat->shared_state.version > 0) {
+    if ((sync_flags & GF_STATE) > 0 && chat->shared_state.version > 0) {
         if (!send_peer_shared_state(chat, gconn)) {
             LOGGER_WARNING(chat->log, "Failed to send shared state");
             return false;
@@ -1850,7 +1850,7 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if ((sync_flags & GF_TOPIC) && chat->topic_info.version > 0) {
+    if ((sync_flags & GF_TOPIC) > 0 && chat->topic_info.version > 0) {
         if (!send_peer_topic(chat, gconn)) {
             LOGGER_WARNING(chat->log, "Failed to send topic");
             return false;
@@ -1859,7 +1859,7 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if (sync_flags & GF_PEERS) {
+    if ((sync_flags & GF_PEERS) > 0) {
         if (sync_response_send_peers(chat, gconn, peer_number) == -1) {
             return false;
         }
@@ -2666,7 +2666,7 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
 
     set_gc_peerlist_checksum(chat);
 
-    if (c->peer_join && !was_confirmed) {
+    if (c->peer_join != nullptr && !was_confirmed) {
         c->peer_join(c->messenger, chat->group_number, peer->peer_id, userdata);
     }
 
@@ -2973,7 +2973,7 @@ static int handle_gc_mod_list(const GC_Session *c, GC_Chat *chat, const uint8_t 
     }
 
     if (unpack_ret == 0) {
-        if (chat->connection_state == CS_CONNECTED && c->moderation) {
+        if (chat->connection_state == CS_CONNECTED && c->moderation != nullptr) {
             c->moderation(c->messenger, chat->group_number, (uint32_t) -1, (uint32_t) -1, MV_MOD, userdata);
         }
 
@@ -3835,11 +3835,7 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
         return -1;
     }
 
-    const uint8_t is_response = data[0];
-
-    if (is_response > 1) {
-        return 0;
-    }
+    const bool is_response = data[0] == 1;
 
     const uint8_t *sender_public_session_key = data + 1;
 
@@ -6397,7 +6393,7 @@ static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number
         refresh_gc_saved_peers(chat);
     }
 
-    if (exit_info.exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit && peer_confirmed) {
+    if (exit_info.exit_type != GC_EXIT_TYPE_NO_CALLBACK && c->peer_exit != nullptr && peer_confirmed) {
         c->peer_exit(c->messenger, chat->group_number, peer_id, exit_info.exit_type, nick,
                      nick_length, exit_info.part_message, exit_info.length, userdata);
     }

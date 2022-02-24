@@ -129,7 +129,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
     data[offset] = announce->tcp_relays_count;
     ++offset;
 
-    if (announce->ip_port_is_set) {
+    if (announce->ip_port_is_set == 1) {
         const int ip_port_length = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
@@ -189,7 +189,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
         return -1;
     }
 
-    if (announce->ip_port_is_set) {
+    if (announce->ip_port_is_set == 1) {
         const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
 
         if (ip_port_length == -1) {
@@ -379,7 +379,7 @@ bool gca_is_valid_announce(const GC_Announce *announce)
         return false;
     }
 
-    return announce->tcp_relays_count > 0 || announce->ip_port_is_set;
+    return announce->tcp_relays_count > 0 || announce->ip_port_is_set == 1;
 }
 
 GC_Announces_List *new_gca_list(void)

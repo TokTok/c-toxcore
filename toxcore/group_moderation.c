@@ -802,7 +802,7 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
         }
     }
 
-    if (count) {
+    if (count > 0) {
         if (!sanctions_list_make_creds(moderation)) {
             return 0;
         }

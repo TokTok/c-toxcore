@@ -32,7 +32,8 @@ bazel-dbg_task:
         --remote_download_minimal
         --
         //c-toxcore/...
-        -//c-toxcore/auto_tests:tcp_relay_test # TODO(robinlinden): Why does this pass locally but not in Cirrus?
+        -//c-toxcore/auto_tests:tcp_relay_test
+        -//c-toxcore/auto_tests:group_tcp_test # TODO(robinlinden): Why do these pass locally but not in Cirrus?
 
 bazel-asan_task:
   container:
