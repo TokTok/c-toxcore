@@ -272,6 +272,11 @@ int read_packet_TCP_secure_connection(const Logger *logger, Socket sock, uint16_
     VLA(uint8_t, data_encrypted, *next_packet_length);
     const int len_packet = read_TCP_packet(logger, sock, data_encrypted, *next_packet_length, ip_port);
 
+    if (len_packet == -1) {
+        LOGGER_WARNING(logger, "error while reading packet of length %d", *next_packet_length);
+        return 0;
+    }
+
     if (len_packet != *next_packet_length) {
         LOGGER_ERROR(logger, "invalid packet length: %d, expected %d", len_packet, *next_packet_length);
         return 0;
