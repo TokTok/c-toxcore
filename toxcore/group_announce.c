@@ -130,7 +130,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
     ++offset;
 
     if (announce->ip_port_is_set) {
-        const int ip_port_length = pack_ip_port(data + offset, length - offset, &announce->ip_port);
+        const int ip_port_length = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to pack ip_port");
@@ -140,7 +140,8 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
         offset += ip_port_length;
     }
 
-    const int nodes_length = pack_nodes(data + offset, length - offset, announce->tcp_relays, announce->tcp_relays_count);
+    const int nodes_length = pack_nodes(log, data + offset, length - offset, announce->tcp_relays,
+                                        announce->tcp_relays_count);
 
     if (nodes_length == -1) {
         LOGGER_ERROR(log, "Failed to pack TCP nodes");

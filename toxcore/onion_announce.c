@@ -511,7 +511,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, (uint16_t)num_nodes);
+        nodes_length = pack_nodes(onion_a->log, pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, (uint16_t)num_nodes);
 
         if (nodes_length <= 0) {
             LOGGER_WARNING(onion_a->log, "Failed to pack nodes");
@@ -635,7 +635,7 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, num_nodes);
+        nodes_length = pack_nodes(onion_a->log, pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, num_nodes);
 
         if (nodes_length <= 0) {
             return 1;

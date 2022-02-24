@@ -977,7 +977,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE,
                            length - (1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE), plain);
     } else {
-        if (onion_c->friends_list[num - 1].status == 0) {
+        if (!onion_c->friends_list[num - 1].is_valid) {
             return 1;
         }
 

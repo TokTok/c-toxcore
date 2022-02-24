@@ -350,7 +350,7 @@ int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length, uin
                 return -1;
             }
 
-            packed_ipp_len = pack_ip_port(data + packed_len, length - packed_len, &saved_peer->ip_port);
+            packed_ipp_len = pack_ip_port(chat->log, data + packed_len, length - packed_len, &saved_peer->ip_port);
 
             if (packed_ipp_len > 0) {
                 packed_len += packed_ipp_len;
@@ -362,7 +362,7 @@ int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length, uin
                 return -1;
             }
 
-            packed_tcp_len = pack_nodes(data + packed_len, length - packed_len, &saved_peer->tcp_relay, 1);
+            packed_tcp_len = pack_nodes(chat->log, data + packed_len, length - packed_len, &saved_peer->tcp_relay, 1);
 
             if (packed_tcp_len > 0) {
                 packed_len += packed_tcp_len;
@@ -1963,7 +1963,7 @@ static bool send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
                                  tcp_relays[i].public_key);
     }
 
-    const int nodes_len = pack_nodes(data + length, sizeof(data) - length, tcp_relays, (uint16_t)num_tcp_relays);
+    const int nodes_len = pack_nodes(chat->log, data + length, sizeof(data) - length, tcp_relays, (uint16_t)num_tcp_relays);
 
     if (nodes_len <= 0) {
         LOGGER_ERROR(chat->log, "Failed to pack tcp relays");
@@ -5325,7 +5325,7 @@ static int make_gc_handshake_packet(const GC_Chat *chat, const GC_Connection *gc
     memcpy(data + length, &request_type, sizeof(uint8_t));
     length += sizeof(uint8_t);
 
-    int nodes_size = pack_nodes(data + length, sizeof(Node_format), node, MAX_SENT_GC_NODES);
+    int nodes_size = pack_nodes(chat->log, data + length, sizeof(Node_format), node, MAX_SENT_GC_NODES);
 
     if (nodes_size > 0) {
         length += nodes_size;
@@ -6731,7 +6731,7 @@ static bool ping_peer(const GC_Chat *chat, const GC_Connection *gconn)
     if (chat->self_udp_status == SELF_UDP_STATUS_WAN && !gcc_conn_is_direct(chat->mono_time, gconn)
             && mono_time_is_timeout(chat->mono_time, gconn->last_sent_ip_time, GC_SEND_IP_PORT_INTERVAL)) {
 
-        const int packed_ipp_len = pack_ip_port(data + buf_size - sizeof(IP_Port), sizeof(IP_Port),
+        const int packed_ipp_len = pack_ip_port(chat->log, data + buf_size - sizeof(IP_Port), sizeof(IP_Port),
                                                 &chat->self_ip_port);
 
         if (packed_ipp_len > 0) {
@@ -7768,7 +7768,8 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
             return -1;
         }
 
-        const int nodes_len = pack_nodes(send_data + len, sizeof(send_data) - len, tcp_relays, (uint16_t)num_tcp_relays);
+        const int nodes_len = pack_nodes(chat->log, send_data + len, sizeof(send_data) - len, tcp_relays,
+                                         (uint16_t)num_tcp_relays);
 
         if (nodes_len <= 0 && !copy_ip_port_result) {
             return -1;
