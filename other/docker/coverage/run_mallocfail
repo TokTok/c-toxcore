@@ -29,7 +29,8 @@ def run_mallocfail(exe: str, iteration: int) -> bool:
         shutil.copy(_HASHES, _HASHES_PREV)
     try:
         proc = subprocess.run(
-            [exe], timeout=_TIMEOUT, env={"LD_PRELOAD": _MALLOCFAIL_SO})
+            [exe], timeout=_TIMEOUT, env={"LD_PRELOAD": _MALLOCFAIL_SO}
+        )
     except subprocess.TimeoutExpired:
         print(f"\x1b[1;34mProgram {exe} timed out\x1b[0m")
         return True
@@ -52,7 +53,8 @@ def run_mallocfail(exe: str, iteration: int) -> bool:
         print(f"\x1b[0;34mProgram '{exe}' timed out\x1b[0m")
     else:
         print(
-            f"\x1b[1;34mProgram '{exe}' failed to handle OOM situation cleanly\x1b[0m")
+            f"\x1b[1;34mProgram '{exe}' failed to handle OOM situation cleanly\x1b[0m"
+        )
         sys.exit(1)
 
     return True
