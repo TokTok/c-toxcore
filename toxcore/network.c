@@ -558,6 +558,12 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
 {
     IP_Port ipp_copy = *ip_port;
 
+    if (net_family_is_unspec(ip_port->ip.family)) {
+        // TODO(iphydf): Make this an error. Currently this fails sometimes when
+        // called from DHT.c:do_ping_and_sendnode_requests.
+        return -1;
+    }
+
     if (net_family_is_unspec(net->family)) { /* Socket not initialized */
         // TODO(iphydf): Make this an error. Currently, the onion client calls
         // this via DHT getnodes.
@@ -611,9 +617,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         addr6->sin6_flowinfo = 0;
         addr6->sin6_scope_id = 0;
     } else {
-        // TODO(iphydf): Make this an error. Currently this fails sometimes when
-        // called from DHT.c:do_ping_and_sendnode_requests.
-        LOGGER_WARNING(net->log, "unknown address type: %d", ipp_copy.ip.family.value);
+        LOGGER_ERROR(net->log, "unknown address type: %d", ipp_copy.ip.family.value);
         return -1;
     }
 
@@ -743,7 +747,9 @@ void networking_poll(const Networking_Core *net, void *userdata)
         const Packet_Handler *const handler = &net->packethandlers[data[0]];
 
         if (handler->function == nullptr) {
-            LOGGER_WARNING(net->log, "[%02u] -- Packet has no handler", data[0]);
+            // TODO(https://github.com/TokTok/c-toxcore/issues/1115): Make this
+            // a warning or error again.
+            LOGGER_DEBUG(net->log, "[%02u] -- Packet has no handler", data[0]);
             continue;
         }
 
@@ -962,8 +968,11 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
 
     if (net_family_is_ipv6(ip->family)) {
         const bool is_dualstack = set_socket_dualstack(temp->sock);
-        LOGGER_DEBUG(log, "Dual-stack socket: %s",
-                     is_dualstack ? "enabled" : "Failed to enable, won't be able to receive from/send to IPv4 addresses");
+        if (is_dualstack) {
+            LOGGER_TRACE(log, "Dual-stack socket: enabled");
+        } else {
+            LOGGER_ERROR(log, "Dual-stack socket failed to enable, won't be able to receive from/send to IPv4 addresses");
+        }
         /* multicast local nodes */
         struct ipv6_mreq mreq;
         memset(&mreq, 0, sizeof(mreq));
@@ -978,9 +987,9 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
         char *strerror = net_new_strerror(neterror);
 
         if (res < 0) {
-            LOGGER_DEBUG(log, "Failed to activate local multicast membership. (%d, %s)", neterror, strerror);
+            LOGGER_INFO(log, "Failed to activate local multicast membership in FF02::1. (%d, %s)", neterror, strerror);
         } else {
-            LOGGER_DEBUG(log, "Local multicast group FF02::1 joined successfully. (%d, %s)", neterror, strerror);
+            LOGGER_TRACE(log, "Local multicast group joined successfully. (%d, %s)", neterror, strerror);
         }
 
         net_kill_strerror(strerror);
@@ -1196,7 +1205,7 @@ bool ipport_isset(const IP_Port *ipport)
         return false;
     }
 
-    if (!ipport->port) {
+    if (ipport->port == 0) {
         return false;
     }
 
@@ -1337,9 +1346,9 @@ int addr_resolve(const char *address, IP *to, IP *extra)
     }
 
     IP ip4;
-    ip_init(&ip4, 0); // ipv6enabled = 0
+    ip_init(&ip4, false); // ipv6enabled = false
     IP ip6;
-    ip_init(&ip6, 1); // ipv6enabled = 1
+    ip_init(&ip6, true); // ipv6enabled = true
 
     int result = 0;
     bool done = false;

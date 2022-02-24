@@ -724,7 +724,7 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(pl + 1 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, num_nodes);
+        nodes_length = pack_nodes(onion_a->log, pl + 1 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, num_nodes);
 
         if (nodes_length <= 0) {
             return 1;

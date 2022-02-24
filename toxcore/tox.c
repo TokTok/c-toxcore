@@ -797,7 +797,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
             m_options.proxy_info.ip_port.ip.family = net_family_unspec;
         }
 
-        if (addr_resolve_or_parse_ip(tox_options_get_proxy_host(opts), &m_options.proxy_info.ip_port.ip, nullptr) == 0) {
+        if (!addr_resolve_or_parse_ip(tox_options_get_proxy_host(opts), &m_options.proxy_info.ip_port.ip, nullptr)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
             tox_options_free(default_options);
@@ -1025,14 +1025,23 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
 
     lock(tox);
     assert(count >= 0);
+    bool success = false;
 
     for (int32_t i = 0; i < count; ++i) {
         root[i].port = net_htons(port);
 
-        onion_add_bs_path_node(tox->m->onion_c, &root[i], public_key);
+        if (onion_add_bs_path_node(tox->m->onion_c, &root[i], public_key)) {
+            // If UDP is enabled, the caller cares about whether any of the
+            // bootstrap calls below will succeed. In TCP-only mode, adding
+            // onion path nodes successfully is sufficient.
+            success = success || tox->m->options.udp_disabled;
+        }
 
         if (!tox->m->options.udp_disabled) {
-            dht_bootstrap(tox->m->dht, &root[i], public_key);
+            if (dht_bootstrap(tox->m->dht, &root[i], public_key)) {
+                // If any of the bootstrap calls worked, we call it success.
+                success = true;
+            }
         }
     }
 
@@ -1040,12 +1049,13 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
 
     net_freeipport(root);
 
-    if (count > 0) {
+    if (count > 0 && success) {
         SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_OK);
         return true;
     }
 
-    LOGGER_DEBUG(tox->m->log, "bootstrap node '%s' resolved to 0 IP_Ports", host);
+    LOGGER_DEBUG(tox->m->log, "bootstrap node '%s' resolved to %d IP_Ports%s", host, count,
+            count > 0 ? ", but failed to bootstrap with any of them" : "");
     SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_BAD_HOST);
     return false;
 }
@@ -2826,12 +2836,12 @@ uint16_t tox_self_get_udp_port(const Tox *tox, Tox_Err_Get_Port *error)
     const uint16_t port = net_htons(net_port(tox->m->net));
     unlock(tox);
 
-    if (port) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_OK);
-    } else {
+    if (port == 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_NOT_BOUND);
+        return 0;
     }
 
+    SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_OK);
     return port;
 }
 

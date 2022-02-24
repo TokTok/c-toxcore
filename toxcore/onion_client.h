@@ -10,6 +10,8 @@
 #ifndef C_TOXCORE_TOXCORE_ONION_CLIENT_H
 #define C_TOXCORE_TOXCORE_ONION_CLIENT_H
 
+#include <stdbool.h>
+
 #include "group_chats.h"
 #include "net_crypto.h"
 #include "onion_announce.h"
@@ -62,11 +64,11 @@ Net_Crypto *onion_get_net_crypto(const Onion_Client *onion_c);
 
 /** Add a node to the path_nodes bootstrap array.
  *
- * return -1 on failure
- * return 0 on success
+ * return false on failure
+ * return true on success
  */
 non_null()
-int onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key);
+bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key);
 
 /** Put up to max_num nodes in nodes.
  *
@@ -102,14 +104,11 @@ int onion_delfriend(Onion_Client *onion_c, int friend_num);
 /** Set if friend is online or not.
  * NOTE: This function is there and should be used so that we don't send useless packets to the friend if he is online.
  *
- * is_online 1 means friend is online.
- * is_online 0 means friend is offline
- *
  * return -1 on failure.
  * return 0 on success.
  */
 non_null()
-int onion_set_friend_online(Onion_Client *onion_c, int friend_num, uint8_t is_online);
+int onion_set_friend_online(Onion_Client *onion_c, int friend_num, bool is_online);
 
 /** Get the ip of friend friendnum and put it in ip_port
  *

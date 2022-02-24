@@ -28,7 +28,7 @@ typedef struct Onion_Node {
     IP_Port     ip_port;
     uint8_t     ping_id[ONION_PING_ID_SIZE];
     uint8_t     data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t     is_stored;
+    uint8_t     is_stored;  // Tribool.
 
     uint64_t    added_time;
 
@@ -56,10 +56,10 @@ typedef struct Last_Pinged {
 } Last_Pinged;
 
 struct Onion_Friend {
-    uint8_t status; /* 0 if friend is not valid, 1 if friend is valid.*/
-    uint8_t is_online; /* Set by the onion_set_friend_status function. */
+    bool is_valid;
+    bool is_online;
 
-    uint8_t know_dht_public_key; /* 0 if we don't know the dht public key of the other, 1 if we do. */
+    bool know_dht_public_key;
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t real_public_key[CRYPTO_PUBLIC_KEY_SIZE];
 
@@ -118,6 +118,7 @@ struct Onion_Client {
     uint8_t secret_symmetric_key[CRYPTO_SYMMETRIC_KEY_SIZE];
     uint64_t last_run;
     uint64_t first_run;
+    uint64_t last_time_connected;
 
     uint8_t temp_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t temp_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -187,18 +188,18 @@ Net_Crypto *onion_get_net_crypto(const Onion_Client *onion_c)
 
 /** Add a node to the path_nodes bootstrap array.
  *
- * return -1 on failure
- * return 0 on success
+ * return false on failure
+ * return true on success
  */
-int onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key)
+bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key)
 {
     if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
-        return -1;
+        return false;
     }
 
     for (unsigned int i = 0; i < MAX_PATH_NODES; ++i) {
         if (public_key_cmp(public_key, onion_c->path_nodes_bs[i].public_key) == 0) {
-            return -1;
+            return false;
         }
     }
 
@@ -213,7 +214,7 @@ int onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const 
         onion_c->path_nodes_index_bs = MAX_PATH_NODES + 1;
     }
 
-    return 0;
+    return true;
 }
 
 /** Add a node to the path_nodes array.
@@ -254,7 +255,7 @@ static int onion_add_path_node(Onion_Client *onion_c, const IP_Port *ip_port, co
  */
 uint16_t onion_backup_nodes(const Onion_Client *onion_c, Node_format *nodes, uint16_t max_num)
 {
-    if (!max_num) {
+    if (max_num == 0) {
         return 0;
     }
 
@@ -292,7 +293,7 @@ uint16_t onion_backup_nodes(const Onion_Client *onion_c, Node_format *nodes, uin
 non_null()
 static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format *nodes, uint16_t max_num)
 {
-    if (!max_num) {
+    if (max_num == 0) {
         return 0;
     }
 
@@ -1060,7 +1061,7 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
                            packet + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE,
                            length - (1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE), plain);
     } else {
-        if (onion_c->friends_list[num - 1].status == 0) {
+        if (!onion_c->friends_list[num - 1].is_valid) {
             return 1;
         }
 
@@ -1082,7 +1083,7 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
 
     if (len_nodes != 0) {
         Node_format nodes[MAX_SENT_NODES];
-        int num_nodes = unpack_nodes(nodes, MAX_SENT_NODES, nullptr, plain + 1 + ONION_PING_ID_SIZE, len_nodes, 0);
+        const int num_nodes = unpack_nodes(nodes, MAX_SENT_NODES, nullptr, plain + 1 + ONION_PING_ID_SIZE, len_nodes, 0);
 
         if (num_nodes <= 0) {
             return 1;
@@ -1097,7 +1098,6 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
     onion_c->last_packet_recv = mono_time_get(onion_c->mono_time);
     return 0;
 }
-
 
 #define DATA_IN_RESPONSE_MIN_SIZE ONION_DATA_IN_RESPONSE_MIN_SIZE
 
@@ -1269,7 +1269,7 @@ int send_onion_data(Onion_Client *onion_c, int friend_num, const uint8_t *data, 
 
         ++num_nodes;
 
-        if (list_nodes[i].is_stored) {
+        if (list_nodes[i].is_stored != 0) {
             good_nodes[num_good] = i;
             ++num_good;
         }
@@ -1420,8 +1420,7 @@ static int send_dhtpk_announce(Onion_Client *onion_c, uint16_t friend_num, uint8
     int nodes_len = 0;
 
     if (num_nodes != 0) {
-        nodes_len = pack_nodes(data + DHTPK_DATA_MIN_LENGTH, DHTPK_DATA_MAX_LENGTH - DHTPK_DATA_MIN_LENGTH, nodes,
-                               num_nodes);
+        nodes_len = pack_nodes(onion_c->logger, data + DHTPK_DATA_MIN_LENGTH, DHTPK_DATA_MAX_LENGTH - DHTPK_DATA_MIN_LENGTH, nodes, num_nodes);
 
         if (nodes_len <= 0) {
             return -1;
@@ -1458,7 +1457,7 @@ static int send_dhtpk_announce(Onion_Client *onion_c, uint16_t friend_num, uint8
 int onion_friend_num(const Onion_Client *onion_c, const uint8_t *public_key)
 {
     for (unsigned int i = 0; i < onion_c->num_friends; ++i) {
-        if (onion_c->friends_list[i].status == 0) {
+        if (!onion_c->friends_list[i].is_valid) {
             continue;
         }
 
@@ -1510,7 +1509,7 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
     unsigned int index = -1;
 
     for (unsigned int i = 0; i < onion_c->num_friends; ++i) {
-        if (onion_c->friends_list[i].status == 0) {
+        if (!onion_c->friends_list[i].is_valid) {
             index = i;
             break;
         }
@@ -1526,7 +1525,7 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
         ++onion_c->num_friends;
     }
 
-    onion_c->friends_list[index].status = 1;
+    onion_c->friends_list[index].is_valid = true;
     memcpy(onion_c->friends_list[index].real_public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     crypto_new_keypair(onion_c->friends_list[index].temp_public_key, onion_c->friends_list[index].temp_secret_key);
     return index;
@@ -1555,7 +1554,7 @@ int onion_delfriend(Onion_Client *onion_c, int friend_num)
     unsigned int i;
 
     for (i = onion_c->num_friends; i != 0; --i) {
-        if (onion_c->friends_list[i - 1].status != 0) {
+        if (onion_c->friends_list[i - 1].is_valid) {
             break;
         }
     }
@@ -1621,7 +1620,7 @@ int onion_set_friend_DHT_pubkey(Onion_Client *onion_c, int friend_num, const uin
         return -1;
     }
 
-    if (onion_c->friends_list[friend_num].status == 0) {
+    if (!onion_c->friends_list[friend_num].is_valid) {
         return -1;
     }
 
@@ -1632,7 +1631,7 @@ int onion_set_friend_DHT_pubkey(Onion_Client *onion_c, int friend_num, const uin
     }
 
     onion_c->friends_list[friend_num].last_seen = mono_time_get(onion_c->mono_time);
-    onion_c->friends_list[friend_num].know_dht_public_key = 1;
+    onion_c->friends_list[friend_num].know_dht_public_key = true;
     memcpy(onion_c->friends_list[friend_num].dht_public_key, dht_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     return 0;
@@ -1649,7 +1648,7 @@ unsigned int onion_getfriend_DHT_pubkey(const Onion_Client *onion_c, int friend_
         return 0;
     }
 
-    if (onion_c->friends_list[friend_num].status == 0) {
+    if (!onion_c->friends_list[friend_num].is_valid) {
         return 0;
     }
 
@@ -1683,19 +1682,16 @@ int onion_getfriendip(const Onion_Client *onion_c, int friend_num, IP_Port *ip_p
 /** Set if friend is online or not.
  * NOTE: This function is there and should be used so that we don't send useless packets to the friend if he is online.
  *
- * is_online 1 means friend is online.
- * is_online 0 means friend is offline
- *
  * return -1 on failure.
  * return 0 on success.
  */
-int onion_set_friend_online(Onion_Client *onion_c, int friend_num, uint8_t is_online)
+int onion_set_friend_online(Onion_Client *onion_c, int friend_num, bool is_online)
 {
     if ((uint32_t)friend_num >= onion_c->num_friends) {
         return -1;
     }
 
-    if (is_online == 0 && onion_c->friends_list[friend_num].is_online == 1) {
+    if (!is_online && onion_c->friends_list[friend_num].is_online) {
         onion_c->friends_list[friend_num].last_seen = mono_time_get(onion_c->mono_time);
     }
 
@@ -1749,7 +1745,7 @@ static void do_friend(Onion_Client *onion_c, uint16_t friendnum)
         return;
     }
 
-    if (onion_c->friends_list[friendnum].status == 0) {
+    if (!onion_c->friends_list[friendnum].is_valid) {
         return;
     }
 
@@ -1899,7 +1895,7 @@ static void do_announce(Onion_Client *onion_c)
 
         unsigned int interval = ANNOUNCE_INTERVAL_NOT_ANNOUNCED;
 
-        if (list_nodes[i].is_stored && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, list_nodes[i].path_used)) {
+        if (list_nodes[i].is_stored != 0 && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, list_nodes[i].path_used)) {
             interval = ANNOUNCE_INTERVAL_ANNOUNCED;
 
             const uint32_t pathnum = list_nodes[i].path_used % NUMBER_ONION_PATHS;
@@ -1982,7 +1978,7 @@ static int onion_isconnected(const Onion_Client *onion_c)
         if (!onion_node_timed_out(&onion_c->clients_announce_list[i], onion_c->mono_time)) {
             ++num;
 
-            if (onion_c->clients_announce_list[i].is_stored) {
+            if (onion_c->clients_announce_list[i].is_stored != 0) {
                 ++announced;
             }
         }
@@ -2005,7 +2001,20 @@ static int onion_isconnected(const Onion_Client *onion_c)
     return 0;
 }
 
+non_null()
+static void reset_friend_run_counts(Onion_Client *onion_c)
+{
+    for (uint16_t i = 0; i < onion_c->num_friends; ++i) {
+        Onion_Friend *o_friend = &onion_c->friends_list[i];
+
+        if (o_friend->is_valid) {
+            o_friend->run_count = 0;
+        }
+    }
+}
+
 #define ONION_CONNECTION_SECONDS 3
+#define ONION_CONNECTED_TIMEOUT 10
 
 Onion_Connection_Status onion_connection_status(const Onion_Client *onion_c)
 {
@@ -2032,6 +2041,12 @@ void do_onion_client(Onion_Client *onion_c)
     }
 
     if (onion_isconnected(onion_c)) {
+        if (mono_time_is_timeout(onion_c->mono_time, onion_c->last_time_connected, ONION_CONNECTED_TIMEOUT)) {
+            reset_friend_run_counts(onion_c);
+        }
+
+        onion_c->last_time_connected = mono_time_get(onion_c->mono_time);
+
         if (onion_c->onion_connected < ONION_CONNECTION_SECONDS * 2) {
             ++onion_c->onion_connected;
         }

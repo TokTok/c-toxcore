@@ -492,7 +492,7 @@ static Toxav_Err_Call_Control call_control_handle_resume(const ToxAVCall *call)
 static Toxav_Err_Call_Control call_control_handle_pause(ToxAVCall *call)
 {
     /* Only act if not already paused */
-    if (!call->msi_call->self_capabilities) {
+    if (call->msi_call->self_capabilities == 0) {
         return TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
     }
 
@@ -973,13 +973,13 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
     if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
-        LOGGER_INFO(av->m->log, "I_FRAME_FLAG:%d only-i-frame mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->m->log, "I_FRAME_FLAG:%d only-i-frame mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     } else if (call->video_rtp->ssrc == VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // normal keyframe placement
         vpx_encode_flags = 0;
-        LOGGER_INFO(av->m->log, "I_FRAME_FLAG:%d normal mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->m->log, "I_FRAME_FLAG:%d normal mode", call->video_rtp->ssrc);
 
         ++call->video_rtp->ssrc;
     }
@@ -1452,7 +1452,7 @@ static bool call_prepare_transmission(ToxAVCall *call)
         }
     }
 
-    call->active = 1;
+    call->active = true;
     return true;
 
 FAILURE:
@@ -1473,11 +1473,11 @@ FAILURE_2:
 
 static void call_kill_transmission(ToxAVCall *call)
 {
-    if (call == nullptr || call->active == 0) {
+    if (call == nullptr || !call->active) {
         return;
     }
 
-    call->active = 0;
+    call->active = false;
 
     pthread_mutex_lock(call->mutex_audio);
     pthread_mutex_unlock(call->mutex_audio);
