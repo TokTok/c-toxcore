@@ -105,7 +105,10 @@ static int connect_sock_to(const Logger *logger, Socket sock, const IP_Port *ip_
     }
 
     /* nonblocking socket, connect will never return success */
-    net_connect(logger, sock, &ipp_copy);
+    if (net_connect(logger, sock, &ipp_copy) != 0) {
+        char ip_str[IP_NTOA_LEN];
+        LOGGER_DEBUG(logger, "failed to connect to %s:%d", ip_ntoa(&ipp_copy.ip, ip_str, sizeof(ip_str)), ipp_copy.port);
+    }
 
     return 1;
 }
