@@ -762,8 +762,8 @@ static void update_client(const Logger *log, const Mono_Time *mono_time, int ind
  *  return True(1) or False(0)
  */
 non_null()
-static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_time, Client_data *list, uint16_t length,
-                                     const uint8_t *public_key, const IP_Port *ip_port)
+static bool client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_time, Client_data *list, uint16_t length,
+                                      const uint8_t *public_key, const IP_Port *ip_port)
 {
     const uint64_t temp_time = mono_time_get(mono_time);
     uint32_t index = index_of_client_pk(list, length, public_key);
@@ -771,7 +771,7 @@ static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_ti
     /* if public_key is in list, find it and maybe overwrite ip_port */
     if (index != UINT32_MAX) {
         update_client(log, mono_time, index, &list[index], ip_port);
-        return 1;
+        return true;
     }
 
     /* public_key not in list yet: see if we can find an identical ip_port, in
@@ -782,7 +782,7 @@ static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_ti
     index = index_of_client_ip_port(list, length, ip_port);
 
     if (index == UINT32_MAX) {
-        return 0;
+        return false;
     }
 
     IPPTsPng *assoc;
@@ -805,7 +805,7 @@ static int client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_ti
     /* kill the other address, if it was set */
     const IPPTsPng empty_ipptspng = {{{{0}}}};
     *assoc = empty_ipptspng;
-    return 1;
+    return true;
 }
 
 bool add_to_list(Node_format *nodes_list, uint32_t length, const uint8_t *pk, const IP_Port *ip_port,
@@ -1069,11 +1069,11 @@ static bool replace_all(const DHT *dht,
  *
  * simulate is set to 1 if we want to check if a node can be added to the list without adding it.
  *
- * return -1 on failure.
- * return 0 on success.
+ * return false on failure.
+ * return true on success.
  */
 non_null()
-static int add_to_close(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port, bool simulate)
+static bool add_to_close(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port, bool simulate)
 {
     unsigned int index = bit_by_bit_cmp(public_key, dht->self_public_key);
 
@@ -1092,22 +1092,22 @@ static int add_to_close(DHT *dht, const uint8_t *public_key, const IP_Port *ip_p
         }
 
         if (simulate) {
-            return 0;
+            return true;
         }
 
         id_copy(client->public_key, public_key);
         update_client_with_reset(dht->mono_time, client, ip_port);
-        return 0;
+        return true;
     }
 
-    return -1;
+    return false;
 }
 
 /** Return 1 if node can be added to close list, 0 if it can't.
  */
 bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port)
 {
-    return add_to_close(dht, public_key, ip_port, 1) == 0;
+    return add_to_close(dht, public_key, ip_port, true);
 }
 
 non_null()
@@ -1151,7 +1151,7 @@ static bool ping_node_from_getnodes_ok(DHT *dht, const uint8_t *public_key, cons
 {
     bool ret = false;
 
-    if (add_to_close(dht, public_key, ip_port, 1) == 0) {
+    if (add_to_close(dht, public_key, ip_port, true)) {
         ret = true;
     }
 
@@ -1225,7 +1225,7 @@ uint32_t addto_lists(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key
                                public_key, &ipp_copy);
 
     /* add_to_close should be called only if !in_list (don't extract to variable) */
-    if (in_close_list || add_to_close(dht, public_key, &ipp_copy, 0)) {
+    if (in_close_list || !add_to_close(dht, public_key, &ipp_copy, false)) {
         ++used;
     }
 
@@ -1693,7 +1693,7 @@ int dht_getfriendip(const DHT *dht, const uint8_t *public_key, IP_Port *ip_port)
     const Client_data *const client = &frnd->client_list[client_index];
     const IPPTsPng *const assocs[] = { &client->assoc6, &client->assoc4, nullptr };
 
-    for (const IPPTsPng * const *it = assocs; *it; ++it) {
+    for (const IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
         const IPPTsPng *const assoc = *it;
 
         if (!assoc_timeout(dht->cur_time, assoc)) {
@@ -1837,7 +1837,7 @@ static void do_Close(DHT *dht)
 
         IPPTsPng *const assocs[] = { &client->assoc6, &client->assoc4, nullptr };
 
-        for (IPPTsPng * const *it = assocs; *it; ++it) {
+        for (IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
             IPPTsPng *const assoc = *it;
 
             if (assoc->timestamp != 0) {
@@ -1898,7 +1898,7 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
             const Client_data *const client = &dht->close_clientlist[i];
             const IPPTsPng *const assocs[] = { &client->assoc6, &client->assoc4, nullptr };
 
-            for (const IPPTsPng * const *it = assocs; *it; ++it) {
+            for (const IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
                 const IPPTsPng *const assoc = *it;
 
                 if (ip_isset(&assoc->ip_port.ip)) {
