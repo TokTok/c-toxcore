@@ -415,7 +415,7 @@ static int tcp_oob_handle_cookie_request(const Net_Crypto *c, unsigned int tcp_c
         return -1;
     }
 
-    if (public_key_cmp(dht_public_key, dht_public_key_temp) != 0) {
+    if (!id_equal(dht_public_key, dht_public_key_temp)) {
         return -1;
     }
 
@@ -531,7 +531,7 @@ static int handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t 
         return -1;
     }
 
-    if (expected_real_pk != nullptr && public_key_cmp(cookie_plain, expected_real_pk) != 0) {
+    if (expected_real_pk != nullptr && !id_equal(cookie_plain, expected_real_pk)) {
         return -1;
     }
 
@@ -547,7 +547,7 @@ static int handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t 
         return -1;
     }
 
-    if (crypto_sha512_cmp(cookie_hash, plain + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE) != 0) {
+    if (!crypto_sha512_eq(cookie_hash, plain + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE)) {
         return -1;
     }
 
@@ -627,15 +627,15 @@ static IP_Port return_ip_port_connection(const Net_Crypto *c, int crypt_connecti
     }
 
     const uint64_t current_time = mono_time_get(c->mono_time);
-    bool v6 = 0;
-    bool v4 = 0;
+    bool v6 = false;
+    bool v4 = false;
 
     if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev4) > current_time) {
-        v4 = 1;
+        v4 = true;
     }
 
     if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev6) > current_time) {
-        v6 = 1;
+        v6 = true;
     }
 
     /* Prefer IP_Ports which haven't timed out to those which have.
@@ -1733,7 +1733,7 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
         return -1;
     }
 
-    if (public_key_cmp(dht_public_key, conn->dht_public_key) == 0) {
+    if (id_equal(dht_public_key, conn->dht_public_key)) {
         encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key);
 
         if (conn->status == CRYPTO_CONN_COOKIE_REQUESTING) {
@@ -1941,7 +1941,7 @@ static int getcryptconnection_id(const Net_Crypto *c, const uint8_t *public_key)
             continue;
         }
 
-        if (public_key_cmp(public_key, c->crypto_connections[i].public_key) == 0) {
+        if (id_equal(public_key, c->crypto_connections[i].public_key)) {
             return i;
         }
     }
@@ -2036,7 +2036,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
             return -1;
         }
 
-        if (public_key_cmp(n_c.dht_public_key, conn->dht_public_key) != 0) {
+        if (!id_equal(n_c.dht_public_key, conn->dht_public_key)) {
             connection_kill(c, crypt_connection_id, userdata);
         } else {
             if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING && conn->status != CRYPTO_CONN_HANDSHAKE_SENT) {
@@ -2673,7 +2673,7 @@ static void send_crypto_packets(Net_Crypto *c)
                 conn->last_sendqueue_counter = (conn->last_sendqueue_counter + 1) %
                                                (CONGESTION_QUEUE_ARRAY_SIZE * CONGESTION_LAST_SENT_ARRAY_SIZE);
 
-                bool direct_connected = 0;
+                bool direct_connected = false;
                 /* return value can be ignored since the `if` above ensures the connection is established */
                 crypto_connection_status(c, i, &direct_connected, nullptr);
 
@@ -3020,14 +3020,14 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
     }
 
     if (direct_connected != nullptr) {
-        *direct_connected = 0;
+        *direct_connected = false;
 
         const uint64_t current_time = mono_time_get(c->mono_time);
 
         if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev4) > current_time) {
-            *direct_connected = 1;
+            *direct_connected = true;
         } else if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev6) > current_time) {
-            *direct_connected = 1;
+            *direct_connected = true;
         }
     }
 

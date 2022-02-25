@@ -189,7 +189,7 @@ static int32_t init_new_friend(Messenger *m, const uint8_t *real_pk, uint8_t sta
             id_copy(m->friendlist[i].real_pk, real_pk);
             m->friendlist[i].statusmessage_length = 0;
             m->friendlist[i].userstatus = USERSTATUS_NONE;
-            m->friendlist[i].is_typing = 0;
+            m->friendlist[i].is_typing = false;
             m->friendlist[i].message_id = 0;
             friend_connection_callbacks(m->fr_c, friendcon_id, MESSENGER_CALLBACK_INDEX, &m_handle_status, &m_handle_packet,
                                         &m_handle_lossy_packet, m, i);
@@ -457,7 +457,7 @@ int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber)
         return CONNECTION_NONE;
     }
 
-    bool direct_connected = 0;
+    bool direct_connected = false;
     uint32_t num_online_relays = 0;
     const int crypt_conn_id = friend_connection_crypt_connection_id(m->fr_c, m->friendlist[friendnumber].friendcon_id);
 
@@ -480,13 +480,9 @@ int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber)
     return m->friendlist[friendnumber].last_connection_udp_tcp;
 }
 
-int m_friend_exists(const Messenger *m, int32_t friendnumber)
+bool m_friend_exists(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
-        return 0;
-    }
-
-    return 1;
+    return friend_is_valid(m, friendnumber);
 }
 
 /** Send a message of type to an online friend.
@@ -630,7 +626,7 @@ int setname(Messenger *m, const uint8_t *name, uint16_t length)
     m->name_length = length;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].name_sent = 0;
+        m->friendlist[i].name_sent = false;
     }
 
     return 0;
@@ -702,7 +698,7 @@ int m_set_statusmessage(Messenger *m, const uint8_t *status, uint16_t length)
     m->statusmessage_length = length;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].statusmessage_sent = 0;
+        m->friendlist[i].statusmessage_sent = false;
     }
 
     return 0;
@@ -721,7 +717,7 @@ int m_set_userstatus(Messenger *m, uint8_t status)
     m->userstatus = (Userstatus)status;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].userstatus_sent = 0;
+        m->friendlist[i].userstatus_sent = false;
     }
 
     return 0;
@@ -807,12 +803,8 @@ uint64_t m_get_last_online(const Messenger *m, int32_t friendnumber)
     return m->friendlist[friendnumber].last_seen_time;
 }
 
-int m_set_usertyping(Messenger *m, int32_t friendnumber, uint8_t is_typing)
+int m_set_usertyping(Messenger *m, int32_t friendnumber, bool is_typing)
 {
-    if (is_typing != 0 && is_typing != 1) {
-        return -1;
-    }
-
     if (!friend_is_valid(m, friendnumber)) {
         return -1;
     }
@@ -822,7 +814,7 @@ int m_set_usertyping(Messenger *m, int32_t friendnumber, uint8_t is_typing)
     }
 
     m->friendlist[friendnumber].user_istyping = is_typing;
-    m->friendlist[friendnumber].user_istyping_sent = 0;
+    m->friendlist[friendnumber].user_istyping_sent = false;
 
     return 0;
 }
@@ -833,7 +825,7 @@ int m_get_istyping(const Messenger *m, int32_t friendnumber)
         return -1;
     }
 
-    return m->friendlist[friendnumber].is_typing;
+    return m->friendlist[friendnumber].is_typing ? 1 : 0;
 }
 
 non_null()
@@ -849,9 +841,9 @@ static int send_userstatus(const Messenger *m, int32_t friendnumber, uint8_t sta
 }
 
 non_null()
-static int send_user_istyping(const Messenger *m, int32_t friendnumber, uint8_t is_typing)
+static int send_user_istyping(const Messenger *m, int32_t friendnumber, bool is_typing)
 {
-    uint8_t typing = is_typing;
+    const uint8_t typing = is_typing ? 1 : 0;
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_TYPING, &typing, sizeof(typing), false);
 }
 
@@ -881,7 +873,7 @@ static void set_friend_userstatus(const Messenger *m, int32_t friendnumber, uint
 }
 
 non_null()
-static void set_friend_typing(const Messenger *m, int32_t friendnumber, uint8_t is_typing)
+static void set_friend_typing(const Messenger *m, int32_t friendnumber, bool is_typing)
 {
     m->friendlist[friendnumber].is_typing = is_typing;
 }
@@ -978,10 +970,10 @@ static void check_friend_connectionstatus(Messenger *m, int32_t friendnumber, ui
             break_files(m, friendnumber);
             clear_receipts(m, friendnumber);
         } else {
-            m->friendlist[friendnumber].name_sent = 0;
-            m->friendlist[friendnumber].userstatus_sent = 0;
-            m->friendlist[friendnumber].statusmessage_sent = 0;
-            m->friendlist[friendnumber].user_istyping_sent = 0;
+            m->friendlist[friendnumber].name_sent = false;
+            m->friendlist[friendnumber].userstatus_sent = false;
+            m->friendlist[friendnumber].statusmessage_sent = false;
+            m->friendlist[friendnumber].user_istyping_sent = false;
         }
 
         m->friendlist[friendnumber].status = status;
@@ -1015,12 +1007,12 @@ void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function
 
 /** Send a conference invite packet.
  *
- *  return 1 on success
- *  return 0 on failure
+ *  return true on success
+ *  return false on failure
  */
-int send_conference_invite_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
+bool send_conference_invite_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
 {
-    return write_cryptpacket_id(m, friendnumber, PACKET_ID_INVITE_CONFERENCE, data, length, false);
+    return write_cryptpacket_id(m, friendnumber, PACKET_ID_INVITE_CONFERENCE, data, length, false) != 0;
 }
 
 /*** FILE SENDING */
@@ -2300,27 +2292,27 @@ static void do_friends(Messenger *m, void *userdata)
         }
 
         if (m->friendlist[i].status == FRIEND_ONLINE) { /* friend is online. */
-            if (m->friendlist[i].name_sent == 0) {
+            if (!m->friendlist[i].name_sent) {
                 if (m_sendname(m, i, m->name, m->name_length)) {
-                    m->friendlist[i].name_sent = 1;
+                    m->friendlist[i].name_sent = true;
                 }
             }
 
-            if (m->friendlist[i].statusmessage_sent == 0) {
+            if (!m->friendlist[i].statusmessage_sent) {
                 if (send_statusmessage(m, i, m->statusmessage, m->statusmessage_length)) {
-                    m->friendlist[i].statusmessage_sent = 1;
+                    m->friendlist[i].statusmessage_sent = true;
                 }
             }
 
-            if (m->friendlist[i].userstatus_sent == 0) {
+            if (!m->friendlist[i].userstatus_sent) {
                 if (send_userstatus(m, i, m->userstatus)) {
-                    m->friendlist[i].userstatus_sent = 1;
+                    m->friendlist[i].userstatus_sent = true;
                 }
             }
 
-            if (m->friendlist[i].user_istyping_sent == 0) {
+            if (!m->friendlist[i].user_istyping_sent) {
                 if (send_user_istyping(m, i, m->friendlist[i].user_istyping)) {
-                    m->friendlist[i].user_istyping_sent = 1;
+                    m->friendlist[i].user_istyping_sent = true;
                 }
             }
 
@@ -2364,7 +2356,7 @@ static char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
         snprintf(&id_str[i * 2], length - i * 2, "%02X", pk[i]);
     }
 
-    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = 0;
+    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = '\0';
     return id_str;
 }
 
@@ -2434,7 +2426,7 @@ void do_messenger(Messenger *m, void *userdata)
             const Client_data *cptr = dht_get_close_client(m->dht, client);
             const IPPTsPng *const assocs[] = { &cptr->assoc4, &cptr->assoc6, nullptr };
 
-            for (const IPPTsPng * const *it = assocs; *it; ++it) {
+            for (const IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
                 const IPPTsPng *const assoc = *it;
 
                 if (ip_isset(&assoc->ip_port.ip)) {
@@ -2758,7 +2750,7 @@ static State_Load_Status load_nospam_keys(Messenger *m, const uint8_t *data, uin
     set_nospam(m->fr, nospam);
     load_secret_key(m->net_crypto, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE);
 
-    if (public_key_cmp(data + sizeof(uint32_t), nc_get_self_public_key(m->net_crypto)) != 0) {
+    if (!id_equal(data + sizeof(uint32_t), nc_get_self_public_key(m->net_crypto))) {
         return STATE_LOAD_STATUS_ERROR;
     }
 

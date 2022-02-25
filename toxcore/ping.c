@@ -299,7 +299,7 @@ int32_t ping_add(Ping *ping, const uint8_t *public_key, const IP_Port *ip_port)
             return 0;
         }
 
-        if (public_key_cmp(ping->to_ping[i].public_key, public_key) == 0) {
+        if (id_equal(ping->to_ping[i].public_key, public_key)) {
             return -1;
         }
     }

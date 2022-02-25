@@ -60,7 +60,7 @@ static_assert(GROUP_ID_LENGTH == CRYPTO_PUBLIC_KEY_SIZE,
 non_null()
 static bool group_id_eq(const uint8_t *a, const uint8_t *b)
 {
-    return public_key_cmp(a, b) == 0;
+    return id_equal(a, b);
 }
 
 /** return false if the groupnumber is not valid.
@@ -285,14 +285,14 @@ typedef enum Groupchat_Closest_Change {
 non_null()
 static bool add_to_closest(Group_c *g, const uint8_t *real_pk, const uint8_t *temp_pk)
 {
-    if (public_key_cmp(g->real_pk, real_pk) == 0) {
+    if (id_equal(g->real_pk, real_pk)) {
         return false;
     }
 
     unsigned int index = DESIRED_CLOSEST;
 
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (g->closest_peers[i].active && public_key_cmp(real_pk, g->closest_peers[i].real_pk) == 0) {
+        if (g->closest_peers[i].active && id_equal(real_pk, g->closest_peers[i].real_pk)) {
             return true;
         }
     }
@@ -366,7 +366,7 @@ static bool pk_in_closest_peers(const Group_c *g, const uint8_t *real_pk)
             continue;
         }
 
-        if (public_key_cmp(g->closest_peers[i].real_pk, real_pk) == 0) {
+        if (id_equal(g->closest_peers[i].real_pk, real_pk)) {
             return true;
         }
     }
@@ -789,7 +789,7 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
 
 static int cmp_u64(uint64_t a, uint64_t b)
 {
-    return (a > b) - (a < b);
+    return (a > b ? 1 : 0) - (a < b ? 1 : 0);
 }
 
 /** Order peers with friends first and with more recently active earlier */
@@ -900,12 +900,12 @@ static bool setnick(Group_Chats *g_c, uint32_t groupnumber, int peer_index, cons
     g->group[peer_index].nick_updated = true;
 
     if (g->group[peer_index].nick_len == nick_len
-            && (nick_len == 0 || !memcmp(g->group[peer_index].nick, nick, nick_len))) {
+            && (nick_len == 0 || memcmp(g->group[peer_index].nick, nick, nick_len) != 0)) {
         /* same name as already stored */
         return true;
     }
 
-    if (nick_len != 0) {
+    if (nick_len > 0) {
         memcpy(g->group[peer_index].nick, nick, nick_len);
     }
 
@@ -936,7 +936,7 @@ static bool settitle(Group_Chats *g_c, uint32_t groupnumber, int peer_index, con
         return false;
     }
 
-    if (g->title_len == title_len && !memcmp(g->title, title, title_len)) {
+    if (g->title_len == title_len && memcmp(g->title, title, title_len) == 0) {
         /* same title as already set */
         return true;
     }
@@ -1108,7 +1108,7 @@ static int add_conn_to_groupchat(Group_Chats *g_c, int friendcon_id, Group_c *g,
         ind = empty;
     }
 
-    if (!(g->connections[ind].reasons & reason)) {
+    if ((g->connections[ind].reasons & reason) == 0) {
         g->connections[ind].reasons |= reason;
 
         if (reason == GROUPCHAT_CONNECTION_REASON_INTRODUCER) {
@@ -1128,7 +1128,7 @@ static unsigned int send_peer_introduced(const Group_Chats *g_c, int friendcon_i
  */
 static void remove_connection_reason(Group_Chats *g_c, Group_c *g, uint16_t i, uint8_t reason)
 {
-    if (!(g->connections[i].reasons & reason)) {
+    if ((g->connections[i].reasons & reason) == 0) {
         return;
     }
 
@@ -1856,7 +1856,7 @@ int group_title_send(const Group_Chats *g_c, uint32_t groupnumber, const uint8_t
     }
 
     /* same as already set? */
-    if (g->title_len == title_len && !memcmp(g->title, title, title_len)) {
+    if (g->title_len == title_len && memcmp(g->title, title, title_len) == 0) {
         return 0;
     }
 
@@ -2310,7 +2310,7 @@ static int handle_send_peers(Group_Chats *g_c, uint32_t groupnumber, const uint8
         d += sizeof(uint16_t);
 
         if (g->status == GROUPCHAT_STATUS_VALID
-                && public_key_cmp(d, nc_get_self_public_key(g_c->m->net_crypto)) == 0) {
+                && id_equal(d, nc_get_self_public_key(g_c->m->net_crypto))) {
             g->peer_number = peer_num;
             g->status = GROUPCHAT_STATUS_CONNECTED;
 
@@ -2647,7 +2647,7 @@ static bool check_message_info(uint32_t message_number, uint8_t message_id, Grou
         ++peer->num_last_message_infos;
     }
 
-    memmove(i + 1, i, ((peer->last_message_infos + peer->num_last_message_infos - 1) - i) * sizeof(Message_Info));
+    memmove(i + 1, i, (&peer->last_message_infos[peer->num_last_message_infos - 1] - i) * sizeof(Message_Info));
 
     i->message_number = message_number;
     i->message_id = message_id;
@@ -3251,6 +3251,7 @@ static uint8_t *save_peer(const Group_Peer *peer, uint8_t *data)
     host_to_lendian_bytes64(data, peer->last_active);
     data += sizeof(uint64_t);
 
+    // TODO(iphydf): This looks broken: nick_len can be > 255.
     *data = peer->nick_len;
     ++data;
 
@@ -3515,7 +3516,7 @@ static State_Load_Status load_conferences_helper(Group_Chats *g_c, const uint8_t
             // HACK: suppress unused variable warning
             if (!ret) {
                 // wipe_group_chat(...) must be able to wipe partially allocated groups
-                assert(ret == true);
+                assert(ret);
             }
 
             return STATE_LOAD_STATUS_ERROR;
