@@ -14,13 +14,12 @@ typedef struct State {
 #define MESSAGE_FILLER 'G'
 
 static void message_callback(
-    Tox *m, uint32_t friendnumber, Tox_Message_Type type,
-    const uint8_t *string, size_t length, void *user_data)
+    Tox *m, const Tox_Event_Friend_Message *event, void *user_data)
 {
     const AutoTox *autotox = (AutoTox *)user_data;
     State *state = (State *)autotox->state;
 
-    if (type != TOX_MESSAGE_TYPE_NORMAL) {
+    if (tox_event_friend_message_get_type(event) != TOX_MESSAGE_TYPE_NORMAL) {
         ck_abort_msg("Bad type");
     }
 
@@ -29,7 +28,8 @@ static void message_callback(
     ck_assert(cmp_msg != nullptr);
     memset(cmp_msg, MESSAGE_FILLER, cmp_msg_len);
 
-    if (length == tox_max_message_length() && memcmp(string, cmp_msg, cmp_msg_len) == 0) {
+    if (tox_event_friend_message_get_message_length(event) == tox_max_message_length() &&
+            memcmp(tox_event_friend_message_get_message(event), cmp_msg, cmp_msg_len) == 0) {
         state->message_received = true;
     }
 
@@ -38,8 +38,6 @@ static void message_callback(
 
 static void send_message_test(AutoTox *autotoxes)
 {
-    tox_callback_friend_message(autotoxes[1].tox, &message_callback);
-
     const size_t msgs_len = tox_max_message_length() + 1;
     uint8_t *msgs = (uint8_t *)malloc(msgs_len);
     memset(msgs, MESSAGE_FILLER, msgs_len);
@@ -62,18 +60,23 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
+    Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
+    ck_assert(dispatch != nullptr);
+    tox_events_callback_friend_message(dispatch, &message_callback);
+
     struct Tox_Options *tox_options = tox_options_new(nullptr);
     ck_assert(tox_options != nullptr);
 
     Run_Auto_Options options = default_run_auto_options();
     options.graph = GRAPH_LINEAR;
     tox_options_set_ipv6_enabled(tox_options, true);
-    run_auto_test(tox_options, 2, send_message_test, sizeof(State), &options);
+    run_auto_test(tox_options, 2, send_message_test, sizeof(State), dispatch, &options);
 
     tox_options_set_ipv6_enabled(tox_options, false);
-    run_auto_test(tox_options, 2, send_message_test, sizeof(State), &options);
+    run_auto_test(tox_options, 2, send_message_test, sizeof(State), dispatch, &options);
 
     tox_options_free(tox_options);
+    tox_dispatch_free(dispatch);
 
     return 0;
 }

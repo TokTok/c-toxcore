@@ -7,9 +7,11 @@
 #include "../testing/misc_tools.h"
 #include "../toxcore/Messenger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/tox_dispatch.h"
 
 typedef struct AutoTox {
     Tox *tox;
+    const Tox_Dispatch *dispatch;
 
     uint32_t index;
     uint64_t clock;
@@ -47,7 +49,7 @@ typedef struct Run_Auto_Options {
 Run_Auto_Options default_run_auto_options(void);
 
 void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(AutoTox *autotoxes),
-                   uint32_t state_size, Run_Auto_Options *autotest_opts);
+                   uint32_t state_size, const Tox_Dispatch *dispatch, const Run_Auto_Options *autotest_opts);
 
 void bootstrap_tox_live_network(Tox *tox, bool enable_tcp);
 
