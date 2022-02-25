@@ -87,6 +87,7 @@ def ctest_costs() -> Dict[str, float]:
             costs[prog] = float(cost)
         return costs
 
+
 def find_prog(name: str) -> Tuple[Optional[str], ...]:
     def attempt(path: str) -> Optional[str]:
         if os.path.exists(path):
@@ -135,9 +136,9 @@ def main(args: List[str]) -> None:
         max_cost = float(flags["--ctest"])
         timeout = max(max_cost + 1, timeout)
         exes.extend(prog
-                for test in costs.keys()
-                for prog in find_prog(test)
-                if costs[test] <= max_cost and prog)
+                    for test in costs.keys()
+                    for prog in find_prog(test)
+                    if costs[test] <= max_cost and prog)
     if "--jobs" in flags:
         jobs = int(flags["--jobs"])
     else:
@@ -156,7 +157,8 @@ def main(args: List[str]) -> None:
     print(f"\x1b[1;33m--------------------------------\x1b[0m")
     time.sleep(1)
     with multiprocessing.Pool(jobs) as p:
-        done = tuple(p.starmap(isolated_mallocfail, ((timeout, exe) for exe in exes)))
+        done = tuple(p.starmap(isolated_mallocfail, ((timeout, exe)
+                     for exe in exes)))
         print(f"\x1b[1;32mCompleted {len(done)} programs\x1b[0m")
 
 
