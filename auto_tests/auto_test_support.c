@@ -16,7 +16,6 @@
 Run_Auto_Options default_run_auto_options() {
     return (Run_Auto_Options) {
         .graph = GRAPH_COMPLETE,
-        .init_autotox = nullptr,
     };
 }
 
@@ -135,7 +134,11 @@ void iterate_all_wait(AutoTox *autotoxes, uint32_t tox_count, uint32_t wait)
 
     for (uint32_t i = 0; i < tox_count; ++i) {
         if (autotoxes[i].alive) {
-            tox_iterate(autotoxes[i].tox, &autotoxes[i]);
+            Tox_Err_Events_Iterate err;
+            Tox_Events *events = tox_events_iterate(autotoxes[i].tox, true, &err);
+            ck_assert(err == TOX_ERR_EVENTS_ITERATE_OK);
+            tox_dispatch_invoke(autotoxes[i].dispatch, events, autotoxes[i].tox, &autotoxes[i]);
+            tox_events_free(events);
             autotoxes[i].clock += wait;
         }
     }
@@ -210,12 +213,15 @@ void reload(AutoTox *autotox)
 }
 
 static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, uint32_t index, uint32_t state_size,
-                               const Run_Auto_Options *autotest_opts)
+                               const Tox_Dispatch *dispatch)
 {
-    autotox->index = index;
     Tox_Err_New err;
+    autotox->index = index;
+    autotox->dispatch = dispatch;
     autotox->tox = tox_new_log(options, &err, &autotox->index);
     ck_assert_msg(autotox->tox != nullptr, "failed to create tox instance #%u (error = %d)", index, err);
+
+    tox_events_init(autotox->tox);
 
     set_mono_time_callback(autotox);
 
@@ -224,14 +230,9 @@ static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, ui
 
     if (state_size > 0) {
         autotox->state = calloc(1, state_size);
-        ck_assert(autotox->state != nullptr);
         ck_assert_msg(autotox->state != nullptr, "failed to allocate state");
     } else {
         autotox->state = nullptr;
-    }
-
-    if (autotest_opts->init_autotox != nullptr) {
-        autotest_opts->init_autotox(autotox, index);
     }
 }
 
@@ -297,7 +298,7 @@ static void bootstrap_autotoxes(struct Tox_Options *options, uint32_t tox_count,
 }
 
 void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(AutoTox *autotoxes),
-                   uint32_t state_size, const Run_Auto_Options *autotest_opts)
+                   uint32_t state_size, const Tox_Dispatch *dispatch, const Run_Auto_Options *autotest_opts)
 {
     printf("initialising %u toxes\n", tox_count);
 
@@ -306,7 +307,7 @@ void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(Au
     ck_assert(autotoxes != nullptr);
 
     for (uint32_t i = 0; i < tox_count; ++i) {
-        initialise_autotox(options, &autotoxes[i], i, state_size, autotest_opts);
+        initialise_autotox(options, &autotoxes[i], i, state_size, dispatch);
     }
 
     initialise_friend_graph(autotest_opts->graph, tox_count, autotoxes);
