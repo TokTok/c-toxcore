@@ -172,7 +172,10 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
 bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
                                         uint16_t length, uint8_t packet_type)
 {
-    assert(length > MAX_GC_PACKET_CHUNK_SIZE && data != nullptr);
+    if (length <= MAX_GC_PACKET_CHUNK_SIZE || data == nullptr) {
+        LOGGER_FATAL(chat->log, "invalid length or null data pointer");
+        return false;
+    }
 
     const uint16_t start_id = gconn->send_message_id;
 
