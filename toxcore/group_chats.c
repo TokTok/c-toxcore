@@ -7461,7 +7461,7 @@ bool group_not_added(const GC_Session *c, const uint8_t *chat_id, uint32_t lengt
 }
 
 int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
-                     gc_send_group_invite_packet_cb *send_group_invite_packet)
+                     gc_send_group_invite_packet_cb *callback)
 {
     if (!friend_is_valid(c->messenger, friend_number)) {
         return -1;
@@ -7492,7 +7492,7 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
 
     assert(length <= MAX_GC_PACKET_SIZE);
 
-    if (!send_group_invite_packet(c->messenger, friend_number, packet, length)) {
+    if (!callback(c->messenger, friend_number, packet, length)) {
         free(packet);
         return -2;
     }

@@ -1100,7 +1100,7 @@ bool send_conference_invite_packet(const Messenger *m, int32_t friendnumber, con
  */
 bool send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length)
 {
-    return write_cryptpacket_id(m, friendnumber, PACKET_ID_INVITE_GROUPCHAT, data, length, 0);
+    return write_cryptpacket_id(m, friendnumber, PACKET_ID_INVITE_GROUPCHAT, data, length, false);
 }
 
 
