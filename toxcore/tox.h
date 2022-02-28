@@ -3563,12 +3563,6 @@ typedef enum Tox_Err_Group_Disconnect {
      * The group is already disconnected.
      */
     TOX_ERR_GROUP_DISCONNECT_ALREADY_DISCONNECTED,
-
-    /**
-     * The group state could not be saved due to a memory allocation error.
-     */
-    TOX_ERR_GROUP_DISCONNECT_MALLOC,
-
 } Tox_Err_Group_Disconnect;
 
 

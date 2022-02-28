@@ -335,11 +335,11 @@ void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key);
  *
  * The data written to `name` is equal to the data received by the last nick_change callback.
  *
- * Returns 0 on success.
- * Returns -1 if peer_id is invalid.
+ * Returns true on success.
+ * Returns false if peer_id is invalid.
  */
 non_null(1) nullable(3)
-int gc_get_peer_nick(const GC_Chat *chat, uint32_t peer_id, uint8_t *name);
+bool gc_get_peer_nick(const GC_Chat *chat, uint32_t peer_id, uint8_t *name);
 
 /** Returns the length of the nick for the peer designated by `peer_id`.
  * Returns -1 if peer_id is invalid.
@@ -606,12 +606,11 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
 
 /** Disconnects from all peers in a group but saves the group state for later use.
  *
- * Return 0 on sucess.
- * Return -1 if the group handler object or chat object is null.
- * Return -2 if malloc fails.
+ * Return true on sucess.
+ * Return false if the group handler object or chat object is null.
  */
 non_null()
-int gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat);
+bool gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat);
 
 /** Disconnects from all peers in a group and attempts to reconnect. All self
  * state and credentials are retained.
@@ -639,7 +638,7 @@ non_null(1, 3, 5) nullable(7)
 int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, uint16_t length, const uint8_t *nick,
                      size_t nick_length, const uint8_t *passwd, uint16_t passwd_len);
 
-typedef int gc_send_group_invite_packet_cb(const Messenger *m, uint32_t friendnumber, const uint8_t *packet,
+typedef bool gc_send_group_invite_packet_cb(const Messenger *m, uint32_t friendnumber, const uint8_t *packet,
         uint16_t length);
 
 /** Invites friend designated by `friendnumber` to chat.
@@ -687,11 +686,10 @@ GC_Chat *gc_get_group(const GC_Session *c, int group_number);
  *
  * requests are limited to one per second per peer.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Return true on success.
  */
 non_null()
-int gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type);
+bool gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t message_id, Group_Message_Ack_Type type);
 
 /** Helper function for handle_gc_lossless_packet().
  *

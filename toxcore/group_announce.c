@@ -313,7 +313,7 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
     int announces_count = 0;
 
     for (size_t i = 0; i < max_count && length > offset; ++i) {
-        int unpacked_length = gca_unpack_announce(log, data + offset, length - offset, &announces[i]);
+        const int unpacked_length = gca_unpack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (unpacked_length == -1) {
             LOGGER_WARNING(log, "Failed to unpack group announce: %d %d", length, offset);

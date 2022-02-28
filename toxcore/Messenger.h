@@ -361,11 +361,10 @@ int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk);
 
 /* Initializes the friend connection and onion connection for a groupchat.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * Return true on success.
  */
 non_null()
-int32_t m_create_group_connection(Messenger *m, GC_Chat *chat);
+bool m_create_group_connection(Messenger *m, GC_Chat *chat);
 
 /*
  * Kills the friend connection for a groupchat.
@@ -629,11 +628,10 @@ bool send_conference_invite_packet(const Messenger *m, int32_t friendnumber, con
  *  WARNING: Return-value semantics are different than for
  *  send_conference_invite_packet().
  *
- *  return 0 on success
- *  return -1 on failure
+ *  return true on success
  */
 non_null()
-int send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length);
+bool send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length);
 
 
 /*** FILE SENDING */

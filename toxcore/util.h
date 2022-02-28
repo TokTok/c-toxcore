@@ -32,7 +32,6 @@ non_null() void set_sig_sk(uint8_t *key, const uint8_t *sig_sk);
 non_null() const uint8_t *get_chat_id(const uint8_t *key);
 
 
-/** id functions */
 /** Equality function for public keys. */
 non_null() bool pk_equal(const uint8_t *dest, const uint8_t *src);
 /**

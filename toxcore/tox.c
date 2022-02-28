@@ -3174,31 +3174,18 @@ bool tox_group_disconnect(const Tox *tox, uint32_t group_number, Tox_Err_Group_D
     }
 
 
-    const int ret = gc_disconnect_from_group(tox->m->group_handler, chat);
+    const bool ret = gc_disconnect_from_group(tox->m->group_handler, chat);
 
     unlock(tox);
 
-    switch (ret) {
-        case 0: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_DISCONNECT_OK);
-            return true;
-        }
-
-        case -1: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_DISCONNECT_GROUP_NOT_FOUND);
-            return false;
-        }
-
-        case -2: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_DISCONNECT_MALLOC);
-            return false;
-        }
+    if (!ret) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_DISCONNECT_GROUP_NOT_FOUND);
+        return false;
     }
 
-    /* can't happen */
-    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_DISCONNECT_OK);
 
-    return false;
+    return true;
 }
 
 bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnect *error)
@@ -3531,10 +3518,10 @@ bool tox_group_peer_get_name(const Tox *tox, uint32_t group_number, uint32_t pee
         return false;
     }
 
-    const int ret = gc_get_peer_nick(chat, peer_id, name);
+    const bool ret = gc_get_peer_nick(chat, peer_id, name);
     unlock(tox);
 
-    if (ret == -1) {
+    if (!ret) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_PEER_NOT_FOUND);
         return false;
     }

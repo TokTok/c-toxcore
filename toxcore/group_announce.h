@@ -9,9 +9,9 @@
 #ifndef GROUP_ANNOUNCE_H
 #define GROUP_ANNOUNCE_H
 
-#include "DHT.h"
-
 #include <stdbool.h>
+
+#include "DHT.h"
 
 /* The maximum number of announces to save for a particular group chat. */
 #define GCA_MAX_SAVED_ANNOUNCES_PER_GC 16

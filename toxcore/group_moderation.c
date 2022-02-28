@@ -10,16 +10,17 @@
 #include "group_moderation.h"
 
 #include <assert.h>
+
+#ifndef VANILLA_NACL
+#include <sodium.h>
+#endif
+
 #include <string.h>
 #include <time.h>
 
 #include "mono_time.h"
 #include "network.h"
 #include "util.h"
-
-#ifndef VANILLA_NACL
-#include <sodium.h>
-#endif // VANILLA_NACL
 
 #ifndef VANILLA_NACL
 
@@ -407,37 +408,32 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
 
 /** Verifies that sanction contains valid info and was assigned by a current mod or group founder.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
 non_null()
 static int sanctions_list_validate_entry(const Moderation *moderation, const Mod_Sanction *sanction)
 {
     if (!mod_list_verify_sig_pk(moderation, sanction->setter_public_sig_key)) {
-        return -1;
+        return false;
     }
 
     if (sanction->type >= SA_INVALID) {
-        return -1;
+        return false;
     }
 
     if (sanction->time_set == 0) {
-        return -1;
+        return false;
     }
 
     uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, nullptr, 1);
 
     if (packed_len <= (int) SIGNATURE_SIZE) {
-        return -1;
+        return false;
     }
 
-    if (crypto_sign_verify_detached(sanction->signature, packed_data, packed_len - SIGNATURE_SIZE,
-                                    sanction->setter_public_sig_key) == -1) {
-        return -1;
-    }
-
-    return 0;
+    return crypto_sign_verify_detached(sanction->signature, packed_data, packed_len - SIGNATURE_SIZE,
+                                       sanction->setter_public_sig_key) != -1;
 }
 
 non_null()
@@ -541,7 +537,7 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
                                     const Mod_Sanction *sanctions, uint16_t num_sanctions)
 {
     for (uint16_t i = 0; i < num_sanctions; ++i) {
-        if (sanctions_list_validate_entry(moderation, &sanctions[i]) != 0) {
+        if (!sanctions_list_validate_entry(moderation, &sanctions[i])) {
             LOGGER_WARNING(moderation->log, "Invalid entry");
             return false;
         }
@@ -552,14 +548,13 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
 
 /** Removes index-th sanction list entry. New credentials will be validated if creds is non-null.
  *
- * Returns 0 on success.
- * Returns -1 on failure.
+ * Returns true on success.
  */
 non_null(1) nullable(3)
-static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, const Mod_Sanction_Creds *creds)
+static bool sanctions_list_remove_index(Moderation *moderation, uint16_t index, const Mod_Sanction_Creds *creds)
 {
     if (index >= moderation->num_sanctions || moderation->num_sanctions == 0) {
-        return -1;
+        return false;
     }
 
     const uint16_t new_num = moderation->num_sanctions - 1;
@@ -567,7 +562,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
     if (new_num == 0) {
         if (creds != nullptr) {
             if (!sanctions_creds_validate(moderation, nullptr, creds, 0)) {
-                return -1;
+                return false;
             }
 
             moderation->sanctions_creds = *creds;
@@ -575,7 +570,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
 
         sanctions_list_cleanup(moderation);
 
-        return 0;
+        return true;
     }
 
     /** Operate on a copy of the list in case something goes wrong. */
@@ -583,7 +578,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
     Mod_Sanction *sanctions_copy = (Mod_Sanction *)calloc(old_count, sizeof(Mod_Sanction));
 
     if (sanctions_copy == nullptr) {
-        return -1;
+        return false;
     }
 
     memcpy(sanctions_copy, moderation->sanctions, old_count * sizeof(Mod_Sanction));
@@ -596,13 +591,13 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
 
     if (new_list == nullptr) {
         free(sanctions_copy);
-        return -1;
+        return false;
     }
 
     if (creds != nullptr) {
         if (!sanctions_creds_validate(moderation, new_list, creds, new_num)) {
             free(new_list);
-            return -1;
+            return false;
         }
 
         moderation->sanctions_creds = *creds;
@@ -612,7 +607,7 @@ static int sanctions_list_remove_index(Moderation *moderation, uint16_t index, c
     moderation->sanctions = new_list;
     moderation->num_sanctions = new_num;
 
-    return 0;
+    return true;
 }
 
 bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
@@ -626,7 +621,7 @@ bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *publi
         }
 
         if (memcmp(public_key, curr_sanction->target_public_enc_key, ENC_PUBLIC_KEY_SIZE) == 0) {
-            if (sanctions_list_remove_index(moderation, i, creds) == -1) {
+            if (!sanctions_list_remove_index(moderation, i, creds)) {
                 return false;
             }
 
@@ -677,7 +672,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
         return false;
     }
 
-    if (sanctions_list_validate_entry(moderation, sanction) < 0) {
+    if (!sanctions_list_validate_entry(moderation, sanction)) {
         LOGGER_ERROR(moderation->log, "Failed to validate sanction");
         return false;
     }
