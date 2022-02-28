@@ -702,8 +702,6 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
 
     int index;
 
-    const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
-
     if (onion_ping_id_eq(ping_id1, plain)
             || onion_ping_id_eq(ping_id2, plain)) {
         index = add_to_entries(onion_a, source, packet_public_key, data_public_key,

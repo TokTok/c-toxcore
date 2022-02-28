@@ -61,24 +61,18 @@ const uint8_t *get_chat_id(const uint8_t *key)
     return key + ENC_PUBLIC_KEY_SIZE;
 }
 
-
 /** id functions */
-bool id_equal(const uint8_t *dest, const uint8_t *src)
+bool pk_equal(const uint8_t *dest, const uint8_t *src)
 {
     return public_key_cmp(dest, src) == 0;
 }
 
-int id_cmp(const uint8_t *first_id, const uint8_t *second_id)
+int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id)
 {
     return memcmp(first_id, second_id, ENC_PUBLIC_KEY_SIZE);
 }
 
-bool chat_id_equal(const uint8_t *dest, const uint8_t *src)
-{
-    return memcmp(dest, src, CHAT_ID_SIZE) == 0;
-}
-
-uint32_t id_copy(uint8_t *dest, const uint8_t *src)
+uint32_t pk_copy(uint8_t *dest, const uint8_t *src)
 {
     memcpy(dest, src, CRYPTO_PUBLIC_KEY_SIZE);
     return CRYPTO_PUBLIC_KEY_SIZE;

@@ -295,7 +295,7 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
     }
 
     for (uint16_t i = 0; i < gconn->tcp_relays_count; ++i) {
-        if (id_equal(gconn->connected_tcp_relays[i].public_key, tcp_node->public_key)) {
+        if (pk_equal(gconn->connected_tcp_relays[i].public_key, tcp_node->public_key)) {
             return -2;
         }
     }

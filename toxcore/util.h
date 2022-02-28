@@ -42,11 +42,7 @@ non_null() bool pk_equal(const uint8_t *dest, const uint8_t *src);
 non_null() uint32_t pk_copy(uint8_t *dest, const uint8_t *src);
 
 non_null()
-int id_cmp(const uint8_t *first_id, const uint8_t *second_id);
-
-/** compares two group chat_id's */
-non_null()
-bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
+int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id);
 
 /** frees all pointers in a uint8_t pointer array, as well as the array itself. */
 nullable(1)

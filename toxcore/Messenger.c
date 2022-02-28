@@ -137,10 +137,6 @@ void getaddress(const Messenger *m, uint8_t *address)
 non_null()
 static bool send_online_packet(Messenger *m, int friendcon_id)
 {
-    if (!friend_is_valid(m, friendnumber)) {
-        return false;
-    }
-
     uint8_t packet = PACKET_ID_ONLINE;
     return write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c, friendcon_id), &packet,
                              sizeof(packet), false) != -1;
@@ -301,7 +297,7 @@ static int32_t m_add_friend_contact_norequest(Messenger *m, const uint8_t *real_
         return FAERR_ALREADYSENT;
     }
 
-    if (id_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
+    if (pk_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
         return FAERR_OWNKEY;
     }
 
@@ -314,7 +310,7 @@ int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk)
         return FAERR_BADCHECKSUM;
     }
 
-    if (id_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
+    if (pk_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
         return FAERR_OWNKEY;
     }
 
@@ -3608,8 +3604,8 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
 #endif /* VANILLA_NACL */
 
     m->onion = new_onion(m->log, m->mono_time, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht);
-    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
+    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht, m->group_announce);
+    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto, m->group_handler);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
