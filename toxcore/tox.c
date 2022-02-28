@@ -3039,8 +3039,8 @@ uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const ui
     assert(tox != nullptr);
 
     lock(tox);
-    int ret = gc_group_add(tox->m->group_handler, (Group_Privacy_State) privacy_state, group_name, group_name_length, name,
-                           name_length);
+    const int ret = gc_group_add(tox->m->group_handler, (Group_Privacy_State) privacy_state,
+                                 group_name, group_name_length, name, name_length);
     unlock(tox);
 
     if (ret >= 0) {
@@ -3087,7 +3087,7 @@ uint32_t tox_group_join(Tox *tox, const uint8_t *chat_id, const uint8_t *name, s
     assert(tox != nullptr);
 
     lock(tox);
-    int ret = gc_group_join(tox->m->group_handler, chat_id, name, name_length, password, password_length);
+    const int ret = gc_group_join(tox->m->group_handler, chat_id, name, name_length, password, password_length);
     unlock(tox);
 
     if (ret >= 0) {

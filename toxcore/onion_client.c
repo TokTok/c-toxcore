@@ -1041,7 +1041,7 @@ static int handle_announce_response_old(void *object, const IP_Port *source, con
         return 1;
     }
 
-    uint16_t len_nodes = length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
+    const uint16_t len_nodes = length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     IP_Port ip_port;

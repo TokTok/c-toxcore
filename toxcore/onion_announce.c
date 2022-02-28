@@ -125,7 +125,7 @@ int create_gca_announce_request(uint8_t *packet, uint16_t max_packet_length, con
     uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE +
                                      ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + GCA_ANNOUNCE_MAX_SIZE];
     uint8_t *position_in_plain = plain;
-    size_t encrypted_size = sizeof(plain) - GCA_ANNOUNCE_MAX_SIZE + gc_data_length;
+    const size_t encrypted_size = sizeof(plain) - GCA_ANNOUNCE_MAX_SIZE + gc_data_length;
 
     memcpy(plain, ping_id, ONION_PING_ID_SIZE);
     position_in_plain += ONION_PING_ID_SIZE;
@@ -623,7 +623,7 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
 
     /*Respond with a announce response packet*/
     Node_format nodes_list[MAX_SENT_NODES];
-    unsigned int num_nodes =
+    const unsigned int num_nodes =
         get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec, ip_is_lan(&source->ip));
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
