@@ -398,10 +398,6 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length)
     for (size_t i = 0; unpacked_len < length; ++i) {
         GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
-        if (unpacked_len > length) {
-            return -1;
-        }
-
         const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len, false);
 
         if (ipp_len > 0) {
@@ -876,8 +872,8 @@ non_null() static bool broadcast_gc_mod_list(const GC_Chat *chat);
 non_null() static bool broadcast_gc_shared_state(const GC_Chat *chat);
 non_null() static bool update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
-non_null() static bool send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_pk, const uint8_t *sanction_data,
-        uint16_t length, bool add_obs);
+non_null() static bool send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_pk,
+                                            const uint8_t *sanction_data, uint16_t length, bool add_obs);
 
 /** Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 non_null()
@@ -1697,9 +1693,7 @@ static int handle_gc_sync_response(const GC_Session *c, GC_Chat *chat, uint32_t 
         }
     }
 
-    if (chat->connection_state != CS_CONNECTED) {
-        chat->connection_state = CS_CONNECTED;
-    }
+    chat->connection_state = CS_CONNECTED;
 
     GC_Connection *gconn = get_gc_connection(chat, peer_number);
 
@@ -3157,7 +3151,7 @@ static bool send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn)
 
     if (packet_len != length) {
         free(packet);
-        return -1;
+        return false;
     }
 
     const bool ret = send_lossless_group_packet(chat, gconn, packet, length, GP_MOD_LIST);
@@ -7751,7 +7745,7 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
 
     const bool copy_ip_port_result = copy_friend_ip_port_to_gconn(m, friend_number, gconn);
 
-    if (num_tcp_relays <= 0 && !copy_ip_port_result) {
+    if (num_tcp_relays == 0 && !copy_ip_port_result) {
         return -1;
     }
 

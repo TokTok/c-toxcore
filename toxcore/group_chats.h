@@ -650,7 +650,7 @@ typedef bool gc_send_group_invite_packet_cb(const Messenger *m, uint32_t friendn
  * Return -3 if the packet fails to send.
  */
 non_null()
-int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friendnum,
+int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
                      gc_send_group_invite_packet_cb *send_group_invite_packet);
 
 /** Leaves a group and sends an exit broadcast packet with an optional parting message.

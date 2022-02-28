@@ -3645,13 +3645,13 @@ typedef enum Tox_Err_Group_Leave {
  * lost, including keys and role credentials.
  *
  * @param group_number The group number of the group we wish to leave.
- * @param message The parting message to be sent to all the peers. Set to NULL if we do not wish to
+ * @param part_message The parting message to be sent to all the peers. Set to NULL if we do not wish to
  *   send a parting message.
  * @param length The length of the parting message. Set to 0 if we do not wish to send a parting message.
  *
  * @return true if the group chat instance is successfully deleted.
  */
-bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *message, size_t length,
+bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
                      Tox_Err_Group_Leave *error);
 
 

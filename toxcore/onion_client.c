@@ -163,7 +163,7 @@ void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint
 
 void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, uint16_t gc_data_length)
 {
-    if (gc_data_length > 0) {
+    if (gc_data_length > 0 && gc_data != nullptr) {
         memcpy(onion_friend->gc_data, gc_data, gc_data_length);
     }
 

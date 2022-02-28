@@ -2931,106 +2931,106 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
 /* GROUPCHAT FUNCTIONS */
 
 #ifndef VANILLA_NACL
-void tox_callback_group_invite(Tox *tox, tox_group_invite_cb *function)
+void tox_callback_group_invite(Tox *tox, tox_group_invite_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_invite_callback = function;
+    tox->group_invite_callback = callback;
 }
 
-void tox_callback_group_message(Tox *tox, tox_group_message_cb *function)
+void tox_callback_group_message(Tox *tox, tox_group_message_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_message_callback = function;
+    tox->group_message_callback = callback;
 }
 
-void tox_callback_group_private_message(Tox *tox, tox_group_private_message_cb *function)
+void tox_callback_group_private_message(Tox *tox, tox_group_private_message_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_private_message_callback = function;
+    tox->group_private_message_callback = callback;
 }
 
-void tox_callback_group_custom_packet(Tox *tox, tox_group_custom_packet_cb *function)
+void tox_callback_group_custom_packet(Tox *tox, tox_group_custom_packet_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_custom_packet_callback = function;
+    tox->group_custom_packet_callback = callback;
 }
 
-void tox_callback_group_moderation(Tox *tox, tox_group_moderation_cb *function)
+void tox_callback_group_moderation(Tox *tox, tox_group_moderation_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_moderation_callback = function;
+    tox->group_moderation_callback = callback;
 }
 
-void tox_callback_group_peer_name(Tox *tox, tox_group_peer_name_cb *function)
+void tox_callback_group_peer_name(Tox *tox, tox_group_peer_name_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_peer_name_callback = function;
+    tox->group_peer_name_callback = callback;
 }
 
-void tox_callback_group_peer_status(Tox *tox, tox_group_peer_status_cb *function)
+void tox_callback_group_peer_status(Tox *tox, tox_group_peer_status_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_peer_status_callback = function;
+    tox->group_peer_status_callback = callback;
 }
 
-void tox_callback_group_topic(Tox *tox, tox_group_topic_cb *function)
+void tox_callback_group_topic(Tox *tox, tox_group_topic_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_topic_callback = function;
+    tox->group_topic_callback = callback;
 }
 
-void tox_callback_group_privacy_state(Tox *tox, tox_group_privacy_state_cb *function)
+void tox_callback_group_privacy_state(Tox *tox, tox_group_privacy_state_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_privacy_state_callback = function;
+    tox->group_privacy_state_callback = callback;
 }
 
-void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *function)
+void tox_callback_group_topic_lock(Tox *tox, tox_group_topic_lock_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_topic_lock_callback = function;
+    tox->group_topic_lock_callback = callback;
 }
 
-void tox_callback_group_voice_state(Tox *tox, tox_group_voice_state_cb *function)
+void tox_callback_group_voice_state(Tox *tox, tox_group_voice_state_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_voice_state_callback = function;
+    tox->group_voice_state_callback = callback;
 }
 
-void tox_callback_group_peer_limit(Tox *tox, tox_group_peer_limit_cb *function)
+void tox_callback_group_peer_limit(Tox *tox, tox_group_peer_limit_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_peer_limit_callback = function;
+    tox->group_peer_limit_callback = callback;
 }
 
-void tox_callback_group_password(Tox *tox, tox_group_password_cb *function)
+void tox_callback_group_password(Tox *tox, tox_group_password_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_password_callback = function;
+    tox->group_password_callback = callback;
 }
 
-void tox_callback_group_peer_join(Tox *tox, tox_group_peer_join_cb *function)
+void tox_callback_group_peer_join(Tox *tox, tox_group_peer_join_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_peer_join_callback = function;
+    tox->group_peer_join_callback = callback;
 }
 
-void tox_callback_group_peer_exit(Tox *tox, tox_group_peer_exit_cb *function)
+void tox_callback_group_peer_exit(Tox *tox, tox_group_peer_exit_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_peer_exit_callback = function;
+    tox->group_peer_exit_callback = callback;
 }
 
-void tox_callback_group_self_join(Tox *tox, tox_group_self_join_cb *function)
+void tox_callback_group_self_join(Tox *tox, tox_group_self_join_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_self_join_callback = function;
+    tox->group_self_join_callback = callback;
 }
 
-void tox_callback_group_join_fail(Tox *tox, tox_group_join_fail_cb *function)
+void tox_callback_group_join_fail(Tox *tox, tox_group_join_fail_cb *callback)
 {
     assert(tox != nullptr);
-    tox->group_join_fail_callback = function;
+    tox->group_join_fail_callback = callback;
 }
 
 uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const uint8_t *group_name,
@@ -3227,7 +3227,7 @@ bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnec
     return false;
 }
 
-bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *partmessage, size_t length,
+bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
                      Tox_Err_Group_Leave *error)
 {
     assert(tox != nullptr);
@@ -3241,7 +3241,7 @@ bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *partmessage
         return false;
     }
 
-    const int ret = gc_group_exit(tox->m->group_handler, chat, partmessage, length);
+    const int ret = gc_group_exit(tox->m->group_handler, chat, part_message, length);
     unlock(tox);
 
     switch (ret) {

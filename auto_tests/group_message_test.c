@@ -244,7 +244,7 @@ static void group_message_handler_lossless_test(Tox *tox, uint32_t groupnumber, 
     memcpy(&start, message, sizeof(uint16_t));
     memcpy(&checksum, message + sizeof(uint16_t), sizeof(uint16_t));
 
-    ck_assert_msg(start == state->last_msg_recv + 1, "Expected %u, got start %u", state->last_msg_recv + 1, start);
+    ck_assert_msg(start == state->last_msg_recv + 1, "Expected %d, got start %u", state->last_msg_recv + 1, start);
     ck_assert_msg(checksum == get_message_checksum(message + 4, length - 4), "Wrong checksum");
 
     state->last_msg_recv = start;
@@ -267,7 +267,7 @@ static void group_message_handler_wraparound_test(Tox *tox, uint32_t groupnumber
     uint16_t num;
     memcpy(&num, message, sizeof(uint16_t));
 
-    ck_assert_msg(num == state->last_msg_recv + 1, "Expected %u, got start %u", state->last_msg_recv + 1, num);
+    ck_assert_msg(num == state->last_msg_recv + 1, "Expected %d, got start %u", state->last_msg_recv + 1, num);
 
     state->last_msg_recv = num;
 
