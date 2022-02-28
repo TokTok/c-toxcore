@@ -33,8 +33,13 @@ non_null() const uint8_t *get_chat_id(const uint8_t *key);
 
 
 /** id functions */
-non_null()
-bool id_equal(const uint8_t *dest, const uint8_t *src);
+/** Equality function for public keys. */
+non_null() bool pk_equal(const uint8_t *dest, const uint8_t *src);
+/**
+ * @brief Copy a public key from `src` to `dest`.
+ * @retval CLIENT_ID_SIZE
+ */
+non_null() uint32_t pk_copy(uint8_t *dest, const uint8_t *src);
 
 non_null()
 int id_cmp(const uint8_t *first_id, const uint8_t *second_id);
@@ -43,16 +48,22 @@ int id_cmp(const uint8_t *first_id, const uint8_t *second_id);
 non_null()
 bool chat_id_equal(const uint8_t *dest, const uint8_t *src);
 
-non_null()
-uint32_t id_copy(uint8_t *dest, const uint8_t *src); /* return value is CLIENT_ID_SIZE */
-
 /** frees all pointers in a uint8_t pointer array, as well as the array itself. */
 nullable(1)
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items);
 
 /** Returns -1 if failed or 0 if success */
-non_null()
-int create_recursive_mutex(pthread_mutex_t *mutex);
+non_null() int create_recursive_mutex(pthread_mutex_t *mutex);
+
+/**
+ * @brief Checks whether two buffers are the same length and contents.
+ *
+ * Calls `memcmp` after checking the sizes are equal.
+ *
+ * @retval true if sizes and contents are equal.
+ * @retval false otherwise.
+ */
+non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t b_size);
 
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of

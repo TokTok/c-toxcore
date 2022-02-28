@@ -391,7 +391,7 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
     const uint8_t *it = data;
     int size_constraint = length;
 
-    while (*it) {/* until end byte is hit */
+    while (*it != 0) {/* until end byte is hit */
         switch (*it) {
             case ID_REQUEST: {
                 if (!check_size(log, it, &size_constraint, 1) ||
@@ -435,7 +435,7 @@ static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data
         }
     }
 
-    if (dest->request.exists == false) {
+    if (!dest->request.exists) {
         LOGGER_ERROR(log, "Invalid request field!");
         return -1;
     }
@@ -457,7 +457,7 @@ static uint8_t *msg_parse_header_out(MSIHeaderID id, uint8_t *dest, const void *
 
     memcpy(dest, value, value_len);
 
-    *length += (2 + value_len);
+    *length += 2 + value_len;
 
     return dest + value_len; /* Set to next position ready to be written */
 }

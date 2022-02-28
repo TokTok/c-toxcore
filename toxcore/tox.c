@@ -11,7 +11,6 @@
 #endif
 
 #include "tox.h"
-#include "tox_private.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -24,6 +23,7 @@
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_private.h"
 
 #include "../toxencryptsave/defines.h"
 
@@ -1619,7 +1619,7 @@ Tox_User_Status tox_friend_get_status(const Tox *tox, uint32_t friend_number, To
 
     if (ret == USERSTATUS_INVALID) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_QUERY_FRIEND_NOT_FOUND);
-        return (Tox_User_Status)(TOX_USER_STATUS_BUSY + 1);
+        return TOX_USER_STATUS_NONE;
     }
 
     SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_QUERY_OK);
@@ -1667,7 +1667,7 @@ bool tox_friend_get_typing(const Tox *tox, uint32_t friend_number, Tox_Err_Frien
     }
 
     SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_QUERY_OK);
-    return !!ret;
+    return ret != 0;
 }
 
 void tox_callback_friend_typing(Tox *tox, tox_friend_typing_cb *callback)
@@ -2118,10 +2118,10 @@ bool tox_conference_delete(Tox *tox, uint32_t conference_number, Tox_Err_Confere
 {
     assert(tox != nullptr);
     lock(tox);
-    const int ret = del_groupchat(tox->m->conferences_object, conference_number, true);
+    const bool ret = del_groupchat(tox->m->conferences_object, conference_number, true);
     unlock(tox);
 
-    if (ret == -1) {
+    if (!ret) {
         SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_DELETE_CONFERENCE_NOT_FOUND);
         return false;
     }

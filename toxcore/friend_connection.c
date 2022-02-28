@@ -202,7 +202,7 @@ int getfriend_conn_id_pk(const Friend_Connections *fr_c, const uint8_t *real_pk)
         const Friend_Conn *friend_con = get_conn(fr_c, i);
 
         if (friend_con != nullptr) {
-            if (public_key_cmp(friend_con->real_public_key, real_pk) == 0) {
+            if (pk_equal(friend_con->real_public_key, real_pk)) {
                 return i;
             }
         }
@@ -229,7 +229,7 @@ static int friend_add_tcp_relay(Friend_Connections *fr_c, int friendcon_id, cons
     }
 
     /* Local ip and same pk means that they are hosting a TCP relay. */
-    if (ip_is_local(&ipp_copy.ip) && public_key_cmp(friend_con->dht_temp_pk, public_key) == 0) {
+    if (ip_is_local(&ipp_copy.ip) && pk_equal(friend_con->dht_temp_pk, public_key)) {
         if (!net_family_is_unspec(friend_con->dht_ip_port.ip.family)) {
             ipp_copy.ip = friend_con->dht_ip_port.ip;
         } else {
@@ -241,7 +241,7 @@ static int friend_add_tcp_relay(Friend_Connections *fr_c, int friendcon_id, cons
 
     for (unsigned i = 0; i < FRIEND_MAX_STORED_TCP_RELAYS; ++i) {
         if (!net_family_is_unspec(friend_con->tcp_relays[i].ip_port.ip.family)
-                && public_key_cmp(friend_con->tcp_relays[i].public_key, public_key) == 0) {
+                && pk_equal(friend_con->tcp_relays[i].public_key, public_key)) {
             memset(&friend_con->tcp_relays[i], 0, sizeof(Node_format));
         }
     }
@@ -351,7 +351,7 @@ static void dht_ip_callback(void *object, int32_t number, const IP_Port *ip_port
         friend_new_connection(fr_c, number);
     }
 
-    set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, ip_port, 1);
+    set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, ip_port, true);
     friend_con->dht_ip_port = *ip_port;
     friend_con->dht_ip_port_lastrecv = mono_time_get(fr_c->mono_time);
 
@@ -443,7 +443,7 @@ static void dht_pk_callback(void *object, int32_t number, const uint8_t *dht_pub
         return;
     }
 
-    if (public_key_cmp(friend_con->dht_temp_pk, dht_public_key) == 0) {
+    if (pk_equal(friend_con->dht_temp_pk, dht_public_key)) {
         return;
     }
 
@@ -489,7 +489,7 @@ static int handle_packet(void *object, int number, const uint8_t *data, uint16_t
 
     if (data[0] == PACKET_ID_SHARE_RELAYS) {
         Node_format nodes[MAX_SHARED_RELAYS];
-        const int n = unpack_nodes(nodes, MAX_SHARED_RELAYS, nullptr, data + 1, length - 1, 1);
+        const int n = unpack_nodes(nodes, MAX_SHARED_RELAYS, nullptr, data + 1, length - 1, true);
 
         if (n == -1) {
             return -1;
@@ -577,13 +577,13 @@ static int handle_new_connections(void *object, const New_Connection *n_c)
     friend_con->crypt_connection_id = id;
 
     if (!net_family_is_ipv4(n_c->source.ip.family) && !net_family_is_ipv6(n_c->source.ip.family)) {
-        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, 0);
+        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, false);
     } else {
         friend_con->dht_ip_port = n_c->source;
         friend_con->dht_ip_port_lastrecv = mono_time_get(fr_c->mono_time);
     }
 
-    if (public_key_cmp(friend_con->dht_temp_pk, n_c->dht_public_key) != 0) {
+    if (!pk_equal(friend_con->dht_temp_pk, n_c->dht_public_key)) {
         change_dht_pk(fr_c, friendcon_id, n_c->dht_public_key);
     }
 
@@ -876,7 +876,7 @@ int send_friend_request_packet(Friend_Connections *fr_c, int friendcon_id, uint3
 
     if (friend_con->status == FRIENDCONN_STATUS_CONNECTED) {
         packet[0] = PACKET_ID_FRIEND_REQUESTS;
-        return write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, packet, SIZEOF_VLA(packet), false) != -1;
+        return write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, packet, SIZEOF_VLA(packet), false) != -1 ? 1 : 0;
     }
 
     packet[0] = CRYPTO_PACKET_FRIEND_REQ;
@@ -973,7 +973,7 @@ void do_friend_connections(Friend_Connections *fr_c, void *userdata)
 
                 if (friend_con->dht_lock > 0) {
                     if (friend_new_connection(fr_c, i) == 0) {
-                        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, 0);
+                        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, false);
                         connect_to_saved_tcp_relays(fr_c, i, MAX_FRIEND_TCP_CONNECTIONS / 2); /* Only fill it half up. */
                     }
                 }

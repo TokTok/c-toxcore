@@ -67,7 +67,7 @@ int32_t getfriend_id(const Messenger *m, const uint8_t *real_pk)
 {
     for (uint32_t i = 0; i < m->numfriends; ++i) {
         if (m->friendlist[i].status > 0) {
-            if (id_equal(real_pk, m->friendlist[i].real_pk)) {
+            if (pk_equal(real_pk, m->friendlist[i].real_pk)) {
                 return i;
             }
         }
@@ -84,7 +84,7 @@ int32_t getfriend_id(const Messenger *m, const uint8_t *real_pk)
  */
 int get_real_pk(const Messenger *m, int32_t friendnumber, uint8_t *real_pk)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -97,7 +97,7 @@ int get_real_pk(const Messenger *m, int32_t friendnumber, uint8_t *real_pk)
  */
 int getfriendcon_id(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -127,7 +127,7 @@ static uint16_t address_checksum(const uint8_t *address, uint32_t len)
  */
 void getaddress(const Messenger *m, uint8_t *address)
 {
-    id_copy(address, nc_get_self_public_key(m->net_crypto));
+    pk_copy(address, nc_get_self_public_key(m->net_crypto));
     uint32_t nospam = get_nospam(m->fr);
     memcpy(address + CRYPTO_PUBLIC_KEY_SIZE, &nospam, sizeof(nospam));
     uint16_t checksum = address_checksum(address, FRIEND_ADDRESS_SIZE - sizeof(checksum));
@@ -135,15 +135,19 @@ void getaddress(const Messenger *m, uint8_t *address)
 }
 
 non_null()
-static int send_online_packet(Messenger *m, int friendcon_id)
+static bool send_online_packet(Messenger *m, int friendcon_id)
 {
+    if (!friend_is_valid(m, friendnumber)) {
+        return false;
+    }
+
     uint8_t packet = PACKET_ID_ONLINE;
     return write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c, friendcon_id), &packet,
-                             sizeof(packet), 0) != -1;
+                             sizeof(packet), false) != -1;
 }
 
 non_null()
-static int send_offline_packet(Messenger *m, int friendcon_id)
+static bool send_offline_packet(Messenger *m, int friendcon_id)
 {
     uint8_t packet = PACKET_ID_OFFLINE;
     return write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c, friendcon_id), &packet,
@@ -185,10 +189,10 @@ static int32_t init_new_friend(Messenger *m, const uint8_t *real_pk, uint8_t sta
             m->friendlist[i].status = status;
             m->friendlist[i].friendcon_id = friendcon_id;
             m->friendlist[i].friendrequest_lastsent = 0;
-            id_copy(m->friendlist[i].real_pk, real_pk);
+            pk_copy(m->friendlist[i].real_pk, real_pk);
             m->friendlist[i].statusmessage_length = 0;
             m->friendlist[i].userstatus = USERSTATUS_NONE;
-            m->friendlist[i].is_typing = 0;
+            m->friendlist[i].is_typing = false;
             m->friendlist[i].message_id = 0;
             friend_connection_callbacks(m->fr_c, friendcon_id, MESSENGER_CALLBACK_INDEX, &m_handle_status, &m_handle_packet,
                                         &m_handle_lossy_packet, m, i);
@@ -236,7 +240,7 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
     }
 
     uint8_t real_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    id_copy(real_pk, address);
+    pk_copy(real_pk, address);
 
     if (!public_key_valid(real_pk)) {
         return FAERR_BADCHECKSUM;
@@ -254,7 +258,7 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
         return FAERR_NOMESSAGE;
     }
 
-    if (id_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
+    if (pk_equal(real_pk, nc_get_self_public_key(m->net_crypto))) {
         return FAERR_OWNKEY;
     }
 
@@ -376,7 +380,7 @@ void m_kill_group_connection(Messenger *m, const GC_Chat *chat)
 non_null()
 static int clear_receipts(Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -396,7 +400,7 @@ static int clear_receipts(Messenger *m, int32_t friendnumber)
 non_null()
 static int add_receipt(Messenger *m, int32_t friendnumber, uint32_t packet_num, uint32_t msg_id)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -426,7 +430,7 @@ static int add_receipt(Messenger *m, int32_t friendnumber, uint32_t packet_num, 
 non_null()
 static int friend_received_packet(const Messenger *m, int32_t friendnumber, uint32_t number)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -437,7 +441,7 @@ static int friend_received_packet(const Messenger *m, int32_t friendnumber, uint
 non_null(1) nullable(3)
 static int do_receipts(Messenger *m, int32_t friendnumber, void *userdata)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -475,7 +479,7 @@ static int do_receipts(Messenger *m, int32_t friendnumber, void *userdata)
  */
 int m_delfriend(Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -514,7 +518,7 @@ int m_delfriend(Messenger *m, int32_t friendnumber)
 
 int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -522,7 +526,7 @@ int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber)
         return CONNECTION_NONE;
     }
 
-    bool direct_connected = 0;
+    bool direct_connected = false;
     uint32_t num_online_relays = 0;
     const int crypt_conn_id = friend_connection_crypt_connection_id(m->fr_c, m->friendlist[friendnumber].friendcon_id);
 
@@ -545,13 +549,17 @@ int m_get_friend_connectionstatus(const Messenger *m, int32_t friendnumber)
     return m->friendlist[friendnumber].last_connection_udp_tcp;
 }
 
-int m_friend_exists(const Messenger *m, int32_t friendnumber)
+/**
+ * Checks if there exists a friend with given friendnumber.
+ *
+ * @param friendnumber The index in the friend list.
+ *
+ * @retval true if friend exists.
+ * @retval false if friend doesn't exist.
+ */
+bool m_friend_exists(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
-        return 0;
-    }
-
-    return 1;
+    return (unsigned int)friendnumber < m->numfriends && m->friendlist[friendnumber].status != 0;
 }
 
 /** Send a message of type to an online friend.
@@ -573,7 +581,7 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
         return -5;
     }
 
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         LOGGER_WARNING(m->log, "friend number %d is invalid", friendnumber);
         return -1;
     }
@@ -613,15 +621,15 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
 }
 
 non_null()
-static int write_cryptpacket_id(const Messenger *m, int32_t friendnumber, uint8_t packet_id, const uint8_t *data,
-                                uint32_t length, bool congestion_control)
+static bool write_cryptpacket_id(const Messenger *m, int32_t friendnumber, uint8_t packet_id, const uint8_t *data,
+                                 uint32_t length, bool congestion_control)
 {
-    if (!friend_is_valid(m, friendnumber)) {
-        return 0;
+    if (!m_friend_exists(m, friendnumber)) {
+        return false;
     }
 
     if (length >= MAX_CRYPTO_DATA_SIZE || m->friendlist[friendnumber].status != FRIEND_ONLINE) {
-        return 0;
+        return false;
     }
 
     VLA(uint8_t, packet, length + 1);
@@ -638,10 +646,10 @@ static int write_cryptpacket_id(const Messenger *m, int32_t friendnumber, uint8_
  * length is the length with the NULL terminator.
  */
 non_null()
-static int m_sendname(const Messenger *m, int32_t friendnumber, const uint8_t *name, uint16_t length)
+static bool m_sendname(const Messenger *m, int32_t friendnumber, const uint8_t *name, uint16_t length)
 {
     if (length > MAX_NAME_LENGTH) {
-        return 0;
+        return false;
     }
 
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_NICKNAME, name, length, false);
@@ -657,7 +665,7 @@ static int m_sendname(const Messenger *m, int32_t friendnumber, const uint8_t *n
  */
 int setfriendname(Messenger *m, int32_t friendnumber, const uint8_t *name, uint16_t length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -695,7 +703,7 @@ int setname(Messenger *m, const uint8_t *name, uint16_t length)
     m->name_length = length;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].name_sent = 0;
+        m->friendlist[i].name_sent = false;
     }
 
     return 0;
@@ -728,7 +736,7 @@ uint16_t getself_name(const Messenger *m, uint8_t *name)
  */
 int getname(const Messenger *m, int32_t friendnumber, uint8_t *name)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -738,7 +746,7 @@ int getname(const Messenger *m, int32_t friendnumber, uint8_t *name)
 
 int m_get_name_size(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -767,7 +775,7 @@ int m_set_statusmessage(Messenger *m, const uint8_t *status, uint16_t length)
     m->statusmessage_length = length;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].statusmessage_sent = 0;
+        m->friendlist[i].statusmessage_sent = false;
     }
 
     return 0;
@@ -786,7 +794,7 @@ int m_set_userstatus(Messenger *m, uint8_t status)
     m->userstatus = (Userstatus)status;
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        m->friendlist[i].userstatus_sent = 0;
+        m->friendlist[i].userstatus_sent = false;
     }
 
     return 0;
@@ -800,7 +808,7 @@ int m_set_userstatus(Messenger *m, uint8_t status)
  */
 int m_get_statusmessage_size(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -816,7 +824,7 @@ int m_get_statusmessage_size(const Messenger *m, int32_t friendnumber)
  */
 int m_copy_statusmessage(const Messenger *m, int32_t friendnumber, uint8_t *buf, uint32_t maxlen)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -845,7 +853,7 @@ int m_copy_self_statusmessage(const Messenger *m, uint8_t *buf)
 
 uint8_t m_get_userstatus(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return USERSTATUS_INVALID;
     }
 
@@ -865,20 +873,16 @@ uint8_t m_get_self_userstatus(const Messenger *m)
 
 uint64_t m_get_last_online(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return UINT64_MAX;
     }
 
     return m->friendlist[friendnumber].last_seen_time;
 }
 
-int m_set_usertyping(Messenger *m, int32_t friendnumber, uint8_t is_typing)
+int m_set_usertyping(Messenger *m, int32_t friendnumber, bool is_typing)
 {
-    if (is_typing != 0 && is_typing != 1) {
-        return -1;
-    }
-
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -887,43 +891,43 @@ int m_set_usertyping(Messenger *m, int32_t friendnumber, uint8_t is_typing)
     }
 
     m->friendlist[friendnumber].user_istyping = is_typing;
-    m->friendlist[friendnumber].user_istyping_sent = 0;
+    m->friendlist[friendnumber].user_istyping_sent = false;
 
     return 0;
 }
 
 int m_get_istyping(const Messenger *m, int32_t friendnumber)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
-    return m->friendlist[friendnumber].is_typing;
+    return m->friendlist[friendnumber].is_typing ? 1 : 0;
 }
 
 non_null()
-static int send_statusmessage(const Messenger *m, int32_t friendnumber, const uint8_t *status, uint16_t length)
+static bool send_statusmessage(const Messenger *m, int32_t friendnumber, const uint8_t *status, uint16_t length)
 {
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_STATUSMESSAGE, status, length, false);
 }
 
 non_null()
-static int send_userstatus(const Messenger *m, int32_t friendnumber, uint8_t status)
+static bool send_userstatus(const Messenger *m, int32_t friendnumber, uint8_t status)
 {
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_USERSTATUS, &status, sizeof(status), false);
 }
 
 non_null()
-static int send_user_istyping(const Messenger *m, int32_t friendnumber, uint8_t is_typing)
+static bool send_user_istyping(const Messenger *m, int32_t friendnumber, bool is_typing)
 {
-    uint8_t typing = is_typing;
+    const uint8_t typing = is_typing ? 1 : 0;
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_TYPING, &typing, sizeof(typing), false);
 }
 
 non_null()
 static int set_friend_statusmessage(const Messenger *m, int32_t friendnumber, const uint8_t *status, uint16_t length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -946,7 +950,7 @@ static void set_friend_userstatus(const Messenger *m, int32_t friendnumber, uint
 }
 
 non_null()
-static void set_friend_typing(const Messenger *m, int32_t friendnumber, uint8_t is_typing)
+static void set_friend_typing(const Messenger *m, int32_t friendnumber, bool is_typing)
 {
     m->friendlist[friendnumber].is_typing = is_typing;
 }
@@ -1043,10 +1047,10 @@ static void check_friend_connectionstatus(Messenger *m, int32_t friendnumber, ui
             break_files(m, friendnumber);
             clear_receipts(m, friendnumber);
         } else {
-            m->friendlist[friendnumber].name_sent = 0;
-            m->friendlist[friendnumber].userstatus_sent = 0;
-            m->friendlist[friendnumber].statusmessage_sent = 0;
-            m->friendlist[friendnumber].user_istyping_sent = 0;
+            m->friendlist[friendnumber].name_sent = false;
+            m->friendlist[friendnumber].userstatus_sent = false;
+            m->friendlist[friendnumber].statusmessage_sent = false;
+            m->friendlist[friendnumber].user_istyping_sent = false;
         }
 
         m->friendlist[friendnumber].status = status;
@@ -1086,10 +1090,10 @@ void m_callback_group_invite(Messenger *m, m_group_invite_cb *function)
 
 /** Send a conference invite packet.
  *
- *  return 1 on success
- *  return 0 on failure
+ *  return true on success
+ *  return false on failure
  */
-int send_conference_invite_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
+bool send_conference_invite_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
 {
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_INVITE_CONFERENCE, data, length, false);
 }
@@ -1151,7 +1155,7 @@ void callback_file_reqchunk(Messenger *m, m_file_chunk_request_cb *function)
  */
 int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint8_t *file_id)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1199,15 +1203,15 @@ int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, u
  *  return 0 on failure
  */
 non_null()
-static int file_sendrequest(const Messenger *m, int32_t friendnumber, uint8_t filenumber, uint32_t file_type,
-                            uint64_t filesize, const uint8_t *file_id, const uint8_t *filename, uint16_t filename_length)
+static bool file_sendrequest(const Messenger *m, int32_t friendnumber, uint8_t filenumber, uint32_t file_type,
+                             uint64_t filesize, const uint8_t *file_id, const uint8_t *filename, uint16_t filename_length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
-        return 0;
+    if (!m_friend_exists(m, friendnumber)) {
+        return false;
     }
 
     if (filename_length > MAX_FILENAME_LENGTH) {
-        return 0;
+        return false;
     }
 
     VLA(uint8_t, packet, 1 + sizeof(file_type) + sizeof(filesize) + FILE_ID_LENGTH + filename_length);
@@ -1236,7 +1240,7 @@ static int file_sendrequest(const Messenger *m, int32_t friendnumber, uint8_t fi
 long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_type, uint64_t filesize,
                         const uint8_t *file_id, const uint8_t *filename, uint16_t filename_length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1256,7 +1260,7 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
         return -3;
     }
 
-    if (file_sendrequest(m, friendnumber, i, file_type, filesize, file_id, filename, filename_length) == 0) {
+    if (!file_sendrequest(m, friendnumber, i, file_type, filesize, file_id, filename, filename_length)) {
         return -4;
     }
 
@@ -1278,13 +1282,13 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
 }
 
 non_null(1) nullable(6)
-static int send_file_control_packet(const Messenger *m, int32_t friendnumber, bool inbound, uint8_t filenumber,
-                                    uint8_t control_type, const uint8_t *data, uint16_t data_length)
+static bool send_file_control_packet(const Messenger *m, int32_t friendnumber, bool inbound, uint8_t filenumber,
+                                     uint8_t control_type, const uint8_t *data, uint16_t data_length)
 {
     assert(data_length == 0 || data != nullptr);
 
     if ((unsigned int)(1 + 3 + data_length) > MAX_CRYPTO_DATA_SIZE) {
-        return -1;
+        return false;
     }
 
     VLA(uint8_t, packet, 3 + data_length);
@@ -1314,7 +1318,7 @@ static int send_file_control_packet(const Messenger *m, int32_t friendnumber, bo
  */
 int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, unsigned int control)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1417,7 +1421,7 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
  */
 int file_seek(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1476,7 +1480,7 @@ static int64_t send_file_data_packet(const Messenger *m, int32_t friendnumber, u
 {
     assert(length == 0 || data != nullptr);
 
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1510,7 +1514,7 @@ int send_file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber
 {
     assert(length == 0 || data != nullptr);
 
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1844,10 +1848,10 @@ void m_callback_msi_packet(Messenger *m, m_msi_packet_cb *function, void *userda
 
 /** Send an msi packet.
  *
- *  return 1 on success
- *  return 0 on failure
+ *  return true on success
+ *  return false on failure
  */
-int m_msi_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
+bool m_msi_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint16_t length)
 {
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_MSI, data, length, false);
 }
@@ -1857,7 +1861,7 @@ static int m_handle_lossy_packet(void *object, int friend_num, const uint8_t *pa
 {
     Messenger *m = (Messenger *)object;
 
-    if (!friend_is_valid(m, friend_num)) {
+    if (!m_friend_exists(m, friend_num)) {
         return 1;
     }
 
@@ -1887,7 +1891,7 @@ void custom_lossy_packet_registerhandler(Messenger *m, m_friend_lossy_packet_cb 
 int m_callback_rtp_packet(Messenger *m, int32_t friendnumber, uint8_t byte, m_lossy_rtp_packet_cb *function,
                           void *object)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1919,7 +1923,7 @@ int m_callback_rtp_packet(Messenger *m, int32_t friendnumber, uint8_t byte, m_lo
  */
 int m_send_custom_lossy_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint32_t length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -1950,7 +1954,7 @@ static int handle_custom_lossless_packet(void *object, int friend_num, const uin
 {
     Messenger *m = (Messenger *)object;
 
-    if (!friend_is_valid(m, friend_num)) {
+    if (!m_friend_exists(m, friend_num)) {
         return -1;
     }
 
@@ -1972,7 +1976,7 @@ void custom_lossless_packet_registerhandler(Messenger *m, m_friend_lossless_pack
 
 int send_custom_lossless_packet(const Messenger *m, int32_t friendnumber, const uint8_t *data, uint32_t length)
 {
-    if (!friend_is_valid(m, friendnumber)) {
+    if (!m_friend_exists(m, friendnumber)) {
         return -1;
     }
 
@@ -2409,27 +2413,27 @@ static void do_friends(Messenger *m, void *userdata)
         }
 
         if (m->friendlist[i].status == FRIEND_ONLINE) { /* friend is online. */
-            if (m->friendlist[i].name_sent == 0) {
+            if (!m->friendlist[i].name_sent) {
                 if (m_sendname(m, i, m->name, m->name_length)) {
-                    m->friendlist[i].name_sent = 1;
+                    m->friendlist[i].name_sent = true;
                 }
             }
 
-            if (m->friendlist[i].statusmessage_sent == 0) {
+            if (!m->friendlist[i].statusmessage_sent) {
                 if (send_statusmessage(m, i, m->statusmessage, m->statusmessage_length)) {
-                    m->friendlist[i].statusmessage_sent = 1;
+                    m->friendlist[i].statusmessage_sent = true;
                 }
             }
 
-            if (m->friendlist[i].userstatus_sent == 0) {
+            if (!m->friendlist[i].userstatus_sent) {
                 if (send_userstatus(m, i, m->userstatus)) {
-                    m->friendlist[i].userstatus_sent = 1;
+                    m->friendlist[i].userstatus_sent = true;
                 }
             }
 
-            if (m->friendlist[i].user_istyping_sent == 0) {
+            if (!m->friendlist[i].user_istyping_sent) {
                 if (send_user_istyping(m, i, m->friendlist[i].user_istyping)) {
-                    m->friendlist[i].user_istyping_sent = 1;
+                    m->friendlist[i].user_istyping_sent = true;
                 }
             }
 
@@ -2473,7 +2477,7 @@ static char *id_to_string(const uint8_t *pk, char *id_str, size_t length)
         snprintf(&id_str[i * 2], length - i * 2, "%02X", pk[i]);
     }
 
-    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = 0;
+    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = '\0';
     return id_str;
 }
 
@@ -2626,7 +2630,7 @@ void do_messenger(Messenger *m, void *userdata)
             const Client_data *cptr = dht_get_close_client(m->dht, client);
             const IPPTsPng *const assocs[] = { &cptr->assoc4, &cptr->assoc6, nullptr };
 
-            for (const IPPTsPng * const *it = assocs; *it; ++it) {
+            for (const IPPTsPng * const *it = assocs; *it != nullptr; ++it) {
                 const IPPTsPng *const assoc = *it;
 
                 if (ip_isset(&assoc->ip_port.ip)) {
@@ -2661,7 +2665,7 @@ void do_messenger(Messenger *m, void *userdata)
             }
 
             for (uint32_t dhtfriend = 0; dhtfriend < dht_get_num_friends(m->dht); ++dhtfriend) {
-                if (id_equal(m->friendlist[friend_idx].real_pk, dht_get_friend_public_key(m->dht, dhtfriend))) {
+                if (pk_equal(m->friendlist[friend_idx].real_pk, dht_get_friend_public_key(m->dht, dhtfriend))) {
                     assert(dhtfriend < INT32_MAX);
                     m2dht[friend_idx] = (int32_t)dhtfriend;
                     break;
@@ -2950,7 +2954,7 @@ static State_Load_Status load_nospam_keys(Messenger *m, const uint8_t *data, uin
     set_nospam(m->fr, nospam);
     load_secret_key(m->net_crypto, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE);
 
-    if (public_key_cmp(data + sizeof(uint32_t), nc_get_self_public_key(m->net_crypto)) != 0) {
+    if (!pk_equal(data + sizeof(uint32_t), nc_get_self_public_key(m->net_crypto))) {
         return STATE_LOAD_STATUS_ERROR;
     }
 
@@ -3085,7 +3089,7 @@ static State_Load_Status friends_list_load(Messenger *m, const uint8_t *data, ui
         } else if (temp.status != 0) {
             /* TODO(irungentoo): This is not a good way to do this. */
             uint8_t address[FRIEND_ADDRESS_SIZE];
-            id_copy(address, temp.real_pk);
+            pk_copy(address, temp.real_pk);
             memcpy(address + CRYPTO_PUBLIC_KEY_SIZE, &temp.friendrequest_nospam, sizeof(uint32_t));
             uint16_t checksum = address_checksum(address, FRIEND_ADDRESS_SIZE - sizeof(checksum));
             memcpy(address + CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t), &checksum, sizeof(checksum));
@@ -3336,7 +3340,7 @@ non_null()
 static State_Load_Status load_tcp_relays(Messenger *m, const uint8_t *data, uint32_t length)
 {
     if (length > 0) {
-        const int num = unpack_nodes(m->loaded_relays, NUM_SAVED_TCP_RELAYS, nullptr, data, length, 1);
+        const int num = unpack_nodes(m->loaded_relays, NUM_SAVED_TCP_RELAYS, nullptr, data, length, true);
 
         if (num == -1) {
             m->num_loaded_relays = 0;
@@ -3382,7 +3386,7 @@ static State_Load_Status load_path_nodes(Messenger *m, const uint8_t *data, uint
     Node_format nodes[NUM_SAVED_PATH_NODES];
 
     if (length > 0) {
-        const int num = unpack_nodes(nodes, NUM_SAVED_PATH_NODES, nullptr, data, length, 0);
+        const int num = unpack_nodes(nodes, NUM_SAVED_PATH_NODES, nullptr, data, length, false);
 
         if (num == -1) {
             return STATE_LOAD_STATUS_CONTINUE;
@@ -3604,8 +3608,8 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
 #endif /* VANILLA_NACL */
 
     m->onion = new_onion(m->log, m->mono_time, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht, m->group_announce);
-    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto, m->group_handler);
+    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht);
+    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
@@ -3613,10 +3617,6 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         kill_onion(m->onion);
         kill_onion_announce(m->onion_a);
         kill_onion_client(m->onion_c);
-#ifndef VANILLA_NACL
-        kill_dht_groupchats(m->group_handler);
-        kill_gca(m->group_announce);
-#endif /* VANILLA_NACL */
         kill_net_crypto(m->net_crypto);
         kill_dht(m->dht);
         kill_networking(m->net);
@@ -3635,10 +3635,6 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
             kill_onion(m->onion);
             kill_onion_announce(m->onion_a);
             kill_onion_client(m->onion_c);
-#ifndef VANILLA_NACL
-            kill_dht_groupchats(m->group_handler);
-            kill_gca(m->group_announce);
-#endif /* VANILLA_NACL */
             kill_net_crypto(m->net_crypto);
             kill_dht(m->dht);
             kill_networking(m->net);
@@ -3689,10 +3685,6 @@ void kill_messenger(Messenger *m)
     kill_onion(m->onion);
     kill_onion_announce(m->onion_a);
     kill_onion_client(m->onion_c);
-#ifndef VANILLA_NACL
-    kill_dht_groupchats(m->group_handler);
-    kill_gca(m->group_announce);
-#endif /* VANILLA_NACL */
     kill_net_crypto(m->net_crypto);
     kill_dht(m->dht);
     kill_networking(m->net);

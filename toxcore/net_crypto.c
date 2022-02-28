@@ -415,7 +415,7 @@ static int tcp_oob_handle_cookie_request(const Net_Crypto *c, unsigned int tcp_c
         return -1;
     }
 
-    if (public_key_cmp(dht_public_key, dht_public_key_temp) != 0) {
+    if (!pk_equal(dht_public_key, dht_public_key_temp)) {
         return -1;
     }
 
@@ -514,25 +514,25 @@ static int create_crypto_handshake(const Net_Crypto *c, uint8_t *packet, const u
  * peer_real_pk must be at least CRYPTO_PUBLIC_KEY_SIZE
  * cookie must be at least COOKIE_LENGTH
  *
- * return -1 on failure.
- * return 0 on success.
+ * return false on failure.
+ * return true on success.
  */
 non_null(1, 2, 3, 4, 5, 6, 7) nullable(9)
-static int handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t *session_pk, uint8_t *peer_real_pk,
-                                   uint8_t *dht_public_key, uint8_t *cookie, const uint8_t *packet, uint16_t length, const uint8_t *expected_real_pk)
+static bool handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t *session_pk, uint8_t *peer_real_pk,
+                                    uint8_t *dht_public_key, uint8_t *cookie, const uint8_t *packet, uint16_t length, const uint8_t *expected_real_pk)
 {
     if (length != HANDSHAKE_PACKET_LENGTH) {
-        return -1;
+        return false;
     }
 
     uint8_t cookie_plain[COOKIE_DATA_LENGTH];
 
     if (open_cookie(c->mono_time, cookie_plain, packet + 1, c->secret_symmetric_key) != 0) {
-        return -1;
+        return false;
     }
 
-    if (expected_real_pk != nullptr && public_key_cmp(cookie_plain, expected_real_pk) != 0) {
-        return -1;
+    if (expected_real_pk != nullptr && !pk_equal(cookie_plain, expected_real_pk)) {
+        return false;
     }
 
     uint8_t cookie_hash[CRYPTO_SHA512_SIZE];
@@ -544,11 +544,11 @@ static int handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t 
                            HANDSHAKE_PACKET_LENGTH - (1 + COOKIE_LENGTH + CRYPTO_NONCE_SIZE), plain);
 
     if (len != sizeof(plain)) {
-        return -1;
+        return false;
     }
 
-    if (crypto_sha512_cmp(cookie_hash, plain + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE) != 0) {
-        return -1;
+    if (!crypto_sha512_eq(cookie_hash, plain + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE)) {
+        return false;
     }
 
     memcpy(nonce, plain, CRYPTO_NONCE_SIZE);
@@ -556,7 +556,7 @@ static int handle_crypto_handshake(const Net_Crypto *c, uint8_t *nonce, uint8_t 
     memcpy(cookie, plain + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA512_SIZE, COOKIE_LENGTH);
     memcpy(peer_real_pk, cookie_plain, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(dht_public_key, cookie_plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
-    return 0;
+    return true;
 }
 
 
@@ -627,15 +627,15 @@ static IP_Port return_ip_port_connection(const Net_Crypto *c, int crypt_connecti
     }
 
     const uint64_t current_time = mono_time_get(c->mono_time);
-    bool v6 = 0;
-    bool v4 = 0;
+    bool v6 = false;
+    bool v4 = false;
 
     if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev4) > current_time) {
-        v4 = 1;
+        v4 = true;
     }
 
     if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev6) > current_time) {
-        v6 = 1;
+        v6 = true;
     }
 
     /* Prefer IP_Ports which haven't timed out to those which have.
@@ -1514,7 +1514,7 @@ static void connection_kill(Net_Crypto *c, int crypt_connection_id, void *userda
                 false, userdata);
     }
 
-    while (1) { /* TODO(irungentoo): is this really the best way to do this? */
+    while (true) { /* TODO(irungentoo): is this really the best way to do this? */
         pthread_mutex_lock(&c->connections_mutex);
 
         if (c->connection_use_counter == 0) {
@@ -1629,7 +1629,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
             return -1;
         }
 
-        while (1) {
+        while (true) {
             pthread_mutex_lock(conn->mutex);
             const int ret = read_data_beg_buffer(&conn->recv_array, &dt);
             pthread_mutex_unlock(conn->mutex);
@@ -1728,12 +1728,12 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t cookie[COOKIE_LENGTH];
 
-    if (handle_crypto_handshake(c, conn->recv_nonce, conn->peersessionpublic_key, peer_real_pk, dht_public_key, cookie,
-                                packet, length, conn->public_key) != 0) {
+    if (!handle_crypto_handshake(c, conn->recv_nonce, conn->peersessionpublic_key, peer_real_pk, dht_public_key, cookie,
+                                 packet, length, conn->public_key)) {
         return -1;
     }
 
-    if (public_key_cmp(dht_public_key, conn->dht_public_key) == 0) {
+    if (pk_equal(dht_public_key, conn->dht_public_key)) {
         encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key);
 
         if (conn->status == CRYPTO_CONN_COOKIE_REQUESTING) {
@@ -1831,7 +1831,7 @@ static int realloc_cryptoconnection(Net_Crypto *c, uint32_t num)
 non_null()
 static int create_crypto_connection(Net_Crypto *c)
 {
-    while (1) { /* TODO(irungentoo): is this really the best way to do this? */
+    while (true) { /* TODO(irungentoo): is this really the best way to do this? */
         pthread_mutex_lock(&c->connections_mutex);
 
         if (c->connection_use_counter == 0) {
@@ -1941,7 +1941,7 @@ static int getcryptconnection_id(const Net_Crypto *c, const uint8_t *public_key)
             continue;
         }
 
-        if (public_key_cmp(public_key, c->crypto_connections[i].public_key) == 0) {
+        if (pk_equal(public_key, c->crypto_connections[i].public_key)) {
             return i;
         }
     }
@@ -2021,8 +2021,8 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
     n_c.source = *source;
     n_c.cookie_length = COOKIE_LENGTH;
 
-    if (handle_crypto_handshake(c, n_c.recv_nonce, n_c.peersessionpublic_key, n_c.public_key, n_c.dht_public_key,
-                                n_c.cookie, data, length, nullptr) != 0) {
+    if (!handle_crypto_handshake(c, n_c.recv_nonce, n_c.peersessionpublic_key, n_c.public_key, n_c.dht_public_key,
+                                 n_c.cookie, data, length, nullptr)) {
         free(n_c.cookie);
         return -1;
     }
@@ -2036,7 +2036,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
             return -1;
         }
 
-        if (public_key_cmp(n_c.dht_public_key, conn->dht_public_key) != 0) {
+        if (!pk_equal(n_c.dht_public_key, conn->dht_public_key)) {
             connection_kill(c, crypt_connection_id, userdata);
         } else {
             if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING && conn->status != CRYPTO_CONN_HANDSHAKE_SENT) {
@@ -2238,7 +2238,7 @@ static int tcp_data_callback(void *object, int crypt_connection_id, const uint8_
     // This unlocks the mutex that at this point is locked by do_tcp before
     // calling do_tcp_connections.
     pthread_mutex_unlock(&c->tcp_mutex);
-    const int ret = handle_packet_connection(c, crypt_connection_id, data, length, 0, userdata);
+    const int ret = handle_packet_connection(c, crypt_connection_id, data, length, false, userdata);
     pthread_mutex_lock(&c->tcp_mutex);
 
     if (ret != 0) {
@@ -2546,7 +2546,7 @@ static int udp_handle_packet(void *object, const IP_Port *source, const uint8_t 
         return 0;
     }
 
-    if (handle_packet_connection(c, crypt_connection_id, packet, length, 1, userdata) != 0) {
+    if (handle_packet_connection(c, crypt_connection_id, packet, length, true, userdata) != 0) {
         return 1;
     }
 
@@ -2673,7 +2673,7 @@ static void send_crypto_packets(Net_Crypto *c)
                 conn->last_sendqueue_counter = (conn->last_sendqueue_counter + 1) %
                                                (CONGESTION_QUEUE_ARRAY_SIZE * CONGESTION_LAST_SENT_ARRAY_SIZE);
 
-                bool direct_connected = 0;
+                bool direct_connected = false;
                 /* return value can be ignored since the `if` above ensures the connection is established */
                 crypto_connection_status(c, i, &direct_connected, nullptr);
 
@@ -2809,7 +2809,7 @@ static void send_crypto_packets(Net_Crypto *c)
     }
 
     if (total_send_rate > CRYPTO_PACKET_MIN_RATE) {
-        sleep_time = (1000.0 / total_send_rate);
+        sleep_time = 1000.0 / total_send_rate;
 
         if (c->current_sleep_time > sleep_time) {
             c->current_sleep_time = sleep_time + 1;
@@ -3020,14 +3020,14 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
     }
 
     if (direct_connected != nullptr) {
-        *direct_connected = 0;
+        *direct_connected = false;
 
         const uint64_t current_time = mono_time_get(c->mono_time);
 
         if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev4) > current_time) {
-            *direct_connected = 1;
+            *direct_connected = true;
         } else if ((UDP_DIRECT_TIMEOUT + conn->direct_lastrecv_timev6) > current_time) {
-            *direct_connected = 1;
+            *direct_connected = true;
         }
     }
 

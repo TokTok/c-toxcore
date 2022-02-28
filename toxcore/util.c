@@ -13,7 +13,6 @@
 
 #include "util.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -123,6 +122,11 @@ int create_recursive_mutex(pthread_mutex_t *mutex)
     pthread_mutexattr_destroy(&attr);
 
     return 0;
+}
+
+bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t b_size)
+{
+    return a_size == b_size && memcmp(a, b, a_size) == 0;
 }
 
 int16_t max_s16(int16_t a, int16_t b)
