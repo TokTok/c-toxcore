@@ -33,13 +33,6 @@
 #define MOD_MAX_NUM_MODERATORS (((49900) / (MOD_LIST_ENTRY_SIZE)))
 #define MOD_MAX_NUM_SANCTIONS  (((49900 - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE)))
 
-static_assert(MOD_SANCTIONS_CREDS_SIZE <= 49900,
-              "MOD_SANCTIONS_CREDS_SIZE must be <= 49900");
-static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= 49900,
-              "MOD_MAX_NUM_SANCTIONS must be abel to fit inside the maximum allowed payload size)");
-static_assert(MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE <= 49900,
-              "MOD_MAX_NUM_MODERATORS must be able to fit insize the maximum allowed payload size)");
-
 typedef enum Mod_Sanction_Type {
     SA_OBSERVER = 0x00,
     SA_INVALID  = 0x01,

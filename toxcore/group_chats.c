@@ -89,6 +89,22 @@
 /* How long before we stop trying to reconnect with a timed out peer */
 #define GC_TIMED_OUT_STALE_TIMEOUT (60 * 15)
 
+static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
+              "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
+
+static_assert(MAX_GC_PACKET_CHUNK_SIZE < MAX_GC_PACKET_SIZE,
+              "MAX_GC_PACKET_CHUNK_SIZE must be < MAX_GC_PACKET_SIZE");
+
+// size of a lossless handshake packet - lossless packets can't/shouldn't be split up
+static_assert(MAX_GC_PACKET_CHUNK_SIZE >= 171,
+              "MAX_GC_PACKET_CHUNK_SIZE must be >= 171");
+
+// group_moderation constants assume this is the max packet size.
+static_assert(MAX_GC_PACKET_SIZE >= 50000,
+              "MAX_GC_PACKET_SIZE doesn't match constants in group_moderation.h");
+
+static_assert(MAX_GC_PACKET_SIZE <= UINT16_MAX - MAX_GC_PACKET_CHUNK_SIZE,
+              "MAX_GC_PACKET_SIZE must be <= UINT16_MAX - MAX_GC_PACKET_CHUNK_SIZE");
 
 /** Types of broadcast messages. */
 typedef enum Group_Message_Type {

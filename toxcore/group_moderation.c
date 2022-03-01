@@ -24,6 +24,13 @@
 
 #ifndef VANILLA_NACL
 
+static_assert(MOD_SANCTIONS_CREDS_SIZE <= 49900,
+              "MOD_SANCTIONS_CREDS_SIZE must be <= 49900");
+static_assert(MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE + MOD_SANCTIONS_CREDS_SIZE <= 49900,
+              "MOD_MAX_NUM_SANCTIONS must be abel to fit inside the maximum allowed payload size)");
+static_assert(MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE <= 49900,
+              "MOD_MAX_NUM_MODERATORS must be able to fit insize the maximum allowed payload size)");
+
 int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length, uint16_t num_mods)
 {
     if (length < num_mods * MOD_LIST_ENTRY_SIZE || num_mods > MOD_MAX_NUM_MODERATORS) {
