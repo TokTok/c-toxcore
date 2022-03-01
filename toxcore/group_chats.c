@@ -873,7 +873,7 @@ non_null() static bool broadcast_gc_shared_state(const GC_Chat *chat);
 non_null() static bool update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_pk,
-                                            const uint8_t *sanction_data, uint16_t length, bool add_obs);
+        const uint8_t *sanction_data, uint16_t length, bool add_obs);
 
 /** Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 non_null()
@@ -1620,7 +1620,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
         return false;
     }
 
-    const IP_Port *ip_port = announce.ip_port_is_set == 1 ? &announce.ip_port : nullptr;
+    const IP_Port *ip_port = announce.ip_port_is_set ? &announce.ip_port : nullptr;
     const int new_peer_number = peer_add(chat, ip_port, announce.peer_public_key);
 
     if (new_peer_number == -1) {
@@ -1655,7 +1655,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
             }
         }
 
-        if (announce.ip_port_is_set == 0 && added_tcp_relays == 0) {
+        if (!announce.ip_port_is_set && added_tcp_relays == 0) {
             gcc_mark_for_deletion(new_gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
             LOGGER_WARNING(chat->log, "Sync error: Invalid peer connection info");
             return false;

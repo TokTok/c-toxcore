@@ -1,3 +1,4 @@
+
 /* SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2020 The TokTok team.
  * Copyright © 2015 Tox project.
@@ -123,13 +124,13 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
     memcpy(data + offset, announce->peer_public_key, ENC_PUBLIC_KEY_SIZE);
     offset += ENC_PUBLIC_KEY_SIZE;
 
-    data[offset] = announce->ip_port_is_set;
+    data[offset] = announce->ip_port_is_set ? 1 : 0;
     ++offset;
 
     data[offset] = announce->tcp_relays_count;
     ++offset;
 
-    if (announce->ip_port_is_set == 1) {
+    if (announce->ip_port_is_set) {
         const int ip_port_length = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
@@ -179,7 +180,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     memcpy(announce->peer_public_key, data + offset, ENC_PUBLIC_KEY_SIZE);
     offset += ENC_PUBLIC_KEY_SIZE;
 
-    announce->ip_port_is_set = data[offset];
+    announce->ip_port_is_set = data[offset] == 1;
     ++offset;
 
     announce->tcp_relays_count = data[offset];
@@ -189,7 +190,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
         return -1;
     }
 
-    if (announce->ip_port_is_set == 1) {
+    if (announce->ip_port_is_set) {
         const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
 
         if (ip_port_length == -1) {
@@ -379,7 +380,7 @@ bool gca_is_valid_announce(const GC_Announce *announce)
         return false;
     }
 
-    return announce->tcp_relays_count > 0 || announce->ip_port_is_set == 1;
+    return announce->tcp_relays_count > 0 || announce->ip_port_is_set;
 }
 
 GC_Announces_List *new_gca_list(void)

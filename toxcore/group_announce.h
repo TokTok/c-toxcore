@@ -38,7 +38,7 @@ typedef struct GC_Public_Announce GC_Public_Announce;
 struct GC_Announce {
     Node_format tcp_relays[GCA_MAX_ANNOUNCED_TCP_RELAYS];
     uint8_t tcp_relays_count;
-    uint8_t ip_port_is_set;
+    bool ip_port_is_set;
     IP_Port ip_port;
     uint8_t peer_public_key[ENC_PUBLIC_KEY_SIZE];
 };
