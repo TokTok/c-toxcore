@@ -299,15 +299,6 @@ void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(Au
 
     ck_assert(autotoxes != nullptr);
 
-    bool own_options = false;
-    if (options == nullptr) {
-        own_options = true;
-        options = tox_options_new(nullptr);
-        ck_assert(options != nullptr);
-        // Default LAN-discovery to false to prevent tests from interfering with each other.
-        tox_options_set_local_discovery_enabled(options, false);
-    }
-
     for (uint32_t i = 0; i < tox_count; ++i) {
         initialise_autotox(options, &autotoxes[i], i, state_size, autotest_opts);
     }
@@ -334,10 +325,6 @@ void run_auto_test(struct Tox_Options *options, uint32_t tox_count, void test(Au
         tox_kill(autotoxes[i].tox);
         free(autotoxes[i].state);
         free(autotoxes[i].save_state);
-    }
-
-    if (own_options) {
-        tox_options_free(options);
     }
 
     free(autotoxes);
@@ -407,5 +394,20 @@ Tox *tox_new_log_lan(struct Tox_Options *options, Tox_Err_New *err, void *log_us
 
 Tox *tox_new_log(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data)
 {
-    return tox_new_log_lan(options, err, log_user_data, false);
+    bool own_options = false;
+    if (options == nullptr) {
+        own_options = true;
+        options = tox_options_new(nullptr);
+        ck_assert(options != nullptr);
+        // Default LAN-discovery to false to prevent tests from interfering with each other.
+        tox_options_set_local_discovery_enabled(options, false);
+    }
+
+    Tox *const tox = tox_new_log_lan(options, err, log_user_data, false);
+
+    if (own_options) {
+        tox_options_free(options);
+    }
+
+    return tox;
 }
