@@ -12,15 +12,11 @@ namespace {
 using PublicKey = std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;
 using SecretKey = std::array<uint8_t, CRYPTO_SECRET_KEY_SIZE>;
 
-struct KeyPair
-{
+struct KeyPair {
     PublicKey pk;
     SecretKey sk;
 
-    KeyPair()
-    {
-        crypto_new_keypair(pk.data(), sk.data());
-    }
+    KeyPair() { crypto_new_keypair(pk.data(), sk.data()); }
 };
 
 template <typename T, size_t N>
@@ -145,8 +141,9 @@ TEST(Request, CreateAndParse)
     std::vector<uint8_t> outgoing(919);
     random_bytes(outgoing.data(), outgoing.size());
 
-    EXPECT_LT(create_request(sender.pk.data(), sender.sk.data(), packet.data(),
-        receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id), 0);
+    EXPECT_LT(create_request(sender.pk.data(), sender.sk.data(), packet.data(), receiver.pk.data(),
+                  outgoing.data(), outgoing.size(), sent_pkt_id),
+        0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
@@ -156,14 +153,15 @@ TEST(Request, CreateAndParse)
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
-    EXPECT_LT(handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(),
-        incoming.data(), &recvd_pkt_id, packet.data(), max_sent_length + 1), 0);
+    EXPECT_LT(handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(), incoming.data(),
+                  &recvd_pkt_id, packet.data(), max_sent_length + 1),
+        0);
 
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
         const int sent_length = create_request(sender.pk.data(), sender.sk.data(), packet.data(),
-                receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+            receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:
@@ -171,7 +169,8 @@ TEST(Request, CreateAndParse)
             incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
         ASSERT_GE(recvd_length, 0);
 
-        EXPECT_EQ(std::vector<uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
+        EXPECT_EQ(
+            std::vector<uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
 
         outgoing.pop_back();
     }
