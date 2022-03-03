@@ -36,7 +36,7 @@ typedef struct Onion_Node {
 
     uint64_t    last_pinged;
 
-    uint8_t     unsuccessful_pings;
+    uint8_t     pings_since_last_response;
 
     uint32_t    path_used;
 } Onion_Node;
@@ -73,6 +73,11 @@ struct Onion_Friend {
     uint64_t last_noreplay;
 
     uint64_t last_seen;
+    uint64_t last_populated;  // the last time we had a fully populated client nodes list
+    uint64_t time_last_pinged; // the last time we pinged this friend with any node
+
+    uint32_t run_count;
+    uint32_t pings;  // how many sucessful pings we've made for this friend
 
     Last_Pinged last_pinged[MAX_STORED_PINGED_NODES];
     uint8_t last_pinged_index;
@@ -84,8 +89,6 @@ struct Onion_Friend {
     onion_dht_pk_cb *dht_pk_callback;
     void *dht_pk_callback_object;
     uint32_t dht_pk_callback_number;
-
-    uint32_t run_count;
 
     uint8_t  gc_data[GCA_MAX_DATA_LENGTH];
     uint8_t  gc_public_key[ENC_PUBLIC_KEY_SIZE];
@@ -136,6 +139,7 @@ struct Onion_Client {
     Onion_Data_Handler onion_data_handlers[256];
 
     uint64_t last_packet_recv;
+    uint64_t last_populated;  // the last time we had a fully populated path nodes list
 
     unsigned int onion_connected;
     bool udp_connected;
@@ -394,7 +398,7 @@ non_null()
 static bool onion_node_timed_out(const Onion_Node *node, const Mono_Time *mono_time)
 {
     return (node->timestamp == 0
-            || (node->unsuccessful_pings >= ONION_NODE_MAX_PINGS
+            || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
                 && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT)));
 }
 
@@ -810,7 +814,7 @@ static int client_add_to_list(Onion_Client *onion_c, uint32_t num, const uint8_t
 
     node_list[index].is_stored = is_stored;
     node_list[index].timestamp = mono_time_get(onion_c->mono_time);
-    node_list[index].unsuccessful_pings = 0;
+    node_list[index].pings_since_last_response = 0;
 
     if (!stored) {
         node_list[index].last_pinged = 0;
@@ -1185,7 +1189,7 @@ static int handle_dhtpk_announce(void *object, const uint8_t *source_pubkey, con
     if (len_nodes != 0) {
         Node_format nodes[MAX_SENT_NODES];
         const int num_nodes = unpack_nodes(nodes, MAX_SENT_NODES, nullptr, data + 1 + sizeof(uint64_t) + CRYPTO_PUBLIC_KEY_SIZE,
-                                     len_nodes, true);
+                                           len_nodes, true);
 
         if (num_nodes <= 0) {
             return 1;
@@ -1378,9 +1382,9 @@ static int handle_dht_dhtpk(void *object, const IP_Port *source, const uint8_t *
 
     uint8_t plain[DHTPK_DATA_MAX_LENGTH];
     const int len = decrypt_data(packet, nc_get_self_secret_key(onion_c->c),
-                           packet + CRYPTO_PUBLIC_KEY_SIZE,
-                           packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
-                           length - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE), plain);
+                                 packet + CRYPTO_PUBLIC_KEY_SIZE,
+                                 packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                                 length - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE), plain);
 
     if (len != length - (DATA_IN_RESPONSE_MIN_SIZE + CRYPTO_NONCE_SIZE)) {
         return 1;
@@ -1709,34 +1713,41 @@ int onion_set_friend_online(Onion_Client *onion_c, int friend_num, bool is_onlin
 non_null()
 static void populate_path_nodes(Onion_Client *onion_c)
 {
-    Node_format nodes_list[MAX_FRIEND_CLIENTS];
+    Node_format node_list[MAX_FRIEND_CLIENTS];
 
-    const unsigned int num_nodes = randfriends_nodes(onion_c->dht, nodes_list, MAX_FRIEND_CLIENTS);
+    const unsigned int num_nodes = randfriends_nodes(onion_c->dht, node_list, MAX_FRIEND_CLIENTS);
 
     for (unsigned int i = 0; i < num_nodes; ++i) {
-        onion_add_path_node(onion_c, &nodes_list[i].ip_port, nodes_list[i].public_key);
+        onion_add_path_node(onion_c, &node_list[i].ip_port, node_list[i].public_key);
     }
 }
 
 non_null()
 static void populate_path_nodes_tcp(Onion_Client *onion_c)
 {
-    Node_format nodes_list[MAX_SENT_NODES];
+    Node_format node_list[MAX_SENT_NODES];
 
-    const unsigned int num_nodes = copy_connected_tcp_relays(onion_c->c, nodes_list, MAX_SENT_NODES);
+    const unsigned int num_nodes = copy_connected_tcp_relays(onion_c->c, node_list, MAX_SENT_NODES);
 
     for (unsigned int i = 0; i < num_nodes; ++i) {
-        onion_add_bs_path_node(onion_c, &nodes_list[i].ip_port, nodes_list[i].public_key);
+        onion_add_bs_path_node(onion_c, &node_list[i].ip_port, node_list[i].public_key);
     }
 }
 
-#define ANNOUNCE_FRIEND (ONION_NODE_PING_INTERVAL * 6)
-#define ANNOUNCE_FRIEND_BEGINNING 3
+/* How often we ping new friends per node */
+#define ANNOUNCE_FRIEND_NEW_INTERVAL 3
 
-#define RUN_COUNT_FRIEND_ANNOUNCE_BEGINNING 17
+/* How long we consider a friend new based on the value of their run_count */
+#define ANNOUNCE_FRIEND_RUN_COUNT_BEGINNING 5
 
-#define ONION_FRIEND_BACKOFF_FACTOR 4
-#define ONION_FRIEND_MAX_PING_INTERVAL (uint64_t)(5*60*MAX_ONION_CLIENTS)
+/* How often we try to re-populate the nodes lists if we don't meet a minimum threshhold of nodes */
+#define ANNOUNCE_POPULATE_TIMEOUT (60 * 10)
+
+/* The max time between lookup requests for a friend per node */
+#define ANNOUNCE_FRIEND_MAX_INTERVAL (60 * 60)
+
+/* Max exponent when calculating the announce request interval */
+#define MAX_RUN_COUNT_EXPONENT 12
 
 non_null()
 static void do_friend(Onion_Client *onion_c, uint16_t friendnum)
@@ -1745,112 +1756,119 @@ static void do_friend(Onion_Client *onion_c, uint16_t friendnum)
         return;
     }
 
-    if (!onion_c->friends_list[friendnum].is_valid) {
+    Onion_Friend *o_friend = &onion_c->friends_list[friendnum];
+
+    if (!o_friend->is_valid) {
         return;
     }
 
-    unsigned int interval = ANNOUNCE_FRIEND;
+    uint32_t interval;
+    const uint64_t tm = mono_time_get(onion_c->mono_time);
+    const bool friend_is_new = o_friend->run_count <= ANNOUNCE_FRIEND_RUN_COUNT_BEGINNING;
 
-    if (onion_c->friends_list[friendnum].run_count < RUN_COUNT_FRIEND_ANNOUNCE_BEGINNING) {
-        interval = ANNOUNCE_FRIEND_BEGINNING;
+    if (!friend_is_new) {
+        if (o_friend->last_seen == 0) {
+            o_friend->last_seen = tm;
+        }
+
+        // how often we ping a node for a friend depends on how many times we've already tried.
+        // the interval increases exponentially, as the longer a friend has been offline, the less
+        // likely the case is that they're online and failed to find us
+        const uint32_t c = 1 << min_u32(MAX_RUN_COUNT_EXPONENT, o_friend->run_count - 2);
+        interval = min_u32(c, ANNOUNCE_FRIEND_MAX_INTERVAL);
     } else {
-        if (onion_c->friends_list[friendnum].last_seen == 0) {
-            onion_c->friends_list[friendnum].last_seen = mono_time_get(onion_c->mono_time);
-        }
+        interval = ANNOUNCE_FRIEND_NEW_INTERVAL;
+    }
 
-        uint64_t backoff_interval = (mono_time_get(onion_c->mono_time) -
-                                     onion_c->friends_list[friendnum].last_seen)
-                                    / ONION_FRIEND_BACKOFF_FACTOR;
+    if (o_friend->is_online) {
+        return;
+    }
 
-        if (backoff_interval > ONION_FRIEND_MAX_PING_INTERVAL) {
-            backoff_interval = ONION_FRIEND_MAX_PING_INTERVAL;
-        }
+    assert(interval >= ANNOUNCE_FRIEND_NEW_INTERVAL); // an int overflow would be devastating
 
-        if (interval < backoff_interval) {
-            interval = backoff_interval;
+    /* send packets to friend telling them our DHT public key. */
+    if (mono_time_is_timeout(onion_c->mono_time, onion_c->friends_list[friendnum].last_dht_pk_onion_sent,
+                             ONION_DHTPK_SEND_INTERVAL)) {
+        if (send_dhtpk_announce(onion_c, friendnum, 0) >= 1) {
+            onion_c->friends_list[friendnum].last_dht_pk_onion_sent = tm;
         }
     }
 
-    if (!onion_c->friends_list[friendnum].is_online) {
-        unsigned int count = 0;
-        Onion_Node *node_list = onion_c->friends_list[friendnum].clients_list;
+    if (mono_time_is_timeout(onion_c->mono_time, onion_c->friends_list[friendnum].last_dht_pk_dht_sent,
+                             DHT_DHTPK_SEND_INTERVAL)) {
+        if (send_dhtpk_announce(onion_c, friendnum, 1) >= 1) {
+            onion_c->friends_list[friendnum].last_dht_pk_dht_sent = tm;
+        }
+    }
 
-        // ensure we get a response from some node roughly once per
-        // (interval / MAX_ONION_CLIENTS)
-        bool ping_random = true;
+    uint16_t count = 0;  // number of alive path nodes
 
-        for (unsigned i = 0; i < MAX_ONION_CLIENTS; ++i) {
-            if (!(mono_time_is_timeout(onion_c->mono_time, node_list[i].timestamp, interval / MAX_ONION_CLIENTS)
-                    && mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, ONION_NODE_PING_INTERVAL))) {
-                ping_random = false;
-                break;
-            }
+    Onion_Node *node_list = o_friend->clients_list;
+
+    for (unsigned i = 0; i < MAX_ONION_CLIENTS; ++i) {
+        if (onion_node_timed_out(&node_list[i], onion_c->mono_time)) {
+            continue;
         }
 
-        for (unsigned i = 0; i < MAX_ONION_CLIENTS; ++i) {
-            if (onion_node_timed_out(&node_list[i], onion_c->mono_time)) {
-                continue;
-            }
+        ++count;
 
-            ++count;
-
-
-            if (node_list[i].last_pinged == 0) {
-                node_list[i].last_pinged = mono_time_get(onion_c->mono_time);
-                continue;
-            }
-
-            if (node_list[i].unsuccessful_pings >= ONION_NODE_MAX_PINGS) {
-                continue;
-            }
-
-            if (mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, interval)
-                    || (ping_random && random_range_u32(MAX_ONION_CLIENTS - i) == 0)) {
-                if (client_send_announce_request(onion_c, friendnum + 1, &node_list[i].ip_port,
-                                                 node_list[i].public_key, nullptr, -1) == 0) {
-                    node_list[i].last_pinged = mono_time_get(onion_c->mono_time);
-                    ++node_list[i].unsuccessful_pings;
-                    ping_random = false;
-                }
-            }
+        // we don't want new nodes to be pinged immediately
+        if (node_list[i].last_pinged == 0) {
+            node_list[i].last_pinged = tm;
+            continue;
         }
 
-        if (count != MAX_ONION_CLIENTS) {
-            const uint16_t num_nodes = min_u16(onion_c->path_nodes_index, MAX_PATH_NODES);
-            uint16_t n = num_nodes;
-
-            if (num_nodes > (MAX_ONION_CLIENTS / 2)) {
-                n = MAX_ONION_CLIENTS / 2;
-            }
-
-            if (count <= random_range_u32(MAX_ONION_CLIENTS)) {
-                if (num_nodes != 0) {
-                    for (unsigned int j = 0; j < n; ++j) {
-                        const uint32_t num = random_range_u32(num_nodes);
-                        client_send_announce_request(onion_c, friendnum + 1, &onion_c->path_nodes[num].ip_port,
-                                                     onion_c->path_nodes[num].public_key, nullptr, -1);
-                    }
-
-                    ++onion_c->friends_list[friendnum].run_count;
-                }
-            }
-        } else {
-            ++onion_c->friends_list[friendnum].run_count;
+        // node hasn't responded in a while so we skip it
+        if (node_list[i].pings_since_last_response >= ONION_NODE_MAX_PINGS) {
+            continue;
         }
 
-        /* send packets to friend telling them our DHT public key. */
-        if (mono_time_is_timeout(onion_c->mono_time, onion_c->friends_list[friendnum].last_dht_pk_onion_sent,
-                                 ONION_DHTPK_SEND_INTERVAL)) {
-            if (send_dhtpk_announce(onion_c, friendnum, 0) >= 1) {
-                onion_c->friends_list[friendnum].last_dht_pk_onion_sent = mono_time_get(onion_c->mono_time);
-            }
+        // space requests out between nodes
+        if (!mono_time_is_timeout(onion_c->mono_time, o_friend->time_last_pinged, interval / (MAX_ONION_CLIENTS / 2))) {
+            continue;
         }
 
-        if (mono_time_is_timeout(onion_c->mono_time, onion_c->friends_list[friendnum].last_dht_pk_dht_sent,
-                                 DHT_DHTPK_SEND_INTERVAL)) {
-            if (send_dhtpk_announce(onion_c, friendnum, 1) >= 1) {
-                onion_c->friends_list[friendnum].last_dht_pk_dht_sent = mono_time_get(onion_c->mono_time);
+        if (!mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, interval)) {
+            continue;
+        }
+
+        if (client_send_announce_request(onion_c, friendnum + 1, &node_list[i].ip_port,
+                                         node_list[i].public_key, nullptr, -1) == 0) {
+            node_list[i].last_pinged = tm;
+            o_friend->time_last_pinged = tm;
+            ++node_list[i].pings_since_last_response;
+            ++o_friend->pings;
+
+            if (o_friend->pings % (MAX_ONION_CLIENTS / 2) == 0) {
+                ++o_friend->run_count;
             }
+        }
+    }
+
+    if (count == MAX_ONION_CLIENTS) {
+        if (!friend_is_new) {
+            o_friend->last_populated = tm;
+        }
+
+        return;
+    }
+
+    // check if path nodes list for this friend needs to be repopulated
+    if (count <= MAX_ONION_CLIENTS / 2
+            || mono_time_is_timeout(onion_c->mono_time, o_friend->last_populated, ANNOUNCE_POPULATE_TIMEOUT)) {
+        const uint16_t num_nodes = min_u16(onion_c->path_nodes_index, MAX_PATH_NODES);
+        const uint16_t n = min_u16(num_nodes, MAX_PATH_NODES / 4);
+
+        if (n == 0) {
+            return;
+        }
+
+        o_friend->last_populated = tm;
+
+        for (uint16_t i = 0; i < n; ++i) {
+            const uint32_t num = random_range_u32(num_nodes);
+            client_send_announce_request(onion_c, friendnum + 1, &onion_c->path_nodes[num].ip_port,
+                                         onion_c->path_nodes[num].public_key, nullptr, -1);
         }
     }
 }
@@ -1888,14 +1906,15 @@ static void do_announce(Onion_Client *onion_c)
             continue;
         }
 
-        if (node_list[i].unsuccessful_pings >= ONION_NODE_MAX_PINGS) {
+        if (node_list[i].pings_since_last_response >= ONION_NODE_MAX_PINGS) {
             continue;
         }
 
 
         unsigned int interval = ANNOUNCE_INTERVAL_NOT_ANNOUNCED;
 
-        if (node_list[i].is_stored != 0 && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, node_list[i].path_used)) {
+        if (node_list[i].is_stored != 0
+                && path_exists(onion_c->mono_time, &onion_c->onion_paths_self, node_list[i].path_used)) {
             interval = ANNOUNCE_INTERVAL_ANNOUNCED;
 
             const uint32_t pathnum = node_list[i].path_used % NUMBER_ONION_PATHS;
@@ -1905,7 +1924,7 @@ static void do_announce(Onion_Client *onion_c)
              * and the latest packets sent to it are not timing out.
              */
             if (mono_time_is_timeout(onion_c->mono_time, node_list[i].added_time, TIME_TO_STABLE)
-                    && !(node_list[i].unsuccessful_pings > 0
+                    && !(node_list[i].pings_since_last_response > 0
                          && mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, ONION_NODE_TIMEOUT))
                     && mono_time_is_timeout(onion_c->mono_time, onion_c->onion_paths_self.path_creation_time[pathnum], TIME_TO_STABLE)
                     && !(onion_c->onion_paths_self.last_path_used_times[pathnum] > 0
@@ -1915,11 +1934,10 @@ static void do_announce(Onion_Client *onion_c)
         }
 
         if (mono_time_is_timeout(onion_c->mono_time, node_list[i].last_pinged, interval)
-                || (mono_time_is_timeout(onion_c->mono_time, onion_c->last_announce, ONION_NODE_PING_INTERVAL)
-                    && random_range_u32(MAX_ONION_CLIENTS_ANNOUNCE - i) == 0)) {
+                || mono_time_is_timeout(onion_c->mono_time, onion_c->last_announce, ONION_NODE_PING_INTERVAL)) {
             uint32_t path_to_use = node_list[i].path_used;
 
-            if (node_list[i].unsuccessful_pings == ONION_NODE_MAX_PINGS - 1
+            if (node_list[i].pings_since_last_response == ONION_NODE_MAX_PINGS - 1
                     && mono_time_is_timeout(onion_c->mono_time, node_list[i].added_time, TIME_TO_STABLE)) {
                 /* Last chance for a long-lived node - try a random path */
                 path_to_use = -1;
@@ -1928,17 +1946,24 @@ static void do_announce(Onion_Client *onion_c)
             if (client_send_announce_request(onion_c, 0, &node_list[i].ip_port, node_list[i].public_key,
                                              node_list[i].ping_id, path_to_use) == 0) {
                 node_list[i].last_pinged = mono_time_get(onion_c->mono_time);
-                ++node_list[i].unsuccessful_pings;
+                ++node_list[i].pings_since_last_response;
                 onion_c->last_announce = mono_time_get(onion_c->mono_time);
             }
         }
     }
 
-    if (count != MAX_ONION_CLIENTS_ANNOUNCE) {
+    if (count == MAX_ONION_CLIENTS_ANNOUNCE) {
+        onion_c->last_populated = mono_time_get(onion_c->mono_time);
+        return;
+    }
+
+    // check if list needs to be re-populated
+    if (count <= MAX_ONION_CLIENTS_ANNOUNCE / 2
+            || mono_time_is_timeout(onion_c->mono_time, onion_c->last_populated, ANNOUNCE_POPULATE_TIMEOUT)) {
         uint16_t num_nodes;
         const Node_format *path_nodes;
 
-        if (random_u08() % 2 == 0 || onion_c->path_nodes_index == 0) {
+        if (onion_c->path_nodes_index == 0) {
             num_nodes = min_u16(onion_c->path_nodes_index_bs, MAX_PATH_NODES);
             path_nodes = onion_c->path_nodes_bs;
         } else {
@@ -1946,13 +1971,13 @@ static void do_announce(Onion_Client *onion_c)
             path_nodes = onion_c->path_nodes;
         }
 
-        if (count <= random_range_u32(MAX_ONION_CLIENTS_ANNOUNCE)) {
-            if (num_nodes != 0) {
-                for (unsigned int i = 0; i < (MAX_ONION_CLIENTS_ANNOUNCE / 2); ++i) {
-                    const uint32_t num = random_range_u32(num_nodes);
-                    client_send_announce_request(onion_c, 0, &path_nodes[num].ip_port, path_nodes[num].public_key, nullptr, -1);
-                }
-            }
+        if (num_nodes == 0) {
+            return;
+        }
+
+        for (unsigned int i = 0; i < (MAX_ONION_CLIENTS_ANNOUNCE / 2); ++i) {
+            const uint32_t num = random_range_u32(num_nodes);
+            client_send_announce_request(onion_c, 0, &path_nodes[num].ip_port, path_nodes[num].public_key, nullptr, -1);
         }
     }
 }
@@ -1961,16 +1986,18 @@ static void do_announce(Onion_Client *onion_c)
  *  return true if we are.
  */
 non_null()
-static bool onion_isconnected(const Onion_Client *onion_c)
+static bool onion_isconnected(Onion_Client *onion_c)
 {
     unsigned int num = 0;
     unsigned int announced = 0;
 
     if (mono_time_is_timeout(onion_c->mono_time, onion_c->last_packet_recv, ONION_OFFLINE_TIMEOUT)) {
+        onion_c->last_populated = 0;
         return false;
     }
 
     if (onion_c->path_nodes_index == 0) {
+        onion_c->last_populated = 0;
         return false;
     }
 
@@ -1997,6 +2024,8 @@ static bool onion_isconnected(const Onion_Client *onion_c)
             return true;
         }
     }
+
+    onion_c->last_populated = 0;
 
     return false;
 }
