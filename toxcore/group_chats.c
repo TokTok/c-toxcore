@@ -6477,7 +6477,11 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     if (send == nullptr || recv == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for gconn buffers");
-        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+
+        if (tcp_connection_num != -1) {
+            kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        }
+
         free(send);
         free(recv);
         return -1;
@@ -6487,7 +6491,11 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     if (tmp_group == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for group realloc");
-        kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+
+        if (tcp_connection_num != -1) {
+            kill_tcp_connection_to(chat->tcp_conn, tcp_connection_num);
+        }
+
         free(send);
         free(recv);
         return -1;
