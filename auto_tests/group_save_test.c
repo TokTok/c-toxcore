@@ -239,6 +239,8 @@ static void group_save_test(AutoTox *autotoxes)
 
     struct Tox_Options *const options = tox_options_new(nullptr);
 
+    ck_assert(options != nullptr);
+
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     tox_options_set_savedata_data(options, save, save_length);
