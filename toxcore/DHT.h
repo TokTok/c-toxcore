@@ -59,31 +59,46 @@ extern "C" {
 #define CRYPTO_PACKET_DHTPK         156
 #define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
 
-/** Create a request to peer.
- * send_public_key and send_secret_key are the pub/secret keys of the sender.
- * recv_public_key is public key of receiver.
- * packet must be an array of MAX_CRYPTO_REQUEST_SIZE big.
- * Data represents the data we send with the request with length being the length of the data.
- * request_id is the id of the request (32 = friend request, 254 = ping request).
+/**
+ * @brief Create a request to peer.
  *
- * return -1 on failure.
- * return the length of the created packet on success.
+ * @param send_public_key public key of the sender.
+ * @param send_secret_key secret key of the sender.
+ * @param packet an array of @ref MAX_CRYPTO_REQUEST_SIZE big.
+ * @param recv_public_key public key of the receiver.
+ * @param data represents the data we send with the request.
+ * @param data_length the length of the data.
+ * @param request_id the id of the request (32 = friend request, 254 = ping request).
+ *
+ * @retval -1 on failure.
+ * @return the length of the created packet on success.
  */
 non_null()
 int create_request(
     const uint8_t *send_public_key, const uint8_t *send_secret_key, uint8_t *packet,
-    const uint8_t *recv_public_key, const uint8_t *data, uint32_t length, uint8_t request_id);
+    const uint8_t *recv_public_key, const uint8_t *data, uint32_t data_length, uint8_t request_id);
 
-/** Puts the senders public key in the request in public_key, the data from the request
- * in data if a friend or ping request was sent to us and returns the length of the data.
- * packet is the request packet and length is its length.
+/**
+ * @brief Decrypts and unpacks a DHT request packet.
  *
- *  return -1 if not valid request.
+ * Puts the senders public key in the request in @p public_key, the data from
+ * the request in @p data.
+ *
+ * @param[in] self_public_key public key of the receiver (us).
+ * @param[in] self_secret_key secret key of the receiver (us).
+ * @param[out] public_key public key of the sender, copied from the input packet.
+ * @param[out] data decrypted request data, copied from the input packet, must
+ *    have room for MAX_CRYPTO_REQUEST_SIZE bytes.
+ * @param[in] packet is the request packet.
+ * @param[in] packet_length length of the packet.
+ *
+ * @retval -1 if not valid request.
+ * @return the length of the unpacked data.
  */
 non_null()
 int handle_request(
     const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
-    uint8_t *request_id, const uint8_t *packet, uint16_t length);
+    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length);
 
 typedef struct IPPTs {
     IP_Port     ip_port;
