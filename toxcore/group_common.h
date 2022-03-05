@@ -21,12 +21,11 @@
 #define MAX_GC_TOPIC_SIZE 512
 #define MAX_GC_GROUP_NAME_SIZE 48
 #define MAX_GC_MESSAGE_SIZE 1372
-#define MAX_GC_PEER_ADDRS 30
 #define MAX_GC_PASSWORD_SIZE 32
-#define MAX_GC_SAVED_INVITES 50
+#define MAX_GC_SAVED_INVITES 10
 #define MAX_GC_PEERS_DEFAULT 100
 #define MAX_GC_SAVED_TIMEOUTS 12
-#define GC_MAX_SAVED_PEERS MAX_GC_PEER_ADDRS
+#define GC_MAX_SAVED_PEERS 100
 #define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
 
 /* Max size of a packet chunk. Packets larger than this must be split up. */
