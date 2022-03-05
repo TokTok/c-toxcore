@@ -8,6 +8,7 @@
  */
 #include "friend_connection.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,6 +40,7 @@ struct Friend_Conn {
     int onion_friendnum;
     int crypt_connection_id;
 
+    uint32_t ping_count;
     uint64_t ping_lastrecv;
     uint64_t ping_lastsent;
     uint64_t share_relays_lastsent;
@@ -210,6 +212,27 @@ int getfriend_conn_id_pk(const Friend_Connections *fr_c, const uint8_t *real_pk)
     }
 
     return -1;
+}
+
+/** @brief Attempts to set a friend connection's ip port to the ip port contained in `packed_ip_port`. */
+non_null()
+static void friend_set_ip_port(Friend_Connections *fr_c, int crypto_connection_id, const uint8_t *packed_ip_port,
+                               uint16_t length)
+{
+    const Networking_Core *net = dht_get_net(fr_c->dht);
+
+    if (net_family_is_unspec(net_family(net))) {  // we've disabled direct connections
+        return;
+    }
+
+    IP_Port ip_port;
+
+    if (unpack_ip_port(&ip_port, packed_ip_port, length, false) <= 0) {
+        LOGGER_WARNING(fr_c->logger, "Failed to unpack friend ip port for friendconn %d", crypto_connection_id);
+        return;
+    }
+
+    set_direct_ip_port(fr_c->net_crypto, crypto_connection_id, &ip_port, true);
 }
 
 /** Add a TCP relay associated to the friend.
@@ -485,6 +508,11 @@ static int handle_packet(void *object, int number, const uint8_t *data, uint16_t
 
     if (data[0] == PACKET_ID_ALIVE) {
         friend_con->ping_lastrecv = mono_time_get(fr_c->mono_time);
+
+        if (length > 1) {
+            friend_set_ip_port(fr_c, friend_con->crypt_connection_id, data + 1, length - 1);
+        }
+
         return 0;
     }
 
@@ -624,6 +652,57 @@ static int friend_new_connection(Friend_Connections *fr_c, int friendcon_id)
     return 0;
 }
 
+#define MAX_FRIEND_DIRECT_CONNECTION_ATTEMPTS 30
+
+/** @brief Makes a ping packet for a friend connection.
+ *
+ * If UDP is enabled and we do not have a direct connection established with this friend, we put
+ * our IP_Port in every second packet up to MAX_FRIEND_DIRECT_CONNECTION_ATTEMPTS times
+ * before giving up.
+ *
+ * @retval The length of the ping packet.
+ */
+non_null()
+static uint16_t make_ping_packet(const Friend_Connections *fr_c, Friend_Conn *friend_con, uint8_t *packet,
+                                 uint16_t packet_size)
+{
+    assert(packet_size >= 1 + SIZE_IPPORT);
+
+    packet[0] = PACKET_ID_ALIVE;
+
+    ++friend_con->ping_count;
+
+    if (friend_con->ping_count % 2 == 1 || friend_con->ping_count > MAX_FRIEND_DIRECT_CONNECTION_ATTEMPTS) {
+        return 1;
+    }
+
+    bool direct_connected = false;
+
+    if (!crypto_connection_status(fr_c->net_crypto, friend_con->crypt_connection_id, &direct_connected, nullptr)) {
+        LOGGER_ERROR(fr_c->logger, "Failed to fetch crypto connection status");
+        return 1;
+    }
+
+    if (direct_connected) {
+        return 1;
+    }
+
+    IP_Port self_ipp;
+
+    if (ipport_self_copy(fr_c->dht, &self_ipp) != 1) {
+        return 1;
+    }
+
+    const int len = pack_ip_port(fr_c->logger, packet + 1,  packet_size - 1, &self_ipp);
+
+    if (len <= 0) {
+        LOGGER_ERROR(fr_c->logger, "Failed to pack self ip_port");
+        return 1;
+    }
+
+    return 1 + len;
+}
+
 non_null()
 static int send_ping(const Friend_Connections *fr_c, int friendcon_id)
 {
@@ -633,8 +712,10 @@ static int send_ping(const Friend_Connections *fr_c, int friendcon_id)
         return -1;
     }
 
-    const uint8_t ping = PACKET_ID_ALIVE;
-    const int64_t ret = write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, &ping, sizeof(ping), false);
+    uint8_t ping[1 + SIZE_IPPORT];
+    const uint16_t length = make_ping_packet(fr_c, friend_con, ping, sizeof(ping));
+
+    const int64_t ret = write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, ping, length, false);
 
     if (ret != -1) {
         friend_con->ping_lastsent = mono_time_get(fr_c->mono_time);
@@ -877,7 +958,8 @@ int send_friend_request_packet(Friend_Connections *fr_c, int friendcon_id, uint3
 
     if (friend_con->status == FRIENDCONN_STATUS_CONNECTED) {
         packet[0] = PACKET_ID_FRIEND_REQUESTS;
-        return write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, packet, SIZEOF_VLA(packet), false) != -1 ? 1 : 0;
+        return write_cryptpacket(fr_c->net_crypto, friend_con->crypt_connection_id, packet, SIZEOF_VLA(packet),
+                                 false) != -1 ? 1 : 0;
     }
 
     packet[0] = CRYPTO_PACKET_FRIEND_REQ;
