@@ -1379,7 +1379,7 @@ static bool sign_gc_shared_state(GC_Chat *chat)
 /** Decrypts data using the shared key associated with `gconn`. The packet payload should
  * begin with a nonce.
  *
- * `message_id` should be set to NULL for lossy packets.
+ * @param message_id should be set to NULL for lossy packets.
  *
  * Returns length of the plaintext data on success.
  * Return -1 if encrypted payload length is invalid.
@@ -5876,7 +5876,9 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
     const int len = group_packet_unwrap(chat->log, gconn, data, &message_id, &packet_type, packet, length);
 
     if (len < 0) {
-        LOGGER_DEBUG(chat->log, "Failed to unwrap lossless packet: %d", len);
+        char ip_str[IP_NTOA_LEN];
+        LOGGER_DEBUG(chat->log, "Failed to unwrap lossless packet from %s:%d: %d",
+                     ip_ntoa(&gconn->addr.ip_port.ip, ip_str, sizeof(ip_str)), gconn->addr.ip_port.port, len);
         free(data);
         return false;
     }
@@ -5994,7 +5996,9 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
     const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
-        LOGGER_DEBUG(chat->log, "Failed to unwrap lossy packet: %d", len);
+        char ip_str[IP_NTOA_LEN];
+        LOGGER_DEBUG(chat->log, "Failed to unwrap lossy packet from %s:%d: %d",
+                     ip_ntoa(&gconn->addr.ip_port.ip, ip_str, sizeof(ip_str)), gconn->addr.ip_port.port, len);
         free(data);
         return false;
     }
