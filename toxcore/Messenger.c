@@ -34,7 +34,7 @@ static_assert(MAX_CONCURRENT_FILE_PIPES <= UINT8_MAX + 1,
  */
 bool friend_is_valid(const Messenger *m, int32_t friendnumber)
 {
-    return (unsigned int)friendnumber < m->numfriends && m->friendlist[friendnumber].status != 0;
+    return (uint32_t)friendnumber < m->numfriends && m->friendlist[friendnumber].status != 0;
 }
 
 /** Set the size of the friend list to numfriends.

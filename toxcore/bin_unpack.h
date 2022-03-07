@@ -10,8 +10,8 @@
 
 #include "attributes.h"
 
-non_null() bool bin_unpack_u08(uint8_t *val, const msgpack_object *obj);
 non_null() bool bin_unpack_bool(bool *val, const msgpack_object *obj);
+non_null() bool bin_unpack_u08(uint8_t *val, const msgpack_object *obj);
 non_null() bool bin_unpack_u16(uint16_t *val, const msgpack_object *obj);
 non_null() bool bin_unpack_u32(uint32_t *val, const msgpack_object *obj);
 non_null() bool bin_unpack_u64(uint64_t *val, const msgpack_object *obj);
