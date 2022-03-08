@@ -102,7 +102,10 @@ cc_library(
     name = "state",
     srcs = ["state.c"],
     hdrs = ["state.h"],
-    deps = [":logger"],
+    deps = [
+        ":ccompat",
+        ":logger",
+    ],
 )
 
 cc_library(
@@ -153,14 +156,8 @@ cc_library(
 
 cc_library(
     name = "network",
-    srcs = [
-        "network.c",
-        "util.c",
-    ],
-    hdrs = [
-        "network.h",
-        "util.h",
-    ],
+    srcs = ["network.c"],
+    hdrs = ["network.h"],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
@@ -172,6 +169,7 @@ cc_library(
         ":crypto_core",
         ":logger",
         ":mono_time",
+        ":util",
         "@libsodium",
         "@psocket",
         "@pthread",
@@ -195,7 +193,7 @@ cc_test(
     srcs = ["util_test.cc"],
     deps = [
         ":crypto_core",
-        ":network",
+        ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -209,7 +207,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":mono_time",
-        ":network",
+        ":util",
     ],
 )
 
@@ -226,15 +224,30 @@ cc_test(
 )
 
 cc_library(
+    name = "LAN_discovery",
+    srcs = ["LAN_discovery.c"],
+    hdrs = ["LAN_discovery.h"],
+    visibility = [
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing:__pkg__",
+    ],
+    deps = [
+        ":ccompat",
+        ":crypto_core",
+        ":network",
+        ":util",
+    ],
+)
+
+cc_library(
     name = "DHT",
     srcs = [
         "DHT.c",
-        "LAN_discovery.c",
         "ping.c",
     ],
     hdrs = [
         "DHT.h",
-        "LAN_discovery.h",
         "ping.h",
     ],
     visibility = [
@@ -243,12 +256,15 @@ cc_library(
         "//c-toxcore/testing:__pkg__",
     ],
     deps = [
+        ":LAN_discovery",
+        ":ccompat",
         ":crypto_core",
         ":logger",
         ":mono_time",
         ":network",
         ":ping_array",
         ":state",
+        ":util",
     ],
 )
 
@@ -265,39 +281,16 @@ cc_test(
 )
 
 cc_library(
-    name = "DHT_srcs",
-    hdrs = [
-        "DHT.c",
-        "DHT.h",
-        "LAN_discovery.c",
-        "LAN_discovery.h",
-        "ping.c",
-        "ping.h",
-    ],
-    visibility = [
-        "//c-toxcore/auto_tests:__pkg__",
-        "//c-toxcore/other:__pkg__",
-        "//c-toxcore/other/bootstrap_daemon:__pkg__",
-    ],
-    deps = [
-        ":logger",
-        ":mono_time",
-        ":network",
-        ":ping_array",
-        ":state",
-    ],
-)
-
-cc_library(
     name = "onion",
     srcs = ["onion.c"],
     hdrs = ["onion.h"],
     visibility = ["//c-toxcore/auto_tests:__pkg__"],
     deps = [
         ":DHT",
+        ":ccompat",
         ":crypto_core",
         ":mono_time",
-        ":network",
+        ":util",
     ],
 )
 
@@ -306,7 +299,10 @@ cc_library(
     srcs = ["TCP_common.c"],
     hdrs = ["TCP_common.h"],
     visibility = ["//c-toxcore/auto_tests:__pkg__"],
-    deps = [":network"],
+    deps = [
+        ":ccompat",
+        ":network",
+    ],
 )
 
 cc_library(
@@ -324,11 +320,12 @@ cc_library(
     ],
     deps = [
         ":TCP_common",
+        ":ccompat",
         ":crypto_core",
         ":list",
         ":mono_time",
-        ":network",
         ":onion",
+        ":util",
     ],
 )
 
@@ -339,8 +336,9 @@ cc_library(
     visibility = ["//c-toxcore/auto_tests:__pkg__"],
     deps = [
         ":TCP_common",
+        ":ccompat",
         ":mono_time",
-        ":network",
+        ":util",
     ],
 )
 
@@ -353,11 +351,12 @@ cc_library(
         ":DHT",
         ":TCP_client",
         ":TCP_common",
+        ":ccompat",
         ":crypto_core",
         ":list",
         ":mono_time",
-        ":network",
         ":onion",
+        ":util",
     ],
 )
 
@@ -380,9 +379,10 @@ cc_library(
     deps = [
         ":DHT",
         ":TCP_connection",
+        ":ccompat",
         ":list",
         ":mono_time",
-        ":network",
+        ":util",
     ],
 )
 
@@ -402,9 +402,11 @@ cc_library(
     ],
     deps = [
         ":DHT",
+        ":LAN_discovery",
+        ":ccompat",
         ":mono_time",
-        ":network",
         ":onion",
+        ":util",
     ],
 )
 
@@ -415,11 +417,13 @@ cc_library(
     visibility = ["//c-toxcore/auto_tests:__pkg__"],
     deps = [
         ":DHT",
+        ":LAN_discovery",
         ":ccompat",
         ":mono_time",
         ":net_crypto",
         ":network",
         ":onion_announce",
+        ":util",
     ],
 )
 
@@ -433,8 +437,8 @@ cc_library(
         ":ccompat",
         ":mono_time",
         ":net_crypto",
-        ":network",
         ":onion_client",
+        ":util",
     ],
 )
 
@@ -462,6 +466,7 @@ cc_library(
         ":ccompat",
         ":friend_connection",
         ":network",
+        ":util",
     ],
 )
 
@@ -496,6 +501,7 @@ cc_library(
         ":TCP_server",
         ":bin_pack",
         ":bin_unpack",
+        ":ccompat",
         ":crypto_core",
         ":friend_requests",
         ":logger",
@@ -505,6 +511,7 @@ cc_library(
         ":friend_connection",
         ":onion_announce",
         ":state",
+        ":util",
         "@libsodium",
         "@msgpack-c",
     ],
@@ -517,9 +524,10 @@ cc_library(
     visibility = ["//c-toxcore/toxav:__pkg__"],
     deps = [
         ":Messenger",
+        ":ccompat",
         ":mono_time",
-        ":network",
         ":state",
+        ":util",
     ],
 )
 

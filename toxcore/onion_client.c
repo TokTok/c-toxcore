@@ -14,11 +14,11 @@
 #include <string.h>
 
 #include "LAN_discovery.h"
+#include "ccompat.h"
 #include "mono_time.h"
 #include "util.h"
 
-/** defines for the array size and
- * timeout for onion announce packets. */
+/** @brief defines for the array size and timeout for onion announce packets. */
 #define ANNOUNCE_ARRAY_SIZE 256
 #define ANNOUNCE_TIMEOUT 10
 
@@ -196,10 +196,18 @@ Net_Crypto *onion_get_net_crypto(const Onion_Client *onion_c)
     return onion_c->c;
 }
 
-/** Add a node to the path_nodes bootstrap array.
+/** @brief Add a node to the path_nodes bootstrap array.
  *
- * return false on failure
- * return true on success
+ * If a node with the given public key was already in the bootstrap array, this function has no
+ * effect and returns successfully. There is currently no way to update the IP/port for a bootstrap
+ * node, so if it changes, the Onion_Client must be recreated.
+ *
+ * @param onion_c The onion client object.
+ * @param ip_port IP/port for the bootstrap node.
+ * @param public_key DHT public key for the bootstrap node.
+ *
+ * @retval false on failure
+ * @retval true on success
  */
 bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key)
 {
@@ -209,7 +217,7 @@ bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const
 
     for (unsigned int i = 0; i < MAX_PATH_NODES; ++i) {
         if (pk_equal(public_key, onion_c->path_nodes_bs[i].public_key)) {
-            return false;
+            return true;
         }
     }
 
@@ -227,7 +235,7 @@ bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const
     return true;
 }
 
-/** Add a node to the path_nodes array.
+/** @brief Add a node to the path_nodes array.
  *
  * return -1 on failure
  * return 0 on success
@@ -259,7 +267,7 @@ static int onion_add_path_node(Onion_Client *onion_c, const IP_Port *ip_port, co
     return 0;
 }
 
-/** Put up to max_num nodes in nodes.
+/** @brief Put up to max_num nodes in nodes.
  *
  * return the number of nodes.
  */
@@ -296,7 +304,7 @@ uint16_t onion_backup_nodes(const Onion_Client *onion_c, Node_format *nodes, uin
     return i;
 }
 
-/** Put up to max_num random nodes in nodes.
+/** @brief Put up to max_num random nodes in nodes.
  *
  * return the number of nodes.
  */
@@ -394,21 +402,21 @@ static bool path_timed_out(const Mono_Time *mono_time, const Onion_Client_Paths 
     const bool is_new = onion_paths->last_path_success[pathnum] == onion_paths->path_creation_time[pathnum];
     const uint64_t timeout = is_new ? ONION_PATH_FIRST_TIMEOUT : ONION_PATH_TIMEOUT;
 
-    return ((onion_paths->last_path_used_times[pathnum] >= ONION_PATH_MAX_NO_RESPONSE_USES
+    return (onion_paths->last_path_used_times[pathnum] >= ONION_PATH_MAX_NO_RESPONSE_USES
              && mono_time_is_timeout(mono_time, onion_paths->last_path_used[pathnum], timeout))
-            || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME));
+            || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME);
 }
 
 /** should node be considered to have timed out */
 non_null()
 static bool onion_node_timed_out(const Onion_Node *node, const Mono_Time *mono_time)
 {
-    return (node->timestamp == 0
+    return node->timestamp == 0
             || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
-                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT)));
+                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT));
 }
 
-/** Create a new path or use an old suitable one (if pathnum is valid)
+/** @brief Create a new path or use an old suitable one (if pathnum is valid)
  * or a random one from onion_paths.
  *
  * return -1 on failure
@@ -475,9 +483,7 @@ static bool path_exists(const Mono_Time *mono_time, const Onion_Client_Paths *on
     return onion_paths->paths[path_num % NUMBER_ONION_PATHS].path_num == path_num;
 }
 
-/** Set path timeouts, return the path number.
- *
- */
+/** Set path timeouts, return the path number. */
 non_null()
 static uint32_t set_path_timeouts(Onion_Client *onion_c, uint32_t num, uint32_t path_num)
 {
@@ -511,7 +517,7 @@ static uint32_t set_path_timeouts(Onion_Client *onion_c, uint32_t num, uint32_t 
     return -1;
 }
 
-/** Function to send onion packet via TCP and UDP.
+/** @brief Function to send onion packet via TCP and UDP.
  *
  * return -1 on failure.
  * return 0 on success.
@@ -549,7 +555,7 @@ static int send_onion_packet_tcp_udp(const Onion_Client *onion_c, const Onion_Pa
     return -1;
 }
 
-/** Creates a sendback for use in an announce request.
+/** @brief Creates a sendback for use in an announce request.
  *
  * num is 0 if we used our secret public key for the announce
  * num is 1 + friendnum if we use a temporary one.
@@ -582,7 +588,7 @@ static int new_sendback(Onion_Client *onion_c, uint32_t num, const uint8_t *publ
     return 0;
 }
 
-/** Checks if the sendback is valid and returns the public key contained in it in ret_pubkey and the
+/** @brief Checks if the sendback is valid and returns the public key contained in it in ret_pubkey and the
  * ip contained in it in ret_ip_port
  *
  * sendback is the sendback ONION_ANNOUNCE_SENDBACK_DATA_LENGTH big
@@ -1211,7 +1217,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
     return 1;
 }
 
-/** Send data of length length to friendnum.
+/** @brief Send data of length length to friendnum.
  * Maximum length of data is ONION_CLIENT_MAX_DATA_SIZE.
  * This data will be received by the friend using the Onion_Data_Handlers callbacks.
  *
@@ -1294,7 +1300,7 @@ int send_onion_data(Onion_Client *onion_c, int friend_num, const uint8_t *data, 
     return good;
 }
 
-/** Try to send the dht public key via the DHT instead of onion
+/** @brief Try to send the dht public key via the DHT instead of onion
  *
  * Even if this function succeeds, the friend might not receive any data.
  *
@@ -1369,7 +1375,7 @@ static int handle_dht_dhtpk(void *object, const IP_Port *source, const uint8_t *
 
     return handle_dhtpk_announce(onion_c, packet, plain, len, userdata);
 }
-/** Send the packets to tell our friends what our DHT public key is.
+/** @brief Send the packets to tell our friends what our DHT public key is.
  *
  * if onion_dht_both is 0, use only the onion to send the packet.
  * if it is 1, use only the dht.
@@ -1427,7 +1433,7 @@ static int send_dhtpk_announce(Onion_Client *onion_c, uint16_t friend_num, uint8
     return num1 + num2;
 }
 
-/** Get the friend_num of a friend.
+/** @brief Get the friend_num of a friend.
  *
  * return -1 on failure.
  * return friend number on success.
@@ -1447,10 +1453,10 @@ int onion_friend_num(const Onion_Client *onion_c, const uint8_t *public_key)
     return -1;
 }
 
-/** Set the size of the friend list to num.
+/** @brief Set the size of the friend list to num.
  *
- *  return -1 if realloc fails.
- *  return 0 if it succeeds.
+ * @retval -1 if realloc fails.
+ * @retval 0 if it succeeds.
  */
 non_null()
 static int realloc_onion_friends(Onion_Client *onion_c, uint32_t num)
@@ -1471,7 +1477,7 @@ static int realloc_onion_friends(Onion_Client *onion_c, uint32_t num)
     return 0;
 }
 
-/** Add a friend who we want to connect to.
+/** @brief Add a friend who we want to connect to.
  *
  * return -1 on failure.
  * return the friend number on success or if the friend was already added.
@@ -1509,7 +1515,7 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
     return index;
 }
 
-/** Delete a friend.
+/** @brief Delete a friend.
  *
  * return -1 on failure.
  * return the deleted friend number on success.
@@ -1545,7 +1551,7 @@ int onion_delfriend(Onion_Client *onion_c, int friend_num)
     return friend_num;
 }
 
-/** Set the function for this friend that will be callbacked with object and number
+/** @brief Set the function for this friend that will be callbacked with object and number
  * when that friends gives us one of the TCP relays he is connected to.
  *
  * object and number will be passed as argument to this function.
@@ -1566,7 +1572,7 @@ int recv_tcp_relay_handler(Onion_Client *onion_c, int friend_num,
     return 0;
 }
 
-/** Set the function for this friend that will be callbacked with object and number
+/** @brief Set the function for this friend that will be callbacked with object and number
  * when that friend gives us his DHT temporary public key.
  *
  * object and number will be passed as argument to this function.
@@ -1587,7 +1593,7 @@ int onion_dht_pk_callback(Onion_Client *onion_c, int friend_num,
     return 0;
 }
 
-/** Set a friend's DHT public key.
+/** @brief Set a friend's DHT public key.
  *
  * return -1 on failure.
  * return 0 on success.
@@ -1615,7 +1621,7 @@ int onion_set_friend_DHT_pubkey(Onion_Client *onion_c, int friend_num, const uin
     return 0;
 }
 
-/** Copy friends DHT public key into dht_key.
+/** @brief Copy friends DHT public key into dht_key.
  *
  * return 0 on failure (no key copied).
  * return 1 on success (key copied).
@@ -1638,12 +1644,11 @@ unsigned int onion_getfriend_DHT_pubkey(const Onion_Client *onion_c, int friend_
     return 1;
 }
 
-/** Get the ip of friend friendnum and put it in ip_port
+/** @brief Get the ip of friend friendnum and put it in ip_port
  *
- *  return -1, -- if public_key does NOT refer to a friend
- *  return  0, -- if public_key refers to a friend and we failed to find the friend (yet)
- *  return  1, ip if public_key refers to a friend and we found him
- *
+ * @retval -1 if public_key does NOT refer to a friend
+ * @retval  0 if public_key refers to a friend and we failed to find the friend (yet)
+ * @retval  1 if public_key refers to a friend and we found him
  */
 int onion_getfriendip(const Onion_Client *onion_c, int friend_num, IP_Port *ip_port)
 {
@@ -1657,7 +1662,7 @@ int onion_getfriendip(const Onion_Client *onion_c, int friend_num, IP_Port *ip_p
 }
 
 
-/** Set if friend is online or not.
+/** @brief Set if friend is online or not.
  * NOTE: This function is there and should be used so that we don't send useless packets to the friend if he is online.
  *
  * return -1 on failure.
@@ -1962,8 +1967,9 @@ static void do_announce(Onion_Client *onion_c)
     }
 }
 
-/**  return false if we are not connected to the network.
- *  return true if we are.
+/**
+ * @retval false if we are not connected to the network.
+ * @retval true if we are.
  */
 non_null()
 static bool onion_isconnected(Onion_Client *onion_c)

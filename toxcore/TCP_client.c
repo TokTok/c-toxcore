@@ -13,6 +13,7 @@
 #include <string.h>
 
 #include "TCP_common.h"
+#include "ccompat.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -92,8 +93,9 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value)
     con->custom_uint = value;
 }
 
-/** return true on success
- * return false on failure
+/**
+ * @retval true on success
+ * @retval false on failure
  */
 non_null()
 static bool connect_sock_to(const Logger *logger, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
@@ -105,11 +107,12 @@ static bool connect_sock_to(const Logger *logger, Socket sock, const IP_Port *ip
     }
 }
 
-/** return 1 on success.
- * return 0 on failure.
+/**
+ * @retval 1 on success.
+ * @retval 0 on failure.
  */
 non_null()
-static int proxy_http_generate_connection_request(const Logger *logger, TCP_Client_Connection *tcp_conn)
+static int proxy_http_generate_connection_request(TCP_Client_Connection *tcp_conn)
 {
     char one[] = "CONNECT ";
     char two[] = " HTTP/1.1\nHost: ";
@@ -134,9 +137,10 @@ static int proxy_http_generate_connection_request(const Logger *logger, TCP_Clie
     return 1;
 }
 
-/** return 1 on success.
- * return 0 if no data received.
- * return -1 on failure (connection refused).
+/**
+ * @retval 1 on success.
+ * @retval 0 if no data received.
+ * @retval -1 on failure (connection refused).
  */
 non_null()
 static int proxy_http_read_connection_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
@@ -158,7 +162,10 @@ static int proxy_http_read_connection_response(const Logger *logger, const TCP_C
 
         if (data_left > 0) {
             VLA(uint8_t, temp_data, data_left);
-            read_TCP_packet(logger, tcp_conn->con.sock, temp_data, data_left, &tcp_conn->con.ip_port);
+            if (read_TCP_packet(logger, tcp_conn->con.sock, temp_data, data_left, &tcp_conn->con.ip_port) == -1) {
+                LOGGER_ERROR(logger, "failed to drain TCP data (but ignoring failure)");
+                return 1;
+            }
         }
 
         return 1;
@@ -187,9 +194,10 @@ static void proxy_socks5_generate_greetings(TCP_Client_Connection *tcp_conn)
     tcp_conn->con.last_packet_sent = 0;
 }
 
-/** return 1 on success.
- * return 0 if no data received.
- * return -1 on failure (connection refused).
+/**
+ * @retval 1 on success.
+ * @retval 0 if no data received.
+ * @retval -1 on failure (connection refused).
  */
 non_null()
 static int socks5_read_handshake_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
@@ -235,9 +243,10 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *tcp_
     tcp_conn->con.last_packet_sent = 0;
 }
 
-/** return 1 on success.
- * return 0 if no data received.
- * return -1 on failure (connection refused).
+/**
+ * @retval 1 on success.
+ * @retval 0 if no data received.
+ * @retval -1 on failure (connection refused).
  */
 non_null()
 static int proxy_socks5_read_connection_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
@@ -269,8 +278,9 @@ static int proxy_socks5_read_connection_response(const Logger *logger, const TCP
     return -1;
 }
 
-/** return 0 on success.
- * return -1 on failure.
+/**
+ * @retval 0 on success.
+ * @retval -1 on failure.
  */
 non_null()
 static int generate_handshake(TCP_Client_Connection *tcp_conn)
@@ -293,10 +303,11 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     return 0;
 }
 
-/** data must be of length TCP_SERVER_HANDSHAKE_SIZE
+/**
+ * @param data must be of length TCP_SERVER_HANDSHAKE_SIZE
  *
- * return 0 on success.
- * return -1 on failure.
+ * @retval 0 on success.
+ * @retval -1 on failure.
  */
 non_null()
 static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data)
@@ -315,9 +326,10 @@ static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data
     return 0;
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 int send_routing_request(const Logger *logger, TCP_Client_Connection *con, const uint8_t *public_key)
 {
@@ -342,9 +354,10 @@ void routing_status_handler(TCP_Client_Connection *con, tcp_routing_status_cb *s
 non_null() static int tcp_send_ping_response(const Logger *logger, TCP_Client_Connection *con);
 non_null() static int tcp_send_ping_request(const Logger *logger, TCP_Client_Connection *con);
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure.
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure.
  */
 int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, const uint8_t *data, uint16_t length)
 {
@@ -366,9 +379,10 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
     return write_packet_TCP_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure.
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure.
  */
 int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint8_t *public_key, const uint8_t *data,
                     uint16_t length)
@@ -385,7 +399,7 @@ int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint
 }
 
 
-/** Set the number that will be used as an argument in the callbacks related to con_id.
+/** @brief Set the number that will be used as an argument in the callbacks related to con_id.
  *
  * When not set by this function, the number is -1.
  *
@@ -418,9 +432,10 @@ void oob_data_handler(TCP_Client_Connection *con, tcp_oob_data_cb *oob_data_call
     con->oob_data_callback_object = object;
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 non_null()
 static int client_send_disconnect_notification(const Logger *logger, TCP_Client_Connection *con, uint8_t id)
@@ -431,9 +446,10 @@ static int client_send_disconnect_notification(const Logger *logger, TCP_Client_
     return write_packet_TCP_secure_connection(logger, &con->con, packet, sizeof(packet), true);
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 static int tcp_send_ping_request(const Logger *logger, TCP_Client_Connection *con)
 {
@@ -453,9 +469,10 @@ static int tcp_send_ping_request(const Logger *logger, TCP_Client_Connection *co
     return ret;
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 static int tcp_send_ping_response(const Logger *logger, TCP_Client_Connection *con)
 {
@@ -475,9 +492,10 @@ static int tcp_send_ping_response(const Logger *logger, TCP_Client_Connection *c
     return ret;
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 int send_disconnect_request(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id)
 {
@@ -490,9 +508,10 @@ int send_disconnect_request(const Logger *logger, TCP_Client_Connection *con, ui
     return client_send_disconnect_notification(logger, con, con_id + NUM_RESERVED_PORTS);
 }
 
-/** return 1 on success.
- * return 0 if could not send packet.
- * return -1 on failure (connection must be killed).
+/**
+ * @retval 1 on success.
+ * @retval 0 if could not send packet.
+ * @retval -1 on failure (connection must be killed).
  */
 int send_onion_request(const Logger *logger, TCP_Client_Connection *con, const uint8_t *data, uint16_t length)
 {
@@ -508,8 +527,7 @@ void onion_response_handler(TCP_Client_Connection *con, tcp_onion_response_cb *o
     con->onion_callback_object = object;
 }
 
-/** Create new TCP connection to ip_port/public_key
- */
+/** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time *mono_time, const IP_Port *ip_port,
         const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
         const TCP_Proxy_Info *proxy_info)
@@ -568,7 +586,7 @@ TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time 
     switch (proxy_info->proxy_type) {
         case TCP_PROXY_HTTP: {
             temp->status = TCP_CLIENT_PROXY_HTTP_CONNECTING;
-            proxy_http_generate_connection_request(logger, temp);
+            proxy_http_generate_connection_request(temp);
             break;
         }
 
@@ -596,8 +614,9 @@ TCP_Client_Connection *new_TCP_connection(const Logger *logger, const Mono_Time 
     return temp;
 }
 
-/** return 0 on success
- * return -1 on failure
+/**
+ * @retval 0 on success
+ * @retval -1 on failure
  */
 non_null(1, 2, 3) nullable(5)
 static int handle_TCP_client_packet(const Logger *logger, TCP_Client_Connection *conn, const uint8_t *data,
@@ -812,8 +831,7 @@ static int do_confirmed_TCP(const Logger *logger, TCP_Client_Connection *conn, c
     return 0;
 }
 
-/** Run the TCP connection
- */
+/** Run the TCP connection */
 void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
                        TCP_Client_Connection *tcp_connection, void *userdata)
 {
@@ -899,8 +917,7 @@ void do_TCP_connection(const Logger *logger, const Mono_Time *mono_time,
     }
 }
 
-/** Kill the TCP connection
- */
+/** Kill the TCP connection */
 void kill_TCP_connection(TCP_Client_Connection *tcp_connection)
 {
     if (tcp_connection == nullptr) {

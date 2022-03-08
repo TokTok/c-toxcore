@@ -12,8 +12,10 @@
 
 #include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
+#include "attributes.h"
 #include "crypto_core.h"
 
 #ifdef __cplusplus
@@ -35,9 +37,8 @@ non_null() const uint8_t *get_chat_id(const uint8_t *key);
 non_null() bool pk_equal(const uint8_t *dest, const uint8_t *src);
 /**
  * @brief Copy a public key from `src` to `dest`.
- * @retval CLIENT_ID_SIZE
  */
-non_null() uint32_t pk_copy(uint8_t *dest, const uint8_t *src);
+non_null() void pk_copy(uint8_t *dest, const uint8_t *src);
 
 non_null()
 int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id);

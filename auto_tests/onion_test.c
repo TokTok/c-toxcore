@@ -199,6 +199,27 @@ static int handle_test_4(void *object, const IP_Port *source, const uint8_t *pac
     return 0;
 }
 
+/** Create and send a onion packet.
+ *
+ * Use Onion_Path path to send data of length to dest.
+ * Maximum length of data is ONION_MAX_DATA_SIZE.
+ */
+static void send_onion_packet(const Networking_Core *net, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
+{
+    uint8_t packet[ONION_MAX_PACKET_SIZE];
+    const int len = create_onion_packet(packet, sizeof(packet), path, dest, data, length);
+    ck_assert_msg(len != -1, "failed to create onion packet");
+    ck_assert_msg(sendpacket(net, &path->ip_port1, packet, len) == len, "failed to send onion packet");
+}
+
+/** Initialize networking.
+ * Added for reverse compatibility with old new_networking calls.
+ */
+static Networking_Core *new_networking(const Logger *log, const IP *ip, uint16_t port)
+{
+    return new_networking_ex(log, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
+}
+
 static void test_basic(void)
 {
     uint32_t index[] = { 1, 2, 3 };
@@ -211,8 +232,8 @@ static void test_basic(void)
     Mono_Time *mono_time2 = mono_time_new();
 
     IP ip = get_loopback();
-    Onion *onion1 = new_onion(log1, mono_time1, new_dht(log1, mono_time1, new_networking(log1, &ip, 36567), true));
-    Onion *onion2 = new_onion(log2, mono_time2, new_dht(log2, mono_time2, new_networking(log2, &ip, 36568), true));
+    Onion *onion1 = new_onion(log1, mono_time1, new_dht(log1, mono_time1, new_networking(log1, &ip, 36567), true, false));
+    Onion *onion2 = new_onion(log2, mono_time2, new_dht(log2, mono_time2, new_networking(log2, &ip, 36568), true, false));
     ck_assert_msg((onion1 != nullptr) && (onion2 != nullptr), "Onion failed initializing.");
     networking_registerhandler(onion2->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_test_1, onion2);
 
@@ -238,8 +259,7 @@ static void test_basic(void)
     nodes[3] = n2;
     Onion_Path path;
     create_onion_path(onion1->dht, &path, nodes);
-    int ret = send_onion_packet(onion1->net, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
-    ck_assert_msg(ret == 0, "Failed to create/send onion packet.");
+    send_onion_packet(onion1->net, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
 
     handled_test_1 = 0;
 
@@ -269,12 +289,12 @@ static void test_basic(void)
     uint64_t s;
     memcpy(&s, sb_data, sizeof(uint64_t));
     memcpy(test_3_pub_key, nodes[3].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    ret = send_announce_request(onion1->net, &path, &nodes[3],
-                                dht_get_self_public_key(onion1->dht),
-                                dht_get_self_secret_key(onion1->dht),
-                                zeroes,
-                                dht_get_self_public_key(onion1->dht),
-                                dht_get_self_public_key(onion1->dht), s);
+    int ret = send_announce_request(onion1->net, &path, &nodes[3],
+                                    dht_get_self_public_key(onion1->dht),
+                                    dht_get_self_secret_key(onion1->dht),
+                                    zeroes,
+                                    dht_get_self_public_key(onion1->dht),
+                                    dht_get_self_public_key(onion1->dht), s);
     ck_assert_msg(ret == 0, "Failed to create/send onion announce_request packet.");
     handled_test_3 = 0;
 
@@ -312,7 +332,7 @@ static void test_basic(void)
 
     Mono_Time *mono_time3 = mono_time_new();
 
-    Onion *onion3 = new_onion(log3, mono_time3, new_dht(log3, mono_time3, new_networking(log3, &ip, 36569), true));
+    Onion *onion3 = new_onion(log3, mono_time3, new_dht(log3, mono_time3, new_networking(log3, &ip, 36569), true, false));
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
 
     random_nonce(nonce);
@@ -415,7 +435,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    DHT *dht = new_dht(on->log, on->mono_time, net, true);
+    DHT *dht = new_dht(on->log, on->mono_time, net, true, false);
 
     if (!dht) {
         kill_networking(net);

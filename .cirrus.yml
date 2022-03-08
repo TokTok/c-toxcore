@@ -90,7 +90,6 @@ bazel-tsan_task:
         //c-toxcore/...
         -//c-toxcore/auto_tests:conference_av_test
         -//c-toxcore/auto_tests:conference_test
-        -//c-toxcore/auto_tests:dht_test
         -//c-toxcore/auto_tests:file_transfer_test
         -//c-toxcore/auto_tests:group_tcp_test
         -//c-toxcore/auto_tests:onion_test
@@ -116,7 +115,6 @@ bazel-valgrind_task:
         //c-toxcore/...
         -//c-toxcore/auto_tests:conference_av_test
         -//c-toxcore/auto_tests:conference_test
-        -//c-toxcore/auto_tests:dht_test
         -//c-toxcore/auto_tests:encryptsave_test
         -//c-toxcore/auto_tests:file_transfer_test
         -//c-toxcore/auto_tests:group_tcp_test

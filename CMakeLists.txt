@@ -38,7 +38,7 @@ set_source_files_properties(
 # versions in a synchronised way.
 set(PROJECT_VERSION_MAJOR "0")
 set(PROJECT_VERSION_MINOR "2")
-set(PROJECT_VERSION_PATCH "16")
+set(PROJECT_VERSION_PATCH "17")
 set(PROJECT_VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
 
 # set .so library version / following libtool scheme
@@ -474,7 +474,6 @@ auto_test(conference_peer_nick)
 auto_test(conference_simple)
 auto_test(conference_two)
 auto_test(crypto)
-#auto_test(dht)  # Doesn't work with UNITY_BUILD.
 auto_test(dht_getnodes_api)
 auto_test(encryptsave)
 auto_test(file_transfer)
@@ -496,7 +495,6 @@ auto_test(invalid_udp_proxy)
 auto_test(lan_discovery)
 auto_test(lossless_packet)
 auto_test(lossy_packet)
-auto_test(messenger)
 auto_test(network)
 auto_test(onion)
 auto_test(overflow_recvq)

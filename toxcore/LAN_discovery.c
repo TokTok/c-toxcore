@@ -39,6 +39,8 @@
 #include <net/if.h>
 #endif
 
+#include "ccompat.h"
+#include "crypto_core.h"
 #include "util.h"
 
 #define MAX_INTERFACES 16
@@ -198,7 +200,7 @@ static Broadcast_Info *fetch_broadcast_info(void)
 
 #endif
 
-/** Send packet to all IPv4 broadcast addresses
+/** @brief Send packet to all IPv4 broadcast addresses
  *
  * @retval true if sent to at least one broadcast target.
  * @retval false on failure to find any valid broadcast target.
@@ -333,26 +335,8 @@ bool ip_is_lan(const IP *ip)
     return false;
 }
 
-non_null(1, 2, 3) nullable(5)
-static int handle_LANdiscovery(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                               void *userdata)
-{
-    DHT *dht = (DHT *)object;
 
-    if (!ip_is_lan(&source->ip)) {
-        return 1;
-    }
-
-    if (length != CRYPTO_PUBLIC_KEY_SIZE + 1) {
-        return 1;
-    }
-
-    dht_bootstrap(dht, source, packet + 1);
-    return 0;
-}
-
-
-bool lan_discovery_send(Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk, uint16_t port)
+bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk, uint16_t port)
 {
     if (broadcast == nullptr) {
         return false;
@@ -372,35 +356,28 @@ bool lan_discovery_send(Networking_Core *net, const Broadcast_Info *broadcast, c
     if (net_family_is_ipv6(net_family(net))) {
         ip_port.ip = broadcast_ip(net_family_ipv6, net_family_ipv6);
 
-        if (ip_isset(&ip_port.ip)) {
-            if (sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
-                res = true;
-            }
+        if (ip_isset(&ip_port.ip) && sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
+            res = true;
         }
     }
 
     /* IPv4 broadcast (has to be IPv4-in-IPv6 mapping if socket is IPv6 */
     ip_port.ip = broadcast_ip(net_family(net), net_family_ipv4);
 
-    if (ip_isset(&ip_port.ip)) {
-        if (sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
-            res = true;
-        }
+    if (ip_isset(&ip_port.ip) && sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
+        res = true;
     }
 
     return res;
 }
 
 
-Broadcast_Info *lan_discovery_init(DHT *dht)
+Broadcast_Info *lan_discovery_init(void)
 {
-    Broadcast_Info *broadcast = fetch_broadcast_info();
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_LAN_DISCOVERY, &handle_LANdiscovery, dht);
-    return broadcast;
+    return fetch_broadcast_info();
 }
 
-void lan_discovery_kill(DHT *dht, Broadcast_Info *broadcast)
+void lan_discovery_kill(Broadcast_Info *broadcast)
 {
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_LAN_DISCOVERY, nullptr, nullptr);
     free(broadcast);
 }

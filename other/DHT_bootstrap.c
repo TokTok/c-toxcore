@@ -15,6 +15,7 @@
 
 #include "../toxcore/DHT.h"
 #include "../toxcore/LAN_discovery.h"
+#include "../toxcore/ccompat.h"
 #include "../toxcore/friend_requests.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
@@ -142,7 +143,7 @@ int main(int argc, char *argv[])
     }
 
     Mono_Time *mono_time = mono_time_new();
-    DHT *dht = new_dht(logger, mono_time, new_networking(logger, &ip, PORT), true);
+    DHT *dht = new_dht(logger, mono_time, new_networking_ex(logger, &ip, PORT, PORT, nullptr), true, true);
     Onion *onion = new_onion(logger, mono_time, dht);
     GC_Announces_List *gc_announces_list = new_gca_list();
     const Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht, gc_announces_list);
@@ -218,7 +219,7 @@ int main(int argc, char *argv[])
     int is_waiting_for_dht_connection = 1;
 
     uint64_t last_LANdiscovery = 0;
-    Broadcast_Info *broadcast = lan_discovery_init(dht);
+    const Broadcast_Info *broadcast = lan_discovery_init();
 
     while (1) {
         mono_time_update(mono_time);

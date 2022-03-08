@@ -92,6 +92,7 @@
 #include <sodium.h>
 #endif
 
+#include "ccompat.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "util.h"
@@ -112,6 +113,12 @@
 #define IPV6_ADD_MEMBERSHIP IPV6_JOIN_GROUP
 #endif
 #endif
+
+static_assert(sizeof(IP4) == SIZE_IP4, "IP4 size must be 4");
+
+// TODO(iphydf): Stop relying on this. We memcpy this struct (and IP4 above)
+// into packets but really should be serialising it properly.
+static_assert(sizeof(IP6) == SIZE_IP6, "IP6 size must be 16");
 
 #if !defined(OS_WIN32)
 
@@ -418,8 +425,7 @@ bool sock_valid(Socket sock)
     return sock.sock != net_invalid_socket.sock;
 }
 
-/** Close the socket.
- */
+/** Close the socket. */
 void kill_sock(Socket sock)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
@@ -656,10 +662,10 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
     return send_packet(net, ip_port, packet);
 }
 
-/** Function to receive data
- *  ip and port of sender is put into ip_port.
- *  Packet data is put into data.
- *  Packet length is put into length.
+/** @brief Function to receive data
+ * ip and port of sender is put into ip_port.
+ * Packet data is put into data.
+ * Packet length is put into length.
  */
 non_null()
 static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
@@ -813,21 +819,13 @@ static void at_shutdown(void)
 }
 #endif
 
-/** Initialize networking.
- * Added for reverse compatibility with old new_networking calls.
- */
-Networking_Core *new_networking(const Logger *log, const IP *ip, uint16_t port)
-{
-    return new_networking_ex(log, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
-}
-
-/** Initialize networking.
+/** @brief Initialize networking.
  * Bind to ip and port.
  * ip must be in network order EX: 127.0.0.1 = (7F000001).
  * port is in host byte order (this means don't worry about it).
  *
- *  return Networking_Core object if no problems
- *  return NULL if there are problems.
+ * @return Networking_Core object if no problems
+ * @retval NULL if there are problems.
  *
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
@@ -1222,7 +1220,7 @@ bool ipport_isset(const IP_Port *ipport)
     return ip_isset(&ipport->ip);
 }
 
-/** copies an ip structure (careful about direction!) */
+/** copies an ip structure (careful about direction) */
 void ip_copy(IP *target, const IP *source)
 {
     if (source == nullptr || target == nullptr) {
@@ -1232,7 +1230,7 @@ void ip_copy(IP *target, const IP *source)
     *target = *source;
 }
 
-/** copies an ip_port structure (careful about direction!) */
+/** copies an ip_port structure (careful about direction) */
 void ipport_copy(IP_Port *target, const IP_Port *source)
 {
     if (source == nullptr || target == nullptr) {
@@ -1242,13 +1240,13 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
     *target = *source;
 }
 
-/** ip_ntoa
- *   converts ip into a string
- *   ip_str must be of length at least IP_NTOA_LEN
+/** @brief converts ip into a string
  *
- *   writes error message into the buffer on error
+ * @param ip_str must be of length at least IP_NTOA_LEN
  *
- *   returns ip_str
+ * writes error message into the buffer on error
+ *
+ * @return ip_str
  */
 const char *ip_ntoa(const IP *ip, char *ip_str, size_t length)
 {
@@ -1280,8 +1278,6 @@ bool ip_parse_addr(const IP *ip, char *address, size_t length)
 
     if (net_family_is_ipv4(ip->family)) {
         struct in_addr addr;
-        static_assert(sizeof(addr) == sizeof(ip->ip.v4.uint32),
-                      "assumption does not hold: in_addr should be 4 bytes");
         assert(make_family(ip->family) == AF_INET);
         fill_addr4(&ip->ip.v4, &addr);
         return inet_ntop4(&addr, address, length) != nullptr;
@@ -1289,8 +1285,6 @@ bool ip_parse_addr(const IP *ip, char *address, size_t length)
 
     if (net_family_is_ipv6(ip->family)) {
         struct in6_addr addr;
-        static_assert(sizeof(addr) == sizeof(ip->ip.v6.uint8),
-                      "assumption does not hold: in6_addr should be 16 bytes");
         assert(make_family(ip->family) == AF_INET6);
         fill_addr6(&ip->ip.v6, &addr);
         return inet_ntop6(&addr, address, length) != nullptr;
@@ -1435,6 +1429,8 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
 {
     struct sockaddr_storage addr = {0};
     size_t addrsize;
+    char ip_str[IP_NTOA_LEN];
+    ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str));
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
@@ -1451,16 +1447,15 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
         fill_addr6(&ip_port->ip.ip.v6, &addr6->sin6_addr);
         addr6->sin6_port = ip_port->port;
     } else {
-        char ip_str[IP_NTOA_LEN];
-        LOGGER_ERROR(log, "cannot connect to %s:%d which is neither IPv4 nor IPv6",
-                ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), ip_port->port);
+        LOGGER_ERROR(log, "cannot connect to %s:%d which is neither IPv4 nor IPv6", ip_str, ip_port->port);
         return false;
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     return true;
 #else
-    LOGGER_DEBUG(log, "connecting socket %d", (int)sock.sock);
+    LOGGER_DEBUG(log, "connecting socket %d to %s:%d",
+            (int)sock.sock, ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), ip_port->port);
     errno = 0;
     if (connect(sock.sock, (struct sockaddr *)&addr, addrsize) == -1) {
         const int error = net_error();
@@ -1468,10 +1463,7 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
         // Non-blocking socket: "Operation in progress" means it's connecting.
         if (!should_ignore_connect_error(error)) {
             char *net_strerror = net_new_strerror(error);
-            char ip_str[IP_NTOA_LEN];
-            LOGGER_ERROR(log, "failed to connect to %s:%d: %d (%s)",
-                    ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), ip_port->port,
-                    error, net_strerror);
+            LOGGER_ERROR(log, "failed to connect to %s:%d: %d (%s)", ip_str, ip_port->port, error, net_strerror);
             net_kill_strerror(net_strerror);
             return false;
         }

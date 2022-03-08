@@ -72,10 +72,9 @@ int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id)
     return memcmp(first_id, second_id, ENC_PUBLIC_KEY_SIZE);
 }
 
-uint32_t pk_copy(uint8_t *dest, const uint8_t *src)
+void pk_copy(uint8_t *dest, const uint8_t *src)
 {
     memcpy(dest, src, CRYPTO_PUBLIC_KEY_SIZE);
-    return CRYPTO_PUBLIC_KEY_SIZE;
 }
 
 /* frees all pointers in a uint8_t pointer array, as well as the array itself. */
