@@ -14,6 +14,7 @@
 
 #include "bin_pack.h"
 #include "bin_unpack.h"
+#include "ccompat.h"
 #include "util.h"
 
 non_null()

@@ -21,6 +21,7 @@
 #include "LAN_discovery.h"
 #include "Messenger.h"
 #include "TCP_connection.h"
+#include "ccompat.h"
 #include "friend_connection.h"
 #include "group_common.h"
 #include "group_moderation.h"
