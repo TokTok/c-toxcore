@@ -14,7 +14,6 @@
 #include <string.h>
 
 #include "LAN_discovery.h"
-#include "group_chats.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -107,7 +106,6 @@ struct Onion_Client {
 
     DHT     *dht;
     Net_Crypto *c;
-    GC_Session *gc_session;
     Networking_Core *net;
     Onion_Friend    *friends_list;
     uint16_t       num_friends;
@@ -143,6 +141,9 @@ struct Onion_Client {
 
     unsigned int onion_connected;
     bool udp_connected;
+
+    onion_group_announce_cb *group_announce_response;
+    void *group_announce_response_user_data;
 };
 
 uint16_t onion_get_friend_count(const Onion_Client *const onion_c)
@@ -158,6 +159,11 @@ Onion_Friend *onion_get_friend(const Onion_Client *const onion_c, uint16_t frien
 const uint8_t *onion_friend_get_gc_public_key(const Onion_Friend *const onion_friend)
 {
     return onion_friend->gc_public_key;
+}
+
+const uint8_t *onion_friend_get_gc_public_key_num(const Onion_Client *const onion_c, uint32_t num)
+{
+    return onion_c->friends_list[num].gc_public_key;
 }
 
 void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint8_t *public_key)
@@ -907,49 +913,16 @@ static int client_ping_nodes(Onion_Client *onion_c, uint32_t num, const Node_for
     return 0;
 }
 
-/* Handles a group announce onion response.
- *
- * Return 0 on success.
- * Return 1 on failure.
- */
 non_null()
-static int handle_gca_announce_response(const Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
-                                        const uint8_t *plain, size_t plain_size)
+static bool handle_group_announce_response(Onion_Client *onion_c, uint32_t num, uint16_t len_nodes,
+        const uint8_t *plain, size_t plain_size)
 {
-#ifdef VANILLA_NACL
-    return 1;
-#endif
-
-    if (sendback_num == 0) {  // TODO(Jfreegman): should/can this ever happen?
-        LOGGER_WARNING(onion_c->logger, "sendback_num is 0");
-        return 1;
+    if (onion_c->group_announce_response == nullptr) {
+        return true;
     }
 
-    GC_Announce announces[GCA_MAX_SENT_ANNOUNCES];
-    GC_Chat *chat = gc_get_group_by_public_key(onion_c->gc_session,
-                    onion_c->friends_list[sendback_num - 1].gc_public_key);
-
-    if (chat == nullptr) {
-        LOGGER_WARNING(onion_c->logger, "Couldn't find group associated with public key in announce response");
-        return 1;
-    }
-
-    const int offset = 2 + ONION_PING_ID_SIZE + len_nodes;
-    const int gc_announces_count = gca_unpack_announces_list(onion_c->logger, plain + offset, plain_size - offset,
-                                   announces,
-                                   GCA_MAX_SENT_ANNOUNCES);
-
-    if (gc_announces_count == -1) {
-        return 1;
-    }
-
-    const int added_peers = gc_add_peers_from_announces(chat, announces, gc_announces_count);
-
-    if (added_peers < 0) {
-        return 1;
-    }
-
-    return 0;
+    return onion_c->group_announce_response(onion_c, num, len_nodes, plain, plain_size,
+                                          onion_c->group_announce_response_user_data);
 }
 
 non_null(1, 2, 3) nullable(5)
@@ -1023,7 +996,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
     }
 
     if (len_nodes + 1 < length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE) {
-        if (handle_gca_announce_response(onion_c, num, len_nodes, plain, plain_size) != 0) {
+        if (!handle_group_announce_response(onion_c, num, len_nodes, plain, plain_size)) {
             return 1;
         }
     }
@@ -1424,7 +1397,8 @@ static int send_dhtpk_announce(Onion_Client *onion_c, uint16_t friend_num, uint8
     int nodes_len = 0;
 
     if (num_nodes != 0) {
-        nodes_len = pack_nodes(onion_c->logger, data + DHTPK_DATA_MIN_LENGTH, DHTPK_DATA_MAX_LENGTH - DHTPK_DATA_MIN_LENGTH, nodes, num_nodes);
+        nodes_len = pack_nodes(onion_c->logger, data + DHTPK_DATA_MIN_LENGTH, DHTPK_DATA_MAX_LENGTH - DHTPK_DATA_MIN_LENGTH,
+                               nodes, num_nodes);
 
         if (nodes_len <= 0) {
             return -1;
@@ -1881,6 +1855,12 @@ void oniondata_registerhandler(Onion_Client *onion_c, uint8_t byte, oniondata_ha
     onion_c->onion_data_handlers[byte].object = object;
 }
 
+void onion_group_announce_register(Onion_Client *onion_c, onion_group_announce_cb *func, void *user_data)
+{
+    onion_c->group_announce_response = func;
+    onion_c->group_announce_response_user_data = user_data;
+}
+
 #define ANNOUNCE_INTERVAL_NOT_ANNOUNCED 3
 #define ANNOUNCE_INTERVAL_ANNOUNCED ONION_NODE_PING_INTERVAL
 
@@ -2106,19 +2086,11 @@ void do_onion_client(Onion_Client *onion_c)
     onion_c->last_run = mono_time_get(onion_c->mono_time);
 }
 
-Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_Crypto *c, GC_Session *gc_session)
+Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_Crypto *c)
 {
     if (c == nullptr) {
         return nullptr;
     }
-
-#ifndef VANILLA_NACL
-
-    if (gc_session == nullptr) {
-        return nullptr;
-    }
-
-#endif
 
     Onion_Client *onion_c = (Onion_Client *)calloc(1, sizeof(Onion_Client));
 
@@ -2133,7 +2105,6 @@ Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_C
         return nullptr;
     }
 
-    onion_c->gc_session = gc_session;
     onion_c->mono_time = mono_time;
     onion_c->logger = logger;
     onion_c->dht = nc_get_dht(c);

@@ -12,7 +12,6 @@
 
 #include <stdbool.h>
 
-#include "group_chats.h"
 #include "net_crypto.h"
 #include "onion_announce.h"
 #include "ping_array.h"
@@ -186,11 +185,18 @@ typedef int oniondata_handler_cb(void *object, const uint8_t *source_pubkey, con
 non_null(1) nullable(3, 4)
 void oniondata_registerhandler(Onion_Client *onion_c, uint8_t byte, oniondata_handler_cb *cb, void *object);
 
+typedef bool onion_group_announce_cb(Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
+                                     const uint8_t *data, size_t data_length, void *user_data);
+
+/** Function to call when the onion gets a group announce response. */
+non_null(1) nullable(2, 3)
+void onion_group_announce_register(Onion_Client *onion_c, onion_group_announce_cb *func, void *user_data);
+
 non_null()
 void do_onion_client(Onion_Client *onion_c);
 
 non_null()
-Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_Crypto *c, GC_Session *gc_session);
+Onion_Client *new_onion_client(const Logger *logger, Mono_Time *mono_time, Net_Crypto *c);
 
 non_null()
 void kill_onion_client(Onion_Client *onion_c);
@@ -213,6 +219,7 @@ typedef struct Onion_Friend Onion_Friend;
 non_null() uint16_t onion_get_friend_count(const Onion_Client *const onion_c);
 non_null() Onion_Friend *onion_get_friend(const Onion_Client *const onion_c, uint16_t friend_num);
 non_null() const uint8_t *onion_friend_get_gc_public_key(const Onion_Friend *const onion_friend);
+non_null() const uint8_t *onion_friend_get_gc_public_key_num(const Onion_Client *const onion_c, uint32_t num);
 non_null() void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint8_t *public_key);
 non_null(1) nullable(2)
 void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, uint16_t gc_data_length);

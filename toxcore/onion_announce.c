@@ -99,7 +99,7 @@ int create_announce_request(uint8_t *packet, uint16_t max_packet_length, const u
     random_nonce(packet + 1);
 
     const int len = encrypt_data(dest_client_id, secret_key, packet + 1, plain, sizeof(plain),
-                           packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+                                 packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
 
     if ((uint32_t)len + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE != ONION_ANNOUNCE_REQUEST_MIN_SIZE) {
         return -1;
@@ -190,7 +190,7 @@ int create_data_request(uint8_t *packet, uint16_t max_packet_length, const uint8
     memcpy(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     const int len = encrypt_data(encrypt_public_key, random_secret_key, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length,
-                           packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+                                 packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
 
     if (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + len != DATA_REQUEST_MIN_SIZE +
             length) {
@@ -511,7 +511,8 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(onion_a->log, pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list, (uint16_t)num_nodes);
+        nodes_length = pack_nodes(onion_a->log, pl + 2 + ONION_PING_ID_SIZE, sizeof(nodes_list), nodes_list,
+                                  (uint16_t)num_nodes);
 
         if (nodes_length <= 0) {
             LOGGER_WARNING(onion_a->log, "Failed to pack nodes");

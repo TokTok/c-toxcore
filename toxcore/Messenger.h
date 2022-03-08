@@ -11,7 +11,6 @@
 #define C_TOXCORE_TOXCORE_MESSENGER_H
 
 #include "TCP_server.h"
-#include "friend_connection.h"
 #include "friend_requests.h"
 #include "group_common.h"
 #include "logger.h"

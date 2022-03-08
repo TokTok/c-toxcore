@@ -7867,6 +7867,10 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
     return group_number;
 }
 
+non_null(1, 4) nullable(6)
+bool gc_handle_announce_response_callback(Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
+        const uint8_t *data, size_t data_length, void *user_data);
+
 GC_Session *new_dht_groupchats(Messenger *m)
 {
     GC_Session *c = (GC_Session *)calloc(1, sizeof(GC_Session));
@@ -7881,6 +7885,7 @@ GC_Session *new_dht_groupchats(Messenger *m)
     networking_registerhandler(m->net, NET_PACKET_GC_LOSSLESS, &handle_gc_udp_packet, m);
     networking_registerhandler(m->net, NET_PACKET_GC_LOSSY, &handle_gc_udp_packet, m);
     networking_registerhandler(m->net, NET_PACKET_GC_HANDSHAKE, &handle_gc_udp_packet, m);
+    onion_group_announce_register(m->onion_c, gc_handle_announce_response_callback, c);
 
     return c;
 }
@@ -7967,6 +7972,7 @@ void kill_dht_groupchats(GC_Session *c)
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_LOSSY, nullptr, nullptr);
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_LOSSLESS, nullptr, nullptr);
     networking_registerhandler(c->messenger->net, NET_PACKET_GC_HANDSHAKE, nullptr, nullptr);
+    onion_group_announce_register(c->messenger->onion_c, nullptr, nullptr);
 
     free(c->chats);
     free(c);
@@ -8066,6 +8072,49 @@ static bool create_new_chat_ext_keypair(GC_Chat *chat)
     }
 
     return true;
+}
+
+/* Handles a group announce onion response.
+ *
+ * Return true on success.
+ */
+bool gc_handle_announce_response_callback(Onion_Client *onion_c, uint32_t sendback_num, uint32_t len_nodes,
+        const uint8_t *data, size_t data_length, void *user_data)
+{
+    const GC_Session *c = (GC_Session *)user_data;
+
+    if (c == nullptr) {
+        return false;
+    }
+
+    if (sendback_num == 0) {  // TODO(Jfreegman): should/can this ever happen?
+        return false;
+    }
+
+    GC_Announce announces[GCA_MAX_SENT_ANNOUNCES];
+    const uint8_t *gc_public_key = onion_friend_get_gc_public_key_num(onion_c, sendback_num - 1);
+    GC_Chat *chat = gc_get_group_by_public_key(c, gc_public_key);
+
+    if (chat == nullptr) {
+        LOGGER_WARNING(chat->log, "Couldn't find group associated with public key in announce response");
+        return false;
+    }
+
+    const int offset = 2 + ONION_PING_ID_SIZE + len_nodes;
+
+    assert(data != nullptr);
+    assert(data_length >= offset);
+
+    const int gc_announces_count = gca_unpack_announces_list(chat->log, data + offset, data_length - offset,
+                                   announces, GCA_MAX_SENT_ANNOUNCES);
+
+    if (gc_announces_count == -1) {
+        return false;
+    }
+
+    const int added_peers = gc_add_peers_from_announces(chat, announces, gc_announces_count);
+
+    return added_peers >= 0;
 }
 
 /** Adds TCP relays from `announce` to the TCP relays list for `gconn`.

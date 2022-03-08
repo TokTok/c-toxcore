@@ -14,7 +14,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "logger.h"
 #include "crypto_core.h"
 
 #ifdef __cplusplus

@@ -413,7 +413,7 @@ uint8_t gc_get_role(const GC_Chat *chat, uint32_t peer_id);
  * Returns -6 if the caller attempted to kick himself.
  */
 non_null()
-int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Group_Role role);
+int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Group_Role new_role);
 
 /** Sets the group password and distributes the new shared state to the group.
  *
@@ -446,7 +446,7 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
  * Returns -6 if the packet failed to send.
  */
 non_null()
-int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_Lock topic_lock);
+int gc_founder_set_topic_lock(const Messenger *m, int group_number, Group_Topic_Lock new_lock_state);
 
 /** Sets the group privacy state and distributes the new shared state to the group.
  *

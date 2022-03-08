@@ -331,7 +331,7 @@ static void voice_state_message_test(AutoTox *autotox, Tox_Group_Voice_State voi
 
     Tox_Err_Group_Self_Query sq_err;
     Tox_Group_Role self_role = tox_group_self_get_role(autotox->tox, state->group_number, &sq_err);
-    assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
+    ck_assert(sq_err == TOX_ERR_GROUP_SELF_QUERY_OK);
 
     Tox_Err_Group_Send_Message msg_err;
     bool send_ret = tox_group_send_message(autotox->tox, state->group_number, TOX_MESSAGE_TYPE_NORMAL,

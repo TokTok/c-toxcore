@@ -16,11 +16,10 @@
 #include <time.h>
 
 #include "DHT.h"
-#include "friend_connection.h"
+#include "group_chats.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
-#include "onion_client.h"
 #include "state.h"
 #include "util.h"
 
@@ -3581,24 +3580,11 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         return nullptr;
     }
 
-    m->group_handler = new_dht_groupchats(m);
-
-    if (m->group_handler == nullptr) {
-        kill_gca(m->group_announce);
-        kill_networking(m->net);
-        kill_net_crypto(m->net_crypto);
-        kill_dht(m->dht);
-        friendreq_kill(m->fr);
-        logger_kill(m->log);
-        free(m);
-        return nullptr;
-    }
-
 #endif /* VANILLA_NACL */
 
     m->onion = new_onion(m->log, m->mono_time, m->dht);
     m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht, m->group_announce);
-    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto, m->group_handler);
+    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
@@ -3607,7 +3593,6 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         kill_onion_announce(m->onion_a);
         kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
-        kill_dht_groupchats(m->group_handler);
         kill_gca(m->group_announce);
 #endif /* VANILLA_NACL */
         kill_net_crypto(m->net_crypto);
@@ -3618,6 +3603,24 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         free(m);
         return nullptr;
     }
+
+#ifndef VANILLA_NACL
+    m->group_handler = new_dht_groupchats(m);
+
+    if (m->group_handler == nullptr) {
+        kill_onion(m->onion);
+        kill_onion_announce(m->onion_a);
+        kill_onion_client(m->onion_c);
+        kill_gca(m->group_announce);
+        kill_networking(m->net);
+        kill_net_crypto(m->net_crypto);
+        kill_dht(m->dht);
+        friendreq_kill(m->fr);
+        logger_kill(m->log);
+        free(m);
+        return nullptr;
+    }
+#endif /* VANILLA_NACL */
 
     if (options->tcp_server_port != 0) {
         m->tcp_server = new_TCP_server(m->log, options->ipv6enabled, 1, &options->tcp_server_port,
@@ -3627,7 +3630,6 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
             kill_friend_connections(m->fr_c);
             kill_onion(m->onion);
             kill_onion_announce(m->onion_a);
-            kill_onion_client(m->onion_c);
             kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
             kill_dht_groupchats(m->group_handler);
@@ -3682,9 +3684,11 @@ void kill_messenger(Messenger *m)
     kill_friend_connections(m->fr_c);
     kill_onion(m->onion);
     kill_onion_announce(m->onion_a);
-    kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
     kill_dht_groupchats(m->group_handler);
+#endif
+    kill_onion_client(m->onion_c);
+#ifndef VANILLA_NACL
     kill_gca(m->group_announce);
 #endif /* VANILLA_NACL */
     kill_net_crypto(m->net_crypto);

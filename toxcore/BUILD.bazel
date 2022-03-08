@@ -134,6 +134,24 @@ cc_test(
 )
 
 cc_library(
+    name = "util",
+    srcs = ["util.c"],
+    hdrs = ["util.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        "@pthread",
+    ],
+)
+
+cc_library(
     name = "network",
     srcs = [
         "network.c",
@@ -188,6 +206,7 @@ cc_library(
     srcs = ["ping_array.c"],
     hdrs = ["ping_array.h"],
     deps = [
+        ":ccompat",
         ":crypto_core",
         ":mono_time",
         ":network",
@@ -389,14 +408,60 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "onion_client",
+    srcs = ["onion_client.c"],
+    hdrs = ["onion_client.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":mono_time",
+        ":net_crypto",
+        ":network",
+        ":onion_announce",
+    ],
+)
+
+cc_library(
+    name = "friend_connection",
+    srcs = ["friend_connection.c"],
+    hdrs = ["friend_connection.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":mono_time",
+        ":net_crypto",
+        ":network",
+        ":onion_client",
+    ],
+)
+
 cc_test(
     name = "friend_connection_test",
     size = "small",
     srcs = ["friend_connection_test.cc"],
     deps = [
-        ":Messenger",
+        ":friend_connection",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "friend_requests",
+    srcs = ["friend_requests.c"],
+    hdrs = ["friend_requests.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/testing:__pkg__",
+    ],
+    deps = [
+        ":ccompat",
+        ":friend_connection",
+        ":network",
     ],
 )
 
@@ -404,26 +469,20 @@ cc_library(
     name = "Messenger",
     srcs = [
         "Messenger.c",
-        "friend_connection.c",
-        "friend_requests.c",
         "group_announce.c",
         "group_chats.c",
         "group_connection.c",
         "group_moderation.c",
         "group_pack.c",
-        "onion_client.c",
     ],
     hdrs = [
         "Messenger.h",
-        "friend_connection.h",
-        "friend_requests.h",
         "group_announce.h",
         "group_chats.h",
         "group_common.h",
         "group_connection.h",
         "group_moderation.h",
         "group_pack.h",
-        "onion_client.h",
     ],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
@@ -438,10 +497,12 @@ cc_library(
         ":bin_pack",
         ":bin_unpack",
         ":crypto_core",
+        ":friend_requests",
         ":logger",
         ":mono_time",
         ":net_crypto",
         ":network",
+        ":friend_connection",
         ":onion_announce",
         ":state",
         "@libsodium",
