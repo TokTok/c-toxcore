@@ -18,8 +18,8 @@ cc_binary(
     deps = [
         "//c-toxcore/testing:misc_tools",
         "//c-toxcore/toxcore:DHT",
-        "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:LAN_discovery",
+        "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:TCP_server",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:friend_requests",

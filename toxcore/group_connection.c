@@ -430,6 +430,9 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
         return 1;
     }
 
+    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
+    memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
+
     uint8_t *payload = nullptr;
     const uint16_t processed_len = reassemble_packet(chat->log, gconn, &payload, message_id);
 
@@ -441,6 +444,14 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
     if (handle_gc_lossless_helper(c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata) < 0) {
         free(payload);
         return -1;
+    }
+
+    /* peer number can change from peer add operations in packet handlers */
+    peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
+    gconn = get_gc_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return 0;
     }
 
     gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
@@ -503,6 +514,10 @@ static bool process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Conn
     gconn = get_gc_connection(chat, peer_number);
 
     clear_array_entry(array_entry);
+
+    if (gconn == nullptr) {
+        return true;
+    }
 
     if (ret < 0) {
         gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_REQ);

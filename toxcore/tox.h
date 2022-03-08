@@ -3607,7 +3607,7 @@ typedef enum Tox_Err_Group_Reconnect {
  * Reconnects to a group.
  *
  * This function disconnects from all peers in the group, then attempts to reconnect with the group.
- * The caller's state is not changed (i.e. name, status, role, chat public key etc.)
+ * The caller's state is not changed (i.e. name, status, role, chat public key etc.).
  *
  * @param group_number The group number of the group we wish to reconnect to.
  *
