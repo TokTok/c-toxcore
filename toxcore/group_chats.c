@@ -6150,12 +6150,14 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
 
 
     if (length <= MIN_TCP_OOB_PACKET_SIZE) {
-        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u", length);
+        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
+                       MIN_TCP_OOB_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE);
         return -1;
     }
 
     if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE) {
-        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u", length);
+        LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
+                       MIN_TCP_OOB_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE);
         return -1;
     }
 
