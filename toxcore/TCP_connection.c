@@ -1196,7 +1196,7 @@ static void tcp_forwarding_callback(void *object, const uint8_t *data, uint16_t 
 {
     TCP_Connections *tcp_c = (TCP_Connections *)object;
 
-    if (tcp_c->tcp_forwarded_response_callback) {
+    if (tcp_c->tcp_forwarded_response_callback != nullptr) {
         tcp_c->tcp_forwarded_response_callback(tcp_c->tcp_forwarded_response_callback_object, data, length, userdata);
     }
 }

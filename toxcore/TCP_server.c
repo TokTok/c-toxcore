@@ -763,7 +763,7 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
         }
 
         case TCP_PACKET_FORWARD_REQUEST: {
-            if (!tcp_server->forwarding) {
+            if (tcp_server->forwarding == nullptr) {
                 return -1;
             }
 
@@ -1374,7 +1374,7 @@ void kill_TCP_server(TCP_Server *tcp_server)
         set_callback_handle_recv_1(tcp_server->onion, nullptr, nullptr);
     }
 
-    if (tcp_server->forwarding) {
+    if (tcp_server->forwarding != nullptr) {
         set_callback_forward_reply(tcp_server->forwarding, nullptr, nullptr);
     }
 

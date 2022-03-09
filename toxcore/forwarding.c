@@ -142,7 +142,7 @@ static bool handle_forward_request_dht(const Forwarding *forwarding,
                                        const uint8_t *packet, uint16_t length)
 {
     if (length < FORWARD_REQUEST_MIN_PACKET_SIZE) {
-        return 1;
+        return false;
     }
 
     const uint8_t *const public_key = packet + 1;
@@ -245,7 +245,7 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
                               to_forward_len) ? 0 : 1);
     }
 
-    if (!forwarding->forward_reply_cb) {
+    if (forwarding->forward_reply_cb == nullptr) {
         return 1;
     }
 
@@ -293,7 +293,7 @@ static int handle_forwarding(void *object, const IP_Port *source, const uint8_t 
     }
 
     if (sendback_len > 0) {
-        if (!forwarding->forwarded_request_cb) {
+        if (forwarding->forwarded_request_cb == nullptr) {
             return 1;
         }
 
@@ -302,7 +302,7 @@ static int handle_forwarding(void *object, const IP_Port *source, const uint8_t 
                                          forwarded, forwarded_len, userdata);
         return 0;
     } else {
-        if (!forwarding->forwarded_response_cb) {
+        if (forwarding->forwarded_response_cb == nullptr) {
             return 1;
         }
 
