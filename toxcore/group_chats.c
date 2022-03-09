@@ -5428,7 +5428,7 @@ static bool send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connecti
 
     if (length < 0) {
         LOGGER_WARNING(chat->log, "Failed to make handshake packet");
-        return true;
+        return false;
     }
 
     return tcp_send_oob_packet_using_relay(chat->tcp_conn, gconn->oob_relay_pk, gconn->addr.public_key,
@@ -6138,7 +6138,6 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
     }
 }
 
-#define MIN_TCP_OOB_PACKET_SIZE (1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE)
 non_null(1, 2, 4) nullable(6)
 static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                                     const uint8_t *packet, uint16_t length, void *userdata)
@@ -6149,16 +6148,15 @@ static int handle_gc_tcp_oob_packet(void *object, const uint8_t *public_key, uns
         return -1;
     }
 
-
-    if (length <= MIN_TCP_OOB_PACKET_SIZE) {
+    if (length <= GC_MIN_HS_PACKET_PAYLOAD_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_TCP_OOB_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE);
+                       GC_MIN_HS_PACKET_PAYLOAD_SIZE, MAX_GC_PACKET_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE);
         return -1;
     }
 
-    if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE) {
+    if (length > MAX_GC_PACKET_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_TCP_OOB_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_TCP_OOB_PACKET_SIZE);
+                       GC_MIN_HS_PACKET_PAYLOAD_SIZE, MAX_GC_PACKET_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE);
         return -1;
     }
 
