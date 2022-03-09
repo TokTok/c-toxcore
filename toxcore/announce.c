@@ -563,7 +563,7 @@ static void forwarded_request_callback(void *object, const IP_Port *forwarder,
 }
 
 non_null(1, 2, 3) nullable(5)
-static int handle_announce_request(void *object, const IP_Port *source,
+static int handle_dht_announce_request(void *object, const IP_Port *source,
                                    const uint8_t *data, uint16_t length, void *userdata)
 {
     Announcements *announce = (Announcements *) object;
@@ -604,9 +604,9 @@ Announcements *new_announcements(const Logger *log, Mono_Time *mono_time, Forwar
 
     set_callback_forwarded_request(forwarding, forwarded_request_callback, announce);
 
-    networking_registerhandler(announce->net, NET_PACKET_DATA_SEARCH_REQUEST, handle_announce_request, announce);
-    networking_registerhandler(announce->net, NET_PACKET_DATA_RETRIEVE_REQUEST, handle_announce_request, announce);
-    networking_registerhandler(announce->net, NET_PACKET_STORE_ANNOUNCE_REQUEST, handle_announce_request, announce);
+    networking_registerhandler(announce->net, NET_PACKET_DATA_SEARCH_REQUEST, handle_dht_announce_request, announce);
+    networking_registerhandler(announce->net, NET_PACKET_DATA_RETRIEVE_REQUEST, handle_dht_announce_request, announce);
+    networking_registerhandler(announce->net, NET_PACKET_STORE_ANNOUNCE_REQUEST, handle_dht_announce_request, announce);
 
     return announce;
 }
