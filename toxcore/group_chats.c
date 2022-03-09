@@ -141,7 +141,7 @@ non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
 static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
-non_null() static void create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key);
+non_null() static void create_gc_session_keypair(const Logger *log, uint8_t *public_key, uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 
 uint16_t gc_get_wrapped_packet_size(uint16_t length, uint8_t packet_type)
@@ -3563,7 +3563,7 @@ static bool send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *g
     uint8_t packet[1 + ENC_PUBLIC_KEY_SIZE];
     packet[0] = 0;  // request type
 
-    create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key);
+    create_gc_session_keypair(chat->log, gconn->session_public_key, gconn->session_secret_key);
 
     // copy new session public key to packet
     memcpy(packet + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -3855,7 +3855,7 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
 
     crypto_memlock(new_session_sk, sizeof(new_session_sk));
 
-    create_gc_session_keypair(new_session_pk, new_session_sk);
+    create_gc_session_keypair(chat->log, new_session_pk, new_session_sk);
 
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
@@ -6502,7 +6502,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
 
-    create_gc_session_keypair(gconn->session_public_key, gconn->session_secret_key);
+    create_gc_session_keypair(chat->log, gconn->session_public_key, gconn->session_secret_key);
 
     if (peer_number > 0) {
         memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  // we get the sig key in the handshake
@@ -8030,9 +8030,11 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 }
 
 /** Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`. */
-static void create_gc_session_keypair(uint8_t *public_key, uint8_t *secret_key)
+static void create_gc_session_keypair(const Logger *log, uint8_t *public_key, uint8_t *secret_key)
 {
-    assert(crypto_new_keypair(public_key, secret_key) == 0);
+    if (crypto_new_keypair(public_key, secret_key) != 0) {
+        LOGGER_FATAL(log, "Failed to create group session keypair");
+    }
 }
 
 /** Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
