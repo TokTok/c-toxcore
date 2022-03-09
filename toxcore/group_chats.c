@@ -6862,22 +6862,24 @@ static void do_self_connection(const GC_Session *c, GC_Chat *chat)
     const Messenger *m = c->messenger;
     const unsigned int self_udp_status = ipport_self_copy(m->dht, &chat->self_ip_port);
 
-    // We flag a self announce if our udp status changes, or if we connect to a new tcp relay.
-    // TODO(Jfreegman): This should be flagged when the tcp relay count changes at all. However
-    // Doing this now on the testnet is pointless and causes spam due to a TCP implementation bug.
-    if (((chat->self_udp_status != self_udp_status) && (self_udp_status != SELF_UDP_STATUS_NONE))
-            || (tcp_connections > 0 && tcp_connections > chat->tcp_connections)) {
+    const bool udp_change = (chat->self_udp_status != self_udp_status) && (self_udp_status != SELF_UDP_STATUS_NONE);
+    const bool tcp_change = tcp_connections > 0 && chat->tcp_connections == 0;
+
+    // TODO(Jfreegman): We currently only update the announce the first time we see an online
+    // TCP node. This works fine on the testnet but ideally it should update on any TCP
+    // node count change. The TCP implementation has a bug that causes TCP connection spam,
+    // which causes announce spam, so for now we just do this.
+    if (udp_change || tcp_change) {
         chat->update_self_announces = true;
     }
 
-    if (tcp_connections > 0) {  // TODO(Jfreegman): Remove this before mainnet merge
+    if (tcp_connections > 0) {  // TODO(Jfreegman): Remove this before merge
         chat->tcp_connections = tcp_connections;
     }
 
     chat->self_udp_status = (Self_UDP_Status) self_udp_status;
     chat->last_self_announce_check = mono_time_get(chat->mono_time);
 }
-
 
 /** Attempts to initiate a new connection with peers in the timeout list.
  *
