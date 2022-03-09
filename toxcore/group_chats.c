@@ -76,7 +76,7 @@
 #define GC_PING_PACKET_MIN_DATA_SIZE ((sizeof(uint16_t) * 4) + (sizeof(uint32_t) * 3))
 
 /* How often we can send a group sync request packet */
-#define GC_SYNC_REQUEST_LIMIT 2
+#define GC_SYNC_REQUEST_LIMIT 6
 
 /* How often we try to handshake with an unconfirmed peer */
 #define GC_SEND_HANDSHAKE_INTERVAL 3
@@ -1574,11 +1574,17 @@ static bool send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn
 
 /** Sends a group sync request to peer.
  *
- * Returns true on success.
+ * Returns true on success or if sync request timeout has not expired.
  */
 non_null()
-static bool send_gc_sync_request(const GC_Chat *chat, GC_Connection *gconn, uint16_t sync_flags)
+static bool send_gc_sync_request(GC_Chat *chat, GC_Connection *gconn, uint16_t sync_flags)
 {
+    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+        return true;
+    }
+
+    chat->last_sync_request = mono_time_get(chat->mono_time);
+
     uint8_t data[(sizeof(uint16_t) * 2) + MAX_GC_PASSWORD_SIZE];
     uint16_t length = sizeof(uint16_t);
 
@@ -1918,7 +1924,7 @@ static int handle_gc_sync_request(const GC_Chat *chat, uint32_t peer_number, con
         return 0;
     }
 
-    if (!mono_time_is_timeout(chat->mono_time, gconn->last_sync_response, GC_SYNC_REQUEST_LIMIT)) {
+    if (!mono_time_is_timeout(chat->mono_time, gconn->last_sync_response, GC_PING_TIMEOUT)) {
         LOGGER_DEBUG(chat->log, "sync request rate limit for peer %d", peer_number);
         return 0;
     }
@@ -2064,14 +2070,7 @@ static bool send_gc_invite_response(const GC_Chat *chat, GC_Connection *gconn)
 non_null()
 static int handle_gc_invite_response(GC_Chat *chat, GC_Connection *gconn)
 {
-    uint16_t sync_flags = GF_PEERS;
-
-    if (mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
-        chat->last_sync_request = mono_time_get(chat->mono_time);
-        sync_flags = 0xffff;
-    }
-
-    if (!send_gc_sync_request(chat, gconn, sync_flags)) {
+    if (!send_gc_sync_request(chat, gconn, 0xffff)) {
         return -1;
     }
 
@@ -2309,7 +2308,7 @@ static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uin
  * Returns true if a sync request packet is successfully sent.
  */
 non_null()
-static bool do_gc_peer_state_sync(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *sync_data,
+static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uint8_t *sync_data,
                                   const uint16_t length)
 {
     if (length < GC_PING_PACKET_MIN_DATA_SIZE) {
@@ -2383,11 +2382,7 @@ static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *da
         return -1;
     }
 
-    if (mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
-        if (do_gc_peer_state_sync(chat, gconn, data, length)) {
-            chat->last_sync_request = mono_time_get(chat->mono_time);
-        }
-    }
+    do_gc_peer_state_sync(chat, gconn, data, length);
 
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
         IP_Port ip_port;
@@ -2798,10 +2793,6 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
 non_null()
 static bool send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
 {
-    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
-        return true;
-    }
-
     GC_Connection *rand_gconn = random_gc_connection(chat);
 
     if (rand_gconn == nullptr) {
@@ -2811,8 +2802,6 @@ static bool send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
     if (!send_gc_sync_request(chat, rand_gconn, sync_flags)) {
         return false;
     }
-
-    chat->last_sync_request = mono_time_get(chat->mono_time);
 
     return true;
 }
@@ -2845,10 +2834,6 @@ static int handle_gc_shared_state_error(GC_Chat *chat, GC_Connection *gconn)
     }
 
     if (chat->numpeers <= 1) {
-        return 0;
-    }
-
-    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
         return 0;
     }
 
@@ -3030,10 +3015,6 @@ static int handle_gc_sanctions_list_error(GC_Chat *chat)
     }
 
     if (chat->numpeers <= 1) {
-        return 0;
-    }
-
-    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
         return 0;
     }
 
