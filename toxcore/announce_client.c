@@ -4,16 +4,15 @@
 
 #include "announce_client.h"
 
-#include "announce_lookups.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
+#include "announce_lookups.h"
 #include "ccompat.h"
 #include "DHT.h"
 #include "ping_array.h"
 #include "util.h"
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define MAX_LOOKUP_WIDTH 8
 
@@ -96,8 +95,8 @@ static Lookup_Data *new_announce(const uint8_t *data_secret_key,
 }
 
 nullable(1, 2, 4)
-static Lookup_Data *new_search(should_retrieve_cb should_retrieve_callback,
-                               on_retrieve_cb on_retrieve_callback,
+static Lookup_Data *new_search(should_retrieve_cb *should_retrieve_callback,
+                               on_retrieve_cb *on_retrieve_callback,
                                uint64_t search_started_time,
                                void *callbacks_object)
 {
@@ -126,7 +125,9 @@ static const Lookup_Data *get_lookup_data(const Lookup *lookup)
 non_null()
 static bool is_announced(const Mono_Time *mono_time, const Lookup *lookup)
 {
-    if (get_lookup_data(lookup)->announce_data == nullptr) {
+    const Lookup_Data *lookup_data = get_lookup_data(lookup);
+
+    if (lookup_data->announce_data == nullptr) {
         return false;
     }
 
@@ -186,8 +187,8 @@ bool add_announce(Announce_Client *announce_client,
 
 bool add_search(Announce_Client *announce_client,
                 const uint8_t *data_public_key, uint16_t width,
-                should_retrieve_cb should_retrieve_callback,
-                on_retrieve_cb on_retrieve_callback,
+                should_retrieve_cb *should_retrieve_callback,
+                on_retrieve_cb *on_retrieve_callback,
                 uint64_t search_started_time,
                 void *callbacks_object)
 {
@@ -269,8 +270,6 @@ static bool send_plain_request(const Announce_Client *announce_client,
 
     if (previous_hash != nullptr) {
         memcpy(p, previous_hash, CRYPTO_SHA256_SIZE);
-    } else {
-        // CRYPTO_SHA256_SIZE bytes intentionally left uninitialised
     }
 
     const uint64_t ping_id = ping_array_add(announce_client->ping_array,
