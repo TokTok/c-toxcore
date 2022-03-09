@@ -2,18 +2,20 @@
  * Copyright © 2020-2021 The TokTok team.
  */
 
-/* "Server side" of the DHT announcements protocol. */
+/**
+ * "Server side" of the DHT announcements protocol.
+ * */
 
 #include "announce.h"
+
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "ccompat.h"
 #include "LAN_discovery.h"
 #include "timed_auth.h"
 #include "util.h"
-
-#include <assert.h>
-#include <stdlib.h>
-#include <string.h>
 
 #define MAX_ANNOUNCEMENT_TIMEOUT 900
 
@@ -30,7 +32,9 @@ uint8_t response_of_request_type(uint8_t request_type)
             return NET_PACKET_STORE_ANNOUNCE_RESPONSE;
 
         default :
-            assert(false);
+            {
+                assert(false);
+            }
     }
 }
 
@@ -89,8 +93,8 @@ static void delete_entry(Announce_Entry *entry)
     entry->store_until = 0;
 }
 
-non_null()
 /* Return bits (at most 8) from pk starting at index as uint8_t */
+non_null()
 static uint8_t truncate_pk_at_index(const uint8_t *pk, uint16_t index, uint16_t bits)
 {
     assert(bits < 8);
@@ -161,7 +165,7 @@ static const Announce_Entry *get_stored_const(const Announcements *announce, con
 
 
 bool on_stored(const Announcements *announce, const uint8_t *data_public_key,
-               on_retrieve_cb on_retrieve_callback, void *object)
+               on_retrieve_cb *on_retrieve_callback, void *object)
 {
     const Announce_Entry *const entry = get_stored_const(announce, data_public_key);
 

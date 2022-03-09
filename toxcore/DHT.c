@@ -1163,8 +1163,7 @@ bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Po
 }
 
 #ifdef CHECK_ANNOUNCE_NODE
-/** Set node as announce node.
- */
+/** Set node as announce node. */
 void set_announce_node(DHT *dht, const uint8_t *public_key)
 {
     for (int32_t i = -1; i < dht->num_friends; ++i) {

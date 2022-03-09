@@ -1,24 +1,6 @@
-/*
- * Copyright © 2019 The TokTok team.
- *
- * This file is part of Tox, the free peer to peer instant messenger.
- *
- * Tox is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * Tox is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Tox.  If not, see <http://www.gnu.org/licenses/>.
+/* SPDX-License-Identifier: GPL-3.0-or-later
+ * Copyright © 2019-2022 The TokTok team.
  */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
 #include "forwarding.h"
 
@@ -37,13 +19,13 @@ struct Forwarding {
 
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
-    forward_reply_cb *forward_reply_cb;
+    forward_reply_cb *forward_reply_callback;
     void *forward_reply_callback_object;
 
-    forwarded_request_cb *forwarded_request_cb;
+    forwarded_request_cb *forwarded_request_callback;
     void *forwarded_request_callback_object;
 
-    forwarded_response_cb *forwarded_response_cb;
+    forwarded_response_cb *forwarded_response_callback;
     void *forwarded_response_callback_object;
 };
 
@@ -106,7 +88,7 @@ static bool create_forwarding_packet(const Forwarding *forwarding,
     *packet = NET_PACKET_FORWARDING;
 
     if (sendback_data_len == 0) {
-        *(packet + 1) = 0;
+        packet[1] = 0;
         memcpy(packet + 1 + 1, data, length);
     } else {
         const uint16_t sendback_len = TIMED_AUTH_SIZE + sendback_data_len;
@@ -115,7 +97,7 @@ static bool create_forwarding_packet(const Forwarding *forwarding,
             return false;
         }
 
-        *(packet + 1) = sendback_len;
+        packet[1] = sendback_len;
         generate_timed_auth(forwarding->mono_time, SENDBACK_TIMEOUT, forwarding->hmac_key, sendback_data,
                             sendback_data_len, packet + 1 + 1);
         memcpy(packet + 1 + 1 + TIMED_AUTH_SIZE, sendback_data, sendback_data_len);
@@ -192,7 +174,7 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
         return 1;
     }
 
-    const uint8_t sendback_len = *(packet + 1);
+    const uint8_t sendback_len = packet[1];
     const uint8_t *const sendback_auth = packet + 1 + 1;
     const uint8_t *const sendback_data = sendback_auth + TIMED_AUTH_SIZE;
 
@@ -245,11 +227,11 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
                               to_forward_len) ? 0 : 1);
     }
 
-    if (forwarding->forward_reply_cb == nullptr) {
+    if (forwarding->forward_reply_callback == nullptr) {
         return 1;
     }
 
-    return (forwarding->forward_reply_cb(forwarding->forward_reply_callback_object,
+    return (forwarding->forward_reply_callback(forwarding->forward_reply_callback_object,
                                          sendback_data, sendback_data_len,
                                          to_forward, to_forward_len) ? 0 : 1);
 }
@@ -265,7 +247,7 @@ static int handle_forwarding(void *object, const IP_Port *source, const uint8_t 
         return 1;
     }
 
-    const uint8_t sendback_len = *(packet + 1);
+    const uint8_t sendback_len = packet[1];
 
     if (length < 1 + 1 + sendback_len) {
         return 1;
@@ -293,20 +275,20 @@ static int handle_forwarding(void *object, const IP_Port *source, const uint8_t 
     }
 
     if (sendback_len > 0) {
-        if (forwarding->forwarded_request_cb == nullptr) {
+        if (forwarding->forwarded_request_callback == nullptr) {
             return 1;
         }
 
-        forwarding->forwarded_request_cb(forwarding->forwarded_request_callback_object,
+        forwarding->forwarded_request_callback(forwarding->forwarded_request_callback_object,
                                          source, sendback, sendback_len,
                                          forwarded, forwarded_len, userdata);
         return 0;
     } else {
-        if (forwarding->forwarded_response_cb == nullptr) {
+        if (forwarding->forwarded_response_callback == nullptr) {
             return 1;
         }
 
-        forwarding->forwarded_response_cb(forwarding->forwarded_response_callback_object,
+        forwarding->forwarded_response_callback(forwarding->forwarded_response_callback_object,
                                           forwarded, forwarded_len, userdata);
         return 0;
     }
@@ -331,19 +313,19 @@ bool forward_reply(Networking_Core *net, const IP_Port *forwarder,
 
 void set_callback_forwarded_request(Forwarding *forwarding, forwarded_request_cb *function, void *object)
 {
-    forwarding->forwarded_request_cb = function;
+    forwarding->forwarded_request_callback = function;
     forwarding->forwarded_request_callback_object = object;
 }
 
 void set_callback_forwarded_response(Forwarding *forwarding, forwarded_response_cb *function, void *object)
 {
-    forwarding->forwarded_response_cb = function;
+    forwarding->forwarded_response_callback = function;
     forwarding->forwarded_response_callback_object = object;
 }
 
 void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *function, void *object)
 {
-    forwarding->forward_reply_cb = function;
+    forwarding->forward_reply_callback = function;
     forwarding->forward_reply_callback_object = object;
 }
 

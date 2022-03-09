@@ -23,7 +23,7 @@ Announcements *new_announcements(const Logger *log, Mono_Time *mono_time, Forwar
  */
 non_null(1, 2, 3) nullable(4)
 bool on_stored(const Announcements *announce, const uint8_t *data_public_key,
-               on_retrieve_cb on_retrieve_callback, void *object);
+               on_retrieve_cb *on_retrieve_callback, void *object);
 
 non_null()
 void set_synch_offset(Announcements *announce, int32_t synch_offset);

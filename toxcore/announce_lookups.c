@@ -19,7 +19,8 @@ const Node_format *route_destination(const Lookup_Route *route)
 
 const uint8_t *route_destination_pk(const Lookup_Route *route)
 {
-    return route_destination(route)->public_key;
+    const Node_format *dest = route_destination(route);
+    return dest->public_key;
 }
 
 non_null()
@@ -30,7 +31,7 @@ static const uint8_t *lookup_node_public_key(const Lookup_Node *lookup_node)
 
 non_null(1) nullable(3, 4)
 static Lookup *lookup_new(const uint8_t *data_public_key, uint16_t width,
-                          void *userdata, void on_delete(void *userdata))
+                          void *userdata, on_delete_cb *on_delete)
 {
     Lookup *lookup = calloc(1, sizeof(Lookup));
 
@@ -95,7 +96,8 @@ non_null(1, 2) nullable(3)
 static bool lookup_add_node_opt(Lookup *lookup, const Lookup_Route *route,
                                 const uint8_t *self_public_key, bool pretend)
 {
-    const uint8_t *new_public_key = route_destination(route)->public_key;
+    const Node_format *dest = route_destination(route);
+    const uint8_t *new_public_key = dest->public_key;
 
     if (self_public_key != nullptr && pk_equal(new_public_key, self_public_key)) {
         return false;
@@ -245,7 +247,7 @@ void delete_pending(Lookup *lookup, uint64_t ping_id)
 
 bool add_lookup(Lookups *lookups,
                 const uint8_t *data_public_key, uint16_t width,
-                void *userdata, void on_delete(void *userdata))
+                void *userdata, on_delete_cb *on_delete)
 {
     if (find_lookup(lookups, data_public_key) != nullptr) {
         return false;

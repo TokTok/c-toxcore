@@ -129,7 +129,8 @@ int tcp_send_onion_request(TCP_Connections *tcp_c, unsigned int tcp_connections_
 non_null()
 int set_tcp_onion_status(TCP_Connections *tcp_c, bool status);
 
-/** Send a forward request to the TCP relay with IP_Port tcp_forwarder,
+/**
+ * Send a forward request to the TCP relay with IP_Port tcp_forwarder,
  * requesting to forward data via a chain of dht nodes starting with dht_node.
  * A chain_length of 0 means that dht_node is the final destination of data.
  *

@@ -27,8 +27,8 @@ typedef bool should_retrieve_cb(void *object, const uint8_t *hash);
 non_null(1, 2) nullable(4, 5, 7)
 bool add_search(Announce_Client *announce_client,
                 const uint8_t *data_public_key, uint16_t width,
-                should_retrieve_cb should_retrieve_callback,
-                on_retrieve_cb on_retrieve_callback,
+                should_retrieve_cb *should_retrieve_callback,
+                on_retrieve_cb *on_retrieve_callback,
                 uint64_t search_started_time,
                 void *callbacks_object);
 

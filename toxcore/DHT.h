@@ -65,9 +65,12 @@ extern "C" {
 #define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
 
 /** This define can eventually be removed; it is necessary if a significant
- * proportion of dht nodes do not implement the dht announcements protocol. */
-// FIXME: Disabled during testing
-//#define CHECK_ANNOUNCE_NODE
+ * proportion of dht nodes do not implement the dht announcements protocol.
+ *
+ * FIXME: Disabled during testing
+ * #define CHECK_ANNOUNCE_NODE
+ */
+
 
 /**
  * @brief Create a request to peer.

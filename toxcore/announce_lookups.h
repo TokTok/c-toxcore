@@ -2,7 +2,9 @@
  * Copyright © 2020-2021 The TokTok team.
  */
 
-/* announce_lookups : supporting data structures for announce_client */
+/**
+ * announce_lookups : supporting data structures for announce_client
+ * */
 
 #ifndef C_TOXCORE_TOXCORE_ANNOUNCE_LOOKUPS_H
 #define C_TOXCORE_TOXCORE_ANNOUNCE_LOOKUPS_H
@@ -58,11 +60,13 @@ typedef struct Pending_Response {
     uint64_t timestamp;
 } Pending_Response;
 
+typedef void on_delete_cb(void *userdata);
+
 typedef struct Lookup {
     uint8_t data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint16_t width;
     void *userdata;
-    void (*on_delete)(void *userdata);
+    on_delete_cb *on_delete;
 
     Lookup_Node *nodes;
     Pending_Response *pending;
@@ -82,7 +86,8 @@ Lookup_Node *lookup_find_node(const Lookup *lookup, const uint8_t *public_key);
 non_null()
 uint16_t num_lookup_nodes(const Lookup *lookup);
 
-/** Add node with route `route` if its public key is not `self_public_key` and
+/**
+ * Add node with route `route` if its public key is not `self_public_key` and
  * if `lookup` does not already contain the node and if `lookup` is not full
  * or if the new node is closer to `lookup->data_public_key` than the furthest
  * existing node, which is removed to make room.
@@ -94,31 +99,32 @@ uint16_t num_lookup_nodes(const Lookup *lookup);
 non_null(1, 2) nullable(3)
 bool lookup_add_node(Lookup *lookup, const Lookup_Route *route, const uint8_t *self_public_key);
 
-/** Returns the same truth value as `lookup_add_node` would, but has no effect.
- */
+/** Returns the same truth value as `lookup_add_node` would, but has no effect. */
 non_null(1, 2) nullable(3)
 bool lookup_could_add_node(Lookup *lookup, const Lookup_Route *route, const uint8_t *self_public_key);
 
-/** Remove node from lookup.
- */
+/** Remove node from lookup. */
 non_null()
 void delete_lookup_node(Lookup_Node *lookup_node);
 
-/** Adjust routes in light of validity of `route`:
+/**
+ * Adjust routes in light of validity of `route`:
  * Replace routes in `lookup` with initial segments of `route` where this does
  * not increase route lengths.
  */
 non_null()
 void lookup_route_valid(Lookup *lookup, const Lookup_Route *route);
 
-/** Write the routes of nodes in `lookup` with shortest length to `routes`.
+/**
+ * Write the routes of nodes in `lookup` with shortest length to `routes`.
  * Write the number of these shortest routes to `num_routes`.
  * Return length of shortest routes, or `(MAX_ROUTE_LENGTH + 1)` if none.
  */
 non_null()
 uint16_t get_shortest_routes(const Lookup *lookup, Lookup_Route *routes, uint16_t *num_routes);
 
-/** Add entry to pending response set, possibly displacing a timed out or more
+/**
+ * Add entry to pending response set, possibly displacing a timed out or more
  * distant entry.
  * Return true if the key could be added, false otherwise.
  */
@@ -133,19 +139,21 @@ typedef struct Lookups {
     uint32_t num_lookups;
 } Lookups;
 
-/** Add `lookup` to `lookups`.
+/**
+ * Add `lookup` to `lookups`.
  * Fail if there is an existing lookup with this public key.
  * Return false on failure, true otherwise.
  */
 non_null(1, 2) nullable(4, 5)
 bool add_lookup(Lookups *lookups,
                 const uint8_t *data_public_key, uint16_t width,
-                void *userdata, void on_delete(void *userdata));
+                void *userdata, on_delete_cb *on_delete);
 
 non_null()
 Lookup *find_lookup(const Lookups *lookups, const uint8_t *data_public_key);
 
-/** Delete lookup.
+/**
+ * Delete lookup.
  * Return true if something was deleted, false otherwise.
  */
 non_null()

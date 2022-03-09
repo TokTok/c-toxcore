@@ -323,7 +323,8 @@ non_null()
 int send_tcp_onion_request(Net_Crypto *c, unsigned int tcp_connections_number,
                            const uint8_t *data, uint16_t length);
 
-/** Send a forward request to the TCP relay with IP_Port tcp_forwarder,
+/**
+ * Send a forward request to the TCP relay with IP_Port tcp_forwarder,
  * requesting to forward data via a chain of dht nodes starting with dht_node.
  * A chain_length of 0 means that dht_node is the final destination of data.
  *
