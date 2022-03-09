@@ -17,7 +17,7 @@
 
 #define MAX_LOOKUP_WIDTH 8
 
-#define ANNOUNCE_TIMEOUT 300
+#define ANNOUNCEMENT_TIMEOUT 300
 
 #define MAX_LOOKUP_NODE_RETRIES 3
 #define LOOKUP_NODE_RETRY_TIMEOUT 3
@@ -357,7 +357,7 @@ static bool send_announce_store_request(Announce_Client *announce_client,
     memcpy(p, timed_auth, TIMED_AUTH_SIZE);
     p += TIMED_AUTH_SIZE;
 
-    net_pack_u32(p, ANNOUNCE_TIMEOUT);
+    net_pack_u32(p, ANNOUNCEMENT_TIMEOUT);
     p += sizeof(uint32_t);
 
     *p = reannounce;
@@ -806,7 +806,7 @@ static void forwarded_response_callback(void *object,
 }
 
 non_null(1, 2, 3) nullable(5)
-static int handle_announce_response(void *object, const IP_Port *source,
+static int handle_dht_announce_response(void *object, const IP_Port *source,
                                     const uint8_t *data, uint16_t length, void *userdata)
 {
     Announce_Client *announce_client = (Announce_Client *) object;
@@ -844,11 +844,11 @@ Announce_Client *new_announce_client(Mono_Time *mono_time, Forwarding *forwardin
     }
 
     set_callback_forwarded_response(forwarding, forwarded_response_callback, announce_client);
-    networking_registerhandler(announce_client->net, NET_PACKET_DATA_SEARCH_RESPONSE, handle_announce_response,
+    networking_registerhandler(announce_client->net, NET_PACKET_DATA_SEARCH_RESPONSE, handle_dht_announce_response,
                                announce_client);
-    networking_registerhandler(announce_client->net, NET_PACKET_DATA_RETRIEVE_RESPONSE, handle_announce_response,
+    networking_registerhandler(announce_client->net, NET_PACKET_DATA_RETRIEVE_RESPONSE, handle_dht_announce_response,
                                announce_client);
-    networking_registerhandler(announce_client->net, NET_PACKET_STORE_ANNOUNCE_RESPONSE, handle_announce_response,
+    networking_registerhandler(announce_client->net, NET_PACKET_STORE_ANNOUNCE_RESPONSE, handle_dht_announce_response,
                                announce_client);
 
     return announce_client;
