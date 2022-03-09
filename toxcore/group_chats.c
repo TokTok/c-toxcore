@@ -2799,11 +2799,7 @@ static bool send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
         return false;
     }
 
-    if (!send_gc_sync_request(chat, rand_gconn, sync_flags)) {
-        return false;
-    }
-
-    return true;
+    return send_gc_sync_request(chat, rand_gconn, sync_flags);
 }
 
 /** Returns true if all shared state values are legal. */
