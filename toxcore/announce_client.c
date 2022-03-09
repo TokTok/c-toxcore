@@ -789,7 +789,7 @@ static bool process_announce_response(Announce_Client *announce_client,
     const uint8_t *data_public_key = p;
     p += CRYPTO_PUBLIC_KEY_SIZE;
 
-    const uint8_t *const old_hash = *p ? p + 1 : nullptr;
+    const uint8_t *const old_hash = *p > 0 ? p + 1 : nullptr;
 
     return process_announce_response_plain(announce_client, data[0], &route,
                                            ping_id, old_hash, data_public_key,
