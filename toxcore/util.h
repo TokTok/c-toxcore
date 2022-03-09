@@ -29,7 +29,6 @@ non_null() const uint8_t *get_enc_key(const uint8_t *key);
 non_null() const uint8_t *get_sig_pk(const uint8_t *key);
 non_null() void set_sig_pk(uint8_t *key, const uint8_t *sig_pk);
 non_null() const uint8_t *get_sig_sk(const uint8_t *key);
-non_null() void set_sig_sk(uint8_t *key, const uint8_t *sig_sk);
 non_null() const uint8_t *get_chat_id(const uint8_t *key);
 
 

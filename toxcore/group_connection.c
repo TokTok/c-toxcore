@@ -646,7 +646,7 @@ void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
-    return ((GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time) > mono_time_get(mono_time));
+    return GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time > mono_time_get(mono_time);
 }
 
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn)

@@ -24,7 +24,6 @@
 #define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
 #define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
 #define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
-#define SIG_SECRET_KEY_SIZE CRYPTO_SIGN_SECRET_KEY_SIZE
 
 bool is_power_of_2(uint64_t x)
 {
@@ -49,11 +48,6 @@ void set_sig_pk(uint8_t *key, const uint8_t *sig_pk)
 const uint8_t *get_sig_sk(const uint8_t *key)
 {
     return key + ENC_SECRET_KEY_SIZE;
-}
-
-void set_sig_sk(uint8_t *key, const uint8_t *sig_sk)
-{
-    memcpy(key + ENC_SECRET_KEY_SIZE, sig_sk, SIG_SECRET_KEY_SIZE);
 }
 
 const uint8_t *get_chat_id(const uint8_t *key)

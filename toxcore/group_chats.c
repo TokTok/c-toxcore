@@ -268,12 +268,14 @@ uint8_t gc_get_self_status(const GC_Chat *chat)
 non_null()
 static void self_gc_set_status(const GC_Chat *chat, Group_Peer_Status status)
 {
-    if (status <= GS_BUSY) {
+    if (status == GS_NONE || status == GS_AWAY || status == GS_BUSY) {
         GC_Peer *peer = get_gc_peer(chat, 0);
         assert(peer != nullptr);
-
         peer->status = status;
+        return;
     }
+
+    LOGGER_WARNING(chat->log, "Attempting to set user status with invalid status: %u", (uint8_t)status);
 }
 
 uint32_t gc_get_self_peer_id(const GC_Chat *chat)
@@ -2101,7 +2103,7 @@ static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, 
 
     uint8_t type = data[0];
 
-    if (type > GJ_INVITE_FAILED) {
+    if (type >= GJ_INVALID) {
         type = GJ_INVITE_FAILED;
     }
 
@@ -2121,7 +2123,7 @@ static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, 
 non_null()
 static bool send_gc_invite_response_reject(const GC_Chat *chat, const GC_Connection *gconn, uint8_t type)
 {
-    if (type > GJ_INVITE_FAILED) {
+    if (type >= GJ_INVALID) {
         type = GJ_INVITE_FAILED;
     }
 

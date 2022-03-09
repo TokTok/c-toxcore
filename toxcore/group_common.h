@@ -37,6 +37,7 @@
 /* Max number of messages to store in the send/recv arrays */
 #define GCC_BUFFER_SIZE 8192
 
+/** Self UDP status. Must correspond to return values from ipport_self_copy(). */
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
     SELF_UDP_STATUS_WAN  = 0x01,
