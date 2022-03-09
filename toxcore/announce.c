@@ -135,10 +135,35 @@ static Announce_Entry *get_stored(Announcements *announce, const uint8_t *data_p
     return nullptr;
 }
 
+non_null()
+static const Announce_Entry *bucket_of_key_const(const Announcements *announce, const uint8_t *pk)
+{
+    return &announce->entries[get_bucketnum(announce->public_key, pk) * ANNOUNCE_BUCKET_SIZE];
+}
+
+non_null()
+static const Announce_Entry *get_stored_const(const Announcements *announce, const uint8_t *data_public_key)
+{
+    const Announce_Entry *const bucket = bucket_of_key_const(announce, data_public_key);
+
+    for (uint32_t i = 0; i < ANNOUNCE_BUCKET_SIZE; ++i) {
+        if (pk_equal(bucket[i].data_public_key, data_public_key)) {
+            if (entry_is_empty(announce, &bucket[i])) {
+                break;
+            }
+
+            return &bucket[i];
+        }
+    }
+
+    return nullptr;
+}
+
+
 bool on_stored(const Announcements *announce, const uint8_t *data_public_key,
                on_retrieve_cb on_retrieve_callback, void *object)
 {
-    const Announce_Entry *const entry = get_stored((Announcements *)announce, data_public_key);
+    const Announce_Entry *const entry = get_stored_const(announce, data_public_key);
 
     if (entry == nullptr || entry->data == nullptr) {
         return false;
@@ -300,7 +325,7 @@ static int create_reply_plain(Announcements *announce,
         memcpy(p, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
         p += CRYPTO_PUBLIC_KEY_SIZE;
 
-        const Announce_Entry *const stored = get_stored(announce, data_public_key);
+        const Announce_Entry *const stored = get_stored_const(announce, data_public_key);
 
         if (stored == nullptr) {
             *p = 0;
@@ -363,7 +388,7 @@ static int create_reply_plain(Announcements *announce,
             return -1;
         }
 
-        const Announce_Entry *const entry = get_stored(announce, data_public_key);
+        const Announce_Entry *const entry = get_stored_const(announce, data_public_key);
 
         if (entry == nullptr) {
             return -1;
