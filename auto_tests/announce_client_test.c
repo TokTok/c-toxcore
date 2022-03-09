@@ -47,10 +47,10 @@ static void on_retrieve_callback(void *object, const uint8_t *data, uint16_t len
 static void basic_lookup_test(const uint32_t num_toxes, bool advance_time,
                               AutoTox *autotoxes)
 {
-    Announcements *announcements[num_toxes];
-    Announce_Client *announce_client[num_toxes];
-    Forwarding *forwarding[num_toxes];
-    Mono_Time *mono_time[num_toxes];
+    VLA(Announcements *, announcements, num_toxes);
+    VLA(Announce_Client *, announce_client, num_toxes);
+    VLA(Forwarding *, forwarding, num_toxes);
+    VLA(Mono_Time *, mono_time, num_toxes);
 
     for (uint32_t i = 0; i < num_toxes; ++i) {
         // TODO(iphydf): Don't rely on toxcore internals.
@@ -85,7 +85,7 @@ static void basic_lookup_test(const uint32_t num_toxes, bool advance_time,
         do_announce_client(announce_client[0]);
     } while (!is_announced(mono_time[0], announce_lookup));
 
-    bool retrieved[num_toxes];
+    VLA(bool, retrieved, num_toxes);
     memset(retrieved, 0, sizeof(retrieved));
 
     for (uint32_t i = 1; i < num_toxes; ++i) {
