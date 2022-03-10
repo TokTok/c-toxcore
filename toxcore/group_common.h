@@ -110,6 +110,7 @@ typedef struct GC_Connection {
 
     bool        confirmed;  /* true if this peer has given us their info */
     bool        handshaked;  /* true if we've successfully handshaked with this peer */
+    uint16_t    handshake_attempts;
     uint64_t    last_handshake_request;
     uint64_t    last_handshake_response;
     uint8_t     pending_handshake_type;

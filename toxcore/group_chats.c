@@ -5361,13 +5361,22 @@ static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, 
         return false;
     }
 
+    const bool try_tcp_fallback = gconn->handshake_attempts % 2 == 1 && gconn->tcp_relays_count > 0;
+    ++gconn->handshake_attempts;
+
     int ret = -1;
 
-    if (gcc_direct_conn_is_possible(chat, gconn)) {
+    if (!try_tcp_fallback && gcc_direct_conn_is_possible(chat, gconn)) {
         ret = sendpacket(chat->net, &gconn->addr.ip_port, packet, (uint16_t)length);
     }
 
-    if (ret != length) {
+    if (ret != length && gconn->tcp_relays_count == 0) {
+        LOGGER_WARNING(chat->log, "UDP handshake failed and no TCP relays to fall back on");
+        return false;
+    }
+
+    // Send a TCP handshake if UDP fails, or if UDP succeeded last time but we never got a response
+    if (gconn->tcp_relays_count > 0 && (ret != length || try_tcp_fallback)) {
         if (send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, (uint16_t)length) == -1) {
             LOGGER_WARNING(chat->log, "Send handshake packet failed. Type 0x%02x", request_type);
             return false;
