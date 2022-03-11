@@ -235,7 +235,6 @@ typedef struct GC_Chat {
     Self_UDP_Status self_udp_status;
     IP_Port         self_ip_port;
 
-
     Networking_Core *net;
     TCP_Connections *tcp_conn;
 

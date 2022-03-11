@@ -1870,7 +1870,8 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if ((sync_flags & GF_TOPIC) > 0 && chat->topic_info.version > 0) {
+    if ((sync_flags & GF_TOPIC) > 0 && chat->topic_info.version > 0 &&
+            mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
         if (!send_peer_topic(chat, gconn)) {
             LOGGER_WARNING(chat->log, "Failed to send topic");
             return false;
@@ -1917,7 +1918,6 @@ static int handle_gc_sync_request(const GC_Chat *chat, uint32_t peer_number, con
     }
 
     if (chat->numpeers <= 1) {
-        LOGGER_DEBUG(chat->log, "Got sync request with empty peer list?");
         return 0;
     }
 
@@ -2357,9 +2357,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
                                 roles_checksum, topic_version, topic_checksum);
 
     if (sync_flags > 0) {
-        if (!send_gc_sync_request(chat, gconn, sync_flags)) {
-            return true;
-        }
+        return send_gc_sync_request(chat, gconn, sync_flags);
     }
 
     return false;
