@@ -67,8 +67,10 @@ extern "C" {
 #define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 #define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 
-/** This define can eventually be removed; it is necessary if a significant
- * proportion of dht nodes do not implement the dht announcements protocol. */
+/**
+ * This define can eventually be removed; it is necessary if a significant
+ * proportion of dht nodes do not implement the dht announcements protocol.
+ */
 #define CHECK_ANNOUNCE_NODE
 
 /**
@@ -365,6 +367,10 @@ int dht_getfriendip(const DHT *dht, const uint8_t *public_key, IP_Port *ip_port)
 non_null()
 int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2);
 
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+non_null()
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2);
+
 /**
  * Add node to the node list making sure only the nodes closest to cmp_pk are in the list.
  *
@@ -455,6 +461,7 @@ int dht_connect_after_load(DHT *dht);
 
 /** @brief Send the given packet to node with public_key.
  *
+ * @return number of bytes sent.
  * @retval -1 if failure.
  */
 non_null()

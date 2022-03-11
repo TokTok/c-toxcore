@@ -222,9 +222,8 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2)
     return 0;
 }
 
-/** Return index of first unequal bit number. */
-non_null()
-static unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
     unsigned int i;
     unsigned int j = 0;
@@ -517,7 +516,6 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
  * @return size of packet on success.
  * @retval -1 on failure.
  */
-non_null()
 int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
                       const uint8_t *shared_key, const uint8_t type,
                       const uint8_t *plain, size_t plain_length,
@@ -1166,12 +1164,24 @@ bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Po
 }
 
 #ifdef CHECK_ANNOUNCE_NODE
-/** Set node as announce node.
- */
+/** Set node as announce node. */
 void set_announce_node(DHT *dht, const uint8_t *public_key)
 {
     for (int32_t i = -1; i < dht->num_friends; ++i) {
-        Client_data *list = i == -1 ? dht->close_clientlist : dht->friends_list[i].client_list;
+        Client_data *list;
+
+        if (i == -1) {
+            unsigned int index = bit_by_bit_cmp(public_key, dht->self_public_key);
+
+            if (index >= LCLIENT_LENGTH) {
+                index = LCLIENT_LENGTH - 1;
+            }
+
+            list = dht->close_clientlist + index * LCLIENT_NODES;
+        } else {
+            list = dht->friends_list[i].client_list;
+        }
+
         const uint32_t list_len = i == -1 ? LCLIENT_LIST : MAX_FRIEND_CLIENTS;
         const uint32_t index = index_of_client_pk(list, list_len, public_key);
 

@@ -325,7 +325,35 @@ cc_library(
         ":DHT",
         ":ccompat",
         ":crypto_core",
+        ":forwarding",
         ":mono_time",
+        ":util",
+    ],
+)
+
+cc_library(
+    name = "forwarding",
+    srcs = ["forwarding.c"],
+    hdrs = ["forwarding.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":network",
+        ":timed_auth",
+    ],
+)
+
+cc_library(
+    name = "announce",
+    srcs = ["announce.c"],
+    hdrs = ["announce.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":LAN_discovery",
+        ":ccompat",
+        ":forwarding",
+        ":timed_auth",
         ":util",
     ],
 )
@@ -358,6 +386,7 @@ cc_library(
         ":TCP_common",
         ":ccompat",
         ":crypto_core",
+        ":forwarding",
         ":list",
         ":mono_time",
         ":onion",
@@ -373,6 +402,7 @@ cc_library(
     deps = [
         ":TCP_common",
         ":ccompat",
+        ":forwarding",
         ":mono_time",
         ":util",
     ],
