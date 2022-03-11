@@ -83,6 +83,10 @@ libtoxcore_la_SOURCES = ../toxcore/attributes.h \
                         ../toxcore/onion_announce.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion_client.c \
+                        ../toxcore/announce.h \
+                        ../toxcore/announce.c \
+                        ../toxcore/forwarding.h \
+                        ../toxcore/forwarding.c \
                         ../toxcore/TCP_client.h \
                         ../toxcore/TCP_client.c \
                         ../toxcore/TCP_common.h \
