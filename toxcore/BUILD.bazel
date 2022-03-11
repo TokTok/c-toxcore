@@ -299,9 +299,17 @@ cc_library(
         ":DHT",
         ":ccompat",
         ":crypto_core",
+        ":forwarding",
         ":mono_time",
         ":util",
     ],
+)
+
+cc_library(
+    name = "forwarding",
+    srcs = ["forwarding.c"],
+    hdrs = ["forwarding.h"],
+    deps = [":DHT"],
 )
 
 cc_library(

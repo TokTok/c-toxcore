@@ -219,9 +219,8 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2)
     return 0;
 }
 
-/** Return index of first unequal bit number. */
-non_null()
-static unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
     unsigned int i;
     unsigned int j = 0;
@@ -1167,8 +1166,7 @@ bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Po
 }
 
 #ifdef CHECK_ANNOUNCE_NODE
-/** Set node as announce node.
- */
+/** Set node as announce node. */
 void set_announce_node(DHT *dht, const uint8_t *public_key)
 {
     for (int32_t i = -1; i < dht->num_friends; ++i) {
