@@ -18,7 +18,8 @@ typedef struct Announcements Announcements;
 non_null()
 Announcements *new_announcements(const Logger *log, Mono_Time *mono_time, Forwarding *forwarding);
 
-/* If data is stored, run `on_retrieve_callback` on it.
+/**
+ * If data is stored, run `on_retrieve_callback` on it.
  * Return true if data is stored, false otherwise.
  */
 non_null(1, 2, 3) nullable(4)
@@ -30,5 +31,44 @@ void set_synch_offset(Announcements *announce, int32_t synch_offset);
 
 non_null()
 void kill_announcements(Announcements *announce);
+
+
+/* The declarations below are not public, they are exposed only for tests. */
+
+/**
+ * Return xor of first ANNOUNCE_BUCKET_PREFIX_LENGTH bits from one bit after
+ * base and pk first differ
+ */
+non_null()
+uint16_t get_bucketnum(const uint8_t *base, const uint8_t *pk);
+
+typedef struct Announce_Entry {
+    uint64_t store_until;
+    uint8_t data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t *data;
+    uint32_t length;
+} Announce_Entry;
+
+non_null()
+Announce_Entry *get_stored(Announcements *announce, const uint8_t *data_public_key);
+
+non_null()
+bool store_data(Announcements *announce, const uint8_t *data_public_key,
+                const uint8_t *data, uint32_t length, uint32_t timeout);
+
+#define MAX_MAX_ANNOUNCEMENT_TIMEOUT 900
+#define MIN_MAX_ANNOUNCEMENT_TIMEOUT 10
+#define MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO 4
+
+/**
+ * For efficient lookup and updating, entries are stored as a hash table keyed
+ * to the first ANNOUNCE_BUCKET_PREFIX_LENGTH bits starting from one bit after
+ * the first bit in which data public key first differs from the dht key, with
+ * (2-adically) closest keys preferentially stored within a given bucket. A
+ * given key appears at most once (even if timed out).
+ */
+#define ANNOUNCE_BUCKET_SIZE 8
+#define ANNOUNCE_BUCKET_PREFIX_LENGTH 5
+#define ANNOUNCE_BUCKETS 32 // ANNOUNCE_BUCKETS = 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
 
 #endif

@@ -36,25 +36,6 @@ uint8_t response_of_request_type(uint8_t request_type)
     }
 }
 
-typedef struct Announce_Entry {
-    uint64_t store_until;
-    uint8_t data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t *data;
-    uint32_t length;
-} Announce_Entry;
-
-/* For efficient lookup and updating, entries are stored as a hash table keyed
- * to the first ANNOUNCE_BUCKET_PREFIX_LENGTH bits starting from one bit after
- * the first bit in which data public key first differs from the dht key, with
- * (2-adically) closest keys preferentially stored within a given bucket. A
- * given key appears at most once (even if timed out).
- */
-
-#define ANNOUNCE_BUCKET_SIZE 8
-#define ANNOUNCE_BUCKET_PREFIX_LENGTH 5
-// ANNOUNCE_BUCKETS = 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
-#define ANNOUNCE_BUCKETS 32
-
 struct Announcements {
     const Logger *log;
     Forwarding *forwarding;
@@ -104,10 +85,7 @@ static uint8_t truncate_pk_at_index(const uint8_t *pk, uint16_t index, uint16_t 
            ((i + 1 < CRYPTO_PUBLIC_KEY_SIZE ? pk[i + 1] : 0) >> (16 - bits - j));
 }
 
-/* Return xor of first ANNOUNCE_BUCKET_PREFIX_LENGTH bits from one bit after
- * base and pk first differ */
-non_null()
-static uint16_t get_bucketnum(const uint8_t *base, const uint8_t *pk)
+uint16_t get_bucketnum(const uint8_t *base, const uint8_t *pk)
 {
     const uint16_t index = bit_by_bit_cmp(base, pk);
 
@@ -121,8 +99,7 @@ static Announce_Entry *bucket_of_key(Announcements *announce, const uint8_t *pk)
     return &announce->entries[get_bucketnum(announce->public_key, pk) * ANNOUNCE_BUCKET_SIZE];
 }
 
-non_null()
-static Announce_Entry *get_stored(Announcements *announce, const uint8_t *data_public_key)
+Announce_Entry *get_stored(Announcements *announce, const uint8_t *data_public_key)
 {
     Announce_Entry *const bucket = bucket_of_key(announce, data_public_key);
 
@@ -219,9 +196,8 @@ static bool would_accept_store_request(Announcements *announce, const uint8_t *d
     return (find_entry_slot(announce, data_public_key) != nullptr);
 }
 
-non_null()
-static bool store_data(Announcements *announce, const uint8_t *data_public_key,
-                       const uint8_t *data, uint32_t length, uint32_t timeout)
+bool store_data(Announcements *announce, const uint8_t *data_public_key,
+                const uint8_t *data, uint32_t length, uint32_t timeout)
 {
     if (length > MAX_ANNOUNCEMENT_SIZE) {
         return false;
@@ -253,10 +229,6 @@ static bool store_data(Announcements *announce, const uint8_t *data_public_key,
 
     return true;
 }
-
-#define MAX_MAX_ANNOUNCEMENT_TIMEOUT 900
-#define MIN_MAX_ANNOUNCEMENT_TIMEOUT 10
-#define MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO 4
 
 non_null()
 static uint32_t calculate_timeout(const Announcements *announce, uint32_t requested_timeout)

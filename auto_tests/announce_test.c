@@ -3,8 +3,9 @@
 #endif
 
 #include <stdint.h>
+#include <string.h>
 
-#include "../toxcore/announce.c"
+#include "../toxcore/announce.h"
 #include "../toxcore/tox.h"
 #include "../testing/misc_tools.h"
 #include "../toxcore/mono_time.h"
@@ -65,7 +66,7 @@ static void test_store_data(void)
     ck_assert_msg(stored->length == sizeof(data), "Bad stored announcement length");
     ck_assert_msg(memcmp(stored->data, data, sizeof(data)) == 0, "Bad stored announcement data");
 
-    const uint8_t *const base = announce->public_key;
+    const uint8_t *const base = dht_get_self_public_key(dht);
     ck_assert_msg(store_data(announce, base, nullptr, 0, 1), "failed to store base");
 
     uint8_t test_keys[ANNOUNCE_BUCKET_SIZE + 1][CRYPTO_PUBLIC_KEY_SIZE];
