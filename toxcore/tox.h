@@ -946,7 +946,8 @@ typedef enum Tox_Err_Bootstrap {
  *   (TOX_PUBLIC_KEY_SIZE bytes).
  * @return true on success.
  */
-bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key, Tox_Err_Bootstrap *error);
+bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+                   Tox_Err_Bootstrap *error);
 
 /**
  * @brief Adds additional host:port pair as TCP relay.
@@ -962,7 +963,8 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
  *   (TOX_PUBLIC_KEY_SIZE bytes).
  * @return true on success.
  */
-bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key, Tox_Err_Bootstrap *error);
+bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+                       Tox_Err_Bootstrap *error);
 
 /**
  * @brief Protocols that can be used to connect to the network or friends.
@@ -1058,7 +1060,7 @@ void tox_iterate(Tox *tox, void *user_data);
  *   parameter is NULL, this function has no effect.
  * @see TOX_ADDRESS_SIZE for the address format.
  */
-void tox_self_get_address(const Tox *tox, uint8_t *address);
+void tox_self_get_address(const Tox *tox, uint8_t address[TOX_ADDRESS_SIZE]);
 
 /**
  * @brief Set the 4-byte nospam part of the address.
@@ -1083,7 +1085,7 @@ uint32_t tox_self_get_nospam(const Tox *tox);
  * @param public_key A memory region of at least TOX_PUBLIC_KEY_SIZE bytes. If
  *   this parameter is NULL, this function has no effect.
  */
-void tox_self_get_public_key(const Tox *tox, uint8_t *public_key);
+void tox_self_get_public_key(const Tox *tox, uint8_t public_key[TOX_PUBLIC_KEY_SIZE]);
 
 /**
  * @brief Copy the Tox Secret Key from the Tox object.
@@ -1091,7 +1093,7 @@ void tox_self_get_public_key(const Tox *tox, uint8_t *public_key);
  * @param secret_key A memory region of at least TOX_SECRET_KEY_SIZE bytes. If
  *   this parameter is NULL, this function has no effect.
  */
-void tox_self_get_secret_key(const Tox *tox, uint8_t *secret_key);
+void tox_self_get_secret_key(const Tox *tox, uint8_t secret_key[TOX_SECRET_KEY_SIZE]);
 
 /** @} */
 
@@ -1289,7 +1291,7 @@ typedef enum Tox_Err_Friend_Add {
  *
  * @return the friend number on success, an unspecified value on failure.
  */
-uint32_t tox_friend_add(Tox *tox, const uint8_t *address, const uint8_t *message, size_t length,
+uint32_t tox_friend_add(Tox *tox, const uint8_t address[TOX_ADDRESS_SIZE], const uint8_t *message, size_t length,
                         Tox_Err_Friend_Add *error);
 
 /**
@@ -1310,7 +1312,7 @@ uint32_t tox_friend_add(Tox *tox, const uint8_t *address, const uint8_t *message
  * @return the friend number on success, an unspecified value on failure.
  * @see tox_friend_add for a more detailed description of friend numbers.
  */
-uint32_t tox_friend_add_norequest(Tox *tox, const uint8_t *public_key, Tox_Err_Friend_Add *error);
+uint32_t tox_friend_add_norequest(Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Friend_Add *error);
 
 typedef enum Tox_Err_Friend_Delete {
 
@@ -1373,7 +1375,8 @@ typedef enum Tox_Err_Friend_By_Public_Key {
  * @return the friend number on success, an unspecified value on failure.
  * @param public_key A byte array containing the Public Key.
  */
-uint32_t tox_friend_by_public_key(const Tox *tox, const uint8_t *public_key, Tox_Err_Friend_By_Public_Key *error);
+uint32_t tox_friend_by_public_key(const Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
+                                  Tox_Err_Friend_By_Public_Key *error);
 
 /**
  * @brief Checks if a friend with the given friend number exists and returns true if
@@ -1423,7 +1426,7 @@ typedef enum Tox_Err_Friend_Get_Public_Key {
  *
  * @return true on success.
  */
-bool tox_friend_get_public_key(const Tox *tox, uint32_t friend_number, uint8_t *public_key,
+bool tox_friend_get_public_key(const Tox *tox, uint32_t friend_number, uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
                                Tox_Err_Friend_Get_Public_Key *error);
 
 typedef enum Tox_Err_Friend_Get_Last_Online {
@@ -1803,8 +1806,8 @@ void tox_callback_friend_read_receipt(Tox *tox, tox_friend_read_receipt_cb *call
  * @param message The message they sent along with the request.
  * @param length The size of the message byte array.
  */
-typedef void tox_friend_request_cb(Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
-                                   void *user_data);
+typedef void tox_friend_request_cb(Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE], const uint8_t *message,
+                                   size_t length, void *user_data);
 
 
 /**
@@ -2100,8 +2103,8 @@ typedef enum Tox_Err_File_Get {
  *
  * @return true on success.
  */
-bool tox_file_get_file_id(const Tox *tox, uint32_t friend_number, uint32_t file_number, uint8_t *file_id,
-                          Tox_Err_File_Get *error);
+bool tox_file_get_file_id(const Tox *tox, uint32_t friend_number, uint32_t file_number,
+                          uint8_t file_id[TOX_FILE_ID_LENGTH], Tox_Err_File_Get *error);
 
 /** @} */
 
@@ -2204,8 +2207,9 @@ typedef enum Tox_Err_File_Send {
  *   On failure, this function returns an unspecified value. Any pattern in file numbers
  *   should not be relied on.
  */
-uint32_t tox_file_send(Tox *tox, uint32_t friend_number, uint32_t kind, uint64_t file_size, const uint8_t *file_id,
-                       const uint8_t *filename, size_t filename_length, Tox_Err_File_Send *error);
+uint32_t tox_file_send(Tox *tox, uint32_t friend_number, uint32_t kind, uint64_t file_size,
+                       const uint8_t file_id[TOX_FILE_ID_LENGTH], const uint8_t *filename, size_t filename_length,
+                       Tox_Err_File_Send *error);
 
 typedef enum Tox_Err_File_Send_Chunk {
 
@@ -2640,7 +2644,7 @@ bool tox_conference_peer_get_name(const Tox *tox, uint32_t conference_number, ui
  * @return true on success.
  */
 bool tox_conference_peer_get_public_key(const Tox *tox, uint32_t conference_number, uint32_t peer_number,
-                                        uint8_t *public_key, Tox_Err_Conference_Peer_Query *error);
+                                        uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Conference_Peer_Query *error);
 
 /**
  * @brief Return true if passed peer_number corresponds to our own.
@@ -2688,7 +2692,7 @@ bool tox_conference_offline_peer_get_name(const Tox *tox, uint32_t conference_nu
  * @return true on success.
  */
 bool tox_conference_offline_peer_get_public_key(const Tox *tox, uint32_t conference_number,
-        uint32_t offline_peer_number, uint8_t *public_key, Tox_Err_Conference_Peer_Query *error);
+        uint32_t offline_peer_number, uint8_t public_key[TOX_PUBLIC_KEY_SIZE], Tox_Err_Conference_Peer_Query *error);
 
 /**
  * @brief Return a unix-time timestamp of the last time offline_peer_number was seen to be active.
@@ -2984,7 +2988,7 @@ Tox_Conference_Type tox_conference_get_type(const Tox *tox, uint32_t conference_
  *
  * @return true on success.
  */
-bool tox_conference_get_id(const Tox *tox, uint32_t conference_number, uint8_t *id);
+bool tox_conference_get_id(const Tox *tox, uint32_t conference_number, uint8_t id[TOX_CONFERENCE_ID_SIZE]);
 
 typedef enum Tox_Err_Conference_By_Id {
 
@@ -3013,7 +3017,8 @@ typedef enum Tox_Err_Conference_By_Id {
  *
  * @return the conference number on success, an unspecified value on failure.
  */
-uint32_t tox_conference_by_id(const Tox *tox, const uint8_t *id, Tox_Err_Conference_By_Id *error);
+uint32_t tox_conference_by_id(const Tox *tox, const uint8_t id[TOX_CONFERENCE_ID_SIZE],
+                              Tox_Err_Conference_By_Id *error);
 
 /**
  * @brief Get the conference unique ID.
@@ -3025,7 +3030,7 @@ uint32_t tox_conference_by_id(const Tox *tox, const uint8_t *id, Tox_Err_Confere
  * @return true on success.
  * @deprecated use tox_conference_get_id instead (exactly the same function, just renamed).
  */
-bool tox_conference_get_uid(const Tox *tox, uint32_t conference_number, uint8_t *uid);
+bool tox_conference_get_uid(const Tox *tox, uint32_t conference_number, uint8_t uid[TOX_CONFERENCE_UID_SIZE]);
 
 typedef enum Tox_Err_Conference_By_Uid {
 
@@ -3055,7 +3060,8 @@ typedef enum Tox_Err_Conference_By_Uid {
  * @return the conference number on success, an unspecified value on failure.
  * @deprecated use tox_conference_by_id instead (exactly the same function, just renamed).
  */
-uint32_t tox_conference_by_uid(const Tox *tox, const uint8_t *uid, Tox_Err_Conference_By_Uid *error);
+uint32_t tox_conference_by_uid(const Tox *tox, const uint8_t uid[TOX_CONFERENCE_UID_SIZE],
+                               Tox_Err_Conference_By_Uid *error);
 
 /** @} */
 
@@ -3218,7 +3224,7 @@ typedef enum Tox_Err_Get_Port {
  * @param dht_id A memory region of at least TOX_PUBLIC_KEY_SIZE bytes. If this
  *   parameter is NULL, this function has no effect.
  */
-void tox_self_get_dht_id(const Tox *tox, uint8_t *dht_id);
+void tox_self_get_dht_id(const Tox *tox, uint8_t dht_id[TOX_PUBLIC_KEY_SIZE]);
 
 /**
  * @brief Return the UDP port this Tox instance is bound to.
