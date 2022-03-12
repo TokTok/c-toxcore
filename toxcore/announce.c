@@ -31,6 +31,7 @@ uint8_t response_of_request_type(uint8_t request_type)
 
         default : {
             assert(false);
+            return NET_PACKET_MAX;
         }
     }
 }

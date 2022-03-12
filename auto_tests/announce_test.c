@@ -50,7 +50,7 @@ static void test_store_data(void)
     uint8_t data[MAX_ANNOUNCEMENT_SIZE];
     random_bytes(data, sizeof(data));
 
-    uint8_t key[CRYPTO_PUBLIC_KEY_SIZE], key2[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t key[CRYPTO_PUBLIC_KEY_SIZE];
     random_bytes(key, sizeof(key));
 
     Announce_Entry *stored = get_stored(announce, key);

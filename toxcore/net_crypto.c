@@ -2337,7 +2337,7 @@ int get_random_tcp_con_number(Net_Crypto *c)
 bool get_random_tcp_conn_ip_port(Net_Crypto *c, IP_Port *ip_port)
 {
     pthread_mutex_lock(&c->tcp_mutex);
-    int ret = tcp_get_random_conn_ip_port(c->tcp_c, ip_port);
+    bool ret = tcp_get_random_conn_ip_port(c->tcp_c, ip_port);
     pthread_mutex_unlock(&c->tcp_mutex);
 
     return ret;

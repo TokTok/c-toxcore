@@ -96,7 +96,9 @@ static void test_forwarded_response_cb(void *object,
         return;
     }
 
-    if (memcmp(&test_data->send_back, data + 8, 4) == 0) {
+    uint32_t send_back;
+    net_unpack_u32(data + 8, &send_back);
+    if (test_data->send_back == send_back) {
         test_data->returned = true;
     }
 }
@@ -175,7 +177,7 @@ static void test_forwarding(void)
         set_tcp_onion_status(nc_get_tcp_c(cs[i]), 1);
         ck_assert_msg(add_tcp_relay(cs[i], &relay_ipport_tcp, dpk) == 0,
                       "Failed to add TCP relay");
-    };
+    }
 
     IP_Port relay_ipport_udp = {ip, net_htons(tox_self_get_udp_port(relay, nullptr))};
 
@@ -237,7 +239,7 @@ static void test_forwarding(void)
 
                 memcpy(data, "hello:  ", 8);
                 test_data[i].send_back = random_u32();
-                *(uint32_t *)(data + 8) = test_data[i].send_back;
+                net_pack_u32(data + 8, test_data[i].send_back);
 
                 if (i < NUM_FORWARDER_TCP) {
                     IP_Port tcp_forwarder;
