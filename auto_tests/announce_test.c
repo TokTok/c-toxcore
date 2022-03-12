@@ -57,7 +57,7 @@ static void test_store_data(void)
     ck_assert_msg(stored == nullptr, "Unstored announcement exists");
 
     ck_assert_msg(store_data(announce, key, data, sizeof(data),
-                             MAX_ANNOUNCEMENT_TIMEOUT), "Failed to store announcement");
+                             MAX_MAX_ANNOUNCEMENT_TIMEOUT), "Failed to store announcement");
 
     stored = get_stored(announce, key);
     ck_assert_msg(stored, "Failed to get stored announcement");

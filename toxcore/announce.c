@@ -17,8 +17,6 @@
 #include "timed_auth.h"
 #include "util.h"
 
-#define MAX_ANNOUNCEMENT_TIMEOUT 900
-
 uint8_t response_of_request_type(uint8_t request_type)
 {
     switch (request_type) {
@@ -69,6 +67,8 @@ struct Announcements {
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
     int32_t synch_offset;
+
+    uint64_t start_time;
 
     Announce_Entry entries[ANNOUNCE_BUCKETS * ANNOUNCE_BUCKET_SIZE];
 };
@@ -253,6 +253,23 @@ static bool store_data(Announcements *announce, const uint8_t *data_public_key,
     return true;
 }
 
+#define MAX_MAX_ANNOUNCEMENT_TIMEOUT 900
+#define MIN_MAX_ANNOUNCEMENT_TIMEOUT 10
+#define MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO 4
+
+non_null()
+static uint32_t calculate_timeout(const Announcements *announce, uint32_t requested_timeout)
+{
+    const uint64_t uptime = mono_time_get(announce->mono_time) - announce->start_time;
+    const uint32_t max_announcement_timeout = max_u32(
+                (uint32_t)min_u64(
+                    MAX_MAX_ANNOUNCEMENT_TIMEOUT,
+                    uptime / MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO),
+                MIN_MAX_ANNOUNCEMENT_TIMEOUT);
+
+    return min_u32(max_announcement_timeout, requested_timeout);
+}
+
 #define DATA_SEARCH_TO_AUTH_MAX_SIZE (CRYPTO_PUBLIC_KEY_SIZE * 2 + MAX_PACKED_IPPORT_SIZE + MAX_SENDBACK_SIZE)
 
 non_null()
@@ -435,7 +452,7 @@ static int create_reply_plain(Announcements *announce,
         const uint8_t *const auth = plain;
         uint32_t requested_timeout;
         net_unpack_u32(plain + TIMED_AUTH_SIZE, &requested_timeout);
-        const uint32_t timeout = min_u32(requested_timeout, MAX_ANNOUNCEMENT_TIMEOUT);
+        const uint32_t timeout = calculate_timeout(announce, requested_timeout);
         const uint8_t announcement_type = plain[TIMED_AUTH_SIZE + sizeof(uint32_t)];
         const uint8_t *announcement = plain + TIMED_AUTH_SIZE + sizeof(uint32_t) + 1;
 
@@ -604,6 +621,8 @@ Announcements *new_announcements(const Logger *log, Mono_Time *mono_time, Forwar
     announce->public_key = dht_get_self_public_key(announce->dht);
     announce->secret_key = dht_get_self_secret_key(announce->dht);
     new_hmac_key(announce->hmac_key);
+
+    announce->start_time = mono_time_get(announce->mono_time);
 
     set_callback_forwarded_request(forwarding, forwarded_request_callback, announce);
 
