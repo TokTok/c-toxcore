@@ -8091,7 +8091,6 @@ bool gc_handle_announce_response_callback(Onion_Client *onion_c, uint32_t sendba
     GC_Chat *chat = gc_get_group_by_public_key(c, gc_public_key);
 
     if (chat == nullptr) {
-        LOGGER_WARNING(chat->log, "Couldn't find group associated with public key in announce response");
         return false;
     }
 
