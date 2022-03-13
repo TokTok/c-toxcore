@@ -157,12 +157,12 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
     const uint64_t message_id = gconn->send_message_id;
 
     if (!add_to_send_array(chat->log, chat->mono_time, gconn, data, length, packet_type)) {
-        LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: %d, length: %d)", packet_type, length);
+        LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: 0x%02x, length: %d)", packet_type, length);
         return -1;
     }
 
     if (!gcc_encrypt_and_send_lossless_packet(chat, gconn, data, length, message_id, packet_type)) {
-        LOGGER_WARNING(chat->log, "Failed to send payload: (type: %d, length: %d)", packet_type, length);
+        LOGGER_DEBUG(chat->log, "Failed to send payload: (type: 0x%02x, length: %d)", packet_type, length);
         return -2;
     }
 
@@ -236,7 +236,7 @@ bool gcc_handle_ack(const Logger *log, GC_Connection *gconn, uint64_t message_id
     }
 
     if (array_entry->message_id != message_id) {  // wrap-around indicates a connection problem
-        LOGGER_WARNING(log, "Wrap-around on message %llu", (unsigned long long)message_id);
+        LOGGER_DEBUG(log, "Wrap-around on message %llu", (unsigned long long)message_id);
         return false;
     }
 
@@ -330,7 +330,7 @@ static bool store_in_recv_array(const Logger *log, const Mono_Time *mono_time, G
     GC_Message_Array_Entry *ary_entry = &gconn->recv_array[idx];
 
     if (!array_entry_is_empty(ary_entry)) {
-        LOGGER_WARNING(log, "Recv array is not empty");
+        LOGGER_DEBUG(log, "Recv array is not empty");
         return false;
     }
 
@@ -372,7 +372,7 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
         packet_length = diff;
 
         if (packet_length > MAX_GC_PACKET_SIZE) {
-            LOGGER_ERROR(log, "Payload exceeded max packet size");  // should never happen
+            LOGGER_ERROR(log, "Payload of size %u exceeded max packet size", packet_length);  // should never happen
             return 0;
         }
 
@@ -615,7 +615,7 @@ bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connecti
     uint8_t *packet = (uint8_t *)malloc(packet_size);
 
     if (packet == nullptr) {
-        LOGGER_WARNING(chat->log, "Failed to allocate memory for packet buffer");
+        LOGGER_ERROR(chat->log, "Failed to allocate memory for packet buffer");
         return false;
     }
 
@@ -623,13 +623,13 @@ bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connecti
                                           packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
-        LOGGER_WARNING(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
+        LOGGER_ERROR(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
         free(packet);
         return false;
     }
 
     if (!gcc_send_packet(chat, gconn, packet, (uint16_t)enc_len)) {
-        LOGGER_WARNING(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
+        LOGGER_DEBUG(chat->log, "Failed to send packet (type: 0x%02x, enc_len: %d)", packet_type, enc_len);
         free(packet);
         return false;
     }
