@@ -108,7 +108,10 @@ static bool load_unpack_mod_list(GC_Chat *chat, const msgpack_object *obj)
         return true;
     }
 
-    assert(chat->moderation.num_mods <= MOD_MAX_NUM_MODERATORS);
+    if (chat->moderation.num_mods > MOD_MAX_NUM_MODERATORS) {
+        LOGGER_FATAL(chat->log, "moderation count %u exceeds maximum %u", chat->moderation.num_mods, MOD_MAX_NUM_MODERATORS);
+        return false;
+    }
 
     uint8_t *packed_mod_list = (uint8_t *)calloc(chat->moderation.num_mods, MOD_LIST_ENTRY_SIZE);
 

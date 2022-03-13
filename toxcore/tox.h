@@ -3763,7 +3763,7 @@ size_t tox_group_self_get_name_size(const Tox *tox, uint32_t group_number, Tox_E
  * @param name A valid memory location large enough to hold the nickname.
  *   If this parameter is NULL, the function has no effect.
  *
- * @returns true on success.
+ * @return true on success.
  */
 bool tox_group_self_get_name(const Tox *tox, uint32_t group_number, uint8_t *name, Tox_Err_Group_Self_Query *error);
 
@@ -4061,7 +4061,7 @@ typedef enum Tox_Err_Group_Topic_Set {
  * topic length cannot be longer than TOX_GROUP_MAX_TOPIC_LENGTH. If length is equal to zero or
  * topic is set to NULL, the topic will be unset.
  *
- * @returns true on success.
+ * @return true on success.
  */
 bool tox_group_set_topic(const Tox *tox, uint32_t group_number, const uint8_t *topic, size_t length,
                          Tox_Err_Group_Topic_Set *error);

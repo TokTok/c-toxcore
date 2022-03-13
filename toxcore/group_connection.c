@@ -216,7 +216,11 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
     for (uint16_t i = start_idx; i != end_idx; i = (i + 1) % GCC_BUFFER_SIZE) {
         GC_Message_Array_Entry *entry = &gconn->send_array[i];
 
-        assert(!array_entry_is_empty(entry));
+        if (array_entry_is_empty(entry)) {
+            LOGGER_FATAL(chat->log, "array entry for packet chunk is empty");
+            return false;
+        }
+
         assert(entry->packet_type == GP_FRAGMENT);
 
         gcc_encrypt_and_send_lossless_packet(chat, gconn, entry->data, entry->data_length,

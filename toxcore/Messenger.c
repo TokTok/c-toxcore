@@ -3164,7 +3164,11 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
     pack_groupchats(c, &mp);
 
-    assert(sbuf.size == len);
+    if (sbuf.size != len) {
+        LOGGER_FATAL(m->log, "invalid sbuf size: %u (expected %u)", (unsigned int)sbuf.size, len);
+        return data;
+    }
+
     memcpy(data, sbuf.data, sbuf.size);
     data += len;
 
@@ -3628,6 +3632,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         free(m);
         return nullptr;
     }
+
 #endif /* VANILLA_NACL */
 
     if (options->tcp_server_port != 0) {
