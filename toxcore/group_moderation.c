@@ -105,7 +105,8 @@ bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
     return true;
 }
 
-/** Returns moderator list index for public_sig_key.
+/**
+ * Returns moderator list index for public_sig_key.
  * Returns -1 if key is not in the list.
  */
 non_null()
@@ -370,7 +371,7 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
 }
 
 
-/** Creates a new sanction list hash and puts it in hash.
+/** @brief Creates a new sanction list hash and puts it in hash.
  *
  * The hash is derived from the signature of all entries plus the version number.
  * hash must have room for at least MOD_SANCTION_HASH_SIZE bytes.
@@ -414,7 +415,7 @@ static int sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_
     return true;
 }
 
-/** Verifies that sanction contains valid info and was assigned by a current mod or group founder.
+/** @brief Verifies that sanction contains valid info and was assigned by a current mod or group founder.
  *
  * Returns true on success.
  */
@@ -491,7 +492,9 @@ bool sanctions_list_make_creds(Moderation *moderation)
     return true;
 }
 
-/** Validates sanction list credentials. Verifies that:
+/** @brief Validates sanction list credentials.
+ *
+ * Verifies that:
  * - the public signature key belongs to a mod or the founder
  * - the signature for the hash was made by the owner of the public signature key.
  * - the received hash matches our own hash of the new sanctions list
@@ -554,7 +557,9 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
     return sanctions_creds_validate(moderation, sanctions, creds, num_sanctions);
 }
 
-/** Removes index-th sanction list entry. New credentials will be validated if creds is non-null.
+/** @brief Removes index-th sanction list entry.
+ *
+ * New credentials will be validated if creds is non-null.
  *
  * Returns true on success.
  */
@@ -732,7 +737,8 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
     return true;
 }
 
-/** Signs packed sanction data.
+/** @brief Signs packed sanction data.
+ *
  * This function must be called by the owner of the entry's public_sig_key.
  *
  * Returns 0 on success.

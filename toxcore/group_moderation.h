@@ -76,8 +76,9 @@ typedef struct Moderation {
     uint32_t    shared_state_version;
 } Moderation;
 
-/** Unpacks data into the moderator list.
- * data should contain num_mods entries of size MOD_LIST_ENTRY_SIZE.
+/** @brief Unpacks data into the moderator list.
+ *
+ * @param data should contain num_mods entries of size MOD_LIST_ENTRY_SIZE.
  *
  * Returns length of unpacked data on success.
  * Returns -1 on failure.
@@ -85,15 +86,15 @@ typedef struct Moderation {
 non_null()
 int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length, uint16_t num_mods);
 
-/** Packs moderator list into data.
- * data must have room for `num_mods * MOD_LIST_ENTRY_SIZE` bytes.
+/** @brief Packs moderator list into data.
+ * @param data must have room for `num_mods * MOD_LIST_ENTRY_SIZE` bytes.
  */
 non_null()
 void mod_list_pack(const Moderation *moderation, uint8_t *data);
 
-/** Creates a new moderator list hash and puts it in `hash`.
+/** @brief Creates a new moderator list hash and puts it in `hash`.
  *
- * `hash` must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
+ * @param hash must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
  *
  * If num_mods is 0 the hash is zeroed.
  *
@@ -102,44 +103,47 @@ void mod_list_pack(const Moderation *moderation, uint8_t *data);
 non_null()
 bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash);
 
-/** Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
+/** @brief Puts a sha256 hash of `packed_mod_list` of `length` bytes in `hash`.
  *
- * `hash` must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
+ * @param hash must have room for at least GC_MOD_LIST_HASH_SIZE bytes.
  */
 non_null()
 void mod_list_get_data_hash(uint8_t *hash, const uint8_t *packed_mod_list, size_t length);
 
-/** Removes moderator at index-th position in the moderator list.
+/** @brief Removes moderator at index-th position in the moderator list.
  *
  * Returns true on success.
  */
 non_null()
 bool mod_list_remove_index(Moderation *moderation, size_t index);
 
-/** Removes public_sig_key from the moderator list.
+/** @brief Removes public_sig_key from the moderator list.
  *
  * Returns true on success.
  */
 non_null()
 bool mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key);
 
-/** Adds a mod to the moderator list. mod_data must be MOD_LIST_ENTRY_SIZE bytes.
+/** @brief Adds a mod to the moderator list.
+ *
+ * @param mod_data must be MOD_LIST_ENTRY_SIZE bytes.
  *
  * Returns true on success.
  */
 non_null()
 bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data);
 
-/** Returns true if the public signature key belongs to a moderator or the founder */
+/** @return true if the public signature key belongs to a moderator or the founder */
 non_null()
 bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk);
 
-/** Frees all memory associated with the moderator list and sets num_mods to 0. */
+/** @brief Frees all memory associated with the moderator list and sets num_mods to 0. */
 nullable(1)
 void mod_list_cleanup(Moderation *moderation);
 
-/** Packs num_sanctions sanctions into data of maxlength length. Additionally packs the
- * sanctions list credentials into creds if creds is non-NULL.
+/** @brief Packs num_sanctions sanctions into data of maxlength length.
+ *
+ * Additionally packs the sanctions list credentials into creds if creds is non-NULL.
  *
  * Returns length of packed data on success.
  * Returns -1 on failure.
@@ -148,7 +152,8 @@ non_null(1) nullable(3, 4)
 int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanctions,
                         const Mod_Sanction_Creds *creds, uint16_t num_sanctions);
 
-/** Unpack max_sanctions sanctions from data into sanctions, and unpacks credentials into creds.
+/** @brief Unpack max_sanctions sanctions from data into sanctions, and unpacks credentials into creds.
+ *
  * Put the length of the data processed in processed_data_len.
  *
  * Returns number of unpacked entries on success.
@@ -158,31 +163,35 @@ non_null(1, 2, 4) nullable(6)
 int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, uint16_t max_sanctions,
                           const uint8_t *data, uint16_t length, uint16_t *processed_data_len);
 
-/** Packs sanction list credentials into data.
- * data must have room for MOD_SANCTIONS_CREDS_SIZE bytes.
+/** @brief Packs sanction list credentials into data.
+ *
+ * @param data must have room for MOD_SANCTIONS_CREDS_SIZE bytes.
  *
  * Returns length of packed data.
  */
 non_null()
 uint16_t sanctions_creds_pack(const Mod_Sanction_Creds *creds, uint8_t *data, uint16_t length);
 
-/** Unpacks sanctions credentials into creds from data.
- * data must have room for MOD_SANCTIONS_CREDS_SIZE bytes.
+/** @brief Unpacks sanctions credentials into creds from data.
+ *
+ * @param data must have room for MOD_SANCTIONS_CREDS_SIZE bytes.
  *
  * Returns the length of the data processed.
  */
 non_null()
 uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data, uint16_t length);
 
-/** Updates sanction list credentials: increment version, replace sig_pk with your own,
- * update hash to reflect new sanction list, and sign new hash signature.
+/** @brief Updates sanction list credentials.
+ *
+ * Increment version, replace sig_pk with your own, update hash to reflect new
+ * sanction list, and sign new hash signature.
  *
  * Returns true on success.
  */
 non_null()
 bool sanctions_list_make_creds(Moderation *moderation);
 
-/** Validates all sanctions list entries as well as the list itself.
+/** @brief Validates all sanctions list entries as well as the list itself.
  *
  * Returns true if all entries are valid.
  * Returns false if one or more entries are invalid.
@@ -191,8 +200,10 @@ non_null()
 bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanction_Creds *creds,
                                     const Mod_Sanction *sanctions, uint16_t num_sanctions);
 
-/** Adds an entry to the sanctions list. The entry is first validated and the resulting
- * new sanction list is compared against the new credentials.
+/** @brief Adds an entry to the sanctions list.
+ *
+ * The entry is first validated and the resulting new sanction list is
+ * compared against the new credentials.
  *
  * Entries must be unique.
  *
@@ -201,7 +212,8 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
 non_null(1, 2) nullable(3)
 bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sanction, const Mod_Sanction_Creds *creds);
 
-/** Creates a new sanction entry for `public_key` where type is one GROUP_SANCTION_TYPE.
+/** @brief Creates a new sanction entry for `public_key` where type is one GROUP_SANCTION_TYPE.
+ *
  * New entry is signed and placed in the sanctions list.
  *
  * Returns true on success.
@@ -210,15 +222,16 @@ non_null()
 bool sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
                                uint8_t type);
 
-/** Returns true if public key is in the observer list. */
+/** @return true if public key is in the observer list. */
 non_null()
 bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *public_key);
 
-/** Returns true if sanction already exists in the sanctions list. */
+/** @return true if sanction already exists in the sanctions list. */
 non_null()
 bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanction *sanction);
 
-/** Removes observer entry for public key from sanction list.
+/** @brief Removes observer entry for public key from sanction list.
+ *
  * If creds is NULL we make new credentials (this should only be done by a moderator or founder)
  *
  * Returns false on failure or if entry was not found.
@@ -227,7 +240,8 @@ non_null(1, 2) nullable(3)
 bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
                                     const Mod_Sanction_Creds *creds);
 
-/** Replaces all sanctions list signatures made by public_sig_key with the caller's.
+/** @brief Replaces all sanctions list signatures made by public_sig_key with the caller's.
+ *
  * This is called whenever the founder demotes a moderator.
  *
  * Returns the number of entries re-signed.
