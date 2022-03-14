@@ -7682,11 +7682,11 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
 
     const bool copy_ip_port_result = copy_friend_ip_port_to_gconn(c->messenger, friend_number, gconn);
 
-    if (num_nodes <= 0 && !copy_ip_port_result) {
-        return -5;
-    }
+    uint32_t tcp_relays_added = 0;
 
-    const uint32_t tcp_relays_added = add_gc_tcp_relays(chat, gconn, tcp_relays, num_nodes);
+    if (num_nodes > 0) {
+        tcp_relays_added = add_gc_tcp_relays(chat, gconn, tcp_relays, num_nodes);
+    }
 
     if (tcp_relays_added == 0 && !copy_ip_port_result) {
         LOGGER_ERROR(chat->log, "Got invalid connection info from peer");
