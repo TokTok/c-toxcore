@@ -2491,6 +2491,7 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
     uint8_t *data = (uint8_t *)malloc(data_size);
 
     if (data == nullptr) {
+        free(self);
         return false;
     }
 
@@ -2504,9 +2505,9 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
         length += MAX_GC_PASSWORD_SIZE;
     }
 
-
     if (data_size < length) {
         free(data);
+        free(self);
         LOGGER_ERROR(chat->log, "Invalid data size");
         return false;
     }
