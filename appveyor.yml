@@ -4,7 +4,7 @@ cache:
 
 install:
   - set PATH=C:\Python38-x64\Scripts;%PATH%
-  - py -3 -m pip install conan
+  - py -3 -m pip install conan==1.45.0
 
 before_build:
   - conan install -if _build .
