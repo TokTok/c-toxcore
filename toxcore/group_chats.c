@@ -1787,7 +1787,6 @@ static bool sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, 
     size_t num_announces = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        uint16_t response_len = 0;
         const GC_Connection *peer_gconn = get_gc_connection(chat, i);
 
         if (peer_gconn == nullptr || !peer_gconn->confirmed) {
@@ -1804,24 +1803,14 @@ static bool sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, 
             continue;
         }
 
-        if (response_len > MAX_GC_PACKET_CHUNK_SIZE) {
-            LOGGER_ERROR(chat->log, "Invalid sync response size: %u", response_len);
-            continue;
-        }
+        const int packed_length = gca_pack_announce(chat->log, response, MAX_GC_PACKET_CHUNK_SIZE, &announce);
 
-        const int packed_length = gca_pack_announce(chat->log,
-                                  response + response_len,
-                                  MAX_GC_PACKET_CHUNK_SIZE - response_len,
-                                  &announce);
-
-        if (packed_length < 0) {
+        if (packed_length <= 0) {
             LOGGER_WARNING(chat->log, "Failed to pack announce: %d", packed_length);
             continue;
         }
 
-        response_len += packed_length;
-
-        if (!send_gc_sync_response(chat, gconn, response, response_len)) {
+        if (!send_gc_sync_response(chat, gconn, response, packed_length)) {
             LOGGER_WARNING(chat->log, "Failed to send peer announce info");
             continue;
         }
