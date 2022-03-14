@@ -551,16 +551,6 @@ static uint16_t get_gc_topic_checksum(const GC_TopicInfo *topic_info)
     return sum;
 }
 
-/** Sets the checksum of the topic currently set in `topic_info`.
- *
- * This must be called every time the topic is changed.
- */
-non_null()
-static void set_gc_topic_checksum(GC_TopicInfo *topic_info)
-{
-    topic_info->checksum = get_gc_topic_checksum(topic_info);
-}
-
 int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
@@ -3603,7 +3593,6 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         return -2;
     }
 
-
     const GC_TopicInfo old_topic_info = chat->topic_info;
 
     uint8_t old_topic_sig[SIGNATURE_SIZE];
@@ -3629,7 +3618,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
 
     memcpy(chat->topic_info.public_sig_key, get_sig_pk(chat->self_public_key), SIG_PUBLIC_KEY_SIZE);
 
-    set_gc_topic_checksum(&chat->topic_info);
+    chat->topic_info.checksum = get_gc_topic_checksum(&chat->topic_info);
 
     const uint16_t packet_buf_size = length + GC_MIN_PACKED_TOPIC_INFO_SIZE;
     uint8_t *packed_topic = (uint8_t *)malloc(packet_buf_size);
@@ -3638,9 +3627,9 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         return -3;
     }
 
-    const uint16_t packed_len = pack_gc_topic_info(packed_topic, packet_buf_size, &chat->topic_info);
-
     int err = -3;
+
+    const uint16_t packed_len = pack_gc_topic_info(packed_topic, packet_buf_size, &chat->topic_info);
 
     if (packed_len != packet_buf_size) {
         goto ON_ERROR;
@@ -3655,6 +3644,9 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
         err = -4;
         goto ON_ERROR;
     }
+
+    chat->topic_prev_checksum = old_topic_info.checksum;
+    chat->topic_time_set = mono_time_get(chat->mono_time);
 
     free(packed_topic);
     return 0;
@@ -3728,6 +3720,12 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
         // the topic version should never change when the topic lock is disabled except when
         // the founder changes the topic prior to enabling the lock
         if (topic_info->version == chat->shared_state.topic_lock) {
+            if (chat->topic_prev_checksum == topic_info->checksum &&
+                    !mono_time_is_timeout(chat->mono_time, chat->topic_time_set, GC_CONFIRMED_PEER_TIMEOUT)) {
+                LOGGER_DEBUG(chat->log, "Topic reversion (probable sync error)");
+                return false;
+            }
+
             return true;
         }
 
@@ -3754,6 +3752,8 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *pe
         return -1;
     }
 
+    const uint16_t old_checksum = chat->topic_info.checksum;
+
     GC_TopicInfo topic_info;
 
     if (unpack_gc_topic_info(&topic_info, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE) == -1) {
@@ -3779,6 +3779,8 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *pe
     const bool skip_callback = chat->topic_info.length == topic_info.length
                                && memcmp(chat->topic_info.topic, topic_info.topic, topic_info.length) == 0;
 
+    chat->topic_prev_checksum = old_checksum;
+    chat->topic_time_set = mono_time_get(chat->mono_time);
     chat->topic_info = topic_info;
     memcpy(chat->topic_sig, signature, SIGNATURE_SIZE);
 

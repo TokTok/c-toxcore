@@ -252,6 +252,8 @@ typedef struct GC_Chat {
 
     GC_TopicInfo    topic_info;
     uint8_t         topic_sig[SIGNATURE_SIZE];  // signed by the peer who set the current topic
+    uint16_t        topic_prev_checksum;  // checksum of the previous topic
+    uint64_t        topic_time_set;
 
     uint16_t    peers_checksum;  // sum of the public key hash of every confirmed peer in the group
     uint16_t    roles_checksum;  // sum of every confirmed peer's role plus the first byte of their public key
