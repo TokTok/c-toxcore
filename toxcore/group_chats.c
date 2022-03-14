@@ -1975,8 +1975,8 @@ static bool send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
 
     const int nodes_len = pack_nodes(chat->log, data, sizeof(data), tcp_relays, (uint16_t)num_tcp_relays);
 
-    if (nodes_len <= 0) {
-        LOGGER_ERROR(chat->log, "Failed to pack tcp relays");
+    if (nodes_len <= 0 || nodes_len > sizeof(data)) {
+        LOGGER_ERROR(chat->log, "Failed to pack tcp relays (ndoes_len: %d)", nodes_len);
         return false;
     }
 
@@ -4328,6 +4328,11 @@ static bool mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_ob
         }
 
         length += packed_len;
+    }
+
+    if (length > sizeof(sanction_data)) {
+        LOGGER_FATAL(chat->log, "Invalid sanction data length: %u", length);
+        return false;
     }
 
     update_gc_peer_roles(chat);

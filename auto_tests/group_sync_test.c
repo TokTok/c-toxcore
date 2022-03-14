@@ -51,15 +51,17 @@ static int add_peer(Peers *peers, uint32_t peer_id)
 
 static int del_peer(Peers *peers, uint32_t peer_id)
 {
-    int64_t i = -1;
+    bool found_peer = false;
+    int64_t i;
 
     for (i = 0; i < peers->num_peers; ++i) {
         if (peers->peer_ids[i] == peer_id) {
+            found_peer = true;
             break;
         }
     }
 
-    if (i == -1) {
+    if (!found_peer) {
         return -1;
     }
 
