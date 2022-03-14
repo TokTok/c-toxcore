@@ -1965,23 +1965,22 @@ static bool send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
     }
 
     uint8_t data[GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6];
-    uint16_t length = 0;
 
     for (uint32_t i = 0; i < num_tcp_relays; ++i) {
-        add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_relays[i].ip_port,
-                                 tcp_relays[i].public_key);
+        if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_relays[i].ip_port,
+                                     tcp_relays[i].public_key) != 0) {
+            LOGGER_WARNING(chat->log, "Failed to add tcp relay connection %u out of %u", i, num_tcp_relays);
+        }
     }
 
-    const int nodes_len = pack_nodes(chat->log, data + length, sizeof(data) - length, tcp_relays, (uint16_t)num_tcp_relays);
+    const int nodes_len = pack_nodes(chat->log, data, sizeof(data), tcp_relays, (uint16_t)num_tcp_relays);
 
     if (nodes_len <= 0) {
         LOGGER_ERROR(chat->log, "Failed to pack tcp relays");
         return false;
     }
 
-    length += nodes_len;
-
-    if (!send_lossless_group_packet(chat, gconn, data, length, GP_TCP_RELAYS)) {
+    if (!send_lossless_group_packet(chat, gconn, data, (uint16_t)nodes_len, GP_TCP_RELAYS)) {
         LOGGER_ERROR(chat->log, "Failed to send tcp relays");
         return false;
     }
@@ -2503,13 +2502,6 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
 
         memcpy(data + sizeof(uint16_t), chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
         length += MAX_GC_PASSWORD_SIZE;
-    }
-
-    if (data_size < length) {
-        free(data);
-        free(self);
-        LOGGER_ERROR(chat->log, "Invalid data size");
-        return false;
     }
 
     const int packed_len = pack_gc_peer(data + length, data_size - length, self);
@@ -7678,6 +7670,10 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
     }
 
     GC_Connection *gconn = get_gc_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return -3;
+    }
 
     Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
     const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS,

@@ -544,11 +544,16 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
         return 1;
     }
 
-    const uint8_t num_ann = (uint8_t)gca_get_announces(gc_announces_list,
+    const int num_ann = (uint8_t)gca_get_announces(gc_announces_list,
                             gc_announces,
                             GCA_MAX_SENT_ANNOUNCES,
                             public_announce.chat_public_key,
                             new_announce->base_announce.peer_public_key);
+
+    if (num_ann < 0) {
+        LOGGER_ERROR(onion_a->log, "failed to get group announce");
+        return 1;
+    }
 
     size_t announces_length = 0;
     int offset = 2 + ONION_PING_ID_SIZE + nodes_length;

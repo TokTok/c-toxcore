@@ -265,8 +265,7 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
 }
 
 int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
-                            uint8_t announces_count,
-                            size_t *processed)
+                            uint8_t announces_count, size_t *processed)
 {
     if (data == nullptr) {
         LOGGER_ERROR(log, "data is null");
