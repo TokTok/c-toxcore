@@ -12,7 +12,7 @@
 
 #include "group_common.h"
 
-/* Max number of TCP relays we share with a peer */
+/* Max number of TCP relays we share with a peer on handshake */
 #define GCC_MAX_TCP_SHARED_RELAYS 3
 
 /** Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */

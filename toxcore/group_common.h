@@ -95,6 +95,7 @@ typedef struct GC_Connection {
 
     int         tcp_connection_num;
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
+    uint16_t    tcp_relay_share_index;
     uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
     uint64_t    last_sent_ip_time;  /* the last time we sent our ip info to this peer in a ping packet */
 
@@ -238,7 +239,6 @@ typedef struct GC_Chat {
     Networking_Core *net;
     TCP_Connections *tcp_conn;
 
-    bool            new_tcp_relay;   // true if we need to send peers a new TCP relay
     uint32_t        tcp_connections; // the number of global TCP relays we're connected to
     uint64_t        last_checked_tcp_relays;
 

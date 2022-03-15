@@ -58,7 +58,7 @@
 /* Size of a lossless ack packet */
 #define GC_LOSSLESS_ACK_PACKET_SIZE (GC_MESSAGE_ID_BYTES + 1)
 
-/** Smallest possible size of an encrypted lossless payload.
+/* Smallest possible size of an encrypted lossless payload.
  *
  * Data includes the message_id, group packet type, and the nonce and MAC for decryption.
  */
@@ -1947,26 +1947,30 @@ non_null() static bool send_gc_peer_info_request(const GC_Chat *chat, GC_Connect
 non_null()
 static bool send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
 {
-    Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
-    const uint32_t num_tcp_relays = tcp_copy_connected_relays(chat->tcp_conn, tcp_relays, GCC_MAX_TCP_SHARED_RELAYS);
 
-    if (num_tcp_relays == 0) {
+    Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
+    uint8_t data[GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6];
+
+    const uint32_t n = tcp_copy_connected_relays_index(chat->tcp_conn, tcp_relays, GCC_MAX_TCP_SHARED_RELAYS,
+                       gconn->tcp_relay_share_index);
+
+    if (n == 0) {
         return true;
     }
 
-    uint8_t data[GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6];
+    gconn->tcp_relay_share_index += GCC_MAX_TCP_SHARED_RELAYS;
 
-    for (uint32_t i = 0; i < num_tcp_relays; ++i) {
+    for (uint32_t i = 0; i < n; ++i) {
         if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_relays[i].ip_port,
                                      tcp_relays[i].public_key) != 0) {
-            LOGGER_WARNING(chat->log, "Failed to add tcp relay connection %u out of %u", i, num_tcp_relays);
+            LOGGER_WARNING(chat->log, "Failed to add tcp relay connection %u out of %u", i, n);
         }
     }
 
-    const int nodes_len = pack_nodes(chat->log, data, sizeof(data), tcp_relays, (uint16_t)num_tcp_relays);
+    const int nodes_len = pack_nodes(chat->log, data, sizeof(data), tcp_relays, n);
 
     if (nodes_len <= 0 || nodes_len > sizeof(data)) {
-        LOGGER_ERROR(chat->log, "Failed to pack tcp relays (ndoes_len: %d)", nodes_len);
+        LOGGER_ERROR(chat->log, "Failed to pack tcp relays (nodes_len: %d)", nodes_len);
         return false;
     }
 
@@ -6588,7 +6592,7 @@ static bool send_pending_handshake(const GC_Chat *chat, GC_Connection *gconn)
     return send_gc_handshake_packet(chat, gconn, GH_REQUEST, gconn->pending_handshake_type);
 }
 
-#define GC_TCP_RELAY_SEND_INTERVAL 120
+#define GC_TCP_RELAY_SEND_INTERVAL (60 * 3)
 non_null(1, 2) nullable(3)
 static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userdata)
 {
@@ -6607,10 +6611,8 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
 
         gcc_resend_packets(chat, gconn);
 
-        if (chat->new_tcp_relay || (gconn->tcp_relays_count == 0 &&
-                                    mono_time_is_timeout(chat->mono_time,
-                                            gconn->last_sent_tcp_relays_time,
-                                            GC_TCP_RELAY_SEND_INTERVAL))) {
+        if (gconn->tcp_relays_count > 0 &&
+                mono_time_is_timeout(chat->mono_time, gconn->last_sent_tcp_relays_time, GC_TCP_RELAY_SEND_INTERVAL)) {
             if (gconn->confirmed) {
                 send_gc_tcp_relays(chat, gconn);
                 gconn->last_sent_tcp_relays_time = mono_time_get(chat->mono_time);
@@ -6619,8 +6621,6 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
 
         gcc_check_recv_array(c, chat, gconn, i, userdata);   // may change peer numbers
     }
-
-    chat->new_tcp_relay = false;
 }
 
 /** Executes pending handshakes for peers. If our peerlist is empty we periodically try to
@@ -6835,11 +6835,9 @@ static void do_gc_tcp(const GC_Session *c, GC_Chat *chat, void *userdata)
         set_tcp_connection_to_status(chat->tcp_conn, gconn->tcp_connection_num, tcp_set);
     }
 
-    if (mono_time_is_timeout(chat->mono_time, chat->last_checked_tcp_relays, TCP_RELAYS_CHECK_INTERVAL)) {
-        if (chat->tcp_connections == 0) {
-            add_tcp_relays_to_chat(c, chat);
-        }
-
+    if (mono_time_is_timeout(chat->mono_time, chat->last_checked_tcp_relays, TCP_RELAYS_CHECK_INTERVAL) &&
+            tcp_connected_relays_count(chat->tcp_conn) != chat->tcp_connections) {
+        add_tcp_relays_to_chat(c, chat);
         chat->last_checked_tcp_relays = mono_time_get(chat->mono_time);
     }
 }
@@ -7028,9 +7026,7 @@ static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat)
     const uint32_t num_copied = tcp_copy_connected_relays(nc_get_tcp_c(m->net_crypto), tcp_relays, (uint16_t)num_relays);
 
     for (uint32_t i = 0; i < num_copied; ++i) {
-        if (add_tcp_relay_global(chat->tcp_conn, &tcp_relays[i].ip_port, tcp_relays[i].public_key) == 0) {
-            chat->new_tcp_relay = true;
-        }
+        add_tcp_relay_global(chat->tcp_conn, &tcp_relays[i].ip_port, tcp_relays[i].public_key);
     }
 
     free(tcp_relays);
