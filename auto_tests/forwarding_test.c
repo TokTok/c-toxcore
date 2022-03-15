@@ -282,7 +282,7 @@ static void test_forwarding(void)
 
         // This doesn't really belong in this test.
         // It can be removed once the full announce client test is in place.
-        printf("checking for that nodes are marked as announce nodes\n");
+        printf("checking that nodes are marked as announce nodes\n");
         Node_format nodes[MAX_SENT_NODES];
         ck_assert(NUM_FORWARDER - NUM_FORWARDER_TCP > 1);
 
