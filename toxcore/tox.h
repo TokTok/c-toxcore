@@ -4667,7 +4667,7 @@ typedef enum Tox_Err_Group_Invite_Accept {
  *   than TOX_MAX_NAME_LENGTH.
  * @param password The password required to join the group. Set to NULL if no password is required.
  * @param password_length The length of the password. If password_length is equal to zero, the password
- *    parameter will be ignored. password_length must be no larger than TOX_GROUP_MAX_PASSWORD_SIZE.
+ *   parameter will be ignored. password_length must be no larger than TOX_GROUP_MAX_PASSWORD_SIZE.
  *
  * @return the group_number on success, UINT32_MAX on failure.
  */
@@ -4749,7 +4749,7 @@ typedef enum Tox_Group_Exit_Type {
 /**
  * @param group_number The group number of the group in which a peer has left.
  * @param peer_id The ID of the peer who left the group. This ID no longer designates a valid peer
- *     and cannot be used for API calls.
+ *   and cannot be used for API calls.
  * @param exit_type The type of exit event. One of Tox_Group_Exit_Type.
  * @param name The nickname of the peer who left the group.
  * @param part_message The parting message data.

@@ -35,7 +35,7 @@ static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
     return array_entry->time_added == 0;
 }
 
-/** Clears an array entry.
+/** @brief Clears an array entry.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -52,7 +52,8 @@ static void clear_array_entry(GC_Message_Array_Entry *const array_entry)
     };
 }
 
-/** Clears every send array message from queue starting at the index designated by
+/**
+ * Clears every send array message from queue starting at the index designated by
  * `start_id` and ending at `end_id` and sets the send_message_id for `gconn`
  * to `start_id`.
  */
@@ -86,7 +87,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
     gconn->received_message_id = id;
 }
 
-/** Puts packet data in ary_entry.
+/** @brief Puts packet data in ary_entry.
  *
  * Return true on success.
  */
@@ -119,7 +120,7 @@ static bool create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entr
     return true;
 }
 
-/** Adds data of length to gconn's send_array.
+/** @brief Adds data of length to gconn's send_array.
  *
  * Returns true on success and increments gconn's send_message_id.
  */
@@ -321,7 +322,7 @@ int gcc_save_tcp_relay(GC_Connection *gconn, const Node_format *tcp_node)
     return 0;
 }
 
-/** Stores `data` of length `length` in the receive array for `gconn`.
+/** @brief Stores `data` of length `length` in the receive array for `gconn`.
  *
  * Return true on success.
  */
@@ -346,7 +347,8 @@ static bool store_in_recv_array(const Logger *log, const Mono_Time *mono_time, G
     return true;
 }
 
-/** Reassambles a fragmented packet sequence ending with the data in the receive
+/**
+ * Reassambles a fragmented packet sequence ending with the data in the receive
  * array at slot `message_id - 1` and starting with the last found slot containing
  * a GP_FRAGMENT packet when searching backwards in the array.
  *
@@ -497,7 +499,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
     return 2;
 }
 
-/** Handles peer_number's array entry with appropriate handler and clears it from array.
+/** @brief Handles peer_number's array entry with appropriate handler and clears it from array.
  *
  * This function increments the received message ID for `gconn`.
  *
