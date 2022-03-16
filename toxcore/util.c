@@ -55,7 +55,7 @@ const uint8_t *get_chat_id(const uint8_t *key)
     return key + ENC_PUBLIC_KEY_SIZE;
 }
 
-/** id functions */
+/** Equality function for public keys. */
 bool pk_equal(const uint8_t *dest, const uint8_t *src)
 {
     return public_key_cmp(dest, src) == 0;

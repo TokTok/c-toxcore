@@ -378,10 +378,10 @@ static int friend_received_packet(const Messenger *m, int32_t friendnumber, uint
                                 m->friendlist[friendnumber].friendcon_id), number);
 }
 
-/* Initializes the friend connection and onion connection for a groupchat.
+/** @brief the friend connection and onion connection for a groupchat.
  *
- * Return 0 on success.
- * Return -1 on failure.
+ * @retval 0 if success.
+ * @retval -1 if failure.
  */
 bool m_create_group_connection(Messenger *m, GC_Chat *chat)
 {
@@ -802,8 +802,8 @@ int m_set_userstatus(Messenger *m, uint8_t status)
 /**
  * Guaranteed to be at most MAX_STATUSMESSAGE_LENGTH.
  *
- * returns the length of friendnumber's status message, including null on success.
- * returns -1 on failure.
+ * @return the length of friendnumber's status message, including null on success.
+ * @retval -1 on failure.
  */
 int m_get_statusmessage_size(const Messenger *m, int32_t friendnumber)
 {
@@ -1074,14 +1074,13 @@ static void set_friend_status(Messenger *m, int32_t friendnumber, uint8_t status
 /*** CONFERENCES */
 
 
-/** Set the callback for conference invites. */
+/** @brief Set the callback for conference invites. */
 void m_callback_conference_invite(Messenger *m, m_conference_invite_cb *function)
 {
     m->conference_invite = function;
 }
 
-/* Set the callback for group invites.
- */
+/** @brief the callback for group invites. */
 void m_callback_group_invite(Messenger *m, m_group_invite_cb *function)
 {
     m->group_invite = function;
@@ -1098,9 +1097,9 @@ bool send_conference_invite_packet(const Messenger *m, int32_t friendnumber, con
 }
 
 
-/* Send a group invite packet.
+/** @brief Send a group invite packet.
  *
- *  return true on success
+ * @retval true if success
  */
 bool send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t length)
 {
@@ -1111,25 +1110,25 @@ bool send_group_invite_packet(const Messenger *m, uint32_t friendnumber, const u
 /*** FILE SENDING */
 
 
-/** Set the callback for file send requests. */
+/** @brief Set the callback for file send requests. */
 void callback_file_sendrequest(Messenger *m, m_file_recv_cb *function)
 {
     m->file_sendrequest = function;
 }
 
-/** Set the callback for file control requests. */
+/** @brief Set the callback for file control requests. */
 void callback_file_control(Messenger *m, m_file_recv_control_cb *function)
 {
     m->file_filecontrol = function;
 }
 
-/** Set the callback for file data. */
+/** @brief Set the callback for file data. */
 void callback_file_data(Messenger *m, m_file_recv_chunk_cb *function)
 {
     m->file_filedata = function;
 }
 
-/** Set the callback for file request chunk. */
+/** @brief Set the callback for file request chunk. */
 void callback_file_reqchunk(Messenger *m, m_file_chunk_request_cb *function)
 {
     m->file_reqchunk = function;
@@ -1219,13 +1218,14 @@ static bool file_sendrequest(const Messenger *m, int32_t friendnumber, uint8_t f
 }
 
 /** @brief Send a file send request.
+ *
  * Maximum filename length is 255 bytes.
+ *
  * @return file number on success
  * @retval -1 if friend not found.
  * @retval -2 if filename length invalid.
  * @retval -3 if no more file sending slots left.
  * @retval -4 if could not send packet (friend offline).
- *
  */
 long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_type, uint64_t filesize,
                         const uint8_t *file_id, const uint8_t *filename, uint16_t filename_length)
@@ -1829,7 +1829,7 @@ static int handle_filecontrol(Messenger *m, int32_t friendnumber, bool outbound,
     }
 }
 
-/** Set the callback for msi packets. */
+/** @brief Set the callback for msi packets. */
 void m_callback_msi_packet(Messenger *m, m_msi_packet_cb *function, void *userdata)
 {
     m->msi_packet = function;
@@ -2384,8 +2384,8 @@ static void do_friends(Messenger *m, void *userdata)
     for (uint32_t i = 0; i < m->numfriends; ++i) {
         if (m->friendlist[i].status == FRIEND_ADDED) {
             const int fr = send_friend_request_packet(m->fr_c, m->friendlist[i].friendcon_id, m->friendlist[i].friendrequest_nospam,
-                           m->friendlist[i].info,
-                           m->friendlist[i].info_size);
+                                                m->friendlist[i].info,
+                                                m->friendlist[i].info_size);
 
             if (fr >= 0) {
                 set_friend_status(m, i, FRIEND_REQUESTED, userdata);
@@ -2494,10 +2494,10 @@ uint32_t messenger_run_interval(const Messenger *m)
     return crypto_interval;
 }
 
-/* Attempts to create a DHT announcement for a group chat with our connection info. An
+/** @brief Attempts to create a DHT announcement for a group chat with our connection info. An
  * announcement can only be created if we either have a UDP or TCP connection to the network.
  *
- * Returns true on success.
+ * @retval true if success.
  */
 #ifndef VANILLA_NACL
 non_null()
@@ -2571,7 +2571,7 @@ static void do_gc_onion_friends(const Messenger *m)
 }
 #endif  // VANILLA_NACL
 
-/** The main loop that needs to be run at least 20 times per second. */
+/** @brief The main loop that needs to be run at least 20 times per second. */
 void do_messenger(Messenger *m, void *userdata)
 {
     // Add the TCP relays, but only if this is the first time calling do_messenger

@@ -108,6 +108,8 @@
 extern "C" {
 #endif
 
+/** @{ @namespace tox */
+
 #ifndef TOX_DEFINED
 #define TOX_DEFINED
 /**
