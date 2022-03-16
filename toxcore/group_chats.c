@@ -510,7 +510,7 @@ static GC_Chat *get_chat_by_id(const GC_Session *c, const uint8_t *id)
     return nullptr;
 }
 
-/** Returns the jenkins hash of a 32 byte public encryption key. */
+/** @brief Returns the jenkins hash of a 32 byte public encryption key. */
 uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key)
 {
     return jenkins_one_at_a_time_hash(public_key, ENC_PUBLIC_KEY_SIZE);
@@ -1465,11 +1465,15 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
         return -1;
     }
 
-    uint8_t *plain = (uint8_t *)calloc(1, packet_size);
+    uint8_t *plain = (uint8_t *)malloc(packet_size);
 
     if (plain == nullptr) {
         return -1;
     }
+
+    assert(padding_len < packet_size);
+
+    memset(plain, 0, padding_len);
 
     uint16_t enc_header_len = sizeof(uint8_t);
     plain[padding_len] = gp_packet_type;
