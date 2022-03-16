@@ -3253,7 +3253,7 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error);
 
 
 
-/**
+/** @{
  * Maximum length of a group topic.
  */
 #define TOX_GROUP_MAX_TOPIC_LENGTH     512
@@ -5305,6 +5305,10 @@ typedef void tox_group_moderation_cb(Tox *tox, uint32_t group_number, uint32_t s
  * manually update all peer roles.
  */
 void tox_callback_group_moderation(Tox *tox, tox_group_moderation_cb *callback);
+
+/** @} */
+
+/** @} */
 
 #ifdef __cplusplus
 }
