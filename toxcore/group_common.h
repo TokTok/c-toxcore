@@ -37,7 +37,7 @@
 /* Max number of messages to store in the send/recv arrays */
 #define GCC_BUFFER_SIZE 8192
 
-/** Self UDP status. Must correspond to return values from ipport_self_copy(). */
+/** Self UDP status. Must correspond to return values from `ipport_self_copy()`. */
 typedef enum Self_UDP_Status {
     SELF_UDP_STATUS_NONE = 0x00,
     SELF_UDP_STATUS_WAN  = 0x01,
@@ -355,7 +355,7 @@ typedef struct GC_Session {
     gc_rejected_cb *rejected;
 } GC_Session;
 
-/** Adds a new peer to group_number's peer list.
+/** @brief Adds a new peer to group_number's peer list.
  *
  * Return peer_number if success.
  * Return -1 on failure.
@@ -364,7 +364,7 @@ typedef struct GC_Session {
 non_null(1, 3) nullable(2)
 int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
 
-/** Unpacks saved peers from `data` of size `length` into `chat`.
+/** @brief Unpacks saved peers from `data` of size `length` into `chat`.
  *
  * Returns the number of unpacked peers on success.
  * Returns -1 on failure.
@@ -372,8 +372,9 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
 non_null()
 int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length);
 
-/** Packs all valid entries from saved peerlist into `data`. If `processed` is non-null
- * it will be set to the length of the packed data.
+/** @brief Packs all valid entries from saved peerlist into `data`.
+ *
+ * If `processed` is non-null it will be set to the length of the packed data.
  *
  * Return the number of packed saved peers on success.
  * Return -1 if buffer is too small.
