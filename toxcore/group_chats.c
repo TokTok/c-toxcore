@@ -215,7 +215,7 @@ uint16_t gc_get_self_nick_size(const GC_Chat *chat)
     return peer->nick_length;
 }
 
-/** Sets self nick to `nick`.
+/** @brief Sets self nick to `nick`.
  *
  * Returns false if `nick` is null or `length` is greater than MAX_GC_NICK_SIZE.
  */
@@ -310,7 +310,7 @@ void gc_get_self_public_key(const GC_Chat *chat, uint8_t *public_key)
     }
 }
 
-/** Sets self extended public key to `ext_public_key`.
+/** @brief Sets self extended public key to `ext_public_key`.
  *
  * If `ext_public_key` is null this function has no effect.
  */
@@ -480,7 +480,7 @@ static bool validate_password(const GC_Chat *chat, const uint8_t *password, uint
     return memcmp(chat->shared_state.password, password, length) == 0;
 }
 
-/** Returns the chat object that contains a self_public_key equal to `id`.
+/** @brief Returns the chat object that contains a self_public_key equal to `id`.
  *
  * `id` must be at least ENC_PUBLIC_KEY_SIZE bytes in length.
  */
@@ -516,7 +516,7 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key)
     return jenkins_one_at_a_time_hash(public_key, ENC_PUBLIC_KEY_SIZE);
 }
 
-/** Sets the sum of the public_key_hash of all confirmed peers.
+/** @brief Sets the sum of the public_key_hash of all confirmed peers.
  *
  * Must be called every time a peer is confirmed or deleted.
  */
@@ -574,7 +574,7 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
     return -1;
 }
 
-/** Check if peer associated with `public_sig_key` is in peer list.
+/** @brief Check if peer associated with `public_sig_key` is in peer list.
  *
  * Returns the peer number if peer is in the peer list.
  * Returns -1 if peer is not in the peer list.
@@ -644,8 +644,9 @@ static GC_Connection *random_gc_connection(const GC_Chat *chat)
     return nullptr;
 }
 
-/** Returns the peer number associated with peer_id.
- * Returns -1 if peer_id is invalid. */
+/** @brief Returns the peer number associated with peer_id.
+ * Returns -1 if peer_id is invalid.
+ */
 non_null()
 static int get_peer_number_of_peer_id(const GC_Chat *chat, uint32_t peer_id)
 {
@@ -658,7 +659,7 @@ static int get_peer_number_of_peer_id(const GC_Chat *chat, uint32_t peer_id)
     return -1;
 }
 
-/** Returns a unique peer ID.
+/** @brief Returns a unique peer ID.
  * Returns UINT32_MAX if all possible peer ID's are taken.
  *
  * These ID's are permanently assigned to a peer when they join the group and should be
@@ -677,7 +678,7 @@ static uint32_t get_new_peer_id(const GC_Chat *chat)
     return UINT32_MAX;
 }
 
-/** Sets the password for the group (locally only).
+/** @brief Sets the password for the group (locally only).
  *
  * Return true on success.
  */
@@ -700,8 +701,9 @@ static bool set_gc_password_local(GC_Chat *chat, const uint8_t *passwd, uint16_t
     return true;
 }
 
-/** Sets the local shared state to `version`. This should always be called instead of
- * setting the variables manually.
+/** @brief Sets the local shared state to `version`.
+ *
+ * This should always be called instead of setting the variables manually.
  */
 non_null()
 static void set_gc_shared_state_version(GC_Chat *chat, uint32_t version)
@@ -710,8 +712,9 @@ static void set_gc_shared_state_version(GC_Chat *chat, uint32_t version)
     chat->moderation.shared_state_version = version;
 }
 
-/** Expands the chat_id into the extended chat public key (encryption key + signature key)
- * dest must have room for EXT_PUBLIC_KEY_SIZE bytes.
+/** @brief Expands the chat_id into the extended chat public key (encryption key + signature key).
+ *
+ * @param dest must have room for EXT_PUBLIC_KEY_SIZE bytes.
  *
  * Return true on success.
  */
@@ -742,7 +745,7 @@ static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer)
     return ipport_isset(&saved_peer->ip_port) || ipport_isset(&saved_peer->tcp_relay.ip_port);
 }
 
-/** Returns the index of the saved peers entry for `public_key`.
+/** @brief Returns the index of the saved peers entry for `public_key`.
  * Returns -1 if key is not found.
  */
 non_null()
@@ -759,8 +762,9 @@ static int saved_peer_index(const GC_Chat *chat, const uint8_t *public_key)
     return -1;
 }
 
-/** Returns the index of the first vacant entry in saved peers list. If `public_key` is non-null
- * and already exists in the list, its index will be returned.
+/** @brief Returns the index of the first vacant entry in saved peers list.
+ *
+ * If `public_key` is non-null and already exists in the list, its index will be returned.
  *
  * A vacant entry is an entry that does not have either an IP_port or tcp relay set (invalid),
  * or an entry containing info on a peer that is not presently online (offline).
@@ -803,8 +807,9 @@ static int saved_peers_get_new_index(const GC_Chat *chat, const uint8_t *public_
     return -1;
 }
 
-/** Attempts to add `gconn` to the saved peer list. If an entry already exists it will
- * be updated.
+/** @brief Attempts to add `gconn` to the saved peer list.
+ *
+ * If an entry already exists it will be updated.
  *
  * Older peers will only be over-written if the peer is no longer
  * present in the chat. This gives priority to more stable connections.
@@ -824,7 +829,7 @@ static void add_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
     copy_gc_saved_peer(gconn, saved_peer);
 }
 
-/** Finds the first vacant spot in the saved peers list and fills it with a present
+/** @brief Finds the first vacant spot in the saved peers list and fills it with a present
  * peer who isn't already in the list.
  *
  * This function should be called after a confirmed peer exits the group.
@@ -928,9 +933,11 @@ static bool peer_is_moderator(const GC_Chat *chat, uint32_t peer_number)
     return mod_list_verify_sig_pk(&chat->moderation, get_sig_pk(gconn->addr.public_key));
 }
 
-/** Iterates through the peerlist and updates group roles according to the
- * current group state. Also updates the roles checksum. If any role conflicts
- * exist the checksum is set to zero in order to force a sync update.
+/** @brief Iterates through the peerlist and updates group roles according to the
+ * current group state.
+ *
+ * Also updates the roles checksum. If any role conflicts exist the checksum
+ * is set to zero in order to force a sync update.
  *
  * This should be called every time the moderator list or sanctions list changes,
  * and after a new peer is marked as confirmed.
@@ -993,7 +1000,7 @@ static void update_gc_peer_roles(GC_Chat *chat)
     }
 }
 
-/** Removes the first found offline mod from the mod list.
+/** @brief Removes the first found offline mod from the mod list.
  *
  * Broadcasts the shared state and moderator list on success, as well as the updated
  * sanctions list if necessary.
@@ -1034,7 +1041,7 @@ static bool prune_gc_mod_list(GC_Chat *chat)
            && update_gc_topic(chat, public_sig_key);
 }
 
-/** Removes the first found offline sanctioned peer from the sanctions list and sends the
+/** @brief Removes the first found offline sanctioned peer from the sanctions list and sends the
  * event to the rest of the group.
  *
  * Returns false on failure or if no sanctioned peers were offline.
@@ -1087,12 +1094,12 @@ static bool prune_gc_sanctions_list(GC_Chat *chat)
     return true;
 }
 
-/** Size of peer data that we pack for transfer (nick length must be accounted for separately).
+/** @brief Size of peer data that we pack for transfer (nick length must be accounted for separately).
  * packed data includes: nick, nick length, and status.
  */
 #define PACKED_GC_PEER_SIZE (MAX_GC_NICK_SIZE + sizeof(uint16_t) + sizeof(uint8_t))
 
-/** Packs peer info into data of maxlength length.
+/** @brief Packs peer info into data of maxlength length.
  *
  * Return length of packed peer on success.
  * Return -1 on failure.
@@ -1116,7 +1123,7 @@ static int pack_gc_peer(uint8_t *data, uint16_t length, const GC_Peer *peer)
     return packed_len;
 }
 
-/** Unpacks peer info of size length into peer.
+/** @brief Unpacks peer info of size length into peer.
  *
  * Returns the length of processed data on success.
  * Returns -1 on failure.
@@ -1141,7 +1148,9 @@ static int unpack_gc_peer(GC_Peer *peer, const uint8_t *data, uint16_t length)
     return len_processed;
 }
 
-/** Packs shared_state into data. data must have room for at least GC_PACKED_SHARED_STATE_SIZE bytes.
+/** @brief Packs shared_state into data.
+ *
+ * @param data must have room for at least GC_PACKED_SHARED_STATE_SIZE bytes.
  *
  * Returns packed data length.
  */
@@ -1185,7 +1194,9 @@ static uint16_t pack_gc_shared_state(uint8_t *data, uint16_t length, const GC_Sh
     return packed_len;
 }
 
-/** Unpacks shared state data into shared_state. data must contain at least GC_PACKED_SHARED_STATE_SIZE bytes.
+/** @brief Unpacks shared state data into shared_state.
+ *
+ * @param data must contain at least GC_PACKED_SHARED_STATE_SIZE bytes.
  *
  * Returns the length of processed data.
  */
@@ -1235,8 +1246,9 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     return len_processed;
 }
 
-/** Packs topic info into data. data must have room for at least
- * topic length + GC_MIN_PACKED_TOPIC_INFO_SIZE bytes.
+/** @brief Packs topic info into data.
+ *
+ * @param data must have room for at least topic length + GC_MIN_PACKED_TOPIC_INFO_SIZE bytes.
  *
  * Returns packed data length.
  */
@@ -1263,7 +1275,7 @@ static uint16_t pack_gc_topic_info(uint8_t *data, uint16_t length, const GC_Topi
     return packed_len;
 }
 
-/** Unpacks topic info into `topic_info`.
+/** @brief Unpacks topic info into `topic_info`.
  *
  * Returns -1 on failure.
  * Returns the length of the processed data on success.
@@ -1303,7 +1315,7 @@ static int unpack_gc_topic_info(GC_TopicInfo *topic_info, const uint8_t *data, u
     return len_processed;
 }
 
-/** Creates a shared state packet and puts it in data.
+/** @brief Creates a shared state packet and puts it in data.
  * Packet includes self pk hash, shared state signature, and packed shared state info.
  * data must have room for at least GC_SHARED_STATE_ENC_PACKET_SIZE bytes.
  *
@@ -1329,8 +1341,9 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
     return (int)(header_len + packed_len);
 }
 
-/** Creates a signature for the group's shared state in packed form. This function only works
- * for the Founder.
+/** @brief Creates a signature for the group's shared state in packed form.
+ *
+ * This function only works for the Founder.
  *
  * Returns true on success and increments the shared state version.
  */
@@ -1369,8 +1382,9 @@ static bool sign_gc_shared_state(GC_Chat *chat)
     return true;
 }
 
-/** Decrypts data using the shared key associated with `gconn`. The packet payload should
- * begin with a nonce.
+/** @brief Decrypts data using the shared key associated with `gconn`.
+ *
+ * The packet payload should begin with a nonce.
  *
  * @param message_id should be set to NULL for lossy packets.
  *
@@ -1502,7 +1516,7 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     return 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
 }
 
-/** Sends a lossy packet to peer_number in chat instance.
+/** @brief Sends a lossy packet to peer_number in chat instance.
  *
  * Returns true on success.
  */
@@ -1543,7 +1557,7 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
     return ret;
 }
 
-/** Sends a lossless packet to peer_number in chat instance.
+/** @brief Sends a lossless packet to peer_number in chat instance.
  *
  * Returns true on success.
  */
@@ -1564,7 +1578,7 @@ static bool send_lossless_group_packet(const GC_Chat *chat, GC_Connection *gconn
     return gcc_send_lossless_packet(chat, gconn, data, length, packet_type) == 0;
 }
 
-/** Sends a group sync request to peer.
+/** @brief Sends a group sync request to peer.
  *
  * Returns true on success or if sync request timeout has not expired.
  */
@@ -1593,7 +1607,7 @@ static bool send_gc_sync_request(GC_Chat *chat, GC_Connection *gconn, uint16_t s
     return send_lossless_group_packet(chat, gconn, data, length, GP_SYNC_REQUEST);
 }
 
-/** Sends a sync response packet to peer desingnated by `gconn`.
+/** @brief Sends a sync response packet to peer desingnated by `gconn`.
  *
  * Return true on succes.
  */
@@ -1608,7 +1622,9 @@ non_null() static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connecti
         uint8_t request_type);
 non_null() static bool send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connection *gconn);
 
-/** Unpacks a sync announce. If the announced peer is not already in our peer list, we attempt to
+/** @brief Unpacks a sync announce.
+ *
+ * If the announced peer is not already in our peer list, we attempt to
  * initiate a peer info exchange with them.
  *
  * Return true on success (whether or not the peer was added).
@@ -1686,7 +1702,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
     return false;
 }
 
-/** Handles a sync response packet.
+/** @brief Handles a sync response packet.
  *
  * Note: This function may change peer numbers.
  *
@@ -1735,7 +1751,7 @@ non_null() static bool send_peer_sanctions_list(const GC_Chat *chat, GC_Connecti
 non_null() static bool send_peer_topic(const GC_Chat *chat, GC_Connection *gconn);
 
 
-/** Creates a sync announce for peer designated by `gconn` and puts it in `announce`.
+/** @brief Creates a sync announce for peer designated by `gconn` and puts it in `announce`.
  *
  * Returns true if announce was successfully created.
  */
@@ -1821,7 +1837,7 @@ static bool sync_response_send_peers(const GC_Chat *chat, GC_Connection *gconn, 
     return true;
 }
 
-/** Sends group state specified by `sync_flags` peer designated by `peer_number`.
+/** @brief Sends group state specified by `sync_flags` peer designated by `peer_number`.
  *
  * Return true on success.
  */
@@ -1870,7 +1886,7 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
     return true;
 }
 
-/** Handles a sync request packet and sends a response containing the peer list.
+/** @brief Handles a sync request packet and sends a response containing the peer list.
  *
  * May send addition group info in separate packets, including the topic, shared state, mod list,
  * and sanctions list, if respective sync flags are set.
@@ -1940,7 +1956,7 @@ non_null() static void copy_self(const GC_Chat *chat, GC_Peer *peer);
 non_null() static bool send_gc_peer_info_request(const GC_Chat *chat, GC_Connection *gconn);
 
 
-/** Shares our TCP relays with peer and adds shared relays to our connection with them.
+/** @brief Shares our TCP relays with peer and adds shared relays to our connection with them.
  *
  * Returns true on success or if we're not connected to any TCP relays.
  */
@@ -1982,7 +1998,7 @@ static bool send_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn)
     return true;
 }
 
-/** Adds a peer's shared TCP relays to our connection with them.
+/** @brief Adds a peer's shared TCP relays to our connection with them.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -2018,7 +2034,9 @@ static int handle_gc_tcp_relays(GC_Chat *chat, GC_Connection *gconn, const uint8
     return 0;
 }
 
-/** Send invite request to peer_number. If the group requires a password, the packet will
+/** @brief Send invite request to peer_number.
+ *
+ * If the group requires a password, the packet will
  * contain the password supplied by the invite requestor.
  *
  * Return true on success.
@@ -2046,7 +2064,7 @@ static bool send_gc_invite_response(const GC_Chat *chat, GC_Connection *gconn)
     return send_lossless_group_packet(chat, gconn, nullptr, 0, GP_INVITE_RESPONSE);
 }
 
-/** Handles an invite response packet.
+/** @brief Handles an invite response packet.
  *
  * Return 0 if packet is correctly handled.
  * Return -1 if we fail to send a sync request.
@@ -2062,7 +2080,7 @@ static int handle_gc_invite_response(GC_Chat *chat, GC_Connection *gconn)
 }
 
 /**
- * Handles an invite response reject packet.
+ * @brief Handles an invite response reject packet.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -2098,7 +2116,7 @@ static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, 
     return 0;
 }
 
-/** Sends an invite response rejection packet to peer designated by `gconn`.
+/** @brief Sends an invite response rejection packet to peer designated by `gconn`.
  *
  * Return true on success.
  */
@@ -2116,7 +2134,7 @@ static bool send_gc_invite_response_reject(const GC_Chat *chat, const GC_Connect
     return send_lossy_group_packet(chat, gconn, data, length, GP_INVITE_RESPONSE_REJECT);
 }
 
-/** Handles an invite request and verifies that the correct password has been supplied
+/** @brief Handles an invite request and verifies that the correct password has been supplied
  * if the group is password protected.
  *
  * Return 0 if invite request is successfully handled.
@@ -2171,7 +2189,7 @@ FAILED_INVITE:
     return ret;
 }
 
-/** Sends a lossless packet of type and length to all confirmed peers. */
+/** @brief Sends a lossless packet of type and length to all confirmed peers. */
 non_null()
 static void send_gc_lossless_packet_all_peers(const GC_Chat *chat, const uint8_t *data, uint16_t length, uint8_t type)
 {
@@ -2186,7 +2204,7 @@ static void send_gc_lossless_packet_all_peers(const GC_Chat *chat, const uint8_t
     }
 }
 
-/** Sends a lossy packet of type and length to all confirmed peers. */
+/** @brief Sends a lossy packet of type and length to all confirmed peers. */
 non_null()
 static void send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *data, uint16_t length, uint8_t type)
 {
@@ -2201,7 +2219,7 @@ static void send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *d
     }
 }
 
-/** Creates packet with broadcast header info followed by data of length.
+/** @brief Creates packet with broadcast header info followed by data of length.
  *
  * Returns length of packet including header.
  */
@@ -2218,7 +2236,7 @@ static uint16_t make_gc_broadcast_header(const uint8_t *data, uint16_t length, u
     return length + header_len;
 }
 
-/** sends a group broadcast packet to all confirmed peers.
+/** @brief sends a group broadcast packet to all confirmed peers.
  *
  * Returns true on success.
  */
@@ -2248,7 +2266,7 @@ static bool send_gc_broadcast_message(const GC_Chat *chat, const uint8_t *data, 
 non_null()
 static bool group_topic_lock_enabled(const GC_Chat *chat);
 
-/** Compares the supplied values with our own state and returns the appropriate
+/** @brief Compares the supplied values with our own state and returns the appropriate
  * sync flags for a sync request.
  */
 non_null()
@@ -2284,10 +2302,11 @@ static uint16_t get_sync_flags(const GC_Chat *chat, uint16_t peers_checksum, uin
     return sync_flags;
 }
 
-/** Compares a peer's group sync info that we received in a ping packet to our own. If their info appears
- * to be more recent than ours we send them a sync request.
+/** @brief Compares a peer's group sync info that we received in a ping packet to our own.
  *
- * This function should only be called from handle_gc_ping().
+ * If their info appears to be more recent than ours we send them a sync request.
+ *
+ * This function should only be called from `handle_gc_ping()`.
  *
  * Returns true if a sync request packet is successfully sent.
  */
@@ -2345,7 +2364,7 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
     return false;
 }
 
-/** Handles a ping packet.
+/** @brief Handles a ping packet.
  *
  * The packet contains sync information including peer's peer list checksum,
  * shared state version, topic version, and sanction credentials version.
@@ -2401,7 +2420,7 @@ int gc_set_self_status(const Messenger *m, int group_number, Group_Peer_Status s
     return 0;
 }
 
-/** Handles a status broadcast from `peer`.
+/** @brief Handles a status broadcast from `peer`.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid length.
@@ -2463,8 +2482,10 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest)
     }
 }
 
-/** Sends self peer info to `gconn`. If the group is password protected the request
- * will contain the group password, which the recipient will validate in the respective
+/** @brief Sends self peer info to `gconn`.
+ *
+ * If the group is password protected the request will contain the group
+ * password, which the recipient will validate in the respective
  * group message handler.
  *
  * Returns true on sucess.
@@ -2516,7 +2537,7 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
     return ret;
 }
 
-/** Handles a peer info request packet.
+/** @brief Handles a peer info request packet.
  *
  * Return 0 on succss.
  * Return -1 if unconfirmed peer is trying to join a full group.
@@ -2543,7 +2564,7 @@ static int handle_gc_peer_info_request(const GC_Chat *chat, uint32_t peer_number
     return 0;
 }
 
-/** Sends a peer info request to peer designated by `gconn`.
+/** @brief Sends a peer info request to peer designated by `gconn`.
  *
  * Return true on success.
  */
@@ -2553,7 +2574,7 @@ static bool send_gc_peer_info_request(const GC_Chat *chat, GC_Connection *gconn)
     return send_lossless_group_packet(chat, gconn, nullptr, 0, GP_PEER_INFO_REQUEST);
 }
 
-/** Do peer info exchange with peer designated by `gconn`.
+/** @brief Do peer info exchange with peer designated by `gconn`.
  *
  * This function sends two packets to a peer. The first packet is a peer info response containing our own info,
  * and the second packet is a peer info request.
@@ -2565,7 +2586,7 @@ static bool send_gc_peer_exchange(const GC_Chat *chat, GC_Connection *gconn)
     return send_self_to_peer(chat, gconn) && send_gc_peer_info_request(chat, gconn);
 }
 
-/** Updates peer's info, validates their group role, and sets them as a confirmed peer.
+/** @brief Updates peer's info, validates their group role, and sets them as a confirmed peer.
  * If the group is password protected the password must first be validated.
  *
  * Return 0 if packet is handled correctly.
@@ -2656,7 +2677,7 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
     return 0;
 }
 
-/** Sends the group shared state and its signature to peer_number.
+/** @brief Sends the group shared state and its signature to peer_number.
  *
  * Returns true on success.
  */
@@ -2677,7 +2698,7 @@ static bool send_peer_shared_state(const GC_Chat *chat, GC_Connection *gconn)
     return send_lossless_group_packet(chat, gconn, packet, (uint16_t)length, GP_SHARED_STATE);
 }
 
-/** Sends the group shared state and signature to all confirmed peers.
+/** @brief Sends the group shared state and signature to all confirmed peers.
  *
  * Returns true on success.
  */
@@ -2696,7 +2717,7 @@ static bool broadcast_gc_shared_state(const GC_Chat *chat)
     return true;
 }
 
-/** Helper function for do_gc_shared_state_changes().
+/** @brief Helper function for `do_gc_shared_state_changes()`.
  *
  * If the privacy state has been set to private, we kill our group's connection to the DHT.
  * Otherwise, we create a new connection with the DHT and flat an announcement.
@@ -2720,7 +2741,8 @@ static void do_privacy_state_change(const GC_Session *c, GC_Chat *chat, void *us
     }
 }
 
-/** Compares old_shared_state with the chat instance's current shared state and triggers the
+/**
+ * Compares old_shared_state with the chat instance's current shared state and triggers the
  * appropriate callback depending on what piece of state information changed. Also
  * handles DHT announcement/removal if the privacy state changed.
  *
@@ -2762,7 +2784,7 @@ static void do_gc_shared_state_changes(const GC_Session *c, GC_Chat *chat, const
     }
 }
 
-/** Sends a sync request to a random peer in the group with the specificed sync flags.
+/** @brief Sends a sync request to a random peer in the group with the specificed sync flags.
  *
  * Return true on success.
  */
@@ -2778,7 +2800,7 @@ static bool send_gc_random_sync_request(GC_Chat *chat, uint16_t sync_flags)
     return send_gc_sync_request(chat, rand_gconn, sync_flags);
 }
 
-/** Returns true if all shared state values are legal. */
+/** @brief Returns true if all shared state values are legal. */
 non_null()
 static bool validate_gc_shared_state(const GC_SharedState *state)
 {
@@ -2790,7 +2812,7 @@ static bool validate_gc_shared_state(const GC_SharedState *state)
            && state->voice_state <= GV_FOUNDER;
 }
 
-/** Handles a shared state error and attempts to send a sync request to a random peer.
+/** @brief Handles a shared state error and attempts to send a sync request to a random peer.
  *
  * Return 0 if error is currectly handled.
  * Return -1 on failure.
@@ -2816,7 +2838,7 @@ static int handle_gc_shared_state_error(GC_Chat *chat, GC_Connection *gconn)
     return 0;
 }
 
-/** Handles a shared state packet and validates the new shared state.
+/** @brief Handles a shared state packet and validates the new shared state.
  *
  * Return 0 if packet is successfully handled.
  * Return -1 if packet is invalid size.
@@ -2877,7 +2899,7 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, GC_Connect
     return 0;
 }
 
-/** Validates `data` containing a moderation list and unpacks it into the
+/** @brief Validates `data` containing a moderation list and unpacks it into the
  * shared state of `chat`.
  *
  * Return 1 if data is valid but mod list doesn't match shared state.
@@ -2912,7 +2934,7 @@ static int validate_unpack_mod_list(GC_Chat *chat, const uint8_t *data, uint16_t
     return 0;
 }
 
-/** Handles new mod_list and compares its hash against the mod_list_hash in the shared state.
+/** @brief Handles new mod_list and compares its hash against the mod_list_hash in the shared state.
  *
  * If the new list fails validation, we attempt to send a sync request to a random peer.
  *
@@ -2969,7 +2991,7 @@ static int handle_gc_mod_list(const GC_Session *c, GC_Chat *chat, const uint8_t 
     return 0;
 }
 
-/** Handles a sanctions list validation error and attempts to send a sync request to a random peer.
+/** @brief Handles a sanctions list validation error and attempts to send a sync request to a random peer.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -2997,7 +3019,7 @@ static int handle_gc_sanctions_list_error(GC_Chat *chat)
     return 0;
 }
 
-/** Handles a sanctions list packet.
+/** @brief Handles a sanctions list packet.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if we failed to gracefully handle a sanctions list error.
@@ -3071,7 +3093,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, const ui
     return 0;
 }
 
-/** Makes a mod_list packet.
+/** @brief Makes a mod_list packet.
  *
  * Returns length of packet data on success.
  * Returns -1 on failure.
@@ -3102,7 +3124,7 @@ static int make_gc_mod_list_packet(const GC_Chat *chat, uint8_t *data, uint32_t 
     return length;
 }
 
-/** Sends the moderator list to peer.
+/** @brief Sends the moderator list to peer.
  *
  * Return true on success.
  */
@@ -3131,7 +3153,7 @@ static bool send_peer_mod_list(const GC_Chat *chat, GC_Connection *gconn)
     return ret;
 }
 
-/** Makes a sanctions list packet.
+/** @brief Makes a sanctions list packet.
  *
  * Returns packet length on success.
  * Returns -1 on failure.
@@ -3156,7 +3178,7 @@ static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uin
     return (int)(length + packed_len);
 }
 
-/** Sends the sanctions list to peer.
+/** @brief Sends the sanctions list to peer.
  *
  * Returns true on success.
  */
@@ -3190,7 +3212,7 @@ static bool send_peer_sanctions_list(const GC_Chat *chat, GC_Connection *gconn)
     return ret;
 }
 
-/** Sends the sanctions list to all peers in group.
+/** @brief Sends the sanctions list to all peers in group.
  *
  * Returns true on success.
  */
@@ -3220,7 +3242,7 @@ static bool broadcast_gc_sanctions_list(const GC_Chat *chat)
     return true;
 }
 
-/** Re-signs all sanctions list entries signed by public_sig_key and broadcasts
+/** @brief Re-signs all sanctions list entries signed by public_sig_key and broadcasts
  * the updated sanctions list to all group peers.
  *
  * Returns true on success.
@@ -3237,7 +3259,7 @@ static bool update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_ke
     return broadcast_gc_sanctions_list(chat);
 }
 
-/** Sends mod_list to all peers in group.
+/** @brief Sends mod_list to all peers in group.
  *
  * Returns true on success.
  */
@@ -3266,7 +3288,7 @@ static bool broadcast_gc_mod_list(const GC_Chat *chat)
     return true;
 }
 
-/** Sends a parting signal to the group.
+/** @brief Sends a parting signal to the group.
  *
  * Returns 0 on success.
  * Returns -1 if the message is too long.
@@ -3286,7 +3308,7 @@ static int send_gc_self_exit(const GC_Chat *chat, const uint8_t *partmessage, ui
     return 0;
 }
 
-/** Handles a peer exit broadcast.
+/** @brief Handles a peer exit broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if peer number is invalid.
@@ -3361,7 +3383,7 @@ int gc_get_peer_nick_size(const GC_Chat *chat, uint32_t peer_id)
     return peer->nick_length;
 }
 
-/** Handles a nick change broadcast.
+/** @brief Handles a nick change broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 on failure.
@@ -3388,7 +3410,7 @@ static int handle_gc_nick(const GC_Session *c, GC_Chat *chat, GC_Peer *peer, con
     return 0;
 }
 
-/** Copies peer_number's public key to `public_key`.
+/** @brief Copies peer_number's public key to `public_key`.
  *
  * Returns 0 on success.
  * Returns -1 if peer_number is invalid.
@@ -3460,8 +3482,10 @@ unsigned int gc_get_peer_connection_status(const GC_Chat *chat, uint32_t peer_id
     return 1;
 }
 
-/** Creates a topic packet and puts it in data. Packet includes the topic, topic length,
- * public signature key of the setter, topic version, and the signature.
+/** @brief Creates a topic packet and puts it in data.
+ *
+ * Packet includes the topic, topic length, public signature key of the
+ * setter, topic version, and the signature.
  *
  * Returns packet length on success.
  * Returns -1 on failure.
@@ -3486,7 +3510,7 @@ static int make_gc_topic_packet(const GC_Chat *chat, uint8_t *data, uint16_t len
     return data_length;
 }
 
-/** Sends the group topic to peer.
+/** @brief Sends the group topic to peer.
  *
  * Returns true on success.
  */
@@ -3518,7 +3542,7 @@ static bool send_peer_topic(const GC_Chat *chat, GC_Connection *gconn)
 }
 
 /**
- * Initiates a session key rotation with peer designated by `gconn`.
+ * @brief Initiates a session key rotation with peer designated by `gconn`.
  *
  * Return true on success.
  */
@@ -3553,7 +3577,7 @@ static bool send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *g
     return true;
 }
 
-/** Sends the group topic to all group members.
+/** @brief Sends the group topic to all group members.
  *
  * Returns true on success.
  */
@@ -3674,7 +3698,8 @@ uint16_t gc_get_topic_size(const GC_Chat *chat)
     return chat->topic_info.length;
 }
 
-/** If public_sig_key is equal to the key of the topic setter, replaces topic credentials
+/**
+ * If public_sig_key is equal to the key of the topic setter, replaces topic credentials
  * and re-broadcast the updated topic info to the group.
  *
  * Returns true on success
@@ -3689,7 +3714,7 @@ static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key)
     return gc_set_topic(chat, chat->topic_info.topic, chat->topic_info.length) == 0;
 }
 
-/** Validates `topic_info`.
+/** @brief Validates `topic_info`.
  *
  * Return true if topic info is valid.
  */
@@ -3743,7 +3768,7 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
     return true;
 }
 
-/** Handles a topic packet.
+/** @brief Handles a topic packet.
  *
  * Return 0 if packet is correctly handled.
  * Return -1 if packet is invalid size.
@@ -3798,7 +3823,7 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *pe
     return 0;
 }
 
-/** Handles a key exchange packet.
+/** @brief Handles a key exchange packet.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if length is invalid.
@@ -3927,7 +3952,7 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
     return 0;
 }
 
-/** Validates change to moderator list and either adds or removes peer from our moderator list.
+/** @brief Validates change to moderator list and either adds or removes peer from our moderator list.
  *
  * Return target's peer number on success.
  * Return -1 on packet handle failure.
@@ -3995,7 +4020,7 @@ static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const
     return target_peer_number;
 }
 
-/** Handles a moderator set broadcast.
+/** @brief Handles a moderator set broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -4044,7 +4069,7 @@ static int handle_gc_set_mod(const GC_Session *c, GC_Chat *chat, uint32_t peer_n
     return 0;
 }
 
-/** Sends a set mod broadcast to the group.
+/** @brief Sends a set mod broadcast to the group.
  *
  * Return true on success.
  */
@@ -4071,7 +4096,8 @@ static bool send_gc_set_mod(const GC_Chat *chat, const GC_Connection *gconn, boo
     return true;
 }
 
-/** Adds or removes the peer designated by gconn from moderator list if `add_mod` is true or false respectively.
+/**
+ * Adds or removes the peer designated by gconn from moderator list if `add_mod` is true or false respectively.
  * Re-signs and re-distributes an updated mod_list hash.
  *
  * Returns true on success.
@@ -4119,7 +4145,7 @@ static bool founder_gc_set_moderator(GC_Chat *chat, const GC_Connection *gconn, 
     return send_gc_set_mod(chat, gconn, add_mod);
 }
 
-/** Validates `data` containing a changes for the sanction list and unpacks it
+/** @brief Validates `data` containing a changes for the sanction list and unpacks it
  * into the sanctions list for `chat`.
  *
  * if `add_obs` is true we're adding an observer to the list.
@@ -4170,7 +4196,7 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
     return 0;
 }
 
-/** Handles a set observer broadcast.
+/** @brief Handles a set observer broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is an invalid size.
@@ -4239,7 +4265,7 @@ static int handle_gc_set_observer(const GC_Session *c, GC_Chat *chat, uint32_t p
     return 0;
 }
 
-/** Broadcasts observer role data to the group.
+/** @brief Broadcasts observer role data to the group.
  *
  * Returns true on success.
  */
@@ -4268,7 +4294,7 @@ static bool send_gc_set_observer(const GC_Chat *chat, const uint8_t *target_ext_
     return true;
 }
 
-/** Adds or removes peer_number from the observer list if add_obs is true or false respectively.
+/** @brief Adds or removes peer_number from the observer list if add_obs is true or false respectively.
  * Broadcasts this change to the entire group.
  *
  * Returns true on success.
@@ -4346,7 +4372,7 @@ static bool mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_ob
     return send_gc_set_observer(chat, gconn->addr.public_key, sanction_data, length, add_obs);
 }
 
-/** Sets the role of `peer_number` to `new_role`. If necessary this function will first
+/** @brief Sets the role of `peer_number` to `new_role`. If necessary this function will first
  * remove the peer's current role before applying the new one.
  *
  * Return true on success.
@@ -4461,7 +4487,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, uint32_t peer_id, Gro
     return 0;
 }
 
-/** Return true if topic lock is enabled */
+/** @brief Return true if topic lock is enabled */
 non_null()
 static bool group_topic_lock_enabled(const GC_Chat *chat)
 {
@@ -4684,7 +4710,7 @@ int gc_send_message(const GC_Chat *chat, const uint8_t *message, uint16_t length
     return 0;
 }
 
-/** Handles a message broadcast.
+/** @brief Handles a message broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -4772,7 +4798,7 @@ int gc_send_private_message(const GC_Chat *chat, uint32_t peer_id, uint8_t type,
     return 0;
 }
 
-/** Handles a private message.
+/** @brief Handles a private message.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -4826,7 +4852,7 @@ int gc_send_custom_packet(const GC_Chat *chat, bool lossless, const uint8_t *dat
     return 0;
 }
 
-/** Handles a custom packet.
+/** @brief Handles a custom packet.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -4850,7 +4876,7 @@ static int handle_gc_custom_packet(const GC_Session *c, const GC_Chat *chat, con
     return 0;
 }
 
-/** Handles a peer kick broadcast.
+/** @brief Handles a peer kick broadcast.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -4911,7 +4937,7 @@ static int handle_gc_kick_peer(const GC_Session *c, GC_Chat *chat, const GC_Peer
     return 0;
 }
 
-/** Sends a packet to instruct all peers to remove gconn from their peerlist.
+/** @brief Sends a packet to instruct all peers to remove gconn from their peerlist.
  *
  * Returns true on success.
  */
@@ -4969,7 +4995,7 @@ int gc_kick_peer(const Messenger *m, int group_number, uint32_t peer_id)
     return 0;
 }
 
-/** Sends a lossless message acknowledgement to peer associated with `gconn`.
+/** @brief Sends a lossless message acknowledgement to peer associated with `gconn`.
  *
  * If `type` is GR_ACK_RECV we send a read-receipt for read_id's packet. If `type` is GR_ACK_REQ
  * we send a request for the respective id's packet.
@@ -5006,8 +5032,11 @@ bool gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mes
     return false;
 }
 
-/** Handles a lossless message acknowledgement. If the type is of GR_ACK_RECV we remove the packet from our
- * send array. If the type is of GR_ACK_REQ we re-send the packet associated with the requested message_id.
+/** @brief Handles a lossless message acknowledgement.
+ *
+ * If the type is of GR_ACK_RECV we remove the packet from our
+ * send array. If the type is of GR_ACK_REQ we re-send the packet
+ * associated with the requested message_id.
  *
  * Returns 0 if packet is handled correctly.
  * Return -1 if packet is invalid size.
@@ -5057,7 +5086,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
     return 0;
 }
 
-/** Sends a handshake response ack to peer.
+/** @brief Sends a handshake response ack to peer.
  *
  * Return true on success.
  */
@@ -5067,7 +5096,7 @@ static bool send_gc_hs_response_ack(const GC_Chat *chat, GC_Connection *gconn)
     return send_lossless_group_packet(chat, gconn, nullptr, 0, GP_HS_RESPONSE_ACK);
 }
 
-/** Handles a handshake response ack.
+/** @brief Handles a handshake response ack.
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if we failed to respond with an invite request.
@@ -5104,7 +5133,7 @@ int gc_toggle_ignore(const GC_Chat *chat, uint32_t peer_id, bool ignore)
     return 0;
 }
 
-/** Handles a broadcast packet.
+/** @brief Handles a broadcast packet.
  *
  * Returns 0 if packet is handled correctly.
  * Returns -1 on failure.
@@ -5195,7 +5224,7 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
     return 0;
 }
 
-/** Decrypts data of size `length` using self secret key and sender's public key.
+/** @brief Decrypts data of size `length` using self secret key and sender's public key.
  *
  * The packet payload should begin with a nonce.
  *
@@ -5223,7 +5252,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
     return plain_len;
 }
 
-/** Encrypts data of length using the peer's shared key a new nonce.
+/** @brief Encrypts data of length using the peer's shared key a new nonce.
  *
  * Adds plaintext header consisting of: packet identifier, target public encryption key,
  * self public encryption key, nonce.
@@ -5272,7 +5301,7 @@ static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk
     return 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + enc_len;
 }
 
-/** Makes, wraps and encrypts a group handshake packet (both request and response are the same format).
+/** @brief Makes, wraps and encrypts a group handshake packet (both request and response are the same format).
  *
  * Packet contains the packet header, handshake type, self public encryption key, self public signature key,
  * request type, and a single TCP relay node.
@@ -5325,7 +5354,7 @@ static int make_gc_handshake_packet(const GC_Chat *chat, const GC_Connection *gc
     return enc_len;
 }
 
-/** Sends a handshake packet to `gconn`.
+/** @brief Sends a handshake packet to `gconn`.
  *
  * Handshake_type should be is GH_REQUEST or GH_RESPONSE.
  *
@@ -5383,7 +5412,7 @@ static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, 
     return true;
 }
 
-/** Sends an out-of-band TCP handshake request packet to `gconn`.
+/** @brief Sends an out-of-band TCP handshake request packet to `gconn`.
  *
  * Return true on success.
  */
@@ -5414,7 +5443,7 @@ static bool send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connecti
                                            packet, (uint16_t)length) == 0;
 }
 
-/** Handles a handshake response packet and takes appropriate action depending on the value of request_type.
+/** @brief Handles a handshake response packet and takes appropriate action depending on the value of request_type.
  *
  * This function assumes the length has already been validated.
  *
@@ -5481,7 +5510,7 @@ static int handle_gc_handshake_response(const GC_Chat *chat, const uint8_t *send
     return peer_number;
 }
 
-/** Sends a handshake response packet of type `request_type` to `gconn`.
+/** @brief Sends a handshake response packet of type `request_type` to `gconn`.
  *
  * Return true on success.
  */
@@ -5491,7 +5520,7 @@ static bool send_gc_handshake_response(const GC_Chat *chat, GC_Connection *gconn
     return send_gc_handshake_packet(chat, gconn, GH_RESPONSE, gconn->pending_handshake_type);
 }
 
-/** Handles handshake request packets.
+/** @brief Handles handshake request packets.
  *
  * Peer is added to peerlist and a lossless connection is established.
  *
@@ -5608,7 +5637,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
     return peer_number;
 }
 
-/** Handles handshake request and handshake response packets.
+/** @brief Handles handshake request and handshake response packets.
  *
  * Returns the peer_number of the connecting peer on success.
  * Returns -1 on failure.
@@ -5778,7 +5807,7 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
     return 0;
 }
 
-/** Handles a packet fragment.
+/** @brief Handles a packet fragment.
  *
  * If the fragment is the last one in a sequence we send an ack. Otherwise we
  * store the fragment in the receive array and wait for the next segment.
@@ -5817,7 +5846,7 @@ static bool handle_gc_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32
     return true;
 }
 
-/** Handles lossless groupchat packets.
+/** @brief Handles lossless groupchat packets.
  *
  * This function assumes the length has already been validated.
  *
@@ -5935,7 +5964,7 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
     return true;
 }
 
-/** Handles lossy groupchat message packets.
+/** @brief Handles lossy groupchat message packets.
  *
  * This function assumes the length has already been validated.
  *
@@ -6033,7 +6062,7 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
     return true;
 }
 
-/** Return true if group is either connected or attempting to connect. */
+/** @brief Return true if group is either connected or attempting to connect. */
 non_null()
 static bool group_can_handle_packets(const GC_Chat *chat)
 {
@@ -6041,7 +6070,7 @@ static bool group_can_handle_packets(const GC_Chat *chat)
     return state == CS_CONNECTING || state == CS_CONNECTED;
 }
 
-/** Sends a group packet to appropriate handler function.
+/** @brief Sends a group packet to appropriate handler function.
  *
  * Returns non-negative value on success.
  * Returns -1 on failure.
@@ -6349,7 +6378,9 @@ void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function)
     c->rejected = function;
 }
 
-/** Deletes peer_number from group. `no_callback` should be set to true if the `peer_exit` callback
+/** @brief Deletes peer_number from group.
+ *
+ * `no_callback` should be set to true if the `peer_exit` callback
  * should not be triggered.
  *
  * Return true on success.
@@ -6406,7 +6437,7 @@ static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number
     return true;
 }
 
-/** Updates peer_number with info from `peer` and validates peer data.
+/** @brief Updates peer_number with info from `peer` and validates peer data.
  *
  * Returns peer_number on success.
  * Returns -1 on failure.
@@ -6531,7 +6562,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
     return peer_number;
 }
 
-/** Copies own peer data to `peer`. */
+/** @brief Copies own peer data to `peer`. */
 non_null()
 static void copy_self(const GC_Chat *chat, GC_Peer *peer)
 {
@@ -6545,7 +6576,7 @@ static void copy_self(const GC_Chat *chat, GC_Peer *peer)
     peer->role = gc_get_self_role(chat);
 }
 
-/** Returns true if we haven't received a ping from this peer after n seconds.
+/** @brief Returns true if we haven't received a ping from this peer after n seconds.
  * n depends on whether or not the peer has been confirmed.
  */
 non_null()
@@ -6556,7 +6587,7 @@ static bool peer_timed_out(const Mono_Time *mono_time, const GC_Connection *gcon
                                 : GC_UNCONFIRMED_PEER_TIMEOUT);
 }
 
-/** Attempts to send pending handshake packets to peer designated by `gconn`.
+/** @brief Attempts to send pending handshake packets to peer designated by `gconn`.
  *
  * One request of each type can be sent per `GC_SEND_HANDSHAKE_INTERVAL` seconds.
  *
@@ -6623,7 +6654,9 @@ static void do_peer_connections(const GC_Session *c, GC_Chat *chat, void *userda
     }
 }
 
-/** Executes pending handshakes for peers. If our peerlist is empty we periodically try to
+/** @brief Executes pending handshakes for peers.
+ *
+ * If our peerlist is empty we periodically try to
  * load peers from our saved peers list and initiate handshake requests with them.
  */
 #define LOAD_PEERS_TIMEOUT (GC_UNCONFIRMED_PEER_TIMEOUT + 10)
@@ -6651,7 +6684,7 @@ static void do_handshakes(GC_Chat *chat)
     }
 }
 
-/** Adds `gconn` to the group timeout list. */
+/** @brief Adds `gconn` to the group timeout list. */
 non_null()
 static void add_gc_peer_timeout_list(GC_Chat *chat, const GC_Connection *gconn)
 {
@@ -6690,7 +6723,7 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
     }
 }
 
-/** Constructs and sends a ping packet to `gconn` containing info needed for group syncing
+/** @brief Constructs and sends a ping packet to `gconn` containing info needed for group syncing
  * and connection maintenance.
  *
  * Return true on success.
@@ -6842,7 +6875,8 @@ static void do_gc_tcp(const GC_Session *c, GC_Chat *chat, void *userdata)
     }
 }
 
-/** Updates our TCP and UDP connection status and flags a new announcement if our connection has
+/**
+ * Updates our TCP and UDP connection status and flags a new announcement if our connection has
  * changed and we have either a UDP or TCP connection.
  */
 #define GC_SELF_CONNECTION_CHECK_INTERVAL 2
@@ -6877,7 +6911,7 @@ static void do_self_connection(const GC_Session *c, GC_Chat *chat)
     chat->last_self_announce_check = mono_time_get(chat->mono_time);
 }
 
-/** Attempts to initiate a new connection with peers in the timeout list.
+/** @brief Attempts to initiate a new connection with peers in the timeout list.
  *
  * This function is not used for public groups as the DHT and group sync mechanism
  * should automatically do this for us.
@@ -6953,7 +6987,7 @@ void do_gc(GC_Session *c, void *userdata)
     }
 }
 
-/** Set the size of the groupchat list to n.
+/** @brief Set the size of the groupchat list to n.
  *
  * Return true on success.
  */
@@ -7061,7 +7095,7 @@ static void init_gc_shared_state(GC_Chat *chat)
     chat->shared_state.voice_state = GV_ALL;
 }
 
-/** Initializes the group shared state for the founder.
+/** @brief Initializes the group shared state for the founder.
  *
  * Return true on success.
  */
@@ -7077,7 +7111,9 @@ static bool init_gc_shared_state_founder(GC_Chat *chat, Group_Privacy_State priv
     return sign_gc_shared_state(chat);
 }
 
-/** Initializes shared state for moderation object. This must be called before any moderation
+/** @brief Initializes shared state for moderation object.
+ *
+ * This must be called before any moderation
  * or sanctions related operations.
  */
 non_null()
@@ -7157,9 +7193,11 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     return group_number;
 }
 
-/** Inits the sanctions list credentials. This should be called by the group founder on creation.
+/** @brief Inits the sanctions list credentials.
  *
- * This function must be called after init_gc_moderation().
+ * This should be called by the group founder on creation.
+ *
+ * This function must be called after `init_gc_moderation()`.
  *
  * Return true on success.
  */
@@ -7169,7 +7207,7 @@ static bool init_gc_sanctions_creds(GC_Chat *chat)
     return sanctions_list_make_creds(&chat->moderation);
 }
 
-/** Attempts to add `num_addrs` peers from `addrs` to our peerlist and initiate invite requests
+/** @brief Attempts to add `num_addrs` peers from `addrs` to our peerlist and initiate invite requests
  * for all of them.
  *
  * Returns the number of peers successfully loaded.
@@ -7511,7 +7549,7 @@ int gc_invite_friend(const GC_Session *c, GC_Chat *chat, int32_t friend_number,
     return 0;
 }
 
-/** Sends an invite accepted packet to `friend_number`.
+/** @brief Sends an invite accepted packet to `friend_number`.
  *
  * Return 0 on success.
  * Return -1 if `friend_number` does not designate a valid friend.
@@ -7547,7 +7585,7 @@ static int send_gc_invite_accepted_packet(const Messenger *m, const GC_Chat *cha
     return 0;
 }
 
-/** Sends an invite confirmed packet to friend designated by `friend_number`.
+/** @brief Sends an invite confirmed packet to friend designated by `friend_number`.
  *
  * `data` must contain the group's Chat ID, the sender's public encryption key,
  * and either the sender's packed IP_Port, or at least one  packed TCP node that
@@ -7593,7 +7631,7 @@ static bool send_gc_invite_confirmed_packet(const Messenger *m, const GC_Chat *c
     return true;
 }
 
-/** Adds `num_nodes` tcp relays from `tcp_relays` to tcp relays list associated with `gconn`
+/** @brief Adds `num_nodes` tcp relays from `tcp_relays` to tcp relays list associated with `gconn`
  *
  * Returns the number of relays successfully added.
  */
@@ -7715,7 +7753,7 @@ static bool friend_was_invited(const Messenger *m, GC_Chat *chat, int friend_num
     return false;
 }
 
-/** Handles an invite accept packet.
+/** @brief Handles an invite accept packet.
  *
  * Return 0 on success.
  * Return -1 on failure.
@@ -8039,7 +8077,8 @@ static void create_gc_session_keypair(const Logger *log, uint8_t *public_key, ui
     }
 }
 
-/** Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
+/**
+ * Creates a new 64-byte extended keypair for `chat` and puts results in `self_public_key`
  * and `self_secret_key` buffers. The first 32-bytes of the generated keys are used for
  * encryption, while the remaining 32-bytes are used for signing.
  *
@@ -8058,7 +8097,7 @@ static bool create_new_chat_ext_keypair(GC_Chat *chat)
     return true;
 }
 
-/* Handles a group announce onion response.
+/** @brief Handles a group announce onion response.
  *
  * Return true on success.
  */
@@ -8100,7 +8139,7 @@ bool gc_handle_announce_response_callback(Onion_Client *onion_c, uint32_t sendba
     return added_peers >= 0;
 }
 
-/** Adds TCP relays from `announce` to the TCP relays list for `gconn`.
+/** @brief Adds TCP relays from `announce` to the TCP relays list for `gconn`.
  *
  * Returns the number of relays successfully added.
  */
