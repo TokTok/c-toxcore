@@ -208,7 +208,7 @@ int gc_toggle_ignore(const GC_Chat *chat, uint32_t peer_id, bool ignore);
  * Returns -3 if the packet cannot be created or signing fails.
  * Returns -4 if the packet fails
  */
-non_null()
+non_null(1) nullable(2)
 int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length);
 
 /** @brief Copies the group topic to `topic`. If topic is null this function has no effect.

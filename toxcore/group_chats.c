@@ -3643,6 +3643,7 @@ int gc_set_topic(GC_Chat *chat, const uint8_t *topic, uint16_t length)
     chat->topic_info.length = length;
 
     if (length > 0) {
+        assert(topic != nullptr);
         memcpy(chat->topic_info.topic, topic, length);
     } else {
         memset(chat->topic_info.topic, 0, sizeof(chat->topic_info.topic));
@@ -7372,6 +7373,11 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
     init_gc_moderation(chat);
 
     if (!init_gc_sanctions_creds(chat)) {
+        group_delete(c, chat);
+        return -4;
+    }
+
+    if (gc_set_topic(chat, nullptr, 0) != 0) {
         group_delete(c, chat);
         return -4;
     }
