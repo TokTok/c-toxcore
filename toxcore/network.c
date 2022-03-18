@@ -1455,7 +1455,7 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
     return true;
 #else
     LOGGER_DEBUG(log, "connecting socket %d to %s:%d",
-            (int)sock.sock, ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), ip_port->port);
+            (int)sock.sock, ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port->port));
     errno = 0;
     if (connect(sock.sock, (struct sockaddr *)&addr, addrsize) == -1) {
         const int error = net_error();
