@@ -7376,11 +7376,6 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
         return -4;
     }
 
-    if (gc_set_topic(chat, (const uint8_t *)"Welcome!", 8) != 0) {
-        group_delete(c, chat);
-        return -4;
-    }
-
     chat->connection_state = CS_CONNECTED;
 
     if (is_public_chat(chat)) {
