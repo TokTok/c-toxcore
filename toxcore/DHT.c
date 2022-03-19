@@ -219,9 +219,8 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2)
     return 0;
 }
 
-/** Return index of first unequal bit number. */
-non_null()
-static unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
     unsigned int i;
     unsigned int j = 0;
@@ -450,11 +449,11 @@ int packed_node_size(Family ip_family)
 }
 
 
-/** @brief Packs an IP_Port structure into data of max size length.
+/** @brief Pack an IP_Port structure into data of max size length.
  *
  * Packed_length is the offset of data currently packed.
  *
- * @return size of packed IP_Port data on success
+ * @return size of packed IP_Port data on success.
  * @retval -1 on failure.
  */
 int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port)
@@ -512,10 +511,16 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     }
 }
 
+/** @brief Encrypt plain and write resulting DHT packet into packet with max size length.
+ *
+ * @return size of packet on success.
+ * @retval -1 on failure.
+ */
 non_null()
-static int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
-                             const uint8_t *shared_key, const uint8_t type,
-                             const uint8_t *plain, size_t plain_length, uint8_t *packet)
+int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
+                      const uint8_t *shared_key, const uint8_t type,
+                      const uint8_t *plain, size_t plain_length,
+                      uint8_t *packet, size_t length)
 {
     uint8_t *encrypted = (uint8_t *)malloc(plain_length + CRYPTO_MAC_SIZE);
     uint8_t nonce[CRYPTO_NONCE_SIZE];
@@ -530,6 +535,10 @@ static int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
 
     if (encrypted_length == -1) {
         free(encrypted);
+        return -1;
+    }
+
+    if (length < 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + encrypted_length) {
         return -1;
     }
 
@@ -869,7 +878,8 @@ bool add_to_list(Node_format *nodes_list, uint32_t length, const uint8_t *pk, co
 non_null()
 static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *public_key, Node_format *nodes_list,
                                   Family sa_family, const Client_data *client_list, uint32_t client_list_length,
-                                  uint32_t *num_nodes_ptr, bool is_LAN)
+                                  uint32_t *num_nodes_ptr, bool is_LAN,
+                                  uint8_t want_announce)
 {
     if (!net_family_is_ipv4(sa_family) && !net_family_is_ipv6(sa_family) && !net_family_is_unspec(sa_family)) {
         return;
@@ -907,11 +917,21 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *public_key, 
             continue;
         }
 
+#ifdef CHECK_ANNOUNCE_NODE
+
+        if (want_announce && !client->announce_node) {
+            continue;
+        }
+
+#endif
+
         if (num_nodes < MAX_SENT_NODES) {
             memcpy(nodes_list[num_nodes].public_key, client->public_key, CRYPTO_PUBLIC_KEY_SIZE);
             nodes_list[num_nodes].ip_port = ipptp->ip_port;
             ++num_nodes;
         } else {
+            // TODO(zugz): this could be made significantly more efficient by
+            // using a version of add_to_list which works with a sorted list.
             add_to_list(nodes_list, MAX_SENT_NODES, client->public_key, &ipptp->ip_port, public_key);
         }
     }
@@ -923,30 +943,31 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *public_key, 
  * Find MAX_SENT_NODES nodes closest to the public_key for the send nodes request:
  * put them in the nodes_list and return how many were found.
  *
- * TODO(irungentoo): make this function cleaner and much more efficient.
+ * want_announce: return only nodes which implement the dht announcements protocol.
  */
 non_null()
 static int get_somewhat_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *nodes_list,
-                                    Family sa_family, bool is_LAN)
+                                    Family sa_family, bool is_LAN, uint8_t want_announce)
 {
     uint32_t num_nodes = 0;
     get_close_nodes_inner(dht->cur_time, public_key, nodes_list, sa_family,
-                          dht->close_clientlist, LCLIENT_LIST, &num_nodes, is_LAN);
+                          dht->close_clientlist, LCLIENT_LIST, &num_nodes, is_LAN, want_announce);
 
     for (uint32_t i = 0; i < dht->num_friends; ++i) {
         get_close_nodes_inner(dht->cur_time, public_key, nodes_list, sa_family,
                               dht->friends_list[i].client_list, MAX_FRIEND_CLIENTS,
-                              &num_nodes, is_LAN);
+                              &num_nodes, is_LAN, want_announce);
     }
 
     return num_nodes;
 }
 
 int get_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family,
-                    bool is_LAN)
+                    bool is_LAN, uint8_t want_announce)
 {
     memset(nodes_list, 0, MAX_SENT_NODES * sizeof(Node_format));
-    return get_somewhat_close_nodes(dht, public_key, nodes_list, sa_family, is_LAN);
+    return get_somewhat_close_nodes(dht, public_key, nodes_list, sa_family,
+                                    is_LAN, want_announce);
 }
 
 typedef struct DHT_Cmp_Data {
@@ -1143,6 +1164,22 @@ bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Po
 {
     return add_to_close(dht, public_key, ip_port, true);
 }
+
+#ifdef CHECK_ANNOUNCE_NODE
+/** Set node as announce node. */
+void set_announce_node(DHT *dht, const uint8_t *public_key)
+{
+    for (int32_t i = -1; i < dht->num_friends; ++i) {
+        Client_data *list = i == -1 ? dht->close_clientlist : dht->friends_list[i].client_list;
+        const uint32_t list_len = i == -1 ? LCLIENT_LIST : MAX_FRIEND_CLIENTS;
+        const uint32_t index = index_of_client_pk(list, list_len, public_key);
+
+        if (index != UINT32_MAX) {
+            list[index].announce_node = true;
+        }
+    }
+}
+#endif
 
 non_null()
 static bool is_pk_in_client_list(const Client_data *list, unsigned int client_list_length, uint64_t cur_time,
@@ -1388,7 +1425,7 @@ bool dht_getnodes(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, c
     dht_get_shared_key_sent(dht, shared_key, public_key);
 
     const int len = dht_create_packet(dht->self_public_key, shared_key, NET_PACKET_GET_NODES,
-                                      plain, sizeof(plain), data);
+                                      plain, sizeof(plain), data, sizeof(data));
 
     crypto_memzero(shared_key, sizeof(shared_key));
 
@@ -1418,7 +1455,7 @@ static int sendnodes_ipv6(const DHT *dht, const IP_Port *ip_port, const uint8_t 
 
     Node_format nodes_list[MAX_SENT_NODES];
     const uint32_t num_nodes =
-        get_close_nodes(dht, client_id, nodes_list, net_family_unspec, ip_is_lan(&ip_port->ip));
+        get_close_nodes(dht, client_id, nodes_list, net_family_unspec, ip_is_lan(&ip_port->ip), 0);
 
     VLA(uint8_t, plain, 1 + node_format_size * MAX_SENT_NODES + length);
 
@@ -1439,7 +1476,7 @@ static int sendnodes_ipv6(const DHT *dht, const IP_Port *ip_port, const uint8_t 
     VLA(uint8_t, data, 1 + nodes_length + length + crypto_size);
 
     const int len = dht_create_packet(dht->self_public_key, shared_encryption_key, NET_PACKET_SEND_NODES_IPV6,
-                                      plain, 1 + nodes_length + length, data);
+                                      plain, 1 + nodes_length + length, data, sizeof(data));
 
     if (len != SIZEOF_VLA(data)) {
         return -1;
@@ -1661,7 +1698,7 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
     dht_friend_lock(dht_friend, ip_callback, data, number, lock_count);
 
     dht_friend->num_to_bootstrap = get_close_nodes(dht, dht_friend->public_key, dht_friend->to_bootstrap, net_family_unspec,
-                                   true);
+                                   true, 0);
 
     return 0;
 }
@@ -1928,6 +1965,7 @@ int dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
 
 /** @brief Send the given packet to node with public_key.
  *
+ * @return number of bytes sent.
  * @retval -1 if failure.
  */
 int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packet, uint16_t length)
@@ -2408,6 +2446,30 @@ static void do_NAT(DHT *dht)
 
 /*----------------------------------------------------------------------------------*/
 /*-----------------------END OF NAT PUNCHING FUNCTIONS------------------------------*/
+
+/* @brief Write to node a random node from all the nodes we are connected to.
+ * Return true if some node is found and written, false otherwise.
+ * TODO(irungentoo): improve this function.
+ */
+bool random_node(DHT *dht, Node_format *node, Family sa_family, bool want_announce)
+{
+    uint8_t id[CRYPTO_PUBLIC_KEY_SIZE];
+
+    for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE / 4; ++i) { /* populate the id with pseudorandom bytes.*/
+        const uint32_t t = random_u32();
+        memcpy(id + i * sizeof(t), &t, sizeof(t));
+    }
+
+    Node_format nodes_list[MAX_SENT_NODES];
+    const uint32_t num_nodes = get_close_nodes(dht, id, nodes_list, sa_family, 1, want_announce);
+
+    if (num_nodes == 0) {
+        return false;
+    }
+
+    *node = nodes_list[random_u32() % num_nodes];
+    return true;
+}
 
 /** @brief Put up to max_num nodes in nodes from the closelist.
  *

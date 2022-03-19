@@ -102,6 +102,14 @@ int send_packet_tcp_connection(const TCP_Connections *tcp_c, int connections_num
 non_null()
 int get_random_tcp_onion_conn_number(const TCP_Connections *tcp_c);
 
+/** @brief Put IP_Port of a random onion TCP connection in ip_port.
+ *
+ * return true on success.
+ * return false on failure.
+ */
+non_null()
+bool tcp_get_random_conn_ip_port(const TCP_Connections *tcp_c, IP_Port *ip_port);
+
 /** @brief Send an onion packet via the TCP relay corresponding to tcp_connections_number.
  *
  * return 0 on success.
@@ -120,6 +128,20 @@ int tcp_send_onion_request(TCP_Connections *tcp_c, unsigned int tcp_connections_
  */
 non_null()
 int set_tcp_onion_status(TCP_Connections *tcp_c, bool status);
+
+/**
+ * Send a forward request to the TCP relay with IP_Port tcp_forwarder,
+ * requesting to forward data via a chain of dht nodes starting with dht_node.
+ * A chain_length of 0 means that dht_node is the final destination of data.
+ *
+ * return 0 on success.
+ * return -1 on failure.
+ */
+non_null()
+int tcp_send_forward_request(const Logger *logger, TCP_Connections *tcp_c, const IP_Port *tcp_forwarder,
+                             const IP_Port *dht_node,
+                             const uint8_t *chain_keys, uint16_t chain_length,
+                             const uint8_t *data, uint16_t data_length);
 
 /** @brief Send an oob packet via the TCP relay corresponding to tcp_connections_number.
  *
@@ -146,12 +168,33 @@ typedef int tcp_onion_cb(void *object, const uint8_t *data, uint16_t length, voi
 non_null(1) nullable(2, 3)
 void set_onion_packet_tcp_connection_callback(TCP_Connections *tcp_c, tcp_onion_cb *tcp_onion_callback, void *object);
 
+/** @brief Set the callback for TCP forwarding packets. */
+non_null(1) nullable(2, 3)
+void set_forwarding_packet_tcp_connection_callback(TCP_Connections *tcp_c,
+        forwarded_response_cb *tcp_forwarded_response_callback,
+        void *object);
+
+
 typedef int tcp_oob_cb(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
                        const uint8_t *data, uint16_t length, void *userdata);
 
 /** @brief Set the callback for TCP oob data packets. */
 non_null()
 void set_oob_packet_tcp_connection_callback(TCP_Connections *tcp_c, tcp_oob_cb *tcp_oob_callback, void *object);
+
+/** @brief Encode tcp_connections_number as a custom ip_port.
+ *
+ * return ip_port.
+ */
+IP_Port tcp_connections_number_to_ip_port(unsigned int tcp_connections_number);
+
+/** @brief Decode ip_port created by tcp_connections_number_to_ip_port to tcp_connections_number.
+ *
+ * return true on success.
+ * return false if ip_port is invalid.
+ */
+non_null()
+bool ip_port_to_tcp_connections_number(const IP_Port *ip_port, unsigned int *tcp_connections_number);
 
 /** @brief Create a new TCP connection to public_key.
  *

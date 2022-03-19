@@ -660,6 +660,16 @@ Onion *new_onion(const Logger *log, Mono_Time *mono_time, DHT *dht)
     new_symmetric_key(onion->secret_symmetric_key);
     onion->timestamp = mono_time_get(onion->mono_time);
 
+    // TODO(zugz): For now, Forwarding is treated as a component of Onion,
+    // while in reality it is a parallel system. This fits the architecture of
+    // the rest of tox, but is not intended to be permanent.
+    onion->forwarding = new_forwarding(onion->log, onion->mono_time, onion->dht);
+
+    if (onion->forwarding == nullptr) {
+        free(onion);
+        return nullptr;
+    }
+
     networking_registerhandler(onion->net, NET_PACKET_ONION_SEND_INITIAL, &handle_send_initial, onion);
     networking_registerhandler(onion->net, NET_PACKET_ONION_SEND_1, &handle_send_1, onion);
     networking_registerhandler(onion->net, NET_PACKET_ONION_SEND_2, &handle_send_2, onion);
@@ -686,6 +696,7 @@ void kill_onion(Onion *onion)
     networking_registerhandler(onion->net, NET_PACKET_ONION_RECV_1, nullptr, nullptr);
 
     crypto_memzero(onion->secret_symmetric_key, sizeof(onion->secret_symmetric_key));
+    kill_forwarding(onion->forwarding);
 
     free(onion);
 }

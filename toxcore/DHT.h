@@ -64,6 +64,14 @@ extern "C" {
 #define CRYPTO_PACKET_DHTPK         156
 #define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
 
+/** This define can eventually be removed; it is necessary if a significant
+ * proportion of dht nodes do not implement the dht announcements protocol.
+ *
+ * FIXME: Disabled during testing
+ * #define CHECK_ANNOUNCE_NODE
+ */
+
+
 /**
  * @brief Create a request to peer.
  *
@@ -138,6 +146,11 @@ typedef struct Client_data {
     uint8_t     public_key[CRYPTO_PUBLIC_KEY_SIZE];
     IPPTsPng    assoc4;
     IPPTsPng    assoc6;
+
+#ifdef CHECK_ANNOUNCE_NODE
+    /* Responded to data search? */
+    bool        announce_node;
+#endif
 } Client_data;
 
 /*----------------------------------------------------------------------------------*/
@@ -172,15 +185,26 @@ non_null() const Client_data *dht_friend_client(const DHT_Friend *dht_friend, si
  */
 int packed_node_size(Family ip_family);
 
-/** @brief Packs an IP_Port structure into data of max size length.
+/** @brief Pack an IP_Port structure into data of max size length.
  *
  * Packed_length is the offset of data currently packed.
  *
- * @return size of packed IP_Port data on success
+ * @return size of packed IP_Port data on success.
  * @retval -1 on failure.
  */
 non_null()
 int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port);
+
+/** @brief Encrypt plain and write resulting DHT packet into packet with max size length.
+ *
+ * @return size of packet on success.
+ * @retval -1 on failure.
+ */
+non_null()
+int dht_create_packet(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
+                      const uint8_t *shared_key, const uint8_t type,
+                      const uint8_t *plain, size_t plain_length,
+                      uint8_t *packet, size_t length);
 
 /** @brief Unpack IP_Port structure from data of max size length into ip_port.
  *
@@ -340,6 +364,10 @@ int dht_getfriendip(const DHT *dht, const uint8_t *public_key, IP_Port *ip_port)
 non_null()
 int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2);
 
+/** Return index of first unequal bit number between public keys pk1 and pk2. */
+non_null()
+unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2);
+
 /**
  * Add node to the node list making sure only the nodes closest to cmp_pk are in the list.
  *
@@ -353,6 +381,13 @@ bool add_to_list(
 non_null()
 bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Port *ip_port);
 
+#ifdef CHECK_ANNOUNCE_NODE
+/** Set node as announce node.
+ */
+non_null()
+void set_announce_node(DHT *dht, const uint8_t *public_key);
+#endif
+
 /**
  * Get the (maximum MAX_SENT_NODES) closest nodes to public_key we know
  * and put them in nodes_list (must be MAX_SENT_NODES big).
@@ -364,8 +399,8 @@ bool node_addable_to_close_list(DHT *dht, const uint8_t *public_key, const IP_Po
  * @return the number of nodes returned.
  */
 non_null()
-int get_close_nodes(
-    const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family, bool is_LAN);
+int get_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family,
+                    bool is_LAN, uint8_t want_announce);
 
 
 /** @brief Put up to max_num nodes in nodes from the random friends.
@@ -437,6 +472,12 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
  */
 non_null()
 uint32_t route_to_friend(const DHT *dht, const uint8_t *friend_id, const Packet *packet);
+
+/** Write to node a random node from all the nodes we are connected to.
+ * Return true if some node is found and written, false otherwise.
+ */
+non_null()
+bool random_node(DHT *dht, Node_format *node, Family sa_family, bool want_announce);
 
 /** Function to handle crypto packets. */
 non_null(1) nullable(3, 4)
