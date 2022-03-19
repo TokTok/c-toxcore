@@ -28,6 +28,7 @@
 #include "../../../toxcore/tox.h"
 #include "../../../toxcore/LAN_discovery.h"
 #include "../../../toxcore/TCP_server.h"
+#include "../../../toxcore/group_onion_announce.h"
 #include "../../../toxcore/logger.h"
 #include "../../../toxcore/mono_time.h"
 #include "../../../toxcore/onion_announce.h"
@@ -361,7 +362,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht, group_announce);
+    Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht);
 
     if (!onion_a) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
@@ -376,6 +377,8 @@ int main(int argc, char *argv[])
         free(keys_file_path);
         return 1;
     }
+
+    gca_onion_init(group_announce, onion_a);
 
     if (enable_motd) {
         if (bootstrap_set_callbacks(dht_get_net(dht), DAEMON_VERSION_NUMBER, (uint8_t *)motd, strlen(motd) + 1) == 0) {

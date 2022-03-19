@@ -45,13 +45,23 @@ struct Onion_Announce {
     Mono_Time *mono_time;
     DHT     *dht;
     Networking_Core *net;
-    GC_Announces_List *gc_announces_list;
     Onion_Announce_Entry entries[ONION_ANNOUNCE_MAX_ENTRIES];
     /* This is CRYPTO_SYMMETRIC_KEY_SIZE long just so we can use new_symmetric_key() to fill it */
     uint8_t secret_bytes[CRYPTO_SYMMETRIC_KEY_SIZE];
 
     Shared_Keys shared_keys_recv;
+
+    uint16_t extra_data_max_size;
+    pack_extra_data_cb *extra_data_callback;
+    void *extra_data_object;
 };
+
+void onion_announce_extra_data_callback(Onion_Announce *onion_a, uint16_t extra_data_max_size, pack_extra_data_cb *extra_data_callback, void *extra_data_object)
+{
+    onion_a->extra_data_max_size = extra_data_max_size;
+    onion_a->extra_data_callback = extra_data_callback;
+    onion_a->extra_data_object = extra_data_object;
+}
 
 non_null()
 static bool onion_ping_id_eq(const uint8_t *a, const uint8_t *b)
@@ -456,55 +466,6 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
     }
 }
 
-typedef int pack_extra_data_cb(Onion_Announce *onion_a, uint8_t num_nodes,
-                               uint8_t *plain, uint16_t plain_size,
-                               uint8_t *response, uint16_t response_size, uint16_t offset);
-
-static pack_extra_data_cb pack_group_announces;
-non_null()
-static int pack_group_announces(Onion_Announce *onion_a, uint8_t num_nodes,
-                                uint8_t *plain, uint16_t plain_size,
-                                uint8_t *response, uint16_t response_size, uint16_t offset)
-{
-    GC_Announces_List *gc_announces_list = onion_a->gc_announces_list;
-    GC_Public_Announce public_announce;
-
-    if (gca_unpack_public_announce(onion_a->log, plain + ONION_MINIMAL_SIZE, plain_size - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
-                                   &public_announce) == -1) {
-        LOGGER_WARNING(onion_a->log, "Failed to unpck public group announce");
-        return -1;
-    }
-
-    const GC_Peer_Announce *new_announce = gca_add_announce(onion_a->mono_time, gc_announces_list, &public_announce);
-
-    if (new_announce == nullptr) {
-        LOGGER_ERROR(onion_a->log, "Failed to add group announce");
-        return -1;
-    }
-
-    GC_Announce gc_announces[GCA_MAX_SENT_ANNOUNCES];
-    const int num_ann = (uint8_t)gca_get_announces(gc_announces_list,
-                        gc_announces,
-                        GCA_MAX_SENT_ANNOUNCES,
-                        public_announce.chat_public_key,
-                        new_announce->base_announce.peer_public_key);
-
-    if (num_ann < 0) {
-        LOGGER_ERROR(onion_a->log, "failed to get group announce");
-        return -1;
-    }
-
-    size_t announces_length = 0;
-
-    if (gca_pack_announces_list(onion_a->log, response + offset, response_size - offset, gc_announces, num_ann,
-                                &announces_length) != num_ann) {
-        LOGGER_WARNING(onion_a->log, "Failed to pack group announces list");
-        return -1;
-    }
-
-    return announces_length;
-}
-
 /** @brief Handle an onion announce request, possibly with extra data for group chats.
  *
  * @param onion_a The announce object.
@@ -604,8 +565,8 @@ static int handle_announce_request_common(
     }
 
     const int extra_size = pack_extra_data_callback == nullptr ? 0 : pack_extra_data_callback(
-                               onion_a, num_nodes,
-                               plain, length,
+                               onion_a->extra_data_object, onion_a->log, onion_a->mono_time, num_nodes,
+                               plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
                                response, sizeof(response), offset);
 
     if (extra_size == -1) {
@@ -659,7 +620,7 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
 
     return handle_announce_request_common(onion_a, source, packet, length, NET_PACKET_ANNOUNCE_RESPONSE,
                                           ONION_MINIMAL_SIZE + length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
-                                          true, GCA_MAX_SENT_ANNOUNCES * sizeof(GC_Announce), pack_group_announces);
+                                          true, onion_a->extra_data_max_size, onion_a->extra_data_callback);
 }
 
 non_null(1, 2, 3) nullable(5)
@@ -725,20 +686,11 @@ static int handle_data_request(void *object, const IP_Port *source, const uint8_
     return 0;
 }
 
-Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht,
-                                   GC_Announces_List *gc_announces_list)
+Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht)
 {
     if (dht == nullptr) {
         return nullptr;
     }
-
-#ifndef VANILLA_NACL
-
-    if (gc_announces_list == nullptr) {
-        return nullptr;
-    }
-
-#endif
 
     Onion_Announce *onion_a = (Onion_Announce *)calloc(1, sizeof(Onion_Announce));
 
@@ -750,7 +702,9 @@ Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT 
     onion_a->mono_time = mono_time;
     onion_a->dht = dht;
     onion_a->net = dht_get_net(dht);
-    onion_a->gc_announces_list = gc_announces_list;
+    onion_a->extra_data_max_size = 0;
+    onion_a->extra_data_callback = nullptr;
+    onion_a->extra_data_object = nullptr;
     new_symmetric_key(onion_a->secret_bytes);
 
     networking_registerhandler(onion_a->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_announce_request, onion_a);

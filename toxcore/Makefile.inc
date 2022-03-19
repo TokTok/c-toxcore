@@ -75,6 +75,8 @@ libtoxcore_la_SOURCES = ../toxcore/attributes.h \
                         ../toxcore/group.c \
                         ../toxcore/group_announce.h \
                         ../toxcore/group_announce.c \
+                        ../toxcore/group_onion_announce.c \
+                        ../toxcore/group_onion_announce.h \
                         ../toxcore/group_chats.h \
                         ../toxcore/group_chats.c \
                         ../toxcore/group_common.h \

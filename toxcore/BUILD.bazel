@@ -390,14 +390,17 @@ cc_library(
     name = "onion_announce",
     srcs = [
         "group_announce.c",
+        "group_onion_announce.c",
         "onion_announce.c",
     ],
     hdrs = [
         "group_announce.h",
+        "group_onion_announce.h",
         "onion_announce.h",
     ],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
     ],
     deps = [

@@ -18,6 +18,7 @@
 #include "DHT.h"
 #include "ccompat.h"
 #include "group_chats.h"
+#include "group_onion_announce.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "network.h"
@@ -3595,7 +3596,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
 #endif /* VANILLA_NACL */
 
     m->onion = new_onion(m->log, m->mono_time, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht, m->group_announce);
+    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
 
@@ -3617,6 +3618,8 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     }
 
 #ifndef VANILLA_NACL
+    gca_onion_init(m->group_announce, m->onion_a);
+
     m->group_handler = new_dht_groupchats(m);
 
     if (m->group_handler == nullptr) {

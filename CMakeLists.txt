@@ -246,6 +246,8 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/group_connection.h
   toxcore/group_moderation.c
   toxcore/group_moderation.h
+  toxcore/group_onion_announce.c
+  toxcore/group_onion_announce.h
   toxcore/group_pack.c
   toxcore/group_pack.h)
 

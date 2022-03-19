@@ -278,9 +278,8 @@ static void test_basic(void)
 
 
 
-    GC_Announces_List unused_var;
-    Onion_Announce *onion1_a = new_onion_announce(log1, mono_time1, onion1->dht, &unused_var);
-    Onion_Announce *onion2_a = new_onion_announce(log2, mono_time2, onion2->dht, &unused_var);
+    Onion_Announce *onion1_a = new_onion_announce(log1, mono_time1, onion1->dht);
+    Onion_Announce *onion2_a = new_onion_announce(log2, mono_time2, onion2->dht);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_test_3, onion1);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, &handle_test_3_old, onion1);
     ck_assert_msg((onion1_a != nullptr) && (onion2_a != nullptr), "Onion_Announce failed initializing.");
@@ -456,8 +455,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    GC_Announces_List unused_var1;
-    on->onion_a = new_onion_announce(on->log, on->mono_time, dht, &unused_var1);
+    on->onion_a = new_onion_announce(on->log, on->mono_time, dht);
 
     if (!on->onion_a) {
         kill_onion(on->onion);

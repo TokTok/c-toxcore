@@ -126,9 +126,15 @@ int send_data_request(const Networking_Core *net, const Onion_Path *path, const 
                       const uint8_t *encrypt_public_key, const uint8_t *nonce, const uint8_t *data, uint16_t length);
 
 
+typedef int pack_extra_data_cb(void *object, const Logger *logger, const Mono_Time *mono_time,
+                               uint8_t num_nodes, uint8_t *plain, uint16_t plain_size,
+                               uint8_t *response, uint16_t response_size, uint16_t offset);
+
 non_null()
-Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht,
-                                   GC_Announces_List *gc_announces_list);
+void onion_announce_extra_data_callback(Onion_Announce *onion_a, uint16_t extra_data_max_size, pack_extra_data_cb *extra_data_callback, void *extra_data_object);
+
+non_null()
+Onion_Announce *new_onion_announce(const Logger *log, Mono_Time *mono_time, DHT *dht);
 
 non_null()
 void kill_onion_announce(Onion_Announce *onion_a);
