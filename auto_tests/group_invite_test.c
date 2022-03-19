@@ -37,7 +37,7 @@ static bool group_has_full_graph(const AutoTox *autotoxes, uint32_t group_number
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
         const State *state = (const State *)autotoxes[i].state;
 
-        if (state->num_peers != expected_peer_count) {
+        if (state->num_peers < expected_peer_count) {
             return false;
         }
     }
@@ -46,8 +46,8 @@ static bool group_has_full_graph(const AutoTox *autotoxes, uint32_t group_number
     const State *state1 = (const State *)autotoxes[1].state;
     const State *state5 = (const State *)autotoxes[5].state;
 
-    if (state0->num_peers != expected_peer_count || state1->num_peers != expected_peer_count
-            || state5->num_peers != expected_peer_count) {
+    if (state0->num_peers < expected_peer_count || state1->num_peers < expected_peer_count
+            || state5->num_peers < expected_peer_count) {
         return false;
     }
 
