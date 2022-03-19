@@ -29,9 +29,6 @@ typedef struct State {
 #define WRONG_PASS "dadadada"
 #define WRONG_PASS_LEN (sizeof(WRONG_PASS) - 1)
 
-#define SECRET_CODE "RONALD MCDONALD"
-#define SECRET_CODE_LEN (sizeof(SECRET_CODE) - 1)
-
 static bool group_has_full_graph(const AutoTox *autotoxes, uint32_t group_number, uint32_t expected_peer_count)
 {
     for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
@@ -48,29 +45,6 @@ static bool group_has_full_graph(const AutoTox *autotoxes, uint32_t group_number
 
     if (state0->num_peers < expected_peer_count || state1->num_peers < expected_peer_count
             || state5->num_peers < expected_peer_count) {
-        return false;
-    }
-
-
-    return true;
-}
-
-static bool group_received_all_messages(const AutoTox *autotoxes, uint32_t group_number, size_t expected_msg_count)
-{
-    for (size_t i = 7; i < NUM_GROUP_TOXES; ++i) {
-        const State *state = (const State *)autotoxes[i].state;
-
-        if (state->messages_received != expected_msg_count) {
-            return false;
-        }
-    }
-
-    const State *state0 = (const State *)autotoxes[0].state;
-    const State *state1 = (const State *)autotoxes[1].state;
-    const State *state5 = (const State *)autotoxes[5].state;
-
-    if (state0->messages_received != expected_msg_count || state1->messages_received != expected_msg_count
-            || state5->messages_received != expected_msg_count) {
         return false;
     }
 
@@ -106,20 +80,6 @@ static void group_join_fail_handler(Tox *tox, uint32_t group_number, Tox_Group_J
     }
 }
 
-static void group_message_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id, TOX_MESSAGE_TYPE type,
-                                  const uint8_t *message, size_t length, void *user_data)
-{
-    AutoTox *autotox = (AutoTox *)user_data;
-    ck_assert(autotox != nullptr);
-
-    State *state = (State *)autotox->state;
-
-    ck_assert(length == SECRET_CODE_LEN);
-    ck_assert(memcmp(message, SECRET_CODE, length) == 0);
-
-    state->messages_received++;
-}
-
 static void group_self_join_handler(Tox *tox, uint32_t group_number, void *user_data)
 {
     AutoTox *autotox = (AutoTox *)user_data;
@@ -150,7 +110,6 @@ static void group_invite_test(AutoTox *autotoxes)
         tox_callback_group_peer_join(autotoxes[i].tox, group_peer_join_handler);
         tox_callback_group_join_fail(autotoxes[i].tox, group_join_fail_handler);
         tox_callback_group_self_join(autotoxes[i].tox, group_self_join_handler);
-        tox_callback_group_message(autotoxes[i].tox, group_message_handler);
     }
 
     Tox *tox0 = autotoxes[0].tox;
@@ -295,23 +254,10 @@ static void group_invite_test(AutoTox *autotoxes)
 
     printf("Every peer sees every other peer\n");
 
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        // don't error check this call because all the peers who couldn't join will
-        // fail to send a message
-        tox_group_send_message(autotoxes[i].tox, groupnumber, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)SECRET_CODE,
-                               SECRET_CODE_LEN, nullptr);
-    }
-
-    while (!group_received_all_messages(autotoxes, groupnumber, expected_peer_count)) {
-        iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
-    }
-
-    printf("Every present peer received a message from every other peer\n");
-
-    for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
+    for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
         Tox_Err_Group_Leave err_exit;
-        tox_group_leave(autotoxes[i].tox, groupnumber, nullptr, 0, &err_exit);
-        ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
+        tox_group_leave(autotoxes[i].tox, 0, nullptr, 0, &err_exit);
+        ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }
 
     printf("All tests passed!\n");
