@@ -23,6 +23,7 @@ cc_binary(
         "//c-toxcore/toxcore:TCP_server",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:friend_requests",
+        "//c-toxcore/toxcore:group_announce",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:network",

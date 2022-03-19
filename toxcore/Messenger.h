@@ -13,6 +13,7 @@
 #include "TCP_server.h"
 #include "friend_connection.h"
 #include "friend_requests.h"
+#include "group_announce.h"
 #include "group_common.h"
 #include "logger.h"
 #include "net_crypto.h"
@@ -720,7 +721,8 @@ int file_seek(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uin
  * @retval -7 if wrong position.
  */
 non_null(1) nullable(5)
-int send_file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position, const uint8_t *data, uint16_t length);
+int send_file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber, uint64_t position,
+                   const uint8_t *data, uint16_t length);
 
 /*** A/V related */
 

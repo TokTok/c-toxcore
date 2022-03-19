@@ -15,6 +15,7 @@
 
 #include "LAN_discovery.h"
 #include "ccompat.h"
+#include "group_onion_announce.h"
 #include "mono_time.h"
 #include "util.h"
 
@@ -403,8 +404,8 @@ static bool path_timed_out(const Mono_Time *mono_time, const Onion_Client_Paths 
     const uint64_t timeout = is_new ? ONION_PATH_FIRST_TIMEOUT : ONION_PATH_TIMEOUT;
 
     return (onion_paths->last_path_used_times[pathnum] >= ONION_PATH_MAX_NO_RESPONSE_USES
-             && mono_time_is_timeout(mono_time, onion_paths->last_path_used[pathnum], timeout))
-            || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME);
+            && mono_time_is_timeout(mono_time, onion_paths->last_path_used[pathnum], timeout))
+           || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME);
 }
 
 /** should node be considered to have timed out */
@@ -412,8 +413,8 @@ non_null()
 static bool onion_node_timed_out(const Onion_Node *node, const Mono_Time *mono_time)
 {
     return node->timestamp == 0
-            || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
-                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT));
+           || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
+               && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT));
 }
 
 /** @brief Create a new path or use an old suitable one (if pathnum is valid)
@@ -928,7 +929,7 @@ static bool handle_group_announce_response(Onion_Client *onion_c, uint32_t num, 
     }
 
     return onion_c->group_announce_response(onion_c, num, len_nodes, plain, plain_size,
-                                          onion_c->group_announce_response_user_data);
+                                            onion_c->group_announce_response_user_data);
 }
 
 non_null(1, 2, 3) nullable(5)

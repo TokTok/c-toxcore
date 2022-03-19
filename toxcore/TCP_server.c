@@ -163,7 +163,7 @@ static void free_accepted_connection_array(TCP_Server *tcp_server)
     tcp_server->size_accepted_connections = 0;
 }
 
-/** 
+/**
  * @return index corresponding to connection with peer on success
  * @retval -1 on failure.
  */

@@ -162,6 +162,7 @@ static int proxy_http_read_connection_response(const Logger *logger, const TCP_C
 
         if (data_left > 0) {
             VLA(uint8_t, temp_data, data_left);
+
             if (read_TCP_packet(logger, tcp_conn->con.sock, temp_data, data_left, &tcp_conn->con.ip_port) == -1) {
                 LOGGER_ERROR(logger, "failed to drain TCP data (but ignoring failure)");
                 return 1;
@@ -291,8 +292,9 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     memcpy(plain + CRYPTO_PUBLIC_KEY_SIZE, tcp_conn->con.sent_nonce, CRYPTO_NONCE_SIZE);
     memcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE);
-    const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
-                                     sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
+    const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE,
+                                           plain,
+                                           sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
 
     if (len != sizeof(plain) + CRYPTO_MAC_SIZE) {
         return -1;
@@ -314,7 +316,7 @@ static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     const int len = decrypt_data_symmetric(tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
-                                     TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
+                                           TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
 
     if (len != sizeof(plain)) {
         return -1;

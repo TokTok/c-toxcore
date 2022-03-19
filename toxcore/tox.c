@@ -969,9 +969,9 @@ size_t tox_get_savedata_size(const Tox *tox)
     assert(tox != nullptr);
     lock(tox);
     const size_t ret = 2 * sizeof(uint32_t)
-                 + messenger_size(tox->m)
-                 + conferences_size(tox->m->conferences_object)
-                 + end_size();
+                       + messenger_size(tox->m)
+                       + conferences_size(tox->m->conferences_object)
+                       + end_size();
     unlock(tox);
     return ret;
 }
@@ -1004,7 +1004,8 @@ void tox_get_savedata(const Tox *tox, uint8_t *savedata)
 }
 
 non_null(5) nullable(1, 2, 4, 6)
-static int32_t resolve_bootstrap_node(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key, IP_Port **root, Tox_Err_Bootstrap *error)
+static int32_t resolve_bootstrap_node(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key,
+                                      IP_Port **root, Tox_Err_Bootstrap *error)
 {
     assert(tox != nullptr);
     assert(root != nullptr);

@@ -388,15 +388,31 @@ cc_library(
 
 cc_library(
     name = "onion_announce",
+    srcs = ["onion_announce.c"],
+    hdrs = ["onion_announce.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+    ],
+    deps = [
+        ":LAN_discovery",
+        ":ccompat",
+        ":mono_time",
+        ":onion",
+        ":util",
+    ],
+)
+
+cc_library(
+    name = "group_announce",
     srcs = [
         "group_announce.c",
         "group_onion_announce.c",
-        "onion_announce.c",
     ],
     hdrs = [
         "group_announce.h",
         "group_onion_announce.h",
-        "onion_announce.h",
     ],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
@@ -404,11 +420,10 @@ cc_library(
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
     ],
     deps = [
-        ":DHT",
         ":LAN_discovery",
         ":ccompat",
         ":mono_time",
-        ":onion",
+        ":onion_announce",
         ":util",
     ],
 )
@@ -422,6 +437,7 @@ cc_library(
         ":DHT",
         ":LAN_discovery",
         ":ccompat",
+        ":group_announce",
         ":mono_time",
         ":net_crypto",
         ":network",
@@ -509,6 +525,7 @@ cc_library(
         ":crypto_core",
         ":friend_connection",
         ":friend_requests",
+        ":group_announce",
         ":logger",
         ":mono_time",
         ":net_crypto",
