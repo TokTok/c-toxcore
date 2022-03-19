@@ -23,7 +23,7 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
 
     if (gca_unpack_public_announce(logger, plain, plain_size,
                                    &public_announce) == -1) {
-        LOGGER_WARNING(logger, "Failed to unpck public group announce");
+        LOGGER_WARNING(logger, "Failed to unpack public group announce");
         return -1;
     }
 

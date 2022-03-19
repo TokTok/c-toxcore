@@ -490,22 +490,33 @@ cc_library(
 )
 
 cc_library(
+    name = "group_moderation",
+    srcs = ["group_moderation.c"],
+    hdrs = ["group_moderation.h"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":logger",
+        ":mono_time",
+        ":network",
+        ":util",
+        "@libsodium",
+    ],
+)
+
+cc_library(
     name = "Messenger",
     srcs = [
         "Messenger.c",
-        "group_announce.c",
         "group_chats.c",
         "group_connection.c",
-        "group_moderation.c",
         "group_pack.c",
     ],
     hdrs = [
         "Messenger.h",
-        "group_announce.h",
         "group_chats.h",
         "group_common.h",
         "group_connection.h",
-        "group_moderation.h",
         "group_pack.h",
     ],
     visibility = [
@@ -526,6 +537,7 @@ cc_library(
         ":friend_connection",
         ":friend_requests",
         ":group_announce",
+        ":group_moderation",
         ":logger",
         ":mono_time",
         ":net_crypto",
@@ -567,6 +579,7 @@ cc_library(
         ":Messenger",
         ":ccompat",
         ":group",
+        ":group_moderation",
         ":logger",
         ":mono_time",
         ":network",
