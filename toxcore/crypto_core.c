@@ -154,6 +154,16 @@ bool crypto_memunlock(void *data, size_t length)
 #endif
 }
 
+bool public_key_eq(const uint8_t *pk1, const uint8_t *pk2)
+{
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // Hope that this is better for the fuzzer
+    return memcmp(pk1, pk2, CRYPTO_PUBLIC_KEY_SIZE) == 0;
+#else
+    return crypto_verify_32(pk1, pk2) == 0;
+#endif
+}
+
 bool crypto_sha512_eq(const uint8_t *cksum1, const uint8_t *cksum2)
 {
 #ifndef VANILLA_NACL

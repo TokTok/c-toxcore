@@ -96,6 +96,8 @@ struct Onion_Friend {
     bool     is_groupchat;
 };
 
+static const Onion_Friend empty_onion_friend = {false};
+
 typedef struct Onion_Data_Handler {
     oniondata_handler_cb *function;
     void *object;

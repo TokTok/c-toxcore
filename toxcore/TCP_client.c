@@ -623,17 +623,9 @@ static int handle_TCP_client_routing_response(TCP_Client_Connection *conn, const
         return -1;
     }
 
-<<<<<<< HEAD
-    switch (data[0]) {
-        case TCP_PACKET_ROUTING_RESPONSE: {
-            if (length != 2 + CRYPTO_PUBLIC_KEY_SIZE) {
-                return -1;
-            }
-=======
     if (data[1] < NUM_RESERVED_PORTS) {
         return 0;
     }
->>>>>>> toktok
 
     const uint8_t con_id = data[1] - NUM_RESERVED_PORTS;
 
@@ -659,16 +651,9 @@ static int handle_TCP_client_connection_notification(TCP_Client_Connection *conn
         return -1;
     }
 
-<<<<<<< HEAD
-        case TCP_PACKET_CONNECTION_NOTIFICATION: {
-            if (length != 2) {
-                return -1;
-            }
-=======
     if (data[1] < NUM_RESERVED_PORTS) {
         return -1;
     }
->>>>>>> toktok
 
     const uint8_t con_id = data[1] - NUM_RESERVED_PORTS;
 
@@ -693,16 +678,9 @@ static int handle_TCP_client_disconnect_notification(TCP_Client_Connection *conn
         return -1;
     }
 
-<<<<<<< HEAD
-        case TCP_PACKET_DISCONNECT_NOTIFICATION: {
-            if (length != 2) {
-                return -1;
-            }
-=======
     if (data[1] < NUM_RESERVED_PORTS) {
         return -1;
     }
->>>>>>> toktok
 
     const uint8_t con_id = data[1] - NUM_RESERVED_PORTS;
 
