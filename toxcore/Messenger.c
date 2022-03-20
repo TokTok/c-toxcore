@@ -28,6 +28,8 @@
 static_assert(MAX_CONCURRENT_FILE_PIPES <= UINT8_MAX + 1,
               "uint8_t cannot represent all file transfer numbers");
 
+static const Friend empty_friend = {{0}};
+
 /**
  * Determines if the friendnumber passed is valid in the Messenger object.
  *
@@ -173,7 +175,7 @@ static int32_t init_new_friend(Messenger *m, const uint8_t *real_pk, uint8_t sta
         return FAERR_NOMEM;
     }
 
-    memset(&m->friendlist[m->numfriends], 0, sizeof(Friend));
+    m->friendlist[m->numfriends] = empty_friend;
 
     const int friendcon_id = new_friend_connection(m->fr_c, real_pk);
 
@@ -493,7 +495,7 @@ int m_delfriend(Messenger *m, int32_t friendnumber)
     }
 
     kill_friend_connection(m->fr_c, m->friendlist[friendnumber].friendcon_id);
-    memset(&m->friendlist[friendnumber], 0, sizeof(Friend));
+    m->friendlist[friendnumber] = empty_friend;
 
     uint32_t i;
 
@@ -2385,8 +2387,8 @@ static void do_friends(Messenger *m, void *userdata)
     for (uint32_t i = 0; i < m->numfriends; ++i) {
         if (m->friendlist[i].status == FRIEND_ADDED) {
             const int fr = send_friend_request_packet(m->fr_c, m->friendlist[i].friendcon_id, m->friendlist[i].friendrequest_nospam,
-                           m->friendlist[i].info,
-                           m->friendlist[i].info_size);
+                                                m->friendlist[i].info,
+                                                m->friendlist[i].info_size);
 
             if (fr >= 0) {
                 set_friend_status(m, i, FRIEND_REQUESTED, userdata);

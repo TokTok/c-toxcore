@@ -68,8 +68,8 @@ static int ip_unpack(IP *target, const uint8_t *data, unsigned int data_size, bo
     }
 
     const bool valid = disable_family_check ||
-                       net_family_is_ipv4(target->family) ||
-                       net_family_is_ipv6(target->family);
+                 net_family_is_ipv4(target->family) ||
+                 net_family_is_ipv6(target->family);
 
     return valid ? 0 : -1;
 }
@@ -315,7 +315,7 @@ static int handle_send_initial(void *object, const IP_Port *source, const uint8_
     get_shared_key(onion->mono_time, &onion->shared_keys_1, shared_key, dht_get_self_secret_key(onion->dht),
                    packet + 1 + CRYPTO_NONCE_SIZE);
     const int len = decrypt_data_symmetric(shared_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
-                                           length - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), plain);
+                                     length - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), plain);
 
     if (len != length - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)) {
         return 1;
@@ -514,7 +514,7 @@ static int handle_recv_3(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT + RETURN_2];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                           SIZE_IPPORT + RETURN_2 + CRYPTO_MAC_SIZE, plain);
+                                     SIZE_IPPORT + RETURN_2 + CRYPTO_MAC_SIZE, plain);
 
     if ((uint32_t)len != sizeof(plain)) {
         return 1;
@@ -563,7 +563,7 @@ static int handle_recv_2(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT + RETURN_1];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                           SIZE_IPPORT + RETURN_1 + CRYPTO_MAC_SIZE, plain);
+                                     SIZE_IPPORT + RETURN_1 + CRYPTO_MAC_SIZE, plain);
 
     if ((uint32_t)len != sizeof(plain)) {
         return 1;
@@ -612,7 +612,7 @@ static int handle_recv_1(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                           SIZE_IPPORT + CRYPTO_MAC_SIZE, plain);
+                                     SIZE_IPPORT + CRYPTO_MAC_SIZE, plain);
 
     if ((uint32_t)len != SIZE_IPPORT) {
         return 1;

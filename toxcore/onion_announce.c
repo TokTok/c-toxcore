@@ -8,9 +8,11 @@
  */
 #include "onion_announce.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
 #include "LAN_discovery.h"
 #include "ccompat.h"
 #include "mono_time.h"
@@ -405,8 +407,8 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
         return;
     }
 
-    if (public_key_cmp(onion_a->entries[index].public_key, packet_public_key) == 0) {
-        if (public_key_cmp(onion_a->entries[index].data_public_key, data_public_key) != 0) {
+    if (public_key_eq(onion_a->entries[index].public_key, packet_public_key)) {
+        if (!public_key_eq(onion_a->entries[index].data_public_key, data_public_key)) {
             response[0] = 0;
             memcpy(response + 1, ping_id2, ONION_PING_ID_SIZE);
         } else {
@@ -433,6 +435,9 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
  * @param max_extra_size Amount of memory to allocate in the outgoing packet to be filled by the
  *   extra data callback.
  * @param pack_extra_data_callback Callback that may write extra data into the packet.
+ *
+ * @retval 1 on failure.
+ * @retval 0 on success.
  */
 non_null(1, 2, 3) nullable(9)
 static int handle_announce_request_common(
@@ -481,6 +486,9 @@ static int handle_announce_request_common(
     Node_format nodes_list[MAX_SENT_NODES];
     const unsigned int num_nodes =
         get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec, ip_is_lan(&source->ip));
+
+    assert(num_nodes <= UINT8_MAX);
+
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(nonce);
 
@@ -517,10 +525,11 @@ static int handle_announce_request_common(
         response[1 + ONION_PING_ID_SIZE] = (uint8_t)num_nodes;
     }
 
-    const int extra_size = pack_extra_data_callback == nullptr ? 0 : pack_extra_data_callback(
-                               onion_a->extra_data_object, onion_a->log, onion_a->mono_time, num_nodes,
-                               plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
-                               response, response_size, offset);
+    const int extra_size = pack_extra_data_callback == nullptr ? 0
+                           : pack_extra_data_callback(onion_a->extra_data_object,
+                                   onion_a->log, onion_a->mono_time, num_nodes,
+                                   plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
+                                   response, response_size, offset);
 
     if (extra_size == -1) {
         free(response);
@@ -567,9 +576,9 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
         return 1;
     }
 
-#ifdef VANILLA_NACL
-    return 1;
-#endif
+    if (onion_a->extra_data_callback == nullptr) {
+        return 1;
+    }
 
     return handle_announce_request_common(onion_a, source, packet, length, NET_PACKET_ANNOUNCE_RESPONSE,
                                           ONION_MINIMAL_SIZE + length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,

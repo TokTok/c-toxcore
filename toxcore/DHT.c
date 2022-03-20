@@ -68,6 +68,9 @@ struct DHT_Friend {
     unsigned int num_to_bootstrap;
 };
 
+static const DHT_Friend empty_dht_friend = {{0}};
+const Node_format empty_node_format = {{0}};
+
 typedef struct Cryptopacket_Handler {
     cryptopacket_handler_cb *function;
     void *object;
@@ -351,9 +354,9 @@ int create_request(const uint8_t *send_public_key, const uint8_t *send_secret_ke
 
     uint8_t *const nonce = packet + 1 + CRYPTO_PUBLIC_KEY_SIZE * 2;
     random_nonce(nonce);
-    uint8_t temp[MAX_CRYPTO_REQUEST_SIZE];
-    memcpy(temp + 1, data, data_length);
+    uint8_t temp[MAX_CRYPTO_REQUEST_SIZE] = {0};
     temp[0] = request_id;
+    memcpy(temp + 1, data, data_length);
     const int len = encrypt_data(recv_public_key, send_secret_key, nonce, temp, data_length + 1,
                                  packet + CRYPTO_SIZE);
 
@@ -430,9 +433,6 @@ int handle_request(const uint8_t *self_public_key, const uint8_t *self_secret_ke
     return len1;
 }
 
-#define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
-#define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
-
 /** @return packet size of packed node with ip_family on success.
  * @retval -1 on failure.
  */
@@ -464,21 +464,21 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     }
 
     bool is_ipv4;
-    uint8_t net_family;
+    uint8_t family;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         // TODO(irungentoo): use functions to convert endianness
         is_ipv4 = true;
-        net_family = TOX_AF_INET;
+        family = TOX_AF_INET;
     } else if (net_family_is_tcp_ipv4(ip_port->ip.family)) {
         is_ipv4 = true;
-        net_family = TOX_TCP_INET;
+        family = TOX_TCP_INET;
     } else if (net_family_is_ipv6(ip_port->ip.family)) {
         is_ipv4 = false;
-        net_family = TOX_AF_INET6;
+        family = TOX_AF_INET6;
     } else if (net_family_is_tcp_ipv6(ip_port->ip.family)) {
         is_ipv4 = false;
-        net_family = TOX_TCP_INET6;
+        family = TOX_TCP_INET6;
     } else {
         char ip_str[IP_NTOA_LEN];
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
@@ -494,7 +494,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
             return -1;
         }
 
-        data[0] = net_family;
+        data[0] = family;
         memcpy(data + 1, &ip_port->ip.ip.v4, SIZE_IP4);
         memcpy(data + 1 + SIZE_IP4, &ip_port->port, sizeof(uint16_t));
         return size;
@@ -505,7 +505,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
             return -1;
         }
 
-        data[0] = net_family;
+        data[0] = family;
         memcpy(data + 1, &ip_port->ip.ip.v6, SIZE_IP6);
         memcpy(data + 1 + SIZE_IP6, &ip_port->port, sizeof(uint16_t));
         return size;
@@ -582,7 +582,6 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
         return -1;
     }
 
-    const IP_Port empty_ip_port = {{{0}}};
     *ip_port = empty_ip_port;
 
     if (is_ipv4) {
@@ -1652,7 +1651,7 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
 
     dht->friends_list = temp;
     DHT_Friend *const dht_friend = &dht->friends_list[dht->num_friends];
-    memset(dht_friend, 0, sizeof(DHT_Friend));
+    *dht_friend = empty_dht_friend;
     memcpy(dht_friend->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     dht_friend->nat.nat_ping_id = random_u64();

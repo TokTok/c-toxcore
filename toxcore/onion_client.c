@@ -336,9 +336,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
         }
 
         if (num_nodes >= 2) {
-            nodes[0] = (Node_format) {
-                0
-            };
+            nodes[0] = empty_node_format;
             nodes[0].ip_port.ip.family = net_family_tcp_family;
             nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
 
@@ -353,9 +351,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
                 return 0;
             }
 
-            nodes[0] = (Node_format) {
-                0
-            };
+            nodes[0] = empty_node_format;
             nodes[0].ip_port.ip.family = net_family_tcp_family;
             nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
 
@@ -404,8 +400,8 @@ static bool path_timed_out(const Mono_Time *mono_time, const Onion_Client_Paths 
     const uint64_t timeout = is_new ? ONION_PATH_FIRST_TIMEOUT : ONION_PATH_TIMEOUT;
 
     return (onion_paths->last_path_used_times[pathnum] >= ONION_PATH_MAX_NO_RESPONSE_USES
-            && mono_time_is_timeout(mono_time, onion_paths->last_path_used[pathnum], timeout))
-           || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME);
+             && mono_time_is_timeout(mono_time, onion_paths->last_path_used[pathnum], timeout))
+            || mono_time_is_timeout(mono_time, onion_paths->path_creation_time[pathnum], ONION_PATH_MAX_LIFETIME);
 }
 
 /** should node be considered to have timed out */
@@ -413,8 +409,8 @@ non_null()
 static bool onion_node_timed_out(const Onion_Node *node, const Mono_Time *mono_time)
 {
     return node->timestamp == 0
-           || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
-               && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT));
+            || (node->pings_since_last_response >= ONION_NODE_MAX_PINGS
+                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT));
 }
 
 /** @brief Create a new path or use an old suitable one (if pathnum is valid)
@@ -1506,7 +1502,7 @@ int onion_addfriend(Onion_Client *onion_c, const uint8_t *public_key)
         }
 
         index = onion_c->num_friends;
-        memset(&onion_c->friends_list[onion_c->num_friends], 0, sizeof(Onion_Friend));
+        onion_c->friends_list[onion_c->num_friends] = empty_onion_friend;
         ++onion_c->num_friends;
     }
 
