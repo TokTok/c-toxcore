@@ -21,7 +21,6 @@
 
 #include "TCP_common.h"
 #include "ccompat.h"
-#include "forwarding.h"
 #include "list.h"
 #include "mono_time.h"
 #include "util.h"
@@ -933,7 +932,7 @@ static Socket new_listening_TCP_socket(const Logger *logger, Family family, uint
 }
 
 TCP_Server *new_TCP_server(const Logger *logger, bool ipv6_enabled, uint16_t num_sockets, const uint16_t *ports,
-                           const uint8_t *secret_key, Onion *onion)
+                           const uint8_t *secret_key, Onion *onion, Forwarding *forwarding)
 {
     if (num_sockets == 0 || ports == nullptr) {
         LOGGER_ERROR(logger, "no sockets");
@@ -1008,9 +1007,11 @@ TCP_Server *new_TCP_server(const Logger *logger, bool ipv6_enabled, uint16_t num
     if (onion != nullptr) {
         temp->onion = onion;
         set_callback_handle_recv_1(onion, &handle_onion_recv_1, temp);
+    }
 
-        temp->forwarding = onion->forwarding;
-        set_callback_forward_reply(temp->forwarding, &handle_forward_reply_tcp, temp);
+    if (forwarding != nullptr) {
+        temp->forwarding = forwarding;
+        set_callback_forward_reply(forwarding, &handle_forward_reply_tcp, temp);
     }
 
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
