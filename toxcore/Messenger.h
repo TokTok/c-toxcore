@@ -11,6 +11,8 @@
 #define C_TOXCORE_TOXCORE_MESSENGER_H
 
 #include "TCP_server.h"
+#include "announce.h"
+#include "forwarding.h"
 #include "friend_connection.h"
 #include "friend_requests.h"
 #include "logger.h"
@@ -238,6 +240,9 @@ struct Messenger {
     Networking_Core *net;
     Net_Crypto *net_crypto;
     DHT *dht;
+
+    Forwarding *forwarding;
+    Announcements *announce;
 
     Onion *onion;
     Onion_Announce *onion_a;
