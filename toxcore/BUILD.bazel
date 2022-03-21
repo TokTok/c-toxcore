@@ -148,6 +148,7 @@ cc_library(
     ],
     deps = [
         ":attributes",
+        ":ccompat",
         ":crypto_core",
         "@pthread",
     ],
@@ -458,6 +459,21 @@ cc_library(
         ":ccompat",
         ":friend_connection",
         ":util",
+    ],
+)
+
+cc_library(
+    name = "group_moderation",
+    srcs = ["group_moderation.c"],
+    hdrs = ["group_moderation.h"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":logger",
+        ":mono_time",
+        ":network",
+        ":util",
+        "@libsodium",
     ],
 )
 
