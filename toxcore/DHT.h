@@ -22,6 +22,22 @@
 extern "C" {
 #endif
 
+/* Encryption and signature keys definition */
+#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
+#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
+#define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
+#define SIG_SECRET_KEY_SIZE CRYPTO_SIGN_SECRET_KEY_SIZE
+
+/* Size of the group chat_id */
+#define CHAT_ID_SIZE SIG_PUBLIC_KEY_SIZE
+
+/* Extended keys for group chats */
+#define EXT_SECRET_KEY_SIZE (ENC_SECRET_KEY_SIZE + SIG_SECRET_KEY_SIZE)
+#define EXT_PUBLIC_KEY_SIZE (ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE)
+
+
+/* Maximum size of a signature (may be smaller) */
+#define SIGNATURE_SIZE CRYPTO_SIGNATURE_SIZE
 /** Maximum number of clients stored per friend. */
 #define MAX_FRIEND_CLIENTS 8
 
@@ -64,6 +80,7 @@ extern "C" {
 #define CRYPTO_PACKET_DHTPK         156
 #define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
 
+/* Max size of a packed node for IPV4 and IPV6 respectively */
 #define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 #define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
 
@@ -467,7 +484,8 @@ int dht_load(DHT *dht, const uint8_t *data, uint32_t length);
 
 /** Initialize DHT. */
 non_null()
-DHT *new_dht(const Logger *log, Mono_Time *mono_time, Networking_Core *net, bool hole_punching_enabled, bool lan_discovery_enabled);
+DHT *new_dht(const Logger *log, Mono_Time *mono_time, Networking_Core *net, bool hole_punching_enabled,
+             bool lan_discovery_enabled);
 
 non_null()
 void kill_dht(DHT *dht);
