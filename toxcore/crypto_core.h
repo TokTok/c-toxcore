@@ -20,6 +20,21 @@ extern "C" {
 #endif
 
 /**
+ * The number of bytes in a signature.
+ */
+#define CRYPTO_SIGNATURE_SIZE          64
+
+/**
+ * The number of bytes in a Tox public key used for signatures.
+ */
+#define CRYPTO_SIGN_PUBLIC_KEY_SIZE    32
+
+/**
+ * The number of bytes in a Tox secret key used for signatures.
+ */
+#define CRYPTO_SIGN_SECRET_KEY_SIZE    64
+
+/**
  * @brief The number of bytes in a Tox public key used for encryption.
  */
 #define CRYPTO_PUBLIC_KEY_SIZE         32
@@ -129,6 +144,22 @@ uint64_t random_u64(void);
  */
 uint32_t random_range_u32(uint32_t upper_bound);
 
+/** @brief Cryptographically signs a message using the supplied secret key and puts the resulting signature
+ * in the supplied buffer.
+ *
+ * @param signature The buffer for the resulting signature, which must have room for at
+ *   least CRYPTO_SIGNATURE_SIZE bytes.
+ * @param sig_length The length of the signature in bytes.
+ * @param message The message being sign.
+ * @param message_length The length in bytes of the message being signed.
+ * @param secret_key The secret key used to create the signature.
+ *
+ * @retval true on success.
+ */
+non_null(1, 3, 5) nullable(2)
+bool sign_detached(uint8_t *signature, uint64_t *sig_length, const uint8_t *message, uint64_t message_length,
+                   const uint8_t *secret_key);
+
 /**
  * @brief Fill the given nonce with random bytes.
  */
@@ -150,6 +181,14 @@ void random_bytes(uint8_t *bytes, size_t length);
  */
 non_null()
 bool public_key_valid(const uint8_t *public_key);
+
+/**
+ * Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
+ * Used for group chats and group DHT announcements.
+ * pk and sk must have room for at least EXT_PUBLIC_KEY_SIZE bytes each.
+ */
+non_null()
+int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk);
 
 /**
  * @brief Generate a new random keypair.
