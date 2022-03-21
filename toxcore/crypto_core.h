@@ -20,6 +20,21 @@ extern "C" {
 #endif
 
 /**
+ * The number of bytes in a signature.
+ */
+#define CRYPTO_SIGNATURE_SIZE          64
+
+/**
+ * The number of bytes in a Tox public key used for signatures.
+ */
+#define CRYPTO_SIGN_PUBLIC_KEY_SIZE    32
+
+/**
+ * The number of bytes in a Tox secret key used for signatures.
+ */
+#define CRYPTO_SIGN_SECRET_KEY_SIZE    64
+
+/**
  * @brief The number of bytes in a Tox public key used for encryption.
  */
 #define CRYPTO_PUBLIC_KEY_SIZE         32
@@ -129,6 +144,36 @@ uint64_t random_u64(void);
  */
 uint32_t random_range_u32(uint32_t upper_bound);
 
+/** @brief Cryptographically signs a message using the supplied secret key and puts the resulting signature
+ * in the supplied buffer.
+ *
+ * @param signature The buffer for the resulting signature, which must have room for at
+ *   least CRYPTO_SIGNATURE_SIZE bytes.
+ * @param message The message being signed.
+ * @param message_length The length in bytes of the message being signed.
+ * @param secret_key The secret key used to create the signature. The key should be
+ *   produced by `create_extended_keypair`.
+ *
+ * @retval true on success.
+ */
+non_null()
+bool crypto_signature_create(uint8_t *signature, const uint8_t *message, uint64_t message_length,
+                             const uint8_t *secret_key);
+
+/** @brief Verifies that the given signature was produced by a given message and public key.
+ *
+ * @param signature The signature we wish to verify.
+ * @param message The message we wish to verify.
+ * @param message_length The length of the message.
+ * @param public_key The public key counterpart of the secret key that was used to
+ *   create the signature.
+ *
+ * @retval true on success.
+ */
+non_null()
+bool crypto_signature_verify(const uint8_t *signature, const uint8_t *message, uint64_t message_length,
+                             const uint8_t *public_key);
+
 /**
  * @brief Fill the given nonce with random bytes.
  */
@@ -150,6 +195,16 @@ void random_bytes(uint8_t *bytes, size_t length);
  */
 non_null()
 bool public_key_valid(const uint8_t *public_key);
+
+/** @brief Creates an extended keypair: curve + ed. Encryption keys are derived from the signature keys.
+ *
+ * @param pk The buffer where the public key will be stored. Must have room for EXT_PUBLIC_KEY_SIZE bytes.
+ * @param sk The buffer where the secret key will be stored. Must have room for EXT_SECRET_KEY_SIZE bytes.
+ *
+ * @retval true on success.
+ */
+non_null()
+bool create_extended_keypair(uint8_t *pk, uint8_t *sk);
 
 /**
  * @brief Generate a new random keypair.
