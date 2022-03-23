@@ -8,8 +8,7 @@
 
 #include "crypto_core.h"
 
-namespace
-{
+namespace {
 
 using ModerationHash = std::array<uint8_t, MOD_MODERATION_HASH_SIZE>;
 

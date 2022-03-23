@@ -1,5 +1,4 @@
 #include "crypto_core.h"
-#include "util.h"
 
 #include <gtest/gtest.h>
 
@@ -7,8 +6,9 @@
 #include <array>
 #include <vector>
 
-namespace
-{
+#include "util.h"
+
+namespace {
 
 using ExtPublicKey = std::array<uint8_t, EXT_PUBLIC_KEY_SIZE>;
 using ExtSecretKey = std::array<uint8_t, EXT_SECRET_KEY_SIZE>;
@@ -20,14 +20,14 @@ TEST(CryptoCore, IncrementNonce)
     Nonce nonce{};
     increment_nonce(nonce.data());
     EXPECT_EQ(
-    nonce, (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}}));
+        nonce, (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1}}));
 
     for (int i = 0; i < 0x1F4; ++i) {
         increment_nonce(nonce.data());
     }
 
     EXPECT_EQ(nonce,
-    (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xF5}}));
+        (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xF5}}));
 }
 
 TEST(CryptoCore, IncrementNonceNumber)
@@ -36,16 +36,16 @@ TEST(CryptoCore, IncrementNonceNumber)
 
     increment_nonce_number(nonce.data(), 0x1F5);
     EXPECT_EQ(nonce,
-    (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xF5}}));
+        (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01, 0xF5}}));
 
     increment_nonce_number(nonce.data(), 0x1F5);
     EXPECT_EQ(nonce,
-    (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x03, 0xEA}}));
+        (Nonce{{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x03, 0xEA}}));
 
     increment_nonce_number(nonce.data(), 0x12345678);
     EXPECT_EQ(nonce,
-    (Nonce{
-        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x12, 0x34, 0x5A, 0x62}}));
+        (Nonce{
+            {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x12, 0x34, 0x5A, 0x62}}));
 }
 
 TEST(CryptoCore, Signatures)
@@ -61,8 +61,10 @@ TEST(CryptoCore, Signatures)
     for (uint8_t i = 0; i < 100; ++i) {
         message.push_back(random_u08());
         Signature signature;
-        EXPECT_TRUE(crypto_signature_create(signature.data(), message.data(), message.size(), get_sig_sk(sk.data())));
-        EXPECT_TRUE(crypto_signature_verify(signature.data(), message.data(), message.size(), get_sig_pk(pk.data())));
+        EXPECT_TRUE(crypto_signature_create(
+            signature.data(), message.data(), message.size(), get_sig_sk(sk.data())));
+        EXPECT_TRUE(crypto_signature_verify(
+            signature.data(), message.data(), message.size(), get_sig_pk(pk.data())));
     }
 }
 
