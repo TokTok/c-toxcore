@@ -69,14 +69,14 @@ Tox_User_Status tox_event_friend_status_get_status(const Tox_Event_Friend_Status
 
 non_null()
 static void tox_event_friend_status_pack(
-    const Tox_Event_Friend_Status *event, msgpack_packer *mp)
+    const Tox_Event_Friend_Status *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_FRIEND_STATUS);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, event->friend_number);
-    bin_pack_u32(mp, event->status);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_FRIEND_STATUS);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, event->friend_number);
+    bin_pack_u32(ctx, event->status);
 }
 
 non_null()
@@ -159,12 +159,12 @@ const Tox_Event_Friend_Status *tox_events_get_friend_status(const Tox_Events *ev
     return &events->friend_status[index];
 }
 
-void tox_events_pack_friend_status(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_friend_status(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_friend_status_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_friend_status_pack(tox_events_get_friend_status(events, i), mp);
+        tox_event_friend_status_pack(tox_events_get_friend_status(events, i), ctx);
     }
 }
 

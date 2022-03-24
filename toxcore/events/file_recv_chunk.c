@@ -117,16 +117,16 @@ const uint8_t *tox_event_file_recv_chunk_get_data(const Tox_Event_File_Recv_Chun
 
 non_null()
 static void tox_event_file_recv_chunk_pack(
-    const Tox_Event_File_Recv_Chunk *event, msgpack_packer *mp)
+    const Tox_Event_File_Recv_Chunk *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_FILE_RECV_CHUNK);
-    bin_pack_array(mp, 4);
-    bin_pack_u32(mp, event->friend_number);
-    bin_pack_u32(mp, event->file_number);
-    bin_pack_u64(mp, event->position);
-    bin_pack_bytes(mp, event->data, event->data_length);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_FILE_RECV_CHUNK);
+    bin_pack_array(ctx, 4);
+    bin_pack_u32(ctx, event->friend_number);
+    bin_pack_u32(ctx, event->file_number);
+    bin_pack_u64(ctx, event->position);
+    bin_pack_bytes(ctx, event->data, event->data_length);
 }
 
 non_null()
@@ -211,12 +211,12 @@ const Tox_Event_File_Recv_Chunk *tox_events_get_file_recv_chunk(const Tox_Events
     return &events->file_recv_chunk[index];
 }
 
-void tox_events_pack_file_recv_chunk(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_file_recv_chunk(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_file_recv_chunk_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_file_recv_chunk_pack(tox_events_get_file_recv_chunk(events, i), mp);
+        tox_event_file_recv_chunk_pack(tox_events_get_file_recv_chunk(events, i), ctx);
     }
 }
 

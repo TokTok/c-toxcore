@@ -71,14 +71,14 @@ Tox_Connection tox_event_friend_connection_status_get_connection_status(const To
 
 non_null()
 static void tox_event_friend_connection_status_pack(
-    const Tox_Event_Friend_Connection_Status *event, msgpack_packer *mp)
+    const Tox_Event_Friend_Connection_Status *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_FRIEND_CONNECTION_STATUS);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, event->friend_number);
-    bin_pack_u32(mp, event->connection_status);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_FRIEND_CONNECTION_STATUS);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, event->friend_number);
+    bin_pack_u32(ctx, event->connection_status);
 }
 
 non_null()
@@ -163,12 +163,12 @@ const Tox_Event_Friend_Connection_Status *tox_events_get_friend_connection_statu
     return &events->friend_connection_status[index];
 }
 
-void tox_events_pack_friend_connection_status(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_friend_connection_status(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_friend_connection_status_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_friend_connection_status_pack(tox_events_get_friend_connection_status(events, i), mp);
+        tox_event_friend_connection_status_pack(tox_events_get_friend_connection_status(events, i), ctx);
     }
 }
 

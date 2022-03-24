@@ -55,12 +55,12 @@ uint32_t tox_event_conference_connected_get_conference_number(
 
 non_null()
 static void tox_event_conference_connected_pack(
-    const Tox_Event_Conference_Connected *event, msgpack_packer *mp)
+    const Tox_Event_Conference_Connected *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_CONFERENCE_CONNECTED);
-    bin_pack_u32(mp, event->conference_number);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_CONFERENCE_CONNECTED);
+    bin_pack_u32(ctx, event->conference_number);
 }
 
 non_null()
@@ -138,12 +138,12 @@ const Tox_Event_Conference_Connected *tox_events_get_conference_connected(const 
     return &events->conference_connected[index];
 }
 
-void tox_events_pack_conference_connected(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_conference_connected(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_conference_connected_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_conference_connected_pack(tox_events_get_conference_connected(events, i), mp);
+        tox_event_conference_connected_pack(tox_events_get_conference_connected(events, i), ctx);
     }
 }
 

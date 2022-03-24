@@ -83,15 +83,15 @@ Tox_File_Control tox_event_file_recv_control_get_control(const Tox_Event_File_Re
 
 non_null()
 static void tox_event_file_recv_control_pack(
-    const Tox_Event_File_Recv_Control *event, msgpack_packer *mp)
+    const Tox_Event_File_Recv_Control *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_FILE_RECV_CONTROL);
-    bin_pack_array(mp, 3);
-    bin_pack_u32(mp, event->friend_number);
-    bin_pack_u32(mp, event->file_number);
-    bin_pack_u32(mp, event->control);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_FILE_RECV_CONTROL);
+    bin_pack_array(ctx, 3);
+    bin_pack_u32(ctx, event->friend_number);
+    bin_pack_u32(ctx, event->file_number);
+    bin_pack_u32(ctx, event->control);
 }
 
 non_null()
@@ -175,12 +175,12 @@ const Tox_Event_File_Recv_Control *tox_events_get_file_recv_control(const Tox_Ev
     return &events->file_recv_control[index];
 }
 
-void tox_events_pack_file_recv_control(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_file_recv_control(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_file_recv_control_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_file_recv_control_pack(tox_events_get_file_recv_control(events, i), mp);
+        tox_event_file_recv_control_pack(tox_events_get_file_recv_control(events, i), ctx);
     }
 }
 

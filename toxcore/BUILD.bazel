@@ -21,7 +21,7 @@ cc_library(
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
         ":ccompat",
-        "@msgpack-c",
+        "//c-toxcore/third_party:cmp",
     ],
 )
 
@@ -557,6 +557,7 @@ cc_library(
         ":ccompat",
         ":tox",
         ":tox_unpack",
+        "//c-toxcore/third_party:cmp",
         "@msgpack-c",
     ],
 )

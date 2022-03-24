@@ -104,15 +104,15 @@ const uint8_t *tox_event_conference_peer_name_get_name(const Tox_Event_Conferenc
 
 non_null()
 static void tox_event_conference_peer_name_pack(
-    const Tox_Event_Conference_Peer_Name *event, msgpack_packer *mp)
+    const Tox_Event_Conference_Peer_Name *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_CONFERENCE_PEER_NAME);
-    bin_pack_array(mp, 3);
-    bin_pack_u32(mp, event->conference_number);
-    bin_pack_u32(mp, event->peer_number);
-    bin_pack_bytes(mp, event->name, event->name_length);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_CONFERENCE_PEER_NAME);
+    bin_pack_array(ctx, 3);
+    bin_pack_u32(ctx, event->conference_number);
+    bin_pack_u32(ctx, event->peer_number);
+    bin_pack_bytes(ctx, event->name, event->name_length);
 }
 
 non_null()
@@ -197,12 +197,12 @@ const Tox_Event_Conference_Peer_Name *tox_events_get_conference_peer_name(const 
     return &events->conference_peer_name[index];
 }
 
-void tox_events_pack_conference_peer_name(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_conference_peer_name(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_conference_peer_name_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_conference_peer_name_pack(tox_events_get_conference_peer_name(events, i), mp);
+        tox_event_conference_peer_name_pack(tox_events_get_conference_peer_name(events, i), ctx);
     }
 }
 

@@ -6,6 +6,7 @@
 #define C_TOXCORE_TOXCORE_TOX_EVENTS_INTERNAL_H
 
 #include <msgpack.h>
+#include "../../third_party/cmp/cmp.h"
 
 #include "../attributes.h"
 #include "../tox_events.h"
@@ -153,7 +154,7 @@ tox_events_clear_cb tox_events_clear_friend_typing;
 tox_events_clear_cb tox_events_clear_self_connection_status;
 
 // non_null()
-typedef void tox_events_pack_cb(const Tox_Events *events, msgpack_packer *mp);
+typedef void tox_events_pack_cb(const Tox_Events *events, cmp_ctx_t *ctx);
 
 tox_events_pack_cb tox_events_pack_conference_connected;
 tox_events_pack_cb tox_events_pack_conference_invite;

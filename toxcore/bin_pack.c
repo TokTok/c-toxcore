@@ -4,39 +4,32 @@
 
 #include "bin_pack.h"
 
-#include <msgpack.h>
-
-void bin_pack_array(msgpack_packer *mp, size_t size)
+void bin_pack_array(cmp_ctx_t *ctx, size_t size)
 {
-    msgpack_pack_array(mp, size);
+    cmp_write_array(ctx, size);
 }
 
-void bin_pack_bool(msgpack_packer *mp, bool val)
+void bin_pack_bool(cmp_ctx_t *ctx, bool val)
 {
-    if (val) {
-        msgpack_pack_true(mp);
-    } else {
-        msgpack_pack_false(mp);
-    }
+    cmp_write_bool(ctx, val);
 }
 
-void bin_pack_u16(msgpack_packer *mp, uint16_t val)
+void bin_pack_u16(cmp_ctx_t *ctx, uint16_t val)
 {
-    msgpack_pack_uint16(mp, val);
+    cmp_write_u16(ctx, val);
 }
 
-void bin_pack_u32(msgpack_packer *mp, uint32_t val)
+void bin_pack_u32(cmp_ctx_t *ctx, uint32_t val)
 {
-    msgpack_pack_uint32(mp, val);
+    cmp_write_u32(ctx, val);
 }
 
-void bin_pack_u64(msgpack_packer *mp, uint64_t val)
+void bin_pack_u64(cmp_ctx_t *ctx, uint64_t val)
 {
-    msgpack_pack_uint64(mp, val);
+    cmp_write_u64(ctx, val);
 }
 
-void bin_pack_bytes(msgpack_packer *mp, const uint8_t *data, size_t length)
+void bin_pack_bytes(cmp_ctx_t *ctx, const uint8_t *data, size_t length)
 {
-    msgpack_pack_bin(mp, length);
-    msgpack_pack_bin_body(mp, data, length);
+    cmp_write_bin(ctx, data, length);
 }

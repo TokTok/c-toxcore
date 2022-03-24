@@ -90,14 +90,14 @@ const uint8_t *tox_event_friend_request_get_message(const Tox_Event_Friend_Reque
 
 non_null()
 static void tox_event_friend_request_pack(
-    const Tox_Event_Friend_Request *event, msgpack_packer *mp)
+    const Tox_Event_Friend_Request *event, cmp_ctx_t *ctx)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_FRIEND_REQUEST);
-    bin_pack_array(mp, 2);
-    bin_pack_bytes(mp, event->public_key, TOX_PUBLIC_KEY_SIZE);
-    bin_pack_bytes(mp, event->message, event->message_length);
+    bin_pack_array(ctx, 2);
+    bin_pack_u32(ctx, TOX_EVENT_FRIEND_REQUEST);
+    bin_pack_array(ctx, 2);
+    bin_pack_bytes(ctx, event->public_key, TOX_PUBLIC_KEY_SIZE);
+    bin_pack_bytes(ctx, event->message, event->message_length);
 }
 
 non_null()
@@ -180,12 +180,12 @@ const Tox_Event_Friend_Request *tox_events_get_friend_request(const Tox_Events *
     return &events->friend_request[index];
 }
 
-void tox_events_pack_friend_request(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_friend_request(const Tox_Events *events, cmp_ctx_t *ctx)
 {
     const uint32_t size = tox_events_get_friend_request_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_friend_request_pack(tox_events_get_friend_request(events, i), mp);
+        tox_event_friend_request_pack(tox_events_get_friend_request(events, i), ctx);
     }
 }
 
