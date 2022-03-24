@@ -562,6 +562,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     }
 
     tox->mono_time = mono_time_new();
+    tox_set_network(tox, nullptr);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -593,7 +594,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     lock(tox);
 
     Messenger_Error m_error;
-    tox->m = new_messenger(tox->mono_time, &m_options, &m_error);
+    tox->m = new_messenger(tox->mono_time, &tox->ns, &m_options, &m_error);
 
     // TODO(iphydf): Clarify this code, check for NULL before new_groupchats, so
     // new_groupchats can assume m is non-NULL.
@@ -2662,4 +2663,14 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_OK);
 
     return true;
+}
+
+void tox_set_network(Tox *tox, const Network *ns)
+{
+    assert(tox != nullptr);
+    if (ns != nullptr) {
+        tox->ns = *ns;
+    } else {
+        tox->ns = system_network;
+    }
 }
