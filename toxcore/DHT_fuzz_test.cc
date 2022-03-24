@@ -40,7 +40,7 @@ void TestUnpackNodes(const uint8_t *data, size_t size)
         const int packed_size
             = pack_nodes(logger, packed.data(), packed.size(), nodes, packed_count);
         LOGGER_ASSERT(logger, packed_size == processed_data_len,
-                      "packed size (%d) != unpacked size (%d)", packed_size, processed_data_len);
+            "packed size (%d) != unpacked size (%d)", packed_size, processed_data_len);
         logger_kill(logger);
     }
 }
