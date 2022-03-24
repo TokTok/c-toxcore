@@ -5,17 +5,23 @@
 #ifndef C_TOXCORE_TOXCORE_BIN_PACK_H
 #define C_TOXCORE_TOXCORE_BIN_PACK_H
 
-#include <msgpack.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "attributes.h"
 
-non_null() void bin_pack_array(msgpack_packer *mp, size_t size);
-non_null() void bin_pack_bool(msgpack_packer *mp, bool val);
-non_null() void bin_pack_u16(msgpack_packer *mp, uint16_t val);
-non_null() void bin_pack_u32(msgpack_packer *mp, uint32_t val);
-non_null() void bin_pack_u64(msgpack_packer *mp, uint64_t val);
-non_null() void bin_pack_bytes(msgpack_packer *mp, const uint8_t *data, size_t length);
+typedef struct Bin_Pack Bin_Pack;
+
+typedef void bin_pack_cb(Bin_Pack *bp, const void *obj);
+
+non_null() void bin_pack_obj(bin_pack_cb *callback, const void *obj, uint8_t *buf, uint32_t buf_size);
+non_null() uint32_t bin_pack_obj_size(bin_pack_cb *callback, const void *obj);
+
+non_null() void bin_pack_array(Bin_Pack *bp, uint32_t size);
+non_null() void bin_pack_bool(Bin_Pack *bp, bool val);
+non_null() void bin_pack_u16(Bin_Pack *bp, uint16_t val);
+non_null() void bin_pack_u32(Bin_Pack *bp, uint32_t val);
+non_null() void bin_pack_u64(Bin_Pack *bp, uint64_t val);
+non_null() void bin_pack_bytes(Bin_Pack *bp, const uint8_t *data, uint32_t length);
 
 #endif // C_TOXCORE_TOXCORE_BIN_PACK_H

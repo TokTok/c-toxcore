@@ -57,20 +57,20 @@ uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_
 
 non_null()
 static void tox_event_conference_peer_list_changed_pack(
-    const Tox_Event_Conference_Peer_List_Changed *event, msgpack_packer *mp)
+    const Tox_Event_Conference_Peer_List_Changed *event, Bin_Pack *bp)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED);
-    bin_pack_u32(mp, event->conference_number);
+    bin_pack_array(bp, 2);
+    bin_pack_u32(bp, TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED);
+    bin_pack_u32(bp, event->conference_number);
 }
 
 non_null()
 static bool tox_event_conference_peer_list_changed_unpack(
-    Tox_Event_Conference_Peer_List_Changed *event, const msgpack_object *obj)
+    Tox_Event_Conference_Peer_List_Changed *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    return bin_unpack_u32(&event->conference_number, obj);
+    return bin_unpack_u32(bu, &event->conference_number);
 }
 
 
@@ -143,16 +143,16 @@ const Tox_Event_Conference_Peer_List_Changed *tox_events_get_conference_peer_lis
     return &events->conference_peer_list_changed[index];
 }
 
-void tox_events_pack_conference_peer_list_changed(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_conference_peer_list_changed(const Tox_Events *events, Bin_Pack *bp)
 {
     const uint32_t size = tox_events_get_conference_peer_list_changed_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_conference_peer_list_changed_pack(tox_events_get_conference_peer_list_changed(events, i), mp);
+        tox_event_conference_peer_list_changed_pack(tox_events_get_conference_peer_list_changed(events, i), bp);
     }
 }
 
-bool tox_events_unpack_conference_peer_list_changed(Tox_Events *events, const msgpack_object *obj)
+bool tox_events_unpack_conference_peer_list_changed(Tox_Events *events, Bin_Unpack *bu)
 {
     Tox_Event_Conference_Peer_List_Changed *event = tox_events_add_conference_peer_list_changed(events);
 
@@ -160,7 +160,7 @@ bool tox_events_unpack_conference_peer_list_changed(Tox_Events *events, const ms
         return false;
     }
 
-    return tox_event_conference_peer_list_changed_unpack(event, obj);
+    return tox_event_conference_peer_list_changed_unpack(event, bu);
 }
 
 

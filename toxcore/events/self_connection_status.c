@@ -56,20 +56,20 @@ Tox_Connection tox_event_self_connection_status_get_connection_status(const Tox_
 
 non_null()
 static void tox_event_self_connection_status_pack(
-    const Tox_Event_Self_Connection_Status *event, msgpack_packer *mp)
+    const Tox_Event_Self_Connection_Status *event, Bin_Pack *bp)
 {
     assert(event != nullptr);
-    bin_pack_array(mp, 2);
-    bin_pack_u32(mp, TOX_EVENT_SELF_CONNECTION_STATUS);
-    bin_pack_u32(mp, event->connection_status);
+    bin_pack_array(bp, 2);
+    bin_pack_u32(bp, TOX_EVENT_SELF_CONNECTION_STATUS);
+    bin_pack_u32(bp, event->connection_status);
 }
 
 non_null()
 static bool tox_event_self_connection_status_unpack(
-    Tox_Event_Self_Connection_Status *event, const msgpack_object *obj)
+    Tox_Event_Self_Connection_Status *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
-    return tox_unpack_connection(&event->connection_status, obj);
+    return tox_unpack_connection(bu, &event->connection_status);
 }
 
 
@@ -139,16 +139,16 @@ const Tox_Event_Self_Connection_Status *tox_events_get_self_connection_status(co
     return &events->self_connection_status[index];
 }
 
-void tox_events_pack_self_connection_status(const Tox_Events *events, msgpack_packer *mp)
+void tox_events_pack_self_connection_status(const Tox_Events *events, Bin_Pack *bp)
 {
     const uint32_t size = tox_events_get_self_connection_status_size(events);
 
     for (uint32_t i = 0; i < size; ++i) {
-        tox_event_self_connection_status_pack(tox_events_get_self_connection_status(events, i), mp);
+        tox_event_self_connection_status_pack(tox_events_get_self_connection_status(events, i), bp);
     }
 }
 
-bool tox_events_unpack_self_connection_status(Tox_Events *events, const msgpack_object *obj)
+bool tox_events_unpack_self_connection_status(Tox_Events *events, Bin_Unpack *bu)
 {
     Tox_Event_Self_Connection_Status *event = tox_events_add_self_connection_status(events);
 
@@ -156,7 +156,7 @@ bool tox_events_unpack_self_connection_status(Tox_Events *events, const msgpack_
         return false;
     }
 
-    return tox_event_self_connection_status_unpack(event, obj);
+    return tox_event_self_connection_status_unpack(event, bu);
 }
 
 

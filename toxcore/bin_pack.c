@@ -4,39 +4,105 @@
 
 #include "bin_pack.h"
 
-#include <msgpack.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
-void bin_pack_array(msgpack_packer *mp, size_t size)
+#include "../third_party/cmp/cmp.h"
+#include "ccompat.h"
+
+struct Bin_Pack {
+    uint8_t *bytes;
+    uint32_t bytes_size;
+    uint32_t bytes_pos;
+    cmp_ctx_t ctx;
+};
+
+non_null()
+static bool null_reader(cmp_ctx_t *ctx, void *data, size_t limit)
 {
-    msgpack_pack_array(mp, size);
+    assert(!"null_reader called");
+    return false;
 }
 
-void bin_pack_bool(msgpack_packer *mp, bool val)
+non_null()
+static bool null_skipper(cmp_ctx_t *ctx, size_t limit)
 {
-    if (val) {
-        msgpack_pack_true(mp);
-    } else {
-        msgpack_pack_false(mp);
+    assert(!"null_skipper called");
+    return false;
+}
+
+non_null()
+static size_t buf_writer(cmp_ctx_t *ctx, const void *data, size_t count)
+{
+    Bin_Pack *bp = (Bin_Pack *)ctx->buf;
+    assert(bp != nullptr);
+    const uint32_t new_pos = bp->bytes_pos + count;
+    if (new_pos < bp->bytes_pos) {
+        // 32 bit overflow.
+        return 0;
     }
+    if (bp->bytes != nullptr) {
+        if (new_pos >= bp->bytes_size) {
+            // Buffer too small.
+            return 0;
+        }
+        memcpy(bp->bytes + bp->bytes_pos, data, count);
+    }
+    bp->bytes_pos += count;
+    return count;
 }
 
-void bin_pack_u16(msgpack_packer *mp, uint16_t val)
+non_null()
+static void bin_pack_init(Bin_Pack *bp, uint8_t *buf, uint32_t buf_size)
 {
-    msgpack_pack_uint16(mp, val);
+    bp->bytes = buf;
+    bp->bytes_size = buf_size;
+    bp->bytes_pos = 0;
+    cmp_init(&bp->ctx, bp, null_reader, null_skipper, buf_writer);
 }
 
-void bin_pack_u32(msgpack_packer *mp, uint32_t val)
+void bin_pack_obj(bin_pack_cb *callback, const void *obj, uint8_t *buf, uint32_t buf_size)
 {
-    msgpack_pack_uint32(mp, val);
+    Bin_Pack bp;
+    bin_pack_init(&bp, buf, buf_size);
+    callback(&bp, obj);
 }
 
-void bin_pack_u64(msgpack_packer *mp, uint64_t val)
+uint32_t bin_pack_obj_size(bin_pack_cb *callback, const void *obj)
 {
-    msgpack_pack_uint64(mp, val);
+    Bin_Pack bp;
+    bin_pack_init(&bp, nullptr, 0);
+    callback(&bp, obj);
+    return bp.bytes_pos;
 }
 
-void bin_pack_bytes(msgpack_packer *mp, const uint8_t *data, size_t length)
+void bin_pack_array(Bin_Pack *bp, uint32_t size)
 {
-    msgpack_pack_bin(mp, length);
-    msgpack_pack_bin_body(mp, data, length);
+    cmp_write_array(&bp->ctx, size);
+}
+
+void bin_pack_bool(Bin_Pack *bp, bool val)
+{
+    cmp_write_bool(&bp->ctx, val);
+}
+
+void bin_pack_u16(Bin_Pack *bp, uint16_t val)
+{
+    cmp_write_uinteger(&bp->ctx, val);
+}
+
+void bin_pack_u32(Bin_Pack *bp, uint32_t val)
+{
+    cmp_write_uinteger(&bp->ctx, val);
+}
+
+void bin_pack_u64(Bin_Pack *bp, uint64_t val)
+{
+    cmp_write_uinteger(&bp->ctx, val);
+}
+
+void bin_pack_bytes(Bin_Pack *bp, const uint8_t *data, uint32_t length)
+{
+    cmp_write_bin(&bp->ctx, data, length);
 }
