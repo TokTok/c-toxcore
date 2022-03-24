@@ -19,6 +19,39 @@
 extern "C" {
 #endif
 
+typedef struct Network_Addr Network_Addr;
+
+typedef int net_close_cb(void *obj, int sock);
+typedef int net_accept_cb(void *obj, int sock);
+typedef int net_bind_cb(void *obj, int sock, const Network_Addr *addr);
+typedef int net_listen_cb(void *obj, int sock, int backlog);
+typedef int net_recv_cb(void *obj, int sock, uint8_t *buf, size_t len);
+typedef int net_recvfrom_cb(void *obj, int sock, uint8_t *buf, size_t len, Network_Addr *addr);
+typedef int net_send_cb(void *obj, int sock, const uint8_t *buf, size_t len);
+typedef int net_sendto_cb(void *obj, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr);
+typedef int net_getsockopt_cb(void *obj, int sock, int level, int optname, void *optval, size_t *optlen);
+typedef int net_setsockopt_cb(void *obj, int sock, int level, int optname, const void *optval, size_t optlen);
+
+typedef struct Network_Funcs {
+    net_close_cb *close;
+    net_accept_cb *accept;
+    net_bind_cb *bind;
+    net_listen_cb *listen;
+    net_recv_cb *recv;
+    net_recvfrom_cb *recvfrom;
+    net_send_cb *send;
+    net_sendto_cb *sendto;
+    net_getsockopt_cb *getsockopt;
+    net_setsockopt_cb *setsockopt;
+} Network_Funcs;
+
+typedef struct Network {
+    const Network_Funcs *funcs;
+    void *obj;
+} Network;
+
+extern const Network system_network;
+
 typedef struct Family {
     uint8_t value;
 } Family;
@@ -210,20 +243,22 @@ extern const Socket net_invalid_socket;
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
  */
 non_null()
-int net_send(const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
+int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  */
 non_null()
-int net_recv(const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port);
+int net_recv(const Network *ns, const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port);
 /**
  * Calls listen(sockfd, backlog).
  */
-int net_listen(Socket sock, int backlog);
+non_null()
+int net_listen(const Network *ns, Socket sock, int backlog);
 /**
  * Calls accept(sockfd, nullptr, nullptr).
  */
-Socket net_accept(Socket sock);
+non_null()
+Socket net_accept(const Network *ns, Socket sock);
 
 /**
  * return the size of data in the tcp recv buffer.
@@ -405,35 +440,40 @@ uint16_t net_port(const Networking_Core *net);
 int networking_at_startup(void);
 
 /** Close the socket. */
-void kill_sock(Socket sock);
+non_null()
+void kill_sock(const Network *ns, Socket sock);
 
 /**
  * Set socket as nonblocking
  *
  * @return true on success, false on failure.
  */
-bool set_socket_nonblock(Socket sock);
+non_null()
+bool set_socket_nonblock(const Network *ns, Socket sock);
 
 /**
  * Set socket to not emit SIGPIPE
  *
  * @return true on success, false on failure.
  */
-bool set_socket_nosigpipe(Socket sock);
+non_null()
+bool set_socket_nosigpipe(const Network *ns, Socket sock);
 
 /**
  * Enable SO_REUSEADDR on socket.
  *
  * @return true on success, false on failure.
  */
-bool set_socket_reuseaddr(Socket sock);
+non_null()
+bool set_socket_reuseaddr(const Network *ns, Socket sock);
 
 /**
  * Set socket to dual (IPv4 + IPv6 socket)
  *
  * @return true on success, false on failure.
  */
-bool set_socket_dualstack(Socket sock);
+non_null()
+bool set_socket_dualstack(const Network *ns, Socket sock);
 
 /* Basic network functions: */
 
@@ -499,7 +539,8 @@ void net_freeipport(IP_Port *ip_ports);
 /**
  * @return true on success, false on failure.
  */
-bool bind_to_port(Socket sock, Family family, uint16_t port);
+non_null()
+bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port);
 
 /** @brief Get the last networking error code.
  *
@@ -540,9 +581,10 @@ void net_kill_strerror(char *strerror);
  *
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
-non_null(1, 2) nullable(5)
-Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t port_from, uint16_t port_to,
-                                   unsigned int *error);
+non_null(1, 2, 3) nullable(6)
+Networking_Core *new_networking_ex(
+        const Logger *log, const Network *ns, const IP *ip,
+        uint16_t port_from, uint16_t port_to, unsigned int *error);
 non_null()
 Networking_Core *new_networking_no_udp(const Logger *log);
 
