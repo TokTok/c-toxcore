@@ -127,10 +127,12 @@ static bool should_ignore_recv_error(int err)
     return err == EWOULDBLOCK;
 }
 
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 static bool should_ignore_connect_error(int err)
 {
     return err == EWOULDBLOCK || err == EINPROGRESS;
 }
+#endif
 
 non_null()
 static const char *inet_ntop4(const struct in_addr *addr, char *buf, size_t bufsize)
@@ -274,8 +276,9 @@ static int make_socktype(int type)
             return type;
     }
 }
-#endif // FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#endif  // FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 
+#if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) || !defined(NDEBUG)
 static int make_family(Family tox_family)
 {
     switch (tox_family.value) {
@@ -292,6 +295,7 @@ static int make_family(Family tox_family)
             return tox_family.value;
     }
 }
+#endif  // !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && !defined(NDEBUG)
 
 static const Family *make_tox_family(int family)
 {
@@ -522,9 +526,8 @@ non_null()
 static void loglogdata(const Logger *log, const char *message, const uint8_t *buffer,
                        uint16_t buflen, const IP_Port *ip_port, long res)
 {
-    char ip_str[IP_NTOA_LEN];
-
     if (res < 0) { /* Windows doesn't necessarily know `%zu` */
+        char ip_str[IP_NTOA_LEN];
         const int error = net_error();
         char *strerror = net_new_strerror(error);
         LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
@@ -533,11 +536,13 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
                      strerror, data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
         net_kill_strerror(strerror);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
+        char ip_str[IP_NTOA_LEN];
         LOGGER_TRACE(log, "[%2u] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
                      ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port->port), 0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
+        char ip_str[IP_NTOA_LEN];
         LOGGER_TRACE(log, "[%2u] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], message, res, res == 0 ? '!' : '>', buflen,
                      ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port->port), 0, "OK",
@@ -674,7 +679,7 @@ non_null()
 static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
 {
     memset(ip_port, 0, sizeof(IP_Port));
-    struct sockaddr_storage addr;
+    struct sockaddr_storage addr = {0};
 #ifdef OS_WIN32
     int addrlen = sizeof(addr);
 #else
@@ -1032,7 +1037,7 @@ Networking_Core *new_networking_ex(const Logger *log, const IP *ip, uint16_t por
 
     for (uint16_t tries = port_from; tries <= port_to; ++tries) {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-        int res = 0;
+        int res = addrsize > 0 ? 0 : -1;
 #else
         int res = bind(temp->sock.sock, (struct sockaddr *)&addr, addrsize);
 #endif
@@ -1458,7 +1463,7 @@ bool net_connect(const Logger *log, Socket sock, const IP_Port *ip_port)
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return true;
+    return addrsize != 0;
 #else
     LOGGER_DEBUG(log, "connecting socket %d to %s:%d",
                  (int)sock.sock, ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)), net_ntohs(ip_port->port));
@@ -1609,7 +1614,7 @@ bool bind_to_port(Socket sock, Family family, uint16_t port)
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return true;
+    return addrsize != 0;
 #else
     return bind(sock.sock, (struct sockaddr *)&addr, addrsize) == 0;
 #endif

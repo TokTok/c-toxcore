@@ -1173,13 +1173,9 @@ int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, u
 
     file_number = temp_filenum;
 
-    struct File_Transfers *ft;
-
-    if (inbound) {
-        ft = &m->friendlist[friendnumber].file_receiving[file_number];
-    } else {
-        ft = &m->friendlist[friendnumber].file_sending[file_number];
-    }
+    const struct File_Transfers *const ft = inbound
+        ? &m->friendlist[friendnumber].file_receiving[file_number]
+        : &m->friendlist[friendnumber].file_sending[file_number];
 
     if (ft->status == FILESTATUS_NONE) {
         return -2;
@@ -3382,9 +3378,8 @@ static uint8_t *save_path_nodes(const Messenger *m, uint8_t *data)
 non_null()
 static State_Load_Status load_path_nodes(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    Node_format nodes[NUM_SAVED_PATH_NODES];
-
     if (length > 0) {
+        Node_format nodes[NUM_SAVED_PATH_NODES];
         const int num = unpack_nodes(nodes, NUM_SAVED_PATH_NODES, nullptr, data, length, false);
 
         if (num == -1) {
