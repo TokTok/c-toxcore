@@ -159,13 +159,14 @@ TEST(SanctionsList, CreatePackUnpackSanction)
     uint16_t packed_length = sanctions_list_packed_size(1);
     std::vector<uint8_t> packed(packed_length);
     EXPECT_EQ(
-            sanctions_list_pack(packed.data(), packed.size(), &sanction, 1, nullptr), packed_length);
+        sanctions_list_pack(packed.data(), packed.size(), &sanction, 1, nullptr), packed_length);
 
     Mod_Sanction unpacked_sanction;
     uint16_t processed_data_len = 0;
 
     EXPECT_EQ(sanctions_list_unpack(&unpacked_sanction, &mod.sanctions_creds, 1, packed.data(),
-              packed.size(), &processed_data_len), 1);
+                  packed.size(), &processed_data_len),
+        1);
     EXPECT_EQ(processed_data_len, packed_length + MOD_SANCTIONS_CREDS_SIZE);
     EXPECT_TRUE(sanctions_list_entry_exists(&mod, &sanction));
     EXPECT_TRUE(sanctions_list_entry_exists(&mod, &unpacked_sanction));
