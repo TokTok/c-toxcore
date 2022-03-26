@@ -1012,29 +1012,28 @@ static int dht_cmp_entry(const void *a, const void *b)
 }
 
 #ifdef CHECK_ANNOUNCE_NODE
+non_null()
+static void set_announce_node_in_list(Client_data *list, uint32_t list_len, const uint8_t *public_key)
+{
+    const uint32_t index = index_of_client_pk(list, list_len, public_key);
+
+    if (index != UINT32_MAX) {
+        list[index].announce_node = true;
+    }
+}
+
 void set_announce_node(DHT *dht, const uint8_t *public_key)
 {
-    for (int32_t i = -1; i < dht->num_friends; ++i) {
-        Client_data *list;
+    unsigned int index = bit_by_bit_cmp(public_key, dht->self_public_key);
 
-        if (i == -1) {
-            unsigned int index = bit_by_bit_cmp(public_key, dht->self_public_key);
+    if (index >= LCLIENT_LENGTH) {
+        index = LCLIENT_LENGTH - 1;
+    }
 
-            if (index >= LCLIENT_LENGTH) {
-                index = LCLIENT_LENGTH - 1;
-            }
+    set_announce_node_in_list(dht->close_clientlist + index * LCLIENT_NODES, LCLIENT_LIST, public_key);
 
-            list = dht->close_clientlist + index * LCLIENT_NODES;
-        } else {
-            list = dht->friends_list[i].client_list;
-        }
-
-        const uint32_t list_len = i == -1 ? LCLIENT_LIST : MAX_FRIEND_CLIENTS;
-        const uint32_t index = index_of_client_pk(list, list_len, public_key);
-
-        if (index != UINT32_MAX) {
-            list[index].announce_node = true;
-        }
+    for (int32_t i = 0; i < dht->num_friends; ++i) {
+        set_announce_node_in_list(dht->friends_list[i].client_list, MAX_FRIEND_CLIENTS, public_key);
     }
 }
 
