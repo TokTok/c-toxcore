@@ -11,17 +11,13 @@
 namespace {
 
 struct Bin_Pack_Deleter {
-    void operator()(Bin_Pack *bp) const {
-        bin_pack_free(bp);
-    }
+    void operator()(Bin_Pack *bp) const { bin_pack_free(bp); }
 };
 
 using Bin_Pack_Ptr = std::unique_ptr<Bin_Pack, Bin_Pack_Deleter>;
 
 struct Bin_Unpack_Deleter {
-    void operator()(Bin_Unpack *bu) const {
-        bin_unpack_free(bu);
-    }
+    void operator()(Bin_Unpack *bu) const { bin_unpack_free(bu); }
 };
 
 using Bin_Unpack_Ptr = std::unique_ptr<Bin_Unpack, Bin_Unpack_Deleter>;
