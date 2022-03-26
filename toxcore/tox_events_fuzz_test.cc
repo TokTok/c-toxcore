@@ -5,7 +5,8 @@
 
 namespace {
 
-void TestUnpack(const uint8_t *data, size_t size) {
+void TestUnpack(const uint8_t *data, size_t size)
+{
     Tox_Events *events = tox_events_load(data, size);
     if (events) {
         std::vector<uint8_t> packed(tox_events_bytes_size(events));
