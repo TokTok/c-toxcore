@@ -9,6 +9,7 @@
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/tox.h"
+#include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -128,7 +129,7 @@ static void increment_clock(Time_Data *time_data, uint64_t count)
 static void set_current_time_callback(Tox *tox, Time_Data *time_data)
 {
     // TODO(iphydf): Don't rely on toxcore internals.
-    Mono_Time *mono_time = ((Messenger *)tox)->mono_time;
+    Mono_Time *mono_time = tox->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, time_data);
 }
 
@@ -160,7 +161,8 @@ static void test_few_clients(void)
 
     Time_Data time_data;
     ck_assert_msg(pthread_mutex_init(&time_data.lock, nullptr) == 0, "Failed to init time_data mutex");
-    time_data.clock = current_time_monotonic(((Messenger *)tox1)->mono_time);
+    mono_time_update(tox1->mono_time);
+    time_data.clock = mono_time_get_ms(tox1->mono_time);
     set_current_time_callback(tox1, &time_data);
     set_current_time_callback(tox2, &time_data);
     set_current_time_callback(tox3, &time_data);

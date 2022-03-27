@@ -2318,7 +2318,7 @@ static void do_friends(Messenger *m, void *userdata)
             do_receipts(m, i, userdata);
             do_reqchunk_filecb(m, i, userdata);
 
-            m->friendlist[i].last_seen_time = (uint64_t) time(nullptr);
+            m->friendlist[i].last_seen_time = (uint64_t)time(nullptr);
         }
     }
 }
@@ -3168,7 +3168,7 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messenger_Error *error)
+Messenger *new_messenger(const Mono_Time *mono_time, Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
         return nullptr;

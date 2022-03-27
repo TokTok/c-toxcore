@@ -21,7 +21,8 @@ int main(void)
     ck_assert(tox1 != nullptr);
     ck_assert(tox2 != nullptr);
 
-    uint64_t clock = current_time_monotonic(tox1->mono_time);
+    mono_time_update(tox1->mono_time);
+    uint64_t clock = mono_time_get_ms(tox1->mono_time);
     Mono_Time *mono_time;
 
     mono_time = tox1->mono_time;

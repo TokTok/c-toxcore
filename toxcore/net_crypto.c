@@ -127,7 +127,7 @@ static const Crypto_Connection empty_crypto_connection = {{0}};
 
 struct Net_Crypto {
     const Logger *log;
-    Mono_Time *mono_time;
+    const Mono_Time *mono_time;
 
     DHT *dht;
     TCP_Connections *tcp_c;
@@ -725,7 +725,7 @@ static int send_packet_to(Net_Crypto *c, int crypt_connection_id, const uint8_t 
     pthread_mutex_lock(conn->mutex);
 
     if (ret == 0) {
-        conn->last_tcp_sent = current_time_monotonic(c->mono_time);
+        conn->last_tcp_sent = mono_time_get_ms(c->mono_time);
     }
 
     pthread_mutex_unlock(conn->mutex);
@@ -992,7 +992,7 @@ static int generate_request_packet(uint8_t *data, uint16_t length, const Packets
  * @return number of requested packets on success.
  */
 non_null()
-static int handle_request_packet(Mono_Time *mono_time, Packets_Array *send_array,
+static int handle_request_packet(const Mono_Time *mono_time, Packets_Array *send_array,
                                  const uint8_t *data, uint16_t length,
                                  uint64_t *latest_send_time, uint64_t rtt_time)
 {
@@ -1014,7 +1014,7 @@ static int handle_request_packet(Mono_Time *mono_time, Packets_Array *send_array
     uint32_t n = 1;
     uint32_t requested = 0;
 
-    const uint64_t temp_time = current_time_monotonic(mono_time);
+    const uint64_t temp_time = mono_time_get_ms(mono_time);
     uint64_t l_sent_time = 0;
 
     for (uint32_t i = send_array->buffer_start; i != send_array->buffer_end; ++i) {
@@ -1158,7 +1158,7 @@ static int reset_max_speed_reached(Net_Crypto *c, int crypt_connection_id)
                 return -1;
             }
 
-            dt->sent_time = current_time_monotonic(c->mono_time);
+            dt->sent_time = mono_time_get_ms(c->mono_time);
         }
 
         conn->maximum_speed_reached = false;
@@ -1216,7 +1216,7 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
         Packet_Data *dt1 = nullptr;
 
         if (get_data_pointer(&conn->send_array, &dt1, packet_num) == 1) {
-            dt1->sent_time = current_time_monotonic(c->mono_time);
+            dt1->sent_time = mono_time_get_ms(c->mono_time);
         }
     } else {
         conn->maximum_speed_reached = true;
@@ -1327,7 +1327,7 @@ static int send_requested_packets(Net_Crypto *c, int crypt_connection_id, uint32
         return -1;
     }
 
-    const uint64_t temp_time = current_time_monotonic(c->mono_time);
+    const uint64_t temp_time = mono_time_get_ms(c->mono_time);
     const uint32_t array_size = num_packets_array(&conn->send_array);
     uint32_t num_sent = 0;
 
@@ -1447,7 +1447,7 @@ static int send_temp_packet(Net_Crypto *c, int crypt_connection_id)
         return -1;
     }
 
-    conn->temp_packet_sent_time = current_time_monotonic(c->mono_time);
+    conn->temp_packet_sent_time = mono_time_get_ms(c->mono_time);
     ++conn->temp_packet_num_sent;
     return 0;
 }
@@ -1605,13 +1605,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
     }
 
     if (real_data[0] == PACKET_ID_REQUEST) {
-        uint64_t rtt_time;
-
-        if (udp) {
-            rtt_time = conn->rtt_time;
-        } else {
-            rtt_time = DEFAULT_TCP_PING_CONNECTION;
-        }
+        const uint64_t rtt_time = udp ? conn->rtt_time : DEFAULT_TCP_PING_CONNECTION;
 
         const int requested = handle_request_packet(c->mono_time, &conn->send_array,
                                               real_data, real_length,
@@ -1668,11 +1662,8 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
     }
 
     if (rtt_calc_time != 0) {
-        uint64_t rtt_time = current_time_monotonic(c->mono_time) - rtt_calc_time;
-
-        if (rtt_time < conn->rtt_time) {
-            conn->rtt_time = rtt_time;
-        }
+        const uint64_t rtt_time = mono_time_get_ms(c->mono_time) - rtt_calc_time;
+        conn->rtt_time = min_u64(conn->rtt_time, rtt_time);
     }
 
     return 0;
@@ -2594,7 +2585,7 @@ static int udp_handle_packet(void *object, const IP_Port *source, const uint8_t 
 non_null()
 static void send_crypto_packets(Net_Crypto *c)
 {
-    const uint64_t temp_time = current_time_monotonic(c->mono_time);
+    const uint64_t temp_time = mono_time_get_ms(c->mono_time);
     double total_send_rate = 0;
     uint32_t peak_request_packet_interval = -1;
 
@@ -3073,7 +3064,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
 /** @brief Create new instance of Net_Crypto.
  * Sets all the global connection variables to their default values.
  */
-Net_Crypto *new_net_crypto(const Logger *log, Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info)
+Net_Crypto *new_net_crypto(const Logger *log, const Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info)
 {
     if (dht == nullptr) {
         return nullptr;

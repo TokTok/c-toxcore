@@ -151,7 +151,8 @@ void set_mono_time_callback(AutoTox *autotox)
 
     Mono_Time *mono_time = autotox->tox->mono_time;
 
-    autotox->clock = current_time_monotonic(mono_time);
+    mono_time_update(mono_time);
+    autotox->clock = mono_time_get(mono_time);
     mono_time_set_current_time_callback(mono_time, nullptr, nullptr);  // set to default first
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &autotox->clock);
 }

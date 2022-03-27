@@ -778,7 +778,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
 
     header.sequnum = session->sequnum;
 
-    header.timestamp = current_time_monotonic(session->m->mono_time);
+    header.timestamp = mono_time_get_ms(session->m->mono_time);
 
     header.ssrc = session->ssrc;
 

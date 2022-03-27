@@ -75,7 +75,7 @@ BWController *bwc_new(Messenger *m, Tox *tox, uint32_t friendnumber, m_cb *mcb, 
     retu->m = m;
     retu->friend_number = friendnumber;
     retu->bwc_mono_time = bwc_mono_time;
-    const uint64_t now = current_time_monotonic(bwc_mono_time);
+    const uint64_t now = mono_time_get_ms(bwc_mono_time);
     retu->cycle.last_sent_timestamp = now;
     retu->cycle.last_refresh_timestamp = now;
     retu->tox = tox;
@@ -131,7 +131,7 @@ void bwc_add_recv(BWController *bwc, uint32_t recv_bytes)
 static void send_update(BWController *bwc)
 {
     if (bwc->packet_loss_counted_cycles > BWC_AVG_LOSS_OVER_CYCLES_COUNT &&
-            current_time_monotonic(bwc->bwc_mono_time) - bwc->cycle.last_sent_timestamp > BWC_SEND_INTERVAL_MS) {
+            mono_time_get_ms(bwc->bwc_mono_time) - bwc->cycle.last_sent_timestamp > BWC_SEND_INTERVAL_MS) {
         bwc->packet_loss_counted_cycles = 0;
 
         if (bwc->cycle.lost != 0) {
@@ -158,7 +158,7 @@ static void send_update(BWController *bwc)
             }
         }
 
-        bwc->cycle.last_sent_timestamp = current_time_monotonic(bwc->bwc_mono_time);
+        bwc->cycle.last_sent_timestamp = mono_time_get_ms(bwc->bwc_mono_time);
         bwc->cycle.lost = 0;
         bwc->cycle.recv = 0;
     }
@@ -169,12 +169,12 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
     LOGGER_DEBUG(bwc->m->log, "%p Got update from peer", (void *)bwc);
 
     /* Peers sent update too soon */
-    if (bwc->cycle.last_recv_timestamp + BWC_SEND_INTERVAL_MS > current_time_monotonic(bwc->bwc_mono_time)) {
+    if (bwc->cycle.last_recv_timestamp + BWC_SEND_INTERVAL_MS > mono_time_get_ms(bwc->bwc_mono_time)) {
         LOGGER_INFO(bwc->m->log, "%p Rejecting extra update", (void *)bwc);
         return -1;
     }
 
-    bwc->cycle.last_recv_timestamp = current_time_monotonic(bwc->bwc_mono_time);
+    bwc->cycle.last_recv_timestamp = mono_time_get_ms(bwc->bwc_mono_time);
 
     const uint32_t lost = msg->lost;
 

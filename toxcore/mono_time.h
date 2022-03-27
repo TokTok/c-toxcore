@@ -55,8 +55,23 @@ non_null() void mono_time_free(Mono_Time *mono_time);
 non_null()
 void mono_time_update(Mono_Time *mono_time);
 
-/**
- * Return unix time since epoch in seconds.
+/** @brief Return current monotonic time in milliseconds (ms).
+ *
+ * The starting point is unspecified, so this time may or may not be close to
+ * unix time since epoch. The only guarantee is that the time will never
+ * decrease.
+ *
+ * Always returns a number greater than 0.
+ */
+non_null()
+uint64_t mono_time_get_ms(const Mono_Time *mono_time);
+
+/** @brief Return a monotonically increasing time in seconds.
+ *
+ * This time may or may not be close to unix time since epoch. The only
+ * guarantee is that the time will never decrease.
+ *
+ * Always returns a number greater than 0.
  */
 non_null()
 uint64_t mono_time_get(const Mono_Time *mono_time);
@@ -67,19 +82,12 @@ uint64_t mono_time_get(const Mono_Time *mono_time);
 non_null()
 bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout);
 
-/**
- * Return current monotonic time in milliseconds (ms). The starting point is
- * unspecified.
- */
-non_null()
-uint64_t current_time_monotonic(Mono_Time *mono_time);
-
 typedef uint64_t mono_time_current_time_cb(Mono_Time *mono_time, void *user_data);
 
 /**
- * Override implementation of `current_time_monotonic()` (for tests).
+ * Override implementation of `mono_time_update()` (for tests).
  *
- * The caller is obligated to ensure that `current_time_monotonic()` continues
+ * The caller is obligated to ensure that `mono_time_get()` continues
  * to increase monotonically.
  */
 non_null(1) nullable(2, 3)

@@ -277,7 +277,7 @@ uint32_t toxav_iteration_interval(const ToxAV *av)
 static void calc_interval(ToxAV *av, DecodeTimeStats *stats, int32_t frame_time, uint64_t start_time)
 {
     stats->interval = frame_time < stats->average ? 0 : (frame_time - stats->average);
-    stats->total += current_time_monotonic(av->m->mono_time) - start_time;
+    stats->total += mono_time_get_ms(av->m->mono_time) - start_time;
 
     if (++stats->count == 3) {
         stats->average = stats->total / 3 + 5; /* NOTE: Magic Offset for precision */
@@ -300,7 +300,7 @@ static void iterate_common(ToxAV *av, bool audio)
         return;
     }
 
-    const uint64_t start = current_time_monotonic(av->toxav_mono_time);
+    const uint64_t start = mono_time_get_ms(av->toxav_mono_time);
     // time until the first audio or video frame is over
     int32_t frame_time = IDLE_ITERATION_INTERVAL_MS;
 

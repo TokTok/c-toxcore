@@ -27,7 +27,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
 
 
 
-ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
+ACSession *ac_new(const Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
                   toxav_audio_receive_frame_cb *cb, void *cb_data)
 {
     ACSession *ac = (ACSession *)calloc(1, sizeof(ACSession));
@@ -194,7 +194,7 @@ void ac_iterate(ACSession *ac)
     free(temp_audio_buffer);
 }
 
-int ac_queue_message(Mono_Time *mono_time, void *acp, struct RTPMessage *msg)
+int ac_queue_message(const Mono_Time *mono_time, void *acp, struct RTPMessage *msg)
 {
     if (acp == nullptr || msg == nullptr) {
         free(msg);
@@ -478,7 +478,7 @@ static bool reconfigure_audio_encoder(const Logger *log, OpusEncoder **e, uint32
 static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uint8_t channels)
 {
     if (sampling_rate != ac->ld_sample_rate || channels != ac->ld_channel_count) {
-        if (current_time_monotonic(ac->mono_time) - ac->ldrts < 500) {
+        if (mono_time_get_ms(ac->mono_time) - ac->ldrts < 500) {
             return false;
         }
 
@@ -492,7 +492,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
 
         ac->ld_sample_rate = sampling_rate;
         ac->ld_channel_count = channels;
-        ac->ldrts = current_time_monotonic(ac->mono_time);
+        ac->ldrts = mono_time_get_ms(ac->mono_time);
 
         opus_decoder_destroy(ac->decoder);
         ac->decoder = new_dec;

@@ -16,6 +16,7 @@
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/tox.h"
+#include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -152,8 +153,7 @@ static void increment_clock(Time_Data *time_data, uint64_t count)
 
 static void set_current_time_callback(Tox *tox, Time_Data *time_data)
 {
-    // TODO(iphydf): Don't rely on toxcore internals.
-    Mono_Time *mono_time = ((Messenger *)tox)->mono_time;
+    Mono_Time *mono_time = tox->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, time_data);
 }
 
@@ -174,8 +174,8 @@ static void test_av_three_calls(void)
         bootstrap = tox_new_log(nullptr, &error, &index[0]);
         ck_assert(error == TOX_ERR_NEW_OK);
 
-        // TODO(iphydf): Don't rely on toxcore internals.
-        time_data.clock = current_time_monotonic(((Messenger *)bootstrap)->mono_time);
+        mono_time_update(bootstrap->mono_time);
+        time_data.clock = mono_time_get_ms(bootstrap->mono_time);
         set_current_time_callback(bootstrap, &time_data);
 
         Alice = tox_new_log(nullptr, &error, &index[1]);

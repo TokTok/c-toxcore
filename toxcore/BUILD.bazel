@@ -123,35 +123,6 @@ cc_library(
 )
 
 cc_library(
-    name = "mono_time",
-    srcs = ["mono_time.c"],
-    hdrs = ["mono_time.h"],
-    visibility = [
-        "//c-toxcore/auto_tests:__pkg__",
-        "//c-toxcore/other:__pkg__",
-        "//c-toxcore/other/bootstrap_daemon:__pkg__",
-        "//c-toxcore/testing:__pkg__",
-        "//c-toxcore/toxav:__pkg__",
-    ],
-    deps = [
-        ":ccompat",
-        "//c-toxcore/testing/fuzzing:fuzz_adapter",
-        "@pthread",
-    ],
-)
-
-cc_test(
-    name = "mono_time_test",
-    size = "small",
-    srcs = ["mono_time_test.cc"],
-    deps = [
-        ":mono_time",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
     name = "util",
     srcs = ["util.c"],
     hdrs = ["util.h"],
@@ -165,6 +136,36 @@ cc_library(
         ":attributes",
         ":crypto_core",
         "@pthread",
+    ],
+)
+
+cc_library(
+    name = "mono_time",
+    srcs = ["mono_time.c"],
+    hdrs = ["mono_time.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
+    deps = [
+        ":ccompat",
+        ":util",
+        "//c-toxcore/testing/fuzzing:fuzz_adapter",
+        "@pthread",
+    ],
+)
+
+cc_test(
+    name = "mono_time_test",
+    size = "small",
+    srcs = ["mono_time_test.cc"],
+    deps = [
+        ":mono_time",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

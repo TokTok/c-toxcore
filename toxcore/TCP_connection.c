@@ -19,7 +19,7 @@
 
 struct TCP_Connections {
     const Logger *logger;
-    Mono_Time *mono_time;
+    const Mono_Time *mono_time;
     DHT *dht;
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -1460,7 +1460,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
  *
  * Returns NULL on failure.
  */
-TCP_Connections *new_tcp_connections(const Logger *logger, Mono_Time *mono_time, const uint8_t *secret_key,
+TCP_Connections *new_tcp_connections(const Logger *logger, const Mono_Time *mono_time, const uint8_t *secret_key,
                                      const TCP_Proxy_Info *proxy_info)
 {
     if (secret_key == nullptr) {

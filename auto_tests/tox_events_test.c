@@ -9,6 +9,7 @@
 #include "../testing/misc_tools.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_events.h"
+#include "../toxcore/tox_struct.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -58,14 +59,13 @@ static void test_tox_events(void)
         ck_assert_msg(toxes[i] != nullptr, "failed to create tox instances %u", i);
     }
 
-    // TODO(iphydf): Don't rely on toxcore internals.
-    uint64_t clock = current_time_monotonic(((Messenger *)toxes[0])->mono_time);
+    mono_time_update(toxes[0]->mono_time);
+    uint64_t clock = mono_time_get_ms(toxes[0]->mono_time);
     Mono_Time *mono_time;
 
-    // TODO(iphydf): Don't rely on toxcore internals.
-    mono_time = ((Messenger *)toxes[0])->mono_time;
+    mono_time = toxes[0]->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
-    mono_time = ((Messenger *)toxes[1])->mono_time;
+    mono_time = toxes[1]->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
 
     uint8_t pk[TOX_PUBLIC_KEY_SIZE];

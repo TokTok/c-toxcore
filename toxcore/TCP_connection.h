@@ -251,7 +251,7 @@ uint32_t tcp_copy_connected_relays_index(const TCP_Connections *tcp_c, Node_form
  * Returns NULL on failure.
  */
 non_null()
-TCP_Connections *new_tcp_connections(const Logger *logger, Mono_Time *mono_time, const uint8_t *secret_key,
+TCP_Connections *new_tcp_connections(const Logger *logger, const Mono_Time *mono_time, const uint8_t *secret_key,
                                      const TCP_Proxy_Info *proxy_info);
 
 non_null()
