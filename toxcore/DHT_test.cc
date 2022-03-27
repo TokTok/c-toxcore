@@ -147,15 +147,15 @@ TEST(Request, CreateAndParse)
     std::vector<uint8_t> outgoing(919);
     random_bytes(rng, outgoing.data(), outgoing.size());
 
-    EXPECT_LT(create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(), receiver.pk.data(),
-                  outgoing.data(), outgoing.size(), sent_pkt_id),
+    EXPECT_LT(create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(),
+                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id),
         0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
 
-    const int max_sent_length = create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(),
-        receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+    const int max_sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
+        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
@@ -166,8 +166,8 @@ TEST(Request, CreateAndParse)
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
-        const int sent_length = create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(),
-            receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+        const int sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
+            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:

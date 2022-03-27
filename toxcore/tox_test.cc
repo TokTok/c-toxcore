@@ -8,7 +8,8 @@
 
 namespace {
 
-static void set_random_name_and_status_message(Tox *tox, const Random *rng, uint8_t *name, uint8_t *status_message)
+static void set_random_name_and_status_message(
+    Tox *tox, const Random *rng, uint8_t *name, uint8_t *status_message)
 {
     for (uint16_t i = 0; i < TOX_MAX_NAME_LENGTH; ++i) {
         name[i] = random_u08(rng);

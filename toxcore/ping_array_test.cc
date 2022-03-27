@@ -53,8 +53,8 @@ TEST(PingArray, StoredDataCanBeRetrieved)
     const Random *rng = &system_random;
     ASSERT_NE(mono_time, nullptr);
 
-    uint64_t const ping_id
-        = ping_array_add(arr.get(), mono_time.get(), rng, std::vector<uint8_t>{1, 2, 3, 4}.data(), 4);
+    uint64_t const ping_id = ping_array_add(
+        arr.get(), mono_time.get(), rng, std::vector<uint8_t>{1, 2, 3, 4}.data(), 4);
     EXPECT_NE(ping_id, 0);
 
     std::vector<uint8_t> data(4);
@@ -69,8 +69,8 @@ TEST(PingArray, RetrievingDataWithTooSmallOutputBufferHasNoEffect)
     const Random *rng = &system_random;
     ASSERT_NE(mono_time, nullptr);
 
-    uint64_t const ping_id
-        = ping_array_add(arr.get(), mono_time.get(), rng, (std::vector<uint8_t>{1, 2, 3, 4}).data(), 4);
+    uint64_t const ping_id = ping_array_add(
+        arr.get(), mono_time.get(), rng, (std::vector<uint8_t>{1, 2, 3, 4}).data(), 4);
     EXPECT_NE(ping_id, 0);
 
     std::vector<uint8_t> data(4);
