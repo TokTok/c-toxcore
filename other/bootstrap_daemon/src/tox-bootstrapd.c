@@ -319,7 +319,8 @@ int main(int argc, char *argv[])
 
     mono_time_update(mono_time);
 
-    DHT *const dht = new_dht(logger, mono_time, net, true, enable_lan_discovery);
+    const Random *rng = &system_random;
+    DHT *const dht = new_dht(logger, mono_time, rng, net, true, enable_lan_discovery);
 
     if (dht == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox DHT instance. Exiting.\n");
@@ -332,7 +333,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion *onion = new_onion(logger, mono_time, dht);
+    Onion *onion = new_onion(logger, mono_time, rng, dht);
 
     if (!onion) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
@@ -346,7 +347,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion_Announce *onion_a = new_onion_announce(logger, mono_time, dht);
+    Onion_Announce *onion_a = new_onion_announce(logger, rng, mono_time, dht);
 
     if (!onion_a) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
@@ -411,8 +412,8 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        tcp_server = new_TCP_server(logger, enable_ipv6, tcp_relay_port_count, tcp_relay_ports, dht_get_self_secret_key(dht),
-                                    onion);
+        tcp_server = new_TCP_server(
+                logger, rng, enable_ipv6, tcp_relay_port_count, tcp_relay_ports, dht_get_self_secret_key(dht), onion);
 
         free(tcp_relay_ports);
 

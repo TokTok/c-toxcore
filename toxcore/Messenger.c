@@ -3168,7 +3168,7 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messenger_Error *error)
+Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
         return nullptr;
@@ -3185,6 +3185,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     }
 
     m->mono_time = mono_time;
+    m->rng = rng;
 
     m->fr = friendreq_new();
 
@@ -3231,7 +3232,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         return nullptr;
     }
 
-    m->dht = new_dht(m->log, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
+    m->dht = new_dht(m->log, m->mono_time, m->rng, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
 
     if (m->dht == nullptr) {
         kill_networking(m->net);
@@ -3241,7 +3242,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mono_time, m->dht, &options->proxy_info);
+    m->net_crypto = new_net_crypto(m->log, m->rng, m->mono_time, m->dht, &options->proxy_info);
 
     if (m->net_crypto == nullptr) {
         kill_dht(m->dht);
@@ -3252,9 +3253,9 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         return nullptr;
     }
 
-    m->onion = new_onion(m->log, m->mono_time, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht);
-    m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
+    m->onion = new_onion(m->log, m->mono_time, m->rng, m->dht);
+    m->onion_a = new_onion_announce(m->log, m->rng, m->mono_time, m->dht);
+    m->onion_c = new_onion_client(m->log, m->rng, m->mono_time, m->net_crypto);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
@@ -3272,7 +3273,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     }
 
     if (options->tcp_server_port != 0) {
-        m->tcp_server = new_TCP_server(m->log, options->ipv6enabled, 1, &options->tcp_server_port,
+        m->tcp_server = new_TCP_server(m->log, m->rng, options->ipv6enabled, 1, &options->tcp_server_port,
                                        dht_get_self_secret_key(m->dht), m->onion);
 
         if (m->tcp_server == nullptr) {
@@ -3297,7 +3298,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
 
     m->options = *options;
     friendreq_init(m->fr, m->fr_c);
-    set_nospam(m->fr, random_u32());
+    set_nospam(m->fr, random_u32(m->rng));
     set_filter_function(m->fr, &friend_already_added, m);
 
     m->lastdump = 0;
