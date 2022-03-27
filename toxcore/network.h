@@ -581,6 +581,7 @@ non_null(1, 2, 3) nullable(6)
 Networking_Core *new_networking_ex(
         const Logger *log, const Network *ns, const IP *ip,
         uint16_t port_from, uint16_t port_to, unsigned int *error);
+
 non_null()
 Networking_Core *new_networking_no_udp(const Logger *log, const Network *ns);
 

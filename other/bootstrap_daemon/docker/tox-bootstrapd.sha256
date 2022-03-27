@@ -1,1 +1,9 @@
+<<<<<<< HEAD
 c40a0017ec22042f0be897893a774b89a6b6fbb621ac4d7f68416134fe4a78a2  /usr/local/bin/tox-bootstrapd
+=======
+<<<<<<< HEAD
+073710c9592554bbcb8bd094c9d64a987d52a2d1dedf965557b56fe848ddc14b  /usr/local/bin/tox-bootstrapd
+=======
+d68131cfe53b25a93e0ce6daf94cce52517b5c7c5f5e08297934527a910de6ec  /usr/local/bin/tox-bootstrapd
+>>>>>>> feat: Add support for custom random number generator.
+>>>>>>> feat: Add support for custom random number generator.
