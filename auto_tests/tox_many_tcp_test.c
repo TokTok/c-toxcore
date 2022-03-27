@@ -41,6 +41,7 @@ static uint16_t tcp_relay_port = 33448;
 
 static void test_many_clients_tcp(void)
 {
+    const Random *rng = &system_random;
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
     uint32_t index[NUM_TOXES_TCP];
@@ -88,8 +89,8 @@ static void test_many_clients_tcp(void)
 
     for (i = 0; i < NUM_FRIENDS; ++i) {
 loop_top:
-        pairs[i].tox1 = random_u32() % NUM_TOXES_TCP;
-        pairs[i].tox2 = (pairs[i].tox1 + random_u32() % (NUM_TOXES_TCP - 1) + 1) % NUM_TOXES_TCP;
+        pairs[i].tox1 = random_u32(rng) % NUM_TOXES_TCP;
+        pairs[i].tox2 = (pairs[i].tox1 + random_u32(rng) % (NUM_TOXES_TCP - 1) + 1) % NUM_TOXES_TCP;
 
         for (j = 0; j < i; ++j) {
             if (pairs[j].tox2 == pairs[i].tox1 && pairs[j].tox1 == pairs[i].tox2) {
@@ -142,6 +143,7 @@ loop_top:
 
 static void test_many_clients_tcp_b(void)
 {
+    const Random *rng = &system_random;
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
     uint32_t index[NUM_TOXES_TCP];
@@ -181,8 +183,8 @@ static void test_many_clients_tcp_b(void)
 
     for (i = 0; i < NUM_FRIENDS; ++i) {
 loop_top:
-        pairs[i].tox1 = random_u32() % NUM_TOXES_TCP;
-        pairs[i].tox2 = (pairs[i].tox1 + random_u32() % (NUM_TOXES_TCP - 1) + 1) % NUM_TOXES_TCP;
+        pairs[i].tox1 = random_u32(rng) % NUM_TOXES_TCP;
+        pairs[i].tox2 = (pairs[i].tox1 + random_u32(rng) % (NUM_TOXES_TCP - 1) + 1) % NUM_TOXES_TCP;
 
         for (j = 0; j < i; ++j) {
             if (pairs[j].tox2 == pairs[i].tox1 && pairs[j].tox1 == pairs[i].tox2) {

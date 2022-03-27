@@ -7,12 +7,12 @@
 #include "../toxcore/net_crypto.h"
 #include "check_compat.h"
 
-static void rand_bytes(uint8_t *b, size_t blen)
+static void rand_bytes(const Random *rng, uint8_t *b, size_t blen)
 {
     size_t i;
 
     for (i = 0; i < blen; i++) {
-        b[i] = random_u08();
+        b[i] = random_u08(rng);
     }
 }
 
@@ -129,6 +129,8 @@ static void test_fast_known(void)
 
 static void test_endtoend(void)
 {
+    const Random *rng = &system_random;
+
     // Test 100 random messages and keypairs
     for (uint8_t testno = 0; testno < 100; testno++) {
         unsigned char pk1[CRYPTO_PUBLIC_KEY_SIZE];
@@ -151,13 +153,13 @@ static void test_endtoend(void)
         unsigned char m4[sizeof(m)];
 
         //Generate random message (random length from 100 to 500)
-        const uint16_t mlen = (random_u32() % 400) + 100;
-        rand_bytes(m, mlen);
-        rand_bytes(n, CRYPTO_NONCE_SIZE);
+        const uint16_t mlen = (random_u32(rng) % 400) + 100;
+        rand_bytes(rng, m, mlen);
+        rand_bytes(rng, n, CRYPTO_NONCE_SIZE);
 
         //Generate keypairs
-        crypto_new_keypair(pk1, sk1);
-        crypto_new_keypair(pk2, sk2);
+        crypto_new_keypair(rng, pk1, sk1);
+        crypto_new_keypair(rng, pk2, sk2);
 
         //Precompute shared keys
         encrypt_precompute(pk2, sk1, k1);
@@ -192,6 +194,7 @@ static void test_endtoend(void)
 
 static void test_large_data(void)
 {
+    const Random *rng = &system_random;
     unsigned char k[CRYPTO_SHARED_KEY_SIZE];
 
     unsigned char n[CRYPTO_NONCE_SIZE];
@@ -207,12 +210,12 @@ static void test_large_data(void)
     uint16_t m1plen;
 
     //Generate random messages
-    rand_bytes(m1, sizeof(m1));
-    rand_bytes(m2, sizeof(m2));
-    rand_bytes(n, CRYPTO_NONCE_SIZE);
+    rand_bytes(rng, m1, sizeof(m1));
+    rand_bytes(rng, m2, sizeof(m2));
+    rand_bytes(rng, n, CRYPTO_NONCE_SIZE);
 
     //Generate key
-    rand_bytes(k, CRYPTO_SHARED_KEY_SIZE);
+    rand_bytes(rng, k, CRYPTO_SHARED_KEY_SIZE);
 
     c1len = encrypt_data_symmetric(k, n, m1, sizeof(m1), c1);
     c2len = encrypt_data_symmetric(k, n, m2, sizeof(m2), c2);
@@ -228,6 +231,7 @@ static void test_large_data(void)
 
 static void test_large_data_symmetric(void)
 {
+    const Random *rng = &system_random;
     unsigned char k[CRYPTO_SYMMETRIC_KEY_SIZE];
 
     unsigned char n[CRYPTO_NONCE_SIZE];
@@ -240,11 +244,11 @@ static void test_large_data_symmetric(void)
     uint16_t m1plen;
 
     //Generate random messages
-    rand_bytes(m1, sizeof(m1));
-    rand_bytes(n, CRYPTO_NONCE_SIZE);
+    rand_bytes(rng, m1, sizeof(m1));
+    rand_bytes(rng, n, CRYPTO_NONCE_SIZE);
 
     //Generate key
-    new_symmetric_key(k);
+    new_symmetric_key(rng, k);
 
     c1len = encrypt_data_symmetric(k, n, m1, sizeof(m1), c1);
     ck_assert_msg(c1len == sizeof(m1) + CRYPTO_MAC_SIZE, "could not encrypt data");
@@ -278,12 +282,14 @@ static void increment_nonce_number_cmp(uint8_t *nonce, uint32_t num)
 
 static void test_increment_nonce(void)
 {
+    const Random *rng = &system_random;
+
     uint32_t i;
 
     uint8_t n[CRYPTO_NONCE_SIZE];
 
     for (i = 0; i < CRYPTO_NONCE_SIZE; ++i) {
-        n[i] = random_u08();
+        n[i] = random_u08(rng);
     }
 
     uint8_t n1[CRYPTO_NONCE_SIZE];
@@ -297,7 +303,7 @@ static void test_increment_nonce(void)
     }
 
     for (i = 0; i < (1 << 18); ++i) {
-        const uint32_t r = random_u32();
+        const uint32_t r = random_u32(rng);
         increment_nonce_number_cmp(n, r);
         increment_nonce_number(n1, r);
         ck_assert_msg(memcmp(n, n1, CRYPTO_NONCE_SIZE) == 0, "Bad increment_nonce_number function");

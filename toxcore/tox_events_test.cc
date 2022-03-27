@@ -11,8 +11,9 @@ namespace {
 
 TEST(ToxEvents, UnpackRandomDataDoesntCrash)
 {
+    const Random *rng = &system_random;
     std::array<uint8_t, 128> data;
-    random_bytes(data.data(), data.size());
+    random_bytes(rng, data.data(), data.size());
     tox_events_free(tox_events_load(data.data(), data.size()));
 }
 

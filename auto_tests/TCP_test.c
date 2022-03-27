@@ -46,14 +46,15 @@ static uint16_t ports[NUM_PORTS] = {13215, 33445, 25643};
 static void test_basic(void)
 {
     Mono_Time *mono_time = mono_time_new();
+    const Random *rng = &system_random;
     Logger *logger = logger_new();
     logger_callback_log(logger, (logger_cb *)print_debug_log, nullptr, nullptr);
 
     // Attempt to create a new TCP_Server instance.
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS,
                   "Failed to bind a TCP relay server to all %d attempted ports.", NUM_PORTS);
@@ -80,17 +81,17 @@ static void test_basic(void)
     uint8_t f_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
     uint8_t f_nonce[CRYPTO_NONCE_SIZE];
-    crypto_new_keypair(f_public_key, f_secret_key);
-    random_nonce(f_nonce);
+    crypto_new_keypair(rng, f_public_key, f_secret_key);
+    random_nonce(rng, f_nonce);
 
     // Generation of the initial handshake.
     uint8_t t_secret_key[CRYPTO_SECRET_KEY_SIZE];
     uint8_t handshake_plain[TCP_HANDSHAKE_PLAIN_SIZE];
-    crypto_new_keypair(handshake_plain, t_secret_key);
+    crypto_new_keypair(rng, handshake_plain, t_secret_key);
     memcpy(handshake_plain + CRYPTO_PUBLIC_KEY_SIZE, f_nonce, CRYPTO_NONCE_SIZE);
     uint8_t handshake[TCP_CLIENT_HANDSHAKE_SIZE];
     memcpy(handshake, f_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    random_nonce(handshake + CRYPTO_PUBLIC_KEY_SIZE);
+    random_nonce(rng, handshake + CRYPTO_PUBLIC_KEY_SIZE);
 
     // Encrypting handshake
     int ret = encrypt_data(self_public_key, f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
@@ -186,7 +187,7 @@ struct sec_TCP_con {
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
 };
 
-static struct sec_TCP_con *new_TCP_con(const Logger *logger, TCP_Server *tcp_s, Mono_Time *mono_time)
+static struct sec_TCP_con *new_TCP_con(const Logger *logger, const Random *rng, TCP_Server *tcp_s, Mono_Time *mono_time)
 {
     struct sec_TCP_con *sec_c = (struct sec_TCP_con *)malloc(sizeof(struct sec_TCP_con));
     ck_assert(sec_c != nullptr);
@@ -194,22 +195,22 @@ static struct sec_TCP_con *new_TCP_con(const Logger *logger, TCP_Server *tcp_s, 
 
     IP_Port localhost;
     localhost.ip = get_loopback();
-    localhost.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    localhost.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
 
     bool ok = net_connect(logger, sock, &localhost);
     ck_assert_msg(ok, "Failed to connect to the test TCP relay server.");
 
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(sec_c->public_key, f_secret_key);
-    random_nonce(sec_c->sent_nonce);
+    crypto_new_keypair(rng, sec_c->public_key, f_secret_key);
+    random_nonce(rng, sec_c->sent_nonce);
 
     uint8_t t_secret_key[CRYPTO_SECRET_KEY_SIZE];
     uint8_t handshake_plain[TCP_HANDSHAKE_PLAIN_SIZE];
-    crypto_new_keypair(handshake_plain, t_secret_key);
+    crypto_new_keypair(rng, handshake_plain, t_secret_key);
     memcpy(handshake_plain + CRYPTO_PUBLIC_KEY_SIZE, sec_c->sent_nonce, CRYPTO_NONCE_SIZE);
     uint8_t handshake[TCP_CLIENT_HANDSHAKE_SIZE];
     memcpy(handshake, sec_c->public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    random_nonce(handshake + CRYPTO_PUBLIC_KEY_SIZE);
+    random_nonce(rng, handshake + CRYPTO_PUBLIC_KEY_SIZE);
 
     int ret = encrypt_data(tcp_server_public_key(tcp_s), f_secret_key, handshake + CRYPTO_PUBLIC_KEY_SIZE, handshake_plain,
                            TCP_HANDSHAKE_PLAIN_SIZE, handshake + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
@@ -287,18 +288,19 @@ static int read_packet_sec_TCP(const Logger *logger, struct sec_TCP_con *con, ui
 static void test_some(void)
 {
     Mono_Time *mono_time = mono_time_new();
+    const Random *rng = &system_random;
     Logger *logger = logger_new();
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create TCP relay server");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind to all ports.");
 
-    struct sec_TCP_con *con1 = new_TCP_con(logger, tcp_s, mono_time);
-    struct sec_TCP_con *con2 = new_TCP_con(logger, tcp_s, mono_time);
-    struct sec_TCP_con *con3 = new_TCP_con(logger, tcp_s, mono_time);
+    struct sec_TCP_con *con1 = new_TCP_con(logger, rng, tcp_s, mono_time);
+    struct sec_TCP_con *con2 = new_TCP_con(logger, rng, tcp_s, mono_time);
+    struct sec_TCP_con *con3 = new_TCP_con(logger, rng, tcp_s, mono_time);
 
     uint8_t requ_p[1 + CRYPTO_PUBLIC_KEY_SIZE];
     requ_p[0] = TCP_PACKET_ROUTING_REQUEST;
@@ -474,25 +476,26 @@ static int oob_data_callback(void *object, const uint8_t *public_key, const uint
 
 static void test_client(void)
 {
+    const Random *rng = &system_random;
     Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind the relay server to all ports.");
 
     uint8_t f_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(f_public_key, f_secret_key);
+    crypto_new_keypair(rng, f_public_key, f_secret_key);
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, &ip_port_tcp_s, self_public_key, f_public_key,
+    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, rng, &ip_port_tcp_s, self_public_key, f_public_key,
                                   f_secret_key, nullptr);
     do_TCP_connection(logger, mono_time, conn, nullptr);
     c_sleep(50);
@@ -525,9 +528,9 @@ static void test_client(void)
 
     uint8_t f2_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t f2_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(f2_public_key, f2_secret_key);
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
-    TCP_Client_Connection *conn2 = new_TCP_connection(logger, mono_time, &ip_port_tcp_s, self_public_key, f2_public_key,
+    crypto_new_keypair(rng, f2_public_key, f2_secret_key);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
+    TCP_Client_Connection *conn2 = new_TCP_connection(logger, mono_time, rng, &ip_port_tcp_s, self_public_key, f2_public_key,
                                    f2_secret_key, nullptr);
 
     // The client should call this function (defined earlier) during the routing process.
@@ -602,21 +605,22 @@ static void test_client(void)
 // Test how the client handles servers that don't respond.
 static void test_client_invalid(void)
 {
+    const Random *rng = &system_random;
     Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
 
     uint8_t f_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(f_public_key, f_secret_key);
+    crypto_new_keypair(rng, f_public_key, f_secret_key);
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
-    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, &ip_port_tcp_s, self_public_key, f_public_key,
+    TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, rng, &ip_port_tcp_s, self_public_key, f_public_key,
                                   f_secret_key, nullptr);
 
     // Run the client's main loop but not the server.
@@ -676,27 +680,28 @@ static void test_tcp_connection(void)
 {
     Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
+    const Random *rng = &system_random;
 
     tcp_data_callback_called = 0;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
     ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
 
     TCP_Proxy_Info proxy_info;
     proxy_info.proxy_type = TCP_PROXY_NONE;
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mono_time, self_secret_key, &proxy_info);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Connections *tc_1 = new_tcp_connections(logger, rng, mono_time, self_secret_key, &proxy_info);
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
 
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mono_time, self_secret_key, &proxy_info);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Connections *tc_2 = new_tcp_connections(logger, rng, mono_time, self_secret_key, &proxy_info);
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
 
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
     int connection = new_tcp_connection_to(tc_1, tcp_connections_public_key(tc_2), 123);
@@ -704,7 +709,7 @@ static void test_tcp_connection(void)
     ck_assert_msg(add_tcp_relay_connection(tc_1, connection, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
                   "Could not add tcp relay to connection\n");
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     connection = new_tcp_connection_to(tc_2, tcp_connections_public_key(tc_1), 123);
     ck_assert_msg(connection == 0, "Connection id wrong");
     ck_assert_msg(add_tcp_relay_connection(tc_2, connection, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
@@ -782,29 +787,30 @@ static void test_tcp_connection2(void)
 {
     Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
+    const Random *rng = &system_random;
 
     tcp_oobdata_callback_called = 0;
     tcp_data_callback_called = 0;
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
     ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
 
     TCP_Proxy_Info proxy_info;
     proxy_info.proxy_type = TCP_PROXY_NONE;
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mono_time, self_secret_key, &proxy_info);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Connections *tc_1 = new_tcp_connections(logger, rng, mono_time, self_secret_key, &proxy_info);
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
 
-    crypto_new_keypair(self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mono_time, self_secret_key, &proxy_info);
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Connections *tc_2 = new_tcp_connections(logger, rng, mono_time, self_secret_key, &proxy_info);
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
 
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32() % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
     int connection = new_tcp_connection_to(tc_1, tcp_connections_public_key(tc_2), 123);

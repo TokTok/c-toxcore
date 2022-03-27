@@ -6,30 +6,31 @@
 
 namespace {
 
-RTPHeader random_header()
+RTPHeader random_header(const Random *rng)
 {
     return {
-        random_u16(),
-        random_u16(),
-        random_u16(),
-        random_u16(),
-        random_u16(),
-        random_u16(),
-        random_u16(),
-        random_u32(),
-        random_u32(),
-        random_u64(),
-        random_u32(),
-        random_u32(),
-        random_u32(),
-        random_u16(),
-        random_u16(),
+        random_u16(rng),
+        random_u16(rng),
+        random_u16(rng),
+        random_u16(rng),
+        random_u16(rng),
+        random_u16(rng),
+        random_u16(rng),
+        random_u32(rng),
+        random_u32(rng),
+        random_u64(rng),
+        random_u32(rng),
+        random_u32(rng),
+        random_u32(rng),
+        random_u16(rng),
+        random_u16(rng),
     };
 }
 
 TEST(Rtp, Deserialisation)
 {
-    RTPHeader const header = random_header();
+    const Random *rng = &system_random;
+    RTPHeader const header = random_header(rng);
 
     uint8_t rdata[RTP_HEADER_SIZE];
     EXPECT_EQ(rtp_header_pack(rdata, &header), RTP_HEADER_SIZE);

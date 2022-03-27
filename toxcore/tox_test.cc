@@ -8,14 +8,14 @@
 
 namespace {
 
-static void set_random_name_and_status_message(Tox *tox, uint8_t *name, uint8_t *status_message)
+static void set_random_name_and_status_message(Tox *tox, const Random *rng, uint8_t *name, uint8_t *status_message)
 {
     for (uint16_t i = 0; i < TOX_MAX_NAME_LENGTH; ++i) {
-        name[i] = random_u08();
+        name[i] = random_u08(rng);
     }
 
     for (uint16_t i = 0; i < TOX_MAX_STATUS_MESSAGE_LENGTH; ++i) {
-        status_message[i] = random_u08();
+        status_message[i] = random_u08(rng);
     }
 }
 
@@ -52,10 +52,11 @@ TEST(Tox, OneTest)
 
     Tox *tox1 = tox_new(options, nullptr);
     ASSERT_NE(tox1, nullptr);
-    set_random_name_and_status_message(tox1, name.data(), status_message.data());
+    const Random *rng = &system_random;
+    set_random_name_and_status_message(tox1, rng, name.data(), status_message.data());
     Tox *tox2 = tox_new(options, nullptr);
     ASSERT_NE(tox2, nullptr);
-    set_random_name_and_status_message(tox2, name2.data(), status_message2.data());
+    set_random_name_and_status_message(tox2, rng, name2.data(), status_message2.data());
 
     std::array<uint8_t, TOX_ADDRESS_SIZE> address;
     tox_self_get_address(tox1, address.data());
