@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
         logger_callback_log(logger, print_log, nullptr, nullptr);
     }
 
-    Mono_Time *mono_time = mono_time_new();
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     const uint16_t start_port = PORT;
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     DHT *dht = new_dht(logger, mono_time, new_networking_ex(logger, &ip, start_port, end_port, nullptr), true, true);
