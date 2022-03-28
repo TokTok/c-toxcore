@@ -42,8 +42,6 @@ CONST_FUNCTION(hash_length, HASH_LENGTH)
 CONST_FUNCTION(file_id_length, FILE_ID_LENGTH)
 CONST_FUNCTION(max_filename_length, MAX_FILENAME_LENGTH)
 CONST_FUNCTION(max_hostname_length, MAX_HOSTNAME_LENGTH)
-CONST_FUNCTION(dht_node_ip_string_size, DHT_NODE_IP_STRING_SIZE)
-CONST_FUNCTION(dht_node_public_key_size, DHT_NODE_PUBLIC_KEY_SIZE)
 
 
 #define ACCESSORS(type, ns, name) \
@@ -71,6 +69,7 @@ ACCESSORS(tox_log_cb *, log_, callback)
 ACCESSORS(void *, log_, user_data)
 ACCESSORS(bool,, local_discovery_enabled)
 ACCESSORS(bool,, experimental_thread_safety)
+ACCESSORS(const Tox_System *,, operating_system)
 
 //!TOKSTYLE+
 
