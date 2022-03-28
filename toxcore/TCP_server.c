@@ -688,7 +688,7 @@ static int handle_TCP_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
 
                 IP_Port source;
                 source.port = 0;  // dummy initialise
-                source.ip.family = net_family_tcp_onion;
+                source.ip.family = net_family_tcp_onion();
                 source.ip.ip.v6.uint32[0] = con_id;
                 source.ip.ip.v6.uint32[1] = 0;
                 source.ip.ip.v6.uint64[1] = con->identifier;
@@ -883,7 +883,7 @@ TCP_Server *new_TCP_server(const Logger *logger, bool ipv6_enabled, uint16_t num
 
 #endif
 
-    const Family family = ipv6_enabled ? net_family_ipv6 : net_family_ipv4;
+    const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
 
     for (uint32_t i = 0; i < num_sockets; ++i) {
         const Socket sock = new_listening_TCP_socket(logger, family, ports[i]);

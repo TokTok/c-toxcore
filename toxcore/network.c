@@ -297,17 +297,27 @@ static int make_family(Family tox_family)
 }
 #endif  // !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && !defined(NDEBUG)
 
+static const Family family_unspec = {TOX_AF_UNSPEC};
+static const Family family_ipv4 = {TOX_AF_INET};
+static const Family family_ipv6 = {TOX_AF_INET6};
+static const Family family_tcp_family = {TCP_FAMILY};
+static const Family family_tcp_onion = {TCP_ONION_FAMILY};
+static const Family family_tcp_ipv4 = {TCP_INET};
+static const Family family_tcp_ipv6 = {TCP_INET6};
+static const Family family_tox_tcp_ipv4 = {TOX_TCP_INET};
+static const Family family_tox_tcp_ipv6 = {TOX_TCP_INET6};
+
 static const Family *make_tox_family(int family)
 {
     switch (family) {
         case AF_INET:
-            return &net_family_ipv4;
+            return &family_ipv4;
 
         case AF_INET6:
-            return &net_family_ipv6;
+            return &family_ipv6;
 
         case AF_UNSPEC:
-            return &net_family_unspec;
+            return &family_unspec;
 
         default:
             return nullptr;
@@ -372,59 +382,94 @@ IP6 get_ip6_loopback(void)
 
 const Socket net_invalid_socket = { (int)INVALID_SOCKET };
 
-const Family net_family_unspec = {TOX_AF_UNSPEC};
-const Family net_family_ipv4 = {TOX_AF_INET};
-const Family net_family_ipv6 = {TOX_AF_INET6};
-const Family net_family_tcp_family = {TCP_FAMILY};
-const Family net_family_tcp_onion = {TCP_ONION_FAMILY};
-const Family net_family_tcp_ipv4 = {TCP_INET};
-const Family net_family_tcp_ipv6 = {TCP_INET6};
-const Family net_family_tox_tcp_ipv4 = {TOX_TCP_INET};
-const Family net_family_tox_tcp_ipv6 = {TOX_TCP_INET6};
+Family net_family_unspec()
+{
+    return family_unspec;
+}
+
+Family net_family_ipv4()
+{
+    return family_ipv4;
+}
+
+Family net_family_ipv6()
+{
+    return family_ipv6;
+}
+
+Family net_family_tcp_family()
+{
+    return family_tcp_family;
+}
+
+Family net_family_tcp_onion()
+{
+    return family_tcp_onion;
+}
+
+Family net_family_tcp_ipv4()
+{
+    return family_tcp_ipv4;
+}
+
+Family net_family_tcp_ipv6()
+{
+    return family_tcp_ipv6;
+}
+
+Family net_family_tox_tcp_ipv4()
+{
+    return family_tox_tcp_ipv4;
+}
+
+Family net_family_tox_tcp_ipv6()
+{
+    return family_tox_tcp_ipv6;
+}
 
 bool net_family_is_unspec(Family family)
 {
-    return family.value == net_family_unspec.value;
+    return family.value == family_unspec.value;
 }
 
 bool net_family_is_ipv4(Family family)
 {
-    return family.value == net_family_ipv4.value;
+    return family.value == family_ipv4.value;
 }
 
 bool net_family_is_ipv6(Family family)
 {
-    return family.value == net_family_ipv6.value;
+    return family.value == family_ipv6.value;
 }
 
 bool net_family_is_tcp_family(Family family)
 {
-    return family.value == net_family_tcp_family.value;
+    return family.value == family_tcp_family.value;
 }
 
 bool net_family_is_tcp_onion(Family family)
 {
-    return family.value == net_family_tcp_onion.value;
+    return family.value == family_tcp_onion.value;
 }
 
 bool net_family_is_tcp_ipv4(Family family)
 {
-    return family.value == net_family_tcp_ipv4.value;
+    return family.value == family_tcp_ipv4.value;
 }
 
 bool net_family_is_tcp_ipv6(Family family)
 {
-    return family.value == net_family_tcp_ipv6.value;
+    return family.value == family_tcp_ipv6.value;
 }
 
 bool net_family_is_tox_tcp_ipv4(Family family)
 {
-    return family.value == net_family_tox_tcp_ipv4.value;
+    return family.value == family_tox_tcp_ipv4.value;
 }
 
 bool net_family_is_tox_tcp_ipv6(Family family)
 {
-    return family.value == net_family_tox_tcp_ipv6.value;
+    return family.value == family_tox_tcp_ipv6.value;
 }
 
 bool sock_valid(Socket sock)
@@ -615,7 +660,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         ip6.uint32[2] = net_htonl(0xFFFF);
         ip6.uint32[3] = ipp_copy.ip.ip.v4.uint32;
 
-        ipp_copy.ip.family = net_family_ipv6;
+        ipp_copy.ip.family = family_ipv6;
         ipp_copy.ip.ip.v6 = ip6;
     }
 
@@ -735,7 +780,7 @@ static int receivepacket(const Logger *log, Socket sock, IP_Port *ip_port, uint8
         ip_port->port = addr_in6->sin6_port;
 
         if (ipv6_ipv4_in_v6(&ip_port->ip.ip.v6)) {
-            ip_port->ip.family = net_family_ipv4;
+            ip_port->ip.family = family_ipv4;
             ip_port->ip.ip.v4.uint32 = ip_port->ip.ip.v6.uint32[3];
         }
     } else {
@@ -1204,7 +1249,7 @@ void ip_init(IP *ip, bool ipv6enabled)
     }
 
     *ip = empty_ip;
-    ip->family = ipv6enabled ? net_family_ipv6 : net_family_ipv4;
+    ip->family = ipv6enabled ? family_ipv6 : family_ipv4;
 }
 
 /** checks if ip is valid */
@@ -1313,7 +1358,7 @@ bool addr_parse_ip(const char *address, IP *to)
     struct in_addr addr4;
 
     if (inet_pton4(address, &addr4) == 1) {
-        to->family = net_family_ipv4;
+        to->family = family_ipv4;
         get_ip4(&to->ip.v4, &addr4);
         return true;
     }
@@ -1321,7 +1366,7 @@ bool addr_parse_ip(const char *address, IP *to)
     struct in6_addr addr6;
 
     if (inet_pton6(address, &addr6) == 1) {
-        to->family = net_family_ipv6;
+        to->family = family_ipv6;
         get_ip6(&to->ip.v6, &addr6);
         return true;
     }

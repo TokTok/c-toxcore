@@ -290,7 +290,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
 
         if (num_nodes >= 2) {
             nodes[0] = empty_node_format;
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
+            nodes[0].ip_port.ip.family = net_family_tcp_family();
             nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
 
             for (unsigned int i = 1; i < max_num; ++i) {
@@ -305,7 +305,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
             }
 
             nodes[0] = empty_node_format;
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
+            nodes[0].ip_port.ip.family = net_family_tcp_family();
             nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
 
             for (unsigned int i = 1; i < max_num; ++i) {
@@ -1039,7 +1039,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
     }
 
     IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_family;
+    ip_port.ip.family = net_family_tcp_family();
 
     if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE_OLD) {
         return handle_announce_response(object, &ip_port, data, length, userdata);

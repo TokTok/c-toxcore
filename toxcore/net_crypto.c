@@ -2268,7 +2268,7 @@ static int tcp_oob_callback(void *object, const uint8_t *public_key, unsigned in
     if (data[0] == NET_PACKET_CRYPTO_HS) {
         IP_Port source;
         source.port = 0;
-        source.ip.family = net_family_tcp_family;
+        source.ip.family = net_family_tcp_family();
         source.ip.ip.v6.uint32[0] = tcp_connections_number;
 
         if (handle_new_connection_handshake(c, &source, data, length, userdata) != 0) {

@@ -1167,9 +1167,9 @@ static int add_tcp_relay_instance(TCP_Connections *tcp_c, const IP_Port *ip_port
     IP_Port ipp_copy = *ip_port;
 
     if (net_family_is_tcp_ipv4(ipp_copy.ip.family)) {
-        ipp_copy.ip.family = net_family_ipv4;
+        ipp_copy.ip.family = net_family_ipv4();
     } else if (net_family_is_tcp_ipv6(ipp_copy.ip.family)) {
-        ipp_copy.ip.family = net_family_ipv6;
+        ipp_copy.ip.family = net_family_ipv6();
     }
 
     if (!net_family_is_ipv4(ipp_copy.ip.family) && !net_family_is_ipv6(ipp_copy.ip.family)) {
@@ -1335,9 +1335,9 @@ static bool copy_tcp_relay_conn(const TCP_Connections *tcp_c, Node_format *tcp_r
     Family *const family = &tcp_relay->ip_port.ip.family;
 
     if (net_family_is_ipv4(*family)) {
-        *family = net_family_tcp_ipv4;
+        *family = net_family_tcp_ipv4();
     } else if (net_family_is_ipv6(*family)) {
-        *family = net_family_tcp_ipv6;
+        *family = net_family_tcp_ipv6();
     }
 
     return true;
