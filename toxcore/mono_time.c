@@ -51,9 +51,11 @@ struct Mono_Time {
 };
 
 #ifdef OS_WIN32
-non_null(1) nullable(2)
-static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_data)
+non_null()
+static uint64_t current_time_monotonic_default(void *user_data)
 {
+    Mono_Time *const mono_time = (Mono_Time *)user_data;
+
     /* Must hold mono_time->last_clock_lock here */
 
     /* GetTickCount provides only a 32 bit counter, but we can't use
@@ -85,8 +87,8 @@ static uint64_t timespec_to_u64(struct timespec clock_mono)
     return 1000ULL * clock_mono.tv_sec + (clock_mono.tv_nsec / 1000000ULL);
 }
 #ifdef __APPLE__
-non_null(1) nullable(2)
-static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_data)
+non_null()
+static uint64_t current_time_monotonic_default(void *user_data)
 {
     struct timespec clock_mono;
     clock_serv_t muhclock;
@@ -101,13 +103,13 @@ static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_
     return timespec_to_u64(clock_mono);
 }
 #else // !__APPLE__
-non_null(1) nullable(2)
-static uint64_t current_time_monotonic_default(Mono_Time *mono_time, void *user_data)
+non_null()
+static uint64_t current_time_monotonic_default(void *user_data)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     // This assert should always fail. If it does, the fuzzing harness didn't
     // override the mono time callback.
-    assert(mono_time == nullptr);
+    assert(user_data == nullptr);
 #endif
     struct timespec clock_mono;
     clock_gettime(CLOCK_MONOTONIC, &clock_mono);
@@ -156,15 +158,13 @@ Mono_Time *mono_time_new(void)
 
     mono_time->cur_time = 0;
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Maximum reproducibility and don't update mono_time before the harness has
-    // had a chance to set the callback.
-    // TODO(iphydf): Put mono time callback into Tox_Options with accessors only
-    // in tox_private.h.
-    mono_time->base_time = 0;
+    // Maximum reproducibility. Never return time = 0.
+    mono_time->base_time = 1;
 #else
     mono_time->base_time = (uint64_t)time(nullptr) - (current_time_monotonic(mono_time) / 1000ULL);
-    mono_time_update(mono_time);
 #endif
+
+    mono_time_update(mono_time);
 
     return mono_time;
 }
@@ -187,7 +187,7 @@ void mono_time_update(Mono_Time *mono_time)
     pthread_mutex_lock(&mono_time->last_clock_lock);
     mono_time->last_clock_update = true;
 #endif
-    cur_time = mono_time->current_time_callback(mono_time, mono_time->user_data) / 1000ULL;
+    cur_time = mono_time->current_time_callback(mono_time->user_data) / 1000ULL;
     cur_time += mono_time->base_time;
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
@@ -221,7 +221,7 @@ void mono_time_set_current_time_callback(Mono_Time *mono_time,
 {
     if (current_time_callback == nullptr) {
         mono_time->current_time_callback = current_time_monotonic_default;
-        mono_time->user_data = nullptr;
+        mono_time->user_data = mono_time;
     } else {
         mono_time->current_time_callback = current_time_callback;
         mono_time->user_data = user_data;
@@ -240,7 +240,7 @@ uint64_t current_time_monotonic(Mono_Time *mono_time)
      * but must protect against other threads */
     pthread_mutex_lock(&mono_time->last_clock_lock);
 #endif
-    const uint64_t cur_time = mono_time->current_time_callback(mono_time, mono_time->user_data);
+    const uint64_t cur_time = mono_time->current_time_callback(mono_time->user_data);
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
