@@ -31,11 +31,11 @@
 #include <time.h>
 
 #include "ccompat.h"
+#include "util.h"
 
 /** don't call into system billions of times for no reason */
 struct Mono_Time {
     uint64_t cur_time;
-    uint64_t base_time;
 #ifdef OS_WIN32
     /* protect `last_clock_update` and `last_clock_mono` from concurrent access */
     pthread_mutex_t last_clock_lock;
@@ -155,14 +155,10 @@ Mono_Time *mono_time_new(void)
 #endif
 
     mono_time->cur_time = 0;
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Maximum reproducibility and don't update mono_time before the harness has
-    // had a chance to set the callback.
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    // Don't update mono_time before the harness has had a chance to set the callback.
     // TODO(iphydf): Put mono time callback into Tox_Options with accessors only
     // in tox_private.h.
-    mono_time->base_time = 0;
-#else
-    mono_time->base_time = (uint64_t)time(nullptr) - (current_time_monotonic(mono_time) / 1000ULL);
     mono_time_update(mono_time);
 #endif
 
@@ -188,7 +184,6 @@ void mono_time_update(Mono_Time *mono_time)
     mono_time->last_clock_update = true;
 #endif
     cur_time = mono_time->current_time_callback(mono_time, mono_time->user_data) / 1000ULL;
-    cur_time += mono_time->base_time;
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
@@ -198,18 +193,21 @@ void mono_time_update(Mono_Time *mono_time)
     pthread_rwlock_unlock(mono_time->time_update_lock);
 }
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
 uint64_t mono_time_get(const Mono_Time *mono_time)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     // Fuzzing is only single thread for now, no locking needed */
-    return mono_time->cur_time;
+    return max_u64(1, mono_time->cur_time);
+}
 #else
+uint64_t mono_time_get(const Mono_Time *mono_time)
+{
     pthread_rwlock_rdlock(mono_time->time_update_lock);
     const uint64_t cur_time = mono_time->cur_time;
     pthread_rwlock_unlock(mono_time->time_update_lock);
-    return cur_time;
-#endif
+    return max_u64(1, cur_time);
 }
+#endif
 
 bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout)
 {

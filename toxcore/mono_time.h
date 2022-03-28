@@ -55,8 +55,12 @@ non_null() void mono_time_free(Mono_Time *mono_time);
 non_null()
 void mono_time_update(Mono_Time *mono_time);
 
-/**
- * Return unix time since epoch in seconds.
+/** @brief Return a monotonically increasing time in seconds.
+ *
+ * This time may or may not be close to unix time since epoch. The only
+ * guarantee is that the time will never decrease.
+ *
+ * Always returns a number greater than 0.
  */
 non_null()
 uint64_t mono_time_get(const Mono_Time *mono_time);
