@@ -165,7 +165,8 @@ TEST(SanctionsList, PackUnpackSanctionsCreds)
     Moderation mod{};
     std::array<uint8_t, MOD_SANCTIONS_CREDS_SIZE> packed;
     EXPECT_EQ(sanctions_creds_pack(&mod.sanctions_creds, packed.data()), MOD_SANCTIONS_CREDS_SIZE);
-    EXPECT_EQ(sanctions_creds_unpack(&mod.sanctions_creds, packed.data()), MOD_SANCTIONS_CREDS_SIZE);
+    EXPECT_EQ(
+        sanctions_creds_unpack(&mod.sanctions_creds, packed.data()), MOD_SANCTIONS_CREDS_SIZE);
 }
 
 struct SanctionsListMod : ::testing::Test {
@@ -192,15 +193,19 @@ protected:
 
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 0));
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 1));
-        EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], (uint16_t)-1));
+        EXPECT_FALSE(sanctions_list_check_integrity(
+            &mod, &mod.sanctions_creds, &sanctions[0], (uint16_t)-1));
 
         EXPECT_TRUE(sanctions_list_make_entry(&mod, sanctioned_pk1, &sanctions[0], SA_OBSERVER));
-        EXPECT_TRUE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
+        EXPECT_TRUE(sanctions_list_check_integrity(
+            &mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
         EXPECT_TRUE(sanctions_list_make_entry(&mod, sanctioned_pk2, &sanctions[1], SA_OBSERVER));
-        EXPECT_TRUE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
+        EXPECT_TRUE(sanctions_list_check_integrity(
+            &mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
     }
 
-    ~SanctionsListMod() override {
+    ~SanctionsListMod() override
+    {
         EXPECT_TRUE(sanctions_list_remove_observer(&mod, sanctioned_pk1, nullptr));
         EXPECT_TRUE(sanctions_list_remove_observer(&mod, sanctioned_pk2, nullptr));
         EXPECT_FALSE(sanctions_list_entry_exists(&mod, &sanctions[0]));
@@ -236,7 +241,8 @@ TEST_F(SanctionsListMod, PackUnpackSanction)
 TEST_F(SanctionsListMod, ReplaceSanctionSignatures)
 {
     EXPECT_EQ(sanctions_list_replace_sig(&mod, mod.self_public_sig_key), mod.num_sanctions);
-    EXPECT_TRUE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
+    EXPECT_TRUE(
+        sanctions_list_check_integrity(&mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
 }
 
 }  // namespace
