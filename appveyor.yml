@@ -17,7 +17,7 @@ install:
 for:
   - matrix:
       only:
-      - job_name: static
+        - job_name: static
     before_build:
       - conan install -if _build -o with_tests=True .
   - matrix:
