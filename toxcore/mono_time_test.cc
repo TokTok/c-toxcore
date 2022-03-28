@@ -39,28 +39,29 @@ TEST(MonoTime, IsTimeout)
     mono_time_free(mono_time);
 }
 
-TEST(MonoTime, CustomTime) {
-  Mono_Time *mono_time = mono_time_new();
-  ASSERT_NE(mono_time, nullptr);
+TEST(MonoTime, CustomTime)
+{
+    Mono_Time *mono_time = mono_time_new();
+    ASSERT_NE(mono_time, nullptr);
 
-  uint64_t test_time = current_time_monotonic(mono_time) + 42137;
+    uint64_t test_time = current_time_monotonic(mono_time) + 42137;
 
-  mono_time_set_current_time_callback(
-      mono_time, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &test_time);
-  mono_time_update(mono_time);
+    mono_time_set_current_time_callback(
+        mono_time, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &test_time);
+    mono_time_update(mono_time);
 
-  EXPECT_EQ(current_time_monotonic(mono_time), test_time);
+    EXPECT_EQ(current_time_monotonic(mono_time), test_time);
 
-  uint64_t const start = mono_time_get(mono_time);
+    uint64_t const start = mono_time_get(mono_time);
 
-  test_time += 7000;
+    test_time += 7000;
 
-  mono_time_update(mono_time);
-  EXPECT_EQ(mono_time_get(mono_time) - start, 7);
+    mono_time_update(mono_time);
+    EXPECT_EQ(mono_time_get(mono_time) - start, 7);
 
-  EXPECT_EQ(current_time_monotonic(mono_time), test_time);
+    EXPECT_EQ(current_time_monotonic(mono_time), test_time);
 
-  mono_time_free(mono_time);
+    mono_time_free(mono_time);
 }
 
 }  // namespace
