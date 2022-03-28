@@ -39,7 +39,9 @@ class ToxConan(ConanFile):
         self._cmake.definitions["AUTOTEST"] = self.options.with_tests
         self._cmake.definitions["BUILD_MISC_TESTS"] = self.options.with_tests
 
-        self._cmake.definitions["CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = self.options.shared
+        self._cmake.definitions[
+            "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"
+        ] = self.options.shared
         self._cmake.definitions["ENABLE_SHARED"] = self.options.shared
         self._cmake.definitions["ENABLE_STATIC"] = not self.options.shared
         self._cmake.definitions["MUST_BUILD_TOXAV"] = True
@@ -52,12 +54,15 @@ class ToxConan(ConanFile):
 
     def set_version(self):
         content = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
-        version_major = re.search(r"set\(PROJECT_VERSION_MAJOR \"(.*)\"\)",
-                                  content).group(1)
-        version_minor = re.search(r"set\(PROJECT_VERSION_MINOR \"(.*)\"\)",
-                                  content).group(1)
-        version_patch = re.search(r"set\(PROJECT_VERSION_PATCH \"(.*)\"\)",
-                                  content).group(1)
+        version_major = re.search(
+            r"set\(PROJECT_VERSION_MAJOR \"(.*)\"\)", content
+        ).group(1)
+        version_minor = re.search(
+            r"set\(PROJECT_VERSION_MINOR \"(.*)\"\)", content
+        ).group(1)
+        version_patch = re.search(
+            r"set\(PROJECT_VERSION_PATCH \"(.*)\"\)", content
+        ).group(1)
         self.version = "%s.%s.%s" % (
             version_major.strip(),
             version_minor.strip(),
