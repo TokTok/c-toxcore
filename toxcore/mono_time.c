@@ -43,9 +43,6 @@ struct Mono_Time {
     bool last_clock_update;
 #endif
 
-    /* protect `time` from concurrent access */
-    pthread_rwlock_t *time_update_lock;
-
     mono_time_current_time_cb *current_time_callback;
     void *user_data;
 };
@@ -125,19 +122,6 @@ Mono_Time *mono_time_new(void)
         return nullptr;
     }
 
-    mono_time->time_update_lock = (pthread_rwlock_t *)calloc(1, sizeof(pthread_rwlock_t));
-
-    if (mono_time->time_update_lock == nullptr) {
-        free(mono_time);
-        return nullptr;
-    }
-
-    if (pthread_rwlock_init(mono_time->time_update_lock, nullptr) < 0) {
-        free(mono_time->time_update_lock);
-        free(mono_time);
-        return nullptr;
-    }
-
     mono_time->current_time_callback = current_time_monotonic_default;
     mono_time->user_data = nullptr;
 
@@ -147,7 +131,6 @@ Mono_Time *mono_time_new(void)
     mono_time->last_clock_update = false;
 
     if (pthread_mutex_init(&mono_time->last_clock_lock, nullptr) < 0) {
-        free(mono_time->time_update_lock);
         free(mono_time);
         return nullptr;
     }
@@ -174,8 +157,6 @@ void mono_time_free(Mono_Time *mono_time)
 #ifdef OS_WIN32
     pthread_mutex_destroy(&mono_time->last_clock_lock);
 #endif
-    pthread_rwlock_destroy(mono_time->time_update_lock);
-    free(mono_time->time_update_lock);
     free(mono_time);
 }
 
@@ -193,22 +174,12 @@ void mono_time_update(Mono_Time *mono_time)
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
 
-    pthread_rwlock_wrlock(mono_time->time_update_lock);
     mono_time->cur_time = cur_time;
-    pthread_rwlock_unlock(mono_time->time_update_lock);
 }
 
 uint64_t mono_time_get(const Mono_Time *mono_time)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // Fuzzing is only single thread for now, no locking needed */
     return mono_time->cur_time;
-#else
-    pthread_rwlock_rdlock(mono_time->time_update_lock);
-    const uint64_t cur_time = mono_time->cur_time;
-    pthread_rwlock_unlock(mono_time->time_update_lock);
-    return cur_time;
-#endif
 }
 
 bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout)
