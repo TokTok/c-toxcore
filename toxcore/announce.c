@@ -20,16 +20,16 @@
 uint8_t response_of_request_type(uint8_t request_type)
 {
     switch (request_type) {
-        case NET_PACKET_DATA_SEARCH_REQUEST :
+        case NET_PACKET_DATA_SEARCH_REQUEST:
             return NET_PACKET_DATA_SEARCH_RESPONSE;
 
-        case NET_PACKET_DATA_RETRIEVE_REQUEST :
+        case NET_PACKET_DATA_RETRIEVE_REQUEST:
             return NET_PACKET_DATA_RETRIEVE_RESPONSE;
 
-        case NET_PACKET_STORE_ANNOUNCE_REQUEST :
+        case NET_PACKET_STORE_ANNOUNCE_REQUEST:
             return NET_PACKET_STORE_ANNOUNCE_RESPONSE;
 
-        default : {
+        default: {
             assert(false);
             return NET_PACKET_MAX;
         }
@@ -67,7 +67,7 @@ void set_synch_offset(Announcements *announce, int32_t synch_offset)
     announce->synch_offset = synch_offset;
 }
 
-/* An entry is considered to be "deleted" for the purposes of the protocol
+/** An entry is considered to be "deleted" for the purposes of the protocol
  * once it has timed out. */
 non_null()
 static bool entry_is_empty(const Announcements *announce, const Announce_Entry *entry)
@@ -81,7 +81,7 @@ static void delete_entry(Announce_Entry *entry)
     entry->store_until = 0;
 }
 
-/* Return bits (at most 8) from pk starting at index as uint8_t */
+/** Return bits (at most 8) from pk starting at index as uint8_t */
 non_null()
 static uint8_t truncate_pk_at_index(const uint8_t *pk, uint16_t index, uint16_t bits)
 {
@@ -165,7 +165,7 @@ bool on_stored(const Announcements *announce, const uint8_t *data_public_key,
     return true;
 }
 
-/* Returns existing entry for this key if it exists, else an empty
+/** Return existing entry for this key if it exists, else an empty
  * slot in the key's bucket if one exists, else an entry in the key's bucket
  * of greatest 2-adic distance greater than that of the key bucket if one
  * exists, else nullptr.
@@ -257,7 +257,7 @@ static uint32_t calculate_timeout(const Announcements *announce, uint32_t reques
 
 #define DATA_SEARCH_TO_AUTH_MAX_SIZE (CRYPTO_PUBLIC_KEY_SIZE * 2 + MAX_PACKED_IPPORT_SIZE + MAX_SENDBACK_SIZE)
 
-non_null(1,2,3,4,7) nullable(5)
+non_null(1, 2, 3, 4, 7) nullable(5)
 static int create_data_search_to_auth(const Logger *logger, const uint8_t *data_public_key,
                                       const uint8_t *requester_key,
                                       const IP_Port *source, const uint8_t *sendback, uint16_t sendback_length,

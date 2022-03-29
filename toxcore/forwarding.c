@@ -61,16 +61,16 @@ bool create_forward_chain_packet(const uint8_t *chain_keys, uint16_t chain_lengt
         return false;
     }
 
-    uint16_t i = 0;
+    uint16_t offset = 0;
 
     for (uint16_t j = 0; j < chain_length; ++j) {
-        packet[i] = NET_PACKET_FORWARD_REQUEST;
-        ++i;
-        memcpy(packet + i, chain_keys + j * CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
-        i += CRYPTO_PUBLIC_KEY_SIZE;
+        packet[offset] = NET_PACKET_FORWARD_REQUEST;
+        ++offset;
+        memcpy(packet + offset, chain_keys + j * CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
+        offset += CRYPTO_PUBLIC_KEY_SIZE;
     }
 
-    memcpy(packet + i, data, data_length);
+    memcpy(packet + offset, data, data_length);
     return true;
 }
 
@@ -87,7 +87,7 @@ static bool create_forwarding_packet(const Forwarding *forwarding,
                                      const uint8_t *data, uint16_t length,
                                      uint8_t *packet)
 {
-    *packet = NET_PACKET_FORWARDING;
+    packet[0] = NET_PACKET_FORWARDING;
 
     if (sendback_data_len == 0) {
         packet[1] = 0;
@@ -206,7 +206,7 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
         return 1;
     }
 
-    if (*sendback_data == SENDBACK_IPPORT) {
+    if (sendback_data[0] == SENDBACK_IPPORT) {
         IP_Port dest;
 
         if (unpack_ip_port(&dest, sendback_data + 1, sendback_data_len - 1, false)
@@ -217,7 +217,7 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
         return send_forwarding(forwarding, &dest, nullptr, 0, to_forward, to_forward_len) ? 0 : 1;
     }
 
-    if (*sendback_data == SENDBACK_FORWARD) {
+    if (sendback_data[0] == SENDBACK_FORWARD) {
         IP_Port forwarder;
         const int ipport_length = unpack_ip_port(&forwarder, sendback_data + 1, sendback_data_len - 1, false);
 
@@ -266,7 +266,7 @@ static int handle_forwarding(void *object, const IP_Port *source, const uint8_t 
 
     if (forwarded_len >= 1 && forwarded[0] == NET_PACKET_FORWARD_REQUEST) {
         VLA(uint8_t, sendback_data, 1 + MAX_PACKED_IPPORT_SIZE + sendback_len);
-        *sendback_data = SENDBACK_FORWARD;
+        sendback_data[0] = SENDBACK_FORWARD;
 
         const int ipport_length = pack_ip_port(forwarding->log, sendback_data + 1, MAX_PACKED_IPPORT_SIZE, source);
 

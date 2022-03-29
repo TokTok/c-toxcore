@@ -565,9 +565,9 @@ static int rm_connection_index(TCP_Server *tcp_server, TCP_Secure_Connection *co
     return -1;
 }
 
-/* Encode con_id and identifier as a custom IP_Port.
+/** @brief Encode con_id and identifier as a custom IP_Port.
  *
- * return ip_port.
+ * @return ip_port.
  */
 static IP_Port con_id_to_ip_port(uint32_t con_id, uint64_t identifier)
 {
@@ -579,10 +579,10 @@ static IP_Port con_id_to_ip_port(uint32_t con_id, uint64_t identifier)
 
 }
 
-/* Decode ip_port created by con_id_to_ip_port to con_id.
+/** @brief Decode ip_port created by con_id_to_ip_port to con_id.
  *
- * return true on success.
- * return false if ip_port is invalid.
+ * @retval true on success.
+ * @retval false if ip_port is invalid.
  */
 non_null()
 static bool ip_port_to_con_id(const TCP_Server *tcp_server, const IP_Port *ip_port, uint32_t *con_id)
