@@ -93,53 +93,80 @@ static bool all_returned(Test_Data *test_data)
     return true;
 }
 
+typedef struct Forwarding_Subtox {
+    Logger *log;
+    Mono_Time *mono_time;
+    Networking_Core *net;
+    DHT *dht;
+    Net_Crypto *c;
+    Forwarding *forwarding;
+    Announcements *announce;
+} Forwarding_Subtox;
+
+static Forwarding_Subtox *new_forwarding_subtox(bool no_udp, uint32_t *index, uint16_t port)
+{
+    Forwarding_Subtox *subtox = (Forwarding_Subtox *)calloc(1, sizeof(Forwarding_Subtox));
+    ck_assert(subtox != nullptr);
+
+    subtox->log = logger_new();
+    ck_assert(subtox->log != nullptr);
+    logger_callback_log(subtox->log, (logger_cb *)print_debug_log, nullptr, index);
+    subtox->mono_time = mono_time_new();
+
+    if (no_udp) {
+        subtox->net = new_networking_no_udp(subtox->log);
+    } else {
+        const IP ip = get_loopback();
+        subtox->net = new_networking_ex(subtox->log, &ip, port, port, nullptr);
+    }
+
+    subtox->dht = new_dht(subtox->log, subtox->mono_time, subtox->net, true, true);
+
+    const TCP_Proxy_Info inf = {{{{0}}}};
+    subtox->c = new_net_crypto(subtox->log, subtox->mono_time, subtox->dht, &inf);
+
+    subtox->forwarding = new_forwarding(subtox->log, subtox->mono_time, subtox->dht);
+    ck_assert(subtox->forwarding != nullptr);
+
+    subtox->announce = new_announcements(subtox->log, subtox->mono_time, subtox->forwarding);
+    ck_assert(subtox->announce != nullptr);
+
+    return subtox;
+}
+
+static void kill_forwarding_subtox(Forwarding_Subtox *subtox)
+{
+    kill_announcements(subtox->announce);
+    kill_forwarding(subtox->forwarding);
+    kill_net_crypto(subtox->c);
+    kill_dht(subtox->dht);
+    kill_networking(subtox->net);
+    mono_time_free(subtox->mono_time);
+    logger_kill(subtox->log);
+    free(subtox);
+}
+
 static void test_forwarding(void)
 {
     assert(sizeof(char) == 1);
 
     uint32_t index[NUM_FORWARDER];
-    Logger *logs[NUM_FORWARDER];
-    Mono_Time *mono_times[NUM_FORWARDER];
-    Networking_Core *nets[NUM_FORWARDER];
-    DHT *dhts[NUM_FORWARDER];
-    Net_Crypto *cs[NUM_FORWARDER];
-    Forwarding *forwardings[NUM_FORWARDER];
-    Announcements *announces[NUM_FORWARDER];
-
+    Forwarding_Subtox *subtoxes[NUM_FORWARDER];
     Test_Data test_data[NUM_FORWARDER];
 
-    IP ip = get_loopback();
-    TCP_Proxy_Info inf = {{{{0}}}};
+    const IP ip = get_loopback();
 
     for (uint32_t i = 0; i < NUM_FORWARDER; ++i) {
         index[i] = i + 1;
-        logs[i] = logger_new();
-        ck_assert(logs[i] != nullptr);
-        logger_callback_log(logs[i], (logger_cb *)print_debug_log, nullptr, &index[i]);
-        mono_times[i] = mono_time_new();
+        subtoxes[i] = new_forwarding_subtox(i < NUM_FORWARDER_TCP, &index[i], FORWARDING_BASE_PORT + i);
 
-        if (i < NUM_FORWARDER_TCP) {
-            nets[i] = new_networking_no_udp(logs[i]);
-        } else {
-            const uint16_t port = FORWARDING_BASE_PORT + i;
-            nets[i] = new_networking_ex(logs[i], &ip, port, port, nullptr);
-        }
-
-        dhts[i] = new_dht(logs[i], mono_times[i], nets[i], true, true);
-        cs[i] = new_net_crypto(logs[i], mono_times[i], dhts[i], &inf);
-        forwardings[i] = new_forwarding(logs[i], mono_times[i], dhts[i]);
-        ck_assert_msg((forwardings[i] != nullptr), "Forwarding failed initializing.");
-
-        announces[i] = new_announcements(logs[i], mono_times[i], forwardings[i]);
-        ck_assert(announces[i] != nullptr);
-
-        test_data[i].net = nets[i];
+        test_data[i].net = subtoxes[i]->net;
         test_data[i].send_back = 0;
         test_data[i].sent = 0;
         test_data[i].returned = false;
-        set_callback_forwarded_request(forwardings[i], test_forwarded_request_cb, &test_data[i]);
-        set_callback_forwarded_response(forwardings[i], test_forwarded_response_cb, &test_data[i]);
-        set_forwarding_packet_tcp_connection_callback(nc_get_tcp_c(cs[i]), test_forwarded_response_cb, &test_data[i]);
+        set_callback_forwarded_request(subtoxes[i]->forwarding, test_forwarded_request_cb, &test_data[i]);
+        set_callback_forwarded_response(subtoxes[i]->forwarding, test_forwarded_response_cb, &test_data[i]);
+        set_forwarding_packet_tcp_connection_callback(nc_get_tcp_c(subtoxes[i]->c), test_forwarded_response_cb, &test_data[i]);
     }
 
     printf("testing forwarding via tcp relays and dht\n");
@@ -158,15 +185,15 @@ static void test_forwarding(void)
            NUM_FORWARDER_TCP, NUM_FORWARDER_TCP + 1, NUM_FORWARDER);
 
     for (uint32_t i = 0; i < NUM_FORWARDER_TCP; ++i) {
-        set_tcp_onion_status(nc_get_tcp_c(cs[i]), 1);
-        ck_assert_msg(add_tcp_relay(cs[i], &relay_ipport_tcp, dpk) == 0,
+        set_tcp_onion_status(nc_get_tcp_c(subtoxes[i]->c), 1);
+        ck_assert_msg(add_tcp_relay(subtoxes[i]->c, &relay_ipport_tcp, dpk) == 0,
                       "Failed to add TCP relay");
     }
 
     IP_Port relay_ipport_udp = {ip, net_htons(tox_self_get_udp_port(relay, nullptr))};
 
     for (uint32_t i = NUM_FORWARDER_TCP; i < NUM_FORWARDER; ++i) {
-        dht_bootstrap(dhts[i], &relay_ipport_udp, dpk);
+        dht_bootstrap(subtoxes[i]->dht, &relay_ipport_udp, dpk);
     }
 
     printf("allowing DHT to populate\n");
@@ -180,14 +207,15 @@ static void test_forwarding(void)
 
         do {
             for (uint32_t i = 0; i < NUM_FORWARDER; ++i) {
-                mono_time_update(mono_times[i]);
-                networking_poll(nets[i], &index[i]);
-                do_net_crypto(cs[i], &index[i]);
-                do_dht(dhts[i]);
+                Forwarding_Subtox *const subtox = subtoxes[i];
+                mono_time_update(subtox->mono_time);
+                networking_poll(subtox->net, &index[i]);
+                do_net_crypto(subtox->c, &index[i]);
+                do_dht(subtox->dht);
 
                 if (dht_establish_iterations ||
                         test_data[i].returned ||
-                        !mono_time_is_timeout(mono_times[i], test_data[i].sent, FORWARD_SEND_INTERVAL)) {
+                        !mono_time_is_timeout(subtox->mono_time, test_data[i].sent, FORWARD_SEND_INTERVAL)) {
                     continue;
                 }
 
@@ -210,7 +238,7 @@ static void test_forwarding(void)
                     chain_i += 1 + random_u32() % (NUM_FORWARDER_DHT - 1);
                     chain_i = NUM_FORWARDER_TCP + (chain_i - NUM_FORWARDER_TCP) % NUM_FORWARDER_DHT;
 
-                    const uint8_t *dest_pubkey = dht_get_self_public_key(dhts[chain_i]);
+                    const uint8_t *dest_pubkey = dht_get_self_public_key(subtoxes[chain_i]->dht);
 
                     memcpy(chain_keys + j * CRYPTO_PUBLIC_KEY_SIZE, dest_pubkey, CRYPTO_PUBLIC_KEY_SIZE);
                     printf(" --> %u", chain_i + 1);
@@ -228,18 +256,18 @@ static void test_forwarding(void)
                 if (i < NUM_FORWARDER_TCP) {
                     IP_Port tcp_forwarder;
 
-                    if (!get_random_tcp_conn_ip_port(cs[i], &tcp_forwarder)) {
+                    if (!get_random_tcp_conn_ip_port(subtox->c, &tcp_forwarder)) {
                         continue;
                     }
 
-                    if (send_tcp_forward_request(logs[i], cs[i], &tcp_forwarder, &first_ipp,
+                    if (send_tcp_forward_request(subtox->log, subtox->c, &tcp_forwarder, &first_ipp,
                                                  chain_keys, chain_length, data, length) == 0) {
-                        test_data[i].sent = mono_time_get(mono_times[i]);
+                        test_data[i].sent = mono_time_get(subtox->mono_time);
                     }
                 } else {
-                    if (send_forward_request(nets[i], &first_ipp,
+                    if (send_forward_request(subtox->net, &first_ipp,
                                              chain_keys, chain_length, data, length)) {
-                        test_data[i].sent = mono_time_get(mono_times[i]);
+                        test_data[i].sent = mono_time_get(subtox->mono_time);
                     }
                 }
             }
@@ -264,7 +292,7 @@ static void test_forwarding(void)
         ck_assert(NUM_FORWARDER - NUM_FORWARDER_TCP > 1);
 
         for (uint32_t i = NUM_FORWARDER_TCP; i < NUM_FORWARDER; ++i) {
-            ck_assert_msg(get_close_nodes(dhts[i], dht_get_self_public_key(dhts[i]), nodes, net_family_unspec, true,
+            ck_assert_msg(get_close_nodes(subtoxes[i]->dht, dht_get_self_public_key(subtoxes[i]->dht), nodes, net_family_unspec, true,
                                           true) > 0,
                           "node %u has no nodes marked as announce nodes", i);
         }
@@ -272,13 +300,7 @@ static void test_forwarding(void)
 
 
     for (uint32_t i = 0; i < NUM_FORWARDER; ++i) {
-        kill_announcements(announces[i]);
-        kill_forwarding(forwardings[i]);
-        kill_net_crypto(cs[i]);
-        kill_dht(dhts[i]);
-        kill_networking(nets[i]);
-        mono_time_free(mono_times[i]);
-        logger_kill(logs[i]);
+        kill_forwarding_subtox(subtoxes[i]);
     }
 
     tox_kill(relay);
