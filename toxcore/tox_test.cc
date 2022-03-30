@@ -84,10 +84,12 @@ TEST(Tox, OneTest)
     EXPECT_EQ(ret, UINT32_MAX);
 
     tox_self_get_address(tox2, address.data());
-    ret = tox_friend_add(tox1, address.data(), message.data(), tox_max_friend_request_length(), &error);
+    ret = tox_friend_add(
+        tox1, address.data(), message.data(), tox_max_friend_request_length(), &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_OK) << "Failed to add friend.";
     EXPECT_EQ(ret, 0);
-    ret = tox_friend_add(tox1, address.data(), message.data(), tox_max_friend_request_length(), &error);
+    ret = tox_friend_add(
+        tox1, address.data(), message.data(), tox_max_friend_request_length(), &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_ALREADY_SENT) << "Adding friend twice worked.";
     EXPECT_EQ(ret, UINT32_MAX);
 
