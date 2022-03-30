@@ -2437,7 +2437,7 @@ static void do_friends(Messenger *m, void *userdata)
 }
 
 non_null(1) nullable(2)
-static void connection_status_callback(Messenger *m, void *userdata)
+static void m_connection_status_callback(Messenger *m, void *userdata)
 {
     const Onion_Connection_Status conn_status = onion_connection_status(m->onion_c);
 
@@ -3493,7 +3493,7 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messenger_Error *error)
+Messenger *new_messenger(Mono_Time *mono_time, const Network *ns, Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
         return nullptr;
@@ -3510,6 +3510,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     }
 
     m->mono_time = mono_time;
+    m->ns = ns;
 
     m->fr = friendreq_new();
 
@@ -3541,7 +3542,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     } else {
         IP ip;
         ip_init(&ip, options->ipv6enabled);
-        m->net = new_networking_ex(m->log, &ip, options->port_range[0], options->port_range[1], &net_err);
+        m->net = new_networking_ex(m->log, m->ns, &ip, options->port_range[0], options->port_range[1], &net_err);
     }
 
     if (m->net == nullptr) {
@@ -3566,7 +3567,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mono_time, m->dht, &options->proxy_info);
+    m->net_crypto = new_net_crypto(m->log, m->mono_time, m->ns, m->dht, &options->proxy_info);
 
     if (m->net_crypto == nullptr) {
         kill_dht(m->dht);
@@ -3595,7 +3596,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
     m->onion = new_onion(m->log, m->mono_time, m->dht);
     m->onion_a = new_onion_announce(m->log, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mono_time, m->net_crypto);
-    m->fr_c = new_friend_connections(m->log, m->mono_time, m->onion_c, options->local_discovery_enabled);
+    m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
         kill_friend_connections(m->fr_c);
@@ -3636,7 +3637,7 @@ Messenger *new_messenger(Mono_Time *mono_time, Messenger_Options *options, Messe
 #endif /* VANILLA_NACL */
 
     if (options->tcp_server_port != 0) {
-        m->tcp_server = new_TCP_server(m->log, options->ipv6enabled, 1, &options->tcp_server_port,
+        m->tcp_server = new_TCP_server(m->log, m->ns, options->ipv6enabled, 1, &options->tcp_server_port,
                                        dht_get_self_secret_key(m->dht), m->onion);
 
         if (m->tcp_server == nullptr) {
@@ -3698,13 +3699,7 @@ void kill_messenger(Messenger *m)
     kill_friend_connections(m->fr_c);
     kill_onion(m->onion);
     kill_onion_announce(m->onion_a);
-#ifndef VANILLA_NACL
-    kill_dht_groupchats(m->group_handler);
-#endif
     kill_onion_client(m->onion_c);
-#ifndef VANILLA_NACL
-    kill_gca(m->group_announce);
-#endif /* VANILLA_NACL */
     kill_net_crypto(m->net_crypto);
     kill_dht(m->dht);
     kill_networking(m->net);

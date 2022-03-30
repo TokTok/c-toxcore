@@ -26,9 +26,9 @@ static inline IP get_loopback(void)
 #endif
     return ip;
 }
-static void do_onion(Onion *onion)
+static void do_onion(Mono_Time *mono_time, Onion *onion)
 {
-    mono_time_update(onion->mono_time);
+    mono_time_update(mono_time);
 
     networking_poll(onion->net, nullptr);
     do_dht(onion->dht);
@@ -217,7 +217,8 @@ static void send_onion_packet(const Networking_Core *net, const Onion_Path *path
  */
 static Networking_Core *new_networking(const Logger *log, const IP *ip, uint16_t port)
 {
-    return new_networking_ex(log, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
+    const Network *ns = system_network();
+    return new_networking_ex(log, ns, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
 }
 
 static void test_basic(void)
@@ -264,16 +265,16 @@ static void test_basic(void)
     handled_test_1 = 0;
 
     do {
-        do_onion(onion1);
-        do_onion(onion2);
+        do_onion(mono_time1, onion1);
+        do_onion(mono_time2, onion2);
     } while (handled_test_1 == 0);
 
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_test_2, onion1);
     handled_test_2 = 0;
 
     do {
-        do_onion(onion1);
-        do_onion(onion2);
+        do_onion(mono_time1, onion1);
+        do_onion(mono_time2, onion2);
     } while (handled_test_2 == 0);
 
 
@@ -298,8 +299,8 @@ static void test_basic(void)
     handled_test_3 = 0;
 
     do {
-        do_onion(onion1);
-        do_onion(onion2);
+        do_onion(mono_time1, onion1);
+        do_onion(mono_time2, onion2);
         c_sleep(50);
     } while (handled_test_3 == 0);
 
@@ -318,8 +319,8 @@ static void test_basic(void)
                           dht_get_self_public_key(onion1->dht), s);
 
     do {
-        do_onion(onion1);
-        do_onion(onion2);
+        do_onion(mono_time1, onion1);
+        do_onion(mono_time2, onion2);
         c_sleep(50);
     } while (memcmp(onion_announce_entry_public_key(onion2_a, ONION_ANNOUNCE_MAX_ENTRIES - 2),
                     dht_get_self_public_key(onion1->dht),
@@ -343,8 +344,8 @@ static void test_basic(void)
     handled_test_4 = 0;
 
     do {
-        do_onion(onion1);
-        do_onion(onion2);
+        do_onion(mono_time1, onion1);
+        do_onion(mono_time2, onion2);
         c_sleep(50);
     } while (handled_test_4 == 0);
 
@@ -468,7 +469,8 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
     }
 
     TCP_Proxy_Info inf = {{{{0}}}};
-    on->onion_c = new_onion_client(on->log, on->mono_time, new_net_crypto(on->log, on->mono_time, dht, &inf));
+    const Network *ns = system_network();
+    on->onion_c = new_onion_client(on->log, on->mono_time, new_net_crypto(on->log, on->mono_time, ns, dht, &inf));
 
     if (!on->onion_c) {
         kill_onion_announce(on->onion_a);

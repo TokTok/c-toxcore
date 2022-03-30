@@ -39,10 +39,11 @@ This repository, although called `toxcore`, in fact contains several libraries b
 | `toxencryptsave` | Library    | libtoxcore, libnacl or libsodium              | Cross-platform | Provides encryption of Tox profiles (savedata), as well as arbitrary data. |
 | `DHT_bootstrap`  | Executable | libtoxcore                                    | Cross-platform | A simple DHT bootstrap node.                                               |
 | `tox-bootstrapd` | Executable | libtoxcore, libconfig                         | Unix-like      | Highly configurable DHT bootstrap node daemon (systemd, SysVinit, Docker). |
+| `cmp`            | Library    |                                               | Cross-platform | C implementation of the MessagePack serialization format. [https://github.com/camgunz/cmp](https://github.com/camgunz/cmp) |
 
 #### Secondary
 
-There are some programs that are not plugged into the CMake build system which you might find interesting. You would need to build those programs yourself. These programs reside in [`other/fun`](other/fun) directory.
+There are some programs that are not built by default which you might find interesting. You need to pass `-DBUILD_FUN_UTILS=ON` to cmake to build them.
 
 ##### Vanity key generators
 
@@ -81,6 +82,9 @@ Useful for generating Tox profiles from the output of the vanity key generators,
 
 Library dependencies are listed in the [components](#components) table. The dependencies need to be satisfied for the components to be built. Note that if you don't have a dependency for some component, e.g. you don't have `libopus` installed required for building `toxav` component, building of that component is silently disabled.
 
+
+Be advised that due to the addition of `cmp` as a submodule, you now also need to initialize the git submodules required by toxcore. This can be done by cloning the repo with the addition of `--recurse-submodules` or by running `git submodules update --init` in the root directory of the repo. 
+
 #### Compiler requirements
 
 The supported compilers are GCC, Clang and MinGW.
@@ -107,6 +111,7 @@ There are some options that are available to configure the build.
 | `BOOTSTRAP_DAEMON`     | Enable building of tox-bootstrapd, the DHT bootstrap node daemon. For Unix-like systems only. | ON or OFF                                                                 | ON                                                |
 | `BUILD_FUZZ_TESTS`     | Build fuzzing harnesses.                                                                      | ON or OFF                                                                 | OFF                                               |
 | `BUILD_MISC_TESTS`     | Build additional tests.                                                                       | ON or OFF                                                                 | OFF                                               |
+| `BUILD_FUN_UTILS`      | Build additional funny utilities.                                                             | ON or OFF                                                                 | OFF                                               |
 | `BUILD_TOXAV`          | Whether to build the toxav library.                                                           | ON or OFF                                                                 | ON                                                |
 | `CMAKE_INSTALL_PREFIX` | Path to where everything should be installed.                                                 | Directory path.                                                           | Platform-dependent. Refer to CMake documentation. |
 | `CMAKE_BUILD_TYPE`     | Specifies the build type on single-configuration generators (e.g. make or ninja).             | Debug, Release, RelWithDebInfo, MinSizeRel                                | Empty string.                                     |
