@@ -104,7 +104,7 @@ bool bin_unpack_u64(Bin_Unpack *bu, uint64_t *val)
     return cmp_read_ulong(&bu->ctx, val);
 }
 
-bool bin_unpack_bytes(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_ptr)
+bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_ptr)
 {
     uint32_t bin_size;
     if (!cmp_read_bin_size(&bu->ctx, &bin_size) || bin_size > bu->bytes_size) {
@@ -122,7 +122,7 @@ bool bin_unpack_bytes(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_
     return true;
 }
 
-bool bin_unpack_bytes_fixed(Bin_Unpack *bu, uint8_t *data, uint32_t data_length)
+bool bin_unpack_bin_fixed(Bin_Unpack *bu, uint8_t *data, uint32_t data_length)
 {
     uint32_t bin_size;
     if (!cmp_read_bin_size(&bu->ctx, &bin_size) || bin_size != data_length) {
@@ -132,7 +132,7 @@ bool bin_unpack_bytes_fixed(Bin_Unpack *bu, uint8_t *data, uint32_t data_length)
     return bu->ctx.read(&bu->ctx, data, bin_size);
 }
 
-bool bin_unpack_bin(Bin_Unpack *bu, uint32_t *size)
+bool bin_unpack_bin_size(Bin_Unpack *bu, uint32_t *size)
 {
     return cmp_read_bin_size(&bu->ctx, size);
 }
@@ -178,7 +178,7 @@ bool bin_unpack_u64_b(Bin_Unpack *bu, uint64_t *val)
     return true;
 }
 
-bool bin_unpack_bytes_b(Bin_Unpack *bu, uint8_t *data, uint32_t length)
+bool bin_unpack_bin_b(Bin_Unpack *bu, uint8_t *data, uint32_t length)
 {
     return bu->ctx.read(&bu->ctx, data, length);
 }

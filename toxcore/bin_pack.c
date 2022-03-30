@@ -117,12 +117,12 @@ bool bin_pack_u64(Bin_Pack *bp, uint64_t val)
     return cmp_write_uinteger(&bp->ctx, val);
 }
 
-bool bin_pack_bytes(Bin_Pack *bp, const uint8_t *data, uint32_t length)
+bool bin_pack_bin(Bin_Pack *bp, const uint8_t *data, uint32_t length)
 {
     return cmp_write_bin(&bp->ctx, data, length);
 }
 
-bool bin_pack_bin(Bin_Pack *bp, uint32_t size)
+bool bin_pack_bin_marker(Bin_Pack *bp, uint32_t size)
 {
     return cmp_write_bin_marker(&bp->ctx, size);
 }
@@ -150,7 +150,7 @@ bool bin_pack_u64_b(Bin_Pack *bp, uint64_t val)
            && bin_pack_u32_b(bp, val & 0xffffffff);
 }
 
-bool bin_pack_bytes_b(Bin_Pack *bp, const uint8_t *data, uint32_t length)
+bool bin_pack_bin_b(Bin_Pack *bp, const uint8_t *data, uint32_t length)
 {
     return bp->ctx.write(&bp->ctx, data, length) == length;
 }
