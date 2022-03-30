@@ -33,8 +33,7 @@ void TestUnpackNodes(Fuzz_Data input)
     if (packed_count > 0) {
         Logger *logger = logger_new();
         std::vector<uint8_t> packed(packed_count * PACKED_NODE_SIZE_IP6);
-        const int packed_size
-            = pack_nodes(packed.data(), packed.size(), nodes, packed_count);
+        const int packed_size = pack_nodes(packed.data(), packed.size(), nodes, packed_count);
         LOGGER_ASSERT(logger, packed_size == processed_data_len,
             "packed size (%d) != unpacked size (%d)", packed_size, processed_data_len);
         logger_kill(logger);
@@ -43,8 +42,8 @@ void TestUnpackNodes(Fuzz_Data input)
         // original unpacked nodes.
         Node_format nodes2[node_count];
         uint16_t processed_data_len2;
-        const int packed_count2
-            = unpack_nodes(nodes2, node_count, &processed_data_len2, packed.data(), packed.size(), tcp_enabled);
+        const int packed_count2 = unpack_nodes(
+            nodes2, node_count, &processed_data_len2, packed.data(), packed.size(), tcp_enabled);
         assert(processed_data_len2 == processed_data_len);
         assert(packed_count2 == packed_count);
         assert(memcmp(nodes, nodes2, sizeof(Node_format) * packed_count) == 0);
