@@ -193,8 +193,8 @@ protected:
 
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 0));
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 1));
-        EXPECT_FALSE(sanctions_list_check_integrity(
-            &mod, &mod.sanctions_creds, &sanctions[0], UINT16_MAX));
+        EXPECT_FALSE(
+            sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], UINT16_MAX));
 
         EXPECT_TRUE(sanctions_list_make_entry(&mod, sanctioned_pk1, &sanctions[0], SA_OBSERVER));
         EXPECT_TRUE(sanctions_list_check_integrity(
