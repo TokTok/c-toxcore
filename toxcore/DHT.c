@@ -9,10 +9,12 @@
 #include "DHT.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "LAN_discovery.h"
+#include "bin_pack.h"
 #include "ccompat.h"
 #include "logger.h"
 #include "mono_time.h"
@@ -452,19 +454,32 @@ int packed_node_size(Family ip_family)
 }
 
 
-/** @brief Pack an IP_Port structure into data of max size length.
+/** @brief Packs an IP structure.
  *
- * Packed_length is the offset of data currently packed.
+ * It's the caller's responsibility to make sure `is_ipv4` tells the truth. This
+ * function is an implementation detail of @ref bin_pack_ip_port.
  *
- * @return size of packed IP_Port data on success.
- * @retval -1 on failure.
+ * @param is_ipv4 whether this IP is an IP4 or IP6.
+ *
+ * @retval true on success.
  */
-int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port)
+non_null()
+static bool bin_pack_ip(Bin_Pack *bp, const IP *ip, bool is_ipv4)
 {
-    if (data == nullptr) {
-        return -1;
+    if (is_ipv4) {
+        return bin_pack_bin_b(bp, ip->ip.v4.uint8, SIZE_IP4);
+    } else {
+        return bin_pack_bin_b(bp, ip->ip.v6.uint8, SIZE_IP6);
     }
+}
 
+/** @brief Packs an IP_Port structure.
+ *
+ * @retval true on success.
+ */
+non_null()
+static bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port)
+{
     bool is_ipv4;
     uint8_t family;
 
@@ -486,32 +501,41 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
         // doing that, and turn this into an error.
         LOGGER_TRACE(logger, "cannot pack invalid IP: %s", ip_ntoa(&ip_port->ip, ip_str, sizeof(ip_str)));
+        return false;
+    }
+
+    return bin_pack_u08_b(bp, family)
+           && bin_pack_ip(bp, &ip_port->ip, is_ipv4)
+           && bin_pack_u16_b(bp, net_ntohs(ip_port->port));
+}
+
+non_null()
+static bool bin_pack_ip_port_handler(Bin_Pack *bp, const Logger *logger, const void *obj)
+{
+    return bin_pack_ip_port(bp, logger, (const IP_Port *)obj);
+}
+
+/** @brief Pack an IP_Port structure into data of max size length.
+ *
+ * Packed_length is the offset of data currently packed.
+ *
+ * @return size of packed IP_Port data on success.
+ * @retval -1 on failure.
+ */
+int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port)
+{
+    const uint32_t size = bin_pack_obj_size(bin_pack_ip_port_handler, logger, ip_port);
+
+    if (size > length) {
         return -1;
     }
 
-    if (is_ipv4) {
-        const uint32_t size = 1 + SIZE_IP4 + sizeof(uint16_t);
-
-        if (size > length) {
-            return -1;
-        }
-
-        data[0] = family;
-        memcpy(data + 1, &ip_port->ip.ip.v4, SIZE_IP4);
-        memcpy(data + 1 + SIZE_IP4, &ip_port->port, sizeof(uint16_t));
-        return size;
-    } else {
-        const uint32_t size = 1 + SIZE_IP6 + sizeof(uint16_t);
-
-        if (size > length) {
-            return -1;
-        }
-
-        data[0] = family;
-        memcpy(data + 1, &ip_port->ip.ip.v6, SIZE_IP6);
-        memcpy(data + 1 + SIZE_IP6, &ip_port->port, sizeof(uint16_t));
-        return size;
+    if (!bin_pack_obj(bin_pack_ip_port_handler, logger, ip_port, data, length)) {
+        return -1;
     }
+
+    assert(size < INT_MAX);
+    return (int)size;
 }
 
 /** @brief Encrypt plain and write resulting DHT packet into packet with max size length.
@@ -560,6 +584,7 @@ int dht_create_packet(const Random *rng, const uint8_t public_key[CRYPTO_PUBLIC_
  * @return size of unpacked ip_port on success.
  * @retval -1 on failure.
  */
+non_null()
 int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled)
 {
     if (data == nullptr) {
@@ -620,6 +645,18 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
     }
 }
 
+/** @brief Pack a single node from a node array.
+ *
+ * @retval true on success.
+ */
+non_null()
+static bool bin_pack_node_handler(Bin_Pack *bp, const Logger *logger, const void *arr, uint32_t index)
+{
+    const Node_format *nodes = (const Node_format *)arr;
+    return bin_pack_ip_port(bp, logger, &nodes[index].ip_port)
+           && bin_pack_bin_b(bp, nodes[index].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+}
+
 /** @brief Pack number of nodes into data of maxlength length.
  *
  * @return length of packed nodes on success.
@@ -627,31 +664,11 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
  */
 int pack_nodes(const Logger *logger, uint8_t *data, uint16_t length, const Node_format *nodes, uint16_t number)
 {
-    uint32_t packed_length = 0;
-
-    for (uint32_t i = 0; i < number && packed_length < length; ++i) {
-        const int ipp_size = pack_ip_port(logger, data + packed_length, length - packed_length, &nodes[i].ip_port);
-
-        if (ipp_size == -1) {
-            return -1;
-        }
-
-        packed_length += ipp_size;
-
-        if (packed_length + CRYPTO_PUBLIC_KEY_SIZE > length) {
-            return -1;
-        }
-
-        memcpy(data + packed_length, nodes[i].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        packed_length += CRYPTO_PUBLIC_KEY_SIZE;
-
-#ifndef NDEBUG
-        const uint32_t increment = ipp_size + CRYPTO_PUBLIC_KEY_SIZE;
-#endif
-        assert(increment == PACKED_NODE_SIZE_IP4 || increment == PACKED_NODE_SIZE_IP6);
+    const uint32_t size = bin_pack_obj_array_size(bin_pack_node_handler, logger, nodes, number);
+    if (!bin_pack_obj_array(bin_pack_node_handler, logger, nodes, number, data, length)) {
+        return -1;
     }
-
-    return packed_length;
+    return size;
 }
 
 /** @brief Unpack data of length into nodes of size max_num_nodes.
@@ -2906,8 +2923,9 @@ void dht_save(const DHT *dht, uint8_t *data)
         }
     }
 
-    state_write_section_header(old_data, DHT_STATE_COOKIE_TYPE, pack_nodes(dht->log, data, sizeof(Node_format) * num,
-                               clients, num), DHT_STATE_TYPE_NODES);
+    state_write_section_header(
+            old_data, DHT_STATE_COOKIE_TYPE, pack_nodes(dht->log, data, sizeof(Node_format) * num, clients, num),
+            DHT_STATE_TYPE_NODES);
 
     free(clients);
 }
