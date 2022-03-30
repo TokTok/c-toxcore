@@ -25,13 +25,23 @@ typedef struct Bin_Pack Bin_Pack;
  */
 typedef bool bin_pack_cb(Bin_Pack *bp, const void *obj);
 
+/** @brief Function used to pack an array of objects.
+ *
+ * This function would typically cast the `void *` to the actual object pointer type and then call
+ * more appropriately typed packing functions.
+ *
+ * @param arr is the object array as void pointer.
+ * @param index is the index in the object array that is currently being packed.
+ */
+typedef bool bin_pack_array_cb(Bin_Pack *bp, const void *arr, uint32_t index);
+
 /** @brief Determine the serialised size of an object.
  *
  * @param callback The function called on the created packer and packed object.
  * @param obj The object to be packed, passed as `obj` to the callback.
  *
- * @return The packed size of the passed object according to the callback. UINT32_MAX in case of
- *   errors such as buffer overflow.
+ * @return The packed size of the passed object according to the callback.
+ * @retval UINT32_MAX in case of errors such as buffer overflow.
  */
 non_null(1) nullable(2)
 uint32_t bin_pack_obj_size(bin_pack_cb *callback, const void *obj);
@@ -53,6 +63,36 @@ uint32_t bin_pack_obj_size(bin_pack_cb *callback, const void *obj);
  */
 non_null(1, 3) nullable(2)
 bool bin_pack_obj(bin_pack_cb *callback, const void *obj, uint8_t *buf, uint32_t buf_size);
+
+/** @brief Determine the serialised size of an object array.
+ *
+ * @param callback The function called on the created packer and packed object
+ *   array.
+ * @param arr The object array to be packed, passed as `arr` to the callback.
+ * @param count The number of elements in the object array.
+ *
+ * @return The packed size of the passed object array according to the callback.
+ * @retval UINT32_MAX in case of errors such as buffer overflow.
+ */
+non_null()
+uint32_t bin_pack_obj_array_size(bin_pack_array_cb *callback, const void *arr, uint32_t count);
+
+/** @brief Pack an object array into a buffer of a given size.
+ *
+ * Similar to `bin_pack_obj` but for arrays. Does not write the array length, so
+ * if you need that, write it manually using `bin_pack_array`.
+ *
+ * @param callback The function called on the created packer and packed object
+ *   array.
+ * @param arr The object array to be packed, passed as `arr` to the callback.
+ * @param count The number of elements in the object array.
+ * @param buf A byte array large enough to hold the serialised representation of `arr`.
+ * @param buf_size The size of the byte array. Can be `UINT32_MAX` to disable bounds checking.
+ *
+ * @retval false if an error occurred (e.g. buffer overflow).
+ */
+non_null()
+bool bin_pack_obj_array(bin_pack_array_cb *callback, const void *arr, uint32_t count, uint8_t *buf, uint32_t buf_size);
 
 /** @brief Allocate a new packer object.
  *

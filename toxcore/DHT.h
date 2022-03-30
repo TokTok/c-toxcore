@@ -177,33 +177,13 @@ non_null() const Client_data *dht_friend_client(const DHT_Friend *dht_friend, si
  */
 int packed_node_size(Family ip_family);
 
-/** @brief Packs an IP_Port structure into data of max size length.
- *
- * Packed_length is the offset of data currently packed.
- *
- * @return size of packed IP_Port data on success
- * @retval -1 on failure.
- */
-non_null()
-int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port);
-
-/** @brief Unpack IP_Port structure from data of max size length into ip_port.
- *
- * len_processed is the offset of data currently unpacked.
- *
- * @return size of unpacked ip_port on success.
- * @retval -1 on failure.
- */
-non_null()
-int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled);
-
 /** @brief Pack number of nodes into data of maxlength length.
  *
  * @return length of packed nodes on success.
  * @retval -1 on failure.
  */
 non_null()
-int pack_nodes(const Logger *logger, uint8_t *data, uint16_t length, const Node_format *nodes, uint16_t number);
+int pack_nodes(uint8_t *data, uint16_t length, const Node_format *nodes, uint16_t number);
 
 /** @brief Unpack data of length into nodes of size max_num_nodes.
  * Put the length of the data processed in processed_data_len.
