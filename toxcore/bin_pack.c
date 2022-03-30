@@ -77,6 +77,28 @@ uint32_t bin_pack_obj_size(bin_pack_cb *callback, const void *obj)
     return bp.bytes_pos;
 }
 
+uint32_t bin_pack_obj_array_size(bin_pack_array_cb *callback, const void *arr, uint32_t count)
+{
+    Bin_Pack bp;
+    bin_pack_init(&bp, nullptr, 0);
+    for (uint32_t i = 0; i < count; ++i) {
+        callback(&bp, arr, i);
+    }
+    return bp.bytes_pos;
+}
+
+bool bin_pack_obj_array(bin_pack_array_cb *callback, const void *arr, uint32_t count, uint8_t *buf, uint32_t buf_size)
+{
+    Bin_Pack bp;
+    bin_pack_init(&bp, buf, buf_size);
+    for (uint32_t i = 0; i < count; ++i) {
+        if (!callback(&bp, arr, i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size)
 {
     Bin_Pack *bp = (Bin_Pack *)calloc(1, sizeof(Bin_Pack));

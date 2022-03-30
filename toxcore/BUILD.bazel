@@ -272,6 +272,7 @@ cc_library(
     ],
     deps = [
         ":LAN_discovery",
+        ":bin_pack",
         ":ccompat",
         ":crypto_core",
         ":logger",

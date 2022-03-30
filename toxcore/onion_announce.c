@@ -508,7 +508,7 @@ static int handle_announce_request_common(
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(onion_a->log, response + nodes_offset, sizeof(nodes_list), nodes_list,
+        nodes_length = pack_nodes(response + nodes_offset, sizeof(nodes_list), nodes_list,
                                   (uint16_t)num_nodes);
 
         if (nodes_length <= 0) {
