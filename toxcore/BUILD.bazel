@@ -54,12 +54,26 @@ cc_test(
 )
 
 cc_library(
+    name = "logger",
+    srcs = ["logger.c"],
+    hdrs = ["logger.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/toxav:__pkg__",
+    ],
+    deps = [":ccompat"],
+)
+
+cc_library(
     name = "bin_pack",
     srcs = ["bin_pack.c"],
     hdrs = ["bin_pack.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
         ":ccompat",
+        ":logger",
         "//c-toxcore/third_party:cmp",
     ],
 )
@@ -127,19 +141,6 @@ cc_test(
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
-)
-
-cc_library(
-    name = "logger",
-    srcs = ["logger.c"],
-    hdrs = ["logger.h"],
-    visibility = [
-        "//c-toxcore/auto_tests:__pkg__",
-        "//c-toxcore/other:__pkg__",
-        "//c-toxcore/other/bootstrap_daemon:__pkg__",
-        "//c-toxcore/toxav:__pkg__",
-    ],
-    deps = [":ccompat"],
 )
 
 cc_library(
@@ -283,6 +284,7 @@ cc_library(
     ],
     deps = [
         ":LAN_discovery",
+        ":bin_pack",
         ":ccompat",
         ":crypto_core",
         ":logger",
