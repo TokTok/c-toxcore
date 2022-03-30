@@ -22,9 +22,11 @@ static void set_random_name_and_status_message(Tox *tox, uint8_t *name, uint8_t 
 
 TEST(Tox, CurrentVersionIsCompatibleWithItself)
 {
-    EXPECT_TRUE(TOX_VERSION_IS_API_COMPATIBLE(TOX_VERSION_MAJOR, TOX_VERSION_MINOR, TOX_VERSION_PATCH));
+    EXPECT_TRUE(
+        TOX_VERSION_IS_API_COMPATIBLE(TOX_VERSION_MAJOR, TOX_VERSION_MINOR, TOX_VERSION_PATCH));
     EXPECT_TRUE(TOX_VERSION_IS_ABI_COMPATIBLE());
-    EXPECT_TRUE(tox_version_is_compatible(tox_version_major(), tox_version_minor(), tox_version_patch()));
+    EXPECT_TRUE(
+        tox_version_is_compatible(tox_version_major(), tox_version_minor(), tox_version_patch()));
 }
 
 TEST(Tox, ConstantsAreNonZero)
