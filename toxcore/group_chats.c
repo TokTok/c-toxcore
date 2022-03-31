@@ -7076,7 +7076,7 @@ static bool init_gc_tcp_connection(const GC_Session *c, GC_Chat *chat)
 {
     const Messenger *m = c->messenger;
 
-    chat->tcp_conn = new_tcp_connections(chat->log, chat->mono_time, chat->self_secret_key, &m->options.proxy_info);
+    chat->tcp_conn = new_tcp_connections(chat->log, chat->mono_time, m->ns, chat->self_secret_key, &m->options.proxy_info);
 
     if (chat->tcp_conn == nullptr) {
         return false;
@@ -7279,12 +7279,12 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
     return count;
 }
 
-void gc_group_save(const GC_Chat *chat, msgpack_packer *mp)
+void gc_group_save(const GC_Chat *chat, Bin_Pack *bp)
 {
-    gc_save_pack_group(chat, mp);
+    gc_save_pack_group(chat, bp);
 }
 
-int gc_group_load(GC_Session *c, const msgpack_object *obj)
+int gc_group_load(GC_Session *c, Bin_Unpack *bu)
 {
     const int group_number = get_new_group_index(c);
 
@@ -7304,7 +7304,7 @@ int gc_group_load(GC_Session *c, const msgpack_object *obj)
     chat->log = m->log;
     chat->last_ping_interval = tm;
 
-    if (!gc_load_unpack_group(chat, obj)) {
+    if (!gc_load_unpack_group(chat, bu)) {
         LOGGER_ERROR(chat->log, "Failed to unpack group");
         return -1;
     }

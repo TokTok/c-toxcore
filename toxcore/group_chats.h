@@ -10,11 +10,12 @@
 #ifndef GROUP_CHATS_H
 #define GROUP_CHATS_H
 
-#include <msgpack.h>
 #include <stdbool.h>
 #include <stdint.h>
 
 #include "TCP_connection.h"
+#include "bin_pack.h"
+#include "bin_unpack.h"
 #include "group_announce.h"
 #include "group_common.h"
 #include "group_connection.h"
@@ -560,19 +561,19 @@ void kill_dht_groupchats(GC_Session *c);
 
 /** @brief Loads a previously saved group and attempts to join it.
  *
- * `obj` is the packed group info.
+ * `bu` is the packed group info.
  *
  * Returns group_number on success.
  * Returns -1 on failure.
  */
 non_null()
-int gc_group_load(GC_Session *c, const msgpack_object *obj);
+int gc_group_load(GC_Session *c, Bin_Unpack *bu);
 
 /**
- * @brief Saves info from `chat` to `mp` in binary format.
+ * @brief Saves info from `chat` to `bp` in binary format.
  */
 non_null()
-void gc_group_save(const GC_Chat *chat, msgpack_packer *mp);
+void gc_group_save(const GC_Chat *chat, Bin_Pack *bp);
 
 /** @brief Creates a new group and adds it to the group sessions group array.
  *

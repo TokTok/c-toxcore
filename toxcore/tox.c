@@ -2903,6 +2903,16 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     return true;
 }
 
+void tox_set_network(Tox *tox, const Network *ns)
+{
+    assert(tox != nullptr);
+    if (ns != nullptr) {
+        tox->ns = *ns;
+    } else {
+        tox->ns = *system_network();
+    }
+}
+
 /* GROUPCHAT FUNCTIONS */
 
 #ifndef VANILLA_NACL
