@@ -19,6 +19,9 @@
 #define TOPIC "They're waiting for you Gordon...in the test chamber"
 #define TOPIC_LEN (sizeof(TOPIC) - 1)
 
+#define TOPIC2 "They're waiting for you Gordon...in the test chamber 2.0"
+#define TOPIC_LEN2 (sizeof(TOPIC2) - 1)
+
 #define GROUP_NAME "The Test Chamber"
 #define GROUP_NAME_LEN (sizeof(GROUP_NAME) - 1)
 
@@ -189,7 +192,7 @@ static uint32_t set_topic_all_peers(AutoTox *autotoxes, size_t num_peers, uint32
 
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
-        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic", i);
+        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic %u", i, random_u32());
         size_t length = strlen(new_topic);
 
         if (set_topic(autotoxes[i].tox, groupnumber, new_topic, length) == 0) {
@@ -296,10 +299,10 @@ static void group_topic_test(AutoTox *autotoxes)
     /* Wait for all peers to get topic lock state change */
     wait_topic_lock(autotoxes, groupnumber, TOX_GROUP_TOPIC_LOCK_ENABLED);
 
-    const int s3_ret = set_topic(tox0, groupnumber, TOPIC, TOPIC_LEN);
+    const int s3_ret = set_topic(tox0, groupnumber, TOPIC2, TOPIC_LEN2);
     ck_assert_msg(s3_ret == 0, "Founder failed to set topic second time: %d", s3_ret);
 
-    wait_state_topic(autotoxes, groupnumber, TOPIC, TOPIC_LEN);
+    wait_state_topic(autotoxes, groupnumber, TOPIC2, TOPIC_LEN2);
 
     /* No peer excluding the founder should be able to set the topic */
 
@@ -308,7 +311,7 @@ static void group_topic_test(AutoTox *autotoxes)
     ck_assert_msg(change_count == 0, "%u peers changed the topic with topic lock enabled", change_count);
 
     /* A final check that the topic is unchanged */
-    wait_state_topic(autotoxes, groupnumber, TOPIC, TOPIC_LEN);
+    wait_state_topic(autotoxes, groupnumber, TOPIC2, TOPIC_LEN2);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         Tox_Err_Group_Leave err_exit;
@@ -335,6 +338,8 @@ int main(void)
 
 #undef TOPIC
 #undef TOPIC_LEN
+#undef TOPIC2
+#undef TOPIC_LEN2
 #undef NUM_GROUP_TOXES
 #undef GROUP_NAME
 #undef GROUP_NAME_LEN

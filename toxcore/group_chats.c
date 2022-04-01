@@ -542,7 +542,6 @@ static void set_gc_peerlist_checksum(GC_Chat *chat)
 non_null()
 static uint16_t get_gc_topic_checksum(const GC_TopicInfo *topic_info)
 {
-
     return data_checksum(topic_info->topic, topic_info->length);
 }
 
@@ -3746,8 +3745,6 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
             }
         }
 
-        // the topic version should never change when the topic lock is disabled except when
-        // the founder changes the topic prior to enabling the lock
         if (topic_info->version == chat->shared_state.topic_lock) {
             if (chat->topic_prev_checksum == topic_info->checksum &&
                     !mono_time_is_timeout(chat->mono_time, chat->topic_time_set, GC_CONFIRMED_PEER_TIMEOUT)) {
@@ -3758,6 +3755,8 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
             return true;
         }
 
+        // the topic version should never change when the topic lock is disabled except when
+        // the founder changes the topic prior to enabling the lock
         if (!(peer->role == GR_FOUNDER && topic_info->version == chat->shared_state.topic_lock + 1)) {
             LOGGER_ERROR(chat->log, "topic version %u differs from topic lock %u", topic_info->version,
                          chat->shared_state.topic_lock);
