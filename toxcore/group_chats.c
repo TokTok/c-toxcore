@@ -141,8 +141,10 @@ non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
 static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
-non_null() static void create_gc_session_keypair(const Logger *log, uint8_t *public_key, uint8_t *secret_key);
+non_null() static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key, uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
+
+static const GC_Chat empty_gc_chat = {nullptr};
 
 uint16_t gc_get_wrapped_packet_size(uint16_t length, uint8_t packet_type)
 {
@@ -615,7 +617,7 @@ static GC_Connection *random_gc_connection(const GC_Chat *chat)
         return nullptr;
     }
 
-    uint32_t index = random_u32() % chat->numpeers;
+    uint32_t index = random_u32(chat->rng) % chat->numpeers;
 
     if (index == 0) {
         index = 1;  // random index doesn't need to be cryptographically secure
@@ -725,9 +727,9 @@ static bool expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 
 /** Copies peer connect info from `gconn` to `addr`. */
 non_null()
-static void copy_gc_saved_peer(const GC_Connection *gconn, GC_SavedPeerInfo *addr)
+static void copy_gc_saved_peer(const Random *rng, const GC_Connection *gconn, GC_SavedPeerInfo *addr)
 {
-    gcc_copy_tcp_relay(&addr->tcp_relay, gconn);
+    gcc_copy_tcp_relay(rng, &addr->tcp_relay, gconn);
     addr->ip_port = gconn->addr.ip_port;
     memcpy(addr->public_key, gconn->addr.public_key, ENC_PUBLIC_KEY_SIZE);
 }
@@ -820,7 +822,7 @@ static void add_gc_saved_peers(GC_Chat *chat, const GC_Connection *gconn)
     }
 
     GC_SavedPeerInfo *saved_peer = &chat->saved_peers[idx];
-    copy_gc_saved_peer(gconn, saved_peer);
+    copy_gc_saved_peer(chat->rng, gconn, saved_peer);
 }
 
 /** @brief Finds the first vacant spot in the saved peers list and fills it with a present
@@ -850,7 +852,7 @@ static void refresh_gc_saved_peers(GC_Chat *chat)
 
         if (saved_peer_index(chat, gconn->addr.public_key) == -1) {
             GC_SavedPeerInfo *saved_peer = &chat->saved_peers[idx];
-            copy_gc_saved_peer(gconn, saved_peer);
+            copy_gc_saved_peer(chat->rng, gconn, saved_peer);
             return;
         }
     }
@@ -1443,9 +1445,10 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
     return plain_len;
 }
 
-int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
-                      uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
-                      uint8_t gp_packet_type, uint8_t net_packet_type)
+int group_packet_wrap(
+        const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+        uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
+        uint8_t gp_packet_type, uint8_t net_packet_type)
 {
     const uint16_t padding_len = group_packet_padding_length(length);
 
@@ -1482,7 +1485,7 @@ int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *
     }
 
     uint8_t nonce[CRYPTO_NONCE_SIZE];
-    random_nonce(nonce);
+    random_nonce(rng, nonce);
 
     const uint16_t plain_len = padding_len + enc_header_len + length;
     const uint16_t encrypt_buf_size = plain_len + CRYPTO_MAC_SIZE;
@@ -1539,8 +1542,9 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
         return false;
     }
 
-    const int len = group_packet_wrap(chat->log, chat->self_public_key, gconn->session_shared_key, packet,
-                                      packet_size, data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
+    const int len = group_packet_wrap(
+            chat->log, chat->rng, chat->self_public_key, gconn->session_shared_key, packet,
+            packet_size, data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
 
     if (len < 0) {
         LOGGER_ERROR(chat->log, "Failed to encrypt packet (type: 0x%02x, error: %d)", packet_type, len);
@@ -1679,7 +1683,7 @@ static bool unpack_gc_sync_announce(GC_Chat *chat, const uint8_t *data, const ui
                 continue;
             }
 
-            if (gcc_save_tcp_relay(new_gconn, &announce.tcp_relays[i]) == 0) {
+            if (gcc_save_tcp_relay(chat->rng, new_gconn, &announce.tcp_relays[i]) == 0) {
                 ++added_tcp_relays;
             }
         }
@@ -1762,7 +1766,7 @@ static bool create_sync_announce(const GC_Chat *chat, const GC_Connection *gconn
     }
 
     if (gconn->tcp_relays_count > 0) {
-        if (gcc_copy_tcp_relay(&announce->tcp_relays[0], gconn)) {
+        if (gcc_copy_tcp_relay(chat->rng, &announce->tcp_relays[0], gconn)) {
             announce->tcp_relays_count = 1;
         }
     }
@@ -2021,7 +2025,7 @@ static int handle_gc_tcp_relays(GC_Chat *chat, GC_Connection *gconn, const uint8
 
         if (add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num, &tcp_node->ip_port,
                                      tcp_node->public_key) == 0) {
-            gcc_save_tcp_relay(gconn, tcp_node);
+            gcc_save_tcp_relay(chat->rng, gconn, tcp_node);
 
             if (gconn->tcp_relays_count == 1) {
                 add_gc_saved_peers(chat, gconn);  // make sure we save at least one tcp relay
@@ -3561,7 +3565,7 @@ static bool send_peer_key_rotation_request(const GC_Chat *chat, GC_Connection *g
     uint8_t packet[1 + ENC_PUBLIC_KEY_SIZE];
     packet[0] = 0;  // request type
 
-    create_gc_session_keypair(chat->log, gconn->session_public_key, gconn->session_secret_key);
+    create_gc_session_keypair(chat->log, chat->rng, gconn->session_public_key, gconn->session_secret_key);
 
     // copy new session public key to packet
     memcpy(packet + 1, gconn->session_public_key, ENC_PUBLIC_KEY_SIZE);
@@ -3867,7 +3871,7 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
 
     crypto_memlock(new_session_sk, sizeof(new_session_sk));
 
-    create_gc_session_keypair(chat->log, new_session_pk, new_session_sk);
+    create_gc_session_keypair(chat->log, chat->rng, new_session_pk, new_session_sk);
 
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
@@ -5265,9 +5269,10 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
  * Return -3 if encryption fails.
  */
 non_null()
-static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk, const uint8_t *self_sk,
-                                       const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
-                                       const uint8_t *data, uint16_t length)
+static int wrap_group_handshake_packet(
+        const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
+        const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
+        const uint8_t *data, uint16_t length)
 {
     if (packet_size != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format)) {
         LOGGER_FATAL(log, "Invalid packet size: %u", packet_size);
@@ -5275,7 +5280,7 @@ static int wrap_group_handshake_packet(const Logger *log, const uint8_t *self_pk
     }
 
     uint8_t nonce[CRYPTO_NONCE_SIZE];
-    random_nonce(nonce);
+    random_nonce(rng, nonce);
 
     const size_t encrypt_buf_size = length + CRYPTO_MAC_SIZE;
     uint8_t *encrypt = (uint8_t *)malloc(encrypt_buf_size);
@@ -5345,8 +5350,9 @@ static int make_gc_handshake_packet(const GC_Chat *chat, const GC_Connection *gc
         nodes_size = 0;
     }
 
-    const int enc_len = wrap_group_handshake_packet(chat->log, chat->self_public_key, chat->self_secret_key,
-                        gconn->addr.public_key, packet, (uint16_t)packet_size, data, length);
+    const int enc_len = wrap_group_handshake_packet(
+            chat->log, chat->rng, chat->self_public_key, chat->self_secret_key,
+            gconn->addr.public_key, packet, (uint16_t)packet_size, data, length);
 
     if (enc_len != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + nodes_size) {
         LOGGER_WARNING(chat->log, "Failed to wrap handshake packet: %d", enc_len);
@@ -5373,7 +5379,7 @@ static bool send_gc_handshake_packet(const GC_Chat *chat, GC_Connection *gconn, 
     Node_format node;
     memset(&node, 0, sizeof(node));
 
-    gcc_copy_tcp_relay(&node, gconn);
+    gcc_copy_tcp_relay(chat->rng, &node, gconn);
 
     uint8_t packet[GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + sizeof(Node_format)];
     const int length = make_gc_handshake_packet(chat, gconn, handshake_type, request_type, packet,
@@ -5427,7 +5433,7 @@ static bool send_gc_oob_handshake_request(const GC_Chat *chat, const GC_Connecti
     Node_format node;
     memset(&node, 0, sizeof(node));
 
-    if (!gcc_copy_tcp_relay(&node, gconn)) {
+    if (!gcc_copy_tcp_relay(chat->rng, &node, gconn)) {
         LOGGER_WARNING(chat->log, "Failed to copy TCP relay");
         return false;
     }
@@ -5621,7 +5627,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
         }
 
         if (add_tcp_result == 0) {
-            gcc_save_tcp_relay(gconn, node);
+            gcc_save_tcp_relay(chat->rng, gconn, node);
         }
     }
 
@@ -6541,7 +6547,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     crypto_memlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
 
-    create_gc_session_keypair(chat->log, gconn->session_public_key, gconn->session_secret_key);
+    create_gc_session_keypair(chat->log, chat->rng, gconn->session_public_key, gconn->session_secret_key);
 
     if (peer_number > 0) {
         memcpy(gconn->addr.public_key, public_key, ENC_PUBLIC_KEY_SIZE);  // we get the sig key in the handshake
@@ -6693,7 +6699,7 @@ static void add_gc_peer_timeout_list(GC_Chat *chat, const GC_Connection *gconn)
     const size_t idx = chat->timeout_list_index;
     const uint64_t tm = mono_time_get(chat->mono_time);
 
-    copy_gc_saved_peer(gconn, &chat->timeout_list[idx].addr);
+    copy_gc_saved_peer(chat->rng, gconn, &chat->timeout_list[idx].addr);
 
     chat->timeout_list[idx].last_seen = tm;
     chat->timeout_list[idx].last_reconn_try = 0;
@@ -7033,9 +7039,7 @@ static int get_new_group_index(GC_Session *c)
 
     const int new_index = c->chats_index;
 
-    c->chats[new_index] = (GC_Chat) {
-        nullptr
-    };
+    c->chats[new_index] = empty_gc_chat;
 
     memset(&c->chats[new_index].saved_invites, -1, sizeof(c->chats[new_index].saved_invites));
 
@@ -7075,7 +7079,7 @@ static bool init_gc_tcp_connection(const GC_Session *c, GC_Chat *chat)
 {
     const Messenger *m = c->messenger;
 
-    chat->tcp_conn = new_tcp_connections(chat->log, chat->mono_time, m->ns, chat->self_secret_key, &m->options.proxy_info);
+    chat->tcp_conn = new_tcp_connections(chat->log, chat->rng, m->ns, chat->mono_time, chat->self_secret_key, &m->options.proxy_info);
 
     if (chat->tcp_conn == nullptr) {
         return false;
@@ -7155,6 +7159,7 @@ static int create_new_group(GC_Session *c, const uint8_t *nick, size_t nick_leng
     GC_Chat *chat = &c->chats[group_number];
 
     chat->log = m->log;
+    chat->rng = m->rng;
 
     const uint64_t tm = mono_time_get(m->mono_time);
 
@@ -7252,7 +7257,7 @@ static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16
         }
 
         if (add_tcp_result == 0) {
-            const int save_tcp_result = gcc_save_tcp_relay(gconn, &addrs[i].tcp_relay);
+            const int save_tcp_result = gcc_save_tcp_relay(chat->rng, gconn, &addrs[i].tcp_relay);
 
             if (save_tcp_result == -1) {
                 gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
@@ -7301,6 +7306,7 @@ int gc_group_load(GC_Session *c, Bin_Unpack *bu)
     chat->net = m->net;
     chat->mono_time = m->mono_time;
     chat->log = m->log;
+    chat->rng = m->rng;
     chat->last_ping_interval = tm;
 
     if (!gc_load_unpack_group(chat, bu)) {
@@ -7651,7 +7657,7 @@ static uint32_t add_gc_tcp_relays(const GC_Chat *chat, GC_Connection *gconn, con
                                    tcp_relays[i].public_key);
 
         if (add_tcp_result == 0) {
-            if (gcc_save_tcp_relay(gconn, &tcp_relays[i]) == 0) {
+            if (gcc_save_tcp_relay(chat->rng, gconn, &tcp_relays[i]) == 0) {
                 ++relays_added;
             }
         }
@@ -7949,9 +7955,7 @@ static void group_delete(GC_Session *c, GC_Chat *chat)
 
     group_cleanup(c, chat);
 
-    c->chats[chat->group_number] = (GC_Chat) {
-        nullptr
-    };
+    c->chats[chat->group_number] = empty_gc_chat;
 
     uint32_t i;
 
@@ -8074,9 +8078,9 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 }
 
 /** Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`. */
-static void create_gc_session_keypair(const Logger *log, uint8_t *public_key, uint8_t *secret_key)
+static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key, uint8_t *secret_key)
 {
-    if (crypto_new_keypair(public_key, secret_key) != 0) {
+    if (crypto_new_keypair(rng, public_key, secret_key) != 0) {
         LOGGER_FATAL(log, "Failed to create group session keypair");
     }
 }
@@ -8161,7 +8165,7 @@ static uint32_t add_gc_tcp_relays_from_announce(const GC_Chat *chat, GC_Connecti
             continue;
         }
 
-        if (gcc_save_tcp_relay(gconn, &announce->tcp_relays[j]) == -1) {
+        if (gcc_save_tcp_relay(chat->rng, gconn, &announce->tcp_relays[j]) == -1) {
             continue;
         }
 

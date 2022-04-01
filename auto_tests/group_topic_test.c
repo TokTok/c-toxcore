@@ -186,13 +186,13 @@ static void wait_state_topic(AutoTox *autotoxes, uint32_t groupnumber, const cha
  *
  * Returns the number of peers who succeeeded.
  */
-static uint32_t set_topic_all_peers(AutoTox *autotoxes, size_t num_peers, uint32_t groupnumber)
+static uint32_t set_topic_all_peers(const Random *rng, AutoTox *autotoxes, size_t num_peers, uint32_t groupnumber)
 {
     uint32_t change_count = 0;
 
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
-        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic %u", i, random_u32());
+        snprintf(new_topic, sizeof(new_topic), "peer %zu changes topic %u", i, random_u32(rng));
         size_t length = strlen(new_topic);
 
         if (set_topic(autotoxes[i].tox, groupnumber, new_topic, length) == 0) {
@@ -210,6 +210,9 @@ static void group_topic_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 3, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
+
+    const Random *rng = system_random();
+    ck_assert(rng != nullptr);
 
     Tox *tox0 = autotoxes[0].tox;
     const State *state0 = (const State *)autotoxes[0].state;
@@ -271,7 +274,7 @@ static void group_topic_test(AutoTox *autotoxes)
     wait_topic_lock(autotoxes, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED);
 
     /* All peers should be able to change the topic now */
-    uint32_t change_count = set_topic_all_peers(autotoxes, NUM_GROUP_TOXES, groupnumber);
+    uint32_t change_count = set_topic_all_peers(rng, autotoxes, NUM_GROUP_TOXES, groupnumber);
 
     ck_assert_msg(change_count == NUM_GROUP_TOXES, "%u peers changed the topic with topic lock disabled", change_count);
 
@@ -285,7 +288,7 @@ static void group_topic_test(AutoTox *autotoxes)
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
     /* All peers except one should now be able to change the topic */
-    change_count = set_topic_all_peers(autotoxes, NUM_GROUP_TOXES, groupnumber);
+    change_count = set_topic_all_peers(rng, autotoxes, NUM_GROUP_TOXES, groupnumber);
 
     ck_assert_msg(change_count == NUM_GROUP_TOXES - 1, "%u peers changed the topic with a silenced peer", change_count);
 
@@ -306,7 +309,7 @@ static void group_topic_test(AutoTox *autotoxes)
 
     /* No peer excluding the founder should be able to set the topic */
 
-    change_count = set_topic_all_peers(&autotoxes[1], NUM_GROUP_TOXES - 1, groupnumber);
+    change_count = set_topic_all_peers(rng, &autotoxes[1], NUM_GROUP_TOXES - 1, groupnumber);
 
     ck_assert_msg(change_count == 0, "%u peers changed the topic with topic lock enabled", change_count);
 

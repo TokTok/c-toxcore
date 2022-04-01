@@ -188,15 +188,15 @@ static bool all_peers_see_same_roles(const AutoTox *autotoxes, uint32_t num_peer
     return true;
 }
 
-static void role_spam(AutoTox *autotoxes, uint32_t num_peers, uint32_t num_demoted, uint32_t groupnumber)
+static void role_spam(const Random *rng, AutoTox *autotoxes, uint32_t num_peers, uint32_t num_demoted, uint32_t groupnumber)
 {
     const State *state0 = (const State *)autotoxes[0].state;
     Tox *tox0 = autotoxes[0].tox;
 
     for (size_t iters = 0; iters < ROLE_SPAM_ITERATIONS; ++iters) {
         // founder randomly promotes or demotes one of the non-mods
-        uint32_t idx = min_u32(random_u32() % num_demoted, state0->peers->num_peers);
-        Tox_Group_Role f_role = random_u32() % 2 == 0 ? TOX_GROUP_ROLE_MODERATOR : TOX_GROUP_ROLE_USER;
+        uint32_t idx = min_u32(random_u32(rng) % num_demoted, state0->peers->num_peers);
+        Tox_Group_Role f_role = random_u32(rng) % 2 == 0 ? TOX_GROUP_ROLE_MODERATOR : TOX_GROUP_ROLE_USER;
         int64_t peer_id = state0->peers->peer_ids[idx];
 
         if (peer_id >= 0) {
@@ -213,7 +213,7 @@ static void role_spam(AutoTox *autotoxes, uint32_t num_peers, uint32_t num_demot
                 }
 
                 const State *state_j = (const State *)autotoxes[j].state;
-                Tox_Group_Role role = random_u32() % 2 == 0 ? TOX_GROUP_ROLE_USER : TOX_GROUP_ROLE_OBSERVER;
+                Tox_Group_Role role = random_u32(rng) % 2 == 0 ? TOX_GROUP_ROLE_USER : TOX_GROUP_ROLE_OBSERVER;
                 peer_id = state_j->peers->peer_ids[i];
 
                 if (peer_id >= 0) {
@@ -234,11 +234,11 @@ static void role_spam(AutoTox *autotoxes, uint32_t num_peers, uint32_t num_demot
  *
  * Return true if all peers successfully changed the topic.
  */
-static bool set_topic_all_peers(AutoTox *autotoxes, size_t num_peers, uint32_t groupnumber)
+static bool set_topic_all_peers(const Random *rng, AutoTox *autotoxes, size_t num_peers, uint32_t groupnumber)
 {
     for (size_t i = 0; i < num_peers; ++i) {
         char new_topic[TOX_GROUP_MAX_TOPIC_LENGTH];
-        snprintf(new_topic, sizeof(new_topic), "peer %zu's topic %u", i, random_u32());
+        snprintf(new_topic, sizeof(new_topic), "peer %zu's topic %u", i, random_u32(rng));
         const size_t length = strlen(new_topic);
 
         Tox_Err_Group_Topic_Set err;
@@ -310,12 +310,12 @@ static bool all_peers_have_same_topic(const AutoTox *autotoxes, uint32_t num_pee
     return true;
 }
 
-static void topic_spam(AutoTox *autotoxes, uint32_t num_peers, uint32_t groupnumber)
+static void topic_spam(const Random *rng, AutoTox *autotoxes, uint32_t num_peers, uint32_t groupnumber)
 {
     for (size_t i = 0; i < TOPIC_SPAM_ITERATIONS; ++i) {
         do {
             iterate_all_wait(autotoxes, num_peers, ITERATION_INTERVAL);
-        } while (!set_topic_all_peers(autotoxes, num_peers, groupnumber));
+        } while (!set_topic_all_peers(rng, autotoxes, num_peers, groupnumber));
     }
 
     fprintf(stderr, "all peers set the topic at the same time\n");
@@ -331,6 +331,8 @@ static void group_sync_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert(NUM_GROUP_TOXES >= 5);
+    const Random *rng = system_random();
+    ck_assert(rng != nullptr);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
         tox_callback_group_peer_join(autotoxes[i].tox, group_peer_join_handler);
@@ -382,7 +384,7 @@ static void group_sync_test(AutoTox *autotoxes)
 
     fprintf(stderr, "founder disabled topic lock; all peers try to set the topic\n");
 
-    topic_spam(autotoxes, NUM_GROUP_TOXES, groupnumber);
+    topic_spam(rng, autotoxes, NUM_GROUP_TOXES, groupnumber);
 
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
@@ -410,7 +412,7 @@ static void group_sync_test(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
     } while (!all_peers_see_same_roles(autotoxes, NUM_GROUP_TOXES, groupnumber));
 
-    topic_spam(autotoxes, NUM_GROUP_TOXES, groupnumber);
+    topic_spam(rng, autotoxes, NUM_GROUP_TOXES, groupnumber);
 
     const unsigned int num_demoted = state0->peers->num_peers / 2;
 
@@ -428,7 +430,7 @@ static void group_sync_test(AutoTox *autotoxes)
 
     fprintf(stderr, "Remaining moderators spam change non-moderator roles\n");
 
-    role_spam(autotoxes, NUM_GROUP_TOXES, num_demoted, groupnumber);
+    role_spam(rng, autotoxes, NUM_GROUP_TOXES, num_demoted, groupnumber);
 
     fprintf(stderr, "All peers see the same roles\n");
 

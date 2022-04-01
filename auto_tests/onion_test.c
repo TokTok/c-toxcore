@@ -204,10 +204,10 @@ static int handle_test_4(void *object, const IP_Port *source, const uint8_t *pac
  * Use Onion_Path path to send data of length to dest.
  * Maximum length of data is ONION_MAX_DATA_SIZE.
  */
-static void send_onion_packet(const Networking_Core *net, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
+static void send_onion_packet(const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
 {
     uint8_t packet[ONION_MAX_PACKET_SIZE];
-    const int len = create_onion_packet(packet, sizeof(packet), path, dest, data, length);
+    const int len = create_onion_packet(rng, packet, sizeof(packet), path, dest, data, length);
     ck_assert_msg(len != -1, "failed to create onion packet");
     ck_assert_msg(sendpacket(net, &path->ip_port1, packet, len) == len, "failed to send onion packet");
 }
@@ -215,26 +215,29 @@ static void send_onion_packet(const Networking_Core *net, const Onion_Path *path
 /** Initialize networking.
  * Added for reverse compatibility with old new_networking calls.
  */
-static Networking_Core *new_networking(const Logger *log, const IP *ip, uint16_t port)
+static Networking_Core *new_networking(const Logger *log, const Network *ns, const IP *ip, uint16_t port)
 {
-    const Network *ns = system_network();
     return new_networking_ex(log, ns, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
 }
 
 static void test_basic(void)
 {
     uint32_t index[] = { 1, 2, 3 };
+    const Network *ns = system_network();
+
     Logger *log1 = logger_new();
     logger_callback_log(log1, (logger_cb *)print_debug_log, nullptr, &index[0]);
     Logger *log2 = logger_new();
     logger_callback_log(log2, (logger_cb *)print_debug_log, nullptr, &index[1]);
 
+    const Random *rng = system_random();
+    ck_assert(rng != nullptr);
     Mono_Time *mono_time1 = mono_time_new();
     Mono_Time *mono_time2 = mono_time_new();
 
     IP ip = get_loopback();
-    Onion *onion1 = new_onion(log1, mono_time1, new_dht(log1, mono_time1, new_networking(log1, &ip, 36567), true, false));
-    Onion *onion2 = new_onion(log2, mono_time2, new_dht(log2, mono_time2, new_networking(log2, &ip, 36568), true, false));
+    Onion *onion1 = new_onion(log1, mono_time1, rng, new_dht(log1, rng, ns, mono_time1, new_networking(log1, ns, &ip, 36567), true, false));
+    Onion *onion2 = new_onion(log2, mono_time2, rng, new_dht(log2, rng, ns, mono_time2, new_networking(log2, ns, &ip, 36568), true, false));
     ck_assert_msg((onion1 != nullptr) && (onion2 != nullptr), "Onion failed initializing.");
     networking_registerhandler(onion2->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_test_1, onion2);
 
@@ -259,8 +262,8 @@ static void test_basic(void)
     nodes[2] = n1;
     nodes[3] = n2;
     Onion_Path path;
-    create_onion_path(onion1->dht, &path, nodes);
-    send_onion_packet(onion1->net, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
+    create_onion_path(rng, onion1->dht, &path, nodes);
+    send_onion_packet(onion1->net, rng, &path, &nodes[3].ip_port, req_packet, sizeof(req_packet));
 
     handled_test_1 = 0;
 
@@ -277,19 +280,17 @@ static void test_basic(void)
         do_onion(mono_time2, onion2);
     } while (handled_test_2 == 0);
 
-
-
-    Onion_Announce *onion1_a = new_onion_announce(log1, mono_time1, onion1->dht);
-    Onion_Announce *onion2_a = new_onion_announce(log2, mono_time2, onion2->dht);
+    Onion_Announce *onion1_a = new_onion_announce(log1, rng, mono_time1, onion1->dht);
+    Onion_Announce *onion2_a = new_onion_announce(log2, rng, mono_time2, onion2->dht);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_test_3, onion1);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, &handle_test_3_old, onion1);
     ck_assert_msg((onion1_a != nullptr) && (onion2_a != nullptr), "Onion_Announce failed initializing.");
     uint8_t zeroes[64] = {0};
-    random_bytes(sb_data, sizeof(sb_data));
+    random_bytes(rng, sb_data, sizeof(sb_data));
     uint64_t s;
     memcpy(&s, sb_data, sizeof(uint64_t));
     memcpy(test_3_pub_key, nodes[3].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    int ret = send_announce_request(onion1->net, &path, &nodes[3],
+    int ret = send_announce_request(onion1->net, rng, &path, &nodes[3],
                                     dht_get_self_public_key(onion1->dht),
                                     dht_get_self_secret_key(onion1->dht),
                                     zeroes,
@@ -306,12 +307,12 @@ static void test_basic(void)
 
     printf("test 3 complete\n");
 
-    random_bytes(sb_data, sizeof(sb_data));
+    random_bytes(rng, sb_data, sizeof(sb_data));
     memcpy(&s, sb_data, sizeof(uint64_t));
     memcpy(onion_announce_entry_public_key(onion2_a, 1), dht_get_self_public_key(onion2->dht), CRYPTO_PUBLIC_KEY_SIZE);
     onion_announce_entry_set_time(onion2_a, 1, mono_time_get(mono_time2));
     networking_registerhandler(onion1->net, NET_PACKET_ONION_DATA_RESPONSE, &handle_test_4, onion1);
-    send_announce_request(onion1->net, &path, &nodes[3],
+    send_announce_request(onion1->net, rng, &path, &nodes[3],
                           dht_get_self_public_key(onion1->dht),
                           dht_get_self_secret_key(onion1->dht),
                           test_3_ping_id,
@@ -332,11 +333,11 @@ static void test_basic(void)
 
     Mono_Time *mono_time3 = mono_time_new();
 
-    Onion *onion3 = new_onion(log3, mono_time3, new_dht(log3, mono_time3, new_networking(log3, &ip, 36569), true, false));
+    Onion *onion3 = new_onion(log3, mono_time3, rng, new_dht(log3, rng, ns, mono_time3, new_networking(log3, ns, &ip, 36569), true, false));
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
 
-    random_nonce(nonce);
-    ret = send_data_request(onion3->net, &path, &nodes[3].ip_port,
+    random_nonce(rng, nonce);
+    ret = send_data_request(onion3->net, rng, &path, &nodes[3].ip_port,
                             dht_get_self_public_key(onion1->dht),
                             dht_get_self_public_key(onion1->dht),
                             nonce, (const uint8_t *)"Install gentoo", sizeof("Install gentoo"));
@@ -399,10 +400,11 @@ typedef struct {
     Onion_Client *onion_c;
 } Onions;
 
-static Onions *new_onions(uint16_t port, uint32_t *index)
+static Onions *new_onions(const Random *rng, uint16_t port, uint32_t *index)
 {
     IP ip = get_loopback();
     ip.ip.v6.uint8[15] = 1;
+    const Network *ns = system_network();
     Onions *on = (Onions *)malloc(sizeof(Onions));
 
     if (!on) {
@@ -426,7 +428,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    Networking_Core *net = new_networking(on->log, &ip, port);
+    Networking_Core *net = new_networking(on->log, ns, &ip, port);
 
     if (!net) {
         mono_time_free(on->mono_time);
@@ -435,7 +437,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    DHT *dht = new_dht(on->log, on->mono_time, net, true, false);
+    DHT *dht = new_dht(on->log, rng, ns, on->mono_time, net, true, false);
 
     if (!dht) {
         kill_networking(net);
@@ -445,7 +447,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    on->onion = new_onion(on->log, on->mono_time, dht);
+    on->onion = new_onion(on->log, on->mono_time, rng, dht);
 
     if (!on->onion) {
         kill_dht(dht);
@@ -456,7 +458,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
         return nullptr;
     }
 
-    on->onion_a = new_onion_announce(on->log, on->mono_time, dht);
+    on->onion_a = new_onion_announce(on->log, rng, on->mono_time, dht);
 
     if (!on->onion_a) {
         kill_onion(on->onion);
@@ -469,8 +471,7 @@ static Onions *new_onions(uint16_t port, uint32_t *index)
     }
 
     TCP_Proxy_Info inf = {{{{0}}}};
-    const Network *ns = system_network();
-    on->onion_c = new_onion_client(on->log, on->mono_time, new_net_crypto(on->log, on->mono_time, ns, dht, &inf));
+    on->onion_c = new_onion_client(on->log, rng, on->mono_time, new_net_crypto(on->log, rng, ns, on->mono_time, dht, &inf));
 
     if (!on->onion_c) {
         kill_onion_announce(on->onion_a);
@@ -573,10 +574,12 @@ static void test_announce(void)
     uint32_t i, j;
     uint32_t index[NUM_ONIONS];
     Onions *onions[NUM_ONIONS];
+    const Random *rng = system_random();
+    ck_assert(rng != nullptr);
 
     for (i = 0; i < NUM_ONIONS; ++i) {
         index[i] = i + 1;
-        onions[i] = new_onions(i + 36655, &index[i]);
+        onions[i] = new_onions(rng, i + 36655, &index[i]);
         ck_assert_msg(onions[i] != nullptr, "Failed to create onions. %u", i);
     }
 

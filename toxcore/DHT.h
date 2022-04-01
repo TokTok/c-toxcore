@@ -106,9 +106,9 @@ extern "C" {
  * @return the length of the created packet on success.
  */
 non_null()
-int create_request(
-    const uint8_t *send_public_key, const uint8_t *send_secret_key, uint8_t *packet,
-    const uint8_t *recv_public_key, const uint8_t *data, uint32_t data_length, uint8_t request_id);
+int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
+                   uint8_t *packet, const uint8_t *recv_public_key,
+                   const uint8_t *data, uint32_t data_length, uint8_t request_id);
 
 /**
  * @brief Decrypts and unpacks a DHT request packet.
@@ -484,8 +484,8 @@ int dht_load(DHT *dht, const uint8_t *data, uint32_t length);
 
 /** Initialize DHT. */
 non_null()
-DHT *new_dht(const Logger *log, Mono_Time *mono_time, Networking_Core *net, bool hole_punching_enabled,
-             bool lan_discovery_enabled);
+DHT *new_dht(const Logger *log, const Random *rng, const Network *ns, Mono_Time *mono_time, Networking_Core *net,
+             bool hole_punching_enabled, bool lan_discovery_enabled);
 
 non_null()
 void kill_dht(DHT *dht);

@@ -20,12 +20,15 @@ static void test_addr_resolv_localhost(void)
     errno = 0;
 #endif
 
+    const Network *ns = system_network();
+    ck_assert(ns != nullptr);
+
     const char localhost[] = "localhost";
 
     IP ip;
     ip_init(&ip, 0); // ipv6enabled = 0
 
-    bool res = addr_resolve_or_parse_ip(localhost, &ip, nullptr);
+    bool res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr);
 
     int error = net_error();
     char *strerror = net_new_strerror(error);
@@ -39,14 +42,14 @@ static void test_addr_resolv_localhost(void)
                   ip_ntoa(&ip, ip_str, sizeof(ip_str)));
 
     ip_init(&ip, 1); // ipv6enabled = 1
-    res = addr_resolve_or_parse_ip(localhost, &ip, nullptr);
+    res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr);
 
 #if USE_IPV6
 
     int localhost_split = 0;
 
     if (!net_family_is_ipv6(ip.family)) {
-        res = addr_resolve_or_parse_ip("ip6-localhost", &ip, nullptr);
+        res = addr_resolve_or_parse_ip(ns, "ip6-localhost", &ip, nullptr);
         localhost_split = 1;
     }
 
@@ -72,7 +75,7 @@ static void test_addr_resolv_localhost(void)
     ip.family = net_family_unspec;
     IP extra;
     ip_reset(&extra);
-    res = addr_resolve_or_parse_ip(localhost, &ip, &extra);
+    res = addr_resolve_or_parse_ip(ns, localhost, &ip, &extra);
     error = net_error();
     strerror = net_new_strerror(error);
     ck_assert_msg(res, "Resolver failed: %d, %s", error, strerror);
@@ -159,19 +162,12 @@ static void test_ip_equal(void)
     ck_assert_msg(res == 0, "ip_equal( {TOX_AF_INET6, ::1}, {TOX_AF_INET6, ::2} ): expected result 0, got %d.", res);
 }
 
-static void network_suite(void)
-{
-    networking_at_startup();
-
-    test_addr_resolv_localhost();
-    test_ip_equal();
-}
-
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    network_suite();
+    test_addr_resolv_localhost();
+    test_ip_equal();
 
     return 0;
 }

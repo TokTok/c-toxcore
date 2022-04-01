@@ -58,11 +58,11 @@ static bool load_unpack_state_bin(GC_Chat *chat, Bin_Unpack *bu)
         return false;
     }
 
-    if (!(bin_unpack_bytes_fixed(bu, chat->shared_state_sig, SIGNATURE_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->shared_state.group_name, chat->shared_state.group_name_len)
-            && bin_unpack_bytes_fixed(bu, chat->shared_state.password, chat->shared_state.password_length)
-            && bin_unpack_bytes_fixed(bu, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE))) {
+    if (!(bin_unpack_bin_fixed(bu, chat->shared_state_sig, SIGNATURE_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->shared_state.group_name, chat->shared_state.group_name_len)
+            && bin_unpack_bin_fixed(bu, chat->shared_state.password, chat->shared_state.password_length)
+            && bin_unpack_bin_fixed(bu, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE))) {
         LOGGER_ERROR(chat->log, "Failed to unpack state binary data");
         return false;
     }
@@ -81,9 +81,9 @@ static bool load_unpack_topic_info(GC_Chat *chat, Bin_Unpack *bu)
     if (!(bin_unpack_u32(bu, &chat->topic_info.version)
             && bin_unpack_u16(bu, &chat->topic_info.length)
             && bin_unpack_u16(bu, &chat->topic_info.checksum)
-            && bin_unpack_bytes_fixed(bu, chat->topic_info.topic, chat->topic_info.length)
-            && bin_unpack_bytes_fixed(bu, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->topic_sig, SIGNATURE_SIZE))) {
+            && bin_unpack_bin_fixed(bu, chat->topic_info.topic, chat->topic_info.length)
+            && bin_unpack_bin_fixed(bu, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->topic_sig, SIGNATURE_SIZE))) {
         LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
     }
@@ -123,7 +123,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
 
     const size_t packed_size = chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE;
 
-    if (!bin_unpack_bytes_fixed(bu, packed_mod_list, packed_size)) {
+    if (!bin_unpack_bin_fixed(bu, packed_mod_list, packed_size)) {
         LOGGER_ERROR(chat->log, "Failed to unpack mod list binary data");
         free(packed_mod_list);
         return false;
@@ -149,10 +149,10 @@ static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
         return false;
     }
 
-    if (!(bin_unpack_bytes_fixed(bu, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->chat_secret_key, EXT_SECRET_KEY_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->self_public_key, EXT_PUBLIC_KEY_SIZE)
-            && bin_unpack_bytes_fixed(bu, chat->self_secret_key, EXT_SECRET_KEY_SIZE))) {
+    if (!(bin_unpack_bin_fixed(bu, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->chat_secret_key, EXT_SECRET_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->self_public_key, EXT_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->self_secret_key, EXT_SECRET_KEY_SIZE))) {
         LOGGER_ERROR(chat->log, "Failed to unpack keys");
         return false;
     }
@@ -182,7 +182,7 @@ static bool load_unpack_self_info(GC_Chat *chat, Bin_Unpack *bu)
 
     assert(self_nick_len <= MAX_GC_NICK_SIZE);
 
-    if (!bin_unpack_bytes_fixed(bu, self_nick, self_nick_len)) {
+    if (!bin_unpack_bin_fixed(bu, self_nick, self_nick_len)) {
         LOGGER_ERROR(chat->log, "Failed to unpack self nick bytes");
         return false;
     }
@@ -235,7 +235,7 @@ static bool load_unpack_saved_peers(GC_Chat *chat, Bin_Unpack *bu)
         return false;
     }
 
-    if (!bin_unpack_bytes_fixed(bu, saved_peers, saved_peers_size)) {
+    if (!bin_unpack_bin_fixed(bu, saved_peers, saved_peers_size)) {
         LOGGER_ERROR(chat->log, "Failed to unpack saved peers binary data");
         free(saved_peers);
         return false;
@@ -285,11 +285,11 @@ static void save_pack_state_bin(const GC_Chat *chat, Bin_Pack *bp)
 {
     bin_pack_array(bp, 5);
 
-    bin_pack_bytes(bp, chat->shared_state_sig, SIGNATURE_SIZE); // 1
-    bin_pack_bytes(bp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE); // 2
-    bin_pack_bytes(bp, chat->shared_state.group_name, chat->shared_state.group_name_len); // 3
-    bin_pack_bytes(bp, chat->shared_state.password, chat->shared_state.password_length); // 4
-    bin_pack_bytes(bp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
+    bin_pack_bin(bp, chat->shared_state_sig, SIGNATURE_SIZE); // 1
+    bin_pack_bin(bp, chat->shared_state.founder_public_key, EXT_PUBLIC_KEY_SIZE); // 2
+    bin_pack_bin(bp, chat->shared_state.group_name, chat->shared_state.group_name_len); // 3
+    bin_pack_bin(bp, chat->shared_state.password, chat->shared_state.password_length); // 4
+    bin_pack_bin(bp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
 }
 
 non_null()
@@ -300,9 +300,9 @@ static void save_pack_topic_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_u32(bp, chat->topic_info.version); // 1
     bin_pack_u16(bp, chat->topic_info.length); // 2
     bin_pack_u16(bp, chat->topic_info.checksum); // 3
-    bin_pack_bytes(bp, chat->topic_info.topic, chat->topic_info.length); // 4
-    bin_pack_bytes(bp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
-    bin_pack_bytes(bp, chat->topic_sig, SIGNATURE_SIZE); // 6
+    bin_pack_bin(bp, chat->topic_info.topic, chat->topic_info.length); // 4
+    bin_pack_bin(bp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
+    bin_pack_bin(bp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
 non_null()
@@ -332,7 +332,7 @@ static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
 
     const size_t packed_size = num_mods * MOD_LIST_ENTRY_SIZE;
 
-    bin_pack_bytes(bp, packed_mod_list, packed_size); // 2
+    bin_pack_bin(bp, packed_mod_list, packed_size); // 2
 
     free(packed_mod_list);
 }
@@ -342,10 +342,10 @@ static void save_pack_keys(const GC_Chat *chat, Bin_Pack *bp)
 {
     bin_pack_array(bp, 4);
 
-    bin_pack_bytes(bp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
-    bin_pack_bytes(bp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
-    bin_pack_bytes(bp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
-    bin_pack_bytes(bp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
+    bin_pack_bin(bp, chat->chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
+    bin_pack_bin(bp, chat->chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
+    bin_pack_bin(bp, chat->self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
+    bin_pack_bin(bp, chat->self_secret_key, EXT_SECRET_KEY_SIZE); // 4
 }
 
 non_null()
@@ -360,7 +360,7 @@ static void save_pack_self_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_u16(bp, self->nick_length); // 1
     bin_pack_u08(bp, (uint8_t)self->role); // 2
     bin_pack_u08(bp, (uint8_t)self->status); // 3
-    bin_pack_bytes(bp, self->nick, self->nick_length); // 4
+    bin_pack_bin(bp, self->nick, self->nick_length); // 4
 }
 
 non_null()
@@ -391,7 +391,7 @@ static void save_pack_saved_peers(const GC_Chat *chat, Bin_Pack *bp)
         return;
     }
 
-    bin_pack_bytes(bp, saved_peers, packed_size); // 2
+    bin_pack_bin(bp, saved_peers, packed_size); // 2
 
     free(saved_peers);
 }

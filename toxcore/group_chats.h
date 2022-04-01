@@ -138,9 +138,10 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  * Return -3 if encryption fails.
  */
 non_null(1, 2, 3, 4) nullable(6)
-int group_packet_wrap(const Logger *log, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
-                      uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
-                      uint8_t gp_packet_type, uint8_t net_packet_type);
+int group_packet_wrap(
+        const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+        uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
+        uint8_t gp_packet_type, uint8_t net_packet_type);
 
 /** @brief Returns the size of a wrapped/encrypted packet with a plain size of `length`.
  *

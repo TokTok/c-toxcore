@@ -281,6 +281,9 @@ static void group_message_test(AutoTox *autotoxes)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 2, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
+    const Random *rng = system_random();
+    ck_assert(rng != nullptr);
+
     Tox *tox0 = autotoxes[0].tox;
     Tox *tox1 = autotoxes[1].tox;
 
@@ -375,12 +378,12 @@ static void group_message_test(AutoTox *autotoxes)
             iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
         }
 
-        uint16_t message_size = min_u16(4 + (random_u16() % TOX_MAX_MESSAGE_LENGTH), TOX_MAX_MESSAGE_LENGTH);
+        uint16_t message_size = min_u16(4 + (random_u16(rng) % TOX_MAX_MESSAGE_LENGTH), TOX_MAX_MESSAGE_LENGTH);
 
         memcpy(m, &i, sizeof(uint16_t));
 
         for (size_t j = 4; j < message_size; ++j) {
-            m[j] = random_u32();
+            m[j] = random_u32(rng);
         }
 
         const uint16_t checksum = get_message_checksum(m + 4, message_size - 4);

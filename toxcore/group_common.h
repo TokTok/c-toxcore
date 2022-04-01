@@ -232,6 +232,7 @@ typedef struct GC_TopicInfo {
 typedef struct GC_Chat {
     Mono_Time       *mono_time;
     const Logger    *log;
+    const Random    *rng;
 
     Self_UDP_Status self_udp_status;
     IP_Port         self_ip_port;
