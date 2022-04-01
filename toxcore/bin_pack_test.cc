@@ -119,7 +119,7 @@ TEST(BinPack, BinCanHoldArbitraryData)
     ASSERT_NE(bu, nullptr);
     std::array<uint8_t, 5> str;
     EXPECT_TRUE(bin_unpack_bin_fixed(bu.get(), str.data(), str.size()));
-    EXPECT_EQ(str, (std::array<uint8_t, 5>{'h','e','l','l','o'}));
+    EXPECT_EQ(str, (std::array<uint8_t, 5>{'h', 'e', 'l', 'l', 'o'}));
 }
 
 }  // namespace
