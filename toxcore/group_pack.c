@@ -262,7 +262,7 @@ bool gc_load_unpack_group(GC_Chat *chat, Bin_Unpack *bu)
            && load_unpack_topic_info(chat, bu)
            && load_unpack_mod_list(chat, bu)
            && load_unpack_keys(chat, bu)
-           && load_unpack_self_info(chat,bu)
+           && load_unpack_self_info(chat, bu)
            && load_unpack_saved_peers(chat, bu);
 }
 

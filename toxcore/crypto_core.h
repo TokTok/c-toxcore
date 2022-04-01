@@ -243,14 +243,6 @@ non_null()
 bool create_extended_keypair(uint8_t *pk, uint8_t *sk);
 
 /**
- * Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
- * Used for group chats and group DHT announcements.
- * pk and sk must have room for at least EXT_PUBLIC_KEY_SIZE bytes each.
- */
-non_null()
-int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk);
-
-/**
  * @brief Generate a new random keypair.
  *
  * Every call to this function is likely to generate a different keypair.

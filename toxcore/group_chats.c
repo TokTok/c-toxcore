@@ -1079,7 +1079,7 @@ static bool prune_gc_sanctions_list(GC_Chat *chat)
     sanction = nullptr;
 
     uint8_t data[MOD_SANCTIONS_CREDS_SIZE];
-    const uint16_t length = sanctions_creds_pack(&chat->moderation.sanctions_creds, data, sizeof(data));
+    const uint16_t length = sanctions_creds_pack(&chat->moderation.sanctions_creds, data);
 
     if (length != MOD_SANCTIONS_CREDS_SIZE) {
         LOGGER_ERROR(chat->log, "Failed to pack credentials (invlaid length: %u)", length);
@@ -3173,7 +3173,7 @@ static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uin
     const uint16_t length = sizeof(uint16_t);
 
     const int packed_len = sanctions_list_pack(data + length, maxlen - length, chat->moderation.sanctions,
-                           &chat->moderation.sanctions_creds, chat->moderation.num_sanctions);
+                           chat->moderation.num_sanctions, &chat->moderation.sanctions_creds);
 
     if (packed_len < 0) {
         return -1;
@@ -4183,7 +4183,11 @@ static int validate_unpack_observer_entry(GC_Chat *chat, const uint8_t *data, ui
             return -1;
         }
     } else {
-        if (sanctions_creds_unpack(&creds, data, length) != MOD_SANCTIONS_CREDS_SIZE) {
+        if (length < MOD_SANCTIONS_CREDS_SIZE) {
+            return -1;
+        }
+
+        if (sanctions_creds_unpack(&creds, data) != MOD_SANCTIONS_CREDS_SIZE) {
             return -1;
         }
 
@@ -4343,8 +4347,8 @@ static bool mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_ob
             return false;
         }
 
-        const int packed_len = sanctions_list_pack(sanction_data, sizeof(sanction_data), &sanction,
-                               &chat->moderation.sanctions_creds, 1);
+        const int packed_len = sanctions_list_pack(sanction_data, sizeof(sanction_data), &sanction, 1,
+                               &chat->moderation.sanctions_creds);
 
         if (packed_len == -1) {
             return false;
@@ -4357,8 +4361,7 @@ static bool mod_gc_set_observer(GC_Chat *chat, uint32_t peer_number, bool add_ob
             return false;
         }
 
-        const uint16_t packed_len = sanctions_creds_pack(&chat->moderation.sanctions_creds, sanction_data,
-                                    sizeof(sanction_data));
+        const uint16_t packed_len = sanctions_creds_pack(&chat->moderation.sanctions_creds, sanction_data);
 
         if (packed_len != MOD_SANCTIONS_CREDS_SIZE) {
             return false;
@@ -8094,7 +8097,7 @@ static bool create_new_chat_ext_keypair(GC_Chat *chat)
 {
     crypto_memlock(chat->self_secret_key, sizeof(chat->self_secret_key));
 
-    if (create_extended_keypair(chat->self_public_key, chat->self_secret_key) != 0) {
+    if (!create_extended_keypair(chat->self_public_key, chat->self_secret_key)) {
         crypto_memunlock(chat->self_secret_key, sizeof(chat->self_secret_key));
         return false;
     }
