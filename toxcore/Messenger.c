@@ -2484,8 +2484,7 @@ uint32_t messenger_run_interval(const Messenger *m)
 non_null()
 static bool self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *onion_friend)
 {
-    GC_Public_Announce announce;
-    memset(&announce, 0, sizeof(GC_Public_Announce));
+    GC_Public_Announce announce = {{{0}}};
 
     const bool ip_port_is_set = chat->self_udp_status != SELF_UDP_STATUS_NONE;
     const int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, announce.base_announce.tcp_relays,
@@ -3078,6 +3077,7 @@ non_null()
 static void pack_groupchats(const GC_Session *c, Bin_Pack *bp)
 {
     assert(bp != nullptr && c != nullptr);
+    bin_pack_array(bp, gc_count_groups(c));
 
     for (uint32_t i = 0; i < c->chats_index; ++i) { // this loop must match the one in gc_count_groups()
         const GC_Chat *chat = &c->chats[i];
@@ -3090,6 +3090,7 @@ static void pack_groupchats(const GC_Session *c, Bin_Pack *bp)
     }
 }
 
+non_null()
 static bool pack_groupchats_handler(Bin_Pack *bp, const void *obj)
 {
     pack_groupchats((const GC_Session *)obj, bp);
@@ -3592,11 +3593,13 @@ Messenger *new_messenger(Mono_Time *mono_time, const Network *ns, Messenger_Opti
             kill_friend_connections(m->fr_c);
             kill_onion(m->onion);
             kill_onion_announce(m->onion_a);
-            kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
             kill_dht_groupchats(m->group_handler);
+#endif
+            kill_onion_client(m->onion_c);
+#ifndef VANILLA_NACL
             kill_gca(m->group_announce);
-#endif /* VANILLA_NACL */
+#endif
             kill_net_crypto(m->net_crypto);
             kill_dht(m->dht);
             kill_networking(m->net);
@@ -3647,7 +3650,13 @@ void kill_messenger(Messenger *m)
     kill_friend_connections(m->fr_c);
     kill_onion(m->onion);
     kill_onion_announce(m->onion_a);
+#ifndef VANILLA_NACL
+    kill_dht_groupchats(m->group_handler);
+#endif
     kill_onion_client(m->onion_c);
+#ifndef VANILLA_NACL
+    kill_gca(m->group_announce);
+#endif
     kill_net_crypto(m->net_crypto);
     kill_dht(m->dht);
     kill_networking(m->net);

@@ -524,21 +524,6 @@ cc_library(
     deps = [
         ":DHT",
         ":ccompat",
-        ":logger",
-        ":mono_time",
-        ":network",
-        ":util",
-        "@libsodium",
-    ],
-)
-
-cc_library(
-    name = "group_moderation",
-    srcs = ["group_moderation.c"],
-    hdrs = ["group_moderation.h"],
-    deps = [
-        ":DHT",
-        ":ccompat",
         ":crypto_core",
         ":logger",
         ":mono_time",

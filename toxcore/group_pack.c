@@ -314,7 +314,6 @@ static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
 
     if (num_mods == 0) {
         bin_pack_u16(bp, num_mods); // 1
-        bin_pack_bool(bp, false); // 2 (dummy value)
         return;
     }
 
@@ -323,7 +322,6 @@ static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
     // we can still recover without the mod list
     if (packed_mod_list == nullptr) {
         bin_pack_u16(bp, 0); // 1
-        bin_pack_bool(bp, false); // 2 (dummy value)
         LOGGER_ERROR(chat->log, "Failed to allocate memory for moderatin list");
         return;
     }
@@ -375,7 +373,6 @@ static void save_pack_saved_peers(const GC_Chat *chat, Bin_Pack *bp)
     // we can still recover without the saved peers list
     if (saved_peers == nullptr) {
         bin_pack_u16(bp, 0); // 1
-        bin_pack_bool(bp, false); // 2 (dummy value)
         LOGGER_ERROR(chat->log, "Failed to allocate memory for saved peers list");
         return;
     }
@@ -391,7 +388,6 @@ static void save_pack_saved_peers(const GC_Chat *chat, Bin_Pack *bp)
 
     if (packed_size == 0) {
         free(saved_peers);
-        bin_pack_bool(bp, false); // 2 (dummy value)
         return;
     }
 

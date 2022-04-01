@@ -6942,7 +6942,9 @@ static void do_timed_out_reconn(GC_Chat *chat)
 
         if (mono_time_is_timeout(chat->mono_time, timeout->last_seen, GC_TIMED_OUT_STALE_TIMEOUT)
                 || get_peer_number_of_enc_pk(chat, timeout->addr.public_key, true) != -1) {
-            memset(timeout, 0, sizeof(GC_TimedOutPeer));
+            *timeout = (GC_TimedOutPeer) {
+                0
+            };
             continue;
         }
 
