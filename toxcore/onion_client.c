@@ -993,7 +993,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
 
         Node_format nodes[MAX_SENT_NODES];
         const int num_nodes = unpack_nodes(nodes, nodes_count, &len_nodes, plain + 2 + ONION_PING_ID_SIZE,
-                                           plain_size - 2 - ONION_PING_ID_SIZE, 0);
+                                           plain_size - 2 - ONION_PING_ID_SIZE, false);
 
         if (num_nodes < 0) {
             return 1;

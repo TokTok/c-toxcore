@@ -27,7 +27,7 @@ static bool load_unpack_state_values(GC_Chat *chat, Bin_Unpack *bu)
         return false;
     }
 
-    bool manually_disconnected = 0;
+    bool manually_disconnected = false;
     uint8_t privacy_state = 0;
     uint8_t voice_state = 0;
 

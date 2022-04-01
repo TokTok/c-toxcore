@@ -191,7 +191,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     }
 
     if (announce->ip_port_is_set) {
-        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, 0);
+        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, false);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to unpack ip_port");
@@ -203,7 +203,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
 
     uint16_t nodes_length;
     const int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count, &nodes_length,
-                                         data + offset, length - offset, 1);
+                                         data + offset, length - offset, true);
 
     if (nodes_count != announce->tcp_relays_count) {
         LOGGER_ERROR(log, "Failed to unpack TCP nodes");
@@ -396,7 +396,7 @@ void kill_gca(GC_Announces_List *announces_list)
 
     GC_Announces *root = announces_list->root_announces;
 
-    while (root) {
+    while (root != nullptr) {
         GC_Announces *next = root->next_announce;
         free(root);
         root = next;

@@ -2484,7 +2484,7 @@ uint32_t messenger_run_interval(const Messenger *m)
 non_null()
 static bool self_announce_group(const Messenger *m, GC_Chat *chat, Onion_Friend *onion_friend)
 {
-    GC_Public_Announce announce = {{{0}}};
+    GC_Public_Announce announce = {{0}};
 
     const bool ip_port_is_set = chat->self_udp_status != SELF_UDP_STATUS_NONE;
     const int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, announce.base_announce.tcp_relays,

@@ -3310,7 +3310,7 @@ Tox_Group_Role tox_group_self_get_role(const Tox *tox, uint32_t group_number, To
 
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_QUERY_OK);
 
-    const uint8_t role = gc_get_self_role(chat);
+    const Group_Role role = gc_get_self_role(chat);
     tox_unlock(tox);
 
     return (Tox_Group_Role)role;

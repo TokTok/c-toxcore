@@ -2014,7 +2014,7 @@ static int handle_gc_tcp_relays(GC_Chat *chat, GC_Connection *gconn, const uint8
     }
 
     Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
-    const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS, nullptr, data, length, 1);
+    const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS, nullptr, data, length, true);
 
     if (num_nodes <= 0) {
         return -2;
@@ -5605,7 +5605,7 @@ static int handle_gc_handshake_request(GC_Chat *chat, const IP_Port *ipp, const 
     const int processed = ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1;
 
     const int nodes_count = unpack_nodes(node, GCA_MAX_ANNOUNCED_TCP_RELAYS, nullptr,
-                                         data + processed, length - processed, 1);
+                                         data + processed, length - processed, true);
 
     if (nodes_count <= 0 && ipp == nullptr) {
         if (is_new_peer) {
@@ -6131,11 +6131,19 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
 
     switch (packet_type) {
     case NET_PACKET_GC_LOSSLESS: {
-        return handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
+        if (!handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, false, userdata)) {
+            return -1;
+        }
+
+        return 0;
     }
 
     case NET_PACKET_GC_LOSSY: {
-        return handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
+        if (!handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, false, userdata)) {
+            return -1;
+        }
+
+        return 0;
     }
 
     case NET_PACKET_GC_HANDSHAKE: {
@@ -6287,7 +6295,7 @@ static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t 
     }
     }
 
-    return ret;
+    return ret ? 0 : -1;
 }
 
 void gc_callback_message(const Messenger *m, gc_message_cb *function)
@@ -6948,7 +6956,7 @@ static void do_timed_out_reconn(GC_Chat *chat)
         if (mono_time_is_timeout(chat->mono_time, timeout->last_seen, GC_TIMED_OUT_STALE_TIMEOUT)
                 || get_peer_number_of_enc_pk(chat, timeout->addr.public_key, true) != -1) {
             *timeout = (GC_TimedOutPeer) {
-                0
+                {{0}}
             };
             continue;
         }
@@ -7729,7 +7737,7 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
     Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
     const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS,
                                        nullptr, data + ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE,
-                                       length - GC_JOIN_DATA_LENGTH, 1);
+                                       length - GC_JOIN_DATA_LENGTH, true);
 
     const bool copy_ip_port_result = copy_friend_ip_port_to_gconn(c->messenger, friend_number, gconn);
 
@@ -7808,10 +7816,10 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
     }
 
     uint16_t len = GC_JOIN_DATA_LENGTH;
-    uint8_t send_data[GC_JOIN_DATA_LENGTH + (GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6)];
+    uint8_t out_data[GC_JOIN_DATA_LENGTH + (GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6)];
 
-    memcpy(send_data, chat_id, CHAT_ID_SIZE);
-    memcpy(send_data + CHAT_ID_SIZE, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
+    memcpy(out_data, chat_id, CHAT_ID_SIZE);
+    memcpy(out_data + CHAT_ID_SIZE, chat->self_public_key, ENC_PUBLIC_KEY_SIZE);
 
     if (num_tcp_relays > 0) {
         const uint32_t tcp_relays_added = add_gc_tcp_relays(chat, gconn, tcp_relays, num_tcp_relays);
@@ -7821,7 +7829,7 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
             return -1;
         }
 
-        const int nodes_len = pack_nodes(chat->log, send_data + len, sizeof(send_data) - len, tcp_relays,
+        const int nodes_len = pack_nodes(chat->log, out_data + len, sizeof(out_data) - len, tcp_relays,
                                          (uint16_t)num_tcp_relays);
 
         if (nodes_len <= 0 && !copy_ip_port_result) {
@@ -7831,7 +7839,7 @@ int handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, con
         len += nodes_len;
     }
 
-    if (send_gc_invite_confirmed_packet(m, chat, friend_number, send_data, len)) {
+    if (send_gc_invite_confirmed_packet(m, chat, friend_number, out_data, len)) {
         return 0;
     }
 
@@ -7890,7 +7898,7 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
         return -2;
     }
 
-    if (send_gc_invite_accepted_packet(c->messenger, chat, friend_number)) {
+    if (send_gc_invite_accepted_packet(c->messenger, chat, friend_number) != 0) {
         return -7;
     }
 
