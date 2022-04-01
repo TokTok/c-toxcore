@@ -333,17 +333,17 @@ static bool peer_has_voice(const GC_Peer *peer, Group_Voice_State voice_state)
     const Group_Role role = peer->role;
 
     switch (voice_state) {
-        case GV_ALL:
-            return role <= GR_USER;
+    case GV_ALL:
+        return role <= GR_USER;
 
-        case GV_MODS:
-            return role <= GR_MODERATOR;
+    case GV_MODS:
+        return role <= GR_MODERATOR;
 
-        case GV_FOUNDER:
-            return role == GR_FOUNDER;
+    case GV_FOUNDER:
+        return role == GR_FOUNDER;
 
-        default:
-            return false;
+    default:
+        return false;
     }
 }
 
@@ -542,13 +542,8 @@ static void set_gc_peerlist_checksum(GC_Chat *chat)
 non_null()
 static uint16_t get_gc_topic_checksum(const GC_TopicInfo *topic_info)
 {
-    uint16_t sum = 0;
 
-    for (uint16_t i = 0; i < topic_info->length; ++i) {
-        sum += topic_info->topic[i];
-    }
-
-    return sum;
+    return data_checksum(topic_info->topic, topic_info->length);
 }
 
 int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed)
@@ -4395,50 +4390,50 @@ static bool apply_new_gc_role(GC_Chat *chat, uint32_t peer_number, Group_Role cu
     }
 
     switch (current_role) {
-        case GR_MODERATOR: {
-            if (!founder_gc_set_moderator(chat, gconn, false)) {
-                return false;
-            }
-
-            update_gc_peer_roles(chat);
-
-            if (new_role == GR_OBSERVER) {
-                return mod_gc_set_observer(chat, peer_number, true);
-            }
-
-            break;
-        }
-
-        case GR_OBSERVER: {
-            if (!mod_gc_set_observer(chat, peer_number, false)) {
-                return false;
-            }
-
-            update_gc_peer_roles(chat);
-
-            if (new_role == GR_MODERATOR) {
-                return founder_gc_set_moderator(chat, gconn, true);
-            }
-
-            break;
-        }
-
-        case GR_USER: {
-            if (new_role == GR_MODERATOR) {
-                return founder_gc_set_moderator(chat, gconn, true);
-            } else if (new_role == GR_OBSERVER) {
-                return mod_gc_set_observer(chat, peer_number, true);
-            }
-
-            break;
-        }
-
-        case GR_FOUNDER:
-
-        // Intentional fallthrough
-        default: {
+    case GR_MODERATOR: {
+        if (!founder_gc_set_moderator(chat, gconn, false)) {
             return false;
         }
+
+        update_gc_peer_roles(chat);
+
+        if (new_role == GR_OBSERVER) {
+            return mod_gc_set_observer(chat, peer_number, true);
+        }
+
+        break;
+    }
+
+    case GR_OBSERVER: {
+        if (!mod_gc_set_observer(chat, peer_number, false)) {
+            return false;
+        }
+
+        update_gc_peer_roles(chat);
+
+        if (new_role == GR_MODERATOR) {
+            return founder_gc_set_moderator(chat, gconn, true);
+        }
+
+        break;
+    }
+
+    case GR_USER: {
+        if (new_role == GR_MODERATOR) {
+            return founder_gc_set_moderator(chat, gconn, true);
+        } else if (new_role == GR_OBSERVER) {
+            return mod_gc_set_observer(chat, peer_number, true);
+        }
+
+        break;
+    }
+
+    case GR_FOUNDER:
+
+    // Intentional fallthrough
+    default: {
+        return false;
+    }
     }
 
     return true;
@@ -5174,53 +5169,53 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
     int ret = 0;
 
     switch (broadcast_type) {
-        case GM_STATUS: {
-            ret = handle_gc_status(c, chat, peer, message, m_len, userdata);
-            break;
-        }
+    case GM_STATUS: {
+        ret = handle_gc_status(c, chat, peer, message, m_len, userdata);
+        break;
+    }
 
-        case GM_NICK: {
-            ret = handle_gc_nick(c, chat, peer, message, m_len, userdata);
-            break;
-        }
+    case GM_NICK: {
+        ret = handle_gc_nick(c, chat, peer, message, m_len, userdata);
+        break;
+    }
 
-        case GM_ACTION_MESSAGE:
+    case GM_ACTION_MESSAGE:
 
-        // intentional fallthrough
-        case GM_PLAIN_MESSAGE: {
-            ret = handle_gc_message(c, chat, peer, message, m_len, broadcast_type, userdata);
-            break;
-        }
+    // intentional fallthrough
+    case GM_PLAIN_MESSAGE: {
+        ret = handle_gc_message(c, chat, peer, message, m_len, broadcast_type, userdata);
+        break;
+    }
 
-        case GM_PRIVATE_MESSAGE: {
-            ret = handle_gc_private_message(c, chat, peer, message, m_len, userdata);
-            break;
-        }
+    case GM_PRIVATE_MESSAGE: {
+        ret = handle_gc_private_message(c, chat, peer, message, m_len, userdata);
+        break;
+    }
 
-        case GM_PEER_EXIT: {
-            ret = handle_gc_peer_exit(chat, gconn, message, m_len);
-            break;
-        }
+    case GM_PEER_EXIT: {
+        ret = handle_gc_peer_exit(chat, gconn, message, m_len);
+        break;
+    }
 
-        case GM_KICK_PEER: {
-            ret = handle_gc_kick_peer(c, chat, peer, message, m_len, userdata);
-            break;
-        }
+    case GM_KICK_PEER: {
+        ret = handle_gc_kick_peer(c, chat, peer, message, m_len, userdata);
+        break;
+    }
 
-        case GM_SET_MOD: {
-            ret = handle_gc_set_mod(c, chat, peer_number, message, m_len, userdata);
-            break;
-        }
+    case GM_SET_MOD: {
+        ret = handle_gc_set_mod(c, chat, peer_number, message, m_len, userdata);
+        break;
+    }
 
-        case GM_SET_OBSERVER: {
-            ret = handle_gc_set_observer(c, chat, peer_number, message, m_len, userdata);
-            break;
-        }
+    case GM_SET_OBSERVER: {
+        ret = handle_gc_set_observer(c, chat, peer_number, message, m_len, userdata);
+        break;
+    }
 
-        default: {
-            LOGGER_DEBUG(chat->log, "Received an invalid broadcast type 0x%02x", broadcast_type);
-            break;
-        }
+    default: {
+        LOGGER_DEBUG(chat->log, "Received an invalid broadcast type 0x%02x", broadcast_type);
+        break;
+    }
     }
 
     if (ret < 0) {
@@ -5494,25 +5489,25 @@ static int handle_gc_handshake_response(const GC_Chat *chat, const uint8_t *send
     const uint8_t request_type = data[ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE];
 
     switch (request_type) {
-        case HS_INVITE_REQUEST: {
-            if (!send_gc_invite_request(chat, gconn)) {
-                return -1;
-            }
-
-            break;
-        }
-
-        case HS_PEER_INFO_EXCHANGE: {
-            if (!send_gc_peer_exchange(chat, gconn)) {
-                return -1;
-            }
-
-            break;
-        }
-
-        default: {
+    case HS_INVITE_REQUEST: {
+        if (!send_gc_invite_request(chat, gconn)) {
             return -1;
         }
+
+        break;
+    }
+
+    case HS_PEER_INFO_EXCHANGE: {
+        if (!send_gc_peer_exchange(chat, gconn)) {
+            return -1;
+        }
+
+        break;
+    }
+
+    default: {
+        return -1;
+    }
     }
 
     return peer_number;
@@ -5719,85 +5714,85 @@ int handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer_
     int ret = -1;
 
     switch (packet_type) {
-        case GP_BROADCAST: {
-            ret = handle_gc_broadcast(c, chat, peer_number, data, length, userdata);
-            break;
-        }
+    case GP_BROADCAST: {
+        ret = handle_gc_broadcast(c, chat, peer_number, data, length, userdata);
+        break;
+    }
 
-        case GP_PEER_INFO_REQUEST: {
-            ret = handle_gc_peer_info_request(chat, peer_number);
-            break;
-        }
+    case GP_PEER_INFO_REQUEST: {
+        ret = handle_gc_peer_info_request(chat, peer_number);
+        break;
+    }
 
-        case GP_PEER_INFO_RESPONSE: {
-            ret = handle_gc_peer_info_response(c, chat, peer_number, data, length, userdata);
-            break;
-        }
+    case GP_PEER_INFO_RESPONSE: {
+        ret = handle_gc_peer_info_response(c, chat, peer_number, data, length, userdata);
+        break;
+    }
 
-        case GP_SYNC_REQUEST: {
-            ret = handle_gc_sync_request(chat, peer_number, data, length);
-            break;
-        }
+    case GP_SYNC_REQUEST: {
+        ret = handle_gc_sync_request(chat, peer_number, data, length);
+        break;
+    }
 
-        case GP_SYNC_RESPONSE: {
-            ret = handle_gc_sync_response(c, chat, peer_number, data, length, userdata);
-            break;
-        }
+    case GP_SYNC_RESPONSE: {
+        ret = handle_gc_sync_response(c, chat, peer_number, data, length, userdata);
+        break;
+    }
 
-        case GP_INVITE_REQUEST: {
-            ret = handle_gc_invite_request(chat, gconn, data, length);
-            break;
-        }
+    case GP_INVITE_REQUEST: {
+        ret = handle_gc_invite_request(chat, gconn, data, length);
+        break;
+    }
 
-        case GP_INVITE_RESPONSE: {
-            ret = handle_gc_invite_response(chat, gconn);
-            break;
-        }
+    case GP_INVITE_RESPONSE: {
+        ret = handle_gc_invite_response(chat, gconn);
+        break;
+    }
 
-        case GP_TOPIC: {
-            ret = handle_gc_topic(c, chat, peer, data, length, userdata);
-            break;
-        }
+    case GP_TOPIC: {
+        ret = handle_gc_topic(c, chat, peer, data, length, userdata);
+        break;
+    }
 
-        case GP_SHARED_STATE: {
-            ret = handle_gc_shared_state(c, chat, gconn, data, length, userdata);
-            break;
-        }
+    case GP_SHARED_STATE: {
+        ret = handle_gc_shared_state(c, chat, gconn, data, length, userdata);
+        break;
+    }
 
-        case GP_MOD_LIST: {
-            ret = handle_gc_mod_list(c, chat, data, length, userdata);
-            break;
-        }
+    case GP_MOD_LIST: {
+        ret = handle_gc_mod_list(c, chat, data, length, userdata);
+        break;
+    }
 
-        case GP_SANCTIONS_LIST: {
-            ret = handle_gc_sanctions_list(c, chat, data, length, userdata);
-            break;
-        }
+    case GP_SANCTIONS_LIST: {
+        ret = handle_gc_sanctions_list(c, chat, data, length, userdata);
+        break;
+    }
 
-        case GP_HS_RESPONSE_ACK: {
-            ret = handle_gc_hs_response_ack(chat, gconn);
-            break;
-        }
+    case GP_HS_RESPONSE_ACK: {
+        ret = handle_gc_hs_response_ack(chat, gconn);
+        break;
+    }
 
-        case GP_TCP_RELAYS: {
-            ret = handle_gc_tcp_relays(chat, gconn, data, length);
-            break;
-        }
+    case GP_TCP_RELAYS: {
+        ret = handle_gc_tcp_relays(chat, gconn, data, length);
+        break;
+    }
 
-        case GP_KEY_ROTATION: {
-            ret = handle_gc_key_exchange(chat, gconn, data, length);
-            break;
-        }
+    case GP_KEY_ROTATION: {
+        ret = handle_gc_key_exchange(chat, gconn, data, length);
+        break;
+    }
 
-        case GP_CUSTOM_PACKET: {
-            ret = handle_gc_custom_packet(c, chat, peer, data, length, userdata);
-            break;
-        }
+    case GP_CUSTOM_PACKET: {
+        ret = handle_gc_custom_packet(c, chat, peer, data, length, userdata);
+        break;
+    }
 
-        default: {
-            LOGGER_DEBUG(chat->log, "Handling invalid lossless group packet type 0x%02x", packet_type);
-            return -1;
-        }
+    default: {
+        LOGGER_DEBUG(chat->log, "Handling invalid lossless group packet type 0x%02x", packet_type);
+        return -1;
+    }
     }
 
     if (ret < 0) {
@@ -6024,31 +6019,31 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
     const uint16_t payload_len = (uint16_t)len;
 
     switch (packet_type) {
-        case GP_MESSAGE_ACK: {
-            ret = handle_gc_message_ack(chat, gconn, data, payload_len);
-            break;
-        }
+    case GP_MESSAGE_ACK: {
+        ret = handle_gc_message_ack(chat, gconn, data, payload_len);
+        break;
+    }
 
-        case GP_PING: {
-            ret = handle_gc_ping(chat, gconn, data, payload_len);
-            break;
-        }
+    case GP_PING: {
+        ret = handle_gc_ping(chat, gconn, data, payload_len);
+        break;
+    }
 
-        case GP_INVITE_RESPONSE_REJECT: {
-            ret = handle_gc_invite_response_reject(c, chat, data, payload_len, userdata);
-            break;
-        }
+    case GP_INVITE_RESPONSE_REJECT: {
+        ret = handle_gc_invite_response_reject(c, chat, data, payload_len, userdata);
+        break;
+    }
 
-        case GP_CUSTOM_PACKET: {
-            ret = handle_gc_custom_packet(c, chat, peer, data, payload_len, userdata);
-            break;
-        }
+    case GP_CUSTOM_PACKET: {
+        ret = handle_gc_custom_packet(c, chat, peer, data, payload_len, userdata);
+        break;
+    }
 
-        default: {
-            LOGGER_WARNING(chat->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
-            free(data);
-            return false;
-        }
+    default: {
+        LOGGER_WARNING(chat->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
+        free(data);
+        return false;
+    }
     }
 
     free(data);
@@ -6130,29 +6125,29 @@ static int handle_gc_tcp_packet(void *object, int id, const uint8_t *packet, uin
     uint16_t payload_len = length - 1 - ENC_PUBLIC_KEY_SIZE;
 
     switch (packet_type) {
-        case NET_PACKET_GC_LOSSLESS: {
-            return handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
-        }
+    case NET_PACKET_GC_LOSSLESS: {
+        return handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
+    }
 
-        case NET_PACKET_GC_LOSSY: {
-            return handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
-        }
+    case NET_PACKET_GC_LOSSY: {
+        return handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, false, userdata);
+    }
 
-        case NET_PACKET_GC_HANDSHAKE: {
-            // handshake packets have an extra public key in plaintext header
-            if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
-                return -1;
-            }
-
-            payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
-            payload = payload + ENC_PUBLIC_KEY_SIZE;
-
-            return handle_gc_handshake_packet(chat, sender_pk, nullptr, payload, payload_len, false, userdata);
-        }
-
-        default: {
+    case NET_PACKET_GC_HANDSHAKE: {
+        // handshake packets have an extra public key in plaintext header
+        if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
             return -1;
         }
+
+        payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
+        payload = payload + ENC_PUBLIC_KEY_SIZE;
+
+        return handle_gc_handshake_packet(chat, sender_pk, nullptr, payload, payload_len, false, userdata);
+    }
+
+    default: {
+        return -1;
+    }
     }
 }
 
@@ -6259,32 +6254,32 @@ static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t 
     bool ret = false;
 
     switch (packet_type) {
-        case NET_PACKET_GC_LOSSLESS: {
-            ret = handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, true, userdata);
-            break;
-        }
+    case NET_PACKET_GC_LOSSLESS: {
+        ret = handle_gc_lossless_packet(c, chat, sender_pk, payload, payload_len, true, userdata);
+        break;
+    }
 
-        case NET_PACKET_GC_LOSSY: {
-            ret = handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, true, userdata);
-            break;
-        }
+    case NET_PACKET_GC_LOSSY: {
+        ret = handle_gc_lossy_packet(c, chat, sender_pk, payload, payload_len, true, userdata);
+        break;
+    }
 
-        case NET_PACKET_GC_HANDSHAKE: {
-            // handshake packets have an extra public key in plaintext header
-            if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
-                return -1;
-            }
-
-            payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
-            payload = payload + ENC_PUBLIC_KEY_SIZE;
-
-            ret = handle_gc_handshake_packet(chat, sender_pk, ipp, payload, payload_len, true, userdata) != -1;
-            break;
-        }
-
-        default: {
+    case NET_PACKET_GC_HANDSHAKE: {
+        // handshake packets have an extra public key in plaintext header
+        if (length <= 1 + ENC_PUBLIC_KEY_SIZE + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE) {
             return -1;
         }
+
+        payload_len = payload_len - ENC_PUBLIC_KEY_SIZE;
+        payload = payload + ENC_PUBLIC_KEY_SIZE;
+
+        ret = handle_gc_handshake_packet(chat, sender_pk, ipp, payload, payload_len, true, userdata) != -1;
+        break;
+    }
+
+    default: {
+        return -1;
+    }
     }
 
     return ret;
