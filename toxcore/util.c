@@ -20,11 +20,6 @@
 #include "ccompat.h"
 #include "crypto_core.h" // for CRYPTO_PUBLIC_KEY_SIZE
 
-// Need dht because of ENC_SECRET_KEY_SIZE and ENC_PUBLIC_KEY_SIZE
-#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
-#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
-#define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
-
 bool is_power_of_2(uint64_t x)
 {
     return x != 0 && (x & (~x + 1)) == x;
@@ -55,15 +50,9 @@ const uint8_t *get_chat_id(const uint8_t *key)
     return key + ENC_PUBLIC_KEY_SIZE;
 }
 
-/** Equality function for public keys. */
 bool pk_equal(const uint8_t *dest, const uint8_t *src)
 {
-    return public_key_cmp(dest, src) == 0;
-}
-
-int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id)
-{
-    return memcmp(first_id, second_id, ENC_PUBLIC_KEY_SIZE);
+    return public_key_eq(dest, src);
 }
 
 void pk_copy(uint8_t *dest, const uint8_t *src)
@@ -71,7 +60,6 @@ void pk_copy(uint8_t *dest, const uint8_t *src)
     memcpy(dest, src, CRYPTO_PUBLIC_KEY_SIZE);
 }
 
-/* frees all pointers in a uint8_t pointer array, as well as the array itself. */
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items)
 {
     if (ary == nullptr) {
@@ -85,6 +73,19 @@ void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items)
     }
 
     free(ary);
+}
+
+uint16_t data_checksum(const uint8_t *data, uint32_t length)
+{
+    uint8_t checksum[2] = {0};
+    uint16_t check;
+
+    for (uint32_t i = 0; i < length; ++i) {
+        checksum[i % 2] ^= data[i];
+    }
+
+    memcpy(&check, checksum, sizeof(check));
+    return check;
 }
 
 int create_recursive_mutex(pthread_mutex_t *mutex)
@@ -168,7 +169,6 @@ uint64_t min_u64(uint64_t a, uint64_t b)
     return a < b ? a : b;
 }
 
-/* Returns a 32-bit hash of key of size len */
 uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len)
 {
     uint32_t hash = 0;

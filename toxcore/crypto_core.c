@@ -73,25 +73,23 @@ static_assert(CRYPTO_SIGN_SECRET_KEY_SIZE == crypto_sign_SECRETKEYBYTES,
               "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES");
 #endif /* VANILLA_NACL */
 
-#ifndef VANILLA_NACL
-/* Extended keypair: curve + ed. Encryption keys are derived from the signature keys.
- * Used for group chats and group DHT announcements.
- * pk and sk must have room for at least EXT_PUBLIC_KEY bytes each.
- */
-int32_t create_extended_keypair(uint8_t *pk, uint8_t *sk)
+bool create_extended_keypair(uint8_t *pk, uint8_t *sk)
 {
+#ifdef VANILLA_NACL
+    return false;
+#else
     /* create signature key pair */
     crypto_sign_keypair(pk + ENC_PUBLIC_KEY_SIZE, sk + ENC_SECRET_KEY_SIZE);
 
     /* convert public signature key to public encryption key */
-    const int result = crypto_sign_ed25519_pk_to_curve25519(pk, pk + ENC_PUBLIC_KEY_SIZE);
+    const int res1 = crypto_sign_ed25519_pk_to_curve25519(pk, pk + ENC_PUBLIC_KEY_SIZE);
 
     /* convert secret signature key to secret encryption key */
-    crypto_sign_ed25519_sk_to_curve25519(sk, sk + ENC_SECRET_KEY_SIZE);
+    const int res2 = crypto_sign_ed25519_sk_to_curve25519(sk, sk + ENC_SECRET_KEY_SIZE);
 
-    return result;
-}
+    return res1 == 0 && res2 == 0;
 #endif
+}
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 static uint8_t *crypto_malloc(size_t bytes)
@@ -210,6 +208,26 @@ uint32_t random_range_u32(uint32_t upper_bound)
 #else
     return randombytes_uniform(upper_bound);
 #endif  // VANILLA_NACL
+}
+
+bool crypto_signature_create(uint8_t *signature, const uint8_t *message, uint64_t message_length,
+                             const uint8_t *secret_key)
+{
+#ifdef VANILLA_NACL
+    return false;
+#else
+    return crypto_sign_detached(signature, nullptr, message, message_length, secret_key) == 0;
+#endif // VANILLA_NACL
+}
+
+bool crypto_signature_verify(const uint8_t *signature, const uint8_t *message, uint64_t message_length,
+                             const uint8_t *public_key)
+{
+#ifdef VANILLA_NACL
+    return false;
+#else
+    return crypto_sign_verify_detached(signature, message, message_length, public_key) == 0;
+#endif
 }
 
 bool public_key_valid(const uint8_t *public_key)

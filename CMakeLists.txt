@@ -266,7 +266,7 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/friend_requests.h)
 
 # LAYER 6: DHT based group chats
-# ----------------------
+# ----------------------------------------
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/group_announce.c
   toxcore/group_announce.h
@@ -300,10 +300,11 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/tox_api.c
   toxcore/tox.c
   toxcore/tox.h
+  toxcore/tox_private.c
   toxcore/tox_private.h)
 set(toxcore_API_HEADERS ${toxcore_API_HEADERS} ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox)
 
-# LAYER 9: New async events API
+# LAYER 10: New async events API
 # -------------------
 set(toxcore_SOURCES ${toxcore_SOURCES}
   third_party/cmp/cmp.c
@@ -341,7 +342,7 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/tox_unpack.h)
 set(toxcore_API_HEADERS ${toxcore_API_HEADERS} ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox)
 
-# LAYER 10: Dispatch recorded events to callbacks.
+# LAYER 11: Dispatch recorded events to callbacks.
 # -------------------
 set(toxcore_SOURCES ${toxcore_SOURCES}
   toxcore/tox_dispatch.c
@@ -460,6 +461,7 @@ unit_test(toxav rtp)
 unit_test(toxcore DHT)
 unit_test(toxcore bin_pack)
 unit_test(toxcore crypto_core)
+unit_test(toxcore group_moderation)
 unit_test(toxcore mono_time)
 unit_test(toxcore ping_array)
 unit_test(toxcore tox)

@@ -32,17 +32,14 @@ non_null() const uint8_t *get_sig_sk(const uint8_t *key);
 non_null() const uint8_t *get_chat_id(const uint8_t *key);
 
 
-/** Equality function for public keys. */
+/** @brief Equality function for public keys. */
 non_null() bool pk_equal(const uint8_t *dest, const uint8_t *src);
 /**
  * @brief Copy a public key from `src` to `dest`.
  */
 non_null() void pk_copy(uint8_t *dest, const uint8_t *src);
 
-non_null()
-int public_key_cmp(const uint8_t *first_id, const uint8_t *second_id);
-
-/** frees all pointers in a uint8_t pointer array, as well as the array itself. */
+/** @brief Frees all pointers in a uint8_t pointer array, as well as the array itself. */
 nullable(1)
 void free_uint8_t_pointer_array(uint8_t **ary, size_t n_items);
 
@@ -79,9 +76,19 @@ uint16_t min_u16(uint16_t a, uint16_t b);
 uint32_t min_u32(uint32_t a, uint32_t b);
 uint64_t min_u64(uint64_t a, uint64_t b);
 
-/** Returns a 32-bit hash of key of size len */
+/** @brief Returns a 32-bit hash of key of size len */
 non_null()
 uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len);
+
+/** @brief Computes a checksum of a byte array.
+ *
+ * @param data The byte array used to compute the checksum.
+ * @param length The length in bytes of the passed data.
+ *
+ * @retval The resulting checksum.
+ */
+non_null()
+uint16_t data_checksum(const uint8_t *data, uint32_t length);
 
 #ifdef __cplusplus
 }  // extern "C"
