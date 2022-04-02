@@ -97,12 +97,6 @@
 #include "mono_time.h"
 #include "util.h"
 
-//!TOKSTYLE-
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-#include "../testing/fuzzing/fuzz_adapter.h"
-#endif
-//!TOKSTYLE+
-
 // Disable MSG_NOSIGNAL on systems not supporting it, e.g. Windows, FreeBSD
 #if !defined(MSG_NOSIGNAL)
 #define MSG_NOSIGNAL 0
@@ -483,54 +477,34 @@ struct Network_Addr {
 non_null()
 static int sys_close(void *obj, int sock)
 {
-#if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    return 0;
-#elif defined(OS_WIN32)
+#if defined(OS_WIN32)
     return closesocket(sock);
 #else  // !OS_WIN32
     return close(sock);
-#endif  // FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#endif
 }
 
 non_null()
 static int sys_accept(void *obj, int sock)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 2;
-#else
     return accept(sock, nullptr, nullptr);
-#endif
 }
 
 non_null()
 static int sys_bind(void *obj, int sock, const Network_Addr *addr)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 0;
-#else
     return bind(sock, (const struct sockaddr *)&addr->addr, addr->size);
-#endif
 }
 
 non_null()
 static int sys_listen(void *obj, int sock, int backlog)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 0;
-#else
     return listen(sock, backlog);
-#endif
 }
 
 non_null()
 static int sys_recvbuf(void *obj, int sock)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    // TODO(iphydf): Return something sensible here (from the fuzzer): number of
-    // bytes to be read from the socket.
-    return 0;
-#else
-
 #ifdef OS_WIN32
     u_long count = 0;
     ioctlsocket(sock, FIONREAD, &count);
@@ -540,58 +514,40 @@ static int sys_recvbuf(void *obj, int sock)
 #endif
 
     return count;
-#endif
 }
 
 non_null()
 static int sys_recv(void *obj, int sock, uint8_t *buf, size_t len)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_recv(sock, (char *)buf, len, MSG_NOSIGNAL);
-#else
     return recv(sock, (char *)buf, len, MSG_NOSIGNAL);
-#endif
 }
 
 non_null()
 static int sys_send(void *obj, int sock, const uint8_t *buf, size_t len)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_send(sock, (const char *)buf, len, MSG_NOSIGNAL);
-#else
     return send(sock, (const char *)buf, len, MSG_NOSIGNAL);
-#endif
 }
 
 non_null()
 static int sys_sendto(void *obj, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return fuzz_sendto(sock, (const char *)buf, len, 0, (const struct sockaddr *)&addr->addr, addr->size);
-#else
     return sendto(sock, (const char *)buf, len, 0, (const struct sockaddr *)&addr->addr, addr->size);
-#endif
 }
 
 non_null()
 static int sys_recvfrom(void *obj, int sock, uint8_t *buf, size_t len, Network_Addr *addr) {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    socklen_t size = addr->size;
-    const int ret = fuzz_recvfrom(sock, (char *)buf, len, 0, (struct sockaddr *)&addr->addr, &size);
-    addr->size = size;
-    return ret;
-#else
     socklen_t size = addr->size;
     const int ret = recvfrom(sock, (char *)buf, len, 0, (struct sockaddr *)&addr->addr, &size);
     addr->size = size;
     return ret;
-#endif
 }
 
 non_null()
 static int sys_socket(void *obj, int domain, int type, int proto)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 1;
+    // Only in socket(). All the other functions are called on sockets, so we
+    // don't need to abort there.
+    abort();  // Fuzz_System hasn't been set up.
 #else
     return (int)socket(domain, type, proto);
 #endif
@@ -600,40 +556,27 @@ static int sys_socket(void *obj, int domain, int type, int proto)
 non_null()
 static int sys_socket_nonblock(void *obj, int sock, bool nonblock)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 0;
-#else
 #ifdef OS_WIN32
     u_long mode = nonblock ? 1 : 0;
     return ioctlsocket(sock, FIONBIO, &mode);
 #else
     return fcntl(sock, F_SETFL, O_NONBLOCK, nonblock ? 1 : 0);
 #endif /* OS_WIN32 */
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
 non_null()
 static int sys_getsockopt(void *obj, int sock, int level, int optname, void *optval, size_t *optlen)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    memset(optval, 0, *optlen);
-    return 0;
-#else
     socklen_t len = *optlen;
     const int ret = getsockopt(sock, level, optname, optval, &len);
     *optlen = len;
     return ret;
-#endif
 }
 
 non_null()
 static int sys_setsockopt(void *obj, int sock, int level, int optname, const void *optval, size_t optlen)
 {
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    return 0;
-#else
     return setsockopt(sock, level, optname, optval, optlen);
-#endif
 }
 
 static const Network_Funcs system_network_funcs = {
