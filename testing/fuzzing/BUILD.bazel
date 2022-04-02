@@ -1,6 +1,8 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 
+package(features = ["layering_check"])
+
 cc_library(
     name = "fuzz_adapter",
     srcs = ["fuzz_adapter.c"],
@@ -13,7 +15,11 @@ cc_library(
     srcs = ["fuzz_support.cc"],
     hdrs = ["fuzz_support.h"],
     visibility = ["//c-toxcore:__subpackages__"],
-    deps = ["//c-toxcore/toxcore:tox"],
+    deps = [
+        "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:network",
+        "//c-toxcore/toxcore:tox",
+    ],
 )
 
 cc_library(
@@ -29,8 +35,12 @@ cc_fuzz_test(
     copts = ["-UNDEBUG"],
     corpus = ["//tools/toktok-fuzzer/corpus:bootstrap_fuzzer"],
     deps = [
+        ":fuzz_adapter",
         ":fuzz_support",
         "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_dispatch",
+        "//c-toxcore/toxcore:tox_events",
+        "//c-toxcore/toxcore:util",
     ],
 )
 

@@ -160,6 +160,7 @@ cc_library(
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing/fuzzing:__pkg__",
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
@@ -178,6 +179,7 @@ cc_library(
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
+        "//c-toxcore/testing/fuzzing:__pkg__",
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
