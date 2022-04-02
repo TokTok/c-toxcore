@@ -65,7 +65,8 @@ bool create_forward_chain_packet(const uint8_t *chain_keys, uint16_t chain_lengt
 
 /**
  * @brief Send reply to forwarded packet via forwarder.
- * Maximum length of data is MAX_FORWARD_DATA_SIZE.
+ * @param sendback Must be of size at most MAX_SENDBACK_SIZE.
+ * @param data Must be of size at most MAX_FORWARD_DATA_SIZE.
  *
  * @return true on success, false otherwise.
  */

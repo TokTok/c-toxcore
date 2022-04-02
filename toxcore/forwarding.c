@@ -125,6 +125,10 @@ bool send_forwarding(const Forwarding *forwarding, const IP_Port *dest,
                      const uint8_t *sendback_data, uint16_t sendback_data_len,
                      const uint8_t *data, uint16_t length)
 {
+    if (length > MAX_FORWARD_DATA_SIZE) {
+        return false;
+    }
+
     const uint16_t len = forwarding_packet_length(sendback_data_len, length);
     VLA(uint8_t, packet, len);
     create_forwarding_packet(forwarding, sendback_data, sendback_data_len, data, length, packet);
@@ -316,7 +320,8 @@ bool forward_reply(Networking_Core *net, const IP_Port *forwarder,
                    const uint8_t *sendback, uint16_t sendback_length,
                    const uint8_t *data, uint16_t length)
 {
-    if (sendback_length > MAX_SENDBACK_SIZE) {
+    if (sendback_length > MAX_SENDBACK_SIZE ||
+            length > MAX_FORWARD_DATA_SIZE) {
         return false;
     }
 

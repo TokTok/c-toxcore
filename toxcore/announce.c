@@ -267,7 +267,8 @@ static int create_data_search_to_auth(const Logger *logger, const uint8_t *data_
                                       const IP_Port *source, const uint8_t *sendback, uint16_t sendback_length,
                                       uint8_t *dest, uint16_t max_length)
 {
-    if (max_length < DATA_SEARCH_TO_AUTH_MAX_SIZE) {
+    if (max_length < DATA_SEARCH_TO_AUTH_MAX_SIZE
+            || sendback_length > MAX_SENDBACK_SIZE) {
         return -1;
     }
 
