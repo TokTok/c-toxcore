@@ -349,7 +349,10 @@ cc_library(
     name = "announce",
     srcs = ["announce.c"],
     hdrs = ["announce.h"],
-    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+    ],
     deps = [
         ":LAN_discovery",
         ":ccompat",

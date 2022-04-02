@@ -28,6 +28,7 @@
 #include "../../../toxcore/tox.h"
 #include "../../../toxcore/LAN_discovery.h"
 #include "../../../toxcore/TCP_server.h"
+#include "../../../toxcore/announce.h"
 #include "../../../toxcore/logger.h"
 #include "../../../toxcore/mono_time.h"
 #include "../../../toxcore/onion_announce.h"
@@ -336,8 +337,23 @@ int main(int argc, char *argv[])
 
     Forwarding *forwarding = new_forwarding(logger, rng, mono_time, dht);
 
-    if (!forwarding) {
+    if (forwarding == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
+        kill_dht(dht);
+        mono_time_free(mono_time);
+        kill_networking(net);
+        logger_kill(logger);
+        free(motd);
+        free(tcp_relay_ports);
+        free(keys_file_path);
+        return 1;
+    }
+
+    Announcements *announce = new_announcements(logger, rng, mono_time, forwarding);
+
+    if (announce == nullptr) {
+        log_write(LOG_LEVEL_ERROR, "Couldn't initialize DHT announcements. Exiting.\n");
+        kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
         kill_networking(net);
@@ -352,6 +368,7 @@ int main(int argc, char *argv[])
 
     if (!onion) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
+        kill_announcements(announce);
         kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -368,6 +385,7 @@ int main(int argc, char *argv[])
     if (!onion_a) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
         kill_onion(onion);
+        kill_announcements(announce);
         kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -387,6 +405,7 @@ int main(int argc, char *argv[])
             log_write(LOG_LEVEL_ERROR, "Couldn't set MOTD: %s. Exiting.\n", motd);
             kill_onion_announce(onion_a);
             kill_onion(onion);
+            kill_announcements(announce);
             kill_forwarding(forwarding);
             kill_dht(dht);
             mono_time_free(mono_time);
@@ -406,6 +425,7 @@ int main(int argc, char *argv[])
         log_write(LOG_LEVEL_ERROR, "Couldn't read/write: %s. Exiting.\n", keys_file_path);
         kill_onion_announce(onion_a);
         kill_onion(onion);
+        kill_announcements(announce);
         kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -422,6 +442,7 @@ int main(int argc, char *argv[])
         if (tcp_relay_port_count == 0) {
             log_write(LOG_LEVEL_ERROR, "No TCP relay ports read. Exiting.\n");
             kill_onion_announce(onion_a);
+            kill_announcements(announce);
             kill_forwarding(forwarding);
             kill_onion(onion);
             kill_dht(dht);
@@ -467,6 +488,7 @@ int main(int argc, char *argv[])
             log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox TCP server. Exiting.\n");
             kill_onion_announce(onion_a);
             kill_onion(onion);
+            kill_announcements(announce);
             kill_forwarding(forwarding);
             kill_dht(dht);
             mono_time_free(mono_time);
@@ -483,6 +505,7 @@ int main(int argc, char *argv[])
         kill_TCP_server(tcp_server);
         kill_onion_announce(onion_a);
         kill_onion(onion);
+        kill_announcements(announce);
         kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
@@ -564,6 +587,7 @@ int main(int argc, char *argv[])
     kill_TCP_server(tcp_server);
     kill_onion_announce(onion_a);
     kill_onion(onion);
+    kill_announcements(announce);
     kill_forwarding(forwarding);
     kill_dht(dht);
     mono_time_free(mono_time);
