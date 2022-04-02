@@ -42,6 +42,11 @@ bool send_forward_request(Networking_Core *net, const IP_Port *forwarder,
                           const uint8_t *chain_keys, uint16_t chain_length,
                           const uint8_t *data, uint16_t data_length)
 {
+    if (chain_length == 0 || chain_length > MAX_FORWARD_CHAIN_LENGTH
+            || data_length > MAX_FORWARD_DATA_SIZE) {
+        return false;
+    }
+
     const uint16_t len = forward_chain_packet_size(chain_length, data_length);
     VLA(uint8_t, packet, len);
 
