@@ -1,6 +1,7 @@
+#include "group_announce.h"
+
 #include <gtest/gtest.h>
 
-#include "group_announce.h"
 #include "mono_time.h"
 
 namespace {
