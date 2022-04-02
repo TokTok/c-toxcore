@@ -16,9 +16,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     assert(tox_options != nullptr);
     assert(error_options == TOX_ERR_OPTIONS_NEW_OK);
 
-    uint64_t clock = 0;
-    auto sys = fuzz_system(clock);
-    tox_options_set_operating_system(tox_options, sys.get());
+    Fuzz_Data input{data + size, 0};  // empty data, since we use it all for savedata.
+    Fuzz_System sys(input);
+    tox_options_set_operating_system(tox_options, sys.sys.get());
 
     // pass test data to Tox
     tox_options_set_savedata_data(tox_options, data, size);

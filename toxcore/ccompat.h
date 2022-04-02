@@ -8,11 +8,24 @@
 #ifndef C_TOXCORE_TOXCORE_CCOMPAT_H
 #define C_TOXCORE_TOXCORE_CCOMPAT_H
 
+#include <stdbool.h> // bool, false, true
 #include <stddef.h>  // NULL, size_t
 
 #include "attributes.h"
 
-/* No declarations here. */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#define TOX_IS_FUZZING true
+#else
+#define TOX_IS_FUZZING false
+#endif
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 
 //!TOKSTYLE-
 
