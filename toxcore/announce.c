@@ -291,6 +291,212 @@ static int create_data_search_to_auth(const Logger *logger, const uint8_t *data_
 
 #define DATA_SEARCH_TIMEOUT 60
 
+non_null()
+static int create_reply_plain_data_search_request(Announcements *announce,
+        const IP_Port *source,
+        const uint8_t *data, uint16_t length,
+        uint8_t *reply, uint16_t reply_max_length,
+        uint8_t *to_auth, uint16_t to_auth_length)
+{
+    if (length != CRYPTO_PUBLIC_KEY_SIZE &&
+            length != CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA256_SIZE) {
+        return -1;
+    }
+
+    const uint8_t *const data_public_key = data;
+
+    const uint8_t *previous_hash = nullptr;
+
+    if (length == CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA256_SIZE) {
+        previous_hash = data + CRYPTO_PUBLIC_KEY_SIZE;
+    }
+
+    const int nodes_max_length = (int)reply_max_length -
+                                 (CRYPTO_PUBLIC_KEY_SIZE + 1 + CRYPTO_SHA256_SIZE + TIMED_AUTH_SIZE + 1 + 1);
+
+    if (nodes_max_length < 0) {
+        return -1;
+    }
+
+    uint8_t *p = reply;
+
+    memcpy(p, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    p += CRYPTO_PUBLIC_KEY_SIZE;
+
+    const Announce_Entry *const stored = get_stored_const(announce, data_public_key);
+
+    if (stored == nullptr) {
+        *p = 0;
+        ++p;
+    } else {
+        *p = 1;
+        ++p;
+        crypto_sha256(p, stored->data, stored->length);
+        p += CRYPTO_SHA256_SIZE;
+    }
+
+    generate_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
+                        to_auth, to_auth_length, p);
+    p += TIMED_AUTH_SIZE;
+
+    *p = would_accept_store_request(announce, data_public_key);
+    ++p;
+
+    Node_format nodes_list[MAX_SENT_NODES];
+    const int num_nodes = get_close_nodes(announce->dht, data_public_key, nodes_list,
+                                          net_family_unspec, ip_is_lan(&source->ip), true);
+
+    if (num_nodes < 0 || num_nodes > MAX_SENT_NODES) {
+        return -1;
+    }
+
+    *p = num_nodes;
+    ++p;
+
+    p += pack_nodes(announce->log, p, nodes_max_length, nodes_list, num_nodes);
+
+    const uint32_t reply_len = p - reply;
+
+    if (previous_hash != nullptr) {
+        uint8_t hash[CRYPTO_SHA256_SIZE];
+
+        crypto_sha256(hash, reply, reply_len);
+
+        if (crypto_sha256_eq(hash, previous_hash)) {
+            return CRYPTO_PUBLIC_KEY_SIZE;
+        }
+    }
+
+    return reply_len;
+}
+
+non_null()
+static int create_reply_plain_data_retrieve_request(Announcements *announce,
+        const IP_Port *source,
+        const uint8_t *data, uint16_t length,
+        uint8_t *reply, uint16_t reply_max_length,
+        uint8_t *to_auth, uint16_t to_auth_length)
+{
+    if (length != CRYPTO_PUBLIC_KEY_SIZE + 1 + TIMED_AUTH_SIZE) {
+        return -1;
+    }
+
+    if (data[CRYPTO_PUBLIC_KEY_SIZE] != 0) {
+        return -1;
+    }
+
+    const uint8_t *const data_public_key = data;
+    const uint8_t *const auth = data + CRYPTO_PUBLIC_KEY_SIZE + 1;
+
+    if (!check_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
+                          to_auth, to_auth_length, auth)) {
+        return -1;
+    }
+
+    const Announce_Entry *const entry = get_stored_const(announce, data_public_key);
+
+    if (entry == nullptr) {
+        return -1;
+    }
+
+    const uint16_t reply_len = CRYPTO_PUBLIC_KEY_SIZE + 1 + entry->length;
+
+    if (reply_max_length < reply_len) {
+        return -1;
+    }
+
+    memcpy(reply, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    reply[CRYPTO_PUBLIC_KEY_SIZE] = 1;
+    memcpy(reply + CRYPTO_PUBLIC_KEY_SIZE + 1, entry->data, entry->length);
+
+    return reply_len;
+}
+
+non_null()
+static int create_reply_plain_store_announce_request(Announcements *announce,
+        const IP_Port *source,
+        const uint8_t *data, uint16_t length,
+        uint8_t *reply, uint16_t reply_max_length,
+        uint8_t *to_auth, uint16_t to_auth_length)
+{
+    const int plain_len = (int)length - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
+    const int announcement_len = (int)plain_len - (TIMED_AUTH_SIZE + sizeof(uint32_t) + 1);
+
+    const uint8_t *const data_public_key = data;
+
+    if (announcement_len < 0) {
+        return -1;
+    }
+
+    VLA(uint8_t, plain, plain_len);
+    uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
+
+    get_shared_key(announce->mono_time, &announce->shared_keys, shared_key,
+                   announce->secret_key, data_public_key);
+
+    if (decrypt_data_symmetric(shared_key,
+                               data + CRYPTO_PUBLIC_KEY_SIZE,
+                               data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                               plain_len + CRYPTO_MAC_SIZE,
+                               plain) != plain_len) {
+        return -1;
+    }
+
+    const uint8_t *const auth = plain;
+    uint32_t requested_timeout;
+    net_unpack_u32(plain + TIMED_AUTH_SIZE, &requested_timeout);
+    const uint32_t timeout = calculate_timeout(announce, requested_timeout);
+    const uint8_t announcement_type = plain[TIMED_AUTH_SIZE + sizeof(uint32_t)];
+    const uint8_t *announcement = plain + TIMED_AUTH_SIZE + sizeof(uint32_t) + 1;
+
+    if (!check_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
+                          to_auth, to_auth_length, auth)) {
+        return -1;
+    }
+
+    if (announcement_type > 1) {
+        return -1;
+    }
+
+    if (announcement_type == 1) {
+        if (announcement_len != CRYPTO_SHA256_SIZE) {
+            return -1;
+        }
+
+        Announce_Entry *stored = get_stored(announce, data_public_key);
+
+        if (stored == nullptr) {
+            return -1;
+        }
+
+        uint8_t stored_hash[CRYPTO_SHA256_SIZE];
+        crypto_sha256(stored_hash, stored->data, stored->length);
+
+        if (!crypto_sha256_eq(announcement, stored_hash)) {
+            delete_entry(stored);
+            return -1;
+        } else {
+            stored->store_until = mono_time_get(announce->mono_time) + timeout;
+        }
+    } else {
+        if (!store_data(announce, data_public_key, announcement, announcement_len, timeout)) {
+            return -1;
+        }
+    }
+
+    const uint16_t reply_len = CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint64_t);
+
+    if (reply_max_length < reply_len) {
+        return -1;
+    }
+
+    memcpy(reply, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    net_pack_u32(reply + CRYPTO_PUBLIC_KEY_SIZE, timeout);
+    net_pack_u64(reply + CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t),
+                 mono_time_get(announce->mono_time) + announce->synch_offset);
+    return reply_len;
+}
+
 non_null(1, 2, 3, 7, 9) nullable(5)
 static int create_reply_plain(Announcements *announce,
                               const uint8_t *requester_key, const IP_Port *source, uint8_t type,
@@ -312,189 +518,21 @@ static int create_reply_plain(Announcements *announce,
         return -1;
     }
 
-    if (type == NET_PACKET_DATA_SEARCH_REQUEST) {
-        if (length != CRYPTO_PUBLIC_KEY_SIZE &&
-                length != CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA256_SIZE) {
+    switch (type) {
+        case NET_PACKET_DATA_SEARCH_REQUEST:
+            return create_reply_plain_data_search_request(announce, source, data, length, reply, reply_max_length, to_auth,
+                    (uint16_t)to_auth_length);
+
+        case NET_PACKET_DATA_RETRIEVE_REQUEST:
+            return create_reply_plain_data_retrieve_request(announce, source, data, length, reply, reply_max_length, to_auth,
+                    (uint16_t)to_auth_length);
+
+        case NET_PACKET_STORE_ANNOUNCE_REQUEST:
+            return create_reply_plain_store_announce_request(announce, source, data, length, reply, reply_max_length, to_auth,
+                    (uint16_t)to_auth_length);
+
+        default:
             return -1;
-        }
-
-        const uint8_t *previous_hash = nullptr;
-
-        if (length == CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA256_SIZE) {
-            previous_hash = data + CRYPTO_PUBLIC_KEY_SIZE;
-        }
-
-        const int nodes_max_length = (int)reply_max_length -
-                                     (CRYPTO_PUBLIC_KEY_SIZE + 1 + CRYPTO_SHA256_SIZE + TIMED_AUTH_SIZE + 1 + 1);
-
-        if (nodes_max_length < 0) {
-            return -1;
-        }
-
-        uint8_t *p = reply;
-
-        memcpy(p, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        p += CRYPTO_PUBLIC_KEY_SIZE;
-
-        const Announce_Entry *const stored = get_stored_const(announce, data_public_key);
-
-        if (stored == nullptr) {
-            *p = 0;
-            ++p;
-        } else {
-            *p = 1;
-            ++p;
-            crypto_sha256(p, stored->data, stored->length);
-            p += CRYPTO_SHA256_SIZE;
-        }
-
-        generate_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
-                            to_auth, to_auth_length, p);
-        p += TIMED_AUTH_SIZE;
-
-        *p = would_accept_store_request(announce, data_public_key);
-        ++p;
-
-        Node_format nodes_list[MAX_SENT_NODES];
-        const int num_nodes = get_close_nodes(announce->dht, data_public_key, nodes_list,
-                                              net_family_unspec, ip_is_lan(&source->ip), true);
-
-        if (num_nodes < 0 || num_nodes > MAX_SENT_NODES) {
-            return -1;
-        }
-
-        *p = num_nodes;
-        ++p;
-
-        p += pack_nodes(announce->log, p, nodes_max_length, nodes_list, num_nodes);
-
-        const uint32_t reply_len = p - reply;
-
-        if (previous_hash != nullptr) {
-            uint8_t hash[CRYPTO_SHA256_SIZE];
-
-            crypto_sha256(hash, reply, reply_len);
-
-            if (crypto_sha256_eq(hash, previous_hash)) {
-                return CRYPTO_PUBLIC_KEY_SIZE;
-            }
-        }
-
-        return reply_len;
-
-    } else if (type == NET_PACKET_DATA_RETRIEVE_REQUEST) {
-
-        if (length != CRYPTO_PUBLIC_KEY_SIZE + 1 + TIMED_AUTH_SIZE) {
-            return -1;
-        }
-
-        if (data[CRYPTO_PUBLIC_KEY_SIZE] != 0) {
-            return -1;
-        }
-
-        const uint8_t *const auth = data + CRYPTO_PUBLIC_KEY_SIZE + 1;
-
-        if (!check_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
-                              to_auth, to_auth_length, auth)) {
-            return -1;
-        }
-
-        const Announce_Entry *const entry = get_stored_const(announce, data_public_key);
-
-        if (entry == nullptr) {
-            return -1;
-        }
-
-        const uint16_t reply_len = CRYPTO_PUBLIC_KEY_SIZE + 1 + entry->length;
-
-        if (reply_max_length < reply_len) {
-            return -1;
-        }
-
-        memcpy(reply, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        reply[CRYPTO_PUBLIC_KEY_SIZE] = 1;
-        memcpy(reply + CRYPTO_PUBLIC_KEY_SIZE + 1, entry->data, entry->length);
-
-        return reply_len;
-
-    } else if (type == NET_PACKET_STORE_ANNOUNCE_REQUEST) {
-
-        const int plain_len = (int)length - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
-        const int announcement_len = (int)plain_len - (TIMED_AUTH_SIZE + sizeof(uint32_t) + 1);
-
-        if (announcement_len < 0) {
-            return -1;
-        }
-
-        VLA(uint8_t, plain, plain_len);
-        uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
-
-        get_shared_key(announce->mono_time, &announce->shared_keys, shared_key,
-                       announce->secret_key, data_public_key);
-
-        if (decrypt_data_symmetric(shared_key,
-                                   data + CRYPTO_PUBLIC_KEY_SIZE,
-                                   data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
-                                   plain_len + CRYPTO_MAC_SIZE,
-                                   plain) != plain_len) {
-            return -1;
-        }
-
-        const uint8_t *const auth = plain;
-        uint32_t requested_timeout;
-        net_unpack_u32(plain + TIMED_AUTH_SIZE, &requested_timeout);
-        const uint32_t timeout = calculate_timeout(announce, requested_timeout);
-        const uint8_t announcement_type = plain[TIMED_AUTH_SIZE + sizeof(uint32_t)];
-        const uint8_t *announcement = plain + TIMED_AUTH_SIZE + sizeof(uint32_t) + 1;
-
-        if (!check_timed_auth(announce->mono_time, DATA_SEARCH_TIMEOUT, announce->hmac_key,
-                              to_auth, to_auth_length, auth)) {
-            return -1;
-        }
-
-        if (announcement_type > 1) {
-            return -1;
-        }
-
-        if (announcement_type == 1) {
-            if (announcement_len != CRYPTO_SHA256_SIZE) {
-                return -1;
-            }
-
-            Announce_Entry *stored = get_stored(announce, data_public_key);
-
-            if (stored == nullptr) {
-                return -1;
-            }
-
-            uint8_t stored_hash[CRYPTO_SHA256_SIZE];
-            crypto_sha256(stored_hash, stored->data, stored->length);
-
-            if (!crypto_sha256_eq(announcement, stored_hash)) {
-                delete_entry(stored);
-                return -1;
-            } else {
-                stored->store_until = mono_time_get(announce->mono_time) + timeout;
-            }
-        } else {
-            if (!store_data(announce, data_public_key, announcement, announcement_len, timeout)) {
-                return -1;
-            }
-        }
-
-        const uint16_t reply_len = CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint64_t);
-
-        if (reply_max_length < reply_len) {
-            return -1;
-        }
-
-        memcpy(reply, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        net_pack_u32(reply + CRYPTO_PUBLIC_KEY_SIZE, timeout);
-        net_pack_u64(reply + CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t),
-                     mono_time_get(announce->mono_time) + announce->synch_offset);
-        return reply_len;
-    } else {
-        return -1;
     }
 }
 
@@ -592,7 +630,8 @@ static int handle_dht_announce_request(void *object, const IP_Port *source,
     return sendpacket(announce->net, source, reply, len) == len ? 0 : -1;
 }
 
-Announcements *new_announcements(const Logger *log, const Random *rng, const Mono_Time *mono_time, Forwarding *forwarding)
+Announcements *new_announcements(const Logger *log, const Random *rng, const Mono_Time *mono_time,
+                                 Forwarding *forwarding)
 {
     if (log == nullptr || mono_time == nullptr || forwarding == nullptr) {
         return nullptr;
