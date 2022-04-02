@@ -17,10 +17,12 @@ void TestUnpackAnnouncesList(Fuzz_Data &input)
     CONSUME1_OR_RETURN(const uint16_t packed_size, input);
 
     Logger *logger = logger_new();
-    if (gca_unpack_announces_list(logger, input.data, input.size, announces.data(), max_count) != -1) {
+    if (gca_unpack_announces_list(logger, input.data, input.size, announces.data(), max_count)
+        != -1) {
         std::vector<uint8_t> packed(packed_size);
         size_t processed;
-        gca_pack_announces_list(logger, packed.data(), packed.size(), announces.data(), announces.size(), &processed);
+        gca_pack_announces_list(
+            logger, packed.data(), packed.size(), announces.data(), announces.size(), &processed);
     }
     logger_kill(logger);
 }
@@ -48,8 +50,7 @@ void TestDoGca(Fuzz_Data &input)
     uint64_t clock = 1;
     mono_time_set_current_time_callback(
         mono_time.get(),
-        [](Mono_Time *, void *user_data) { return *static_cast<uint64_t *>(user_data); },
-        &clock);
+        [](Mono_Time *, void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock);
     std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(new_gca_list(), kill_gca);
     assert(gca != nullptr);
 
@@ -80,7 +81,8 @@ void TestDoGca(Fuzz_Data &input)
             std::vector<GC_Announce> gc_announces(max_nodes);
             CONSUME_OR_RETURN(const uint8_t *chat_id, input, CHAT_ID_SIZE);
             CONSUME_OR_RETURN(const uint8_t *except_public_key, input, ENC_PUBLIC_KEY_SIZE);
-            gca_get_announces(gca.get(), gc_announces.data(), max_nodes, chat_id, except_public_key);
+            gca_get_announces(
+                gca.get(), gc_announces.data(), max_nodes, chat_id, except_public_key);
             break;
         }
         case 3: {
@@ -98,7 +100,6 @@ void TestDoGca(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target(
-        data, size, TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca);
+    fuzz_select_target(data, size, TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca);
     return 0;
 }
