@@ -191,6 +191,10 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
     }
 
     if (announce->ip_port_is_set) {
+        if (length - offset == 0) {
+            return -1;
+        }
+
         const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, false);
 
         if (ip_port_length == -1) {
