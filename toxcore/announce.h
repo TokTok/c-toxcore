@@ -19,8 +19,9 @@ non_null()
 Announcements *new_announcements(const Logger *log, const Random *rng, const Mono_Time *mono_time, Forwarding *forwarding);
 
 /**
- * If data is stored, run `on_retrieve_callback` on it.
- * Return true if data is stored, false otherwise.
+ * @brief If data is stored, run `on_retrieve_callback` on it.
+ *
+ * @return true if data is stored, false otherwise.
  */
 non_null(1, 2) nullable(3, 4)
 bool on_stored(const Announcements *announce, const uint8_t *data_public_key,
