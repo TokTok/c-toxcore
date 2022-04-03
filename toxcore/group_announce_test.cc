@@ -151,7 +151,8 @@ TEST_F(AnnouncesPack, PublicAnnounceCanBePackedAndUnpacked)
     EXPECT_GT(packed_size, 0);
 
     GC_Public_Announce unpacked_ann{};
-    EXPECT_EQ(gca_unpack_public_announce(logger_, packed.data(), packed.size(), &unpacked_ann), packed_size);
+    EXPECT_EQ(gca_unpack_public_announce(logger_, packed.data(), packed.size(), &unpacked_ann),
+        packed_size);
 }
 
 TEST_F(AnnouncesPack, PublicAnnouncePackNull)
@@ -164,7 +165,8 @@ TEST_F(AnnouncesPack, PublicAnnouncePackNull)
     ann.base_announce = announces_[0];
 
     std::vector<uint8_t> packedTooSmall(GCA_PUBLIC_ANNOUNCE_MAX_SIZE - 1);
-    EXPECT_EQ(gca_pack_public_announce(logger_, packedTooSmall.data(), packedTooSmall.size(), &ann), -1);
+    EXPECT_EQ(
+        gca_pack_public_announce(logger_, packedTooSmall.data(), packedTooSmall.size(), &ann), -1);
 
     ann.base_announce.ip_port_is_set = 0;
     ann.base_announce.tcp_relays_count = 0;
