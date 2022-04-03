@@ -1,9 +1,10 @@
+#include "forwarding.h"
+
 #include <cassert>
 #include <memory>
 
 #include "../testing/fuzzing/fuzz_support.h"
 #include "../testing/fuzzing/fuzz_tox.h"
-#include "forwarding.h"
 
 namespace {
 
@@ -15,10 +16,11 @@ void TestSendForwardRequest(Fuzz_Data &input)
     with<Logger>{} >> with<Networking_Core>{input, ns} >> [&input](Ptr<Networking_Core> net) {
         with<IP_Port>{input} >> [net = std::move(net), &input](const IP_Port &forwarder) {
             CONSUME1_OR_RETURN(const uint16_t chain_length, input);
-            const uint16_t chain_keys_size = chain_length *CRYPTO_PUBLIC_KEY_SIZE;
+            const uint16_t chain_keys_size = chain_length * CRYPTO_PUBLIC_KEY_SIZE;
             CONSUME_OR_RETURN(const uint8_t *chain_keys, input, chain_keys_size);
 
-            send_forward_request(net.get(), &forwarder, chain_keys, chain_length, input.data, input.size);
+            send_forward_request(
+                net.get(), &forwarder, chain_keys, chain_length, input.data, input.size);
         };
     };
 }
