@@ -130,7 +130,8 @@ TEST_F(AnnouncesPack, PackedAnnouncesListCanBeUnpacked)
     size_t processed = 0;
 
     EXPECT_GT(gca_pack_announces_list(logger_, packed.data(), packed.size(), announces_.data(),
-              announces_.size(), &processed), 0);
+                  announces_.size(), &processed),
+        0);
     ASSERT_GE(processed, ENC_PUBLIC_KEY_SIZE + 2);
     ASSERT_LE(processed, size);
 
