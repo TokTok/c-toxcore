@@ -45,12 +45,13 @@ void TestUnpackPublicAnnounce(Fuzz_Data &input)
 void TestDoGca(Fuzz_Data &input)
 {
     std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(), logger_kill);
-    std::unique_ptr<Mono_Time, void (*)(Mono_Time *)>
-        mono_time(mono_time_new(nullptr, nullptr), mono_time_free);
+    std::unique_ptr<Mono_Time, void (*)(Mono_Time *)> mono_time(
+        mono_time_new(nullptr, nullptr), mono_time_free);
     assert(mono_time != nullptr);
     uint64_t clock = 1;
-    mono_time_set_current_time_callback(mono_time.get(),
-        [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock);
+    mono_time_set_current_time_callback(
+        mono_time.get(), [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
+        &clock);
     std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(new_gca_list(), kill_gca);
     assert(gca != nullptr);
 
