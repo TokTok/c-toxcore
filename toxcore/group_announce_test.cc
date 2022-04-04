@@ -247,8 +247,7 @@ TEST_F(AnnouncesPack, PackingEmptyAnnounceFails)
         gca_pack_announces_list(logger_, packed.data(), packed.size(), &announce, 1, nullptr), -1);
     EXPECT_EQ(
         gca_pack_announces_list(logger_, packed.data(), packed.size(), nullptr, 1, nullptr), -1);
-    EXPECT_EQ(
-        gca_pack_announces_list(logger_, nullptr, 0, &announce, 1, nullptr), -1);
+    EXPECT_EQ(gca_pack_announces_list(logger_, nullptr, 0, &announce, 1, nullptr), -1);
 }
 
 TEST_F(AnnouncesPack, PackAnnounceNull)
