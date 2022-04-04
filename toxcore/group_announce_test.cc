@@ -1,9 +1,9 @@
-#include "network.h"
 #include "group_announce.h"
 
 #include <gtest/gtest.h>
 
 #include "mono_time.h"
+#include "network.h"
 
 namespace {
 
@@ -20,10 +20,7 @@ protected:
         mono_time_ = mono_time_new(nullptr, nullptr);
         ASSERT_NE(mono_time_, nullptr);
         mono_time_set_current_time_callback(
-            mono_time_,
-            [](void *user_data) {
-                return *static_cast<uint64_t *>(user_data);
-            },
+            mono_time_, [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
             &clock_);
         gca_ = new_gca_list();
         ASSERT_NE(gca_, nullptr);
