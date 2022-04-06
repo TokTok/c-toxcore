@@ -5,6 +5,7 @@
 
 #include "group_onion_announce.h"
 
+#include <assert.h>
 #include <string.h>
 
 #include "ccompat.h"
@@ -35,7 +36,7 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
     }
 
     GC_Announce gc_announces[GCA_MAX_SENT_ANNOUNCES];
-    const int num_ann = (uint8_t)gca_get_announces(gc_announces_list,
+    const int num_ann = gca_get_announces(gc_announces_list,
                         gc_announces,
                         GCA_MAX_SENT_ANNOUNCES,
                         public_announce.chat_public_key,
@@ -46,9 +47,11 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
         return -1;
     }
 
+    assert(num_ann <= UINT8_MAX);
+
     size_t announces_length = 0;
 
-    if (gca_pack_announces_list(logger, response + offset, response_size - offset, gc_announces, num_ann,
+    if (gca_pack_announces_list(logger, response + offset, response_size - offset, gc_announces, (uint8_t)num_ann,
                                 &announces_length) != num_ann) {
         LOGGER_WARNING(logger, "Failed to pack group announces list");
         return -1;

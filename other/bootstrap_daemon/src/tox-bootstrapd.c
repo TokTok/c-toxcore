@@ -369,7 +369,8 @@ int main(int argc, char *argv[])
 
     if (group_announce == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize group announces. Exiting.\n");
-        kill_onion(onion);
+        kill_announcements(announce);
+        kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mono_time);
         kill_networking(net);
