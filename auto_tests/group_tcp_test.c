@@ -242,7 +242,7 @@ int main(void)
     tox_options_default(options);
     tox_options_set_udp_enabled(options, false);
 
-    Run_Auto_Options autotest_opts = default_run_auto_options;
+    Run_Auto_Options autotest_opts = default_run_auto_options();
     autotest_opts.graph = GRAPH_COMPLETE;
 
     run_auto_test(options, NUM_GROUP_TOXES, group_tcp_test, sizeof(State), &autotest_opts);

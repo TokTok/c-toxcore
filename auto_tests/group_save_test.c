@@ -278,7 +278,7 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    Run_Auto_Options autotest_opts = default_run_auto_options;
+    Run_Auto_Options autotest_opts = default_run_auto_options();
     autotest_opts.graph = GRAPH_COMPLETE;
 
     run_auto_test(nullptr, NUM_GROUP_TOXES, group_save_test, sizeof(State), &autotest_opts);
