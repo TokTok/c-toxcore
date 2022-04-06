@@ -20,6 +20,13 @@ project(toxcore)
 
 list(APPEND CMAKE_MODULE_PATH ${toxcore_SOURCE_DIR}/cmake)
 
+option(FLAT_OUTPUT_STRUCTURE "Whether to produce output artifacts in ${CMAKE_BINARY_DIR}/{bin,lib}" OFF)
+if(FLAT_OUTPUT_STRUCTURE)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+endif()
+
 set_source_files_properties(
   toxcore/mono_time.c
   toxcore/network.c
@@ -111,11 +118,6 @@ if(USE_TEST_NETWORK)
   add_definitions(-DUSE_TEST_NETWORK=1)
 endif()
 
-option(USE_STDERR_LOGGER "Enable logging to stderr when the logger is NULL" OFF)
-if(USE_STDERR_LOGGER)
-  add_definitions(-DUSE_STDERR_LOGGER=1)
-endif()
-
 option(BUILD_MISC_TESTS "Build additional tests and utilities" OFF)
 option(BUILD_FUN_UTILS "Build additional just for fun utilities" OFF)
 
@@ -202,6 +204,8 @@ set(toxcore_PKGCONFIG_REQUIRES)
 set(toxcore_SOURCES
   third_party/cmp/cmp.c
   third_party/cmp/cmp.h
+  toxcore/announce.c
+  toxcore/announce.h
   toxcore/bin_pack.c
   toxcore/bin_pack.h
   toxcore/bin_unpack.c
@@ -235,12 +239,12 @@ set(toxcore_SOURCES
   toxcore/events/friend_status_message.c
   toxcore/events/friend_typing.c
   toxcore/events/self_connection_status.c
+  toxcore/forwarding.c
+  toxcore/forwarding.h
   toxcore/friend_connection.c
   toxcore/friend_connection.h
   toxcore/friend_requests.c
   toxcore/friend_requests.h
-  toxcore/group_announce.c
-  toxcore/group_announce.h
   toxcore/group.c
   toxcore/group_chats.c
   toxcore/group_chats.h
@@ -248,6 +252,8 @@ set(toxcore_SOURCES
   toxcore/group_connection.c
   toxcore/group_connection.h
   toxcore/group.h
+  toxcore/group_announce.c
+  toxcore/group_announce.h
   toxcore/group_moderation.c
   toxcore/group_moderation.h
   toxcore/group_onion_announce.c
@@ -288,6 +294,8 @@ set(toxcore_SOURCES
   toxcore/TCP_connection.h
   toxcore/TCP_server.c
   toxcore/TCP_server.h
+  toxcore/timed_auth.c
+  toxcore/timed_auth.h
   toxcore/tox_api.c
   toxcore/tox.c
   toxcore/tox_dispatch.c
@@ -422,6 +430,7 @@ unit_test(toxav rtp)
 unit_test(toxcore DHT)
 unit_test(toxcore bin_pack)
 unit_test(toxcore crypto_core)
+unit_test(toxcore group_announce)
 unit_test(toxcore group_moderation)
 unit_test(toxcore mono_time)
 unit_test(toxcore ping_array)

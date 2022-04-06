@@ -217,6 +217,17 @@ cc_test(
 )
 
 cc_library(
+    name = "timed_auth",
+    srcs = ["timed_auth.c"],
+    hdrs = ["timed_auth.h"],
+    deps = [
+        ":ccompat",
+        ":crypto_core",
+        ":mono_time",
+    ],
+)
+
+cc_library(
     name = "ping_array",
     srcs = ["ping_array.c"],
     hdrs = ["ping_array.h"],
@@ -322,6 +333,47 @@ cc_library(
 )
 
 cc_library(
+    name = "forwarding",
+    srcs = ["forwarding.c"],
+    hdrs = ["forwarding.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":ccompat",
+        ":network",
+        ":timed_auth",
+    ],
+)
+
+cc_fuzz_test(
+    name = "forwarding_fuzz_test",
+    srcs = ["forwarding_fuzz_test.cc"],
+    #corpus = ["//tools/toktok-fuzzer/corpus:forwarding_fuzz_test"],
+    deps = [
+        ":forwarding",
+        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/fuzzing:fuzz_tox",
+    ],
+)
+
+cc_library(
+    name = "announce",
+    srcs = ["announce.c"],
+    hdrs = ["announce.h"],
+    visibility = [
+        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/other/bootstrap_daemon:__pkg__",
+    ],
+    deps = [
+        ":LAN_discovery",
+        ":ccompat",
+        ":forwarding",
+        ":timed_auth",
+        ":util",
+    ],
+)
+
+cc_library(
     name = "TCP_common",
     srcs = ["TCP_common.c"],
     hdrs = ["TCP_common.h"],
@@ -349,6 +401,7 @@ cc_library(
         ":TCP_common",
         ":ccompat",
         ":crypto_core",
+        ":forwarding",
         ":list",
         ":mono_time",
         ":onion",
@@ -364,6 +417,7 @@ cc_library(
     deps = [
         ":TCP_common",
         ":ccompat",
+        ":forwarding",
         ":mono_time",
         ":util",
     ],
@@ -428,6 +482,7 @@ cc_library(
         ":ccompat",
         ":mono_time",
         ":onion",
+        ":timed_auth",
         ":util",
     ],
 )
@@ -450,6 +505,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "group_announce_test",
+    size = "small",
+    srcs = ["group_announce_test.cc"],
+    deps = [
+        ":group_announce",
+        ":mono_time",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "group_onion_announce",
     srcs = ["group_onion_announce.c"],
@@ -463,6 +530,16 @@ cc_library(
         ":ccompat",
         ":group_announce",
         ":onion_announce",
+    ],
+)
+
+cc_fuzz_test(
+    name = "group_announce_fuzz_test",
+    srcs = ["group_announce_fuzz_test.cc"],
+    #corpus = ["//tools/toktok-fuzzer/corpus:group_announce_fuzz_test"],
+    deps = [
+        ":group_announce",
+        "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
 
@@ -593,10 +670,12 @@ cc_library(
         ":LAN_discovery",
         ":TCP_connection",
         ":TCP_server",
+        ":announce",
         ":bin_pack",
         ":bin_unpack",
         ":ccompat",
         ":crypto_core",
+        ":forwarding",
         ":friend_connection",
         ":friend_requests",
         ":group_onion_announce",
@@ -609,7 +688,6 @@ cc_library(
         ":state",
         ":util",
         "@libsodium",
-        "@msgpack-c",
     ],
 )
 

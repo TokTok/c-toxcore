@@ -584,7 +584,7 @@ int m_send_message_generic(Messenger *m, int32_t friendnumber, uint8_t type, con
     memcpy(packet + 1, message, length);
 
     const int64_t packet_num = write_cryptpacket(m->net_crypto, friend_connection_crypt_connection_id(m->fr_c,
-                               m->friendlist[friendnumber].friendcon_id), packet, length + 1, false);
+                                           m->friendlist[friendnumber].friendcon_id), packet, length + 1, false);
 
     if (packet_num == -1) {
         return -4;
@@ -1357,20 +1357,27 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
     }
 
     if (send_file_control_packet(m, friendnumber, inbound, file_number, control, nullptr, 0)) {
-        if (control == FILECONTROL_KILL) {
-            if (!inbound && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
-                // We are actively sending that file, remove from list
-                --m->friendlist[friendnumber].num_sending_files;
+        switch (control) {
+            case FILECONTROL_KILL: {
+                if (!inbound && (ft->status == FILESTATUS_TRANSFERRING || ft->status == FILESTATUS_FINISHED)) {
+                    // We are actively sending that file, remove from list
+                    --m->friendlist[friendnumber].num_sending_files;
+                }
+
+                ft->status = FILESTATUS_NONE;
+                break;
             }
+            case FILECONTROL_PAUSE: {
+                ft->paused |= FILE_PAUSE_US;
+                break;
+            }
+            case FILECONTROL_ACCEPT: {
+                ft->status = FILESTATUS_TRANSFERRING;
 
-            ft->status = FILESTATUS_NONE;
-        } else if (control == FILECONTROL_PAUSE) {
-            ft->paused |= FILE_PAUSE_US;
-        } else if (control == FILECONTROL_ACCEPT) {
-            ft->status = FILESTATUS_TRANSFERRING;
-
-            if ((ft->paused & FILE_PAUSE_US) != 0) {
-                ft->paused ^=  FILE_PAUSE_US;
+                if ((ft->paused & FILE_PAUSE_US) != 0) {
+                    ft->paused ^= FILE_PAUSE_US;
+                }
+                break;
             }
         }
     } else {
@@ -2569,7 +2576,7 @@ void do_messenger(Messenger *m, void *userdata)
             /* Add self tcp server. */
             IP_Port local_ip_port;
             local_ip_port.port = m->options.tcp_server_port;
-            local_ip_port.ip.family = net_family_ipv4;
+            local_ip_port.ip.family = net_family_ipv4();
             local_ip_port.ip.ip.v4 = get_ip4_loopback();
             add_tcp_relay(m->net_crypto, &local_ip_port, tcp_server_public_key(m->tcp_server));
         }
@@ -2613,10 +2620,10 @@ void do_messenger(Messenger *m, void *userdata)
                         last_pinged = 999;
                     }
 
-                    char ip_str[IP_NTOA_LEN];
+                    Ip_Ntoa ip_str;
                     char id_str[IDSTRING_LEN];
                     LOGGER_TRACE(m->log, "C[%2u] %s:%u [%3u] %s",
-                                 client, ip_ntoa(&assoc->ip_port.ip, ip_str, sizeof(ip_str)),
+                                 client, net_ip_ntoa(&assoc->ip_port.ip, &ip_str),
                                  net_ntohs(assoc->ip_port.port), last_pinged,
                                  id_to_string(cptr->public_key, id_str, sizeof(id_str)));
                 }
@@ -2686,10 +2693,10 @@ void do_messenger(Messenger *m, void *userdata)
                             last_pinged = 999;
                         }
 
-                        char ip_str[IP_NTOA_LEN];
+                        Ip_Ntoa ip_str;
                         char id_str[IDSTRING_LEN];
                         LOGGER_TRACE(m->log, "F[%2u] => C[%2u] %s:%u [%3u] %s",
-                                     friend_idx, client, ip_ntoa(&assoc->ip_port.ip, ip_str, sizeof(ip_str)),
+                                     friend_idx, client, net_ip_ntoa(&assoc->ip_port.ip, &ip_str),
                                      net_ntohs(assoc->ip_port.port), last_pinged,
                                      id_to_string(cptr->public_key, id_str, sizeof(id_str)));
                     }
@@ -2938,7 +2945,7 @@ non_null()
 static uint8_t *save_nospam_keys(const Messenger *m, uint8_t *data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_NOSPAMKEYS);
-    assert(sizeof(get_nospam(m->fr)) == sizeof(uint32_t));
+    static_assert(sizeof(get_nospam(m->fr)) == sizeof(uint32_t), "nospam doesn't fit in a 32 bit int");
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_NOSPAMKEYS);
     const uint32_t nospam = get_nospam(m->fr);
     host_to_lendian_bytes32(data, nospam);
@@ -3253,7 +3260,7 @@ static State_Load_Status load_status(Messenger *m, const uint8_t *data, uint32_t
 non_null()
 static uint32_t tcp_relay_size(const Messenger *m)
 {
-    return NUM_SAVED_TCP_RELAYS * packed_node_size(net_family_tcp_ipv6);
+    return NUM_SAVED_TCP_RELAYS * packed_node_size(net_family_tcp_ipv6());
 }
 
 non_null()
@@ -3270,7 +3277,7 @@ static uint8_t *save_tcp_relays(const Messenger *m, uint8_t *data)
     uint32_t num = m->num_loaded_relays;
     num += copy_connected_tcp_relays(m->net_crypto, relays + num, NUM_SAVED_TCP_RELAYS - num);
 
-    const int l = pack_nodes(m->log, data, NUM_SAVED_TCP_RELAYS * packed_node_size(net_family_tcp_ipv6), relays, num);
+    const int l = pack_nodes(m->log, data, NUM_SAVED_TCP_RELAYS * packed_node_size(net_family_tcp_ipv6()), relays, num);
 
     if (l > 0) {
         const uint32_t len = l;
@@ -3303,7 +3310,7 @@ static State_Load_Status load_tcp_relays(Messenger *m, const uint8_t *data, uint
 non_null()
 static uint32_t path_node_size(const Messenger *m)
 {
-    return NUM_SAVED_PATH_NODES * packed_node_size(net_family_tcp_ipv6);
+    return NUM_SAVED_PATH_NODES * packed_node_size(net_family_tcp_ipv6());
 }
 
 non_null()
@@ -3314,7 +3321,7 @@ static uint8_t *save_path_nodes(const Messenger *m, uint8_t *data)
     data = state_write_section_header(data, STATE_COOKIE_TYPE, 0, STATE_TYPE_PATH_NODE);
     memset(nodes, 0, sizeof(nodes));
     const unsigned int num = onion_backup_nodes(m->onion_c, nodes, NUM_SAVED_PATH_NODES);
-    const int l = pack_nodes(m->log, data, NUM_SAVED_PATH_NODES * packed_node_size(net_family_tcp_ipv6), nodes, num);
+    const int l = pack_nodes(m->log, data, NUM_SAVED_PATH_NODES * packed_node_size(net_family_tcp_ipv6()), nodes, num);
 
     if (l > 0) {
         const uint32_t len = l;
@@ -3544,12 +3551,21 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
 
 #endif /* VANILLA_NACL */
 
+    if (options->dht_announcements_enabled) {
+        m->forwarding = new_forwarding(m->log, m->rng, m->mono_time, m->dht);
+        m->announce = new_announcements(m->log, m->rng, m->mono_time, m->forwarding);
+    } else {
+        m->forwarding = nullptr;
+        m->announce = nullptr;
+    }
+
     m->onion = new_onion(m->log, m->mono_time, m->rng, m->dht);
     m->onion_a = new_onion_announce(m->log, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->rng, m->mono_time, m->net_crypto);
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
 
-    if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
+    if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
+            m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
         kill_onion(m->onion);
         kill_onion_announce(m->onion_a);
         kill_onion_client(m->onion_c);
@@ -3557,6 +3573,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
         kill_gca(m->group_announce);
 #endif /* VANILLA_NACL */
         kill_friend_connections(m->fr_c);
+        kill_announcements(m->announce);
+        kill_forwarding(m->forwarding);
         kill_net_crypto(m->net_crypto);
         kill_dht(m->dht);
         kill_networking(m->net);
@@ -3589,7 +3607,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
 
     if (options->tcp_server_port != 0) {
         m->tcp_server = new_TCP_server(m->log, m->rng, m->ns, options->ipv6enabled, 1, &options->tcp_server_port,
-                                       dht_get_self_secret_key(m->dht), m->onion);
+                                       dht_get_self_secret_key(m->dht), m->onion, m->forwarding);
 
         if (m->tcp_server == nullptr) {
             kill_onion(m->onion);
@@ -3602,6 +3620,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
 #ifndef VANILLA_NACL
             kill_gca(m->group_announce);
 #endif
+            kill_announcements(m->announce);
+            kill_forwarding(m->forwarding);
             kill_net_crypto(m->net_crypto);
             kill_dht(m->dht);
             kill_networking(m->net);
@@ -3659,6 +3679,8 @@ void kill_messenger(Messenger *m)
 #ifndef VANILLA_NACL
     kill_gca(m->group_announce);
 #endif
+    kill_announcements(m->announce);
+    kill_forwarding(m->forwarding);
     kill_net_crypto(m->net_crypto);
     kill_dht(m->dht);
     kill_networking(m->net);

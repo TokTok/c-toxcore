@@ -11,6 +11,8 @@
 #define C_TOXCORE_TOXCORE_MESSENGER_H
 
 #include "TCP_server.h"
+#include "announce.h"
+#include "forwarding.h"
 #include "friend_connection.h"
 #include "friend_requests.h"
 #include "group_announce.h"
@@ -66,6 +68,7 @@ typedef struct Messenger_Options {
 
     bool hole_punching_enabled;
     bool local_discovery_enabled;
+    bool dht_announcements_enabled;
 
     logger_cb *log_callback;
     void *log_context;
@@ -248,6 +251,9 @@ struct Messenger {
     Networking_Core *net;
     Net_Crypto *net_crypto;
     DHT *dht;
+
+    Forwarding *forwarding;
+    Announcements *announce;
 
     Onion *onion;
     Onion_Announce *onion_a;
@@ -813,7 +819,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
  *
  * Free all datastructures.
  */
-non_null()
+nullable(1)
 void kill_messenger(Messenger *m);
 
 /** @brief The main loop that needs to be run at least 20 times per second. */

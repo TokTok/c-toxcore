@@ -13,9 +13,6 @@
 #include "mono_time.h"
 #include "util.h"
 
-/* Minimum size of an announce. */
-#define GCA_ANNOUNCE_MIN_SIZE (ENC_PUBLIC_KEY_SIZE + 2)
-
 /**
  * Removes `announces` from `gc_announces_list`.
  */
@@ -73,7 +70,6 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
         return 0;
     }
 
-    // TODO(Jfreegman): add proper selection (what does that mean?)
     uint16_t added_count = 0;
 
     for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
@@ -103,6 +99,11 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
     return added_count;
 }
 
+uint16_t gca_pack_announces_list_size(uint16_t count)
+{
+    return count * GCA_ANNOUNCE_MAX_SIZE;
+}
+
 int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce)
 {
     if (length < GCA_ANNOUNCE_MAX_SIZE) {
@@ -129,6 +130,11 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
 
     data[offset] = announce->tcp_relays_count;
     ++offset;
+
+    if (!announce->ip_port_is_set && announce->tcp_relays_count == 0) {
+        LOGGER_ERROR(log, "Failed to pack announce: no valid ip_port or tcp relay");
+        return -1;
+    }
 
     if (announce->ip_port_is_set) {
         const int ip_port_length = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
@@ -161,7 +167,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
 non_null()
 static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announce)
 {
-    if (length < GCA_ANNOUNCE_MIN_SIZE) {
+    if (length < ENC_PUBLIC_KEY_SIZE + 2) {
         LOGGER_ERROR(log, "Invalid announce length: %u", length);
         return -1;
     }
@@ -413,7 +419,7 @@ void kill_gca(GC_Announces_List *announces_list)
 #define GCA_ANNOUNCE_SAVE_TIMEOUT 30
 
 /* How often we run do_gca() */
-#define DO_GCA_INTERVAL 2
+#define GCA_DO_GCA_TIMEOUT 1
 
 void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 {
@@ -421,7 +427,7 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
         return;
     }
 
-    if (!mono_time_is_timeout(mono_time, gc_announces_list->last_timeout_check, DO_GCA_INTERVAL)) {
+    if (!mono_time_is_timeout(mono_time, gc_announces_list->last_timeout_check, GCA_DO_GCA_TIMEOUT)) {
         return;
     }
 
@@ -431,13 +437,9 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 
     while (announces != nullptr) {
         if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
-            GC_Announces *announces_to_delete = announces;
+            GC_Announces *to_delete = announces;
             announces = announces->next_announce;
-
-            if (announces != nullptr) {
-                remove_announces(gc_announces_list, announces_to_delete);
-            }
-
+            remove_announces(gc_announces_list, to_delete);
             continue;
         }
 

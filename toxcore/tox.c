@@ -317,10 +317,9 @@ static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format
         return;
     }
 
-    char ip[IP_NTOA_LEN];
-    ip_ntoa(&node->ip_port.ip, ip, sizeof(ip));
-
-    tox_data->tox->dht_get_nodes_response_callback(tox_data->tox, node->public_key, ip, net_ntohs(node->ip_port.port),
+    Ip_Ntoa ip_str;
+    tox_data->tox->dht_get_nodes_response_callback(
+            tox_data->tox, node->public_key, net_ip_ntoa(&node->ip_port.ip, &ip_str), net_ntohs(node->ip_port.port),
             tox_data->user_data);
 }
 
@@ -688,6 +687,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     m_options.tcp_server_port = tox_options_get_tcp_port(opts);
     m_options.hole_punching_enabled = tox_options_get_hole_punching_enabled(opts);
     m_options.local_discovery_enabled = tox_options_get_local_discovery_enabled(opts);
+    m_options.dht_announcements_enabled = tox_options_get_dht_announcements_enabled(opts);
 
     if (m_options.udp_disabled) {
         m_options.local_discovery_enabled = false;
@@ -722,7 +722,22 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         }
     }
 
-    tox_set_network(tox, nullptr);
+    const Tox_System *sys = tox_options_get_operating_system(opts);
+    const Tox_System default_system = tox_default_system();
+    if (sys == nullptr) {
+        sys = &default_system;
+    }
+
+    if (sys->rng == nullptr || sys->ns == nullptr) {
+        // TODO(iphydf): Not quite right, but similar.
+        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
+        free(tox);
+        return nullptr;
+    }
+
+    tox->rng = *sys->rng;
+    tox->ns = *sys->ns;
 
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
@@ -735,7 +750,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         ip_init(&m_options.proxy_info.ip_port.ip, m_options.ipv6enabled);
 
         if (m_options.ipv6enabled) {
-            m_options.proxy_info.ip_port.ip.family = net_family_unspec;
+            m_options.proxy_info.ip_port.ip.family = net_family_unspec();
         }
 
         const char *const proxy_host = tox_options_get_proxy_host(opts);
@@ -751,18 +766,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    const Random *rng = system_random();
-
-    if (rng == nullptr) {
-        // TODO(iphydf): Not quite right, but similar.
-        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-        tox_options_free(default_options);
-        free(tox);
-        return nullptr;
-    }
-
-    tox->rng = *rng;
-    tox->mono_time = mono_time_new();
+    tox->mono_time = mono_time_new(sys->mono_time_callback, sys->mono_time_user_data);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);

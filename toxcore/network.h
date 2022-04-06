@@ -77,22 +77,22 @@ typedef struct Family {
 bool net_family_is_unspec(Family family);
 bool net_family_is_ipv4(Family family);
 bool net_family_is_ipv6(Family family);
-bool net_family_is_tcp_family(Family family);
-bool net_family_is_tcp_onion(Family family);
+bool net_family_is_tcp_server(Family family);
+bool net_family_is_tcp_client(Family family);
 bool net_family_is_tcp_ipv4(Family family);
 bool net_family_is_tcp_ipv6(Family family);
 bool net_family_is_tox_tcp_ipv4(Family family);
 bool net_family_is_tox_tcp_ipv6(Family family);
 
-extern const Family net_family_unspec;
-extern const Family net_family_ipv4;
-extern const Family net_family_ipv6;
-extern const Family net_family_tcp_family;
-extern const Family net_family_tcp_onion;
-extern const Family net_family_tcp_ipv4;
-extern const Family net_family_tcp_ipv6;
-extern const Family net_family_tox_tcp_ipv4;
-extern const Family net_family_tox_tcp_ipv6;
+Family net_family_unspec(void);
+Family net_family_ipv4(void);
+Family net_family_ipv6(void);
+Family net_family_tcp_server(void);
+Family net_family_tcp_client(void);
+Family net_family_tcp_ipv4(void);
+Family net_family_tcp_ipv6(void);
+Family net_family_tox_tcp_ipv4(void);
+Family net_family_tox_tcp_ipv6(void);
 
 #define MAX_UDP_PACKET_SIZE 2048
 
@@ -168,6 +168,17 @@ typedef enum Net_Packet_Type {
     NET_PACKET_ONION_RECV_2         = 0x8d,
     NET_PACKET_ONION_RECV_1         = 0x8e,
 
+    NET_PACKET_FORWARD_REQUEST      = 0x90,
+    NET_PACKET_FORWARDING           = 0x91,
+    NET_PACKET_FORWARD_REPLY        = 0x92,
+
+    NET_PACKET_DATA_SEARCH_REQUEST     = 0x93,
+    NET_PACKET_DATA_SEARCH_RESPONSE    = 0x94,
+    NET_PACKET_DATA_RETRIEVE_REQUEST   = 0x95,
+    NET_PACKET_DATA_RETRIEVE_RESPONSE  = 0x96,
+    NET_PACKET_STORE_ANNOUNCE_REQUEST  = 0x97,
+    NET_PACKET_STORE_ANNOUNCE_RESPONSE = 0x98,
+
     BOOTSTRAP_INFO_PACKET_ID        = 0xf0, /* Only used for bootstrap nodes */
 
     NET_PACKET_MAX                  = 0xff, /* This type must remain within a single uint8. */
@@ -193,10 +204,10 @@ typedef enum Net_Packet_Type {
 #define TOX_PROTO_UDP 2
 
 /** TCP related */
-#define TCP_ONION_FAMILY (TOX_AF_INET6 + 1)
+#define TCP_CLIENT_FAMILY (TOX_AF_INET6 + 1)
 #define TCP_INET (TOX_AF_INET6 + 2)
 #define TCP_INET6 (TOX_AF_INET6 + 3)
-#define TCP_FAMILY (TOX_AF_INET6 + 4)
+#define TCP_SERVER_FAMILY (TOX_AF_INET6 + 4)
 
 #define SIZE_IP4 4
 #define SIZE_IP6 16
@@ -315,16 +326,21 @@ bool ipv6_ipv4_in_v6(const IP6 *a);
 
 /** this would be TOX_INET6_ADDRSTRLEN, but it might be too short for the error message */
 #define IP_NTOA_LEN 96 // TODO(irungentoo): magic number. Why not INET6_ADDRSTRLEN ?
-/** @brief converts ip into a string
+
+typedef struct Ip_Ntoa {
+    char buf[IP_NTOA_LEN];
+} Ip_Ntoa;
+
+/** @brief Converts IP into a string.
  *
- * @param ip_str must be of length at least IP_NTOA_LEN
+ * Writes error message into the buffer on error.
  *
- * writes error message into the buffer on error
+ * @param ip_str contains a buffer of the required size.
  *
- * @return ip_str
+ * @return Pointer to the buffer inside `ip_str` containing the IP string.
  */
 non_null()
-const char *ip_ntoa(const IP *ip, char *ip_str, size_t length);
+const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str);
 
 /**
  * Parses IP structure into an address string.
@@ -577,7 +593,7 @@ non_null()
 Networking_Core *new_networking_no_udp(const Logger *log, const Network *ns);
 
 /** Function to cleanup networking stuff (doesn't do much right now). */
-non_null()
+nullable(1)
 void kill_networking(Networking_Core *net);
 
 #ifdef __cplusplus

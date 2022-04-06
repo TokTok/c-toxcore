@@ -25,10 +25,10 @@ static IP get_loopback(void)
 {
     IP ip;
 #if USE_IPV6
-    ip.family = net_family_ipv6;
+    ip.family = net_family_ipv6();
     ip.ip.v6 = get_ip6_loopback();
 #else
-    ip.family = net_family_ipv4;
+    ip.family = net_family_ipv4();
     ip.ip.v4 = get_ip4_loopback();
 #endif
     return ip;
@@ -45,7 +45,7 @@ static uint16_t ports[NUM_PORTS] = {13215, 33445, 25643};
 
 static void test_basic(void)
 {
-    Mono_Time *mono_time = mono_time_new();
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
     Logger *logger = logger_new();
@@ -56,7 +56,7 @@ static void test_basic(void)
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
     const Network *ns = system_network();
-    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS,
                   "Failed to bind a TCP relay server to all %d attempted ports.", NUM_PORTS);
@@ -68,7 +68,7 @@ static void test_basic(void)
 
     // Check all opened ports for connectivity.
     for (uint8_t i = 0; i < NUM_PORTS; i++) {
-        sock = net_socket(ns, net_family_ipv6, TOX_SOCK_STREAM, TOX_PROTO_TCP);
+        sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
         localhost.port = net_htons(ports[i]);
         bool ret = net_connect(logger, sock, &localhost);
         ck_assert_msg(ret, "Failed to connect to created TCP relay server on port %d (%d).", ports[i], errno);
@@ -201,7 +201,7 @@ static struct sec_TCP_con *new_TCP_con(const Logger *logger, const Random *rng, 
     struct sec_TCP_con *sec_c = (struct sec_TCP_con *)malloc(sizeof(struct sec_TCP_con));
     ck_assert(sec_c != nullptr);
     sec_c->ns = ns;
-    Socket sock = net_socket(ns, net_family_ipv6, TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    Socket sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
     IP_Port localhost;
     localhost.ip = get_loopback();
@@ -297,7 +297,7 @@ static int read_packet_sec_TCP(const Logger *logger, struct sec_TCP_con *con, ui
 
 static void test_some(void)
 {
-    Mono_Time *mono_time = mono_time_new();
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
     Logger *logger = logger_new();
@@ -306,7 +306,7 @@ static void test_some(void)
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create TCP relay server");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind to all ports.");
 
@@ -488,16 +488,16 @@ static int oob_data_callback(void *object, const uint8_t *public_key, const uint
 
 static void test_client(void)
 {
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
-    Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
     const Network *ns = system_network();
-    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind the relay server to all ports.");
 
@@ -619,9 +619,9 @@ static void test_client(void)
 // Test how the client handles servers that don't respond.
 static void test_client_invalid(void)
 {
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
-    Mono_Time *mono_time = mono_time_new();
     Logger *logger = logger_new();
     const Network *ns = system_network();
 
@@ -694,7 +694,7 @@ static int tcp_data_callback(void *object, int id, const uint8_t *data, uint16_t
 
 static void test_tcp_connection(void)
 {
-    Mono_Time *mono_time = mono_time_new();
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     Logger *logger = logger_new();
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
@@ -704,7 +704,7 @@ static void test_tcp_connection(void)
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
 
     TCP_Proxy_Info proxy_info;
@@ -803,7 +803,7 @@ static int tcp_oobdata_callback(void *object, const uint8_t *public_key, unsigne
 
 static void test_tcp_connection2(void)
 {
-    Mono_Time *mono_time = mono_time_new();
+    Mono_Time *mono_time = mono_time_new(nullptr, nullptr);
     Logger *logger = logger_new();
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
@@ -815,7 +815,7 @@ static void test_tcp_connection2(void)
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr);
+    TCP_Server *tcp_s = new_TCP_server(logger, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
 
     TCP_Proxy_Info proxy_info;

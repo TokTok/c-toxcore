@@ -26,6 +26,8 @@ add_flag -Wno-format-nonliteral
 # write {{{0}}} in some cases, which is ugly and a maintenance burden.
 add_flag -Wno-missing-braces
 add_flag -Wno-missing-field-initializers
+# We don't use this attribute. It appears in the non-NDEBUG stderr logger.
+add_flag -Wno-missing-noreturn
 # Useful sometimes, but we accept padding in structs for clarity.
 # Reordering fields to avoid padding will reduce readability.
 add_flag -Wno-padded
@@ -50,8 +52,8 @@ add_flag -Wno-unused-function
 add_flag -Wno-used-but-marked-unused
 # We use variable length arrays a lot.
 add_flag -Wno-vla
-# Disable warning about Doxygen retval tag
-add_flag -fcomment-block-commands=retval
+# Disable warnings about unknown Doxygen commands
+add_flag -Wno-documentation-unknown-command
 
 # Disable specific warning flags for C++.
 

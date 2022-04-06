@@ -11,10 +11,11 @@
 
 #include "logger.h"
 #include "onion.h"
+#include "timed_auth.h"
 
 #define ONION_ANNOUNCE_MAX_ENTRIES 160
 #define ONION_ANNOUNCE_TIMEOUT 300
-#define ONION_PING_ID_SIZE CRYPTO_SHA256_SIZE
+#define ONION_PING_ID_SIZE TIMED_AUTH_SIZE
 #define ONION_MAX_EXTRA_DATA_SIZE 136
 
 #define ONION_ANNOUNCE_SENDBACK_DATA_LENGTH (sizeof(uint64_t))
@@ -132,7 +133,7 @@ void onion_announce_extra_data_callback(Onion_Announce *onion_a, uint16_t extra_
 non_null()
 Onion_Announce *new_onion_announce(const Logger *log, const Random *rng, const Mono_Time *mono_time, DHT *dht);
 
-non_null()
+nullable(1)
 void kill_onion_announce(Onion_Announce *onion_a);
 
 #endif

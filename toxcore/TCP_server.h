@@ -10,6 +10,7 @@
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
 #include "crypto_core.h"
+#include "forwarding.h"
 #include "onion.h"
 
 #define MAX_INCOMING_CONNECTIONS 256
@@ -33,17 +34,17 @@ non_null()
 size_t tcp_server_listen_count(const TCP_Server *tcp_server);
 
 /** Create new TCP server instance. */
-non_null(1, 2, 3, 6, 7) nullable(8)
+non_null(1, 2, 3, 6, 7) nullable(8, 9)
 TCP_Server *new_TCP_server(const Logger *logger, const Random *rng, const Network *ns,
                            bool ipv6_enabled, uint16_t num_sockets, const uint16_t *ports,
-                           const uint8_t *secret_key, Onion *onion);
+                           const uint8_t *secret_key, Onion *onion, Forwarding *forwarding);
 
 /** Run the TCP_server */
 non_null()
 void do_TCP_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 
 /** Kill the TCP server */
-non_null()
+nullable(1)
 void kill_TCP_server(TCP_Server *tcp_server);
 
 

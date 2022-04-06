@@ -502,6 +502,16 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
 
 
 /**
+ * @brief Operating system functions used by Tox.
+ *
+ * This struct is opaque and generally shouldn't be used in clients, but in
+ * combination with tox_private.h, it allows tests to inject non-IO (hermetic)
+ * versions of low level network, RNG, and time keeping functions.
+ */
+typedef struct Tox_System Tox_System;
+
+
+/**
  * @brief This struct contains all the startup options for Tox.
  *
  * You must tox_options_new to allocate an object of this type.
@@ -548,6 +558,13 @@ struct Tox_Options {
      */
     bool local_discovery_enabled;
 
+
+    /**
+     * Enable storing DHT announcements and forwarding corresponding requests.
+     *
+     * Disabling this will cause Tox to ignore the relevant packets.
+     */
+    bool dht_announcements_enabled;
 
     /**
      * Pass communications through a proxy.
@@ -666,6 +683,12 @@ struct Tox_Options {
      */
     bool experimental_thread_safety;
 
+    /**
+     * Low level operating system functionality such as send/recv and random
+     * number generation.
+     */
+    const Tox_System *operating_system;
+
 };
 
 
@@ -680,6 +703,10 @@ void tox_options_set_udp_enabled(struct Tox_Options *options, bool udp_enabled);
 bool tox_options_get_local_discovery_enabled(const struct Tox_Options *options);
 
 void tox_options_set_local_discovery_enabled(struct Tox_Options *options, bool local_discovery_enabled);
+
+bool tox_options_get_dht_announcements_enabled(const struct Tox_Options *options);
+
+void tox_options_set_dht_announcements_enabled(struct Tox_Options *options, bool dht_announcements_enabled);
 
 Tox_Proxy_Type tox_options_get_proxy_type(const struct Tox_Options *options);
 
@@ -732,6 +759,10 @@ void tox_options_set_log_user_data(struct Tox_Options *options, void *user_data)
 bool tox_options_get_experimental_thread_safety(const struct Tox_Options *options);
 
 void tox_options_set_experimental_thread_safety(struct Tox_Options *options, bool experimental_thread_safety);
+
+const Tox_System *tox_options_get_operating_system(const struct Tox_Options *options);
+
+void tox_options_set_operating_system(struct Tox_Options *options, const Tox_System *operating_system);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.

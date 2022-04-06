@@ -45,8 +45,13 @@ extern "C" {
  */
 typedef struct Mono_Time Mono_Time;
 
-Mono_Time *mono_time_new(void);
-non_null() void mono_time_free(Mono_Time *mono_time);
+typedef uint64_t mono_time_current_time_cb(void *user_data);
+
+nullable(1, 2)
+Mono_Time *mono_time_new(mono_time_current_time_cb *current_time_callback, void *user_data);
+
+nullable(1)
+void mono_time_free(Mono_Time *mono_time);
 
 /**
  * Update mono_time; subsequent calls to mono_time_get or mono_time_is_timeout
@@ -73,8 +78,6 @@ bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64
  */
 non_null()
 uint64_t current_time_monotonic(Mono_Time *mono_time);
-
-typedef uint64_t mono_time_current_time_cb(Mono_Time *mono_time, void *user_data);
 
 /**
  * Override implementation of `current_time_monotonic()` (for tests).

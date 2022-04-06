@@ -45,6 +45,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/network.c \
                         ../toxcore/crypto_core.h \
                         ../toxcore/crypto_core.c \
+                        ../toxcore/timed_auth.h \
+                        ../toxcore/timed_auth.c \
                         ../toxcore/ping_array.h \
                         ../toxcore/ping_array.c \
                         ../toxcore/net_crypto.h \
@@ -98,6 +100,10 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/onion_announce.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion_client.c \
+                        ../toxcore/announce.h \
+                        ../toxcore/announce.c \
+                        ../toxcore/forwarding.h \
+                        ../toxcore/forwarding.c \
                         ../toxcore/TCP_client.h \
                         ../toxcore/TCP_client.c \
                         ../toxcore/TCP_common.h \

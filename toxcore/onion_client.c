@@ -340,8 +340,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
 
         if (num_nodes >= 2) {
             nodes[0] = empty_node_format;
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
-            nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
+            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(onion_c->rng, num_nodes);
@@ -355,8 +354,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
             }
 
             nodes[0] = empty_node_format;
-            nodes[0].ip_port.ip.family = net_family_tcp_family;
-            nodes[0].ip_port.ip.ip.v4.uint32 = random_tcp;
+            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(onion_c->rng, num_nodes_bs);
@@ -541,7 +539,9 @@ static int send_onion_packet_tcp_udp(const Onion_Client *onion_c, const Onion_Pa
         return 0;
     }
 
-    if (net_family_is_tcp_family(path->ip_port1.ip.family)) {
+    unsigned int tcp_connections_number;
+
+    if (ip_port_to_tcp_connections_number(&path->ip_port1, &tcp_connections_number)) {
         uint8_t packet[ONION_MAX_PACKET_SIZE];
         const int len = create_onion_packet_tcp(onion_c->rng, packet, sizeof(packet), path, dest, data, length);
 
@@ -549,7 +549,7 @@ static int send_onion_packet_tcp_udp(const Onion_Client *onion_c, const Onion_Pa
             return -1;
         }
 
-        return send_tcp_onion_request(onion_c->c, path->ip_port1.ip.ip.v4.uint32, packet, len);
+        return send_tcp_onion_request(onion_c->c, tcp_connections_number, packet, len);
     }
 
     return -1;
@@ -1203,7 +1203,7 @@ static int handle_tcp_onion(void *object, const uint8_t *data, uint16_t length, 
     }
 
     IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_family;
+    ip_port.ip.family = net_family_tcp_server();
 
     if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE) {
         return handle_announce_response(object, &ip_port, data, length, userdata);
@@ -1706,18 +1706,6 @@ static void populate_path_nodes(Onion_Client *onion_c)
     }
 }
 
-non_null()
-static void populate_path_nodes_tcp(Onion_Client *onion_c)
-{
-    Node_format node_list[MAX_SENT_NODES];
-
-    const unsigned int num_nodes = copy_connected_tcp_relays(onion_c->c, node_list, MAX_SENT_NODES);
-
-    for (unsigned int i = 0; i < num_nodes; ++i) {
-        onion_add_bs_path_node(onion_c, &node_list[i].ip_port, node_list[i].public_key);
-    }
-}
-
 /* How often we ping new friends per node */
 #define ANNOUNCE_FRIEND_NEW_INTERVAL 3
 
@@ -2071,8 +2059,6 @@ void do_onion_client(Onion_Client *onion_c)
             ++onion_c->onion_connected;
         }
     } else {
-        populate_path_nodes_tcp(onion_c);
-
         if (onion_c->onion_connected != 0) {
             --onion_c->onion_connected;
         }
