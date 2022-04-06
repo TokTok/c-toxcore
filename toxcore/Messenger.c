@@ -418,6 +418,7 @@ void m_kill_group_connection(Messenger *m, const GC_Chat *chat)
 
     kill_friend_connection(m->fr_c, chat->friend_connection_id);
 }
+
 non_null(1) nullable(3)
 static int do_receipts(Messenger *m, int32_t friendnumber, void *userdata)
 {
@@ -3549,13 +3550,13 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
     m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
 
     if (m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
-        kill_friend_connections(m->fr_c);
         kill_onion(m->onion);
         kill_onion_announce(m->onion_a);
         kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
         kill_gca(m->group_announce);
 #endif /* VANILLA_NACL */
+        kill_friend_connections(m->fr_c);
         kill_net_crypto(m->net_crypto);
         kill_dht(m->dht);
         kill_networking(m->net);
@@ -3591,12 +3592,12 @@ Messenger *new_messenger(Mono_Time *mono_time, const Random *rng, const Network 
                                        dht_get_self_secret_key(m->dht), m->onion);
 
         if (m->tcp_server == nullptr) {
-            kill_friend_connections(m->fr_c);
             kill_onion(m->onion);
             kill_onion_announce(m->onion_a);
 #ifndef VANILLA_NACL
             kill_dht_groupchats(m->group_handler);
 #endif
+            kill_friend_connections(m->fr_c);
             kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
             kill_gca(m->group_announce);
@@ -3648,12 +3649,12 @@ void kill_messenger(Messenger *m)
         kill_TCP_server(m->tcp_server);
     }
 
-    kill_friend_connections(m->fr_c);
     kill_onion(m->onion);
     kill_onion_announce(m->onion_a);
 #ifndef VANILLA_NACL
     kill_dht_groupchats(m->group_handler);
 #endif
+    kill_friend_connections(m->fr_c);
     kill_onion_client(m->onion_c);
 #ifndef VANILLA_NACL
     kill_gca(m->group_announce);
