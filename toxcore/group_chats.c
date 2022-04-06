@@ -5024,18 +5024,15 @@ bool gc_send_message_ack(const GC_Chat *chat, GC_Connection *gconn, uint64_t mes
         }
 
         gconn->last_requested_packet_time = tm;
-    } else if (type == GR_ACK_RECV) {
-        uint8_t data[GC_LOSSLESS_ACK_PACKET_SIZE];
-
-        data[0] = (uint8_t) type;
-        net_pack_u64(data + 1, message_id);
-
-        if (send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_PACKET_SIZE, GP_MESSAGE_ACK)) {
-            return true;
-        }
+    } else if (type != GR_ACK_RECV) {
+        return false;
     }
 
-    return false;
+    uint8_t data[GC_LOSSLESS_ACK_PACKET_SIZE];
+    data[0] = (uint8_t) type;
+    net_pack_u64(data + 1, message_id);
+
+    return send_lossy_group_packet(chat, gconn, data, GC_LOSSLESS_ACK_PACKET_SIZE, GP_MESSAGE_ACK);
 }
 
 /** @brief Handles a lossless message acknowledgement.

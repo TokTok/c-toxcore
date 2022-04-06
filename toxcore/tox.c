@@ -2803,16 +2803,6 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     return 0;
 }
 
-void tox_set_network(Tox *tox, const Network *ns)
-{
-    assert(tox != nullptr);
-    if (ns != nullptr) {
-        tox->ns = *ns;
-    } else {
-        tox->ns = *system_network();
-    }
-}
-
 /* GROUPCHAT FUNCTIONS */
 
 #ifndef VANILLA_NACL
