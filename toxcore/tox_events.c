@@ -46,7 +46,7 @@ void tox_events_init(Tox *tox)
     tox_callback_self_connection_status(tox, tox_events_handle_self_connection_status);
 }
 
-Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
+Tox_Events *tox_events_iterate(Tox *tox, Tox_Err_Events_Iterate *error)
 {
     Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK};
     tox_iterate(tox, &state);
@@ -55,7 +55,7 @@ Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate 
         *error = state.error;
     }
 
-    if (fail_hard && state.error != TOX_ERR_EVENTS_ITERATE_OK) {
+    if (state.error != TOX_ERR_EVENTS_ITERATE_OK) {
         tox_events_free(state.events);
         return nullptr;
     }

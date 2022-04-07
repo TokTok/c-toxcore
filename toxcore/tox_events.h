@@ -2,6 +2,11 @@
  * Copyright © 2022 The TokTok team.
  */
 
+/**
+ * Tox callbacks as events object.
+ *
+ * XXX: This API is not stable yet and will change drastically in the future.
+ */
 #ifndef C_TOXCORE_TOXCORE_TOX_EVENTS_H
 #define C_TOXCORE_TOXCORE_TOX_EVENTS_H
 
@@ -214,10 +219,14 @@ typedef enum Tox_Event {
     TOX_EVENT_CONFERENCE_MESSAGE            = 20,
 } Tox_Event;
 
-/**
- * Container object for all Tox core events.
+/** @brief Container object for all Tox core events.
  *
- * This is an immutable object once created.
+ * This is an immutable object once created. A pointer to an object of this type
+ * is the root of an object tree independent of the `Tox` object tree. No memory
+ * owned by the `Tox` object overlaps with memory owned by any `Tox_Events`
+ * object. This means it is safe to keep a `Tox_Events` object around until
+ * after the `Tox` object is deleted and it is safe to keep multiple
+ * `Tox_Events` objects around, e.g. in an event processing queue.
  */
 typedef struct Tox_Events Tox_Events;
 
@@ -286,13 +295,12 @@ const Tox_Event_Friend_Typing *tox_events_get_friend_typing(
 const Tox_Event_Self_Connection_Status *tox_events_get_self_connection_status(
     const Tox_Events *events, uint32_t index);
 
-/**
- * Initialise the events recording system.
+/** @brief Initialise the events recording system.
  *
  * All callbacks will be set to handlers inside the events recording system.
- * After this function returns, no user-defined event handlers will be
- * invoked. If the client sets their own handlers after calling this function,
- * the events associated with that handler will not be recorded.
+ * After this function returns, no user-defined event handlers will be invoked.
+ * If the client sets their own handlers after calling this function, the events
+ * associated with that handler will no longer be recorded.
  */
 void tox_events_init(Tox *tox);
 
@@ -312,28 +320,24 @@ typedef enum Tox_Err_Events_Iterate {
     TOX_ERR_EVENTS_ITERATE_MALLOC,
 } Tox_Err_Events_Iterate;
 
-/**
- * Run a single `tox_iterate` iteration and record all the events.
+/** @brief Run a single `tox_iterate` iteration and record all the events.
  *
  * If allocation of the top level events object fails, this returns NULL.
  * Otherwise it returns an object with the recorded events in it. If an
- * allocation fails while recording events, some events may be dropped.
- *
- * If @p fail_hard is `true`, any failure will result in NULL, so all recorded
- * events will be dropped.
+ * allocation fails while recording events, all previously recorded events will
+ * be dropped. This means an allocation failure can result in clients missing
+ * messages despite the sender receiving a read receipt.
  *
  * The result must be freed using `tox_events_free`.
  *
  * @param tox The Tox instance to iterate on.
- * @param fail_hard Drop all events when any allocation fails.
  * @param error An error code. Will be set to OK on success.
  *
- * @return the recorded events structure.
+ * @return the recorded events structure or NULL in case of allocation failure.
  */
-Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error);
+Tox_Events *tox_events_iterate(Tox *tox, Tox_Err_Events_Iterate *error);
 
-/**
- * Frees all memory associated with the events structure.
+/** @brief Frees all memory associated with the events structure.
  *
  * All pointers into this object and its sub-objects, including byte buffers,
  * will be invalid once this function returns.
@@ -343,8 +347,19 @@ void tox_events_free(Tox_Events *events);
 uint32_t tox_events_bytes_size(const Tox_Events *events);
 void tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes);
 
+/** @brief Load an events object from its serialised format.
+ *
+ * The result must be freed using `tox_events_free`.
+ *
+ * @return the unpacked events structure or NULL in case of allocation failure.
+ */
 Tox_Events *tox_events_load(const uint8_t *bytes, uint32_t bytes_size);
 
+/** @brief Compare two events structures for equality.
+ *
+ * This is equivalent to serialising both structures and comparing their
+ * serialised byte array representation.
+ */
 bool tox_events_equal(const Tox_Events *a, const Tox_Events *b);
 
 #ifdef __cplusplus

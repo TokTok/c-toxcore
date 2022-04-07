@@ -163,7 +163,8 @@ void TestBootstrap(Fuzz_Data &input)
 
     while (input.size > 0) {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events = tox_events_iterate(tox, &error_iterate);
+        assert(error_iterate == TOX_ERR_EVENTS_ITERATE_OK);
         assert(tox_events_equal(events, events));
         tox_dispatch_invoke(dispatch, events, tox, nullptr);
         tox_events_free(events);

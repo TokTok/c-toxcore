@@ -2,6 +2,11 @@
  * Copyright © 2022 The TokTok team.
  */
 
+/**
+ * Tox events object visitor/callback dispatcher.
+ *
+ * XXX: This API is not stable yet and will change drastically in the future.
+ */
 #ifndef C_TOXCORE_TOXCORE_TOX_DISPATCH_H
 #define C_TOXCORE_TOXCORE_TOX_DISPATCH_H
 
