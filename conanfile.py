@@ -41,6 +41,8 @@ class ToxConan(ConanFile):
             "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = self.options.shared
         self._cmake.definitions["ENABLE_SHARED"] = self.options.shared
         self._cmake.definitions["ENABLE_STATIC"] = not self.options.shared
+        self._cmake.definitions["CMAKE_SUPPRESS_REGENERATION"] = True
+        self._cmake.definitions["CMAKE_UNITY_BUILD"] = True
         self._cmake.definitions["MUST_BUILD_TOXAV"] = True
         if self.settings.compiler == "Visual Studio":
             self._cmake.definitions["MSVC_STATIC_SODIUM"] = True
