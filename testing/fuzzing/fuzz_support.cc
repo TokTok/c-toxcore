@@ -2,6 +2,8 @@
  * Copyright © 2021-2022 The TokTok team.
  */
 
+#include "fuzz_support.h"
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -13,7 +15,6 @@
 #include "../../toxcore/network.h"
 #include "../../toxcore/tox_private.h"
 #include "func_conversion.h"
-#include "fuzz_support.h"
 
 // TODO(iphydf): Put this somewhere shared.
 struct Network_Addr {
@@ -107,7 +108,8 @@ static constexpr Random_Funcs fuzz_random_funcs = {
     /* .random_uniform = */
     ![](Fuzz_System *self, uint32_t upper_bound) {
         uint32_t randnum;
-        self->rng->funcs->random_bytes(self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
+        self->rng->funcs->random_bytes(
+            self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
         return randnum % upper_bound;
     },
 };
