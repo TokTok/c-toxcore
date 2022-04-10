@@ -167,7 +167,9 @@ static void group_peer_self_join_handler(Tox *tox, uint32_t groupnumber, void *u
 
     ck_assert(tox_group_get_peer_limit(tox, groupnumber, nullptr) == PEER_LIMIT);
     ck_assert(tox_group_get_name_size(tox, groupnumber, nullptr) == GROUP_NAME_LEN);
-    ck_assert(tox_group_get_topic_size(tox, groupnumber, nullptr) == TOPIC_LEN);
+
+    const size_t topic_len = tox_group_get_topic_size(tox, groupnumber, nullptr);
+    ck_assert_msg(topic_len == TOPIC_LEN, "expected %u, got %zu", TOPIC_LEN, topic_len);
 
     Tox_Err_Group_State_Queries query_err;
     tox_group_get_name(tox, groupnumber, group_name, &query_err);

@@ -1867,8 +1867,7 @@ static bool sync_response_send_state(const GC_Chat *chat, GC_Connection *gconn, 
         gconn->last_sync_response = mono_time_get(chat->mono_time);
     }
 
-    if ((sync_flags & GF_TOPIC) > 0 && chat->topic_info.version > 0 &&
-            mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT / 2)) {
+    if ((sync_flags & GF_TOPIC) > 0 && chat->time_connected > 0 && chat->topic_info.version > 0) {
         if (!send_peer_topic(chat, gconn)) {
             LOGGER_WARNING(chat->log, "Failed to send topic");
             return false;
@@ -3725,6 +3724,11 @@ non_null()
 static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, const GC_TopicInfo *topic_info,
                                      bool topic_lock_enabled)
 {
+    if (peer->role == GR_OBSERVER) {
+        LOGGER_WARNING(chat->log, "received topic change from observer");
+        return false;
+    }
+
     if (topic_info->checksum != get_gc_topic_checksum(topic_info)) {
         LOGGER_WARNING(chat->log, "received invalid topic checksum");
         return false;
@@ -3750,6 +3754,11 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
         }
 
         if (topic_info->version == chat->shared_state.topic_lock) {
+            // always accept topic on initial connection
+            if (!mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT)) {
+                return true;
+            }
+
             if (chat->topic_prev_checksum == topic_info->checksum &&
                     !mono_time_is_timeout(chat->mono_time, chat->topic_time_set, GC_CONFIRMED_PEER_TIMEOUT)) {
                 LOGGER_DEBUG(chat->log, "Topic reversion (probable sync error)");
@@ -7393,6 +7402,7 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
     }
 
     chat->connection_state = CS_CONNECTED;
+    chat->time_connected = mono_time_get(c->messenger->mono_time);
 
     if (is_public_chat(chat)) {
         if (!m_create_group_connection(c->messenger, chat)) {
