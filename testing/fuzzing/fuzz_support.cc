@@ -41,22 +41,22 @@ static int recv_common(Fuzz_Data &input, void *buf, size_t buf_len)
 }
 
 static const Network_Funcs fuzz_network_funcs = {
-    .close = [](void *obj, int sock) { return 0; },
-    .accept = [](void *obj, int sock) { return 2; },
-    .bind = [](void *obj, int sock, const Network_Addr *addr) { return 0; },
-    .listen = [](void *obj, int sock, int backlog) { return 0; },
-    .recvbuf =
+    /* .close = */ [](void *obj, int sock) { return 0; },
+    /* .accept = */ [](void *obj, int sock) { return 2; },
+    /* .bind = */ [](void *obj, int sock, const Network_Addr *addr) { return 0; },
+    /* .listen = */ [](void *obj, int sock, int backlog) { return 0; },
+    /* .recvbuf = */
         [](void *obj, int sock) {
             // TODO(iphydf): Return something sensible here (from the fuzzer): number of
             // bytes to be read from the socket.
             return 0;
         },
-    .recv =
+    /* .recv = */
         [](void *obj, int sock, uint8_t *buf, size_t len) {
             // Receive data from the fuzzer.
             return recv_common(static_cast<Fuzz_System *>(obj)->data, buf, len);
         },
-    .recvfrom =
+    /* .recvfrom = */
         [](void *obj, int sock, uint8_t *buf, size_t len, Network_Addr *addr) {
             addr->addr = sockaddr_storage{};
             // Dummy Addr
@@ -70,29 +70,29 @@ static const Network_Funcs fuzz_network_funcs = {
 
             return recv_common(static_cast<Fuzz_System *>(obj)->data, buf, len);
         },
-    .send =
+    /* .send = */
         [](void *obj, int sock, const uint8_t *buf, size_t len) {
             // Always succeed.
             return static_cast<int>(len);
         },
-    .sendto =
+    /* .sendto = */
         [](void *obj, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
             // Always succeed.
             return static_cast<int>(len);
         },
-    .socket = [](void *obj, int domain, int type, int proto) { return 1; },
-    .socket_nonblock = [](void *obj, int sock, bool nonblock) { return 0; },
-    .getsockopt =
+    /* .socket = */ [](void *obj, int domain, int type, int proto) { return 1; },
+    /* .socket_nonblock = */ [](void *obj, int sock, bool nonblock) { return 0; },
+    /* .getsockopt = */
         [](void *obj, int sock, int level, int optname, void *optval, size_t *optlen) {
             memset(optval, 0, *optlen);
             return 0;
         },
-    .setsockopt = [](void *obj, int sock, int level, int optname, const void *optval,
+    /* .setsockopt = */ [](void *obj, int sock, int level, int optname, const void *optval,
                       size_t optlen) { return 0; },
 };
 
 static const Random_Funcs fuzz_random_funcs = {
-    .random_bytes =
+    /* .random_bytes = */
         [](void *obj, uint8_t *bytes, size_t length) {
             Fuzz_System *sys = static_cast<Fuzz_System *>(obj);
             // Amount of data is limited
@@ -104,7 +104,7 @@ static const Random_Funcs fuzz_random_funcs = {
             sys->data.data += bytes_read;
             sys->data.size -= bytes_read;
         },
-    .random_uniform =
+    /* .random_uniform = */
         [](void *obj, uint32_t upper_bound) {
             Fuzz_System *sys = static_cast<Fuzz_System *>(obj);
             uint32_t randnum;
