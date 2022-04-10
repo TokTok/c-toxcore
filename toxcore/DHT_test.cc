@@ -222,7 +222,6 @@ TEST(AnnounceNodes, SetAndTest)
     set_announce_node(dht, pk2.data());
     EXPECT_EQ(2, get_close_nodes(dht, self_pk.data(), nodes, net_family_unspec(), true, true));
 
-
     kill_dht(dht);
     kill_networking(net);
     mono_time_free(mono_time);
