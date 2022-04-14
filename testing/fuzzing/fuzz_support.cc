@@ -2,6 +2,8 @@
  * Copyright © 2021-2022 The TokTok team.
  */
 
+#include "fuzz_support.h"
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
@@ -14,7 +16,6 @@
 #include "../../toxcore/network.h"
 #include "../../toxcore/tox_private.h"
 #include "func_conversion.h"
-#include "fuzz_support.h"
 
 // TODO(iphydf): Put this somewhere shared.
 struct Network_Addr {
