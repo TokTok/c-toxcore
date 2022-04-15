@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <memory>
 
 #include "../../toxcore/tox.h"
@@ -10,7 +11,6 @@
 #include "../../toxcore/tox_struct.h"
 #include "../../toxcore/util.h"
 #include "fuzz_support.h"
-#include "fuzz_tox.h"
 
 namespace {
 
@@ -81,20 +81,33 @@ void setup_callbacks(Tox_Dispatch *dispatch)
     tox_events_callback_friend_message(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Message *event, void *user_data) {
             const uint32_t friend_number = tox_event_friend_message_get_friend_number(event);
+            assert(friend_number == 0);
             const uint32_t message_length = tox_event_friend_message_get_message_length(event);
-            if (message_length == 0) {
-                return;
+            assert(message_length == 1);
+            const uint8_t *message = tox_event_friend_message_get_message(event);
+            if (message[0] == 'A') {
+                const uint8_t reply = 'B';
+                Tox_Err_Friend_Send_Message err;
+                tox_friend_send_message(tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
+                assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
+            } else {
+                assert(message[0] == 'B');
             }
-            const uint8_t reply = 'B';
-            tox_friend_send_message(tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, nullptr);
         });
     tox_events_callback_friend_name(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Name *event, void *user_data) {
-            // OK: friend name received.
+            const uint32_t friend_number = tox_event_friend_name_get_friend_number(event);
+            assert(friend_number == 0);
         });
     tox_events_callback_friend_read_receipt(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Read_Receipt *event, void *user_data) {
-            // OK: message has been received.
+            const uint32_t friend_number = tox_event_friend_read_receipt_get_friend_number(event);
+            assert(friend_number == 0);
+            const uint32_t message_id = tox_event_friend_read_receipt_get_message_id(event);
+            printf("%d\n", message_id);
+            if (message_id == 2) {
+                *static_cast<bool *>(user_data) = true;
+            }
         });
     tox_events_callback_friend_request(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Request *event, void *user_data) {
@@ -106,15 +119,19 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_friend_status(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Status *event, void *user_data) {
-            // OK: friend status received.
+            const uint32_t friend_number = tox_event_friend_status_get_friend_number(event);
+            assert(friend_number == 0);
         });
     tox_events_callback_friend_status_message(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Status_Message *event, void *user_data) {
-            // OK: friend status message received.
+            const uint32_t friend_number = tox_event_friend_status_message_get_friend_number(event);
+            assert(friend_number == 0);
         });
     tox_events_callback_friend_typing(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Typing *event, void *user_data) {
-            // OK: friend may be typing.
+            const uint32_t friend_number = tox_event_friend_typing_get_friend_number(event);
+            assert(friend_number == 0);
+            assert(!tox_event_friend_typing_get_typing(event));
         });
     tox_events_callback_self_connection_status(
         dispatch, [](Tox *tox, const Tox_Event_Self_Connection_Status *event, void *user_data) {
@@ -140,88 +157,142 @@ static char tox_log_level_name(Tox_Log_Level level)
     return '?';
 }
 
-void TestBootstrap(Fuzz_Data &input)
+void RecordBootstrap()
 {
-    Fuzz_System sys(input);
+    Record_System::Global global;
 
-    Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
+    Tox_Options *opts = tox_options_new(nullptr);
     assert(opts != nullptr);
-    tox_options_set_operating_system(opts.get(), sys.sys.get());
-    tox_options_set_local_discovery_enabled(opts.get(), false);
 
-    tox_options_set_log_callback(opts.get(),
+    tox_options_set_local_discovery_enabled(opts, false);
+
+    tox_options_set_log_callback(opts,
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
             // Log to stdout.
-            if (DEBUG) {
-                std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
-                    func, message);
-            }
+            std::printf("[%s] %c %s:%d(%s): %s\n", static_cast<Record_System *>(user_data)->name_,
+                tox_log_level_name(level), file, line, func, message);
         });
 
-    CONSUME1_OR_RETURN(const bool want_bootstrap, input);
-
-    CONSUME1_OR_RETURN(const uint8_t proxy_type, input);
-    if (proxy_type == 0) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_NONE);
-    } else if (proxy_type == 1) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_SOCKS5);
-        tox_options_set_proxy_host(opts.get(), "127.0.0.1");
-        tox_options_set_proxy_port(opts.get(), 8080);
-    } else if (proxy_type == 2) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_HTTP);
-        tox_options_set_proxy_host(opts.get(), "127.0.0.1");
-        tox_options_set_proxy_port(opts.get(), 8080);
-    }
-
     Tox_Err_New error_new;
-    Tox *tox = tox_new(opts.get(), &error_new);
 
-    if (tox == nullptr) {
-        // It might fail, because some I/O happens in tox_new, and the fuzzer
-        // might do things that make that I/O fail.
-        return;
-    }
-
+    Record_System sys1(global, 4, "tox1");  // fair dice roll
+    tox_options_set_log_user_data(opts, &sys1);
+    tox_options_set_operating_system(opts, sys1.sys.get());
+    Tox *tox1 = tox_new(opts, &error_new);
+    assert(tox1 != nullptr);
     assert(error_new == TOX_ERR_NEW_OK);
+    std::array<uint8_t, TOX_ADDRESS_SIZE> address1;
+    tox_self_get_address(tox1, address1.data());
+    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk1;
+    tox_self_get_public_key(tox1, pk1.data());
+    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key1;
+    tox_self_get_dht_id(tox1, dht_key1.data());
 
-    if (want_bootstrap) {
-        uint8_t pub_key[TOX_PUBLIC_KEY_SIZE] = {0};
+    Record_System sys2(global, 5, "tox2");  // unfair dice roll
+    tox_options_set_log_user_data(opts, &sys2);
+    tox_options_set_operating_system(opts, sys2.sys.get());
+    Tox *tox2 = tox_new(opts, &error_new);
+    assert(tox2 != nullptr);
+    assert(error_new == TOX_ERR_NEW_OK);
+    std::array<uint8_t, TOX_ADDRESS_SIZE> address2;
+    tox_self_get_address(tox2, address2.data());
+    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk2;
+    tox_self_get_public_key(tox2, pk2.data());
+    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key2;
+    tox_self_get_dht_id(tox2, dht_key2.data());
 
-        const bool udp_success = tox_bootstrap(tox, "192.168.0.127", 33446, pub_key, nullptr);
-        assert(udp_success);
+    assert(address1 != address2);
+    assert(pk1 != pk2);
+    assert(dht_key1 != dht_key2);
 
-        const bool tcp_success = tox_add_tcp_relay(tox, "192.168.0.127", 33446, pub_key, nullptr);
-        assert(tcp_success);
-    }
+    tox_options_free(opts);
 
-    tox_events_init(tox);
+    const uint16_t port = tox_self_get_udp_port(tox1, nullptr);
+
+    const bool udp_success = tox_bootstrap(tox2, "192.168.0.127", port, dht_key1.data(), nullptr);
+    assert(udp_success);
+
+    tox_events_init(tox1);
+    tox_events_init(tox2);
 
     Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
-    while (input.size > 0) {
+    bool done1 = false;
+    bool done2 = false;
+
+    const auto iterate = [&] {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events;
+
+        events = tox_events_iterate(tox1, true, &error_iterate);
         assert(tox_events_equal(events, events));
-        tox_dispatch_invoke(dispatch, events, tox, nullptr);
+        tox_dispatch_invoke(dispatch, events, tox1, &done1);
         tox_events_free(events);
+
+        events = tox_events_iterate(tox2, true, &error_iterate);
+        assert(tox_events_equal(events, events));
+        tox_dispatch_invoke(dispatch, events, tox2, &done2);
+        tox_events_free(events);
+
         // Move the clock forward a decent amount so all the time-based checks
         // trigger more quickly.
-        sys.clock += 200;
+        sys1.clock += 200;
+        sys2.clock += 200;
+    };
+
+    while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE
+        || tox_self_get_connection_status(tox2) == TOX_CONNECTION_NONE) {
+#if 0
+        printf("tox1: %d, tox2: %d\n",
+            tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2));
+#endif
+        iterate();
     }
 
+    printf("toxes are online\n");
+
+    const uint8_t msg = 'A';
+    const uint32_t friend_number = tox_friend_add(tox2, address1.data(), &msg, 1, nullptr);
+    assert(friend_number == 0);
+
+    while (tox_friend_get_connection_status(tox2, friend_number, nullptr) == TOX_CONNECTION_NONE) {
+#if 0
+        printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n",
+            tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2),
+            tox_friend_get_connection_status(tox1, 0, nullptr),
+            tox_friend_get_connection_status(tox2, 0, nullptr));
+#endif
+        iterate();
+    }
+
+    printf("tox clients connected\n");
+
+    while (!done1 && !done2) {
+#if 0
+        printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n",
+            tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2),
+            tox_friend_get_connection_status(tox1, 0, nullptr),
+            tox_friend_get_connection_status(tox2, 0, nullptr));
+#endif
+        iterate();
+    }
+
+    printf("test complete\n");
+
     tox_dispatch_free(dispatch);
-    tox_kill(tox);
+    tox_kill(tox2);
+    tox_kill(tox1);
+
+    printf("%zu bytes: tox1.dat\n", sys1.recording.size());
+    std::ofstream out("tox1.dat");
+    out.put(0);  // proxy_type = 0
+    out.put(0);  // want_bootstrap = false
+    out.write(reinterpret_cast<const char *>(sys1.recording.data()), sys1.recording.size());
 }
 
 }
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
-{
-    Fuzz_Data input{data, size};
-    TestBootstrap(input);
-    return 0;  // Non-zero return values are reserved for future use.
-}
+int main(void) { RecordBootstrap(); }
