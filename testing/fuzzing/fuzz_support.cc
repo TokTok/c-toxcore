@@ -215,7 +215,8 @@ Null_System::~Null_System() { }
 static constexpr Network_Funcs record_network_funcs = {
     /* .close = */ ![](Record_System *self, int sock) { return 0; },
     /* .accept = */ ![](Record_System *self, int sock) { return 2; },
-    /* .bind = */ ![](Record_System *self, int sock, const Network_Addr *addr) {
+    /* .bind = */
+    ![](Record_System *self, int sock, const Network_Addr *addr) {
         uint16_t port;
         if (addr->addr.ss_family == AF_INET6) {
             port = reinterpret_cast<const sockaddr_in6 *>(&addr->addr)->sin6_port;
@@ -223,7 +224,8 @@ static constexpr Network_Funcs record_network_funcs = {
             assert(addr->addr.ss_family == AF_INET);
             port = reinterpret_cast<const sockaddr_in *>(&addr->addr)->sin_port;
         }
-        if (std::find(self->global_.bound.begin(), self->global_.bound.end(), port) != self->global_.bound.end()) {
+        if (std::find(self->global_.bound.begin(), self->global_.bound.end(), port)
+            != self->global_.bound.end()) {
             errno = EADDRINUSE;
             return -1;
         }

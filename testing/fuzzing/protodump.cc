@@ -197,8 +197,8 @@ void RecordBootstrap()
     setup_callbacks(dispatch);
 
     while (tox_friend_get_connection_status(tox2, 0, nullptr) == TOX_CONNECTION_NONE) {
-        printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n", tox_self_get_connection_status(tox1),
-            tox_self_get_connection_status(tox2),
+        printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n",
+            tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2),
             tox_friend_get_connection_status(tox1, 0, nullptr),
             tox_friend_get_connection_status(tox2, 0, nullptr));
         Tox_Err_Events_Iterate error_iterate;
