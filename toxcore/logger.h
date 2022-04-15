@@ -21,6 +21,11 @@ extern "C" {
 #define MIN_LOGGER_LEVEL LOGGER_LEVEL_INFO
 #endif
 
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+#undef MIN_LOGGER_LEVEL
+#define MIN_LOGGER_LEVEL LOGGER_LEVEL_ERROR
+#endif
+
 // NOTE: Don't forget to update build system files after modifying the enum.
 typedef enum Logger_Level {
     LOGGER_LEVEL_TRACE,
