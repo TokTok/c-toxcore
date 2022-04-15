@@ -1,5 +1,6 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
+load("@rules_fuzzing//fuzzing/private:binary.bzl", "fuzzing_binary")  # buildifier: disable=bzl-visibility
 
 package(features = ["layering_check"])
 
@@ -48,4 +49,25 @@ cc_fuzz_test(
         ":fuzz_support",
         "//c-toxcore/toxcore:tox",
     ],
+)
+
+cc_binary(
+    name = "protodump",
+    srcs = ["protodump.cc"],
+    copts = ["-UNDEBUG"],
+    deps = [
+        ":fuzz_support",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_dispatch",
+        "//c-toxcore/toxcore:tox_events",
+        "//c-toxcore/toxcore:util",
+    ],
+)
+
+fuzzing_binary(
+    name = "protodump_bin",
+    testonly = True,
+    binary = ":protodump",
+    engine = "@rules_fuzzing//fuzzing:cc_engine",
+    tags = ["manual"],
 )

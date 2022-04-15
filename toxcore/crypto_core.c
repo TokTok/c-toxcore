@@ -472,7 +472,7 @@ int32_t crypto_new_keypair(const Random *rng, uint8_t *public_key, uint8_t *secr
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     random_bytes(rng, secret_key, CRYPTO_SECRET_KEY_SIZE);
     memset(public_key, 0, CRYPTO_PUBLIC_KEY_SIZE);  // Make MSAN happy
-    crypto_scalarmult_curve25519_base(public_key, secret_key);
+    crypto_derive_public_key(public_key, secret_key);
     return 0;
 #else
     return crypto_box_keypair(public_key, secret_key);

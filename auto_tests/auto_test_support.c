@@ -226,17 +226,24 @@ static void initialise_autotox(struct Tox_Options *options, AutoTox *autotox, ui
             options = default_opts;
         }
 
-        // Try a few ports for the TCP relay.
-        for (uint16_t tcp_port = autotest_opts->tcp_port; tcp_port < autotest_opts->tcp_port + 200; ++tcp_port) {
-            tox_options_set_tcp_port(options, tcp_port);
+        if (tox_options_get_udp_enabled(options)) {
+            tox_options_set_tcp_port(options, 0);
+            autotest_opts->tcp_port = 0;
             autotox->tox = tox_new_log(options, &err, &autotox->index);
+            ck_assert_msg(err == TOX_ERR_NEW_OK, "unexpected tox_new error: %d", err);
+        } else {
+            // Try a few ports for the TCP relay.
+            for (uint16_t tcp_port = autotest_opts->tcp_port; tcp_port < autotest_opts->tcp_port + 200; ++tcp_port) {
+                tox_options_set_tcp_port(options, tcp_port);
+                autotox->tox = tox_new_log(options, &err, &autotox->index);
 
-            if (autotox->tox != nullptr) {
-                autotest_opts->tcp_port = tcp_port;
-                break;
+                if (autotox->tox != nullptr) {
+                    autotest_opts->tcp_port = tcp_port;
+                    break;
+                }
+
+                ck_assert_msg(err == TOX_ERR_NEW_PORT_ALLOC, "unexpected tox_new error (expected PORT_ALLOC): %d", err);
             }
-
-            ck_assert_msg(err == TOX_ERR_NEW_PORT_ALLOC, "unexpected tox_new error (expected PORT_ALLOC): %d", err);
         }
 
         tox_options_free(default_opts);
@@ -322,6 +329,7 @@ static void bootstrap_autotoxes(struct Tox_Options *options, uint32_t tox_count,
     }
 
     if (!udp_enabled) {
+        ck_assert(autotest_opts->tcp_port != 0);
         printf("bootstrapping all toxes to local TCP relay running on port %d\n", autotest_opts->tcp_port);
 
         for (uint32_t i = 0; i < tox_count; ++i) {
@@ -397,9 +405,11 @@ static const char *tox_log_level_name(Tox_Log_Level level)
 void print_debug_log(Tox *m, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
                      const char *message, void *user_data)
 {
+#if 0
     if (level == TOX_LOG_LEVEL_TRACE) {
         return;
     }
+#endif
 
     const uint32_t index = user_data ? *(uint32_t *)user_data : 0;
     fprintf(stderr, "[#%u] %s %s:%u\t%s:\t%s\n", index, tox_log_level_name(level), file, line, func, message);
