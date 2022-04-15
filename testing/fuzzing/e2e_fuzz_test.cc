@@ -1,5 +1,7 @@
 #include <cassert>
 #include <cstdio>
+#include <fstream>
+#include <vector>
 
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
@@ -57,27 +59,41 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_friend_connection_status(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Connection_Status *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: friend came online.
+            const uint32_t friend_number
+                = tox_event_friend_connection_status_get_friend_number(event);
+            assert(friend_number != UINT32_MAX);
         });
     tox_events_callback_friend_lossless_packet(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Lossless_Packet *event, void *user_data) {
-            assert(event == nullptr);
+            const uint32_t friend_number
+                = tox_event_friend_lossless_packet_get_friend_number(event);
+            const uint32_t data_length = tox_event_friend_lossless_packet_get_data_length(event);
+            const uint8_t *data = tox_event_friend_lossless_packet_get_data(event);
+            tox_friend_send_lossless_packet(tox, friend_number, data, data_length, nullptr);
         });
     tox_events_callback_friend_lossy_packet(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Lossy_Packet *event, void *user_data) {
-            assert(event == nullptr);
+            const uint32_t friend_number = tox_event_friend_lossy_packet_get_friend_number(event);
+            const uint32_t data_length = tox_event_friend_lossy_packet_get_data_length(event);
+            const uint8_t *data = tox_event_friend_lossy_packet_get_data(event);
+            tox_friend_send_lossy_packet(tox, friend_number, data, data_length, nullptr);
         });
     tox_events_callback_friend_message(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Message *event, void *user_data) {
-            assert(event == nullptr);
+            const uint32_t friend_number = tox_event_friend_message_get_friend_number(event);
+            const Tox_Message_Type type = tox_event_friend_message_get_type(event);
+            const uint32_t message_length = tox_event_friend_message_get_message_length(event);
+            const uint8_t *message = tox_event_friend_message_get_message(event);
+            tox_friend_send_message(tox, friend_number, type, message, message_length, nullptr);
         });
     tox_events_callback_friend_name(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Name *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: friend name received.
         });
     tox_events_callback_friend_read_receipt(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Read_Receipt *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: message has been received.
         });
     tox_events_callback_friend_request(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Request *event, void *user_data) {
@@ -89,19 +105,19 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         });
     tox_events_callback_friend_status(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Status *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: friend status received.
         });
     tox_events_callback_friend_status_message(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Status_Message *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: friend status message received.
         });
     tox_events_callback_friend_typing(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Typing *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: friend may be typing.
         });
     tox_events_callback_self_connection_status(
         dispatch, [](Tox *tox, const Tox_Event_Self_Connection_Status *event, void *user_data) {
-            assert(event == nullptr);
+            // OK: we got connected.
         });
 }
 
@@ -123,13 +139,14 @@ static char tox_log_level_name(Tox_Log_Level level)
     return '?';
 }
 
-void TestBootstrap(Fuzz_Data &input)
+void TestEndToEnd(Fuzz_Data &input)
 {
     Fuzz_System sys(input);
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
     assert(opts != nullptr);
     tox_options_set_operating_system(opts.get(), sys.sys.get());
+    tox_options_set_local_discovery_enabled(opts.get(), false);
 
     tox_options_set_log_callback(opts.get(),
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
@@ -141,19 +158,6 @@ void TestBootstrap(Fuzz_Data &input)
             }
         });
 
-    CONSUME1_OR_RETURN(const uint8_t proxy_type, input);
-    if (proxy_type == 0) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_NONE);
-    } else if (proxy_type == 1) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_SOCKS5);
-        tox_options_set_proxy_host(opts.get(), "127.0.0.1");
-        tox_options_set_proxy_port(opts.get(), 8080);
-    } else if (proxy_type == 2) {
-        tox_options_set_proxy_type(opts.get(), TOX_PROXY_TYPE_HTTP);
-        tox_options_set_proxy_host(opts.get(), "127.0.0.1");
-        tox_options_set_proxy_port(opts.get(), 8080);
-    }
-
     Tox_Err_New error_new;
     Tox *tox = tox_new(opts.get(), &error_new);
 
@@ -164,14 +168,6 @@ void TestBootstrap(Fuzz_Data &input)
     }
 
     assert(error_new == TOX_ERR_NEW_OK);
-
-    uint8_t pub_key[TOX_PUBLIC_KEY_SIZE] = {0};
-
-    const bool udp_success = tox_bootstrap(tox, "192.168.0.127", 33446, pub_key, nullptr);
-    assert(udp_success);
-
-    const bool tcp_success = tox_add_tcp_relay(tox, "192.168.0.127", 33446, pub_key, nullptr);
-    assert(tcp_success);
 
     tox_events_init(tox);
 
@@ -199,7 +195,11 @@ void TestBootstrap(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    Fuzz_Data input{data, size};
-    TestBootstrap(input);
+    std::ifstream file("tools/toktok-fuzzer/init/e2e_fuzz_test.dat", std::ios::binary);
+    std::vector<uint8_t> full_data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    full_data.insert(full_data.end(), data, data + size);
+
+    Fuzz_Data input{full_data.data(), full_data.size()};
+    TestEndToEnd(input);
     return 0;  // Non-zero return values are reserved for future use.
 }

@@ -7,7 +7,10 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <deque>
 #include <memory>
+#include <vector>
+#include <unordered_map>
 #include <utility>
 
 #include "../../toxcore/tox.h"
@@ -100,17 +103,21 @@ void fuzz_select_target(const uint8_t *data, std::size_t size, Args &&... args)
 struct Network;
 struct Random;
 
+struct System {
+    std::unique_ptr<Tox_System> sys;
+    std::unique_ptr<Network> ns;
+    std::unique_ptr<Random> rng;
+
+    uint64_t clock = UINT32_MAX;
+};
+
 /**
  * A Tox_System implementation that consumes fuzzer input to produce network
  * inputs and random numbers. Once it runs out of fuzzer input, network receive
  * functions return no more data and the random numbers are always zero.
  */
-struct Fuzz_System {
-    uint64_t clock = 0;
+struct Fuzz_System : System {
     Fuzz_Data &data;
-    std::unique_ptr<Tox_System> sys;
-    std::unique_ptr<Network> ns;
-    std::unique_ptr<Random> rng;
 
     explicit Fuzz_System(Fuzz_Data &input);
     ~Fuzz_System();
@@ -121,15 +128,32 @@ struct Fuzz_System {
  * working and deterministic RNG. Network receive functions always fail, send
  * always succeeds.
  */
-struct Null_System {
-    uint64_t clock = 0;
+struct Null_System : System {
     uint64_t seed = 4;  // chosen by fair dice roll. guaranteed to be random.
-    std::unique_ptr<Tox_System> sys;
-    std::unique_ptr<Network> ns;
-    std::unique_ptr<Random> rng;
 
     Null_System();
     ~Null_System();
 };
+
+struct Record_System : System {
+    struct Global {
+        std::unordered_map<uint16_t, Record_System *> bound;
+    };
+
+    Global &global_;
+    uint64_t seed_;
+    const char *name_;
+
+    std::deque<std::pair<uint16_t, std::vector<uint8_t>>> recvq;
+    uint16_t port = 0;
+    std::vector<uint8_t> recording;
+
+    explicit Record_System(Global &global, uint64_t seed, const char *name);
+    ~Record_System();
+
+    void receive(uint16_t send_port, const uint8_t *buf, size_t len);
+};
+
+extern const bool DEBUG;
 
 #endif  // C_TOXCORE_TESTING_FUZZING_FUZZ_SUPPORT_H
