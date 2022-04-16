@@ -48,7 +48,8 @@ static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
     }
 
     if (DEBUG) {
-        std::printf("recvfrom: %zu (%02x, %02x) for tox1\n", fuzz_len, input.data[-2], input.data[-1]);
+        std::printf(
+            "recvfrom: %zu (%02x, %02x) for tox1\n", fuzz_len, input.data[-2], input.data[-1]);
     }
     const size_t res = std::min(buf_len, std::min(fuzz_len, input.size));
 
@@ -235,7 +236,8 @@ Null_System::Null_System()
 
 Null_System::~Null_System() { }
 
-static uint16_t get_port(const Network_Addr *addr) {
+static uint16_t get_port(const Network_Addr *addr)
+{
     if (addr->addr.ss_family == AF_INET6) {
         return reinterpret_cast<const sockaddr_in6 *>(&addr->addr)->sin6_port;
     } else {
@@ -297,7 +299,8 @@ static constexpr Network_Funcs record_network_funcs = {
         self->recording.push_back(recvlen >> 8);
         self->recording.push_back(recvlen & 0xff);
         if (DEBUG) {
-            std::printf("recvfrom: %zu (%02x, %02x) for %s\n", recvlen, self->recording.end()[-2], self->recording.end()[-1], self->name_);
+            std::printf("recvfrom: %zu (%02x, %02x) for %s\n", recvlen, self->recording.end()[-2],
+                self->recording.end()[-1], self->name_);
         }
         self->recording.insert(self->recording.end(), buf, buf + recvlen);
         return static_cast<int>(recvlen);
@@ -336,7 +339,8 @@ static constexpr Random_Funcs record_random_funcs = {
             self->recording.push_back(bytes[i]);
         }
         if (DEBUG) {
-            std::printf("rng: %02x..%02x[%zu] -> %s\n", bytes[0], bytes[length - 1], length, self->name_);
+            std::printf(
+                "rng: %02x..%02x[%zu] -> %s\n", bytes[0], bytes[length - 1], length, self->name_);
         }
     },
     /* .random_uniform = */

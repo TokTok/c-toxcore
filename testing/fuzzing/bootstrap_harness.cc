@@ -142,8 +142,8 @@ void TestBootstrap(Fuzz_Data &input)
             const char *message, void *user_data) {
             // Log to stdout.
             if (DEBUG) {
-                std::printf("[tox1] %c %s:%d(%s): %s\n",
-                    tox_log_level_name(level), file, line, func, message);
+                std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
+                    func, message);
             }
         });
 

@@ -192,7 +192,7 @@ void RecordBootstrap()
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
-    const auto iterate = [&]{
+    const auto iterate = [&] {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events;
 
@@ -212,7 +212,8 @@ void RecordBootstrap()
         sys2.clock += 200;
     };
 
-    while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE || tox_self_get_connection_status(tox2) == TOX_CONNECTION_NONE) {
+    while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE
+        || tox_self_get_connection_status(tox2) == TOX_CONNECTION_NONE) {
 #if 0
         printf("tox1: %d, tox2: %d\n",
             tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2));
