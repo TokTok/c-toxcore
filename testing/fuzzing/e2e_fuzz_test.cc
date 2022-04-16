@@ -196,7 +196,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     std::ifstream file("tools/toktok-fuzzer/init/e2e_fuzz_test.dat", std::ios::binary);
-    std::vector<uint8_t> full_data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::vector<uint8_t> full_data(
+        (std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     full_data.insert(full_data.end(), data, data + size);
 
     Fuzz_Data input{full_data.data(), full_data.size()};
