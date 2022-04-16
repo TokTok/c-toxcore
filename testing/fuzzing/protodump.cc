@@ -113,8 +113,7 @@ void setup_callbacks(Tox_Dispatch *dispatch)
             const uint8_t *message = tox_event_friend_message_get_message(event);
             const uint8_t reply = message[0] + 1;
             Tox_Err_Friend_Send_Message err;
-            tox_friend_send_message(
-                tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
+            tox_friend_send_message(tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
             assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
         });
     tox_events_callback_friend_name(
