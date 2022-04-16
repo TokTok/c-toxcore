@@ -63,7 +63,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
     tox_events_callback_friend_connection_status(
         dispatch, [](Tox *tox, const Tox_Event_Friend_Connection_Status *event, void *user_data) {
             // OK: friend came online.
-            const uint32_t friend_number = tox_event_friend_connection_status_get_friend_number(event);
+            const uint32_t friend_number
+                = tox_event_friend_connection_status_get_friend_number(event);
             assert(friend_number == 0);
             const uint8_t message = 'A';
             Tox_Err_Friend_Send_Message err;
@@ -88,7 +89,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
             if (message[0] == 'A') {
                 const uint8_t reply = 'B';
                 Tox_Err_Friend_Send_Message err;
-                tox_friend_send_message(tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
+                tox_friend_send_message(
+                    tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
                 assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
             } else {
                 assert(message[0] == 'B');
