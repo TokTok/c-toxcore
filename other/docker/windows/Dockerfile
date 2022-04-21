@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:11-slim
 
 # Build-time environment variables
 ARG VERSION_MSGPACK=4.0.0 \
