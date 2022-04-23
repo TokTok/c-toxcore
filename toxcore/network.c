@@ -685,18 +685,17 @@ static const char *net_packet_type_name(Net_Packet_Type type)
         case NET_PACKET_CRYPTO:
             return "CRYPTO";
 
+        case NET_PACKET_GC_HANDSHAKE:
+            return "GC_HANDSHAKE";
+
+        case NET_PACKET_GC_LOSSLESS:
+            return "GC_LOSSLESS";
+
+        case NET_PACKET_GC_LOSSY:
+            return "GC_LOSSY";
+
         case NET_PACKET_LAN_DISCOVERY:
             return "LAN_DISCOVERY";
-
-            // TODO(Jfreegman): Uncomment these when we merge the rest of new groupchats
-//      case NET_PACKET_GC_HANDSHAKE:
-//          return "GC_HANDSHAKE";
-
-//      case NET_PACKET_GC_LOSSLESS:
-//          return "GC_LOSSLESS";
-
-//      case NET_PACKET_GC_LOSSY:
-//          return "GC_LOSSY";
 
         case NET_PACKET_ONION_SEND_INITIAL:
             return "ONION_SEND_INITIAL";
