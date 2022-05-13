@@ -577,7 +577,7 @@ struct Tox_Options {
      *
      * If used, this must be non-NULL and be a valid DNS name. The name must not
      * exceed TOX_MAX_HOSTNAME_LENGTH characters, and be in a NUL-terminated C string
-     * format (TOX_MAX_HOSTNAME_LENGTH includes the NUL byte).
+     * format.
      *
      * This member is ignored (it can be NULL) if proxy_type is TOX_PROXY_TYPE_NONE.
      *
@@ -972,7 +972,7 @@ typedef enum Tox_Err_Bootstrap {
  * this function even if Tox_Options.udp_enabled was set to false.
  *
  * @param host The hostname or IP address (IPv4 or IPv6) of the node. Must be
- *   at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
+ *   at most TOX_MAX_HOSTNAME_LENGTH chars.
  * @param port The port on the host on which the bootstrap Tox instance is
  *   listening.
  * @param public_key The long term public key of the bootstrap node
@@ -989,7 +989,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
  * bootstrap nodes.
  *
  * @param host The hostname or IP address (IPv4 or IPv6) of the TCP relay.
- *   Must be at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
+ *   Must be at most TOX_MAX_HOSTNAME_LENGTH chars.
  * @param port The port on the host on which the TCP relay is listening.
  * @param public_key The long term public key of the TCP relay
  *   (TOX_PUBLIC_KEY_SIZE bytes).
