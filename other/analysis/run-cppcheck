@@ -21,6 +21,7 @@ CPPCHECK+=("--suppress=missingIncludeSystem")
 CPPCHECK+=("--suppress=signConversion")
 # TODO(iphydf): Fixed in the toxav refactor PR.
 CPPCHECK+=("--suppress=redundantAssignment")
+CPPCHECK+=("--suppress=doubleFree")
 # We're a library. This only works on whole programs.
 CPPCHECK_C=("--suppress=unusedFunction")
 
