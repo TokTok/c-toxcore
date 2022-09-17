@@ -1937,6 +1937,281 @@ static int m_handle_status(void *object, int i, bool status, void *userdata)
     return 0;
 }
 
+static void m_handle_packet_offline(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length > 0) {
+        return;
+    }
+
+    set_friend_status(m, i, FRIEND_CONFIRMED, userdata);
+}
+
+static void m_handle_packet_nickname(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length > MAX_NAME_LENGTH) {
+        return;
+    }
+
+    /* Make sure the NULL terminator is present. */
+    VLA(uint8_t, data_terminated, data_length + 1);
+    memcpy(data_terminated, data, data_length);
+    data_terminated[data_length] = 0;
+
+    /* inform of namechange before we overwrite the old name */
+    if (m->friend_namechange != nullptr) {
+        m->friend_namechange(m, i, data_terminated, data_length, userdata);
+    }
+
+    memcpy(m->friendlist[i].name, data_terminated, data_length);
+    m->friendlist[i].name_length = data_length;
+}
+
+static void m_handle_packet_statusmessage(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length > MAX_STATUSMESSAGE_LENGTH) {
+        return;
+    }
+
+    /* Make sure the NULL terminator is present. */
+    VLA(uint8_t, data_terminated, data_length + 1);
+    memcpy(data_terminated, data, data_length);
+    data_terminated[data_length] = 0;
+
+    if (m->friend_statusmessagechange != nullptr) {
+        m->friend_statusmessagechange(m, i, data_terminated, data_length, userdata);
+    }
+
+    set_friend_statusmessage(m, i, data_terminated, data_length);
+}
+
+static void m_handle_packet_userstatus(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length != 1) {
+        return;
+    }
+
+    const Userstatus status = (Userstatus)data[0];
+
+    if (status >= USERSTATUS_INVALID) {
+        return;
+    }
+
+    if (m->friend_userstatuschange != nullptr) {
+        m->friend_userstatuschange(m, i, status, userdata);
+    }
+
+    set_friend_userstatus(m, i, status);
+}
+
+static void m_handle_packet_typing(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length != 1) {
+        return;
+    }
+
+    const bool typing = data[0] != 0;
+
+    set_friend_typing(m, i, typing);
+
+    if (m->friend_typingchange != nullptr) {
+        m->friend_typingchange(m, i, typing, userdata);
+    }
+}
+
+static void m_handle_packet_message(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, const Message_Type message_type, void *userdata)
+{
+    if (data_length == 0) {
+        return;
+    }
+
+    const uint8_t *message = data;
+    const uint16_t message_length = data_length;
+
+    /* Make sure the NULL terminator is present. */
+    VLA(uint8_t, message_terminated, message_length + 1);
+    memcpy(message_terminated, message, message_length);
+    message_terminated[message_length] = 0;
+
+    if (m->friend_message != nullptr) {
+        m->friend_message(m, i, message_type, message_terminated, message_length, userdata);
+    }
+}
+
+static void m_handle_packet_invite_conference(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length == 0) {
+        return;
+    }
+
+    if (m->conference_invite != nullptr) {
+        m->conference_invite(m, i, data, data_length, userdata);
+    }
+}
+
+static void m_handle_packet_file_sendrequest(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    const unsigned int head_length = 1 + sizeof(uint32_t) + sizeof(uint64_t) + FILE_ID_LENGTH;
+
+    if (data_length < head_length) {
+        return;
+    }
+
+    const uint8_t filenumber = data[0];
+
+#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
+
+    if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
+        return;
+    }
+
+#endif
+
+    uint64_t filesize;
+    uint32_t file_type;
+    const uint16_t filename_length = data_length - head_length;
+
+    if (filename_length > MAX_FILENAME_LENGTH) {
+        return;
+    }
+
+    memcpy(&file_type, data + 1, sizeof(file_type));
+    file_type = net_ntohl(file_type);
+
+    net_unpack_u64(data + 1 + sizeof(uint32_t), &filesize);
+    struct File_Transfers *ft = &m->friendlist[i].file_receiving[filenumber];
+
+    if (ft->status != FILESTATUS_NONE) {
+        return;
+    }
+
+    ft->status = FILESTATUS_NOT_ACCEPTED;
+    ft->size = filesize;
+    ft->transferred = 0;
+    ft->paused = FILE_PAUSE_NOT;
+    memcpy(ft->id, data + 1 + sizeof(uint32_t) + sizeof(uint64_t), FILE_ID_LENGTH);
+
+    VLA(uint8_t, filename_terminated, filename_length + 1);
+    const uint8_t *filename = nullptr;
+
+    if (filename_length > 0) {
+        /* Force NULL terminate file name. */
+        memcpy(filename_terminated, data + head_length, filename_length);
+        filename_terminated[filename_length] = 0;
+        filename = filename_terminated;
+    }
+
+    uint32_t real_filenumber = filenumber;
+    real_filenumber += 1;
+    real_filenumber <<= 16;
+
+    if (m->file_sendrequest != nullptr) {
+        m->file_sendrequest(m, i, real_filenumber, file_type, filesize, filename, filename_length,
+                            userdata);
+    }
+}
+
+static void m_handle_packet_file_control(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length < 3) {
+        return;
+    }
+
+    // On the other side, "outbound" is "inbound", i.e. if they send 1,
+    // that means "inbound" on their side, but we call it "outbound"
+    // here.
+    const bool outbound = data[0] == 1;
+    uint8_t filenumber = data[1];
+    const uint8_t control_type = data[2];
+
+#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
+
+    if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
+        return;
+    }
+
+#endif
+
+    if (handle_filecontrol(m, i, outbound, filenumber, control_type, data + 3, data_length - 3, userdata) == -1) {
+        // TODO(iphydf): Do something different here? Right now, this
+        // check is pointless.
+        return;
+    }
+}
+
+static void m_handle_packet_file_data(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length < 1) {
+        return;
+    }
+
+    uint8_t filenumber = data[0];
+
+#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
+
+    if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
+        return;
+    }
+
+#endif
+
+    struct File_Transfers *ft = &m->friendlist[i].file_receiving[filenumber];
+
+    if (ft->status != FILESTATUS_TRANSFERRING) {
+        return;
+    }
+
+    uint64_t position = ft->transferred;
+    uint32_t real_filenumber = filenumber;
+    real_filenumber += 1;
+    real_filenumber <<= 16;
+    uint16_t file_data_length = data_length - 1;
+    const uint8_t *file_data;
+
+    if (file_data_length == 0) {
+        file_data = nullptr;
+    } else {
+        file_data = data + 1;
+    }
+
+    /* Prevent more data than the filesize from being passed to clients. */
+    if ((ft->transferred + file_data_length) > ft->size) {
+        file_data_length = ft->size - ft->transferred;
+    }
+
+    if (m->file_filedata != nullptr) {
+        m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
+    }
+
+    ft->transferred += file_data_length;
+
+    if (file_data_length > 0 && (ft->transferred >= ft->size || file_data_length != MAX_FILE_DATA_SIZE)) {
+        file_data_length = 0;
+        file_data = nullptr;
+        position = ft->transferred;
+
+        /* Full file received. */
+        if (m->file_filedata != nullptr) {
+            m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
+        }
+    }
+
+    /* Data is zero, filetransfer is over. */
+    if (file_data_length == 0) {
+        ft->status = FILESTATUS_NONE;
+    }
+}
+
+static void m_handle_packet_msi(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
+{
+    if (data_length == 0) {
+        return;
+    }
+
+    if (m->msi_packet != nullptr) {
+        m->msi_packet(m, i, data, data_length, m->msi_packet_userdata);
+    }
+}
+
 static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t len, void *userdata)
 {
     if (len == 0) {
@@ -1958,295 +2233,57 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
     }
 
     switch (packet_id) {
-        case PACKET_ID_OFFLINE: {
-            if (data_length > 0) {
-                break;
-            }
-
-            set_friend_status(m, i, FRIEND_CONFIRMED, userdata);
+        case PACKET_ID_OFFLINE:
+            m_handle_packet_offline(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_NICKNAME: {
-            if (data_length > MAX_NAME_LENGTH) {
-                break;
-            }
-
-            /* Make sure the NULL terminator is present. */
-            VLA(uint8_t, data_terminated, data_length + 1);
-            memcpy(data_terminated, data, data_length);
-            data_terminated[data_length] = 0;
-
-            /* inform of namechange before we overwrite the old name */
-            if (m->friend_namechange != nullptr) {
-                m->friend_namechange(m, i, data_terminated, data_length, userdata);
-            }
-
-            memcpy(m->friendlist[i].name, data_terminated, data_length);
-            m->friendlist[i].name_length = data_length;
-
+        case PACKET_ID_NICKNAME:
+            m_handle_packet_nickname(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_STATUSMESSAGE: {
-            if (data_length > MAX_STATUSMESSAGE_LENGTH) {
-                break;
-            }
-
-            /* Make sure the NULL terminator is present. */
-            VLA(uint8_t, data_terminated, data_length + 1);
-            memcpy(data_terminated, data, data_length);
-            data_terminated[data_length] = 0;
-
-            if (m->friend_statusmessagechange != nullptr) {
-                m->friend_statusmessagechange(m, i, data_terminated, data_length, userdata);
-            }
-
-            set_friend_statusmessage(m, i, data_terminated, data_length);
+        case PACKET_ID_STATUSMESSAGE:
+            m_handle_packet_statusmessage(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_USERSTATUS: {
-            if (data_length != 1) {
-                break;
-            }
-
-            const Userstatus status = (Userstatus)data[0];
-
-            if (status >= USERSTATUS_INVALID) {
-                break;
-            }
-
-            if (m->friend_userstatuschange != nullptr) {
-                m->friend_userstatuschange(m, i, status, userdata);
-            }
-
-            set_friend_userstatus(m, i, status);
+        case PACKET_ID_USERSTATUS:
+            m_handle_packet_userstatus(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_TYPING: {
-            if (data_length != 1) {
-                break;
-            }
-
-            const bool typing = data[0] != 0;
-
-            set_friend_typing(m, i, typing);
-
-            if (m->friend_typingchange != nullptr) {
-                m->friend_typingchange(m, i, typing, userdata);
-            }
-
+        case PACKET_ID_TYPING:
+            m_handle_packet_typing(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_MESSAGE: // fall-through
-        case PACKET_ID_ACTION: {
-            if (data_length == 0) {
-                break;
-            }
-
-            const uint8_t *message = data;
-            const uint16_t message_length = data_length;
-
-            /* Make sure the NULL terminator is present. */
-            VLA(uint8_t, message_terminated, message_length + 1);
-            memcpy(message_terminated, message, message_length);
-            message_terminated[message_length] = 0;
-            const uint8_t type = packet_id - PACKET_ID_MESSAGE;
-
-            if (m->friend_message != nullptr) {
-                m->friend_message(m, i, type, message_terminated, message_length, userdata);
-            }
-
+        case PACKET_ID_MESSAGE:
+            m_handle_packet_message(m, i, data, data_length, MESSAGE_NORMAL, userdata);
             break;
-        }
 
-        case PACKET_ID_INVITE_CONFERENCE: {
-            if (data_length == 0) {
-                break;
-            }
-
-            if (m->conference_invite != nullptr) {
-                m->conference_invite(m, i, data, data_length, userdata);
-            }
-
+        case PACKET_ID_ACTION:
+            m_handle_packet_message(m, i, data, data_length, MESSAGE_ACTION, userdata);
             break;
-        }
 
-        case PACKET_ID_FILE_SENDREQUEST: {
-            const unsigned int head_length = 1 + sizeof(uint32_t) + sizeof(uint64_t) + FILE_ID_LENGTH;
-
-            if (data_length < head_length) {
-                break;
-            }
-
-            const uint8_t filenumber = data[0];
-
-#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
-
-            if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
-                break;
-            }
-
-#endif
-
-            uint64_t filesize;
-            uint32_t file_type;
-            const uint16_t filename_length = data_length - head_length;
-
-            if (filename_length > MAX_FILENAME_LENGTH) {
-                break;
-            }
-
-            memcpy(&file_type, data + 1, sizeof(file_type));
-            file_type = net_ntohl(file_type);
-
-            net_unpack_u64(data + 1 + sizeof(uint32_t), &filesize);
-            struct File_Transfers *ft = &m->friendlist[i].file_receiving[filenumber];
-
-            if (ft->status != FILESTATUS_NONE) {
-                break;
-            }
-
-            ft->status = FILESTATUS_NOT_ACCEPTED;
-            ft->size = filesize;
-            ft->transferred = 0;
-            ft->paused = FILE_PAUSE_NOT;
-            memcpy(ft->id, data + 1 + sizeof(uint32_t) + sizeof(uint64_t), FILE_ID_LENGTH);
-
-            VLA(uint8_t, filename_terminated, filename_length + 1);
-            const uint8_t *filename = nullptr;
-
-            if (filename_length > 0) {
-                /* Force NULL terminate file name. */
-                memcpy(filename_terminated, data + head_length, filename_length);
-                filename_terminated[filename_length] = 0;
-                filename = filename_terminated;
-            }
-
-            uint32_t real_filenumber = filenumber;
-            real_filenumber += 1;
-            real_filenumber <<= 16;
-
-            if (m->file_sendrequest != nullptr) {
-                m->file_sendrequest(m, i, real_filenumber, file_type, filesize, filename, filename_length,
-                                    userdata);
-            }
-
+        case PACKET_ID_INVITE_CONFERENCE:
+            m_handle_packet_invite_conference(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_FILE_CONTROL: {
-            if (data_length < 3) {
-                break;
-            }
-
-            // On the other side, "outbound" is "inbound", i.e. if they send 1,
-            // that means "inbound" on their side, but we call it "outbound"
-            // here.
-            const bool outbound = data[0] == 1;
-            uint8_t filenumber = data[1];
-            const uint8_t control_type = data[2];
-
-#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
-
-            if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
-                break;
-            }
-
-#endif
-
-            if (handle_filecontrol(m, i, outbound, filenumber, control_type, data + 3, data_length - 3, userdata) == -1) {
-                // TODO(iphydf): Do something different here? Right now, this
-                // check is pointless.
-                break;
-            }
-
+        case PACKET_ID_FILE_SENDREQUEST:
+            m_handle_packet_file_sendrequest(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_FILE_DATA: {
-            if (data_length < 1) {
-                break;
-            }
-
-            uint8_t filenumber = data[0];
-
-#if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
-
-            if (filenumber >= MAX_CONCURRENT_FILE_PIPES) {
-                break;
-            }
-
-#endif
-
-            struct File_Transfers *ft = &m->friendlist[i].file_receiving[filenumber];
-
-            if (ft->status != FILESTATUS_TRANSFERRING) {
-                break;
-            }
-
-            uint64_t position = ft->transferred;
-            uint32_t real_filenumber = filenumber;
-            real_filenumber += 1;
-            real_filenumber <<= 16;
-            uint16_t file_data_length = data_length - 1;
-            const uint8_t *file_data;
-
-            if (file_data_length == 0) {
-                file_data = nullptr;
-            } else {
-                file_data = data + 1;
-            }
-
-            /* Prevent more data than the filesize from being passed to clients. */
-            if ((ft->transferred + file_data_length) > ft->size) {
-                file_data_length = ft->size - ft->transferred;
-            }
-
-            if (m->file_filedata != nullptr) {
-                m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
-            }
-
-            ft->transferred += file_data_length;
-
-            if (file_data_length > 0 && (ft->transferred >= ft->size || file_data_length != MAX_FILE_DATA_SIZE)) {
-                file_data_length = 0;
-                file_data = nullptr;
-                position = ft->transferred;
-
-                /* Full file received. */
-                if (m->file_filedata != nullptr) {
-                    m->file_filedata(m, i, real_filenumber, position, file_data, file_data_length, userdata);
-                }
-            }
-
-            /* Data is zero, filetransfer is over. */
-            if (file_data_length == 0) {
-                ft->status = FILESTATUS_NONE;
-            }
-
+        case PACKET_ID_FILE_CONTROL:
+            m_handle_packet_file_control(m, i, data, data_length, userdata);
             break;
-        }
 
-        case PACKET_ID_MSI: {
-            if (data_length == 0) {
-                break;
-            }
-
-            if (m->msi_packet != nullptr) {
-                m->msi_packet(m, i, data, data_length, m->msi_packet_userdata);
-            }
-
+        case PACKET_ID_FILE_DATA:
+            m_handle_packet_file_data(m, i, data, data_length, userdata);
             break;
-        }
 
-        default: {
+        case PACKET_ID_MSI:
+            m_handle_packet_msi(m, i, data, data_length, userdata);
+            break;
+
+        default:
             handle_custom_lossless_packet(object, i, temp, len, userdata);
             break;
-        }
     }
 
     return 0;
