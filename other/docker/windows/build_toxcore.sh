@@ -45,6 +45,8 @@ build() {
   fi
 
   cp -a "$TOXCORE_DIR" /tmp/toxcore
+  rm -f /tmp/toxcore/CMakeCache.txt
+  rm -rf /tmp/toxcore/CMakeFiles
   cd /tmp/toxcore/build
 
   echo "
