@@ -62,7 +62,7 @@ build() {
   fi
 
   # Silly way to bypass a shellharden check
-  read -ra EXTRA_CMAKE_FLAGS_ARRAY <<<"${EXTRA_CMAKE_FLAGS}"
+  read -ra EXTRA_CMAKE_FLAGS_ARRAY <<<"$EXTRA_CMAKE_FLAGS"
   cmake -DCMAKE_TOOLCHAIN_FILE=windows_toolchain.cmake \
     -DCMAKE_INSTALL_PREFIX="$STATIC_TOXCORE_PREFIX_DIR" \
     -DENABLE_SHARED=OFF \
