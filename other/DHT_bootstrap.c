@@ -38,7 +38,7 @@
 #include "./bootstrap_daemon/src/global.h"
 
 
-#define DHT_MOTD "" //Change this to anything within 256 bytes(but 96 bytes maximum prefered)
+static const char *motd = ""; //Change this to anything within 256 bytes(but 96 bytes maximum prefered)
 #endif
 
 #define PORT 33445
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     Onion_Announce *onion_a = new_onion_announce(logger, rng, mono_time, dht);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
-    bootstrap_set_callbacks(dht_get_net(dht), (uint32_t)DAEMON_VERSION_NUMBER, DHT_MOTD, sizeof(DHT_MOTD));
+    bootstrap_set_callbacks(dht_get_net(dht), (uint32_t)DAEMON_VERSION_NUMBER, (const uint8_t *) motd, strlen(motd));
 #endif
 
     if (!(onion && forwarding && onion_a)) {
