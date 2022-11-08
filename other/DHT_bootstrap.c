@@ -31,11 +31,14 @@
 
 #include "../testing/misc_tools.h"
 
+#define DHT_NODE_EXTRA_PACKETS
+
 #ifdef DHT_NODE_EXTRA_PACKETS
+#include "./bootstrap_daemon/src/global.h"
 #include "./bootstrap_node_packets.h"
 
-#define DHT_VERSION_NUMBER 1
-#define DHT_MOTD "This is a test motd"
+
+static const char *motd_str = ""; //Change this to anything within 256 bytes(but 96 bytes maximum prefered)
 #endif
 
 #define PORT 33445
@@ -152,7 +155,7 @@ int main(int argc, char *argv[])
     Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
-    bootstrap_set_callbacks(dht_get_net(dht), DHT_VERSION_NUMBER, DHT_MOTD, sizeof(DHT_MOTD));
+    bootstrap_set_callbacks(dht_get_net(dht), (uint32_t)DAEMON_VERSION_NUMBER, (const uint8_t *) motd_str, strlen(motd_str)+1);
 #endif
 
     if (!(onion && forwarding && onion_a)) {
