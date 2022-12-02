@@ -137,7 +137,7 @@ void TestBootstrap(Fuzz_Data &input)
     }
 
     CONSUME1_OR_RETURN(const uint8_t tcp_relay_enabled, input);
-    if (tcp_relay_enabled >= (UINT8_MAX/2)) {
+    if (tcp_relay_enabled >= (UINT8_MAX / 2)) {
         tox_options_set_tcp_port(opts.get(), 33445);
     }
 
