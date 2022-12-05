@@ -12,7 +12,7 @@ cd _afl_build_ubsan
 export AFL_USE_UBSAN=1
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
@@ -28,7 +28,7 @@ cd _afl_build_msan
 export AFL_USE_MSAN=1
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
@@ -44,7 +44,7 @@ cd _afl_build_asan
 export AFL_USE_ASAN=1
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
@@ -58,7 +58,7 @@ mkdir -p _afl_build
 cd _afl_build
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
@@ -72,7 +72,7 @@ cd _afl_build_cmplog
 export AFL_LLVM_CMPLOG=1
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
@@ -86,7 +86,7 @@ mkdir -p _cov_build
 cd _cov_build
 
 # build c-toxcore using afl instrumentation
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_C_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_VERBOSE_MAKEFILE=ON "$COMMON_CMAKE_OPTIONS" ..
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_C_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_VERBOSE_MAKEFILE=ON $COMMON_CMAKE_OPTIONS ..
 
 # build fuzzer target
 cmake --build ./ --target bootstrap_fuzzer
