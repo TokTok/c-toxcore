@@ -511,8 +511,8 @@ static void test_client(void)
 
     TCP_Client_Connection *conn = new_TCP_connection(logger, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key,
                                   f_secret_key, nullptr);
-    do_TCP_connection(logger, mono_time, conn, nullptr);
     c_sleep(50);
+    do_TCP_connection(logger, mono_time, conn, nullptr);
 
     // The connection status should be unconfirmed here because we have finished
     // sending our data and are awaiting a response.
