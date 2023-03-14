@@ -170,7 +170,11 @@ static void kill_group_friend_connection(const GC_Session *c, const GC_Chat *cha
 
 uint16_t gc_get_wrapped_packet_size(uint16_t length, Net_Packet_Type packet_type)
 {
-    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+    if (packet_type == NET_PACKET_GC_LOSSY) {
+        assert(length <= MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
+    } else {
+        assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+    }
 
     const uint16_t min_header_size = packet_type == NET_PACKET_GC_LOSSY
                                      ? GC_MIN_LOSSY_PAYLOAD_SIZE
@@ -215,9 +219,13 @@ GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number)
 }
 
 /** Returns the amount of empty padding a packet of designated length should have. */
-static uint16_t group_packet_padding_length(uint16_t length)
+static uint16_t group_packet_padding_length(uint16_t length, uint8_t net_packet_type)
 {
-    return (MAX_GC_PACKET_CHUNK_SIZE - length) % GC_MAX_PACKET_PADDING;
+    if (net_packet_type == NET_PACKET_GC_LOSSY) {
+        return (MAX_GC_CUSTOM_LOSSY_PACKET_SIZE - length) % GC_MAX_PACKET_PADDING;
+    } else {
+        return (MAX_GC_PACKET_CHUNK_SIZE - length) % GC_MAX_PACKET_PADDING;
+    }
 }
 
 void gc_get_self_nick(const GC_Chat *chat, uint8_t *nick)
@@ -1473,7 +1481,7 @@ int group_packet_wrap(
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, uint8_t net_packet_type)
 {
-    const uint16_t padding_len = group_packet_padding_length(length);
+    const uint16_t padding_len = group_packet_padding_length(length, net_packet_type);
     const uint16_t min_packet_size = net_packet_type == NET_PACKET_GC_LOSSLESS
                                      ? length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + GC_MESSAGE_ID_BYTES + 1
                                      : length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + 1;
@@ -1483,9 +1491,16 @@ int group_packet_wrap(
         return -1;
     }
 
-    if (length > MAX_GC_PACKET_CHUNK_SIZE) {
-        LOGGER_ERROR(log, "Packet payload size (%u) exceeds maximum (%u)", length, MAX_GC_PACKET_CHUNK_SIZE);
-        return -1;
+    if (net_packet_type == NET_PACKET_GC_LOSSY) {
+        if (length > MAX_GC_CUSTOM_LOSSY_PACKET_SIZE) {
+            LOGGER_ERROR(log, "Packet payload size (%u) exceeds maximum (%u)", length, MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
+            return -1;
+        }
+    } else {
+        if (length > MAX_GC_PACKET_CHUNK_SIZE) {
+            LOGGER_ERROR(log, "Packet payload size (%u) exceeds maximum (%u)", length, MAX_GC_PACKET_CHUNK_SIZE);
+            return -1;
+        }
     }
 
     uint8_t *plain = (uint8_t *)malloc(packet_size);
@@ -1551,7 +1566,7 @@ non_null()
 static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
                                     uint16_t length, uint8_t packet_type)
 {
-    assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
+    assert(length <= MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
 
     if (!gconn->handshaked || gconn->pending_delete) {
         return false;
@@ -6392,13 +6407,13 @@ static int handle_gc_udp_packet(void *object, const IP_Port *ipp, const uint8_t 
 
     if (length <= MIN_UDP_PACKET_SIZE) {
         LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_UDP_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       MIN_UDP_PACKET_SIZE, MAX_GC_CUSTOM_LOSSY_PACKET_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
         return -1;
     }
 
-    if (length > MAX_GC_PACKET_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
+    if (length > MAX_GC_CUSTOM_LOSSY_PACKET_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
         LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_UDP_PACKET_SIZE, MAX_GC_PACKET_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       MIN_UDP_PACKET_SIZE, MAX_GC_CUSTOM_LOSSY_PACKET_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
         return -1;
     }
 
