@@ -185,7 +185,7 @@ With the dependencies you have two options:
 vcpkg install libsodium
 vcpkg install pthread
 ```
-  - build these two libraries manually. You must also ensure that the msvc versions of dependencies you're using are placed 
+  - obtain/build these two libraries manually. You must also ensure that the msvc versions of dependencies you're using are placed 
 in the correct folders. For libsodium that is `c-toxcore/third_party/libsodium`, 
 and for pthreads-w32, it's `c-toxcore/third_party/pthreads-win32`
 
@@ -195,11 +195,11 @@ Once all of this is done, from the **Developer Command Prompt for VS**, simply r
 mkdir _build
 cd _build
 ```
-the first way (vcpkg)
+then for the first way (vcpkg)
 ```
 cmake .. -DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]\vcpkg\scripts\buildsystems\vcpkg.cmake
 ```
-the second way (manual dependencies build)
+and for the second way (manual dependencies resolution)
 ```
 cmake .. -DCMAKE_TOOLCHAIN_FILE=[path to vcpkg]\vcpkg\scripts\buildsystems\vcpkg.cmake
 ```
