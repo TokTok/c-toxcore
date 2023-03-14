@@ -55,7 +55,7 @@ if(MSVC)
   # --------
   if(CMAKE_USE_WIN32_THREADS_INIT)
     find_library(CMAKE_THREAD_LIBS_INIT
-      NAMES pthreadVC2
+      NAMES pthreadVC3 pthreadVC2
       PATHS
         "third_party/pthreads-win32/Pre-built.2/lib/x86"
         "third_party/pthreads-win32/Pre-built.2/lib/x64"
