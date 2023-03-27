@@ -60,5 +60,23 @@ void tox_events_free(Tox_Events *events)
     tox_events_clear_friend_status_message(events);
     tox_events_clear_friend_typing(events);
     tox_events_clear_self_connection_status(events);
+    tox_events_clear_group_peer_name(events);
+    tox_events_clear_group_peer_status(events);
+    tox_events_clear_group_topic(events);
+    tox_events_clear_group_privacy_state(events);
+    tox_events_clear_group_voice_state(events);
+    tox_events_clear_group_topic_lock(events);
+    tox_events_clear_group_peer_limit(events);
+    tox_events_clear_group_password(events);
+    tox_events_clear_group_message(events);
+    tox_events_clear_group_private_message(events);
+    tox_events_clear_group_custom_packet(events);
+    tox_events_clear_group_custom_private_packet(events);
+    tox_events_clear_group_invite(events);
+    tox_events_clear_group_peer_join(events);
+    tox_events_clear_group_peer_exit(events);
+    tox_events_clear_group_self_join(events);
+    tox_events_clear_group_join_fail(events);
+    tox_events_clear_group_moderation(events);
     free(events);
 }
