@@ -30,6 +30,24 @@ struct Tox_Dispatch {
     tox_events_friend_status_message_cb *friend_status_message_callback;
     tox_events_friend_typing_cb *friend_typing_callback;
     tox_events_self_connection_status_cb *self_connection_status_callback;
+    tox_events_group_peer_name_cb *group_peer_name_callback;
+    tox_events_group_peer_status_cb *group_peer_status_callback;
+    tox_events_group_topic_cb *group_topic_callback;
+    tox_events_group_privacy_state_cb *group_privacy_state_callback;
+    tox_events_group_voice_state_cb *group_voice_state_callback;
+    tox_events_group_topic_lock_cb *group_topic_lock_callback;
+    tox_events_group_peer_limit_cb *group_peer_limit_callback;
+    tox_events_group_password_cb *group_password_callback;
+    tox_events_group_message_cb *group_message_callback;
+    tox_events_group_private_message_cb *group_private_message_callback;
+    tox_events_group_custom_packet_cb *group_custom_packet_callback;
+    tox_events_group_custom_private_packet_cb *group_custom_private_packet_callback;
+    tox_events_group_invite_cb *group_invite_callback;
+    tox_events_group_peer_join_cb *group_peer_join_callback;
+    tox_events_group_peer_exit_cb *group_peer_exit_callback;
+    tox_events_group_self_join_cb *group_self_join_callback;
+    tox_events_group_join_fail_cb *group_join_fail_callback;
+    tox_events_group_moderation_cb *group_moderation_callback;
 };
 
 Tox_Dispatch *tox_dispatch_new(Tox_Err_Dispatch_New *error)
@@ -164,6 +182,96 @@ void tox_events_callback_self_connection_status(
     Tox_Dispatch *dispatch, tox_events_self_connection_status_cb *callback)
 {
     dispatch->self_connection_status_callback = callback;
+}
+void tox_events_callback_group_peer_name(
+    Tox_Dispatch *dispatch, tox_events_group_peer_name_cb *callback)
+{
+    dispatch->group_peer_name_callback = callback;
+}
+void tox_events_callback_group_peer_status(
+    Tox_Dispatch *dispatch, tox_events_group_peer_status_cb *callback)
+{
+    dispatch->group_peer_status_callback = callback;
+}
+void tox_events_callback_group_topic(
+    Tox_Dispatch *dispatch, tox_events_group_topic_cb *callback)
+{
+    dispatch->group_topic_callback = callback;
+}
+void tox_events_callback_group_privacy_state(
+    Tox_Dispatch *dispatch, tox_events_group_privacy_state_cb *callback)
+{
+    dispatch->group_privacy_state_callback = callback;
+}
+void tox_events_callback_group_voice_state(
+    Tox_Dispatch *dispatch, tox_events_group_voice_state_cb *callback)
+{
+    dispatch->group_voice_state_callback = callback;
+}
+void tox_events_callback_group_topic_lock(
+    Tox_Dispatch *dispatch, tox_events_group_topic_lock_cb *callback)
+{
+    dispatch->group_topic_lock_callback = callback;
+}
+void tox_events_callback_group_peer_limit(
+    Tox_Dispatch *dispatch, tox_events_group_peer_limit_cb *callback)
+{
+    dispatch->group_peer_limit_callback = callback;
+}
+void tox_events_callback_group_password(
+    Tox_Dispatch *dispatch, tox_events_group_password_cb *callback)
+{
+    dispatch->group_password_callback = callback;
+}
+void tox_events_callback_group_message(
+    Tox_Dispatch *dispatch, tox_events_group_message_cb *callback)
+{
+    dispatch->group_message_callback = callback;
+}
+void tox_events_callback_group_private_message(
+    Tox_Dispatch *dispatch, tox_events_group_private_message_cb *callback)
+{
+    dispatch->group_private_message_callback = callback;
+}
+void tox_events_callback_group_custom_packet(
+    Tox_Dispatch *dispatch, tox_events_group_custom_packet_cb *callback)
+{
+    dispatch->group_custom_packet_callback = callback;
+}
+void tox_events_callback_group_custom_private_packet(
+    Tox_Dispatch *dispatch, tox_events_group_custom_private_packet_cb *callback)
+{
+    dispatch->group_custom_private_packet_callback = callback;
+}
+void tox_events_callback_group_invite(
+    Tox_Dispatch *dispatch, tox_events_group_invite_cb *callback)
+{
+    dispatch->group_invite_callback = callback;
+}
+void tox_events_callback_group_peer_join(
+    Tox_Dispatch *dispatch, tox_events_group_peer_join_cb *callback)
+{
+    dispatch->group_peer_join_callback = callback;
+}
+void tox_events_callback_group_peer_exit(
+    Tox_Dispatch *dispatch, tox_events_group_peer_exit_cb *callback)
+{
+    dispatch->group_peer_exit_callback = callback;
+}
+void tox_events_callback_group_self_join(
+    Tox_Dispatch *dispatch, tox_events_group_self_join_cb *callback)
+{
+    dispatch->group_self_join_callback = callback;
+}
+void tox_events_callback_group_join_fail(
+    Tox_Dispatch *dispatch, tox_events_group_join_fail_cb *callback)
+{
+    dispatch->group_join_fail_callback = callback;
+}
+void tox_events_callback_group_moderation(
+    Tox_Dispatch *dispatch, tox_events_group_moderation_cb *callback)
+{
+    dispatch->group_moderation_callback = callback;
 }
 
 non_null(1, 3) nullable(2, 4)
@@ -460,6 +568,258 @@ static void tox_dispatch_invoke_self_connection_status(
     }
 }
 
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_peer_name(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_peer_name_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_peer_name_callback != nullptr) {
+            dispatch->group_peer_name_callback(
+                tox, tox_events_get_group_peer_name(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_peer_status(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_peer_status_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_peer_status_callback != nullptr) {
+            dispatch->group_peer_status_callback(
+                tox, tox_events_get_group_peer_status(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_topic(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_topic_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_topic_callback != nullptr) {
+            dispatch->group_topic_callback(
+                tox, tox_events_get_group_topic(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_privacy_state(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_privacy_state_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_privacy_state_callback != nullptr) {
+            dispatch->group_privacy_state_callback(
+                tox, tox_events_get_group_privacy_state(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_voice_state(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_voice_state_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_voice_state_callback != nullptr) {
+            dispatch->group_voice_state_callback(
+                tox, tox_events_get_group_voice_state(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_topic_lock(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_topic_lock_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_topic_lock_callback != nullptr) {
+            dispatch->group_topic_lock_callback(
+                tox, tox_events_get_group_topic_lock(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_peer_limit(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_peer_limit_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_peer_limit_callback != nullptr) {
+            dispatch->group_peer_limit_callback(
+                tox, tox_events_get_group_peer_limit(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_password(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_password_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_password_callback != nullptr) {
+            dispatch->group_password_callback(
+                tox, tox_events_get_group_password(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_message(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_message_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_message_callback != nullptr) {
+            dispatch->group_message_callback(
+                tox, tox_events_get_group_message(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_private_message(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_private_message_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_private_message_callback != nullptr) {
+            dispatch->group_private_message_callback(
+                tox, tox_events_get_group_private_message(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_custom_packet(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_custom_packet_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_custom_packet_callback != nullptr) {
+            dispatch->group_custom_packet_callback(
+                tox, tox_events_get_group_custom_packet(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_custom_private_packet(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_custom_private_packet_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_custom_private_packet_callback != nullptr) {
+            dispatch->group_custom_private_packet_callback(
+                tox, tox_events_get_group_custom_private_packet(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_invite(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_invite_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_invite_callback != nullptr) {
+            dispatch->group_invite_callback(
+                tox, tox_events_get_group_invite(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_peer_join(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_peer_join_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_peer_join_callback != nullptr) {
+            dispatch->group_peer_join_callback(
+                tox, tox_events_get_group_peer_join(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_peer_exit(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_peer_exit_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_peer_exit_callback != nullptr) {
+            dispatch->group_peer_exit_callback(
+                tox, tox_events_get_group_peer_exit(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_self_join(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_self_join_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_self_join_callback != nullptr) {
+            dispatch->group_self_join_callback(
+                tox, tox_events_get_group_self_join(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_join_fail(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_join_fail_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_join_fail_callback != nullptr) {
+            dispatch->group_join_fail_callback(
+                tox, tox_events_get_group_join_fail(events, i), user_data);
+        }
+    }
+}
+
+non_null(1, 3) nullable(2, 4)
+static void tox_dispatch_invoke_group_moderation(
+    const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
+{
+    const uint32_t size = tox_events_get_group_moderation_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        if (dispatch->group_moderation_callback != nullptr) {
+            dispatch->group_moderation_callback(
+                tox, tox_events_get_group_moderation(events, i), user_data);
+        }
+    }
+}
+
 void tox_dispatch_invoke(const Tox_Dispatch *dispatch, const Tox_Events *events, Tox *tox, void *user_data)
 {
     tox_dispatch_invoke_conference_connected(dispatch, events, tox, user_data);
@@ -483,4 +843,22 @@ void tox_dispatch_invoke(const Tox_Dispatch *dispatch, const Tox_Events *events,
     tox_dispatch_invoke_friend_status_message(dispatch, events, tox, user_data);
     tox_dispatch_invoke_friend_typing(dispatch, events, tox, user_data);
     tox_dispatch_invoke_self_connection_status(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_peer_name(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_peer_status(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_topic(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_privacy_state(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_voice_state(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_topic_lock(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_peer_limit(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_password(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_message(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_private_message(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_custom_packet(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_custom_private_packet(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_invite(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_peer_join(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_peer_exit(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_self_join(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_join_fail(dispatch, events, tox, user_data);
+    tox_dispatch_invoke_group_moderation(dispatch, events, tox, user_data);
 }
