@@ -2935,7 +2935,7 @@ void tox_callback_group_join_fail(Tox *tox, tox_group_join_fail_cb *callback)
     tox->group_join_fail_callback = callback;
 }
 
-uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const uint8_t *group_name,
+uint32_t tox_group_new(const Tox *tox, Tox_Group_Privacy_State privacy_state, const uint8_t *group_name,
                        size_t group_name_length, const uint8_t *name, size_t name_length, Tox_Err_Group_New *error)
 {
     assert(tox != nullptr);
@@ -2983,7 +2983,7 @@ uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const ui
     return UINT32_MAX;
 }
 
-uint32_t tox_group_join(Tox *tox, const uint8_t *chat_id, const uint8_t *name, size_t name_length,
+uint32_t tox_group_join(const Tox *tox, const uint8_t *chat_id, const uint8_t *name, size_t name_length,
                         const uint8_t *password, size_t password_length, Tox_Err_Group_Join *error)
 {
     assert(tox != nullptr);
@@ -3090,7 +3090,7 @@ bool tox_group_disconnect(const Tox *tox, uint32_t group_number, Tox_Err_Group_D
     return true;
 }
 
-bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnect *error)
+bool tox_group_reconnect(const Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnect *error)
 {
     assert(tox != nullptr);
 
@@ -3129,7 +3129,7 @@ bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnec
     return false;
 }
 
-bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
+bool tox_group_leave(const Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
                      Tox_Err_Group_Leave *error)
 {
     assert(tox != nullptr);
@@ -4122,7 +4122,7 @@ bool tox_group_invite_friend(const Tox *tox, uint32_t group_number, uint32_t fri
     return false;
 }
 
-uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
+uint32_t tox_group_invite_accept(const Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
                                  const uint8_t *name, size_t name_length, const uint8_t *password,
                                  size_t password_length, Tox_Err_Group_Invite_Accept *error)
 {
