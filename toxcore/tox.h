@@ -3516,7 +3516,7 @@ typedef enum Tox_Err_Group_New {
  *
  * @return group_number on success, UINT32_MAX on failure.
  */
-uint32_t tox_group_new(Tox *tox, Tox_Group_Privacy_State privacy_state, const uint8_t *group_name,
+uint32_t tox_group_new(const Tox *tox, Tox_Group_Privacy_State privacy_state, const uint8_t *group_name,
                        size_t group_name_length, const uint8_t *name, size_t name_length, Tox_Err_Group_New *error);
 
 typedef enum Tox_Err_Group_Join {
@@ -3577,7 +3577,7 @@ typedef enum Tox_Err_Group_Join {
  *
  * @return group_number on success, UINT32_MAX on failure.
  */
-uint32_t tox_group_join(Tox *tox, const uint8_t *chat_id, const uint8_t *name, size_t name_length,
+uint32_t tox_group_join(const Tox *tox, const uint8_t *chat_id, const uint8_t *name, size_t name_length,
                         const uint8_t *password, size_t password_length, Tox_Err_Group_Join *error);
 
 typedef enum Tox_Err_Group_Is_Connected {
@@ -3661,7 +3661,7 @@ typedef enum Tox_Err_Group_Reconnect {
  *
  * @return true on success.
  */
-bool tox_group_reconnect(Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnect *error);
+bool tox_group_reconnect(const Tox *tox, uint32_t group_number, Tox_Err_Group_Reconnect *error);
 
 typedef enum Tox_Err_Group_Leave {
 
@@ -3701,7 +3701,7 @@ typedef enum Tox_Err_Group_Leave {
  *
  * @return true if the group chat instance is successfully deleted.
  */
-bool tox_group_leave(Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
+bool tox_group_leave(const Tox *tox, uint32_t group_number, const uint8_t *part_message, size_t length,
                      Tox_Err_Group_Leave *error);
 
 
@@ -4811,7 +4811,7 @@ typedef enum Tox_Err_Group_Invite_Accept {
  *
  * @return the group_number on success, UINT32_MAX on failure.
  */
-uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
+uint32_t tox_group_invite_accept(const Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t length,
                                  const uint8_t *name, size_t name_length, const uint8_t *password, size_t password_length,
                                  Tox_Err_Group_Invite_Accept *error);
 
