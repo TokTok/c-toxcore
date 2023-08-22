@@ -13,7 +13,9 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_private.h"
 #include "../tox_unpack.h"
+#include "event_macros.h"
 
 
 /*****************************************************
@@ -31,6 +33,11 @@ struct Tox_Event_Conference_Message {
     uint32_t message_length;
 };
 
+EV_ACCESS_VALUE(Conference_Message, conference_message, uint32_t, conference_number)
+EV_ACCESS_VALUE(Conference_Message, conference_message, uint32_t, peer_number)
+EV_ACCESS_VALUE(Conference_Message, conference_message, Tox_Message_Type, type)
+EV_ACCESS_ARRAY(Conference_Message, conference_message, uint8_t, message)
+
 non_null()
 static void tox_event_conference_message_construct(Tox_Event_Conference_Message *conference_message)
 {
@@ -39,85 +46,12 @@ static void tox_event_conference_message_construct(Tox_Event_Conference_Message 
     };
 }
 non_null()
-static void tox_event_conference_message_destruct(Tox_Event_Conference_Message *conference_message)
+static void tox_event_conference_message_destruct(Tox_Event_Conference_Message *conference_message, const Memory *mem)
 {
-    free(conference_message->message);
+    mem_delete(mem, conference_message->message);
 }
 
-non_null()
-static void tox_event_conference_message_set_conference_number(Tox_Event_Conference_Message *conference_message,
-        uint32_t conference_number)
-{
-    assert(conference_message != nullptr);
-    conference_message->conference_number = conference_number;
-}
-uint32_t tox_event_conference_message_get_conference_number(const Tox_Event_Conference_Message *conference_message)
-{
-    assert(conference_message != nullptr);
-    return conference_message->conference_number;
-}
-
-non_null()
-static void tox_event_conference_message_set_peer_number(Tox_Event_Conference_Message *conference_message,
-        uint32_t peer_number)
-{
-    assert(conference_message != nullptr);
-    conference_message->peer_number = peer_number;
-}
-uint32_t tox_event_conference_message_get_peer_number(const Tox_Event_Conference_Message *conference_message)
-{
-    assert(conference_message != nullptr);
-    return conference_message->peer_number;
-}
-
-non_null()
-static void tox_event_conference_message_set_type(Tox_Event_Conference_Message *conference_message,
-        Tox_Message_Type type)
-{
-    assert(conference_message != nullptr);
-    conference_message->type = type;
-}
-Tox_Message_Type tox_event_conference_message_get_type(const Tox_Event_Conference_Message *conference_message)
-{
-    assert(conference_message != nullptr);
-    return conference_message->type;
-}
-
-non_null()
-static bool tox_event_conference_message_set_message(Tox_Event_Conference_Message *conference_message,
-        const uint8_t *message, uint32_t message_length)
-{
-    assert(conference_message != nullptr);
-
-    if (conference_message->message != nullptr) {
-        free(conference_message->message);
-        conference_message->message = nullptr;
-        conference_message->message_length = 0;
-    }
-
-    conference_message->message = (uint8_t *)malloc(message_length);
-
-    if (conference_message->message == nullptr) {
-        return false;
-    }
-
-    memcpy(conference_message->message, message, message_length);
-    conference_message->message_length = message_length;
-    return true;
-}
-uint32_t tox_event_conference_message_get_message_length(const Tox_Event_Conference_Message *conference_message)
-{
-    assert(conference_message != nullptr);
-    return conference_message->message_length;
-}
-const uint8_t *tox_event_conference_message_get_message(const Tox_Event_Conference_Message *conference_message)
-{
-    assert(conference_message != nullptr);
-    return conference_message->message;
-}
-
-non_null()
-static bool tox_event_conference_message_pack(
+bool tox_event_conference_message_pack(
     const Tox_Event_Conference_Message *event, Bin_Pack *bp)
 {
     assert(event != nullptr);
@@ -131,7 +65,7 @@ static bool tox_event_conference_message_pack(
 }
 
 non_null()
-static bool tox_event_conference_message_unpack(
+static bool tox_event_conference_message_unpack_into(
     Tox_Event_Conference_Message *event, Bin_Unpack *bu)
 {
     assert(event != nullptr);
@@ -145,94 +79,7 @@ static bool tox_event_conference_message_unpack(
            && bin_unpack_bin(bu, &event->message, &event->message_length);
 }
 
-
-/*****************************************************
- *
- * :: add/clear/get
- *
- *****************************************************/
-
-
-non_null()
-static Tox_Event_Conference_Message *tox_events_add_conference_message(Tox_Events *events)
-{
-    if (events->conference_message_size == UINT32_MAX) {
-        return nullptr;
-    }
-
-    if (events->conference_message_size == events->conference_message_capacity) {
-        const uint32_t new_conference_message_capacity = events->conference_message_capacity * 2 + 1;
-        Tox_Event_Conference_Message *new_conference_message = (Tox_Event_Conference_Message *)realloc(
-                    events->conference_message, new_conference_message_capacity * sizeof(Tox_Event_Conference_Message));
-
-        if (new_conference_message == nullptr) {
-            return nullptr;
-        }
-
-        events->conference_message = new_conference_message;
-        events->conference_message_capacity = new_conference_message_capacity;
-    }
-
-    Tox_Event_Conference_Message *const conference_message = &events->conference_message[events->conference_message_size];
-    tox_event_conference_message_construct(conference_message);
-    ++events->conference_message_size;
-    return conference_message;
-}
-
-void tox_events_clear_conference_message(Tox_Events *events)
-{
-    if (events == nullptr) {
-        return;
-    }
-
-    for (uint32_t i = 0; i < events->conference_message_size; ++i) {
-        tox_event_conference_message_destruct(&events->conference_message[i]);
-    }
-
-    free(events->conference_message);
-    events->conference_message = nullptr;
-    events->conference_message_size = 0;
-    events->conference_message_capacity = 0;
-}
-
-uint32_t tox_events_get_conference_message_size(const Tox_Events *events)
-{
-    if (events == nullptr) {
-        return 0;
-    }
-
-    return events->conference_message_size;
-}
-
-const Tox_Event_Conference_Message *tox_events_get_conference_message(const Tox_Events *events, uint32_t index)
-{
-    assert(index < events->conference_message_size);
-    assert(events->conference_message != nullptr);
-    return &events->conference_message[index];
-}
-
-bool tox_events_pack_conference_message(const Tox_Events *events, Bin_Pack *bp)
-{
-    const uint32_t size = tox_events_get_conference_message_size(events);
-
-    for (uint32_t i = 0; i < size; ++i) {
-        if (!tox_event_conference_message_pack(tox_events_get_conference_message(events, i), bp)) {
-            return false;
-        }
-    }
-    return true;
-}
-
-bool tox_events_unpack_conference_message(Tox_Events *events, Bin_Unpack *bu)
-{
-    Tox_Event_Conference_Message *event = tox_events_add_conference_message(events);
-
-    if (event == nullptr) {
-        return false;
-    }
-
-    return tox_event_conference_message_unpack(event, bu);
-}
+EV_FUNCS(Conference_Message, conference_message, CONFERENCE_MESSAGE)
 
 
 /*****************************************************
@@ -245,22 +92,16 @@ bool tox_events_unpack_conference_message(Tox_Events *events, Bin_Unpack *bu)
 void tox_events_handle_conference_message(Tox *tox, uint32_t conference_number, uint32_t peer_number,
         Tox_Message_Type type, const uint8_t *message, size_t length, void *user_data)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    assert(state != nullptr);
-
-    if (state->events == nullptr) {
-        return;
-    }
-
-    Tox_Event_Conference_Message *conference_message = tox_events_add_conference_message(state->events);
+    Tox_Event_Conference_Message *conference_message = tox_event_conference_message_alloc(user_data);
 
     if (conference_message == nullptr) {
-        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
         return;
     }
+
+    const Tox_System *sys = tox_get_system(tox);
 
     tox_event_conference_message_set_conference_number(conference_message, conference_number);
     tox_event_conference_message_set_peer_number(conference_message, peer_number);
     tox_event_conference_message_set_type(conference_message, type);
-    tox_event_conference_message_set_message(conference_message, message, length);
+    tox_event_conference_message_set_message(conference_message, message, length, sys->mem);
 }

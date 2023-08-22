@@ -224,6 +224,7 @@ set(toxcore_SOURCES
   toxcore/events/conference_title.c
   toxcore/events/events_alloc.c
   toxcore/events/events_alloc.h
+  toxcore/events/event_macros.h
   toxcore/events/file_chunk_request.c
   toxcore/events/file_recv.c
   toxcore/events/file_recv_chunk.c
@@ -304,6 +305,8 @@ set(toxcore_SOURCES
   toxcore/tox.c
   toxcore/tox_dispatch.c
   toxcore/tox_dispatch.h
+  toxcore/tox_event.c
+  toxcore/tox_event.h
   toxcore/tox_events.c
   toxcore/tox_events.h
   toxcore/tox.h
