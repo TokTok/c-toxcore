@@ -297,6 +297,8 @@ set(toxcore_SOURCES
   toxcore/tox.c
   toxcore/tox_dispatch.c
   toxcore/tox_dispatch.h
+  toxcore/tox_event.c
+  toxcore/tox_event.h
   toxcore/tox_events.c
   toxcore/tox_events.h
   toxcore/tox.h
