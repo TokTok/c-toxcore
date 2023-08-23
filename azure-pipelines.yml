@@ -11,5 +11,5 @@ jobs:
     steps:
       - bash: python -m pip install conan
       - bash: git submodule update --init --recursive
-      - bash: conan install -if _build -o with_tests=True -o shared=$(conan.shared) .
+      - bash: conan install --build-folder _build -o with_tests=True -o shared=$(conan.shared) .
       - bash: CONAN_CPU_COUNT=50 CTEST_OUTPUT_ON_FAILURE=1 conan build -bf _build -if _build .
