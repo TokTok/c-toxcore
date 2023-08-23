@@ -510,6 +510,9 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
  */
 typedef struct Tox_System Tox_System;
 
+Tox_System *tox_system_new(void);
+void tox_system_kill(Tox_System *sys);
+
 
 /**
  * @brief This struct contains all the startup options for Tox.
@@ -684,8 +687,8 @@ struct Tox_Options {
     bool experimental_thread_safety;
 
     /**
-     * Low level operating system functionality such as send/recv and random
-     * number generation.
+     * Low level operating system functionality such as send/recv, random
+     * number generation, and memory allocation.
      */
     const Tox_System *operating_system;
 
@@ -910,6 +913,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
  * functions can be called, and the pointer value can no longer be read.
  */
 void tox_kill(Tox *tox);
+
+const Tox_System *tox_get_system(Tox *tox);
 
 /**
  * @brief Calculates the number of bytes required to store the tox instance with

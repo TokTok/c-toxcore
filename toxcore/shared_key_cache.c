@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdint.h>
-#include <stdlib.h>     // calloc(...)
 #include <string.h>     // memcpy(...)
 
 #include "ccompat.h"
@@ -24,6 +23,7 @@ struct Shared_Key_Cache {
     const uint8_t* self_secret_key;
     uint64_t timeout; /** After this time (in seconds), a key is erased on the next housekeeping cycle */
     const Mono_Time *time;
+    const Memory *mem;
     uint8_t keys_per_slot;
 };
 
@@ -43,7 +43,7 @@ static void shared_key_set_empty(Shared_Key *k) {
     assert(shared_key_is_empty(k));
 }
 
-Shared_Key_Cache *shared_key_cache_new(const Mono_Time *time, const uint8_t *self_secret_key, uint64_t timeout, uint8_t keys_per_slot)
+Shared_Key_Cache *shared_key_cache_new(const Mono_Time *time, const Memory *mem, const uint8_t *self_secret_key, uint64_t timeout, uint8_t keys_per_slot)
 {
     if (time == nullptr || self_secret_key == nullptr || timeout == 0 || keys_per_slot == 0) {
         return nullptr;
@@ -56,24 +56,25 @@ Shared_Key_Cache *shared_key_cache_new(const Mono_Time *time, const uint8_t *sel
         return nullptr;
     }
 
-    Shared_Key_Cache *res = (Shared_Key_Cache *)calloc(1, sizeof (Shared_Key_Cache));
+    Shared_Key_Cache *res = (Shared_Key_Cache *)mem_alloc(mem, sizeof(Shared_Key_Cache));
     if (res == nullptr) {
         return nullptr;
     }
 
     res->self_secret_key = self_secret_key;
     res->time = time;
+    res->mem = mem;
     res->keys_per_slot = keys_per_slot;
     // We take one byte from the public key for each bucket and store keys_per_slot elements there
     const size_t cache_size = 256 * keys_per_slot;
-    res->keys = (Shared_Key *)calloc(cache_size, sizeof (Shared_Key));
+    res->keys = (Shared_Key *)mem_valloc(mem, cache_size, sizeof(Shared_Key));
 
     if (res->keys == nullptr) {
-        free(res);
+        mem_delete(mem, res);
         return nullptr;
     }
 
-    crypto_memlock(res->keys, cache_size * sizeof (Shared_Key));
+    crypto_memlock(res->keys, cache_size * sizeof(Shared_Key));
 
     return res;
 }
@@ -88,8 +89,8 @@ void shared_key_cache_free(Shared_Key_Cache *cache)
     // Don't leave key material in memory
     crypto_memzero(cache->keys, cache_size * sizeof (Shared_Key));
     crypto_memunlock(cache->keys, cache_size * sizeof (Shared_Key));
-    free(cache->keys);
-    free(cache);
+    mem_delete(cache->mem, cache->keys);
+    mem_delete(cache->mem, cache);
 }
 
 /* NOTE: On each lookup housekeeping is performed to evict keys that did timeout. */

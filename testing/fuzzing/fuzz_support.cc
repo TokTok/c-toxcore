@@ -62,6 +62,35 @@ static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
     return res;
 }
 
+template<typename F>
+static void *alloc_common(Fuzz_Data &data, F func)
+{
+    CONSUME1_OR_RETURN_VAL(const uint8_t want_alloc, data, func());
+    if (!want_alloc) {
+        return nullptr;
+    }
+    return func();
+}
+
+static constexpr Memory_Funcs fuzz_memory_funcs = {
+    /* .malloc = */
+    ![](Fuzz_System *self, uint32_t size) {
+        return alloc_common(self->data, [=](){ return std::malloc(size); });
+    },
+    /* .calloc = */
+    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
+        return alloc_common(self->data, [=](){ return std::calloc(nmemb, size); });
+    },
+    /* .realloc = */
+    ![](Fuzz_System *self, void *ptr, uint32_t size) {
+        return alloc_common(self->data, [=](){ return std::realloc(ptr, size); });
+    },
+    /* .free = */
+    ![](Fuzz_System *self, void *ptr) {
+        std::free(ptr);
+    },
+};
+
 static constexpr Network_Funcs fuzz_network_funcs = {
     /* .close = */ ![](Fuzz_System *self, int sock) { return 0; },
     /* .accept = */ ![](Fuzz_System *self, int sock) { return 1337; },
@@ -149,6 +178,7 @@ static constexpr Random_Funcs fuzz_random_funcs = {
 Fuzz_System::Fuzz_System(Fuzz_Data &input)
     : System{
         std::make_unique<Tox_System>(),
+        std::make_unique<Memory>(Memory{&fuzz_memory_funcs, this}),
         std::make_unique<Network>(Network{&fuzz_network_funcs, this}),
         std::make_unique<Random>(Random{&fuzz_random_funcs, this}),
     }
@@ -158,7 +188,27 @@ Fuzz_System::Fuzz_System(Fuzz_Data &input)
     sys->mono_time_user_data = this;
     sys->ns = ns.get();
     sys->rng = rng.get();
+    sys->mem = mem.get();
 }
+
+static constexpr Memory_Funcs null_memory_funcs = {
+    /* .malloc = */
+    ![](Fuzz_System *self, uint32_t size) {
+        return std::malloc(size);
+    },
+    /* .calloc = */
+    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
+        return std::calloc(nmemb, size);
+    },
+    /* .realloc = */
+    ![](Fuzz_System *self, void *ptr, uint32_t size) {
+        return std::realloc(ptr, size);
+    },
+    /* .free = */
+    ![](Fuzz_System *self, void *ptr) {
+        std::free(ptr);
+    },
+};
 
 static constexpr Network_Funcs null_network_funcs = {
     /* .close = */ ![](Null_System *self, int sock) { return 0; },
@@ -224,6 +274,7 @@ static constexpr Random_Funcs null_random_funcs = {
 Null_System::Null_System()
     : System{
         std::make_unique<Tox_System>(),
+        std::make_unique<Memory>(Memory{&null_memory_funcs, this}),
         std::make_unique<Network>(Network{&null_network_funcs, this}),
         std::make_unique<Random>(Random{&null_random_funcs, this}),
     }
@@ -243,6 +294,8 @@ static uint16_t get_port(const Network_Addr *addr)
         return reinterpret_cast<const sockaddr_in *>(&addr->addr)->sin_port;
     }
 }
+
+static constexpr Memory_Funcs record_memory_funcs = null_memory_funcs;
 
 static constexpr Network_Funcs record_network_funcs = {
     /* .close = */ ![](Record_System *self, int sock) { return 0; },
@@ -348,6 +401,7 @@ static constexpr Random_Funcs record_random_funcs = {
 Record_System::Record_System(Global &global, uint64_t seed, const char *name)
     : System{
         std::make_unique<Tox_System>(),
+        std::make_unique<Memory>(Memory{&record_memory_funcs, this}),
         std::make_unique<Network>(Network{&record_network_funcs, this}),
         std::make_unique<Random>(Random{&record_random_funcs, this}),
     }
