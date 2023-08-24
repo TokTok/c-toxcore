@@ -13,4 +13,4 @@ coverage:
         threshold: 2%
 
 ignore:
-  - "auto_tests"  # ignore tests in coverage analysis
+  - "auto_tests" # ignore tests in coverage analysis
