@@ -15,10 +15,13 @@ struct Ping_Array_Deleter {
 using Ping_Array_Ptr = std::unique_ptr<Ping_Array, Ping_Array_Deleter>;
 
 struct Mono_Time_Deleter {
-    Mono_Time_Deleter(const Memory *mem) : mem_(mem) {}
+    Mono_Time_Deleter(const Memory *mem)
+        : mem_(mem)
+    {
+    }
     void operator()(Mono_Time *arr) { mono_time_free(mem_, arr); }
 
-  private:
+private:
     const Memory *mem_;
 };
 

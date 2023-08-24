@@ -62,7 +62,7 @@ static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
     return res;
 }
 
-template<typename F>
+template <typename F>
 static void *alloc_common(Fuzz_Data &data, F func)
 {
     CONSUME1_OR_RETURN_VAL(const uint8_t want_alloc, data, func());
@@ -75,20 +75,18 @@ static void *alloc_common(Fuzz_Data &data, F func)
 static constexpr Memory_Funcs fuzz_memory_funcs = {
     /* .malloc = */
     ![](Fuzz_System *self, uint32_t size) {
-        return alloc_common(self->data, [=](){ return std::malloc(size); });
+        return alloc_common(self->data, [=]() { return std::malloc(size); });
     },
     /* .calloc = */
     ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
-        return alloc_common(self->data, [=](){ return std::calloc(nmemb, size); });
+        return alloc_common(self->data, [=]() { return std::calloc(nmemb, size); });
     },
     /* .realloc = */
     ![](Fuzz_System *self, void *ptr, uint32_t size) {
-        return alloc_common(self->data, [=](){ return std::realloc(ptr, size); });
+        return alloc_common(self->data, [=]() { return std::realloc(ptr, size); });
     },
     /* .free = */
-    ![](Fuzz_System *self, void *ptr) {
-        std::free(ptr);
-    },
+    ![](Fuzz_System *self, void *ptr) { std::free(ptr); },
 };
 
 static constexpr Network_Funcs fuzz_network_funcs = {
@@ -193,21 +191,13 @@ Fuzz_System::Fuzz_System(Fuzz_Data &input)
 
 static constexpr Memory_Funcs null_memory_funcs = {
     /* .malloc = */
-    ![](Fuzz_System *self, uint32_t size) {
-        return std::malloc(size);
-    },
+    ![](Fuzz_System *self, uint32_t size) { return std::malloc(size); },
     /* .calloc = */
-    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
-        return std::calloc(nmemb, size);
-    },
+    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) { return std::calloc(nmemb, size); },
     /* .realloc = */
-    ![](Fuzz_System *self, void *ptr, uint32_t size) {
-        return std::realloc(ptr, size);
-    },
+    ![](Fuzz_System *self, void *ptr, uint32_t size) { return std::realloc(ptr, size); },
     /* .free = */
-    ![](Fuzz_System *self, void *ptr) {
-        std::free(ptr);
-    },
+    ![](Fuzz_System *self, void *ptr) { std::free(ptr); },
 };
 
 static constexpr Network_Funcs null_network_funcs = {
