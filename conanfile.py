@@ -39,29 +39,26 @@ class ToxConan(ConanFile):
         self._cmake.definitions["TEST_TIMEOUT_SECONDS"] = "300"
 
         self._cmake.definitions[
-            "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"
-        ] = self.options.shared
+            "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = self.options.shared
         self._cmake.definitions["ENABLE_SHARED"] = self.options.shared
         self._cmake.definitions["ENABLE_STATIC"] = not self.options.shared
         self._cmake.definitions["MUST_BUILD_TOXAV"] = True
         if self.settings.compiler == "Visual Studio":
             self._cmake.definitions["MSVC_STATIC_SODIUM"] = True
-            self._cmake.definitions["FLAT_OUTPUT_STRUCTURE"] = self.options.shared
+            self._cmake.definitions[
+                "FLAT_OUTPUT_STRUCTURE"] = self.options.shared
 
         self._cmake.configure()
         return self._cmake
 
     def set_version(self):
         content = load(os.path.join(self.recipe_folder, "CMakeLists.txt"))
-        version_major = re.search(
-            r"set\(PROJECT_VERSION_MAJOR \"(.*)\"\)", content
-        ).group(1)
-        version_minor = re.search(
-            r"set\(PROJECT_VERSION_MINOR \"(.*)\"\)", content
-        ).group(1)
-        version_patch = re.search(
-            r"set\(PROJECT_VERSION_PATCH \"(.*)\"\)", content
-        ).group(1)
+        version_major = re.search(r"set\(PROJECT_VERSION_MAJOR \"(.*)\"\)",
+                                  content).group(1)
+        version_minor = re.search(r"set\(PROJECT_VERSION_MINOR \"(.*)\"\)",
+                                  content).group(1)
+        version_patch = re.search(r"set\(PROJECT_VERSION_PATCH \"(.*)\"\)",
+                                  content).group(1)
         self.version = "%s.%s.%s" % (
             version_major.strip(),
             version_minor.strip(),
