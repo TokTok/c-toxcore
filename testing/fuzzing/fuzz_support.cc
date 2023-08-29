@@ -164,7 +164,8 @@ static constexpr Tox_Random_Funcs fuzz_random_funcs = {
     ![](Fuzz_System *self, uint32_t upper_bound) {
         uint32_t randnum = 0;
         if (upper_bound > 0) {
-            self->rng->funcs->bytes_callback(self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
+            self->rng->funcs->bytes_callback(
+                self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
             randnum %= upper_bound;
         }
         return randnum;
@@ -198,7 +199,9 @@ static constexpr Tox_Memory_Funcs null_memory_funcs = {
     /* .calloc = */
     ![](Null_System *self, uint32_t nmemb, uint32_t size) { return std::calloc(nmemb, size); },
     /* .realloc = */
-    ![](Null_System *self, void *ptr, uint32_t nmemb, uint32_t size) { return std::realloc(ptr, nmemb * size); },
+    ![](Null_System *self, void *ptr, uint32_t nmemb, uint32_t size) {
+        return std::realloc(ptr, nmemb * size);
+    },
     /* .free = */
     ![](Null_System *self, void *ptr) { std::free(ptr); },
 };
