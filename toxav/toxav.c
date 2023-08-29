@@ -282,9 +282,13 @@ RETURN:
     }
 
     if (rc != TOXAV_ERR_NEW_OK) {
-        logger_kill(av->log);
-        free(av);
-        av = nullptr;
+        if (av) {
+            if (av->log) {
+                logger_kill(av->log);
+            }
+            free(av);
+            av = nullptr;
+        }
     }
 
     return av;
