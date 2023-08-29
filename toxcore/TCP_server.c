@@ -19,7 +19,6 @@
 #endif /* TCP_SERVER_USE_EPOLL */
 
 #include "TCP_common.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -29,6 +28,7 @@
 #include "mono_time.h"
 #include "network.h"
 #include "onion.h"
+#include "tox_attributes.h"
 
 #ifdef TCP_SERVER_USE_EPOLL
 #define TCP_SOCKET_LISTENING 0
@@ -328,7 +328,8 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
     encrypt_precompute(data, self_secret_key, shared_key);
     uint8_t plain[TCP_HANDSHAKE_PLAIN_SIZE];
     int len = decrypt_data_symmetric(shared_key, data + CRYPTO_PUBLIC_KEY_SIZE,
-                                     data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE, plain);
+                                     data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                                     TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE, plain, con->con.mem);
 
     if (len != TCP_HANDSHAKE_PLAIN_SIZE) {
         LOGGER_ERROR(logger, "invalid TCP handshake decrypted length: %d != %d", len, TCP_HANDSHAKE_PLAIN_SIZE);
@@ -348,7 +349,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
     random_nonce(con->con.rng, response);
 
     len = encrypt_data_symmetric(shared_key, response, resp_plain, TCP_HANDSHAKE_PLAIN_SIZE,
-                                 response + CRYPTO_NONCE_SIZE);
+                                 response + CRYPTO_NONCE_SIZE, con->con.mem);
 
     if (len != TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE) {
         crypto_memzero(shared_key, sizeof(shared_key));
@@ -914,7 +915,7 @@ static int accept_connection(TCP_Server *tcp_server, Socket sock)
 }
 
 non_null()
-static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, Family family, uint16_t port)
+static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, const Memory *mem, Family family, uint16_t port)
 {
     const Socket sock = net_socket(ns, family, TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
@@ -933,7 +934,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
         ok = set_socket_reuseaddr(ns, sock);
     }
 
-    ok = ok && bind_to_port(ns, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
+    ok = ok && bind_to_port(ns, mem, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
 
     if (!ok) {
         char *const error = net_new_strerror(net_error());
@@ -999,7 +1000,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
 
     for (uint32_t i = 0; i < num_sockets; ++i) {
-        const Socket sock = new_listening_tcp_socket(logger, ns, family, ports[i]);
+        const Socket sock = new_listening_tcp_socket(logger, ns, mem, family, ports[i]);
 
         if (!sock_valid(sock)) {
             continue;
@@ -1040,7 +1041,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
     crypto_derive_public_key(temp->public_key, temp->secret_key);
 
-    bs_list_init(&temp->accepted_key_list, CRYPTO_PUBLIC_KEY_SIZE, 8, memcmp);
+    bs_list_init(&temp->accepted_key_list, CRYPTO_PUBLIC_KEY_SIZE, 8, memcmp, mem);
 
     return temp;
 }

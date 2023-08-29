@@ -7,7 +7,8 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox_dispatch.h"
 #include "../toxcore/tox_events.h"
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_impl.h"
+#include "../toxcore/tox_time_impl.h"
 
 #include "auto_test_support.h"
 
@@ -157,17 +158,25 @@ static uint64_t get_state_clock_callback(void *user_data)
     return *clock;
 }
 
+static const Tox_Time_Funcs autotox_time_funcs = {
+    get_state_clock_callback,
+};
+
 void set_mono_time_callback(AutoTox *autotox)
 {
     ck_assert(autotox != nullptr);
 
+    if (autotox->tm == nullptr) {
+        autotox->tm = tox_time_new(&autotox_time_funcs, &autotox->clock, autotox->tox->sys.mem);
+    }
+
     Mono_Time *mono_time = autotox->tox->mono_time;
 
+    mono_time_set_current_time_callback(mono_time, nullptr);  // set to default first
     autotox->clock = current_time_monotonic(mono_time);
     ck_assert_msg(autotox->clock >= 1000,
                   "clock is too low (not initialised?): %lu", (unsigned long)autotox->clock);
-    mono_time_set_current_time_callback(mono_time, nullptr, nullptr);  // set to default first
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &autotox->clock);
+    mono_time_set_current_time_callback(mono_time, autotox->tm);
 }
 
 void save_autotox(AutoTox *autotox)
@@ -194,6 +203,8 @@ void kill_autotox(AutoTox *autotox)
     autotox->alive = false;
     tox_dispatch_free(autotox->dispatch);
     tox_kill(autotox->tox);
+    tox_time_free(autotox->tm);
+    autotox->tm = nullptr;
 }
 
 void reload(AutoTox *autotox)
@@ -399,6 +410,7 @@ void run_auto_test(struct Tox_Options *options, uint32_t tox_count, autotox_test
     for (uint32_t i = 0; i < tox_count; ++i) {
         tox_dispatch_free(autotoxes[i].dispatch);
         tox_kill(autotoxes[i].tox);
+        tox_time_free(autotoxes[i].tm);
         free(autotoxes[i].state);
         free(autotoxes[i].save_state);
     }

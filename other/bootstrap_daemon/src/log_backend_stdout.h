@@ -12,7 +12,7 @@
 
 #include <stdarg.h>
 
-#include "../../../toxcore/attributes.h"
+#include "../../../toxcore/tox_attributes.h"
 #include "log.h"
 
 void log_backend_stdout_write(LOG_LEVEL level, const char *format, va_list args) GNU_PRINTF(2, 0);

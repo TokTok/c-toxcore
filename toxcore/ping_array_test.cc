@@ -7,6 +7,7 @@
 #include "crypto_core_test_util.hh"
 #include "mem_test_util.hh"
 #include "mono_time.h"
+#include "os_random.h"
 
 namespace {
 
@@ -65,7 +66,7 @@ TEST(PingArray, StoredDataCanBeRetrieved)
     Test_Random rng;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint64_t const ping_id = ping_array_add(
@@ -83,7 +84,7 @@ TEST(PingArray, RetrievingDataWithTooSmallOutputBufferHasNoEffect)
     Test_Random rng;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint64_t const ping_id = ping_array_add(
@@ -105,7 +106,7 @@ TEST(PingArray, ZeroLengthDataCanBeAdded)
     Test_Random rng;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint8_t c = 0;
@@ -120,7 +121,7 @@ TEST(PingArray, PingId0IsInvalid)
     Test_Memory mem;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint8_t c = 0;
@@ -134,7 +135,7 @@ TEST(PingArray, DataCanOnlyBeRetrievedOnce)
     Test_Random rng;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint8_t c = 0;
@@ -151,7 +152,7 @@ TEST(PingArray, PingIdMustMatchOnCheck)
     Test_Random rng;
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 1, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint8_t c = 0;

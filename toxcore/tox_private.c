@@ -12,14 +12,13 @@
 
 #include "DHT.h"
 #include "ccompat.h"
-#include "crypto_core.h"
 #include "group_chats.h"
 #include "group_common.h"
-#include "mem.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "tox.h"
-#include "tox_struct.h"
+#include "tox_impl.h"
+#include "tox_system.h"
 
 #define SET_ERROR_PARAMETER(param, x) \
     do {                              \
@@ -27,32 +26,6 @@
             *param = x;               \
         }                             \
     } while (0)
-
-Tox_System tox_default_system(void)
-{
-    const Tox_System sys = {
-        nullptr,  // mono_time_callback
-        nullptr,  // mono_time_user_data
-        os_random(),
-        os_network(),
-        os_memory(),
-    };
-    return sys;
-}
-
-void tox_lock(const Tox *tox)
-{
-    if (tox->mutex != nullptr) {
-        pthread_mutex_lock(tox->mutex);
-    }
-}
-
-void tox_unlock(const Tox *tox)
-{
-    if (tox->mutex != nullptr) {
-        pthread_mutex_unlock(tox->mutex);
-    }
-}
 
 void tox_callback_friend_lossy_packet_per_pktid(Tox *tox, tox_friend_lossy_packet_cb *callback, uint8_t pktid)
 {

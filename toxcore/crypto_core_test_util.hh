@@ -8,12 +8,13 @@
 
 #include "crypto_core.h"
 #include "test_util.hh"
+#include "tox_random_impl.h"
 
 struct Random_Class {
-    static Random_Funcs const vtable;
-    Random const self;
+    static Tox_Random_Funcs const vtable;
+    Tox_Random const self;
 
-    operator Random const *() const { return &self; }
+    operator Tox_Random const *() const { return &self; }
 
     Random_Class(Random_Class const &) = default;
     Random_Class()
@@ -22,8 +23,8 @@ struct Random_Class {
     }
 
     virtual ~Random_Class();
-    virtual crypto_random_bytes_cb random_bytes = 0;
-    virtual crypto_random_uniform_cb random_uniform = 0;
+    virtual tox_random_bytes_cb random_bytes = 0;
+    virtual tox_random_uniform_cb random_uniform = 0;
 };
 
 /**
@@ -35,7 +36,7 @@ struct Random_Class {
 class Test_Random : public Random_Class {
     std::minstd_rand lcg;
 
-    void random_bytes(void *obj, uint8_t *bytes, size_t length) override;
+    void random_bytes(void *obj, uint8_t *bytes, uint32_t length) override;
     uint32_t random_uniform(void *obj, uint32_t upper_bound) override;
 };
 
@@ -83,6 +84,6 @@ inline bool operator==(PublicKey::Base const &pk1, PublicKey const &pk2)
 
 std::ostream &operator<<(std::ostream &out, PublicKey const &pk);
 
-PublicKey random_pk(const Random *rng);
+PublicKey random_pk(const Tox_Random *rng);
 
 #endif  // C_TOXCORE_TOXCORE_CRYPTO_CORE_TEST_UTIL_H

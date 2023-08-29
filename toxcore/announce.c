@@ -9,12 +9,10 @@
 #include "announce.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
 #include "LAN_discovery.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -24,6 +22,7 @@
 #include "network.h"
 #include "shared_key_cache.h"
 #include "timed_auth.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 // Settings for the shared key cache
@@ -240,10 +239,10 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
         assert(data != nullptr);
 
         if (entry->data != nullptr) {
-            free(entry->data);
+            mem_delete(announce->mem, entry->data);
         }
 
-        uint8_t *entry_data = (uint8_t *)malloc(length);
+        uint8_t *entry_data = (uint8_t *)mem_balloc(announce->mem, length);
 
         if (entry_data == nullptr) {
             entry->data = nullptr;  // TODO(iphydf): Is this necessary?
@@ -457,7 +456,7 @@ static int create_reply_plain_store_announce_request(Announcements *announce,
                                data + CRYPTO_PUBLIC_KEY_SIZE,
                                data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,
-                               plain) != plain_len) {
+                               plain, announce->mem) != plain_len) {
         return -1;
     }
 
@@ -555,11 +554,12 @@ static int create_reply_plain(Announcements *announce,
     }
 }
 
-non_null(1, 2, 5, 7) nullable(3)
+non_null(1, 2, 5, 7, 9) nullable(3)
 static int create_reply(Announcements *announce, const IP_Port *source,
                         const uint8_t *sendback, uint16_t sendback_length,
                         const uint8_t *data, uint16_t length,
-                        uint8_t *reply, uint16_t reply_max_length)
+                        uint8_t *reply, uint16_t reply_max_length,
+                        const Memory *mem)
 {
     const int plain_len = (int)length - (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
 
@@ -574,7 +574,7 @@ static int create_reply(Announcements *announce, const IP_Port *source,
                                data + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                data + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                plain_len + CRYPTO_MAC_SIZE,
-                               plain) != plain_len) {
+                               plain, mem) != plain_len) {
         return -1;
     }
 
@@ -619,7 +619,8 @@ static void forwarded_request_callback(void *object, const IP_Port *forwarder,
 
     const int len = create_reply(announce, forwarder,
                                  sendback, sendback_length,
-                                 data, length, reply, sizeof(reply));
+                                 data, length, reply, sizeof(reply),
+                                 announce->mem);
 
     if (len == -1) {
         return;
@@ -636,8 +637,8 @@ static int handle_dht_announce_request(
 
     uint8_t reply[MAX_FORWARD_DATA_SIZE];
 
-    const int len
-        = create_reply(announce, source, nullptr, 0, packet, length, reply, sizeof(reply));
+    const int len = create_reply(
+                        announce, source, nullptr, 0, packet, length, reply, sizeof(reply), announce->mem);
 
     if (len == -1) {
         return -1;
@@ -653,7 +654,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
         return nullptr;
     }
 
-    Announcements *announce = (Announcements *)calloc(1, sizeof(Announcements));
+    Announcements *announce = (Announcements *)mem_alloc(mem, sizeof(Announcements));
 
     if (announce == nullptr) {
         return nullptr;
@@ -671,7 +672,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     new_hmac_key(announce->rng, announce->hmac_key);
     announce->shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (announce->shared_keys == nullptr) {
-        free(announce);
+        mem_delete(mem, announce);
         return nullptr;
     }
 
@@ -703,9 +704,9 @@ void kill_announcements(Announcements *announce)
 
     for (uint32_t i = 0; i < ANNOUNCE_BUCKETS * ANNOUNCE_BUCKET_SIZE; ++i) {
         if (announce->entries[i].data != nullptr) {
-            free(announce->entries[i].data);
+            mem_delete(announce->mem, announce->entries[i].data);
         }
     }
 
-    free(announce);
+    mem_delete(announce->mem, announce);
 }

@@ -8,22 +8,22 @@
  */
 #include "friend_connection.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
 #include "LAN_discovery.h"
 #include "TCP_connection.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "onion.h"
 #include "onion_announce.h"
 #include "onion_client.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 #define PORTS_PER_DISCOVERY 10
@@ -70,6 +70,7 @@ static const Friend_Conn empty_friend_conn = {0};
 struct Friend_Connections {
     const Mono_Time *mono_time;
     const Logger *logger;
+    const Memory *mem;
     Net_Crypto *net_crypto;
     DHT *dht;
     Broadcast_Info *broadcast;
@@ -119,19 +120,19 @@ static bool friendconn_id_valid(const Friend_Connections *fr_c, int friendcon_id
 
 /** @brief Set the size of the friend connections list to num.
  *
- * @retval false if realloc fails.
+ * @retval false if mem_vrealloc fails.
  * @retval true if it succeeds.
  */
 non_null()
 static bool realloc_friendconns(Friend_Connections *fr_c, uint32_t num)
 {
     if (num == 0) {
-        free(fr_c->conns);
+        mem_delete(fr_c->mem, fr_c->conns);
         fr_c->conns = nullptr;
         return true;
     }
 
-    Friend_Conn *newgroup_cons = (Friend_Conn *)realloc(fr_c->conns, num * sizeof(Friend_Conn));
+    Friend_Conn *newgroup_cons = (Friend_Conn *)mem_vrealloc(fr_c->mem, fr_c->conns, num, sizeof(Friend_Conn));
 
     if (newgroup_cons == nullptr) {
         return false;
@@ -908,14 +909,14 @@ int send_friend_request_packet(Friend_Connections *fr_c, int friendcon_id, uint3
 
 /** Create new friend_connections instance. */
 Friend_Connections *new_friend_connections(
-    const Logger *logger, const Mono_Time *mono_time, const Network *ns,
+    const Logger *logger, const Mono_Time *mono_time, const Memory *mem, const Network *ns,
     Onion_Client *onion_c, bool local_discovery_enabled)
 {
     if (onion_c == nullptr) {
         return nullptr;
     }
 
-    Friend_Connections *const temp = (Friend_Connections *)calloc(1, sizeof(Friend_Connections));
+    Friend_Connections *const temp = (Friend_Connections *)mem_alloc(mem, sizeof(Friend_Connections));
 
     if (temp == nullptr) {
         return nullptr;
@@ -924,7 +925,7 @@ Friend_Connections *new_friend_connections(
     temp->local_discovery_enabled = local_discovery_enabled;
 
     if (temp->local_discovery_enabled) {
-        temp->broadcast = lan_discovery_init(ns);
+        temp->broadcast = lan_discovery_init(mem, ns);
 
         if (temp->broadcast == nullptr) {
             LOGGER_ERROR(logger, "could not initialise LAN discovery");
@@ -934,6 +935,7 @@ Friend_Connections *new_friend_connections(
 
     temp->mono_time = mono_time;
     temp->logger = logger;
+    temp->mem = mem;
     temp->dht = onion_get_dht(onion_c);
     temp->net_crypto = onion_get_net_crypto(onion_c);
     temp->onion_c = onion_c;
@@ -1033,5 +1035,5 @@ void kill_friend_connections(Friend_Connections *fr_c)
     }
 
     lan_discovery_kill(fr_c->broadcast);
-    free(fr_c);
+    mem_delete(fr_c->mem, fr_c);
 }

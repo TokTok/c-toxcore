@@ -5,15 +5,16 @@
 
 #include "crypto_core.h"
 #include "test_util.hh"
+#include "tox_random_impl.h"
 
-Random_Funcs const Random_Class::vtable = {
-    Method<crypto_random_bytes_cb, Random_Class>::invoke<&Random_Class::random_bytes>,
-    Method<crypto_random_uniform_cb, Random_Class>::invoke<&Random_Class::random_uniform>,
+Tox_Random_Funcs const Random_Class::vtable = {
+    Method<tox_random_bytes_cb, Random_Class>::invoke<&Random_Class::random_bytes>,
+    Method<tox_random_uniform_cb, Random_Class>::invoke<&Random_Class::random_uniform>,
 };
 
 Random_Class::~Random_Class() = default;
 
-void Test_Random::random_bytes(void *obj, uint8_t *bytes, size_t length)
+void Test_Random::random_bytes(void *obj, uint8_t *bytes, uint32_t length)
 {
     std::generate(bytes, &bytes[length], std::ref(lcg));
 }

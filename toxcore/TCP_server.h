@@ -9,7 +9,6 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_SERVER_H
 #define C_TOXCORE_TOXCORE_TCP_SERVER_H
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
 #include "logger.h"
@@ -17,6 +16,7 @@
 #include "mono_time.h"
 #include "network.h"
 #include "onion.h"
+#include "tox_attributes.h"
 
 #define MAX_INCOMING_CONNECTIONS 256
 

@@ -5,10 +5,10 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_EVENT_H
 #define C_TOXCORE_TOXCORE_TOX_EVENT_H
 
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "mem.h"
+#include "tox_attributes.h"
 #include "tox_events.h"
 #include "tox_private.h"
 

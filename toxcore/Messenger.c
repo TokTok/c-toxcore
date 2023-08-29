@@ -18,7 +18,6 @@
 #include "TCP_connection.h"
 #include "TCP_server.h"
 #include "announce.h"
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "ccompat.h"
@@ -39,6 +38,7 @@
 #include "onion_announce.h"
 #include "onion_client.h"
 #include "state.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 static_assert(MAX_CONCURRENT_FILE_PIPES <= UINT8_MAX + 1,
@@ -3261,7 +3261,7 @@ static bool handle_groups_load(void *obj, Bin_Unpack *bu)
 non_null()
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    if (!bin_unpack_obj(handle_groups_load, m, data, length)) {
+    if (!bin_unpack_obj(handle_groups_load, m, data, length, m->mem)) {
         LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array");
         return STATE_LOAD_STATUS_ERROR;
     }
@@ -3563,14 +3563,14 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->rng = rng;
     m->ns = ns;
 
-    m->fr = friendreq_new();
+    m->fr = friendreq_new(mem);
 
     if (m->fr == nullptr) {
         mem_delete(mem, m);
         return nullptr;
     }
 
-    m->log = logger_new();
+    m->log = logger_new(mem);
 
     if (m->log == nullptr) {
         friendreq_kill(m->fr);
@@ -3632,7 +3632,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->group_announce = new_gca_list();
+    m->group_announce = new_gca_list(m->mem);
 
     if (m->group_announce == nullptr) {
         LOGGER_WARNING(m->log, "DHT group chats initialisation failed");
@@ -3647,7 +3647,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
 
     if (options->dht_announcements_enabled) {
-        m->forwarding = new_forwarding(m->log, m->rng, m->mono_time, m->dht);
+        m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
         if (m->forwarding != nullptr) {
             m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
         } else {
@@ -3662,7 +3662,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
     if (m->onion_c != nullptr) {
-        m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+        m->fr_c = new_friend_connections(m->log, m->mono_time, m->mem, m->ns, m->onion_c, options->local_discovery_enabled);
     }
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||

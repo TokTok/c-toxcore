@@ -5,10 +5,10 @@
 
 #include <string.h>
 
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 non_null(1, 6) nullable(4)
 static void create_timed_auth_to_hash(const Mono_Time *mono_time, uint16_t timeout, bool previous, const uint8_t *data,

@@ -10,6 +10,7 @@
 
 #include "auto_test_support.h"
 
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 

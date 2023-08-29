@@ -6,9 +6,9 @@
 
 #include <stdint.h>
 
-#include "attributes.h"
 #include "bin_unpack.h"
 #include "tox.h"
+#include "tox_attributes.h"
 
 non_null()
 static bool tox_conference_type_from_int(uint32_t value, Tox_Conference_Type *out)

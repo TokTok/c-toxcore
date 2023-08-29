@@ -14,16 +14,17 @@
 
 #include "DHT.h"
 #include "Messenger.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "friend_connection.h"
 #include "group_common.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "state.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 enum {
@@ -147,6 +148,7 @@ typedef struct Group_c {
 } Group_c;
 
 struct Group_Chats {
+    const Memory *mem;
     const Mono_Time *mono_time;
 
     Messenger *m;
@@ -246,19 +248,19 @@ static bool is_groupnumber_valid(const Group_Chats *g_c, uint32_t groupnumber)
 
 /** @brief Set the size of the groupchat list to num.
  *
- * @retval false if realloc fails.
+ * @retval false if mem_vrealloc fails.
  * @retval true if it succeeds.
  */
 non_null()
 static bool realloc_conferences(Group_Chats *g_c, uint16_t num)
 {
     if (num == 0) {
-        free(g_c->chats);
+        mem_delete(g_c->mem, g_c->chats);
         g_c->chats = nullptr;
         return true;
     }
 
-    Group_c *newgroup_chats = (Group_c *)realloc(g_c->chats, num * sizeof(Group_c));
+    Group_c *newgroup_chats = (Group_c *)mem_vrealloc(g_c->mem, g_c->chats, num, sizeof(Group_c));
 
     if (newgroup_chats == nullptr) {
         return false;
@@ -300,10 +302,10 @@ static int32_t create_group_chat(Group_Chats *g_c)
 }
 
 non_null()
-static void wipe_group_c(Group_c *g)
+static void wipe_group_c(Group_c *g, const Memory *mem)
 {
-    free(g->frozen);
-    free(g->group);
+    mem_delete(mem, g->frozen);
+    mem_delete(mem, g->group);
     crypto_memzero(g, sizeof(Group_c));
 }
 
@@ -318,7 +320,7 @@ static bool wipe_group_chat(Group_Chats *g_c, uint32_t groupnumber)
         return false;
     }
 
-    wipe_group_c(&g_c->chats[groupnumber]);
+    wipe_group_c(&g_c->chats[groupnumber], g_c->mem);
 
     uint16_t i;
 
@@ -667,7 +669,7 @@ static int get_frozen_index(const Group_c *g, uint16_t peer_number)
 }
 
 non_null()
-static bool delete_frozen(Group_c *g, uint32_t frozen_index)
+static bool delete_frozen(Group_c *g, uint32_t frozen_index, const Memory *mem)
 {
     if (frozen_index >= g->numfrozen) {
         return false;
@@ -676,14 +678,14 @@ static bool delete_frozen(Group_c *g, uint32_t frozen_index)
     --g->numfrozen;
 
     if (g->numfrozen == 0) {
-        free(g->frozen);
+        mem_delete(mem, g->frozen);
         g->frozen = nullptr;
     } else {
         if (g->numfrozen != frozen_index) {
             g->frozen[frozen_index] = g->frozen[g->numfrozen];
         }
 
-        Group_Peer *const frozen_temp = (Group_Peer *)realloc(g->frozen, g->numfrozen * sizeof(Group_Peer));
+        Group_Peer *const frozen_temp = (Group_Peer *)mem_vrealloc(mem, g->frozen, g->numfrozen, sizeof(Group_Peer));
 
         if (frozen_temp == nullptr) {
             return false;
@@ -700,8 +702,8 @@ static bool delete_frozen(Group_c *g, uint32_t frozen_index)
  * @return peer index if peer is in the conference.
  * @retval -1 otherwise, and on error.
  */
-non_null(1) nullable(4)
-static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t peer_number, void *userdata)
+non_null(1, 5) nullable(4)
+static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t peer_number, void *userdata, const Memory *mem)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
 
@@ -724,7 +726,7 @@ static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t pee
 
     /* Now thaw the peer */
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
+    Group_Peer *temp = (Group_Peer *)mem_vrealloc(mem, g->group, g->numpeers + 1, sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return -1;
@@ -741,7 +743,7 @@ static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t pee
 
     ++g->numpeers;
 
-    delete_frozen(g, frozen_index);
+    delete_frozen(g, frozen_index, g_c->mem);
 
     if (g_c->peer_list_changed_callback != nullptr) {
         g_c->peer_list_changed_callback(g_c->m, groupnumber, userdata);
@@ -777,7 +779,7 @@ static void delete_any_peer_with_pk(Group_Chats *g_c, uint32_t groupnumber, cons
     const int frozen_index = frozen_in_group(g, real_pk);
 
     if (frozen_index >= 0) {
-        delete_frozen(g, frozen_index);
+        delete_frozen(g, frozen_index, g_c->mem);
     }
 }
 
@@ -804,7 +806,7 @@ static int addpeer(Group_Chats *g_c, uint32_t groupnumber, const uint8_t *real_p
     }
 
     const int peer_index = fresh ?
-                           note_peer_active(g_c, groupnumber, peer_number, userdata) :
+                           note_peer_active(g_c, groupnumber, peer_number, userdata, g_c->mem) :
                            get_peer_index(g, peer_number);
 
     if (peer_index != -1) {
@@ -837,7 +839,7 @@ static int addpeer(Group_Chats *g_c, uint32_t groupnumber, const uint8_t *real_p
 
     delete_any_peer_with_pk(g_c, groupnumber, real_pk, userdata);
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
+    Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->group, g->numpeers + 1, sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return -1;
@@ -928,14 +930,14 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
     void *peer_object = g->group[peer_index].object;
 
     if (g->numpeers == 0) {
-        free(g->group);
+        mem_delete(g_c->mem, g->group);
         g->group = nullptr;
     } else {
         if (g->numpeers != (uint32_t)peer_index) {
             g->group[peer_index] = g->group[g->numpeers];
         }
 
-        Group_Peer *temp = (Group_Peer *)realloc(g->group, g->numpeers * sizeof(Group_Peer));
+        Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->group, g->numpeers, sizeof(Group_Peer));
 
         if (temp == nullptr) {
             return false;
@@ -974,14 +976,14 @@ static int cmp_frozen(const void *a, const void *b)
  * @retval true if any frozen peers are removed.
  */
 non_null()
-static bool delete_old_frozen(Group_c *g)
+static bool delete_old_frozen(Group_c *g, const Memory *mem)
 {
     if (g->numfrozen <= g->maxfrozen) {
         return false;
     }
 
     if (g->maxfrozen == 0) {
-        free(g->frozen);
+        mem_delete(mem, g->frozen);
         g->frozen = nullptr;
         g->numfrozen = 0;
         return true;
@@ -989,7 +991,7 @@ static bool delete_old_frozen(Group_c *g)
 
     qsort(g->frozen, g->numfrozen, sizeof(Group_Peer), cmp_frozen);
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->frozen, g->maxfrozen * sizeof(Group_Peer));
+    Group_Peer *temp = (Group_Peer *)mem_vrealloc(mem, g->frozen, g->maxfrozen, sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return false;
@@ -1014,7 +1016,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
         return false;
     }
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->frozen, (g->numfrozen + 1) * sizeof(Group_Peer));
+    Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->frozen, g->numfrozen + 1, sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return false;
@@ -1032,7 +1034,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
 
     ++g->numfrozen;
 
-    delete_old_frozen(g);
+    delete_old_frozen(g, g_c->mem);
 
     return true;
 }
@@ -1519,7 +1521,7 @@ int group_set_max_frozen(const Group_Chats *g_c, uint32_t groupnumber, uint32_t 
     }
 
     g->maxfrozen = maxfrozen;
-    delete_old_frozen(g);
+    delete_old_frozen(g, g_c->mem);
     return 0;
 }
 
@@ -2859,7 +2861,7 @@ static void handle_message_packet_group(Group_Chats *g_c, uint32_t groupnumber, 
     const bool ignore_frozen = message_id == GROUP_MESSAGE_FREEZE_PEER_ID;
 
     const int index = ignore_frozen ? get_peer_index(g, peer_number)
-                      : note_peer_active(g_c, groupnumber, peer_number, userdata);
+                      : note_peer_active(g_c, groupnumber, peer_number, userdata, g_c->mem);
 
     if (index == -1) {
         if (ignore_frozen) {
@@ -3612,7 +3614,7 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
         }
 
         // This is inefficient, but allows us to check data consistency before allocating memory
-        Group_Peer *tmp_frozen = (Group_Peer *)realloc(g->frozen, (j + 1) * sizeof(Group_Peer));
+        Group_Peer *tmp_frozen = (Group_Peer *)mem_vrealloc(g_c->mem, g->frozen, j + 1, sizeof(Group_Peer));
 
         if (tmp_frozen == nullptr) {
             // Memory allocation failure
@@ -3752,18 +3754,19 @@ bool conferences_load_state_section(Group_Chats *g_c, const uint8_t *data, uint3
 }
 
 /** Create new groupchat instance. */
-Group_Chats *new_groupchats(const Mono_Time *mono_time, Messenger *m)
+Group_Chats *new_groupchats(const Mono_Time *mono_time, const Memory *mem, Messenger *m)
 {
     if (m == nullptr) {
         return nullptr;
     }
 
-    Group_Chats *temp = (Group_Chats *)calloc(1, sizeof(Group_Chats));
+    Group_Chats *temp = (Group_Chats *)mem_alloc(mem, sizeof(Group_Chats));
 
     if (temp == nullptr) {
         return nullptr;
     }
 
+    temp->mem = mem;
     temp->mono_time = mono_time;
     temp->m = m;
     temp->fr_c = m->fr_c;
@@ -3814,7 +3817,7 @@ void kill_groupchats(Group_Chats *g_c)
     m_callback_conference_invite(g_c->m, nullptr);
     set_global_status_callback(g_c->m->fr_c, nullptr, nullptr);
     g_c->m->conferences_object = nullptr;
-    free(g_c);
+    mem_delete(g_c->mem, g_c);
 }
 
 /**

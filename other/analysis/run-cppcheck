@@ -22,6 +22,8 @@ CPPCHECK+=("--suppress=missingIncludeSystem")
 CPPCHECK+=("--suppress=signConversion")
 # TODO(iphydf): Fixed in the toxav refactor PR.
 CPPCHECK+=("--suppress=redundantAssignment")
+# We have suppressions in the code for the misra extension.
+CPPCHECK+=("--suppress=unmatchedSuppression")
 
 # We use this for VLAs.
 CPPCHECK_CXX+=("--suppress=allocaCalled")
