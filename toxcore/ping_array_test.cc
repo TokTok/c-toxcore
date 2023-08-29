@@ -5,6 +5,8 @@
 #include <memory>
 
 #include "mono_time.h"
+#include "os_memory.h"
+#include "os_random.h"
 
 namespace {
 
@@ -29,21 +31,21 @@ using Mono_Time_Ptr = std::unique_ptr<Mono_Time, Mono_Time_Deleter>;
 
 TEST(PingArray, MinimumTimeoutIsOne)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     EXPECT_EQ(ping_array_new(mem, 1, 0), nullptr);
     EXPECT_NE(Ping_Array_Ptr(ping_array_new(mem, 1, 1)), nullptr);
 }
 
 TEST(PingArray, MinimumArraySizeIsOne)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     EXPECT_EQ(ping_array_new(mem, 0, 1), nullptr);
     EXPECT_NE(Ping_Array_Ptr(ping_array_new(mem, 1, 1)), nullptr);
 }
 
 TEST(PingArray, ArraySizeMustBePowerOfTwo)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr arr;
     arr.reset(ping_array_new(mem, 2, 1));
@@ -59,12 +61,12 @@ TEST(PingArray, ArraySizeMustBePowerOfTwo)
 
 TEST(PingArray, StoredDataCanBeRetrieved)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     uint64_t const ping_id = ping_array_add(
@@ -78,12 +80,12 @@ TEST(PingArray, StoredDataCanBeRetrieved)
 
 TEST(PingArray, RetrievingDataWithTooSmallOutputBufferHasNoEffect)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     uint64_t const ping_id = ping_array_add(
@@ -101,12 +103,12 @@ TEST(PingArray, RetrievingDataWithTooSmallOutputBufferHasNoEffect)
 
 TEST(PingArray, ZeroLengthDataCanBeAdded)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     uint8_t c = 0;
@@ -118,10 +120,10 @@ TEST(PingArray, ZeroLengthDataCanBeAdded)
 
 TEST(PingArray, PingId0IsInvalid)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
 
     uint8_t c = 0;
@@ -131,12 +133,12 @@ TEST(PingArray, PingId0IsInvalid)
 // Protection against replay attacks.
 TEST(PingArray, DataCanOnlyBeRetrievedOnce)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 2, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     uint8_t c = 0;
@@ -149,12 +151,12 @@ TEST(PingArray, DataCanOnlyBeRetrievedOnce)
 
 TEST(PingArray, PingIdMustMatchOnCheck)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
 
     Ping_Array_Ptr const arr(ping_array_new(mem, 1, 1));
-    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr, nullptr), mem);
+    Mono_Time_Ptr const mono_time(mono_time_new(mem, nullptr), mem);
     ASSERT_NE(mono_time, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     uint8_t c = 0;

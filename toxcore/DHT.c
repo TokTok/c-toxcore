@@ -92,7 +92,7 @@ struct DHT {
     const Network *ns;
     Mono_Time *mono_time;
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     Networking_Core *net;
 
     bool hole_punching_enabled;
@@ -275,7 +275,7 @@ const uint8_t *dht_get_shared_key_sent(DHT *dht, const uint8_t *public_key)
 
 #define CRYPTO_SIZE (1 + CRYPTO_PUBLIC_KEY_SIZE * 2 + CRYPTO_NONCE_SIZE)
 
-int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
+int create_request(const Tox_Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
                    uint8_t *packet, const uint8_t *recv_public_key,
                    const uint8_t *data, uint32_t data_length, uint8_t request_id)
 {
@@ -415,7 +415,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     }
 }
 
-int dht_create_packet(const Memory *mem, const Random *rng,
+int dht_create_packet(const Memory *mem, const Tox_Random *rng,
                       const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
                       const uint8_t *shared_key, const uint8_t type,
                       const uint8_t *plain, size_t plain_length,
@@ -2449,7 +2449,7 @@ static void do_NAT(DHT *dht)
  * @return the number of nodes.
  */
 non_null()
-static uint16_t list_nodes(const Random *rng, const Client_data *list, size_t length,
+static uint16_t list_nodes(const Tox_Random *rng, const Client_data *list, size_t length,
                            uint64_t cur_time, Node_format *nodes, uint16_t max_num)
 {
     if (max_num == 0) {
@@ -2609,7 +2609,7 @@ static int handle_LANdiscovery(void *object, const IP_Port *source, const uint8_
 
 /*----------------------------------------------------------------------------------*/
 
-DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
+DHT *new_dht(const Logger *log, const Memory *mem, const Tox_Random *rng, const Network *ns,
              Mono_Time *mono_time, Networking_Core *net,
              bool hole_punching_enabled, bool lan_discovery_enabled)
 {

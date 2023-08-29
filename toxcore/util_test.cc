@@ -3,12 +3,13 @@
 #include <gtest/gtest.h>
 
 #include "crypto_core.h"
+#include "os_random.h"
 
 namespace {
 
 TEST(Util, TwoRandomIdsAreNotEqual)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
     uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t sk1[CRYPTO_SECRET_KEY_SIZE];
@@ -23,7 +24,7 @@ TEST(Util, TwoRandomIdsAreNotEqual)
 
 TEST(Util, IdCopyMakesKeysEqual)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
     uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t sk1[CRYPTO_SECRET_KEY_SIZE];

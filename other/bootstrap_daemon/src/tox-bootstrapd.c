@@ -33,6 +33,9 @@
 #include "../../../toxcore/logger.h"
 #include "../../../toxcore/mono_time.h"
 #include "../../../toxcore/onion_announce.h"
+#include "../../../toxcore/os_memory.h"
+#include "../../../toxcore/os_network.h"
+#include "../../../toxcore/os_random.h"
 #include "../../../toxcore/util.h"
 
 // misc
@@ -280,9 +283,9 @@ int main(int argc, char *argv[])
     }
 
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
-    const Memory *mem = system_memory();
-    const Random *rng = system_random();
-    const Network *ns = system_network();
+    const Memory *mem = os_memory();
+    const Random *rng = os_random();
+    const Network *ns = os_network();
     Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
 
     if (net == nullptr) {
@@ -310,7 +313,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Mono_Time *const mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *const mono_time = mono_time_new(mem, nullptr);
 
     if (mono_time == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize monotonic timer. Exiting.\n");

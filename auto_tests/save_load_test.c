@@ -8,8 +8,10 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
+#include "../toxcore/os_memory.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_time_impl.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -119,6 +121,10 @@ static uint64_t get_state_clock_callback(void *user_data)
     return clock;
 }
 
+static const Tox_Time_Funcs mock_time_funcs = {
+    get_state_clock_callback,
+};
+
 static void increment_clock(Time_Data *time_data, uint64_t count)
 {
     pthread_mutex_lock(&time_data->lock);
@@ -126,10 +132,10 @@ static void increment_clock(Time_Data *time_data, uint64_t count)
     pthread_mutex_unlock(&time_data->lock);
 }
 
-static void set_current_time_callback(Tox *tox, Time_Data *time_data)
+static void set_current_time_callback(Tox *tox, Tox_Time *tm)
 {
     Mono_Time *mono_time = tox->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, time_data);
+    mono_time_set_current_time_callback(mono_time, tm);
 }
 
 static void test_few_clients(void)
@@ -161,9 +167,12 @@ static void test_few_clients(void)
     Time_Data time_data;
     ck_assert_msg(pthread_mutex_init(&time_data.lock, nullptr) == 0, "Failed to init time_data mutex");
     time_data.clock = current_time_monotonic(tox1->mono_time);
-    set_current_time_callback(tox1, &time_data);
-    set_current_time_callback(tox2, &time_data);
-    set_current_time_callback(tox3, &time_data);
+
+    const Memory *mem = os_memory();
+    Tox_Time *tm = tox_time_new(&mock_time_funcs, &time_data, mem);
+    set_current_time_callback(tox1, tm);
+    set_current_time_callback(tox2, tm);
+    set_current_time_callback(tox3, tm);
 
     uint8_t dht_key[TOX_PUBLIC_KEY_SIZE];
     tox_self_get_dht_id(tox1, dht_key);

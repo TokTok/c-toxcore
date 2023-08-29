@@ -14,7 +14,7 @@
 #include "events/events_alloc.h"
 #include "mem.h"
 #include "tox.h"
-#include "tox_private.h"
+#include "tox_system_impl.h"
 
 
 /*****************************************************

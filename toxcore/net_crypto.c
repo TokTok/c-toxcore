@@ -128,7 +128,7 @@ static const Crypto_Connection empty_crypto_connection = {{0}};
 struct Net_Crypto {
     const Logger *log;
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     Mono_Time *mono_time;
     const Network *ns;
 
@@ -247,7 +247,7 @@ static int create_cookie_request(const Net_Crypto *c, uint8_t *packet, const uin
  * @retval 0 on success.
  */
 non_null()
-static int create_cookie(const Random *rng, const Mono_Time *mono_time, uint8_t *cookie, const uint8_t *bytes,
+static int create_cookie(const Tox_Random *rng, const Mono_Time *mono_time, uint8_t *cookie, const uint8_t *bytes,
                          const uint8_t *encryption_key)
 {
     uint8_t contents[COOKIE_CONTENTS_LENGTH];
@@ -3108,7 +3108,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
 /** @brief Create new instance of Net_Crypto.
  * Sets all the global connection variables to their default values.
  */
-Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
+Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Tox_Random *rng, const Network *ns,
                            Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info)
 {
     if (dht == nullptr) {

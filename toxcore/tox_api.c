@@ -161,7 +161,7 @@ ACCESSORS(void *, log_, user_data)
 ACCESSORS(bool,, local_discovery_enabled)
 ACCESSORS(bool,, dht_announcements_enabled)
 ACCESSORS(bool,, experimental_thread_safety)
-ACCESSORS(const Tox_System *,, operating_system)
+ACCESSORS(const struct Tox_System *,, operating_system)
 
 //!TOKSTYLE+
 

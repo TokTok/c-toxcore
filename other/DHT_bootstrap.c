@@ -20,6 +20,9 @@
 #include "../toxcore/group_onion_announce.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 
@@ -143,11 +146,11 @@ int main(int argc, char *argv[])
         logger_callback_log(logger, print_log, nullptr, nullptr);
     }
 
-    const Random *rng = system_random();
-    const Network *ns = system_network();
-    const Memory *mem = system_memory();
+    const Random *rng = os_random();
+    const Network *ns = os_network();
+    const Memory *mem = os_memory();
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     const uint16_t start_port = PORT;
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     DHT *dht = new_dht(logger, mem, rng, ns, mono_time, new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr), true, true);

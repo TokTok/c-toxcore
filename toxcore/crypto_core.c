@@ -29,6 +29,7 @@
 #endif
 
 #include "ccompat.h"
+#include "tox_random_impl.h"
 
 #ifndef crypto_box_MACBYTES
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
@@ -245,7 +246,7 @@ uint64_t random_u64(const Random *rng)
 
 uint32_t random_range_u32(const Random *rng, uint32_t upper_bound)
 {
-    return rng->funcs->random_uniform(rng->obj, upper_bound);
+    return tox_random_uniform(rng, upper_bound);
 }
 
 bool crypto_signature_create(uint8_t *signature, const uint8_t *message, uint64_t message_length,
@@ -530,53 +531,7 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
 #endif
 }
 
-non_null()
-static void sys_random_bytes(void *obj, uint8_t *bytes, size_t length)
-{
-    randombytes(bytes, length);
-}
-
-non_null()
-static uint32_t sys_random_uniform(void *obj, uint32_t upper_bound)
-{
-#ifdef VANILLA_NACL
-    if (upper_bound == 0) {
-        return 0;
-    }
-
-    uint32_t randnum;
-    sys_random_bytes(obj, (uint8_t *)&randnum, sizeof(randnum));
-    return randnum % upper_bound;
-#else
-    return randombytes_uniform(upper_bound);
-#endif
-}
-
-static const Random_Funcs system_random_funcs = {
-    sys_random_bytes,
-    sys_random_uniform,
-};
-
-static const Random system_random_obj = {&system_random_funcs};
-
-const Random *system_random(void)
-{
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    if ((true)) {
-        return nullptr;
-    }
-#endif
-#ifndef VANILLA_NACL
-    // It is safe to call this function more than once and from different
-    // threads -- subsequent calls won't have any effects.
-    if (sodium_init() == -1) {
-        return nullptr;
-    }
-#endif
-    return &system_random_obj;
-}
-
 void random_bytes(const Random *rng, uint8_t *bytes, size_t length)
 {
-    rng->funcs->random_bytes(rng->obj, bytes, length);
+    tox_random_bytes(rng, bytes, length);
 }

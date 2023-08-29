@@ -8,6 +8,7 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/crypto_core.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
@@ -26,7 +27,7 @@ static void accept_friend_request(Tox *m, const uint8_t *public_key, const uint8
 
 static void test_many_clients(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     time_t cur_time = time(nullptr);
     Tox *toxes[TCP_TEST_NUM_TOXES];

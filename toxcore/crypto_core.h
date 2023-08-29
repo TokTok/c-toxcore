@@ -13,7 +13,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "tox_attributes.h"
+#include "tox_random.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,21 +75,6 @@ extern "C" {
  * @brief The number of bytes in a SHA512 hash.
  */
 #define CRYPTO_SHA512_SIZE             64
-
-typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
-typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
-
-typedef struct Random_Funcs {
-    crypto_random_bytes_cb *random_bytes;
-    crypto_random_uniform_cb *random_uniform;
-} Random_Funcs;
-
-typedef struct Random {
-    const Random_Funcs *funcs;
-    void *obj;
-} Random;
-
-const Random *system_random(void);
 
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
@@ -207,6 +193,8 @@ bool crypto_sha512_eq(const uint8_t *cksum1, const uint8_t *cksum2);
  */
 non_null()
 bool crypto_sha256_eq(const uint8_t *cksum1, const uint8_t *cksum2);
+
+typedef Tox_Random Random;
 
 /**
  * @brief Return a random 8 bit integer.

@@ -6,6 +6,7 @@
 #include <array>
 #include <vector>
 
+#include "os_random.h"
 #include "util.h"
 
 namespace {
@@ -52,7 +53,7 @@ TEST(CryptoCore, IncrementNonceNumber)
 
 TEST(CryptoCore, Signatures)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     ExtPublicKey pk;
@@ -76,7 +77,7 @@ TEST(CryptoCore, Signatures)
 
 TEST(CryptoCore, Hmac)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     HmacKey sk;

@@ -153,7 +153,7 @@ non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
 static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
-non_null() static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key,
+non_null() static void create_gc_session_keypair(const Logger *log, const Tox_Random *rng, uint8_t *public_key,
         uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 non_null() static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
@@ -744,7 +744,7 @@ static bool expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 
 /** Copies peer connect info from `gconn` to `addr`. */
 non_null()
-static void copy_gc_saved_peer(const Random *rng, const GC_Connection *gconn, GC_SavedPeerInfo *addr)
+static void copy_gc_saved_peer(const Tox_Random *rng, const GC_Connection *gconn, GC_SavedPeerInfo *addr)
 {
     if (!gcc_copy_tcp_relay(rng, &addr->tcp_relay, gconn)) {
         addr->tcp_relay = (Node_format) {
@@ -1469,7 +1469,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
 }
 
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Tox_Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, uint8_t net_packet_type)
 {
@@ -5401,7 +5401,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
  */
 non_null()
 static int wrap_group_handshake_packet(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
+    const Logger *log, const Tox_Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
     const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
     const uint8_t *data, uint16_t length)
 {
@@ -8266,7 +8266,7 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 }
 
 /** Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`. */
-static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key, uint8_t *secret_key)
+static void create_gc_session_keypair(const Logger *log, const Tox_Random *rng, uint8_t *public_key, uint8_t *secret_key)
 {
     if (crypto_new_keypair(rng, public_key, secret_key) != 0) {
         LOGGER_FATAL(log, "Failed to create group session keypair");

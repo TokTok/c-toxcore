@@ -51,7 +51,7 @@ typedef struct Announce_Entry {
 struct Announcements {
     const Logger *log;
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     Forwarding *forwarding;
     const Mono_Time *mono_time;
     DHT *dht;
@@ -637,7 +637,7 @@ static int handle_dht_announce_request(void *object, const IP_Port *source,
     return sendpacket(announce->net, source, reply, len) == len ? 0 : -1;
 }
 
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
+Announcements *new_announcements(const Logger *log, const Memory *mem, const Tox_Random *rng, const Mono_Time *mono_time,
                                  Forwarding *forwarding)
 {
     if (log == nullptr || mono_time == nullptr || forwarding == nullptr) {

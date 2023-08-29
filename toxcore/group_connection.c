@@ -268,7 +268,7 @@ void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
     }
 }
 
-bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Connection *gconn)
+bool gcc_copy_tcp_relay(const Tox_Random *rng, Node_format *tcp_node, const GC_Connection *gconn)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
         return false;
@@ -289,7 +289,7 @@ bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Conne
     return true;
 }
 
-int gcc_save_tcp_relay(const Random *rng, GC_Connection *gconn, const Node_format *tcp_node)
+int gcc_save_tcp_relay(const Tox_Random *rng, GC_Connection *gconn, const Node_format *tcp_node)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
         return -1;

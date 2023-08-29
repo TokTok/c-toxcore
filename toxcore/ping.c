@@ -30,7 +30,7 @@
 
 struct Ping {
     const Mono_Time *mono_time;
-    const Random *rng;
+    const Tox_Random *rng;
     DHT *dht;
 
     Ping_Array  *ping_array;
@@ -336,7 +336,7 @@ void ping_iterate(Ping *ping)
 }
 
 
-Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht)
+Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Tox_Random *rng, DHT *dht)
 {
     Ping *ping = (Ping *)mem_alloc(mem, sizeof(Ping));
 

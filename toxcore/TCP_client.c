@@ -571,7 +571,7 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 
 /** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *new_TCP_connection(
-        const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
+        const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Tox_Random *rng, const Network *ns,
         const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
         const TCP_Proxy_Info *proxy_info)
 {

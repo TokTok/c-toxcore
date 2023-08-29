@@ -8,6 +8,8 @@
 
 #include "crypto_core.h"
 #include "logger.h"
+#include "os_memory.h"
+#include "os_random.h"
 #include "util.h"
 
 namespace {
@@ -18,7 +20,7 @@ using ModerationHash = std::array<uint8_t, MOD_MODERATION_HASH_SIZE>;
 
 TEST(ModList, PackedSizeOfEmptyModListIsZero)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     EXPECT_EQ(mod_list_packed_size(&mods), 0);
 
     uint8_t byte = 1;
@@ -28,14 +30,14 @@ TEST(ModList, PackedSizeOfEmptyModListIsZero)
 
 TEST(ModList, UnpackingZeroSizeArrayIsNoop)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     const uint8_t byte = 1;
     EXPECT_EQ(mod_list_unpack(&mods, &byte, 0, 0), 0);
 }
 
 TEST(ModList, AddRemoveMultipleMods)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     uint8_t sig_pk1[32] = {1};
     uint8_t sig_pk2[32] = {2};
     EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk1));
@@ -47,7 +49,7 @@ TEST(ModList, AddRemoveMultipleMods)
 TEST(ModList, PackingAndUnpackingList)
 {
     using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
 
     std::vector<uint8_t> packed(mod_list_packed_size(&mods));
@@ -55,7 +57,7 @@ TEST(ModList, PackingAndUnpackingList)
 
     EXPECT_TRUE(mod_list_remove_entry(&mods, ModListEntry{}.data()));
 
-    Moderation mods2{system_memory()};
+    Moderation mods2{os_memory()};
     EXPECT_EQ(mod_list_unpack(&mods2, packed.data(), packed.size(), 1), packed.size());
     EXPECT_TRUE(mod_list_remove_entry(&mods2, ModListEntry{}.data()));
 }
@@ -63,13 +65,13 @@ TEST(ModList, PackingAndUnpackingList)
 TEST(ModList, UnpackingTooManyModsFails)
 {
     using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
 
     std::vector<uint8_t> packed(mod_list_packed_size(&mods));
     mod_list_pack(&mods, packed.data());
 
-    Moderation mods2{system_memory()};
+    Moderation mods2{os_memory()};
     EXPECT_EQ(mod_list_unpack(&mods2, packed.data(), packed.size(), 2), -1);
     EXPECT_TRUE(mod_list_remove_entry(&mods, ModListEntry{}.data()));
 }
@@ -78,16 +80,16 @@ TEST(ModList, UnpackingFromEmptyBufferFails)
 {
     std::vector<uint8_t> packed(1);
 
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     EXPECT_EQ(mod_list_unpack(&mods, packed.end().base(), 0, 1), -1);
 }
 
 TEST(ModList, HashOfEmptyModListZeroesOutBuffer)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
 
     // Fill with random data, check that it's zeroed.
     ModerationHash hash;
@@ -98,21 +100,21 @@ TEST(ModList, HashOfEmptyModListZeroesOutBuffer)
 
 TEST(ModList, RemoveIndexFromEmptyModListFails)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     EXPECT_FALSE(mod_list_remove_index(&mods, 0));
     EXPECT_FALSE(mod_list_remove_index(&mods, UINT16_MAX));
 }
 
 TEST(ModList, RemoveEntryFromEmptyModListFails)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     uint8_t sig_pk[32] = {0};
     EXPECT_FALSE(mod_list_remove_entry(&mods, sig_pk));
 }
 
 TEST(ModList, ModListRemoveIndex)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     uint8_t sig_pk[32] = {1};
     EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk));
     EXPECT_TRUE(mod_list_remove_index(&mods, 0));
@@ -120,20 +122,20 @@ TEST(ModList, ModListRemoveIndex)
 
 TEST(ModList, CleanupOnEmptyModsIsNoop)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     mod_list_cleanup(&mods);
 }
 
 TEST(ModList, EmptyModListCannotVerifyAnySigPk)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     uint8_t sig_pk[32] = {1};
     EXPECT_FALSE(mod_list_verify_sig_pk(&mods, sig_pk));
 }
 
 TEST(ModList, ModListAddVerifyRemoveSigPK)
 {
-    Moderation mods{system_memory()};
+    Moderation mods{os_memory()};
     uint8_t sig_pk[32] = {1};
     EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk));
     EXPECT_TRUE(mod_list_verify_sig_pk(&mods, sig_pk));
@@ -143,7 +145,7 @@ TEST(ModList, ModListAddVerifyRemoveSigPK)
 
 TEST(ModList, ModListHashCheck)
 {
-    Moderation mods1{system_memory()};
+    Moderation mods1{os_memory()};
     uint8_t sig_pk1[32] = {1};
     std::array<uint8_t, MOD_MODERATION_HASH_SIZE> hash1;
 
@@ -165,7 +167,7 @@ TEST(SanctionsList, PackingIntoUndersizedBufferFails)
 
 TEST(SanctionsList, PackUnpackSanctionsCreds)
 {
-    Moderation mod{system_memory()};
+    Moderation mod{os_memory()};
     std::array<uint8_t, MOD_SANCTIONS_CREDS_SIZE> packed;
     EXPECT_EQ(sanctions_creds_pack(&mod.sanctions_creds, packed.data()), MOD_SANCTIONS_CREDS_SIZE);
     EXPECT_EQ(
@@ -177,7 +179,7 @@ protected:
     ExtPublicKey pk;
     ExtSecretKey sk;
     Logger *log = logger_new();
-    Moderation mod{system_memory()};
+    Moderation mod{os_memory()};
 
     Mod_Sanction sanctions[2] = {};
     const uint8_t sanctioned_pk1[32] = {1};

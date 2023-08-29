@@ -508,10 +508,7 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
  * combination with tox_private.h, it allows tests to inject non-IO (hermetic)
  * versions of low level network, RNG, and time keeping functions.
  */
-typedef struct Tox_System Tox_System;
-
-Tox_System *tox_system_new(void);
-void tox_system_kill(Tox_System *sys);
+struct Tox_System;
 
 
 /**
@@ -690,7 +687,7 @@ struct Tox_Options {
      * Low level operating system functionality such as send/recv, random
      * number generation, and memory allocation.
      */
-    const Tox_System *operating_system;
+    const struct Tox_System *operating_system;
 
 };
 
@@ -763,9 +760,9 @@ bool tox_options_get_experimental_thread_safety(const struct Tox_Options *option
 
 void tox_options_set_experimental_thread_safety(struct Tox_Options *options, bool experimental_thread_safety);
 
-const Tox_System *tox_options_get_operating_system(const struct Tox_Options *options);
+const struct Tox_System *tox_options_get_operating_system(const struct Tox_Options *options);
 
-void tox_options_set_operating_system(struct Tox_Options *options, const Tox_System *operating_system);
+void tox_options_set_operating_system(struct Tox_Options *options, const struct Tox_System *operating_system);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
@@ -914,7 +911,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
  */
 void tox_kill(Tox *tox);
 
-const Tox_System *tox_get_system(Tox *tox);
+const struct Tox_System *tox_get_system(Tox *tox);
 
 /**
  * @brief Calculates the number of bytes required to store the tox instance with

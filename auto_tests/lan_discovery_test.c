@@ -3,6 +3,8 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/tox_time_impl.h"
 #include "../toxcore/tox_struct.h"
 #include "auto_test_support.h"
 
@@ -11,6 +13,10 @@ static uint64_t get_state_clock_callback(void *user_data)
     const uint64_t *clock = (const uint64_t *)user_data;
     return *clock;
 }
+
+static const Tox_Time_Funcs mock_time_funcs = {
+    get_state_clock_callback,
+};
 
 int main(void)
 {
@@ -21,14 +27,18 @@ int main(void)
     ck_assert(tox1 != nullptr);
     ck_assert(tox2 != nullptr);
 
+    const Memory *mem = os_memory();
+
     uint64_t clock = current_time_monotonic(tox1->mono_time);
+    Tox_Time *tm = tox_time_new(&mock_time_funcs, &clock, mem);
+
     Mono_Time *mono_time;
 
     mono_time = tox1->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
+    mono_time_set_current_time_callback(mono_time, tm);
 
     mono_time = tox2->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
+    mono_time_set_current_time_callback(mono_time, tm);
 
     printf("Waiting for LAN discovery. This loop will attempt to run until successful.");
 

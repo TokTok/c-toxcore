@@ -248,7 +248,7 @@ typedef struct GC_Chat {
     Mono_Time       *mono_time;
     const Logger    *log;
     const Memory    *mem;
-    const Random    *rng;
+    const Tox_Random    *rng;
 
     uint32_t        connected_tcp_relays;
     Self_UDP_Status self_udp_status;

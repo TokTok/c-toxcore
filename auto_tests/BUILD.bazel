@@ -19,6 +19,7 @@ cc_library(
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_time",
     ],
 )
 
@@ -61,9 +62,11 @@ flaky_tests = {
         "//c-toxcore/toxcore:onion",
         "//c-toxcore/toxcore:onion_announce",
         "//c-toxcore/toxcore:onion_client",
+        "//c-toxcore/toxcore:os",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
+        "//c-toxcore/toxcore:tox_time",
         "//c-toxcore/toxcore:util",
         "//c-toxcore/toxencryptsave",
         "@libsodium",

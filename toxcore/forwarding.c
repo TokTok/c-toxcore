@@ -14,7 +14,7 @@
 
 struct Forwarding {
     const Logger *log;
-    const Random *rng;
+    const Tox_Random *rng;
     DHT *dht;
     const Mono_Time *mono_time;
     Networking_Core *net;
@@ -352,7 +352,7 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *new_forwarding(const Logger *log, const Random *rng, const Mono_Time *mono_time, DHT *dht)
+Forwarding *new_forwarding(const Logger *log, const Tox_Random *rng, const Mono_Time *mono_time, DHT *dht)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;

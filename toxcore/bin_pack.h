@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

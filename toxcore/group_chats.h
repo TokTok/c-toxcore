@@ -140,7 +140,7 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  */
 non_null(1, 2, 3, 4, 5) nullable(7)
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Tox_Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, uint8_t net_packet_type);
 

@@ -59,7 +59,7 @@ typedef struct TCP_Secure_Connection {
 struct TCP_Server {
     const Logger *logger;
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     const Network *ns;
     Onion *onion;
     Forwarding *forwarding;
@@ -937,7 +937,7 @@ static Socket new_listening_TCP_socket(const Logger *logger, const Network *ns, 
     return sock;
 }
 
-TCP_Server *new_TCP_server(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
+TCP_Server *new_TCP_server(const Logger *logger, const Memory *mem, const Tox_Random *rng, const Network *ns,
                            bool ipv6_enabled, uint16_t num_sockets,
                            const uint16_t *ports, const uint8_t *secret_key, Onion *onion, Forwarding *forwarding)
 {

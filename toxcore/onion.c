@@ -113,7 +113,7 @@ static int ipport_unpack(IP_Port *target, const uint8_t *data, unsigned int data
  * return -1 on failure.
  * return 0 on success.
  */
-int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes)
+int create_onion_path(const Tox_Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes)
 {
     if (new_path == nullptr || nodes == nullptr) {
         return -1;
@@ -176,7 +176,7 @@ int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_
  * return -1 on failure.
  * return length of created packet on success.
  */
-int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
+int create_onion_packet(const Tox_Random *rng, uint8_t *packet, uint16_t max_packet_length,
                         const Onion_Path *path, const IP_Port *dest,
                         const uint8_t *data, uint16_t length)
 {
@@ -236,7 +236,7 @@ int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_
  * return -1 on failure.
  * return length of created packet on success.
  */
-int create_onion_packet_tcp(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
+int create_onion_packet_tcp(const Tox_Random *rng, uint8_t *packet, uint16_t max_packet_length,
                             const Onion_Path *path, const IP_Port *dest,
                             const uint8_t *data, uint16_t length)
 {
@@ -668,7 +668,7 @@ void set_callback_handle_recv_1(Onion *onion, onion_recv_1_cb *function, void *o
     onion->callback_object = object;
 }
 
-Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht)
+Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Tox_Random *rng, DHT *dht)
 {
     if (dht == nullptr) {
         return nullptr;

@@ -81,6 +81,7 @@ cc_test(
     deps = [
         ":rtp",
         "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:os",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],

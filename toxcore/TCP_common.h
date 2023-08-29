@@ -65,7 +65,7 @@ void wipe_priority_list(const Memory *mem, TCP_Priority_List *p);
 
 typedef struct TCP_Connection {
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     const Network *ns;
     Socket sock;
     IP_Port ip_port;  // for debugging.

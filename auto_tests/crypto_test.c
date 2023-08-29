@@ -4,6 +4,7 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/crypto_core.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/net_crypto.h"
 #include "check_compat.h"
 
@@ -129,7 +130,7 @@ static void test_fast_known(void)
 
 static void test_endtoend(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
     // Test 100 random messages and keypairs
@@ -196,7 +197,7 @@ static void test_endtoend(void)
 
 static void test_large_data(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     uint8_t k[CRYPTO_SHARED_KEY_SIZE];
     uint8_t n[CRYPTO_NONCE_SIZE];
@@ -240,7 +241,7 @@ static void test_large_data(void)
 
 static void test_large_data_symmetric(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     uint8_t k[CRYPTO_SYMMETRIC_KEY_SIZE];
 
@@ -296,7 +297,7 @@ static void increment_nonce_number_cmp(uint8_t *nonce, uint32_t num)
 
 static void test_increment_nonce(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
     uint32_t i;

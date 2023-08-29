@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "os_system.h"
 #include "tox_private.h"
 #include "tox_struct.h"
 
@@ -649,7 +650,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     assert(opts != nullptr);
 
     const Tox_System *sys = tox_options_get_operating_system(opts);
-    const Tox_System default_system = tox_default_system();
+    const Tox_System default_system = os_system(nullptr, nullptr, nullptr, nullptr);
 
     if (sys == nullptr) {
         sys = &default_system;
@@ -777,7 +778,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    tox->mono_time = mono_time_new(tox->sys.mem, sys->mono_time_callback, sys->mono_time_user_data);
+    tox->mono_time = mono_time_new(tox->sys.mem, sys->tm);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -4572,30 +4573,6 @@ bool tox_group_mod_kick_peer(const Tox *tox, uint32_t group_number, uint32_t pee
 }
 
 #endif /* VANILLA_NACL */
-
-Tox_System *tox_system_new(void)
-{
-    const Tox_System default_system = tox_default_system();
-
-    Tox_System *sys = (Tox_System *)mem_alloc(default_system.mem, sizeof(Tox_System));
-
-    if (sys == nullptr) {
-        return nullptr;
-    }
-
-    *sys = default_system;
-
-    return sys;
-}
-
-void tox_system_kill(Tox_System *sys)
-{
-    // Use default system, because we used that to allocate the object, and mem
-    // may have been overridden in the meantime.
-    const Tox_System default_system = tox_default_system();
-
-    mem_delete(default_system.mem, sys);
-}
 
 const Tox_System *tox_get_system(Tox *tox)
 {

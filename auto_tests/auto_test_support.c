@@ -6,6 +6,7 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_time_impl.h"
 
 #include "auto_test_support.h"
 
@@ -159,15 +160,21 @@ static uint64_t get_state_clock_callback(void *user_data)
     return *clock;
 }
 
+static const Tox_Time_Funcs autotox_time_funcs = {
+    get_state_clock_callback,
+};
+
 void set_mono_time_callback(AutoTox *autotox)
 {
     ck_assert(autotox != nullptr);
 
+    autotox->tm = tox_time_new(&autotox_time_funcs, &autotox->clock, autotox->tox->sys.mem);
+
     Mono_Time *mono_time = autotox->tox->mono_time;
 
     autotox->clock = current_time_monotonic(mono_time);
-    mono_time_set_current_time_callback(mono_time, nullptr, nullptr);  // set to default first
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &autotox->clock);
+    mono_time_set_current_time_callback(mono_time, nullptr);  // set to default first
+    mono_time_set_current_time_callback(mono_time, autotox->tm);
 }
 
 void save_autotox(AutoTox *autotox)

@@ -7,13 +7,16 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
 static void test_bucketnum(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     uint8_t key1[CRYPTO_PUBLIC_KEY_SIZE], key2[CRYPTO_PUBLIC_KEY_SIZE];
     random_bytes(rng, key1, sizeof(key1));
@@ -50,17 +53,17 @@ static void test_announce_data(void *object, const uint8_t *data, uint16_t lengt
 
 static void test_store_data(void)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
     Logger *log = logger_new();
     ck_assert(log != nullptr);
     logger_callback_log(log, print_debug_logger, nullptr, nullptr);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Networking_Core *net = new_networking_no_udp(log, mem, ns);
     DHT *dht = new_dht(log, mem, rng, ns, mono_time, net, true, true);
     Forwarding *forwarding = new_forwarding(log, rng, mono_time, dht);
