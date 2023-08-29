@@ -4,11 +4,43 @@ load("//tools/project:build_defs.bzl", "project")
 project()
 
 genrule(
+    name = "toxcore_headers",
+    srcs = ["//c-toxcore/toxcore:public"],
+    outs = [
+        "tox/toxcore/os_log.h",
+        "tox/toxcore/os_memory.h",
+        "tox/toxcore/os_network.h",
+        "tox/toxcore/os_random.h",
+        "tox/toxcore/os_system.h",
+        "tox/toxcore/tox.h",
+        "tox/toxcore/tox_attributes.h",
+        "tox/toxcore/tox_dispatch.h",
+        "tox/toxcore/tox_events.h",
+        "tox/toxcore/tox_log.h",
+        "tox/toxcore/tox_log_impl.h",
+        "tox/toxcore/tox_memory.h",
+        "tox/toxcore/tox_memory_impl.h",
+        "tox/toxcore/tox_network.h",
+        "tox/toxcore/tox_network_impl.h",
+        "tox/toxcore/tox_options.h",
+        "tox/toxcore/tox_random.h",
+        "tox/toxcore/tox_random_impl.h",
+        "tox/toxcore/tox_system.h",
+        "tox/toxcore/tox_system_impl.h",
+        "tox/toxcore/tox_time.h",
+        "tox/toxcore/tox_time_impl.h",
+    ],
+    cmd = "cp $(locations //c-toxcore/toxcore:public) $(GENDIR)/c-toxcore/tox/toxcore/",
+    visibility = ["//visibility:public"],
+)
+
+genrule(
     name = "public_headers",
     srcs = [
+        "toxav.h",
+        "tox.h",
+        "toxencryptsave.h",
         "//c-toxcore/toxav:toxav.h",
-        "//c-toxcore/toxcore:tox.h",
-        "//c-toxcore/toxcore:tox_private.h",
         "//c-toxcore/toxencryptsave:toxencryptsave.h",
     ],
     outs = [
@@ -16,19 +48,31 @@ genrule(
         "tox/tox.h",
         "tox/tox_private.h",
         "tox/toxencryptsave.h",
+        "tox/toxav/toxav.h",
+        "tox/toxencryptsave/toxencryptsave.h",
     ],
     cmd = """
-        cp $(location //c-toxcore/toxav:toxav.h) $(GENDIR)/c-toxcore/tox/toxav.h
-        cp $(location //c-toxcore/toxcore:tox.h) $(GENDIR)/c-toxcore/tox/tox.h
-        cp $(location //c-toxcore/toxcore:tox_private.h) $(GENDIR)/c-toxcore/tox/tox_private.h
-        cp $(location //c-toxcore/toxencryptsave:toxencryptsave.h) $(GENDIR)/c-toxcore/tox/toxencryptsave.h
+        cp $(location toxav.h) $(GENDIR)/c-toxcore/tox/toxav.h
+        cp $(location tox.h) $(GENDIR)/c-toxcore/tox/tox.h
+        cp $(location toxencryptsave.h) $(GENDIR)/c-toxcore/tox/toxencryptsave.h
+        cp $(location //c-toxcore/toxav:toxav.h) $(GENDIR)/c-toxcore/tox/toxav/toxav.h
+        cp $(location //c-toxcore/toxencryptsave:toxencryptsave.h) $(GENDIR)/c-toxcore/tox/toxencryptsave/toxencryptsave.h
     """,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "public",
+    srcs = [
+        ":public_headers",
+        ":toxcore_headers",
+    ],
     visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "c-toxcore",
-    hdrs = [":public_headers"],
+    hdrs = [":public"],
     includes = ["."],
     visibility = ["//visibility:public"],
     deps = [

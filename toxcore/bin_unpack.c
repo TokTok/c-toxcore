@@ -12,6 +12,8 @@
 #include "ccompat.h"
 
 struct Bin_Unpack {
+    const Memory *mem;
+
     const uint8_t *bytes;
     uint32_t bytes_size;
     cmp_ctx_t ctx;
@@ -51,12 +53,13 @@ static size_t null_writer(cmp_ctx_t *ctx, const void *data, size_t count)
     return 0;
 }
 
-Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size)
+Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size, const Memory *mem)
 {
-    Bin_Unpack *bu = (Bin_Unpack *)calloc(1, sizeof(Bin_Unpack));
+    Bin_Unpack *bu = (Bin_Unpack *)mem_alloc(mem, sizeof(Bin_Unpack));
     if (bu == nullptr) {
         return nullptr;
     }
+    bu->mem = mem;
     bu->bytes = buf;
     bu->bytes_size = buf_size;
     cmp_init(&bu->ctx, bu, buf_reader, buf_skipper, null_writer);
@@ -65,7 +68,11 @@ Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size)
 
 void bin_unpack_free(Bin_Unpack *bu)
 {
-    free(bu);
+    if (bu == nullptr) {
+        return;
+    }
+
+    mem_delete(bu->mem, bu);
 }
 
 bool bin_unpack_array(Bin_Unpack *bu, uint32_t *size)
@@ -120,10 +127,14 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
         // There aren't as many bytes as this bin claims to want to allocate.
         return false;
     }
-    uint8_t *const data = (uint8_t *)malloc(bin_size);
+    uint8_t *const data = (uint8_t *)mem_balloc(bu->mem, bin_size);
+
+    if (data == nullptr) {
+        return false;
+    }
 
     if (!bin_unpack_bin_b(bu, data, bin_size)) {
-        free(data);
+        mem_delete(bu->mem, data);
         return false;
     }
 

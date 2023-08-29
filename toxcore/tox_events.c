@@ -14,7 +14,7 @@
 #include "events/events_alloc.h"
 #include "mem.h"
 #include "tox.h"
-#include "tox_private.h"
+#include "tox_system_impl.h"
 
 
 /*****************************************************
@@ -236,7 +236,7 @@ void tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
-    Bin_Unpack *bu = bin_unpack_new(bytes, bytes_size);
+    Bin_Unpack *bu = bin_unpack_new(bytes, bytes_size, sys->mem);
 
     if (bu == nullptr) {
         return nullptr;

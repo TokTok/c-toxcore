@@ -47,6 +47,8 @@
 
 
 struct Broadcast_Info {
+    const Memory *mem;
+
     uint32_t count;
     IP ips[MAX_INTERFACES];
 };
@@ -54,28 +56,30 @@ struct Broadcast_Info {
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
     }
 
-    IP_ADAPTER_INFO *pAdapterInfo = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
+    broadcast->mem = mem;
+
+    IP_ADAPTER_INFO *pAdapterInfo = (IP_ADAPTER_INFO *)mem_balloc(mem, sizeof(IP_ADAPTER_INFO));
     unsigned long ulOutBufLen = sizeof(IP_ADAPTER_INFO);
 
     if (pAdapterInfo == nullptr) {
-        free(broadcast);
+        mem_delete(mem, broadcast);
         return nullptr;
     }
 
     if (GetAdaptersInfo(pAdapterInfo, &ulOutBufLen) == ERROR_BUFFER_OVERFLOW) {
-        free(pAdapterInfo);
-        pAdapterInfo = (IP_ADAPTER_INFO *)malloc(ulOutBufLen);
+        mem_delete(mem, pAdapterInfo);
+        pAdapterInfo = (IP_ADAPTER_INFO *)mem_balloc(mem, ulOutBufLen);
 
         if (pAdapterInfo == nullptr) {
-            free(broadcast);
+            mem_delete(mem, broadcast);
             return nullptr;
         }
     }
@@ -111,7 +115,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
     }
 
     if (pAdapterInfo != nullptr) {
-        free(pAdapterInfo);
+        mem_delete(mem, pAdapterInfo);
     }
 
     return broadcast;
@@ -120,13 +124,15 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 #elif !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && (defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__))
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
     }
+
+    broadcast->mem = mem;
 
     /* Not sure how many platforms this will run on,
      * so it's wrapped in `__linux__` for now.
@@ -135,7 +141,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
     const Socket sock = net_socket(ns, net_family_ipv4(), TOX_SOCK_STREAM, 0);
 
     if (!sock_valid(sock)) {
-        free(broadcast);
+        mem_delete(mem, broadcast);
         return nullptr;
     }
 
@@ -149,7 +155,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 
     if (ioctl(sock.sock, SIOCGIFCONF, &ifc) < 0) {
         kill_sock(ns, sock);
-        free(broadcast);
+        mem_delete(mem, broadcast);
         return nullptr;
     }
 
@@ -196,9 +202,17 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 #else // TODO(irungentoo): Other platforms?
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    return (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
+
+    if (broadcast == nullptr) {
+        return nullptr;
+    }
+
+    broadcast->mem = mem;
+
+    return broadcast;
 }
 
 #endif
@@ -376,12 +390,16 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
 }
 
 
-Broadcast_Info *lan_discovery_init(const Network *ns)
+Broadcast_Info *lan_discovery_init(const Memory *mem, const Network *ns)
 {
-    return fetch_broadcast_info(ns);
+    return fetch_broadcast_info(mem, ns);
 }
 
 void lan_discovery_kill(Broadcast_Info *broadcast)
 {
-    free(broadcast);
+    if (broadcast == nullptr) {
+        return;
+    }
+
+    mem_delete(broadcast->mem, broadcast);
 }

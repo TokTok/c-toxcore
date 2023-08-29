@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include "ccompat.h"
+#include "tox_time_impl.h"
 
 /** don't call into system billions of times for no reason */
 struct Mono_Time {
@@ -49,8 +50,8 @@ struct Mono_Time {
     pthread_rwlock_t *time_update_lock;
 #endif
 
-    mono_time_current_time_cb *current_time_callback;
-    void *user_data;
+    const Tox_Time *tm;
+    Tox_Time default_tm;
 };
 
 #ifdef OS_WIN32
@@ -121,8 +122,12 @@ static uint64_t current_time_monotonic_default(void *user_data)
 #endif // !__APPLE__
 #endif // !OS_WIN32
 
+static const Tox_Time_Funcs os_time_funcs = {
+    current_time_monotonic_default,
+};
 
-Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_time_callback, void *user_data)
+
+Mono_Time *mono_time_new(const Memory *mem, const Tox_Time *tm)
 {
     Mono_Time *mono_time = (Mono_Time *)mem_alloc(mem, sizeof(Mono_Time));
 
@@ -145,7 +150,10 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     }
 #endif
 
-    mono_time_set_current_time_callback(mono_time, current_time_callback, user_data);
+    mono_time->default_tm.funcs = &os_time_funcs;
+    mono_time->default_tm.user_data = mono_time;
+
+    mono_time_set_current_time_callback(mono_time, tm);
 
 #ifdef OS_WIN32
 
@@ -195,8 +203,7 @@ void mono_time_update(Mono_Time *mono_time)
     pthread_mutex_lock(&mono_time->last_clock_lock);
     mono_time->last_clock_update = true;
 #endif
-    const uint64_t cur_time =
-        mono_time->base_time + mono_time->current_time_callback(mono_time->user_data);
+    const uint64_t cur_time = tox_time_monotonic(mono_time->tm) / 1000ULL + mono_time->base_time;
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
@@ -233,16 +240,9 @@ bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64
     return timestamp + timeout <= mono_time_get(mono_time);
 }
 
-void mono_time_set_current_time_callback(Mono_Time *mono_time,
-        mono_time_current_time_cb *current_time_callback, void *user_data)
+void mono_time_set_current_time_callback(Mono_Time *mono_time, const Tox_Time *tm)
 {
-    if (current_time_callback == nullptr) {
-        mono_time->current_time_callback = current_time_monotonic_default;
-        mono_time->user_data = mono_time;
-    } else {
-        mono_time->current_time_callback = current_time_callback;
-        mono_time->user_data = user_data;
-    }
+    mono_time->tm = tm != nullptr ? tm : &mono_time->default_tm;
 }
 
 /** @brief Return current monotonic time in milliseconds (ms).
@@ -258,7 +258,7 @@ uint64_t current_time_monotonic(Mono_Time *mono_time)
      * but must protect against other threads */
     pthread_mutex_lock(&mono_time->last_clock_lock);
 #endif
-    const uint64_t cur_time = mono_time->current_time_callback(mono_time->user_data);
+    const uint64_t cur_time = tox_time_monotonic(mono_time->tm);
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif

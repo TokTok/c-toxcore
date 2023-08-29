@@ -46,7 +46,8 @@ void set_filter_function(Friend_Requests *fr, filter_function_cb *function, void
 non_null()
 void friendreq_init(Friend_Requests *fr, Friend_Connections *fr_c);
 
-Friend_Requests *friendreq_new(void);
+non_null()
+Friend_Requests *friendreq_new(const Memory *mem);
 
 nullable(1)
 void friendreq_kill(Friend_Requests *fr);

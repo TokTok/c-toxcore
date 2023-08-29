@@ -114,7 +114,7 @@ static bool resize(BS_List *list, uint32_t new_size)
         return true;
     }
 
-    uint8_t *data = (uint8_t *)realloc(list->data, list->element_size * new_size);
+    uint8_t *data = (uint8_t *)mem_brealloc(list->mem, list->data, new_size * list->element_size);
 
     if (data == nullptr) {
         return false;
@@ -122,7 +122,7 @@ static bool resize(BS_List *list, uint32_t new_size)
 
     list->data = data;
 
-    int *ids = (int *)realloc(list->ids, sizeof(int) * new_size);
+    int *ids = (int *)mem_brealloc(list->mem, list->ids, new_size * sizeof(int));
 
     if (ids == nullptr) {
         return false;
@@ -134,8 +134,10 @@ static bool resize(BS_List *list, uint32_t new_size)
 }
 
 
-int bs_list_init(BS_List *list, uint32_t element_size, uint32_t initial_capacity)
+int bs_list_init(BS_List *list, uint32_t element_size, uint32_t initial_capacity, const Memory *mem)
 {
+    list->mem = mem;
+
     // set initial values
     list->n = 0;
     list->element_size = element_size;
@@ -161,10 +163,10 @@ void bs_list_free(BS_List *list)
     }
 
     // free both arrays
-    free(list->data);
+    mem_delete(list->mem, list->data);
     list->data = nullptr;
 
-    free(list->ids);
+    mem_delete(list->mem, list->ids);
     list->ids = nullptr;
 }
 

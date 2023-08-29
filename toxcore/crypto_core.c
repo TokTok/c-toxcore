@@ -29,6 +29,7 @@
 #endif
 
 #include "ccompat.h"
+#include "tox_random_impl.h"
 
 #ifndef crypto_box_MACBYTES
 #define crypto_box_MACBYTES (crypto_box_ZEROBYTES - crypto_box_BOXZEROBYTES)
@@ -116,9 +117,10 @@ const uint8_t *get_chat_id(const uint8_t *key)
 }
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-static uint8_t *crypto_malloc(size_t bytes)
+non_null()
+static uint8_t *crypto_malloc(const Memory *mem, size_t bytes)
 {
-    uint8_t *ptr = (uint8_t *)malloc(bytes);
+    uint8_t *ptr = (uint8_t *)mem_balloc(mem, bytes);
 
     if (ptr != nullptr) {
         crypto_memlock(ptr, bytes);
@@ -127,15 +129,15 @@ static uint8_t *crypto_malloc(size_t bytes)
     return ptr;
 }
 
-nullable(1)
-static void crypto_free(uint8_t *ptr, size_t bytes)
+non_null(1) nullable(2)
+static void crypto_free(const Memory *mem, uint8_t *ptr, size_t bytes)
 {
     if (ptr != nullptr) {
         crypto_memzero(ptr, bytes);
         crypto_memunlock(ptr, bytes);
     }
 
-    free(ptr);
+    mem_delete(mem, ptr);
 }
 #endif  // !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 
@@ -245,7 +247,7 @@ uint64_t random_u64(const Random *rng)
 
 uint32_t random_range_u32(const Random *rng, uint32_t upper_bound)
 {
-    return rng->funcs->random_uniform(rng->obj, upper_bound);
+    return tox_random_uniform(rng, upper_bound);
 }
 
 bool crypto_signature_create(uint8_t *signature, const uint8_t *message, uint64_t message_length,
@@ -286,7 +288,8 @@ int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
 }
 
 int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
-                               const uint8_t *plain, size_t length, uint8_t *encrypted)
+                               const uint8_t *plain, size_t length, uint8_t *encrypted,
+                               const Memory *mem)
 {
     if (length == 0 || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
         return -1;
@@ -302,12 +305,12 @@ int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_MACBYTES + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(size_temp_encrypted);
+    uint8_t *temp_plain = crypto_malloc(mem, size_temp_plain);
+    uint8_t *temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
-        crypto_free(temp_plain, size_temp_plain);
-        crypto_free(temp_encrypted, size_temp_encrypted);
+        crypto_free(mem, temp_plain, size_temp_plain);
+        crypto_free(mem, temp_encrypted, size_temp_encrypted);
         return -1;
     }
 
@@ -322,23 +325,24 @@ int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
 
     if (crypto_box_afternm(temp_encrypted, temp_plain, length + crypto_box_ZEROBYTES, nonce,
                            shared_key) != 0) {
-        crypto_free(temp_plain, size_temp_plain);
-        crypto_free(temp_encrypted, size_temp_encrypted);
+        crypto_free(mem, temp_plain, size_temp_plain);
+        crypto_free(mem, temp_encrypted, size_temp_encrypted);
         return -1;
     }
 
     // Unpad the encrypted message.
     memcpy(encrypted, temp_encrypted + crypto_box_BOXZEROBYTES, length + crypto_box_MACBYTES);
 
-    crypto_free(temp_plain, size_temp_plain);
-    crypto_free(temp_encrypted, size_temp_encrypted);
+    crypto_free(mem, temp_plain, size_temp_plain);
+    crypto_free(mem, temp_encrypted, size_temp_encrypted);
 #endif
     assert(length < INT32_MAX - crypto_box_MACBYTES);
     return (int32_t)(length + crypto_box_MACBYTES);
 }
 
 int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
-                               const uint8_t *encrypted, size_t length, uint8_t *plain)
+                               const uint8_t *encrypted, size_t length, uint8_t *plain,
+                               const Memory *mem)
 {
     if (length <= crypto_box_BOXZEROBYTES || shared_key == nullptr || nonce == nullptr || encrypted == nullptr
             || plain == nullptr) {
@@ -353,12 +357,12 @@ int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(size_temp_encrypted);
+    uint8_t *temp_plain = crypto_malloc(mem, size_temp_plain);
+    uint8_t *temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
-        crypto_free(temp_plain, size_temp_plain);
-        crypto_free(temp_encrypted, size_temp_encrypted);
+        crypto_free(mem, temp_plain, size_temp_plain);
+        crypto_free(mem, temp_encrypted, size_temp_encrypted);
         return -1;
     }
 
@@ -373,15 +377,15 @@ int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
 
     if (crypto_box_open_afternm(temp_plain, temp_encrypted, length + crypto_box_BOXZEROBYTES, nonce,
                                 shared_key) != 0) {
-        crypto_free(temp_plain, size_temp_plain);
-        crypto_free(temp_encrypted, size_temp_encrypted);
+        crypto_free(mem, temp_plain, size_temp_plain);
+        crypto_free(mem, temp_encrypted, size_temp_encrypted);
         return -1;
     }
 
     memcpy(plain, temp_plain + crypto_box_ZEROBYTES, length - crypto_box_MACBYTES);
 
-    crypto_free(temp_plain, size_temp_plain);
-    crypto_free(temp_encrypted, size_temp_encrypted);
+    crypto_free(mem, temp_plain, size_temp_plain);
+    crypto_free(mem, temp_encrypted, size_temp_encrypted);
 #endif
     assert(length > crypto_box_MACBYTES);
     assert(length < INT32_MAX);
@@ -389,7 +393,7 @@ int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce,
 }
 
 int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce,
-                     const uint8_t *plain, size_t length, uint8_t *encrypted)
+                     const uint8_t *plain, size_t length, uint8_t *encrypted, const Memory *mem)
 {
     if (public_key == nullptr || secret_key == nullptr) {
         return -1;
@@ -397,13 +401,13 @@ int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const
 
     uint8_t k[crypto_box_BEFORENMBYTES];
     encrypt_precompute(public_key, secret_key, k);
-    const int ret = encrypt_data_symmetric(k, nonce, plain, length, encrypted);
+    const int ret = encrypt_data_symmetric(k, nonce, plain, length, encrypted, mem);
     crypto_memzero(k, sizeof(k));
     return ret;
 }
 
 int32_t decrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce,
-                     const uint8_t *encrypted, size_t length, uint8_t *plain)
+                     const uint8_t *encrypted, size_t length, uint8_t *plain, const Memory *mem)
 {
     if (public_key == nullptr || secret_key == nullptr) {
         return -1;
@@ -411,7 +415,7 @@ int32_t decrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const
 
     uint8_t k[crypto_box_BEFORENMBYTES];
     encrypt_precompute(public_key, secret_key, k);
-    const int ret = decrypt_data_symmetric(k, nonce, encrypted, length, plain);
+    const int ret = decrypt_data_symmetric(k, nonce, encrypted, length, plain, mem);
     crypto_memzero(k, sizeof(k));
     return ret;
 }
@@ -530,53 +534,7 @@ void crypto_sha512(uint8_t *hash, const uint8_t *data, size_t length)
 #endif
 }
 
-non_null()
-static void sys_random_bytes(void *obj, uint8_t *bytes, size_t length)
-{
-    randombytes(bytes, length);
-}
-
-non_null()
-static uint32_t sys_random_uniform(void *obj, uint32_t upper_bound)
-{
-#ifdef VANILLA_NACL
-    if (upper_bound == 0) {
-        return 0;
-    }
-
-    uint32_t randnum;
-    sys_random_bytes(obj, (uint8_t *)&randnum, sizeof(randnum));
-    return randnum % upper_bound;
-#else
-    return randombytes_uniform(upper_bound);
-#endif
-}
-
-static const Random_Funcs system_random_funcs = {
-    sys_random_bytes,
-    sys_random_uniform,
-};
-
-static const Random system_random_obj = {&system_random_funcs};
-
-const Random *system_random(void)
-{
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    if ((true)) {
-        return nullptr;
-    }
-#endif
-#ifndef VANILLA_NACL
-    // It is safe to call this function more than once and from different
-    // threads -- subsequent calls won't have any effects.
-    if (sodium_init() == -1) {
-        return nullptr;
-    }
-#endif
-    return &system_random_obj;
-}
-
 void random_bytes(const Random *rng, uint8_t *bytes, size_t length)
 {
-    rng->funcs->random_bytes(rng->obj, bytes, length);
+    tox_random_bytes(rng, bytes, length);
 }
