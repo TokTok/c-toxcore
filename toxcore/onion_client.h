@@ -13,7 +13,6 @@
 #include <stdbool.h>
 
 #include "DHT.h"
-#include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
@@ -22,6 +21,7 @@
 #include "network.h"
 #include "onion_announce.h"
 #include "ping_array.h"
+#include "tox_attributes.h"
 
 #define MAX_ONION_CLIENTS 8
 #define MAX_ONION_CLIENTS_ANNOUNCE 12 // Number of nodes to announce ourselves to.

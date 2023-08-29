@@ -13,65 +13,15 @@
 #include <stddef.h>     // size_t
 #include <stdint.h>     // uint*_t
 
-#include "attributes.h"
 #include "bin_pack.h"
 #include "logger.h"
 #include "mem.h"
+#include "tox_attributes.h"
+#include "tox_network.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * @brief Wrapper for sockaddr_storage and size.
- */
-typedef struct Network_Addr Network_Addr;
-
-typedef int net_close_cb(void *obj, int sock);
-typedef int net_accept_cb(void *obj, int sock);
-typedef int net_bind_cb(void *obj, int sock, const Network_Addr *addr);
-typedef int net_listen_cb(void *obj, int sock, int backlog);
-typedef int net_recvbuf_cb(void *obj, int sock);
-typedef int net_recv_cb(void *obj, int sock, uint8_t *buf, size_t len);
-typedef int net_recvfrom_cb(void *obj, int sock, uint8_t *buf, size_t len, Network_Addr *addr);
-typedef int net_send_cb(void *obj, int sock, const uint8_t *buf, size_t len);
-typedef int net_sendto_cb(void *obj, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr);
-typedef int net_socket_cb(void *obj, int domain, int type, int proto);
-typedef int net_socket_nonblock_cb(void *obj, int sock, bool nonblock);
-typedef int net_getsockopt_cb(void *obj, int sock, int level, int optname, void *optval, size_t *optlen);
-typedef int net_setsockopt_cb(void *obj, int sock, int level, int optname, const void *optval, size_t optlen);
-typedef int net_getaddrinfo_cb(void *obj, int family, Network_Addr **addrs);
-typedef int net_freeaddrinfo_cb(void *obj, Network_Addr *addrs);
-
-/** @brief Functions wrapping POSIX network functions.
- *
- * Refer to POSIX man pages for documentation of what these functions are
- * expected to do when providing alternative Network implementations.
- */
-typedef struct Network_Funcs {
-    net_close_cb *close;
-    net_accept_cb *accept;
-    net_bind_cb *bind;
-    net_listen_cb *listen;
-    net_recvbuf_cb *recvbuf;
-    net_recv_cb *recv;
-    net_recvfrom_cb *recvfrom;
-    net_send_cb *send;
-    net_sendto_cb *sendto;
-    net_socket_cb *socket;
-    net_socket_nonblock_cb *socket_nonblock;
-    net_getsockopt_cb *getsockopt;
-    net_setsockopt_cb *setsockopt;
-    net_getaddrinfo_cb *getaddrinfo;
-    net_freeaddrinfo_cb *freeaddrinfo;
-} Network_Funcs;
-
-typedef struct Network {
-    const Network_Funcs *funcs;
-    void *obj;
-} Network;
-
-const Network *os_network(void);
 
 typedef struct Family {
     uint8_t value;
@@ -214,6 +164,8 @@ typedef struct IP_Port {
 typedef struct Socket {
     int sock;
 } Socket;
+
+typedef Tox_Network Network;
 
 non_null()
 Socket net_socket(const Network *ns, Family domain, int type, int protocol);
@@ -546,7 +498,7 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
  * @return true on success, false on failure.
  */
 non_null()
-bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port);
+bool bind_to_port(const Network *ns, const Memory *mem, Socket sock, Family family, uint16_t port);
 
 /** @brief Get the last networking error code.
  *

@@ -6,11 +6,11 @@
 
 #include <assert.h>
 
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "ccompat.h"
 #include "mem.h"
+#include "tox_attributes.h"
 #include "tox_events.h"
 
 const char *tox_event_type_to_string(Tox_Event_Type type)

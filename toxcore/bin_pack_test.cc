@@ -8,6 +8,7 @@
 
 #include "bin_unpack.h"
 #include "logger.h"
+#include "mem_test_util.hh"
 
 namespace {
 
@@ -24,6 +25,8 @@ TEST(BinPack, TooSmallBufferIsNotExceeded)
 
 TEST(BinPack, PackedUint64CanBeUnpacked)
 {
+    Test_Memory mem;
+
     const uint64_t orig = 1234567812345678LL;
     std::array<uint8_t, 8> buf;
     EXPECT_TRUE(bin_pack_obj(
@@ -37,12 +40,14 @@ TEST(BinPack, PackedUint64CanBeUnpacked)
         [](void *obj, Bin_Unpack *bu) {
             return bin_unpack_u64_b(bu, static_cast<uint64_t *>(obj));
         },
-        &unpacked, buf.data(), buf.size()));
+        &unpacked, buf.data(), buf.size(), mem));
     EXPECT_EQ(unpacked, 1234567812345678LL);
 }
 
 TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
 {
+    Test_Memory mem;
+
     const uint8_t orig = 123;
     std::array<uint8_t, 2> buf;
     EXPECT_TRUE(bin_pack_obj(
@@ -54,12 +59,14 @@ TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
     uint32_t unpacked;
     EXPECT_TRUE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u32(bu, static_cast<uint32_t *>(obj)); },
-        &unpacked, buf.data(), buf.size()));
+        &unpacked, buf.data(), buf.size(), mem));
     EXPECT_EQ(unpacked, 123);
 }
 
 TEST(BinPack, MsgPackedUint32CanBeUnpackedAsUint8IfSmallEnough)
 {
+    Test_Memory mem;
+
     const uint32_t orig = 123;
     std::array<uint8_t, 2> buf;
     EXPECT_TRUE(bin_pack_obj(
@@ -71,13 +78,15 @@ TEST(BinPack, MsgPackedUint32CanBeUnpackedAsUint8IfSmallEnough)
     uint8_t unpacked;
     EXPECT_TRUE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u08(bu, static_cast<uint8_t *>(obj)); },
-        &unpacked, buf.data(), buf.size()));
+        &unpacked, buf.data(), buf.size(), mem));
 
     EXPECT_EQ(unpacked, 123);
 }
 
 TEST(BinPack, LargeMsgPackedUint32CannotBeUnpackedAsUint8)
 {
+    Test_Memory mem;
+
     const uint32_t orig = 1234567;
     std::array<uint8_t, 5> buf;
     EXPECT_TRUE(bin_pack_obj(
@@ -89,11 +98,13 @@ TEST(BinPack, LargeMsgPackedUint32CannotBeUnpackedAsUint8)
     uint8_t unpacked;
     EXPECT_FALSE(bin_unpack_obj(
         [](void *obj, Bin_Unpack *bu) { return bin_unpack_u08(bu, static_cast<uint8_t *>(obj)); },
-        &unpacked, buf.data(), buf.size()));
+        &unpacked, buf.data(), buf.size(), mem));
 }
 
 TEST(BinPack, BinCanHoldPackedInts)
 {
+    Test_Memory mem;
+
     struct Stuff {
         uint64_t u64;
         uint16_t u16;
@@ -121,13 +132,15 @@ TEST(BinPack, BinCanHoldPackedInts)
                 && bin_unpack_u64_b(bu, &stuff->u64)  //
                 && bin_unpack_u16_b(bu, &stuff->u16);
         },
-        &unpacked, buf.data(), buf.size()));
+        &unpacked, buf.data(), buf.size(), mem));
     EXPECT_EQ(unpacked.u64, 1234567812345678LL);
     EXPECT_EQ(unpacked.u16, 54321);
 }
 
 TEST(BinPack, BinCanHoldArbitraryData)
 {
+    Test_Memory mem;
+
     std::array<uint8_t, 7> buf;
     EXPECT_TRUE(bin_pack_obj(
         [](const void *obj, const Logger *logger, Bin_Pack *bp) {
@@ -142,12 +155,14 @@ TEST(BinPack, BinCanHoldArbitraryData)
             uint8_t *data = static_cast<uint8_t *>(obj);
             return bin_unpack_bin_fixed(bu, data, 5);
         },
-        str.data(), buf.data(), buf.size()));
+        str.data(), buf.data(), buf.size(), mem));
     EXPECT_EQ(str, (std::array<uint8_t, 5>{'h', 'e', 'l', 'l', 'o'}));
 }
 
 TEST(BinPack, OversizedArrayFailsUnpack)
 {
+    Test_Memory mem;
+
     std::array<uint8_t, 1> buf = {0x91};
 
     uint32_t size;
@@ -156,7 +171,7 @@ TEST(BinPack, OversizedArrayFailsUnpack)
             uint32_t *size_ptr = static_cast<uint32_t *>(obj);
             return bin_unpack_array(bu, size_ptr);
         },
-        &size, buf.data(), buf.size()));
+        &size, buf.data(), buf.size(), mem));
 }
 
 }  // namespace

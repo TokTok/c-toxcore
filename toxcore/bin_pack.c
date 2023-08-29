@@ -8,11 +8,14 @@
 #include <string.h>
 
 #include "../third_party/cmp/cmp.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "logger.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 struct Bin_Pack {
+    const Memory *mem;
+
     uint8_t *bytes;
     uint32_t bytes_size;
     uint32_t bytes_pos;
@@ -57,6 +60,7 @@ static size_t buf_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 non_null(1) nullable(2)
 static void bin_pack_init(Bin_Pack *bp, uint8_t *buf, uint32_t buf_size)
 {
+    bp->mem = nullptr;
     bp->bytes = buf;
     bp->bytes_size = buf_size;
     bp->bytes_pos = 0;

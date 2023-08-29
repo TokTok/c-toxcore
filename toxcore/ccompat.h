@@ -10,7 +10,7 @@
 
 #include <stddef.h>  // NULL, size_t
 
-#include "attributes.h"
+#include "tox_attributes.h"
 
 //!TOKSTYLE-
 

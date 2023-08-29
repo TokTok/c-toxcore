@@ -4,9 +4,9 @@
 #ifndef C_TOXCORE_TOXCORE_TIMED_AUTH_H
 #define C_TOXCORE_TOXCORE_TIMED_AUTH_H
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 #define TIMED_AUTH_SIZE CRYPTO_HMAC_SIZE
 

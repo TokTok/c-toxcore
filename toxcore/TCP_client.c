@@ -13,7 +13,6 @@
 #include <string.h>
 
 #include "TCP_common.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -21,6 +20,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 typedef struct TCP_Client_Conn {
@@ -313,7 +313,7 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     memcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(tcp_conn->con.rng, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE);
     const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
-                                           sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
+                                     sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, tcp_conn->con.mem);
 
     if (len != sizeof(plain) + CRYPTO_MAC_SIZE) {
         return -1;
@@ -335,7 +335,7 @@ static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     const int len = decrypt_data_symmetric(tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
-                                           TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain);
+                                     TCP_SERVER_HANDSHAKE_SIZE - CRYPTO_NONCE_SIZE, plain, tcp_conn->con.mem);
 
     if (len != sizeof(plain)) {
         return -1;

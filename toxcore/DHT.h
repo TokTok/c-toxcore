@@ -11,13 +11,13 @@
 
 #include <stdbool.h>
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
 #include "ping_array.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -114,7 +114,7 @@ extern "C" {
 non_null()
 int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
                    uint8_t *packet, const uint8_t *recv_public_key,
-                   const uint8_t *data, uint32_t data_length, uint8_t request_id);
+                   const uint8_t *data, uint32_t data_length, uint8_t request_id, const Memory *mem);
 
 /**
  * @brief Decrypts and unpacks a DHT request packet.
@@ -141,7 +141,7 @@ int create_request(const Random *rng, const uint8_t *send_public_key, const uint
 non_null()
 int handle_request(
     const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
-    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length);
+    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length, const Memory *mem);
 
 typedef struct IPPTs {
     IP_Port     ip_port;

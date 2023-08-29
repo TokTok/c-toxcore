@@ -14,10 +14,10 @@
 #include <stdint.h>
 
 #include "DHT.h"
-#include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

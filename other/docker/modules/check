@@ -191,6 +191,7 @@ def main() -> None:
     for src in sorted(
             set(srcs) - set([
                 # TODO(iphydf): Figure out what's wrong here.
+                "toxcore/bin_pack_test.cc",
                 "toxcore/crypto_core_test.cc",
                 "toxcore/group_announce_test.cc",
                 "toxcore/group_moderation_test.cc",

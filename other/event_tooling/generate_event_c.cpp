@@ -172,12 +172,12 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
     f << R"(
 
-#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
 #include "../mem.h"
 #include "../tox.h"
+#include "../tox_attributes.h"
 #include "../tox_events.h")";
     if (need_tox_unpack_h) {
         f << R"(

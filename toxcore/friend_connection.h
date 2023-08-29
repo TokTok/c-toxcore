@@ -13,12 +13,13 @@
 
 #include "DHT.h"
 #include "LAN_discovery.h"
-#include "attributes.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "tox_attributes.h"
 
 #define MAX_FRIEND_CONNECTION_CALLBACKS 2
 #define MESSENGER_CALLBACK_INDEX 0
@@ -161,8 +162,8 @@ void set_friend_request_callback(Friend_Connections *fr_c, fr_request_cb *fr_req
 /** Create new friend_connections instance. */
 non_null()
 Friend_Connections *new_friend_connections(
-    const Logger *logger, const Mono_Time *mono_time, const Network *ns,
-    Onion_Client *onion_c, bool local_discovery_enabled);
+        const Logger *logger, const Mono_Time *mono_time, const Memory *mem, const Network *ns,
+        Onion_Client *onion_c, bool local_discovery_enabled);
 
 /** main friend_connections loop. */
 non_null()

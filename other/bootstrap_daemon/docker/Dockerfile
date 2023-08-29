@@ -27,7 +27,9 @@ COPY other/DHT_bootstrap.c other/
 COPY other/pkgconfig other/pkgconfig
 COPY other/rpm other/rpm
 COPY testing/misc_tools.[ch] testing/
+COPY tox.h ./
 COPY toxcore toxcore
+COPY toxencryptsave.h ./
 COPY toxencryptsave toxencryptsave
 COPY third_party third_party
 COPY CMakeLists.txt so.version ./

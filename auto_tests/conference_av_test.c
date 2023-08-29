@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "../toxav/toxav.h"
+#include "../toxcore/os_random.h"
 #include "check_compat.h"
 
 #define NUM_AV_GROUP_TOX 16
