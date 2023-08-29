@@ -31,7 +31,7 @@
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
 #include "../../toxcore/tox_private.h"
-#include "../../toxcore/tox_struct.h"
+#include "../../toxcore/tox_impl.h"
 #include "../../toxcore/util.h"
 #include "fuzz_support.h"
 

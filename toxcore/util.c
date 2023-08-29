@@ -13,6 +13,7 @@
 
 #include "util.h"
 
+#include <pthread.h>
 #include <string.h>
 
 #include "ccompat.h"

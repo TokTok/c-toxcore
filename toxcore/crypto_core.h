@@ -13,7 +13,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "mem.h"
+#include "tox_attributes.h"
+#include "tox_random.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,21 +76,6 @@ extern "C" {
  * @brief The number of bytes in a SHA512 hash.
  */
 #define CRYPTO_SHA512_SIZE             64
-
-typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
-typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
-
-typedef struct Random_Funcs {
-    crypto_random_bytes_cb *random_bytes;
-    crypto_random_uniform_cb *random_uniform;
-} Random_Funcs;
-
-typedef struct Random {
-    const Random_Funcs *funcs;
-    void *obj;
-} Random;
-
-const Random *system_random(void);
 
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
@@ -207,6 +194,11 @@ bool crypto_sha512_eq(const uint8_t *cksum1, const uint8_t *cksum2);
  */
 non_null()
 bool crypto_sha256_eq(const uint8_t *cksum1, const uint8_t *cksum2);
+
+/**
+ * @brief Shorter internal name for the RNG type.
+ */
+typedef Tox_Random Random;
 
 /**
  * @brief Return a random 8 bit integer.
@@ -337,7 +329,7 @@ void crypto_derive_public_key(uint8_t *public_key, const uint8_t *secret_key);
  */
 non_null()
 int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce, const uint8_t *plain,
-                     size_t length, uint8_t *encrypted);
+                     size_t length, uint8_t *encrypted, const Memory *mem);
 
 /**
  * @brief Decrypt message from public key to secret key.
@@ -352,7 +344,7 @@ int32_t encrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const
  */
 non_null()
 int32_t decrypt_data(const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *nonce,
-                     const uint8_t *encrypted, size_t length, uint8_t *plain);
+                     const uint8_t *encrypted, size_t length, uint8_t *plain, const Memory *mem);
 
 /**
  * @brief Fast encrypt/decrypt operations.
@@ -376,7 +368,7 @@ int32_t encrypt_precompute(const uint8_t *public_key, const uint8_t *secret_key,
  */
 non_null()
 int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce, const uint8_t *plain, size_t length,
-                               uint8_t *encrypted);
+                               uint8_t *encrypted, const Memory *mem);
 
 /**
  * @brief Decrypt message with precomputed shared key.
@@ -390,7 +382,7 @@ int32_t encrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce, 
  */
 non_null()
 int32_t decrypt_data_symmetric(const uint8_t *shared_key, const uint8_t *nonce, const uint8_t *encrypted, size_t length,
-                               uint8_t *plain);
+                               uint8_t *plain, const Memory *mem);
 
 /**
  * @brief Increment the given nonce by 1 in big endian (rightmost byte incremented

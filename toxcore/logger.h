@@ -11,7 +11,8 @@
 
 #include <stdint.h>
 
-#include "attributes.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +39,8 @@ typedef void logger_cb(void *context, Logger_Level level, const char *file, int 
 /**
  * Creates a new logger with logging disabled (callback is NULL) by default.
  */
-Logger *logger_new(void);
+non_null()
+Logger *logger_new(const Memory *mem);
 
 /**
  * Frees all resources associated with the logger.

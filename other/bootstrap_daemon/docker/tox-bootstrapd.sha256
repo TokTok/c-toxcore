@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 7e935410e534383805cf9579f0f1855a31a034a9d04d498524ef5eb4bbabd496  /usr/local/bin/tox-bootstrapd
+=======
+49c44a4028d24eae746054a47456aa6114c4b35dabd20077027d38ce6a3d3caf  /usr/local/bin/tox-bootstrapd
+>>>>>>> b40bf3b93 (refactor: Move some OS-specifics into tox_system.)

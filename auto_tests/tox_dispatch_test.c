@@ -44,7 +44,7 @@ static void dump_events(const char *path, const Tox_Events *events)
     }
 }
 
-static void print_events(const Tox_System *sys, Tox_Events *events)
+static void print_events(const struct Tox_System *sys, Tox_Events *events)
 {
     const uint32_t size = tox_events_bytes_size(events);
 
@@ -65,7 +65,7 @@ static void print_events(const Tox_System *sys, Tox_Events *events)
 
 static bool await_message(Tox **toxes, const Tox_Dispatch *dispatch)
 {
-    const Tox_System *sys = tox_get_system(toxes[0]);
+    const struct Tox_System *sys = tox_get_system(toxes[0]);
 
     for (uint32_t i = 0; i < 100; ++i) {
         // Ignore events on tox 1.
@@ -104,7 +104,7 @@ static void test_tox_events(void)
         ck_assert_msg(toxes[i] != nullptr, "failed to create tox instances %u", i);
     }
 
-    const Tox_System *sys = tox_get_system(toxes[0]);
+    const struct Tox_System *sys = tox_get_system(toxes[0]);
 
     Tox_Err_Dispatch_New err_new;
     Tox_Dispatch *dispatch = tox_dispatch_new(&err_new);

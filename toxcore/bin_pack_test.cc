@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "bin_unpack.h"
+#include "os_memory.h"
 
 namespace {
 
@@ -24,20 +25,22 @@ using Bin_Unpack_Ptr = std::unique_ptr<Bin_Unpack, Bin_Unpack_Deleter>;
 
 TEST(BinPack, TooSmallBufferIsNotExceeded)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 7> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     EXPECT_FALSE(bin_pack_u64_b(bp.get(), 1234567812345678LL));
 }
 
 TEST(BinPack, PackedUint64CanBeUnpacked)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 8> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_u64_b(bp.get(), 1234567812345678LL));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     uint64_t val;
     ASSERT_TRUE(bin_unpack_u64_b(bu.get(), &val));
@@ -46,12 +49,13 @@ TEST(BinPack, PackedUint64CanBeUnpacked)
 
 TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 2> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_u08(bp.get(), 123));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     uint32_t val;
     ASSERT_TRUE(bin_unpack_u32(bu.get(), &val));
@@ -60,12 +64,13 @@ TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
 
 TEST(BinPack, MsgPackedUint32CanBeUnpackedAsUint8IfSmallEnough)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 2> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_u32(bp.get(), 123));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     uint8_t val;
     ASSERT_TRUE(bin_unpack_u08(bu.get(), &val));
@@ -74,12 +79,13 @@ TEST(BinPack, MsgPackedUint32CanBeUnpackedAsUint8IfSmallEnough)
 
 TEST(BinPack, LargeMsgPackedUint32CannotBeUnpackedAsUint8)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 5> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_u32(bp.get(), 1234567));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     uint8_t val;
     EXPECT_FALSE(bin_unpack_u08(bu.get(), &val));
@@ -87,14 +93,15 @@ TEST(BinPack, LargeMsgPackedUint32CannotBeUnpackedAsUint8)
 
 TEST(BinPack, BinCanHoldPackedInts)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 12> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_bin_marker(bp.get(), 8));
     ASSERT_TRUE(bin_pack_u64_b(bp.get(), 1234567812345678LL));
     ASSERT_TRUE(bin_pack_u16_b(bp.get(), 54321));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     uint32_t size;
     EXPECT_TRUE(bin_unpack_bin_size(bu.get(), &size));
@@ -109,13 +116,14 @@ TEST(BinPack, BinCanHoldPackedInts)
 
 TEST(BinPack, BinCanHoldArbitraryData)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 7> buf;
-    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size()));
+    Bin_Pack_Ptr bp(bin_pack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bp, nullptr);
     ASSERT_TRUE(bin_pack_bin_marker(bp.get(), 5));
     ASSERT_TRUE(bin_pack_bin_b(bp.get(), reinterpret_cast<const uint8_t *>("hello"), 5));
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     ASSERT_NE(bu, nullptr);
     std::array<uint8_t, 5> str;
     EXPECT_TRUE(bin_unpack_bin_fixed(bu.get(), str.data(), str.size()));
@@ -124,9 +132,10 @@ TEST(BinPack, BinCanHoldArbitraryData)
 
 TEST(BinPack, OversizedArrayFailsUnpack)
 {
+    const Memory *mem = os_memory();
     std::array<uint8_t, 1> buf = {0x91};
 
-    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size()));
+    Bin_Unpack_Ptr bu(bin_unpack_new(buf.data(), buf.size(), mem));
     uint32_t size;
     EXPECT_FALSE(bin_unpack_array(bu.get(), &size));
 }
