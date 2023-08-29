@@ -2242,19 +2242,6 @@ static int m_handle_packet_file_data(Messenger *m, const int i, const uint8_t *d
 }
 
 non_null(1, 3) nullable(5)
-static int m_handle_packet_msi(Messenger *m, const int i, const uint8_t *temp, const uint16_t len, void *userdata)
-{
-    if (len == 0) {
-        return 0;
-    }
-
-    // allow MSI packets to be handled by custom packet handler
-    handle_custom_lossless_packet(m, i, temp, len, userdata);
-
-    return 0;
-}
-
-non_null(1, 3) nullable(5)
 static int m_handle_packet_invite_groupchat(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
 {
 #ifndef VANILLA_NACL
@@ -2330,7 +2317,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
         case PACKET_ID_FILE_DATA:
             return m_handle_packet_file_data(m, i, data, data_length, userdata);
         case PACKET_ID_MSI:
-            return m_handle_packet_msi(m, i, data, data_length, userdata);
+            return handle_custom_lossless_packet(object, i, temp, len, userdata);
 	case PACKET_ID_INVITE_GROUPCHAT:
 	    return m_handle_packet_invite_groupchat(m, i, temp, len, userdata);
     }
