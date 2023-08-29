@@ -16,7 +16,7 @@ uint8_t announce_response_of_request_type(uint8_t request_type);
 typedef struct Announcements Announcements;
 
 non_null()
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
+Announcements *new_announcements(const Logger *log, const Memory *mem, const Tox_Random *rng, const Mono_Time *mono_time,
                                  Forwarding *forwarding);
 
 /**

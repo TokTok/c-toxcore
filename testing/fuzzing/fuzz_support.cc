@@ -17,16 +17,15 @@
 
 #include "../../toxcore/crypto_core.h"
 #include "../../toxcore/network.h"
-#include "../../toxcore/tox_private.h"
+#include "../../toxcore/os_network_impl.h"
+#include "../../toxcore/tox_memory_impl.h"
+#include "../../toxcore/tox_network_impl.h"
+#include "../../toxcore/tox_random_impl.h"
+#include "../../toxcore/tox_system_impl.h"
+#include "../../toxcore/tox_time_impl.h"
 #include "func_conversion.h"
 
 const bool DEBUG = false;
-
-// TODO(iphydf): Put this somewhere shared.
-struct Network_Addr {
-    struct sockaddr_storage addr;
-    size_t size;
-};
 
 System::~System() { }
 
@@ -72,14 +71,10 @@ static void *alloc_common(Fuzz_Data &data, F func)
     return func();
 }
 
-static constexpr Memory_Funcs fuzz_memory_funcs = {
+static constexpr Tox_Memory_Funcs fuzz_memory_funcs = {
     /* .malloc = */
     ![](Fuzz_System *self, uint32_t size) {
         return alloc_common(self->data, [=]() { return std::malloc(size); });
-    },
-    /* .calloc = */
-    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
-        return alloc_common(self->data, [=]() { return std::calloc(nmemb, size); });
     },
     /* .realloc = */
     ![](Fuzz_System *self, void *ptr, uint32_t size) {
@@ -89,7 +84,7 @@ static constexpr Memory_Funcs fuzz_memory_funcs = {
     ![](Fuzz_System *self, void *ptr) { std::free(ptr); },
 };
 
-static constexpr Network_Funcs fuzz_network_funcs = {
+static constexpr Tox_Network_Funcs fuzz_network_funcs = {
     /* .close = */ ![](Fuzz_System *self, int sock) { return 0; },
     /* .accept = */ ![](Fuzz_System *self, int sock) { return 1337; },
     /* .bind = */ ![](Fuzz_System *self, int sock, const Network_Addr *addr) { return 0; },
@@ -109,16 +104,14 @@ static constexpr Network_Funcs fuzz_network_funcs = {
     /* .recvfrom = */
     ![](Fuzz_System *self, int sock, uint8_t *buf, size_t len, Network_Addr *addr) {
         assert(sock == 42 || sock == 1337);
-
-        addr->addr = sockaddr_storage{};
-        // Dummy Addr
-        addr->addr.ss_family = AF_INET;
+        assert(addr != nullptr);
 
         // We want an AF_INET address with dummy values
-        sockaddr_in *addr_in = reinterpret_cast<sockaddr_in *>(&addr->addr);
-        addr_in->sin_port = htons(33446);
-        addr_in->sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
-        addr->size = sizeof(struct sockaddr);
+        sockaddr_in addr_in{};
+        addr_in.sin_port = htons(33446);
+        addr_in.sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
+
+        net_addr_set(addr, &addr_in, sizeof(addr_in));
 
         return recv_common(self->data, buf, len);
     },
@@ -147,7 +140,7 @@ static constexpr Network_Funcs fuzz_network_funcs = {
     },
 };
 
-static constexpr Random_Funcs fuzz_random_funcs = {
+static constexpr Tox_Random_Funcs fuzz_random_funcs = {
     /* .random_bytes = */
     ![](Fuzz_System *self, uint8_t *bytes, size_t length) {
         // Amount of data is limited
@@ -165,12 +158,17 @@ static constexpr Random_Funcs fuzz_random_funcs = {
     ![](Fuzz_System *self, uint32_t upper_bound) {
         uint32_t randnum = 0;
         if (upper_bound > 0) {
-            self->rng->funcs->random_bytes(
+            self->rng->funcs->bytes_callback(
                 self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
             randnum %= upper_bound;
         }
         return randnum;
     },
+};
+
+static constexpr Tox_Time_Funcs fuzz_time_funcs = {
+    /* .monotonic = */
+    ![](Fuzz_System *self) { return self->clock; },
 };
 
 Fuzz_System::Fuzz_System(Fuzz_Data &input)
@@ -179,28 +177,28 @@ Fuzz_System::Fuzz_System(Fuzz_Data &input)
         std::make_unique<Memory>(Memory{&fuzz_memory_funcs, this}),
         std::make_unique<Network>(Network{&fuzz_network_funcs, this}),
         std::make_unique<Random>(Random{&fuzz_random_funcs, this}),
+        std::make_unique<Tox_Time>(Tox_Time{&fuzz_time_funcs, this}),
     }
     , data(input)
 {
-    sys->mono_time_callback = ![](Fuzz_System *self) { return self->clock; };
-    sys->mono_time_user_data = this;
     sys->mem = mem.get();
     sys->ns = ns.get();
     sys->rng = rng.get();
+    sys->tm = tm.get();
 }
 
-static constexpr Memory_Funcs null_memory_funcs = {
+static constexpr Tox_Memory_Funcs null_memory_funcs = {
     /* .malloc = */
     ![](Null_System *self, uint32_t size) { return std::malloc(size); },
-    /* .calloc = */
-    ![](Null_System *self, uint32_t nmemb, uint32_t size) { return std::calloc(nmemb, size); },
     /* .realloc = */
-    ![](Null_System *self, void *ptr, uint32_t size) { return std::realloc(ptr, size); },
+    ![](Null_System *self, void *ptr, uint32_t size) {
+        return std::realloc(ptr, size);
+    },
     /* .free = */
     ![](Null_System *self, void *ptr) { std::free(ptr); },
 };
 
-static constexpr Network_Funcs null_network_funcs = {
+static constexpr Tox_Network_Funcs null_network_funcs = {
     /* .close = */ ![](Null_System *self, int sock) { return 0; },
     /* .accept = */ ![](Null_System *self, int sock) { return 1337; },
     /* .bind = */ ![](Null_System *self, int sock, const Network_Addr *addr) { return 0; },
@@ -248,7 +246,7 @@ static uint64_t simple_rng(uint64_t &seed)
     return seed;
 }
 
-static constexpr Random_Funcs null_random_funcs = {
+static constexpr Tox_Random_Funcs null_random_funcs = {
     /* .random_bytes = */
     ![](Null_System *self, uint8_t *bytes, size_t length) {
         for (size_t i = 0; i < length; ++i) {
@@ -264,36 +262,27 @@ static constexpr Random_Funcs null_random_funcs = {
 Null_System::Null_System()
     : System{
         std::make_unique<Tox_System>(),
-        std::make_unique<Memory>(Memory{&null_memory_funcs, this}),
-        std::make_unique<Network>(Network{&null_network_funcs, this}),
-        std::make_unique<Random>(Random{&null_random_funcs, this}),
+        std::make_unique<Tox_Memory>(Tox_Memory{&null_memory_funcs, this}),
+        std::make_unique<Tox_Network>(Tox_Network{&null_network_funcs, this}),
+        std::make_unique<Tox_Random>(Tox_Random{&null_random_funcs, this}),
+        std::make_unique<Tox_Time>(Tox_Time{&fuzz_time_funcs, this}),
     }
 {
-    sys->mono_time_callback = ![](Fuzz_System *self) { return self->clock; };
-    sys->mono_time_user_data = this;
     sys->mem = mem.get();
     sys->ns = ns.get();
     sys->rng = rng.get();
+    sys->tm = tm.get();
 }
 
-static uint16_t get_port(const Network_Addr *addr)
-{
-    if (addr->addr.ss_family == AF_INET6) {
-        return reinterpret_cast<const sockaddr_in6 *>(&addr->addr)->sin6_port;
-    } else {
-        assert(addr->addr.ss_family == AF_INET);
-        return reinterpret_cast<const sockaddr_in *>(&addr->addr)->sin_port;
-    }
-}
+static constexpr Tox_Memory_Funcs record_memory_funcs = null_memory_funcs;
 
-static constexpr Memory_Funcs record_memory_funcs = null_memory_funcs;
-
-static constexpr Network_Funcs record_network_funcs = {
+static constexpr Tox_Network_Funcs record_network_funcs = {
     /* .close = */ ![](Record_System *self, int sock) { return 0; },
     /* .accept = */ ![](Record_System *self, int sock) { return 2; },
     /* .bind = */
     ![](Record_System *self, int sock, const Network_Addr *addr) {
-        const uint16_t port = get_port(addr);
+        assert(addr != nullptr);
+        const uint16_t port = net_addr_get_port(addr);
         if (self->global_.bound.find(port) != self->global_.bound.end()) {
             errno = EADDRINUSE;
             return -1;
@@ -313,6 +302,7 @@ static constexpr Network_Funcs record_network_funcs = {
     /* .recvfrom = */
     ![](Record_System *self, int sock, uint8_t *buf, size_t len, Network_Addr *addr) {
         assert(sock == 42);
+        assert(addr != nullptr);
         if (self->recvq.empty()) {
             self->recording.push_back(0xff);
             self->recording.push_back(0xff);
@@ -327,15 +317,13 @@ static constexpr Network_Funcs record_network_funcs = {
         const size_t recvlen = std::min(len, packet.size());
         std::copy(packet.begin(), packet.end(), buf);
 
-        addr->addr = sockaddr_storage{};
-        // Dummy Addr
-        addr->addr.ss_family = AF_INET;
-
         // We want an AF_INET address with dummy values
-        sockaddr_in *addr_in = reinterpret_cast<sockaddr_in *>(&addr->addr);
-        addr_in->sin_port = from;
-        addr_in->sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
-        addr->size = sizeof(struct sockaddr);
+        sockaddr_in addr_in{};
+        addr_in.sin_family = AF_INET;
+        addr_in.sin_port = from;
+        addr_in.sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
+
+        net_addr_set(addr, &addr_in, sizeof(addr_in));
 
         assert(recvlen > 0 && recvlen <= INT_MAX);
         self->recording.push_back(recvlen >> 8);
@@ -355,7 +343,8 @@ static constexpr Network_Funcs record_network_funcs = {
     /* .sendto = */
     ![](Record_System *self, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
         assert(sock == 42);
-        auto backend = self->global_.bound.find(get_port(addr));
+        assert(addr != nullptr);
+        auto backend = self->global_.bound.find(net_addr_get_port(addr));
         assert(backend != self->global_.bound.end());
         backend->second->receive(self->port, buf, len);
         return static_cast<int>(len);
@@ -373,7 +362,7 @@ static constexpr Network_Funcs record_network_funcs = {
     },
 };
 
-static constexpr Random_Funcs record_random_funcs = {
+static constexpr Tox_Random_Funcs record_random_funcs = {
     /* .random_bytes = */
     ![](Record_System *self, uint8_t *bytes, size_t length) {
         for (size_t i = 0; i < length; ++i) {
@@ -386,7 +375,7 @@ static constexpr Random_Funcs record_random_funcs = {
         }
     },
     /* .random_uniform = */
-    fuzz_random_funcs.random_uniform,
+    fuzz_random_funcs.uniform_callback,
 };
 
 Record_System::Record_System(Global &global, uint64_t seed, const char *name)
@@ -395,16 +384,16 @@ Record_System::Record_System(Global &global, uint64_t seed, const char *name)
         std::make_unique<Memory>(Memory{&record_memory_funcs, this}),
         std::make_unique<Network>(Network{&record_network_funcs, this}),
         std::make_unique<Random>(Random{&record_random_funcs, this}),
+        std::make_unique<Tox_Time>(Tox_Time{&fuzz_time_funcs, this}),
     }
     , global_(global)
     , seed_(seed)
     , name_(name)
 {
-    sys->mono_time_callback = ![](Fuzz_System *self) { return self->clock; };
-    sys->mono_time_user_data = this;
     sys->mem = mem.get();
     sys->ns = ns.get();
     sys->rng = rng.get();
+    sys->tm = tm.get();
 }
 
 void Record_System::receive(uint16_t send_port, const uint8_t *buf, size_t len)

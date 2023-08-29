@@ -22,6 +22,8 @@ cc_library(
         ":defines",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:os_memory",
+        "//c-toxcore/toxcore:os_random",
         "@libsodium",
     ],
 )
@@ -36,6 +38,8 @@ cc_library(
     deps = [
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:crypto_core",
+        "//c-toxcore/toxcore:os_memory",
+        "//c-toxcore/toxcore:os_random",
         "@libsodium",
     ],
 )

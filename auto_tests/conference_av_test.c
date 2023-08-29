@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include "../toxav/toxav.h"
+#include "../toxcore/os_random.h"
 #include "check_compat.h"
 
 #define NUM_AV_GROUP_TOX 16
@@ -287,7 +288,7 @@ static void do_audio(AutoTox *autotoxes, uint32_t iterations)
 
 static void run_conference_tests(AutoTox *autotoxes)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     bool disabled[NUM_AV_GROUP_TOX] = {0};
 

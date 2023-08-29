@@ -19,7 +19,7 @@ typedef int onion_recv_1_cb(void *object, const IP_Port *dest, const uint8_t *da
 typedef struct Onion {
     const Logger *log;
     const Mono_Time *mono_time;
-    const Random *rng;
+    const Tox_Random *rng;
     const Memory *mem;
     DHT *dht;
     Networking_Core *net;
@@ -81,7 +81,7 @@ typedef struct Onion_Path {
  * return 0 on success.
  */
 non_null()
-int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes);
+int create_onion_path(const Tox_Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes);
 
 /** @brief Dump nodes in onion path to nodes of length num_nodes.
  *
@@ -103,7 +103,7 @@ int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_
 non_null()
 int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
                         const Onion_Path *path, const IP_Port *dest,
-                        const uint8_t *data, uint16_t length);
+                        const uint8_t *data, uint16_t length, const Memory *mem);
 
 
 /** @brief Create a onion packet to be sent over tcp.
@@ -118,7 +118,7 @@ int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_
 non_null()
 int create_onion_packet_tcp(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
                             const Onion_Path *path, const IP_Port *dest,
-                            const uint8_t *data, uint16_t length);
+                            const uint8_t *data, uint16_t length, const Memory *mem);
 
 /** @brief Create and send a onion response sent initially to dest with.
  * Maximum length of data is ONION_RESPONSE_MAX_DATA_SIZE.
@@ -148,7 +148,7 @@ non_null(1) nullable(2, 3)
 void set_callback_handle_recv_1(Onion *onion, onion_recv_1_cb *function, void *object);
 
 non_null()
-Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht);
+Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Tox_Random *rng, DHT *dht);
 
 nullable(1)
 void kill_onion(Onion *onion);

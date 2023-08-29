@@ -3199,7 +3199,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 non_null()
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    Bin_Unpack *bu = bin_unpack_new(data, length);
+    Bin_Unpack *bu = bin_unpack_new(data, length, m->mem);
     if (bu == nullptr) {
         LOGGER_ERROR(m->log, "failed to allocate binary unpacker");
         return STATE_LOAD_STATUS_ERROR;
@@ -3503,7 +3503,7 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
+Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Tox_Random *rng, const Network *ns,
                          Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
@@ -3525,14 +3525,14 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->rng = rng;
     m->ns = ns;
 
-    m->fr = friendreq_new();
+    m->fr = friendreq_new(mem);
 
     if (m->fr == nullptr) {
         mem_delete(mem, m);
         return nullptr;
     }
 
-    m->log = logger_new();
+    m->log = logger_new(mem);
 
     if (m->log == nullptr) {
         friendreq_kill(m->fr);
@@ -3592,7 +3592,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
 
 #ifndef VANILLA_NACL
-    m->group_announce = new_gca_list();
+    m->group_announce = new_gca_list(m->mem);
 
     if (m->group_announce == nullptr) {
         kill_net_crypto(m->net_crypto);
@@ -3607,7 +3607,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
 #endif /* VANILLA_NACL */
 
     if (options->dht_announcements_enabled) {
-        m->forwarding = new_forwarding(m->log, m->rng, m->mono_time, m->dht);
+        m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
         m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
     } else {
         m->forwarding = nullptr;
@@ -3617,7 +3617,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht);
     m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
-    m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+    m->fr_c = new_friend_connections(m->log, m->mono_time, m->mem, m->ns, m->onion_c, options->local_discovery_enabled);
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
             m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {

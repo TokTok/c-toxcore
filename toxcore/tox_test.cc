@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "crypto_core.h"
+#include "os_random.h"
 #include "tox_private.h"
 
 namespace {
@@ -94,7 +95,7 @@ TEST(Tox, OneTest)
 
     Tox *tox1 = tox_new(options, nullptr);
     ASSERT_NE(tox1, nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
     set_random_name_and_status_message(tox1, rng, name.data(), status_message.data());
     Tox *tox2 = tox_new(options, nullptr);

@@ -45,7 +45,7 @@ void ping_array_kill(Ping_Array *array);
  * @return ping_id on success, 0 on failure.
  */
 non_null()
-uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Random *rng,
+uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Tox_Random *rng,
                         const uint8_t *data, uint32_t length);
 
 /**

@@ -11,7 +11,7 @@
 
 #include <stdbool.h>
 
-#include "attributes.h"
+#include "tox_attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
@@ -113,9 +113,9 @@ extern "C" {
  * @return the length of the created packet on success.
  */
 non_null()
-int create_request(const Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
+int create_request(const Tox_Random *rng, const uint8_t *send_public_key, const uint8_t *send_secret_key,
                    uint8_t *packet, const uint8_t *recv_public_key,
-                   const uint8_t *data, uint32_t data_length, uint8_t request_id);
+                   const uint8_t *data, uint32_t data_length, uint8_t request_id, const Memory *mem);
 
 /**
  * @brief Decrypts and unpacks a DHT request packet.
@@ -142,7 +142,7 @@ int create_request(const Random *rng, const uint8_t *send_public_key, const uint
 non_null()
 int handle_request(
     const uint8_t *self_public_key, const uint8_t *self_secret_key, uint8_t *public_key, uint8_t *data,
-    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length);
+    uint8_t *request_id, const uint8_t *packet, uint16_t packet_length, const Memory *mem);
 
 typedef struct IPPTs {
     IP_Port     ip_port;
@@ -220,7 +220,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
  * @retval -1 on failure.
  */
 non_null()
-int dht_create_packet(const Memory *mem, const Random *rng,
+int dht_create_packet(const Memory *mem, const Tox_Random *rng,
                       const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
                       const uint8_t *shared_key, const uint8_t type,
                       const uint8_t *plain, size_t plain_length,
@@ -495,7 +495,7 @@ int dht_load(DHT *dht, const uint8_t *data, uint32_t length);
 
 /** Initialize DHT. */
 non_null()
-DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
+DHT *new_dht(const Logger *log, const Memory *mem, const Tox_Random *rng, const Network *ns,
              Mono_Time *mono_time, Networking_Core *net, bool hole_punching_enabled, bool lan_discovery_enabled);
 
 nullable(1)
