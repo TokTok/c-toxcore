@@ -7,6 +7,8 @@
 
 #include "../testing/fuzzing/fuzz_support.h"
 #include "../testing/fuzzing/fuzz_tox.h"
+#include "os_memory.h"
+#include "os_network.h"
 
 namespace {
 
@@ -46,7 +48,10 @@ void TestSendForwardRequest(Fuzz_Data &input)
     // rest of the fuzz data is input for malloc and network
     Fuzz_System sys(input);
 
-    Ptr<Logger> logger(logger_new(), logger_kill);
+    Ptr<Logger> logger(logger_new(sys.mem.get()), logger_kill);
+    if (logger == nullptr) {
+        return;
+    }
 
     Ptr<Networking_Core> net(new_networking_ex(logger.get(), sys.mem.get(), sys.ns.get(), &ipp.ip,
                                  ipp.port, ipp.port + 100, nullptr),
@@ -72,7 +77,7 @@ void TestForwardReply(Fuzz_Data &input)
     // rest of the fuzz data is input for malloc and network
     Fuzz_System sys(input);
 
-    Ptr<Logger> logger(logger_new(), logger_kill);
+    Ptr<Logger> logger(logger_new(sys.mem.get()), logger_kill);
 
     Ptr<Networking_Core> net(new_networking_ex(logger.get(), sys.mem.get(), sys.ns.get(), &ipp.ip,
                                  ipp.port, ipp.port + 100, nullptr),

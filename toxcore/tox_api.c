@@ -1,19 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2021 The TokTok team.
+ * Copyright © 2016-2023 The TokTok team.
  */
 #include "tox.h"
 
-#include <stdlib.h>
-
-#include "ccompat.h"
+#include "tox_log.h"
 #include "tox_private.h"
-
-#define SET_ERROR_PARAMETER(param, x) \
-    do {                              \
-        if (param != nullptr) {       \
-            *param = x;               \
-        }                             \
-    } while (0)
 
 uint32_t tox_version_major(void)
 {
@@ -134,83 +125,6 @@ uint32_t tox_dht_node_ip_string_size(void)
 uint32_t tox_dht_node_public_key_size(void)
 {
     return TOX_DHT_NODE_PUBLIC_KEY_SIZE;
-}
-
-//!TOKSTYLE-
-
-#define ACCESSORS(type, name) \
-type tox_options_get_##name(const struct Tox_Options *options) \
-{ \
-    return options->name; \
-} \
-void tox_options_set_##name(struct Tox_Options *options, type name) \
-{ \
-    options->name = name; \
-}
-
-ACCESSORS(bool, ipv6_enabled)
-ACCESSORS(bool, udp_enabled)
-ACCESSORS(Tox_Proxy_Type, proxy_type)
-ACCESSORS(const char *, proxy_host)
-ACCESSORS(uint16_t, proxy_port)
-ACCESSORS(uint16_t, start_port)
-ACCESSORS(uint16_t, end_port)
-ACCESSORS(uint16_t, tcp_port)
-ACCESSORS(bool, hole_punching_enabled)
-ACCESSORS(Tox_Savedata_Type, savedata_type)
-ACCESSORS(size_t, savedata_length)
-ACCESSORS(tox_log_cb *, log_callback)
-ACCESSORS(void *, log_user_data)
-ACCESSORS(bool, local_discovery_enabled)
-ACCESSORS(bool, dht_announcements_enabled)
-ACCESSORS(bool, experimental_thread_safety)
-ACCESSORS(const Tox_System *, operating_system)
-
-//!TOKSTYLE+
-
-const uint8_t *tox_options_get_savedata_data(const struct Tox_Options *options)
-{
-    return options->savedata_data;
-}
-
-void tox_options_set_savedata_data(struct Tox_Options *options, const uint8_t *savedata_data, size_t length)
-{
-    options->savedata_data = savedata_data;
-    options->savedata_length = length;
-}
-
-void tox_options_default(struct Tox_Options *options)
-{
-    if (options != nullptr) {
-        const struct Tox_Options default_options = {0};
-        *options = default_options;
-        tox_options_set_ipv6_enabled(options, true);
-        tox_options_set_udp_enabled(options, true);
-        tox_options_set_proxy_type(options, TOX_PROXY_TYPE_NONE);
-        tox_options_set_hole_punching_enabled(options, true);
-        tox_options_set_local_discovery_enabled(options, true);
-        tox_options_set_dht_announcements_enabled(options, true);
-        tox_options_set_experimental_thread_safety(options, false);
-    }
-}
-
-struct Tox_Options *tox_options_new(Tox_Err_Options_New *error)
-{
-    struct Tox_Options *options = (struct Tox_Options *)calloc(1, sizeof(struct Tox_Options));
-
-    if (options != nullptr) {
-        tox_options_default(options);
-        SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_OK);
-        return options;
-    }
-
-    SET_ERROR_PARAMETER(error, TOX_ERR_OPTIONS_NEW_MALLOC);
-    return nullptr;
-}
-
-void tox_options_free(struct Tox_Options *options)
-{
-    free(options);
 }
 
 const char *tox_user_status_to_string(Tox_User_Status value)

@@ -35,6 +35,9 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "misc_tools.h"
 
 static void print_message(Messenger *m, uint32_t friendnumber, unsigned int type, const uint8_t *string, size_t length,
@@ -92,8 +95,8 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    const Memory *mem = system_memory();
-    Mono_Time *const mono_time = mono_time_new(mem, nullptr, nullptr);
+    const Memory *mem = os_memory();
+    Mono_Time *const mono_time = mono_time_new(mem, nullptr);
 
     if (mono_time == nullptr) {
         fputs("Failed to allocate monotonic timer datastructure\n", stderr);
@@ -103,7 +106,7 @@ int main(int argc, char *argv[])
     Messenger_Options options = {0};
     options.ipv6enabled = ipv6enabled;
     Messenger_Error err;
-    m = new_messenger(mono_time, mem, system_random(), system_network(), &options, &err);
+    m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);
 
     if (!m) {
         fprintf(stderr, "Failed to allocate messenger datastructure: %d\n", err);

@@ -13,6 +13,7 @@
 #include "tox.h"
 
 #include <assert.h>
+#include <pthread.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -30,9 +31,12 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "os_system.h"
 #include "state.h"
+#include "tox_impl.h"
+#include "tox_log.h"
 #include "tox_private.h"
-#include "tox_struct.h"
+#include "tox_system.h"
 
 #include "../toxencryptsave/defines.h"
 
@@ -656,13 +660,12 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     assert(opts != nullptr);
 
     const Tox_System *sys = tox_options_get_operating_system(opts);
-    const Tox_System default_system = tox_default_system();
 
     if (sys == nullptr) {
-        sys = &default_system;
+        sys = os_system();
     }
 
-    if (sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
+    if (sys == nullptr || sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
         // TODO(iphydf): Not quite right, but similar.
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
         tox_options_free(default_options);
@@ -786,7 +789,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    tox->mono_time = mono_time_new(tox->sys.mem, sys->mono_time_callback, sys->mono_time_user_data);
+    tox->mono_time = mono_time_new(tox->sys.mem, sys->tm);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -847,7 +850,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         return nullptr;
     }
 
-    tox->m->conferences_object = new_groupchats(tox->mono_time, tox->m);
+    tox->m->conferences_object = new_groupchats(tox->mono_time, sys->mem, tox->m);
 
     if (tox->m->conferences_object == nullptr) {
         kill_messenger(tox->m);

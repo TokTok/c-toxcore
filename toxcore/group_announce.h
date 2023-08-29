@@ -73,6 +73,8 @@ struct GC_Announces {
 
 /* A list of all announces. */
 struct GC_Announces_List {
+    const Memory *mem;
+
     GC_Announces *root_announces;
     uint64_t last_timeout_check;
 };
@@ -82,7 +84,8 @@ struct GC_Announces_List {
  *
  * The caller is responsible for freeing the memory with `kill_gca`.
  */
-GC_Announces_List *new_gca_list(void);
+non_null()
+GC_Announces_List *new_gca_list(const Memory *mem);
 
 /** @brief Frees all dynamically allocated memory associated with `announces_list`. */
 nullable(1)

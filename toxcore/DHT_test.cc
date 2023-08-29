@@ -13,6 +13,8 @@
 #include "crypto_core_test_util.hh"
 #include "mem_test_util.hh"
 #include "network_test_util.hh"
+#include "os_memory.h"
+#include "os_network.h"
 
 namespace {
 
@@ -271,6 +273,8 @@ TEST(AddToList, KeepsKeysInOrder)
 TEST(Request, CreateAndParse)
 {
     Test_Random rng;
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
 
     // Peers.
     const KeyPair sender(rng);
@@ -290,31 +294,31 @@ TEST(Request, CreateAndParse)
     random_bytes(rng, outgoing.data(), outgoing.size());
 
     EXPECT_LT(create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(),
-                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id),
+                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem),
         0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
 
     const int max_sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
-        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem);
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
     EXPECT_LT(handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(), incoming.data(),
-                  &recvd_pkt_id, packet.data(), max_sent_length + 1),
+                  &recvd_pkt_id, packet.data(), max_sent_length + 1, mem),
         0);
 
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
         const int sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
-            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:
         const int recvd_length = handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(),
-            incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
+            incoming.data(), &recvd_pkt_id, packet.data(), sent_length, mem);
         ASSERT_GE(recvd_length, 0);
 
         EXPECT_EQ(
@@ -330,9 +334,9 @@ TEST(AnnounceNodes, SetAndTest)
     Test_Memory mem;
     Test_Network ns;
 
-    Logger *log = logger_new();
+    Logger *log = logger_new(mem);
     ASSERT_NE(log, nullptr);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ASSERT_NE(mono_time, nullptr);
     Ptr<Networking_Core> net(new_networking_no_udp(log, mem, ns));
     ASSERT_NE(net, nullptr);

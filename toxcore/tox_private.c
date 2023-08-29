@@ -9,17 +9,16 @@
 #include "tox_private.h"
 
 #include <assert.h>
+#include <pthread.h>
 
 #include "DHT.h"
 #include "ccompat.h"
-#include "crypto_core.h"
 #include "group_chats.h"
 #include "group_common.h"
-#include "mem.h"
 #include "net_crypto.h"
 #include "network.h"
 #include "tox.h"
-#include "tox_struct.h"
+#include "tox_impl.h"
 
 #define SET_ERROR_PARAMETER(param, x) \
     do {                              \
@@ -27,18 +26,6 @@
             *param = x;               \
         }                             \
     } while (0)
-
-Tox_System tox_default_system(void)
-{
-    const Tox_System sys = {
-        nullptr,  // mono_time_callback
-        nullptr,  // mono_time_user_data
-        system_random(),
-        system_network(),
-        system_memory(),
-    };
-    return sys;
-}
 
 void tox_lock(const Tox *tox)
 {

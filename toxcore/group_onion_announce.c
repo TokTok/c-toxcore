@@ -12,6 +12,7 @@
 #include "crypto_core.h"
 #include "group_announce.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "network.h"
 #include "onion_announce.h"
@@ -73,10 +74,10 @@ void gca_onion_init(GC_Announces_List *group_announce, Onion_Announce *onion_a)
 }
 
 int create_gca_announce_request(
-    const Random *rng, uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
-    const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id,
-    const uint8_t *client_id, const uint8_t *data_public_key, uint64_t sendback_data,
-    const uint8_t *gc_data, uint16_t gc_data_length)
+    const Random *rng, const Memory *mem, uint8_t *packet, uint16_t max_packet_length,
+    const uint8_t *dest_client_id, const uint8_t *public_key, const uint8_t *secret_key,
+    const uint8_t *ping_id, const uint8_t *client_id, const uint8_t *data_public_key,
+    uint64_t sendback_data, const uint8_t *gc_data, uint16_t gc_data_length)
 {
     if (max_packet_length < ONION_ANNOUNCE_REQUEST_MAX_SIZE || gc_data_length == 0) {
         return -1;
@@ -106,7 +107,8 @@ int create_gca_announce_request(
     memcpy(packet + 1 + CRYPTO_NONCE_SIZE, public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     const int len = encrypt_data(dest_client_id, secret_key, packet + 1, plain,
-                                 encrypted_size, packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+                                 encrypted_size, packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
+                                 mem);
 
     const uint32_t full_length = (uint32_t)len + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 

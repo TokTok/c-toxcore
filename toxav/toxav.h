@@ -58,19 +58,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "../toxcore/tox.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/**
- * External Tox type.
- */
-#ifndef APIGEN_IGNORE
-#ifndef TOX_DEFINED
-#define TOX_DEFINED
-typedef struct Tox Tox;
-#endif /* !TOX_DEFINED */
-#endif /* !APIGEN_IGNORE */
 
 /**
  * @brief The ToxAV instance type.

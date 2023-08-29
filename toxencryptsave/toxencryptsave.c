@@ -15,6 +15,9 @@
 
 #include "../toxcore/ccompat.h"
 #include "../toxcore/crypto_core.h"
+#include "../toxcore/mem.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "defines.h"
 
 static_assert(TOX_PASS_SALT_LENGTH == crypto_pwhash_scryptsalsa208sha256_SALTBYTES,
@@ -118,7 +121,7 @@ Tox_Pass_Key *tox_pass_key_derive(
         const uint8_t passphrase[], size_t passphrase_len,
         Tox_Err_Key_Derivation *error)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
 
     if (rng == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_KEY_DERIVATION_FAILED);
@@ -196,9 +199,10 @@ Tox_Pass_Key *tox_pass_key_derive_with_salt(
 bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t plaintext[], size_t plaintext_len,
                           uint8_t ciphertext[], Tox_Err_Encryption *error)
 {
-    const Random *rng = system_random();
+    const Memory *mem = os_memory();
+    const Random *rng = os_random();
 
-    if (rng == nullptr) {
+    if (mem == nullptr || rng == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_ENCRYPTION_FAILED);
         return false;
     }
@@ -229,7 +233,7 @@ bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t plaintext[], si
     ciphertext += crypto_box_NONCEBYTES;
 
     /* now encrypt */
-    if (encrypt_data_symmetric(key->key, nonce, plaintext, plaintext_len, ciphertext)
+    if (encrypt_data_symmetric(key->key, nonce, plaintext, plaintext_len, ciphertext, mem)
             != plaintext_len + crypto_box_MACBYTES) {
         SET_ERROR_PARAMETER(error, TOX_ERR_ENCRYPTION_FAILED);
         return false;
@@ -288,6 +292,13 @@ bool tox_pass_encrypt(const uint8_t plaintext[], size_t plaintext_len, const uin
 bool tox_pass_key_decrypt(const Tox_Pass_Key *key, const uint8_t ciphertext[], size_t ciphertext_len,
                           uint8_t plaintext[], Tox_Err_Decryption *error)
 {
+    const Memory *mem = os_memory();
+
+    if (mem == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_DECRYPTION_FAILED);
+        return false;
+    }
+
     if (ciphertext_len <= TOX_PASS_ENCRYPTION_EXTRA_LENGTH) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DECRYPTION_INVALID_LENGTH);
         return false;
@@ -313,7 +324,7 @@ bool tox_pass_key_decrypt(const Tox_Pass_Key *key, const uint8_t ciphertext[], s
     ciphertext += crypto_box_NONCEBYTES;
 
     /* decrypt the ciphertext */
-    if (decrypt_data_symmetric(key->key, nonce, ciphertext, decrypt_length + crypto_box_MACBYTES, plaintext)
+    if (decrypt_data_symmetric(key->key, nonce, ciphertext, decrypt_length + crypto_box_MACBYTES, plaintext, mem)
             != decrypt_length) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DECRYPTION_FAILED);
         return false;

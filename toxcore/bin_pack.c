@@ -5,14 +5,16 @@
 #include "bin_pack.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../third_party/cmp/cmp.h"
 #include "ccompat.h"
 #include "logger.h"
+#include "mem.h"
 
 struct Bin_Pack {
+    const Memory *mem;
+
     uint8_t *bytes;
     uint32_t bytes_size;
     uint32_t bytes_pos;
@@ -57,6 +59,7 @@ static size_t buf_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 non_null(1) nullable(2)
 static void bin_pack_init(Bin_Pack *bp, uint8_t *buf, uint32_t buf_size)
 {
+    bp->mem = nullptr;
     bp->bytes = buf;
     bp->bytes_size = buf_size;
     bp->bytes_pos = 0;
@@ -104,19 +107,24 @@ bool bin_pack_obj_array(bin_pack_array_cb *callback, const Logger *logger, const
     return true;
 }
 
-Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size)
+Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size, const Memory *mem)
 {
-    Bin_Pack *bp = (Bin_Pack *)calloc(1, sizeof(Bin_Pack));
+    Bin_Pack *bp = (Bin_Pack *)mem_alloc(mem, sizeof(Bin_Pack));
     if (bp == nullptr) {
         return nullptr;
     }
     bin_pack_init(bp, buf, buf_size);
+    bp->mem = mem;
     return bp;
 }
 
 void bin_pack_free(Bin_Pack *bp)
 {
-    free(bp);
+    if (bp == nullptr) {
+        return;
+    }
+
+    mem_delete(bp->mem, bp);
 }
 
 bool bin_pack_array(Bin_Pack *bp, uint32_t size)

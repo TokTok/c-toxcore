@@ -229,10 +229,7 @@ bool tox_pass_decrypt(const uint8_t ciphertext[], size_t ciphertext_len, const u
  * The Tox_Pass_Key structure is hidden in the implementation. It can be created
  * using tox_pass_key_derive or tox_pass_key_derive_with_salt and must be deallocated using tox_pass_key_free.
  */
-#ifndef TOX_PASS_KEY_DEFINED
-#define TOX_PASS_KEY_DEFINED
 typedef struct Tox_Pass_Key Tox_Pass_Key;
-#endif /* TOX_PASS_KEY_DEFINED */
 
 /**
  * Deallocate a Tox_Pass_Key. This function behaves like `free()`, so NULL is an

@@ -8,77 +8,52 @@
  */
 #include "logger.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>  // IWYU pragma: keep
 #include <string.h>
 
 #include "ccompat.h"
+#include "mem.h"
 
 struct Logger {
+    const Memory *mem;
+
     logger_cb *callback;
     void *context;
     void *userdata;
-};
-
-#ifndef NDEBUG
-static const char *logger_level_name(Logger_Level level)
-{
-    switch (level) {
-        case LOGGER_LEVEL_TRACE:
-            return "TRACE";
-
-        case LOGGER_LEVEL_DEBUG:
-            return "DEBUG";
-
-        case LOGGER_LEVEL_INFO:
-            return "INFO";
-
-        case LOGGER_LEVEL_WARNING:
-            return "WARNING";
-
-        case LOGGER_LEVEL_ERROR:
-            return "ERROR";
-    }
-
-    return "<unknown>";
-}
-#endif
-
-non_null(1, 3, 5, 6) nullable(7)
-static void logger_stderr_handler(void *context, Logger_Level level, const char *file, int line, const char *func,
-                                  const char *message, void *userdata)
-{
-#ifndef NDEBUG
-    // GL stands for "global logger".
-    fprintf(stderr, "[GL] %s %s:%d(%s): %s\n", logger_level_name(level), file, line, func, message);
-    fprintf(stderr, "Default stderr logger triggered; aborting program\n");
-    abort();
-#endif
-}
-
-static const Logger logger_stderr = {
-    logger_stderr_handler,
-    nullptr,
-    nullptr,
 };
 
 /*
  * Public Functions
  */
 
-Logger *logger_new(void)
+Logger *logger_new(const Memory *mem)
 {
-    return (Logger *)calloc(1, sizeof(Logger));
+    Logger *log = (Logger *)mem_alloc(mem, sizeof(Logger));
+
+    if (log == nullptr) {
+        return nullptr;
+    }
+
+    log->mem = mem;
+
+    return log;
 }
 
 void logger_kill(Logger *log)
 {
-    free(log);
+    if (log == nullptr) {
+        return;
+    }
+
+    mem_delete(log->mem, log);
 }
 
 void logger_callback_log(Logger *log, logger_cb *function, void *context, void *userdata)
 {
+    assert(log != nullptr);
     log->callback = function;
     log->context  = context;
     log->userdata = userdata;
@@ -87,10 +62,6 @@ void logger_callback_log(Logger *log, logger_cb *function, void *context, void *
 void logger_write(const Logger *log, Logger_Level level, const char *file, int line, const char *func,
                   const char *format, ...)
 {
-    if (log == nullptr) {
-        log = &logger_stderr;
-    }
-
     if (log->callback == nullptr) {
         return;
     }
