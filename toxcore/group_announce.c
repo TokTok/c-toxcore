@@ -5,7 +5,6 @@
 
 #include "group_announce.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "LAN_discovery.h"
@@ -33,7 +32,7 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
         announces->next_announce->prev_announce = announces->prev_announce;
     }
 
-    free(announces);
+    mem_delete(gc_announces_list->mem, announces);
 }
 
 /**
@@ -349,7 +348,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
 
     // No entry for this chat_id exists so we create one
     if (announces == nullptr) {
-        announces = (GC_Announces *)calloc(1, sizeof(GC_Announces));
+        announces = (GC_Announces *)mem_alloc(gc_announces_list->mem, sizeof(GC_Announces));
 
         if (announces == nullptr) {
             return nullptr;
@@ -393,9 +392,16 @@ bool gca_is_valid_announce(const GC_Announce *announce)
     return announce->tcp_relays_count > 0 || announce->ip_port_is_set;
 }
 
-GC_Announces_List *new_gca_list(void)
+GC_Announces_List *new_gca_list(const Memory *mem)
 {
-    GC_Announces_List *announces_list = (GC_Announces_List *)calloc(1, sizeof(GC_Announces_List));
+    GC_Announces_List *announces_list = (GC_Announces_List *)mem_alloc(mem, sizeof(GC_Announces_List));
+
+    if (announces_list == nullptr) {
+        return nullptr;
+    }
+
+    announces_list->mem = mem;
+
     return announces_list;
 }
 
@@ -409,11 +415,11 @@ void kill_gca(GC_Announces_List *announces_list)
 
     while (root != nullptr) {
         GC_Announces *next = root->next_announce;
-        free(root);
+        mem_delete(announces_list->mem, root);
         root = next;
     }
 
-    free(announces_list);
+    mem_delete(announces_list->mem, announces_list);
 }
 
 /* How long we save a peer's announce before we consider it stale and remove it. */

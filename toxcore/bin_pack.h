@@ -7,7 +7,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,7 +65,7 @@ bool bin_pack_obj(bin_pack_cb *callback, const void *obj, uint8_t *buf, uint32_t
  * @retval nullptr on allocation failure.
  */
 non_null()
-Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size);
+Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size, const Memory *mem);
 
 /** @brief Deallocates a packer object.
  *

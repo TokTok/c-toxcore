@@ -6,6 +6,9 @@
 #include <array>
 
 #include "crypto_core.h"
+#include "os_memory.h"
+#include "os_network.h"
+#include "os_random.h"
 
 namespace {
 
@@ -36,7 +39,7 @@ PublicKey random_pk(const Random *rng)
 
 TEST(IdClosest, IdenticalKeysAreSameDistance)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     PublicKey pk0 = random_pk(rng);
@@ -48,7 +51,7 @@ TEST(IdClosest, IdenticalKeysAreSameDistance)
 
 TEST(IdClosest, DistanceIsCommutative)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     for (uint32_t i = 0; i < 100; ++i) {
@@ -130,7 +133,9 @@ TEST(AddToList, OverridesKeysWithCloserKeys)
 
 TEST(Request, CreateAndParse)
 {
-    const Random *rng = system_random();
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     // Peers.
@@ -151,31 +156,31 @@ TEST(Request, CreateAndParse)
     random_bytes(rng, outgoing.data(), outgoing.size());
 
     EXPECT_LT(create_request(rng, sender.pk.data(), sender.sk.data(), packet.data(),
-                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id),
+                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem),
         0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
 
     const int max_sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
-        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem);
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
     EXPECT_LT(handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(), incoming.data(),
-                  &recvd_pkt_id, packet.data(), max_sent_length + 1),
+                  &recvd_pkt_id, packet.data(), max_sent_length + 1, mem),
         0);
 
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
         const int sent_length = create_request(rng, sender.pk.data(), sender.sk.data(),
-            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id, mem);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:
         const int recvd_length = handle_request(receiver.pk.data(), receiver.sk.data(), pk.data(),
-            incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
+            incoming.data(), &recvd_pkt_id, packet.data(), sent_length, mem);
         ASSERT_GE(recvd_length, 0);
 
         EXPECT_EQ(
@@ -187,12 +192,12 @@ TEST(Request, CreateAndParse)
 
 TEST(AnnounceNodes, SetAndTest)
 {
-    const Random *rng = system_random();
-    const Network *ns = system_network();
-    const Memory *mem = system_memory();
+    const Random *rng = os_random();
+    const Network *ns = os_network();
+    const Memory *mem = os_memory();
 
-    Logger *log = logger_new();
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Logger *log = logger_new(mem);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Networking_Core *net = new_networking_no_udp(log, mem, ns);
     DHT *dht = new_dht(log, mem, rng, ns, mono_time, net, true, true);
     ASSERT_NE(dht, nullptr);
