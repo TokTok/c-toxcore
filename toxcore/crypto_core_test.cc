@@ -6,6 +6,8 @@
 #include <array>
 #include <vector>
 
+#include "os_memory.h"
+#include "os_random.h"
 #include "util.h"
 
 namespace {
@@ -21,8 +23,10 @@ using Nonce = std::array<uint8_t, CRYPTO_NONCE_SIZE>;
 
 TEST(CryptoCore, EncryptLargeData)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
 
     Nonce nonce{};
     PublicKey pk;
@@ -33,7 +37,7 @@ TEST(CryptoCore, EncryptLargeData)
     std::vector<uint8_t> plain(100 * 1024 * 1024);
     std::vector<uint8_t> encrypted(plain.size() + CRYPTO_MAC_SIZE);
 
-    encrypt_data(pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
+    encrypt_data(pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data(), mem);
 }
 
 TEST(CryptoCore, IncrementNonce)
@@ -71,7 +75,7 @@ TEST(CryptoCore, IncrementNonceNumber)
 
 TEST(CryptoCore, Signatures)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     ExtPublicKey pk;
@@ -96,7 +100,7 @@ TEST(CryptoCore, Signatures)
 
 TEST(CryptoCore, Hmac)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
 
     HmacKey sk;

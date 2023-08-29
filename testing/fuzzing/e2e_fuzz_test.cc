@@ -155,12 +155,7 @@ void TestEndToEnd(Fuzz_Data &input)
     Tox_Err_New error_new;
     Tox *tox = tox_new(opts.get(), &error_new);
 
-    if (tox == nullptr) {
-        // It might fail, because some I/O happens in tox_new, and the fuzzer
-        // might do things that make that I/O fail.
-        return;
-    }
-
+    // tox_new never fails, because we execute a recorded successful trace.
     assert(error_new == TOX_ERR_NEW_OK);
 
     tox_events_init(tox);

@@ -103,7 +103,7 @@ int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_
 non_null()
 int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
                         const Onion_Path *path, const IP_Port *dest,
-                        const uint8_t *data, uint16_t length);
+                        const uint8_t *data, uint16_t length, const Memory *mem);
 
 
 /** @brief Create a onion packet to be sent over tcp.
@@ -118,7 +118,7 @@ int create_onion_packet(const Random *rng, uint8_t *packet, uint16_t max_packet_
 non_null()
 int create_onion_packet_tcp(const Random *rng, uint8_t *packet, uint16_t max_packet_length,
                             const Onion_Path *path, const IP_Port *dest,
-                            const uint8_t *data, uint16_t length);
+                            const uint8_t *data, uint16_t length, const Memory *mem);
 
 /** @brief Create and send a onion response sent initially to dest with.
  * Maximum length of data is ONION_RESPONSE_MAX_DATA_SIZE.

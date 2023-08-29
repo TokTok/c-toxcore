@@ -12,6 +12,7 @@
 
 #include "auto_test_support.h"
 #include "check_compat.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 
 typedef struct State {
@@ -353,7 +354,7 @@ static void group_message_test(AutoTox *autotoxes)
 #ifndef VANILLA_NACL
     ck_assert_msg(NUM_GROUP_TOXES >= 2, "NUM_GROUP_TOXES is too small: %d", NUM_GROUP_TOXES);
 
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
     Tox *tox0 = autotoxes[0].tox;

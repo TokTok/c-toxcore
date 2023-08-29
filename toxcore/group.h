@@ -385,7 +385,7 @@ bool conferences_load_state_section(
 
 /** Create new groupchat instance. */
 non_null()
-Group_Chats *new_groupchats(const Mono_Time *mono_time, Messenger *m);
+Group_Chats *new_groupchats(const Mono_Time *mono_time, const Memory *mem, Messenger *m);
 
 /** main groupchats loop. */
 non_null(1) nullable(2)

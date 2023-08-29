@@ -5,14 +5,16 @@
 
 #include "../testing/fuzzing/fuzz_support.h"
 #include "../testing/fuzzing/fuzz_tox.h"
+#include "os_memory.h"
+#include "os_network.h"
 
 namespace {
 
 void TestSendForwardRequest(Fuzz_Data &input)
 {
-    const Network *ns = system_network();  // TODO(iphydf): fuzz_network
+    const Network *ns = os_network();  // TODO(iphydf): fuzz_network
     assert(ns != nullptr);
-    const Memory *mem = system_memory();  // TODO(iphydf): fuzz_memory
+    const Memory *mem = os_memory();  // TODO(iphydf): fuzz_memory
     assert(mem != nullptr);
 
     with<Logger>{} >> with<Networking_Core>{input, ns, mem} >> [&input](Ptr<Networking_Core> net) {
@@ -29,9 +31,9 @@ void TestSendForwardRequest(Fuzz_Data &input)
 
 void TestForwardReply(Fuzz_Data &input)
 {
-    const Network *ns = system_network();  // TODO(iphydf): fuzz_network
+    const Network *ns = os_network();  // TODO(iphydf): fuzz_network
     assert(ns != nullptr);
-    const Memory *mem = system_memory();  // TODO(iphydf): fuzz_memory
+    const Memory *mem = os_memory();  // TODO(iphydf): fuzz_memory
     assert(mem != nullptr);
 
     with<Logger>{} >> with<Networking_Core>{input, ns, mem} >> [&input](Ptr<Networking_Core> net) {
