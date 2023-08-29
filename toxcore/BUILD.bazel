@@ -5,13 +5,22 @@ load("//tools:no_undefined.bzl", "cc_library")
 package(features = ["layering_check"])
 
 exports_files(
-    srcs = ["tox.h"],
+    srcs = [
+        "tox.h",
+        "tox_attributes.h",
+        "tox_logger.h",
+        "tox_memory.h",
+        "tox_network.h",
+        "tox_random.h",
+        "tox_system.h",
+        "tox_time.h",
+    ],
     visibility = ["//c-toxcore:__pkg__"],
 )
 
 cc_library(
-    name = "attributes",
-    hdrs = ["attributes.h"],
+    name = "tox_attributes",
+    hdrs = ["tox_attributes.h"],
     visibility = ["//c-toxcore:__subpackages__"],
 )
 
@@ -20,7 +29,163 @@ cc_library(
     srcs = ["ccompat.c"],
     hdrs = ["ccompat.h"],
     visibility = ["//c-toxcore:__subpackages__"],
-    deps = [":attributes"],
+    deps = [":tox_attributes"],
+)
+
+cc_library(
+    name = "tox_memory",
+    srcs = ["tox_memory.c"],
+    hdrs = [
+        "tox_memory.h",
+        "tox_memory_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+    ],
+)
+
+cc_library(
+    name = "tox_logger",
+    srcs = ["tox_logger.c"],
+    hdrs = [
+        "tox_logger.h",
+        "tox_logger_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "tox_network",
+    srcs = ["tox_network.c"],
+    hdrs = [
+        "tox_network.h",
+        "tox_network_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "tox_random",
+    srcs = ["tox_random.c"],
+    hdrs = [
+        "tox_random.h",
+        "tox_random_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "tox_time",
+    srcs = ["tox_time.c"],
+    hdrs = [
+        "tox_time.h",
+        "tox_time_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "tox_system",
+    srcs = ["tox_system.c"],
+    hdrs = [
+        "tox_system.h",
+        "tox_system_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_logger",
+        ":tox_memory",
+        ":tox_network",
+        ":tox_random",
+        ":tox_time",
+    ],
+)
+
+cc_library(
+    name = "os_logger",
+    srcs = ["os_logger.c"],
+    hdrs = ["os_logger.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_logger",
+    ],
+)
+
+cc_library(
+    name = "os_memory",
+    srcs = ["os_memory.c"],
+    hdrs = ["os_memory.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "os_network",
+    srcs = ["os_network.c"],
+    hdrs = [
+        "os_network.h",
+        "os_network_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_network",
+    ],
+)
+
+cc_library(
+    name = "os_random",
+    srcs = ["os_random.c"],
+    hdrs = ["os_random.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_random",
+        "@libsodium",
+    ],
+)
+
+cc_library(
+    name = "os_system",
+    srcs = ["os_system.c"],
+    hdrs = ["os_system.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":os_logger",
+        ":os_memory",
+        ":os_network",
+        ":os_random",
+        ":tox_system",
+    ],
 )
 
 cc_library(
@@ -29,8 +194,9 @@ cc_library(
     hdrs = ["mem.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
     ],
 )
 
@@ -40,6 +206,7 @@ cc_test(
     srcs = ["mem_test.cc"],
     deps = [
         ":mem",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -57,9 +224,9 @@ cc_library(
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
-        ":attributes",
         ":ccompat",
         ":mem",
+        ":tox_attributes",
         "@pthread",
     ],
 )
@@ -70,6 +237,7 @@ cc_test(
     srcs = ["util_test.cc"],
     deps = [
         ":crypto_core",
+        ":os_random",
         ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -82,8 +250,9 @@ cc_library(
     hdrs = ["bin_pack.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":mem",
+        ":tox_attributes",
         "//c-toxcore/third_party:cmp",
     ],
 )
@@ -94,8 +263,9 @@ cc_library(
     hdrs = ["bin_unpack.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":mem",
+        ":tox_attributes",
         "//c-toxcore/third_party:cmp",
     ],
 )
@@ -107,6 +277,7 @@ cc_test(
     deps = [
         ":bin_pack",
         ":bin_unpack",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -118,8 +289,10 @@ cc_library(
     hdrs = ["crypto_core.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":mem",
+        ":tox_attributes",
+        ":tox_random",
         "@libsodium",
     ],
 )
@@ -131,6 +304,7 @@ cc_test(
     flaky = True,
     deps = [
         ":crypto_core",
+        ":os_random",
         ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -142,8 +316,9 @@ cc_library(
     srcs = ["list.c"],
     hdrs = ["list.h"],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":mem",
+        ":tox_attributes",
     ],
 )
 
@@ -153,6 +328,7 @@ cc_test(
     srcs = ["list_test.cc"],
     deps = [
         ":list",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -169,8 +345,9 @@ cc_library(
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
-        ":attributes",
         ":ccompat",
+        ":mem",
+        ":tox_attributes",
     ],
 )
 
@@ -196,9 +373,10 @@ cc_library(
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
-        ":attributes",
         ":ccompat",
         ":mem",
+        ":tox_attributes",
+        ":tox_time",
         "@pthread",
     ],
 )
@@ -209,6 +387,8 @@ cc_test(
     srcs = ["mono_time_test.cc"],
     deps = [
         ":mono_time",
+        ":os_memory",
+        ":tox_time",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -250,6 +430,8 @@ cc_library(
         ":logger",
         ":mem",
         ":mono_time",
+        ":os_network",
+        ":tox_network",
         ":util",
         "@libsodium",
         "@psocket",
@@ -298,6 +480,8 @@ cc_test(
     srcs = ["ping_array_test.cc"],
     deps = [
         ":mono_time",
+        ":os_memory",
+        ":os_random",
         ":ping_array",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -338,7 +522,6 @@ cc_library(
     ],
     deps = [
         ":LAN_discovery",
-        ":attributes",
         ":ccompat",
         ":crypto_core",
         ":logger",
@@ -348,6 +531,7 @@ cc_library(
         ":ping_array",
         ":shared_key_cache",
         ":state",
+        ":tox_attributes",
         ":util",
     ],
 )
@@ -359,6 +543,9 @@ cc_test(
     deps = [
         ":DHT",
         ":crypto_core",
+        ":os_memory",
+        ":os_network",
+        ":os_random",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -370,6 +557,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:DHT_fuzz_test"],
     deps = [
         ":DHT",
+        ":os_memory",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
@@ -409,6 +597,8 @@ cc_fuzz_test(
     #corpus = ["//tools/toktok-fuzzer/corpus:forwarding_fuzz_test"],
     deps = [
         ":forwarding",
+        ":os_memory",
+        ":os_network",
         "//c-toxcore/testing/fuzzing:fuzz_support",
         "//c-toxcore/testing/fuzzing:fuzz_tox",
     ],
@@ -438,11 +628,11 @@ cc_library(
     hdrs = ["TCP_common.h"],
     visibility = ["//c-toxcore/auto_tests:__pkg__"],
     deps = [
-        ":attributes",
         ":ccompat",
         ":crypto_core",
         ":mem",
         ":network",
+        ":tox_attributes",
     ],
 )
 
@@ -580,6 +770,8 @@ cc_test(
     deps = [
         ":group_announce",
         ":mono_time",
+        ":os_memory",
+        ":tox_time",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -607,6 +799,8 @@ cc_fuzz_test(
     #corpus = ["//tools/toktok-fuzzer/corpus:group_announce_fuzz_test"],
     deps = [
         ":group_announce",
+        ":os_memory",
+        ":tox_time",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
@@ -698,6 +892,8 @@ cc_test(
         ":crypto_core",
         ":group_moderation",
         ":logger",
+        ":os_memory",
+        ":os_random",
         ":util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -710,6 +906,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:group_moderation_fuzz_test"],
     deps = [
         ":group_moderation",
+        ":os_memory",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
@@ -798,6 +995,9 @@ cc_library(
         ":mem",
         ":mono_time",
         ":network",
+        ":os_system",
+        ":tox_logger",
+        ":tox_system",
         "//c-toxcore/toxencryptsave:defines",
     ],
 )
@@ -808,6 +1008,7 @@ cc_test(
     srcs = ["tox_test.cc"],
     deps = [
         ":crypto_core",
+        ":os_random",
         ":tox",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
@@ -820,10 +1021,10 @@ cc_library(
     hdrs = ["tox_unpack.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":bin_unpack",
         ":ccompat",
         ":tox",
+        ":tox_attributes",
     ],
 )
 
@@ -836,12 +1037,13 @@ cc_library(
     hdrs = ["tox_events.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":attributes",
         ":bin_pack",
         ":bin_unpack",
         ":ccompat",
         ":mem",
         ":tox",
+        ":tox_attributes",
+        ":tox_system",
         ":tox_unpack",
         "//c-toxcore/third_party:cmp",
     ],
@@ -853,8 +1055,10 @@ cc_test(
     srcs = ["tox_events_test.cc"],
     deps = [
         ":crypto_core",
+        ":os_system",
         ":tox",
         ":tox_events",
+        ":tox_system",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],

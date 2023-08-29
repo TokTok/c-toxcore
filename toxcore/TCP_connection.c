@@ -20,7 +20,7 @@
 struct TCP_Connections {
     const Logger *logger;
     const Memory *mem;
-    const Random *rng;
+    const Tox_Random *rng;
     Mono_Time *mono_time;
     const Network *ns;
     DHT *dht;
@@ -1585,7 +1585,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
  *
  * Returns NULL on failure.
  */
-TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
+TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, const Tox_Random *rng, const Network *ns,
                                      Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info)
 {
     assert(logger != nullptr);

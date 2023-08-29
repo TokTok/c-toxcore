@@ -3,12 +3,18 @@
 #include <gtest/gtest.h>
 
 #include "mono_time.h"
+#include "os_memory.h"
+#include "tox_time_impl.h"
 
 namespace {
 
 struct Announces : ::testing::Test {
 protected:
-    const Memory *mem_ = system_memory();
+    const Memory *mem_ = os_memory();
+    static constexpr Tox_Time_Funcs mock_time_funcs = {
+        [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
+    };
+    Tox_Time *tm_;
     uint64_t clock_ = 0;
     Mono_Time *mono_time_ = nullptr;
     GC_Announces_List *gca_ = nullptr;
@@ -17,12 +23,12 @@ protected:
 
     void SetUp() override
     {
-        mono_time_ = mono_time_new(mem_, nullptr, nullptr);
+        ASSERT_NE(mem_, nullptr);
+        tm_ = tox_time_new(&mock_time_funcs, &this->clock_, mem_);
+        ASSERT_NE(tm_, nullptr);
+        mono_time_ = mono_time_new(mem_, tm_);
         ASSERT_NE(mono_time_, nullptr);
-        mono_time_set_current_time_callback(
-            mono_time_, [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
-            &clock_);
-        gca_ = new_gca_list();
+        gca_ = new_gca_list(mem_);
         ASSERT_NE(gca_, nullptr);
     }
 
@@ -30,6 +36,7 @@ protected:
     {
         kill_gca(gca_);
         mono_time_free(mem_, mono_time_);
+        tox_time_free(tm_);
     }
 
     void advance_clock(uint64_t increment)
@@ -108,12 +115,14 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
 
 struct AnnouncesPack : ::testing::Test {
 protected:
+    const Memory *mem_ = os_memory();
     std::vector<GC_Announce> announces_;
     Logger *logger_ = nullptr;
 
     void SetUp() override
     {
-        logger_ = logger_new();
+        ASSERT_NE(mem_, nullptr);
+        logger_ = logger_new(mem_);
         ASSERT_NE(logger_, nullptr);
 
         // Add an announce without TCP relay.

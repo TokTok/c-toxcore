@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "os_system.h"
 #include "tox_private.h"
 #include "tox_struct.h"
 
@@ -649,7 +650,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     assert(opts != nullptr);
 
     const Tox_System *sys = tox_options_get_operating_system(opts);
-    const Tox_System default_system = tox_default_system();
+    const Tox_System default_system = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
 
     if (sys == nullptr) {
         sys = &default_system;
@@ -777,7 +778,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    tox->mono_time = mono_time_new(tox->sys.mem, sys->mono_time_callback, sys->mono_time_user_data);
+    tox->mono_time = mono_time_new(tox->sys.mem, sys->tm);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -833,7 +834,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         return nullptr;
     }
 
-    if (new_groupchats(tox->mono_time, tox->m) == nullptr) {
+    if (new_groupchats(tox->mono_time, sys->mem, tox->m) == nullptr) {
         kill_messenger(tox->m);
 
         mono_time_free(tox->sys.mem, tox->mono_time);

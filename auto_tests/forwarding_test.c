@@ -8,6 +8,9 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -104,18 +107,18 @@ typedef struct Forwarding_Subtox {
 
 static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, uint32_t *index, uint16_t port)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
 
     Forwarding_Subtox *subtox = (Forwarding_Subtox *)calloc(1, sizeof(Forwarding_Subtox));
     ck_assert(subtox != nullptr);
 
-    subtox->log = logger_new();
+    subtox->log = logger_new(mem);
     ck_assert(subtox->log != nullptr);
     logger_callback_log(subtox->log, print_debug_logger, nullptr, index);
-    subtox->mono_time = mono_time_new(mem, nullptr, nullptr);
+    subtox->mono_time = mono_time_new(mem, nullptr);
 
     if (no_udp) {
         subtox->net = new_networking_no_udp(subtox->log, mem, ns);
@@ -129,7 +132,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     const TCP_Proxy_Info inf = {{{{0}}}};
     subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->dht, &inf);
 
-    subtox->forwarding = new_forwarding(subtox->log, rng, subtox->mono_time, subtox->dht);
+    subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht);
     ck_assert(subtox->forwarding != nullptr);
 
     subtox->announce = new_announcements(subtox->log, mem, rng, subtox->mono_time, subtox->forwarding);
@@ -152,11 +155,11 @@ static void kill_forwarding_subtox(const Memory *mem, Forwarding_Subtox *subtox)
 
 static void test_forwarding(void)
 {
-    const Memory *mem = system_memory();
+    const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
 
     uint32_t index[NUM_FORWARDER];

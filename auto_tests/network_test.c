@@ -3,6 +3,7 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/network.h"
+#include "../toxcore/os_network.h"
 #include "check_compat.h"
 
 #ifndef USE_IPV6
@@ -20,7 +21,7 @@ static void test_addr_resolv_localhost(void)
     errno = 0;
 #endif
 
-    const Network *ns = system_network();
+    const Network *ns = os_network();
     ck_assert(ns != nullptr);
 
     const char localhost[] = "localhost";

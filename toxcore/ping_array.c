@@ -105,7 +105,7 @@ static void ping_array_clear_timedout(Ping_Array *array, const Mono_Time *mono_t
     }
 }
 
-uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Random *rng,
+uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Tox_Random *rng,
                         const uint8_t *data, uint32_t length)
 {
     ping_array_clear_timedout(array, mono_time);

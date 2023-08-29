@@ -16,18 +16,6 @@
 extern "C" {
 #endif
 
-typedef uint64_t tox_mono_time_cb(void *user_data);
-
-struct Tox_System {
-    tox_mono_time_cb *mono_time_callback;
-    void *mono_time_user_data;
-    const struct Random *rng;
-    const struct Network *ns;
-    const struct Memory *mem;
-};
-
-Tox_System tox_default_system(void);
-
 void tox_lock(const Tox *tox);
 void tox_unlock(const Tox *tox);
 

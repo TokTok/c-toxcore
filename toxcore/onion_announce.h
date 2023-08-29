@@ -59,9 +59,10 @@ void onion_announce_entry_set_time(Onion_Announce *onion_a, uint32_t entry, uint
  * return packet length on success.
  */
 non_null()
-int create_announce_request(const Random *rng, uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
-                            const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id, const uint8_t *client_id,
-                            const uint8_t *data_public_key, uint64_t sendback_data);
+int create_announce_request(
+        const Random *rng, const Memory *mem, uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
+        const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id, const uint8_t *client_id,
+        const uint8_t *data_public_key, uint64_t sendback_data);
 
 /** @brief Create an onion data request packet in packet of max_packet_length.
  *
@@ -76,8 +77,9 @@ int create_announce_request(const Random *rng, uint8_t *packet, uint16_t max_pac
  * return 0 on success.
  */
 non_null()
-int create_data_request(const Random *rng, uint8_t *packet, uint16_t max_packet_length, const uint8_t *public_key,
-                        const uint8_t *encrypt_public_key, const uint8_t *nonce, const uint8_t *data, uint16_t length);
+int create_data_request(const Random *rng, const Memory *mem, uint8_t *packet, uint16_t max_packet_length,
+                        const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
+                        const uint8_t *data, uint16_t length);
 
 /** @brief Create and send an onion announce request packet.
  *
@@ -94,7 +96,7 @@ int create_data_request(const Random *rng, uint8_t *packet, uint16_t max_packet_
  * return 0 on success.
  */
 non_null()
-int send_announce_request(const Networking_Core *net, const Random *rng,
+int send_announce_request(const Networking_Core *net, const Tox_Random *rng, const Memory *mem,
                           const Onion_Path *path, const Node_format *dest,
                           const uint8_t *public_key, const uint8_t *secret_key,
                           const uint8_t *ping_id, const uint8_t *client_id,
@@ -117,7 +119,8 @@ int send_announce_request(const Networking_Core *net, const Random *rng,
  * return 0 on success.
  */
 non_null()
-int send_data_request(const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest,
+int send_data_request(const Networking_Core *net, const Random *rng, const Memory *mem,
+                      const Onion_Path *path, const IP_Port *dest,
                       const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
                       const uint8_t *data, uint16_t length);
 
@@ -131,7 +134,7 @@ void onion_announce_extra_data_callback(Onion_Announce *onion_a, uint16_t extra_
                                         pack_extra_data_cb *extra_data_callback, void *extra_data_object);
 
 non_null()
-Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht);
+Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Tox_Random *rng, const Mono_Time *mono_time, DHT *dht);
 
 nullable(1)
 void kill_onion_announce(Onion_Announce *onion_a);
