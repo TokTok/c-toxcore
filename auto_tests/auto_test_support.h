@@ -10,6 +10,7 @@
 
 typedef struct AutoTox {
     Tox *tox;
+    Tox_Time *tm;
 
     uint32_t index;
     uint64_t clock;

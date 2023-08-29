@@ -104,6 +104,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "tox_system.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -445,42 +447,8 @@ typedef enum Tox_Savedata_Type {
 
 } Tox_Savedata_Type;
 
-
 /**
- * @brief Severity level of log messages.
- */
-typedef enum Tox_Log_Level {
-
-    /**
-     * Very detailed traces including all network activity.
-     */
-    TOX_LOG_LEVEL_TRACE,
-
-    /**
-     * Debug messages such as which port we bind to.
-     */
-    TOX_LOG_LEVEL_DEBUG,
-
-    /**
-     * Informational log messages such as video call status changes.
-     */
-    TOX_LOG_LEVEL_INFO,
-
-    /**
-     * Warnings about events_alloc inconsistency or logic errors.
-     */
-    TOX_LOG_LEVEL_WARNING,
-
-    /**
-     * Severe unexpected errors caused by external or events_alloc inconsistency.
-     */
-    TOX_LOG_LEVEL_ERROR,
-
-} Tox_Log_Level;
-
-
-/**
- * @brief This event is triggered when the toxcore library logs an events_alloc message.
+ * @brief This event is triggered when the toxcore library logs a message.
  *
  * This is mostly useful for debugging. This callback can be called from any
  * function, not just tox_iterate. This means the user data lifetime must at
@@ -499,17 +467,6 @@ typedef enum Tox_Log_Level {
  */
 typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
                         const char *message, void *user_data);
-
-
-/**
- * @brief Operating system functions used by Tox.
- *
- * This struct is opaque and generally shouldn't be used in clients, but in
- * combination with tox_private.h, it allows tests to inject non-IO (hermetic)
- * versions of low level network, RNG, and time keeping functions.
- */
-typedef struct Tox_System Tox_System;
-
 
 /**
  * @brief This struct contains all the startup options for Tox.
@@ -910,6 +867,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
  * functions can be called, and the pointer value can no longer be read.
  */
 void tox_kill(Tox *tox);
+
+const Tox_System *tox_new_default_system(void);
 
 const Tox_System *tox_get_system(Tox *tox);
 

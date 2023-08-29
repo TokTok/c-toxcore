@@ -5,7 +5,7 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_UNPACK_H
 #define C_TOXCORE_TOXCORE_TOX_UNPACK_H
 
-#include "attributes.h"
+#include "tox_attributes.h"
 #include "bin_unpack.h"
 #include "tox.h"
 

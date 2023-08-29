@@ -2,12 +2,16 @@
 
 #include <gtest/gtest.h>
 
+#include "os_memory.h"
+#include "tox_time_impl.h"
+
 namespace {
 
 TEST(MonoTime, UnixTimeIncreasesOverTime)
 {
-    const Memory *mem = system_memory();
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ASSERT_NE(mono_time, nullptr);
 
     mono_time_update(mono_time);
@@ -25,8 +29,9 @@ TEST(MonoTime, UnixTimeIncreasesOverTime)
 
 TEST(MonoTime, IsTimeout)
 {
-    const Memory *mem = system_memory();
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ASSERT_NE(mono_time, nullptr);
 
     uint64_t const start = mono_time_get(mono_time);
@@ -43,14 +48,19 @@ TEST(MonoTime, IsTimeout)
 
 TEST(MonoTime, CustomTime)
 {
-    const Memory *mem = system_memory();
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    const Memory *mem = os_memory();
+    ASSERT_NE(mem, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ASSERT_NE(mono_time, nullptr);
 
     uint64_t test_time = current_time_monotonic(mono_time) + 42137;
 
-    mono_time_set_current_time_callback(
-        mono_time, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &test_time);
+    constexpr Tox_Time_Funcs mock_time_funcs = {
+        [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
+    };
+    Tox_Time *tm = tox_time_new(&mock_time_funcs, &test_time, mem);
+    ASSERT_NE(tm, nullptr);
+    mono_time_set_current_time_callback(mono_time, tm);
     mono_time_update(mono_time);
 
     EXPECT_EQ(current_time_monotonic(mono_time), test_time);
@@ -65,6 +75,7 @@ TEST(MonoTime, CustomTime)
     EXPECT_EQ(current_time_monotonic(mono_time), test_time);
 
     mono_time_free(mem, mono_time);
+    tox_time_free(tm);
 }
 
 }  // namespace

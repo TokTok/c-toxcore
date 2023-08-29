@@ -282,6 +282,17 @@ set(toxcore_SOURCES
   toxcore/onion_client.c
   toxcore/onion_client.h
   toxcore/onion.h
+  toxcore/os_log.c
+  toxcore/os_log.h
+  toxcore/os_memory.c
+  toxcore/os_memory.h
+  toxcore/os_network.c
+  toxcore/os_network.h
+  toxcore/os_network_impl.h
+  toxcore/os_random.c
+  toxcore/os_random.h
+  toxcore/os_system.c
+  toxcore/os_system.h
   toxcore/ping_array.c
   toxcore/ping_array.h
   toxcore/ping.c
@@ -302,11 +313,29 @@ set(toxcore_SOURCES
   toxcore/timed_auth.h
   toxcore/tox_api.c
   toxcore/tox.c
+  toxcore/tox.h
   toxcore/tox_dispatch.c
   toxcore/tox_dispatch.h
   toxcore/tox_events.c
   toxcore/tox_events.h
-  toxcore/tox.h
+  toxcore/tox_log.c
+  toxcore/tox_log.h
+  toxcore/tox_log_impl.h
+  toxcore/tox_memory.c
+  toxcore/tox_memory.h
+  toxcore/tox_memory_impl.h
+  toxcore/tox_network.c
+  toxcore/tox_network.h
+  toxcore/tox_network_impl.h
+  toxcore/tox_random.c
+  toxcore/tox_random.h
+  toxcore/tox_random_impl.h
+  toxcore/tox_system.c
+  toxcore/tox_system.h
+  toxcore/tox_system_impl.h
+  toxcore/tox_time.c
+  toxcore/tox_time.h
+  toxcore/tox_time_impl.h
   toxcore/tox_private.c
   toxcore/tox_private.h
   toxcore/tox_unpack.c
@@ -316,9 +345,16 @@ set(toxcore_SOURCES
 set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${LIBSODIUM_LIBRARIES})
 set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} libsodium)
 set(toxcore_API_HEADERS
+  ${toxcore_SOURCE_DIR}/tox.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox
-  ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox)
+  ${toxcore_SOURCE_DIR}/toxcore/tox_log.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_memory.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_network.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_random.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_system.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_time.h^tox)
 
 ################################################################################
 #
@@ -346,6 +382,7 @@ if(BUILD_TOXAV)
     toxav/video.c
     toxav/video.h)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+    ${toxcore_SOURCE_DIR}/toxav.h^toxav
     ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
 
   set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${OPUS_LIBRARIES} ${VPX_LIBRARIES})
@@ -362,6 +399,7 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxencryptsave/toxencryptsave.c
   toxencryptsave/toxencryptsave.h)
 set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+  ${toxcore_SOURCE_DIR}/toxencryptsave.h^tox
   ${toxcore_SOURCE_DIR}/toxencryptsave/toxencryptsave.h^tox)
 
 ################################################################################
