@@ -11,6 +11,7 @@
 #include "../../toxcore/DHT.h"
 #include "../../toxcore/logger.h"
 #include "../../toxcore/network.h"
+#include "../../toxcore/os_memory.h"
 #include "fuzz_support.h"
 
 constexpr uint16_t SIZE_IP_PORT = SIZE_IP6 + sizeof(uint16_t);
@@ -37,7 +38,7 @@ struct with<Logger> {
     template <typename F>
     void operator>>(F &&f)
     {
-        Ptr<Logger> logger(logger_new(), logger_kill);
+        Ptr<Logger> logger(logger_new(os_memory()), logger_kill);
         assert(logger != nullptr);
         f(std::move(logger));
     }

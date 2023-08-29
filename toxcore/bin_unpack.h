@@ -8,7 +8,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "attributes.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,7 +28,7 @@ typedef struct Bin_Unpack Bin_Unpack;
  * @retval nullptr on allocation failure.
  */
 non_null()
-Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size);
+Bin_Unpack *bin_unpack_new(const uint8_t *buf, uint32_t buf_size, const Memory *mem);
 
 /** @brief Deallocates an unpacker object.
  *

@@ -153,7 +153,7 @@ non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
 static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
-non_null() static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key,
+non_null() static void create_gc_session_keypair(const Logger *log, const Tox_Random *rng, uint8_t *public_key,
         uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
 non_null() static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
@@ -744,7 +744,7 @@ static bool expand_chat_id(uint8_t *dest, const uint8_t *chat_id)
 
 /** Copies peer connect info from `gconn` to `addr`. */
 non_null()
-static void copy_gc_saved_peer(const Random *rng, const GC_Connection *gconn, GC_SavedPeerInfo *addr)
+static void copy_gc_saved_peer(const Tox_Random *rng, const GC_Connection *gconn, GC_SavedPeerInfo *addr)
 {
     if (!gcc_copy_tcp_relay(rng, &addr->tcp_relay, gconn)) {
         addr->tcp_relay = (Node_format) {
@@ -1412,8 +1412,9 @@ static bool sign_gc_shared_state(GC_Chat *chat)
  * Return -2 on decryption failure.
  * Return -3 if plaintext payload length is invalid.
  */
-non_null(1, 2, 3, 5, 6) nullable(4)
-static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, uint8_t *data, uint64_t *message_id,
+non_null(1, 2, 3, 4, 6, 7) nullable(5)
+static int group_packet_unwrap(const Logger *log, const Memory *mem, const GC_Connection *gconn,
+                               uint8_t *data, uint64_t *message_id,
                                uint8_t *packet_type, const uint8_t *packet, uint16_t length)
 {
     if (length <= CRYPTO_NONCE_SIZE) {
@@ -1429,7 +1430,7 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
     }
 
     int plain_len = decrypt_data_symmetric(gconn->session_shared_key, packet, packet + CRYPTO_NONCE_SIZE,
-                                           length - CRYPTO_NONCE_SIZE, plain);
+                                           length - CRYPTO_NONCE_SIZE, plain, mem);
 
     if (plain_len <= 0) {
         free(plain);
@@ -1469,7 +1470,8 @@ static int group_packet_unwrap(const Logger *log, const GC_Connection *gconn, ui
 }
 
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Memory *mem, const Random *rng,
+    const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, uint8_t net_packet_type)
 {
@@ -1523,7 +1525,7 @@ int group_packet_wrap(
         return -2;
     }
 
-    const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt);
+    const int enc_len = encrypt_data_symmetric(shared_key, nonce, plain, plain_len, encrypt, mem);
 
     free(plain);
 
@@ -1569,7 +1571,7 @@ static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gc
     }
 
     const int len = group_packet_wrap(
-                        chat->log, chat->rng, chat->self_public_key, gconn->session_shared_key, packet,
+                        chat->log, chat->mem, chat->rng, chat->self_public_key, gconn->session_shared_key, packet,
                         packet_size, data, length, 0, packet_type, NET_PACKET_GC_LOSSY);
 
     if (len < 0) {
@@ -5371,7 +5373,7 @@ static int handle_gc_broadcast(const GC_Session *c, GC_Chat *chat, uint32_t peer
  */
 non_null()
 static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_sk, const uint8_t *sender_pk,
-        uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length)
+        uint8_t *plain, size_t plain_size, const uint8_t *packet, uint16_t length, const Memory *mem)
 {
     if (length <= CRYPTO_NONCE_SIZE) {
         LOGGER_FATAL(log, "Invalid handshake packet length %u", length);
@@ -5379,7 +5381,7 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
     }
 
     const int plain_len = decrypt_data(sender_pk, self_sk, packet, packet + CRYPTO_NONCE_SIZE,
-                                       length - CRYPTO_NONCE_SIZE, plain);
+                                       length - CRYPTO_NONCE_SIZE, plain, mem);
 
     if (plain_len < 0 || (uint32_t)plain_len != plain_size) {
         LOGGER_DEBUG(log, "decrypt handshake request failed: len: %d, size: %zu", plain_len, plain_size);
@@ -5401,7 +5403,8 @@ static int unwrap_group_handshake_packet(const Logger *log, const uint8_t *self_
  */
 non_null()
 static int wrap_group_handshake_packet(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *self_sk,
+    const Logger *log, const Memory *mem, const Tox_Random *rng,
+    const uint8_t *self_pk, const uint8_t *self_sk,
     const uint8_t *target_pk, uint8_t *packet, uint32_t packet_size,
     const uint8_t *data, uint16_t length)
 {
@@ -5420,7 +5423,7 @@ static int wrap_group_handshake_packet(
         return -2;
     }
 
-    const int enc_len = encrypt_data(target_pk, self_sk, nonce, data, length, encrypt);
+    const int enc_len = encrypt_data(target_pk, self_sk, nonce, data, length, encrypt, mem);
 
     if (enc_len < 0 || (size_t)enc_len != encrypt_buf_size) {
         LOGGER_ERROR(log, "Failed to encrypt group handshake packet (len: %d)", enc_len);
@@ -5484,7 +5487,7 @@ static int make_gc_handshake_packet(const GC_Chat *chat, const GC_Connection *gc
     }
 
     const int enc_len = wrap_group_handshake_packet(
-                            chat->log, chat->rng, chat->self_public_key, chat->self_secret_key,
+                            chat->log, chat->mem, chat->rng, chat->self_public_key, chat->self_secret_key,
                             gconn->addr.public_key, packet, (uint16_t)packet_size, data, length);
 
     if (enc_len != GC_MIN_ENCRYPTED_HS_PAYLOAD_SIZE + nodes_size) {
@@ -5816,7 +5819,7 @@ static int handle_gc_handshake_packet(GC_Chat *chat, const uint8_t *sender_pk, c
     }
 
     const int plain_len = unwrap_group_handshake_packet(chat->log, chat->self_secret_key, sender_pk, data,
-                          data_buf_size, packet, length);
+                          data_buf_size, packet, length, chat->mem);
 
     if (plain_len < GC_MIN_HS_PACKET_PAYLOAD_SIZE)  {
         LOGGER_DEBUG(chat->log, "Failed to unwrap handshake packet (probably a stale request using an old key)");
@@ -6045,7 +6048,7 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
     uint8_t packet_type;
     uint64_t message_id;
 
-    const int len = group_packet_unwrap(chat->log, gconn, data, &message_id, &packet_type, packet, length);
+    const int len = group_packet_unwrap(chat->log, chat->mem, gconn, data, &message_id, &packet_type, packet, length);
 
     if (len < 0) {
         Ip_Ntoa ip_str;
@@ -6165,7 +6168,7 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
 
     uint8_t packet_type;
 
-    const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
+    const int len = group_packet_unwrap(chat->log, chat->mem, gconn, data, nullptr, &packet_type, packet, length);
 
     if (len <= 0) {
         Ip_Ntoa ip_str;
@@ -7483,6 +7486,10 @@ int gc_group_load(GC_Session *c, Bin_Unpack *bu)
     chat->last_ping_interval = tm;
     chat->friend_connection_id = -1;
 
+    // Initialise these first, because we may need to log/dealloc things on cleanup.
+    chat->moderation.log = m->log;
+    chat->moderation.mem = m->mem;
+
     if (!gc_load_unpack_group(chat, bu)) {
         LOGGER_ERROR(chat->log, "Failed to unpack group");
         return -1;
@@ -8266,7 +8273,7 @@ static bool group_exists(const GC_Session *c, const uint8_t *chat_id)
 }
 
 /** Creates a new 32-byte session encryption keypair and puts the results in `public_key` and `secret_key`. */
-static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key, uint8_t *secret_key)
+static void create_gc_session_keypair(const Logger *log, const Tox_Random *rng, uint8_t *public_key, uint8_t *secret_key)
 {
     if (crypto_new_keypair(rng, public_key, secret_key) != 0) {
         LOGGER_FATAL(log, "Failed to create group session keypair");

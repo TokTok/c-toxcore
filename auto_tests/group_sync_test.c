@@ -10,6 +10,7 @@
 
 #include "auto_test_support.h"
 
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 
@@ -332,7 +333,7 @@ static void group_sync_test(AutoTox *autotoxes)
 {
 #ifndef VANILLA_NACL
     ck_assert(NUM_GROUP_TOXES >= 5);
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {

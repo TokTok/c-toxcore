@@ -11,6 +11,7 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/friend_connection.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 #include "check_compat.h"
@@ -51,7 +52,7 @@ static bool all_disconnected_from(uint32_t tox_count, AutoTox *autotoxes, uint32
 
 static void test_reconnect(AutoTox *autotoxes)
 {
-    const Random *rng = system_random();
+    const Random *rng = os_random();
     ck_assert(rng != nullptr);
     const time_t test_start_time = time(nullptr);
 

@@ -1309,13 +1309,13 @@ static void remove_connection_reason(Group_Chats *g_c, Group_c *g, uint16_t i, u
 
 /** @brief Creates a new groupchat and puts it in the chats array.
  *
- * @param rng Random number generator used for generating the group ID.
+ * @param rng Tox_Random number generator used for generating the group ID.
  * @param type is one of `GROUPCHAT_TYPE_*`
  *
  * @return group number on success.
  * @retval -1 on failure.
  */
-int add_groupchat(Group_Chats *g_c, const Random *rng, uint8_t type)
+int add_groupchat(Group_Chats *g_c, const Tox_Random *rng, uint8_t type)
 {
     const int32_t groupnumber = create_group_chat(g_c);
 

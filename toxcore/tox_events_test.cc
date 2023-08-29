@@ -6,13 +6,15 @@
 #include <vector>
 
 #include "crypto_core.h"
+#include "os_system.h"
 #include "tox_private.h"
+#include "tox_system_impl.h"
 
 namespace {
 
 TEST(ToxEvents, UnpackRandomDataDoesntCrash)
 {
-    const Tox_System sys = tox_default_system();
+    const Tox_System sys = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
     ASSERT_NE(sys.rng, nullptr);
     std::array<uint8_t, 128> data;
     random_bytes(sys.rng, data.data(), data.size());
@@ -21,7 +23,7 @@ TEST(ToxEvents, UnpackRandomDataDoesntCrash)
 
 TEST(ToxEvents, UnpackEmptyDataFails)
 {
-    const Tox_System sys = tox_default_system();
+    const Tox_System sys = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
     std::array<uint8_t, 1> data;
     Tox_Events *events = tox_events_load(&sys, data.end(), 0);
     EXPECT_EQ(events, nullptr);
@@ -29,7 +31,7 @@ TEST(ToxEvents, UnpackEmptyDataFails)
 
 TEST(ToxEvents, UnpackEmptyArrayCreatesEmptyEvents)
 {
-    const Tox_System sys = tox_default_system();
+    const Tox_System sys = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
     std::array<uint8_t, 1> data{0x90};  // empty msgpack array
     Tox_Events *events = tox_events_load(&sys, data.data(), data.size());
     ASSERT_NE(events, nullptr);
@@ -47,7 +49,7 @@ TEST(ToxEvents, NullEventsPacksToEmptyArray)
 
 TEST(ToxEvents, PackedEventsCanBeUnpacked)
 {
-    const Tox_System sys = tox_default_system();
+    const Tox_System sys = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
     // [[0, 1]] == Tox_Self_Connection_Status { .connection_status = TOX_CONNECTION_TCP }
     std::array<uint8_t, 6> packed{0x91, 0x92, 0xcc, 0x00, 0xcc, 0x01};
     Tox_Events *events = tox_events_load(&sys, packed.data(), packed.size());
@@ -61,7 +63,7 @@ TEST(ToxEvents, PackedEventsCanBeUnpacked)
 
 TEST(ToxEvents, DealsWithHugeMsgpackArrays)
 {
-    const Tox_System sys = tox_default_system();
+    const Tox_System sys = os_system(nullptr, nullptr, nullptr, nullptr, nullptr);
     std::vector<uint8_t> data{0xdd, 0xff, 0xff, 0xff, 0xff};
     EXPECT_EQ(tox_events_load(&sys, data.data(), data.size()), nullptr);
 }

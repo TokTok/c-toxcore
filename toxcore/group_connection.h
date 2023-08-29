@@ -88,7 +88,7 @@ void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp);
  * Return true on success.
  */
 non_null()
-bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Connection *gconn);
+bool gcc_copy_tcp_relay(const Tox_Random *rng, Node_format *tcp_node, const GC_Connection *gconn);
 
 /** @brief Saves tcp_node to gconn's list of connected tcp relays.
  *
@@ -99,7 +99,7 @@ bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Conne
  * Return -2 if node is already in list.
  */
 non_null()
-int gcc_save_tcp_relay(const Random *rng, GC_Connection *gconn, const Node_format *tcp_node);
+int gcc_save_tcp_relay(const Tox_Random *rng, GC_Connection *gconn, const Node_format *tcp_node);
 
 /** @brief Checks for and handles messages that are in proper sequence in gconn's recv_array.
  * This should always be called after a new packet is successfully handled.

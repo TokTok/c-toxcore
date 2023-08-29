@@ -17,6 +17,8 @@
 #include "ccompat.h"
 
 struct Logger {
+    const Memory *mem;
+
     logger_cb *callback;
     void *context;
     void *userdata;
@@ -59,6 +61,7 @@ static void logger_stderr_handler(void *context, Logger_Level level, const char 
 }
 
 static const Logger logger_stderr = {
+    nullptr,
     logger_stderr_handler,
     nullptr,
     nullptr,
@@ -68,14 +71,22 @@ static const Logger logger_stderr = {
  * Public Functions
  */
 
-Logger *logger_new(void)
+Logger *logger_new(const Memory *mem)
 {
-    return (Logger *)calloc(1, sizeof(Logger));
+    Logger *log = (Logger *)mem_alloc(mem, sizeof(Logger));
+
+    if (log == nullptr) {
+        return nullptr;
+    }
+
+    log->mem = mem;
+
+    return log;
 }
 
 void logger_kill(Logger *log)
 {
-    free(log);
+    mem_delete(log->mem, log);
 }
 
 void logger_callback_log(Logger *log, logger_cb *function, void *context, void *userdata)

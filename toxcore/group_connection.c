@@ -268,7 +268,7 @@ void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
     }
 }
 
-bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Connection *gconn)
+bool gcc_copy_tcp_relay(const Tox_Random *rng, Node_format *tcp_node, const GC_Connection *gconn)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
         return false;
@@ -289,7 +289,7 @@ bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Conne
     return true;
 }
 
-int gcc_save_tcp_relay(const Random *rng, GC_Connection *gconn, const Node_format *tcp_node)
+int gcc_save_tcp_relay(const Tox_Random *rng, GC_Connection *gconn, const Node_format *tcp_node)
 {
     if (gconn == nullptr || tcp_node == nullptr) {
         return -1;
@@ -622,8 +622,8 @@ bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connecti
     }
 
     const int enc_len = group_packet_wrap(
-                            chat->log, chat->rng, chat->self_public_key, gconn->session_shared_key, packet,
-                            packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
+                            chat->log, chat->mem, chat->rng, chat->self_public_key, gconn->session_shared_key,
+                            packet, packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
         LOGGER_ERROR(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);

@@ -150,7 +150,7 @@ int write_packet_TCP_secure_connection(const Logger *logger, TCP_Connection *con
 
     uint16_t c_length = net_htons(length + CRYPTO_MAC_SIZE);
     memcpy(packet, &c_length, sizeof(uint16_t));
-    int len = encrypt_data_symmetric(con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t));
+    int len = encrypt_data_symmetric(con->shared_key, con->sent_nonce, data, length, packet + sizeof(uint16_t), con->mem);
 
     if ((unsigned int)len != (SIZEOF_VLA(packet) - sizeof(uint16_t))) {
         return -1;
@@ -294,7 +294,7 @@ int read_packet_TCP_secure_connection(
 
     *next_packet_length = 0;
 
-    const int len = decrypt_data_symmetric(shared_key, recv_nonce, data_encrypted, len_packet, data);
+    const int len = decrypt_data_symmetric(shared_key, recv_nonce, data_encrypted, len_packet, data, mem);
 
     if (len + CRYPTO_MAC_SIZE != len_packet) {
         LOGGER_ERROR(logger, "decrypted length %d does not match expected length %d", len + CRYPTO_MAC_SIZE, len_packet);

@@ -30,7 +30,8 @@
 
 struct Ping {
     const Mono_Time *mono_time;
-    const Random *rng;
+    const Tox_Random *rng;
+    const Memory *mem;
     DHT *dht;
 
     Ping_Array  *ping_array;
@@ -78,7 +79,8 @@ void ping_send_request(Ping *ping, const IP_Port *ipp, const uint8_t *public_key
     rc = encrypt_data_symmetric(shared_key,
                                 pk + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                 ping_plain, sizeof(ping_plain),
-                                pk + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
+                                pk + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                                ping->mem);
 
     if (rc != PING_PLAIN_SIZE + CRYPTO_MAC_SIZE) {
         return;
@@ -110,7 +112,8 @@ static int ping_send_response(const Ping *ping, const IP_Port *ipp, const uint8_
     const int rc = encrypt_data_symmetric(shared_encryption_key,
                                           pk + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                           ping_plain, sizeof(ping_plain),
-                                          pk + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
+                                          pk + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
+                                          ping->mem);
 
     if (rc != PING_PLAIN_SIZE + CRYPTO_MAC_SIZE) {
         return 1;
@@ -144,7 +147,8 @@ static int handle_ping_request(void *object, const IP_Port *source, const uint8_
                                           packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                           packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                           PING_PLAIN_SIZE + CRYPTO_MAC_SIZE,
-                                          ping_plain);
+                                          ping_plain,
+                                          ping->mem);
 
     if (rc != sizeof(ping_plain)) {
         return 1;
@@ -189,7 +193,7 @@ static int handle_ping_response(void *object, const IP_Port *source, const uint8
                                 packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                 packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
                                 PING_PLAIN_SIZE + CRYPTO_MAC_SIZE,
-                                ping_plain);
+                                ping_plain, ping->mem);
 
     if (rc != sizeof(ping_plain)) {
         return 1;
@@ -336,7 +340,7 @@ void ping_iterate(Ping *ping)
 }
 
 
-Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht)
+Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Tox_Random *rng, DHT *dht)
 {
     Ping *ping = (Ping *)mem_alloc(mem, sizeof(Ping));
 
@@ -353,6 +357,7 @@ Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng,
 
     ping->mono_time = mono_time;
     ping->rng = rng;
+    ping->mem = mem;
     ping->dht = dht;
     networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_REQUEST, &handle_ping_request, dht);
     networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_RESPONSE, &handle_ping_response, dht);
