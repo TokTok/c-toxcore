@@ -7,7 +7,7 @@ CACHEDIR="$HOME/cache"
 . ".github/scripts/flags-$CC.sh"
 add_flag -Werror
 add_flag -fdiagnostics-color=always
-add_flag -flto=thin  # for cfi
+add_flag -flto=thin # for cfi
 add_flag -fno-omit-frame-pointer
 add_flag -fsanitize=cfi
 cmake -B_build -H. -GNinja \
