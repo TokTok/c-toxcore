@@ -7,6 +7,7 @@ workflows:
     jobs:
       # Dynamic analysis
       - asan
+      - cfisan
       - tsan
       - msan
       - ubsan
@@ -54,6 +55,17 @@ jobs:
       - checkout
       - run: git submodule update --init --recursive
       - run: CC=clang .circleci/cmake-tsan
+
+  cfisan:
+    working_directory: ~/work
+    docker:
+      - image: ubuntu
+
+    steps:
+      - run: *apt_install
+      - checkout
+      - run: git submodule update --init --recursive
+      - run: CC=clang .circleci/cmake-cfisan
 
   ubsan:
     working_directory: ~/work
