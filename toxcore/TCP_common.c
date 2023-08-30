@@ -95,7 +95,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
 non_null()
 static bool add_priority(TCP_Connection *con, const uint8_t *packet, uint16_t size, uint16_t sent)
 {
-    TCP_Priority_List *p = con->priority_queue_end;
+    TCP_Priority_List *p = con->priority_queue_start;
     TCP_Priority_List *new_list = (TCP_Priority_List *)calloc(1, sizeof(TCP_Priority_List));
 
     if (new_list == nullptr) {
