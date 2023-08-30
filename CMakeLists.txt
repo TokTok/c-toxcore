@@ -14,8 +14,8 @@
 #
 ################################################################################
 
-cmake_minimum_required(VERSION 3.5)
-cmake_policy(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
+cmake_policy(VERSION 3.9)
 project(toxcore)
 
 list(APPEND CMAKE_MODULE_PATH ${toxcore_SOURCE_DIR}/cmake)
@@ -74,6 +74,9 @@ include(GNUInstallDirs)
 if(APPLE)
   include(MacRpath)
 endif()
+
+include(CheckIPOSupported)
+check_ipo_supported()
 
 enable_testing()
 
