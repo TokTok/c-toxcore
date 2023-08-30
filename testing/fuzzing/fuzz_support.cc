@@ -191,9 +191,7 @@ static constexpr Tox_Memory_Funcs null_memory_funcs = {
     /* .malloc = */
     ![](Null_System *self, uint32_t size) { return std::malloc(size); },
     /* .realloc = */
-    ![](Null_System *self, void *ptr, uint32_t size) {
-        return std::realloc(ptr, size);
-    },
+    ![](Null_System *self, void *ptr, uint32_t size) { return std::realloc(ptr, size); },
     /* .free = */
     ![](Null_System *self, void *ptr) { std::free(ptr); },
 };

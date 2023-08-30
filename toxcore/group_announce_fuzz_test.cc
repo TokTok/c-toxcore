@@ -58,7 +58,8 @@ void TestDoGca(Fuzz_Data &input)
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
         mono_time_new(mem, tm.get()), [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
     assert(mono_time != nullptr);
-    std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(new_gca_list(mem), kill_gca);
+    std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(
+        new_gca_list(mem), kill_gca);
     assert(gca != nullptr);
 
     while (input.size > 0) {
