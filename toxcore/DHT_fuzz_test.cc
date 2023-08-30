@@ -16,8 +16,8 @@ void TestHandleRequest(Fuzz_Data &input)
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t request[MAX_CRYPTO_REQUEST_SIZE];
     uint8_t request_id;
-    handle_request(
-        self_public_key, self_secret_key, public_key, request, &request_id, input.data, input.size, os_memory());
+    handle_request(self_public_key, self_secret_key, public_key, request, &request_id, input.data,
+        input.size, os_memory());
 }
 
 void TestUnpackNodes(Fuzz_Data &input)
