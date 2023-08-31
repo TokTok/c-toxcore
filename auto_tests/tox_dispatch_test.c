@@ -105,7 +105,7 @@ static void test_tox_events(void)
 
     const Tox_System *sys = tox_get_system(toxes[0]);
 
-    Tox_Err_Dispatch_New err_new;
+    Tox_Err_Dispatch_New err_new = TOX_ERR_DISPATCH_NEW_OK;
     Tox_Dispatch *dispatch = tox_dispatch_new(&err_new);
     ck_assert_msg(dispatch != nullptr, "failed to create event dispatcher");
     ck_assert(err_new == TOX_ERR_DISPATCH_NEW_OK);
@@ -147,7 +147,7 @@ static void test_tox_events(void)
     printf("friends are connected via %s, now sending message\n",
            tox_friend_get_connection_status(toxes[0], 0, nullptr) == TOX_CONNECTION_TCP ? "TCP" : "UDP");
 
-    Tox_Err_Friend_Send_Message err;
+    Tox_Err_Friend_Send_Message err = TOX_ERR_FRIEND_SEND_MESSAGE_OK;
     tox_friend_send_message(toxes[0], 0, TOX_MESSAGE_TYPE_NORMAL, message, sizeof(message), &err);
     ck_assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
 

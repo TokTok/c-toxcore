@@ -26,7 +26,7 @@ static void group_invite_handler(Tox *tox, uint32_t friend_number, const uint8_t
 {
     printf("Accepting friend invite\n");
 
-    Tox_Err_Group_Invite_Accept err_accept;
+    Tox_Err_Group_Invite_Accept err_accept = TOX_ERR_GROUP_INVITE_ACCEPT_OK;
     tox_group_invite_accept(tox, friend_number, invite_data, length, (const uint8_t *)"test", 4,
                             nullptr, 0, &err_accept);
     ck_assert(err_accept == TOX_ERR_GROUP_INVITE_ACCEPT_OK);
@@ -143,14 +143,14 @@ static void group_tcp_test(AutoTox *autotoxes)
     tox_callback_group_message(autotoxes[1].tox, group_message_handler);
     tox_callback_group_invite(autotoxes[1].tox, group_invite_handler);
 
-    Tox_Err_Group_New new_err;
+    Tox_Err_Group_New new_err = TOX_ERR_GROUP_NEW_OK;
     uint32_t groupnumber = tox_group_new(autotoxes[0].tox, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
                                          (const uint8_t *)"test", 4, &new_err);
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
     iterate_group(autotoxes, NUM_GROUP_TOXES, GROUP_ITERATION_INTERVAL);
 
-    Tox_Err_Group_State_Queries id_err;
+    Tox_Err_Group_State_Queries id_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
     tox_group_get_chat_id(autotoxes[0].tox, groupnumber, chat_id, &id_err);
@@ -159,7 +159,7 @@ static void group_tcp_test(AutoTox *autotoxes)
     printf("Tox 0 created new group...\n");
 
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
-        Tox_Err_Group_Join jerr;
+        Tox_Err_Group_Join jerr = TOX_ERR_GROUP_JOIN_OK;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"test", 4, nullptr, 0, &jerr);
         ck_assert_msg(jerr == TOX_ERR_GROUP_JOIN_OK, "%d", jerr);
         iterate_group(autotoxes, NUM_GROUP_TOXES, GROUP_ITERATION_INTERVAL * 10);
@@ -174,7 +174,7 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     for (size_t i = 0; i < NUM_GROUP_TOXES - 1; ++i) {
 
-        Tox_Err_Group_Send_Private_Message perr;
+        Tox_Err_Group_Send_Private_Message perr = TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK;
         tox_group_send_private_message(autotoxes[0].tox, groupnumber, state0->peer_id[i],
                                        TOX_MESSAGE_TYPE_NORMAL,
                                        (const uint8_t *)CODEWORD, CODEWORD_LEN, &perr);
@@ -184,7 +184,7 @@ static void group_tcp_test(AutoTox *autotoxes)
     while (!all_peers_got_code(autotoxes))
         ;
 
-    Tox_Err_Group_Leave err_exit;
+    Tox_Err_Group_Leave err_exit = TOX_ERR_GROUP_LEAVE_OK;
     tox_group_leave(autotoxes[1].tox, groupnumber, nullptr, 0, &err_exit);
     ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
 
@@ -197,7 +197,7 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     printf("Tox1 leaves group and Tox0 does a friend group invite for tox1\n");
 
-    Tox_Err_Group_Invite_Friend err_invite;
+    Tox_Err_Group_Invite_Friend err_invite = TOX_ERR_GROUP_INVITE_FRIEND_OK;
     tox_group_invite_friend(autotoxes[0].tox, groupnumber, 0, &err_invite);
     ck_assert(err_invite == TOX_ERR_GROUP_INVITE_FRIEND_OK);
 
@@ -207,7 +207,7 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     printf("Tox 1 successfully joined. Waiting for code...\n");
 
-    Tox_Err_Group_Send_Message merr;
+    Tox_Err_Group_Send_Message merr = TOX_ERR_GROUP_SEND_MESSAGE_OK;
     tox_group_send_message(autotoxes[0].tox, groupnumber, TOX_MESSAGE_TYPE_NORMAL,
                            (const uint8_t *)CODEWORD, CODEWORD_LEN, nullptr, &merr);
     ck_assert(merr == TOX_ERR_GROUP_SEND_MESSAGE_OK);

@@ -233,7 +233,7 @@ int id_closest(const uint8_t *pk, const uint8_t *pk1, const uint8_t *pk2)
 /** Return index of first unequal bit number between public keys pk1 and pk2. */
 unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2)
 {
-    unsigned int i;
+    unsigned int i = 0;
     unsigned int j = 0;
 
     for (i = 0; i < CRYPTO_PUBLIC_KEY_SIZE; ++i) {
@@ -366,8 +366,8 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
         return -1;
     }
 
-    bool is_ipv4;
-    uint8_t family;
+    bool is_ipv4 = 0;
+    uint8_t family = 0;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         // TODO(irungentoo): use functions to convert endianness
@@ -457,7 +457,7 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
         return -1;
     }
 
-    bool is_ipv4;
+    bool is_ipv4 = 0;
     Family host_family;
 
     if (data[0] == TOX_AF_INET) {
@@ -646,8 +646,8 @@ non_null()
 static void update_client(const Logger *log, const Mono_Time *mono_time, int index, Client_data *client,
                           const IP_Port *ip_port)
 {
-    IPPTsPng *assoc;
-    int ip_version;
+    IPPTsPng *assoc = NULL;
+    int ip_version = 0;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         assoc = &client->assoc4;
@@ -708,8 +708,8 @@ static bool client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_t
         return false;
     }
 
-    IPPTsPng *assoc;
-    int ip_version;
+    IPPTsPng *assoc = NULL;
+    int ip_version = 0;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         assoc = &list[index].assoc4;
@@ -776,7 +776,7 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *public_key, 
             continue;
         }
 
-        const IPPTsPng *ipptp;
+        const IPPTsPng *ipptp = NULL;
 
         if (net_family_is_ipv4(sa_family)) {
             ipptp = &client->assoc4;
@@ -974,7 +974,7 @@ static int handle_data_search_response(void *object, const IP_Port *source,
         return 1;
     }
 
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, plain + (plain_len - sizeof(uint64_t)), sizeof(ping_id));
 
     uint8_t ping_data[CRYPTO_PUBLIC_KEY_SIZE];
@@ -1319,7 +1319,7 @@ static bool update_client_data(const Mono_Time *mono_time, Client_data *array, s
     }
 
     Client_data *const data = &array[index];
-    IPPTsPng *assoc;
+    IPPTsPng *assoc = NULL;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         assoc = &data->assoc4;
@@ -1549,7 +1549,7 @@ static bool handle_sendnodes_core(void *object, const IP_Port *source, const uin
         return false;
     }
 
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, plain + 1 + data_size, sizeof(ping_id));
 
     if (!sent_getnode_to_node(dht, packet + 1, source, ping_id)) {
@@ -1585,7 +1585,7 @@ static int handle_sendnodes_ipv6(void *object, const IP_Port *source, const uint
 {
     DHT *const dht = (DHT *)object;
     Node_format plain_nodes[MAX_SENT_NODES];
-    uint32_t num_nodes;
+    uint32_t num_nodes = 0;
 
     if (!handle_sendnodes_core(object, source, packet, length, plain_nodes, MAX_SENT_NODES, &num_nodes)) {
         return 1;
@@ -1617,7 +1617,7 @@ static uint32_t dht_friend_lock(DHT_Friend *const dht_friend, dht_ip_cb *ip_call
                             void *data, int32_t number)
 {
     // find first free slot
-    uint8_t lock_num;
+    uint8_t lock_num = 0;
     uint32_t lock_token = 0;
     for (lock_num = 0; lock_num < DHT_FRIEND_MAX_LOCKS; ++lock_num) {
         lock_token = UINT32_C(1) << lock_num;
@@ -1648,7 +1648,7 @@ static void dht_friend_unlock(DHT_Friend *const dht_friend, uint32_t lock_token)
     assert((lock_token & dht_friend->lock_flags) > 0);
 
     // find used slot
-    uint8_t lock_num;
+    uint8_t lock_num = 0;
     for (lock_num = 0; lock_num < DHT_FRIEND_MAX_LOCKS; ++lock_num) {
         if (((UINT32_C(1) << lock_num) & lock_token) > 0) {
             break;
@@ -2252,7 +2252,7 @@ static int handle_nat_ping(void *object, const IP_Port *source, const uint8_t *s
     }
 
     DHT *const dht = (DHT *)object;
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, packet + 1, sizeof(uint64_t));
 
     const uint32_t friendnumber = index_of_friend_pk(dht->friends_list, dht->num_friends, source_pubkey);
@@ -2347,7 +2347,7 @@ static void punch_holes(DHT *dht, const IP *ip, const uint16_t *port_list, uint1
     }
 
     const uint16_t first_port = port_list[0];
-    uint16_t port_candidate;
+    uint16_t port_candidate = 0;
 
     for (port_candidate = 0; port_candidate < numports; ++port_candidate) {
         if (first_port != port_list[port_candidate]) {
@@ -2361,7 +2361,7 @@ static void punch_holes(DHT *dht, const IP *ip, const uint16_t *port_list, uint1
         pinging.port = net_htons(first_port);
         ping_send_request(dht->ping, &pinging, dht->friends_list[friend_num].public_key);
     } else {
-        uint16_t i;
+        uint16_t i = 0;
         for (i = 0; i < MAX_PUNCHING_PORTS; ++i) {
             /* TODO(irungentoo): Improve port guessing algorithm. */
             const uint32_t it = i + dht->friends_list[friend_num].nat.punching_index;
@@ -2382,7 +2382,7 @@ static void punch_holes(DHT *dht, const IP *ip, const uint16_t *port_list, uint1
         IP_Port pinging;
         ip_copy(&pinging.ip, ip);
 
-        uint16_t i;
+        uint16_t i = 0;
         for (i = 0; i < MAX_PUNCHING_PORTS; ++i) {
             uint32_t it = i + dht->friends_list[friend_num].nat.punching_index2;
             const uint16_t port = 1024;
@@ -2553,7 +2553,7 @@ static int cryptopacket_handle(void *object, const IP_Port *source, const uint8_
     if (pk_equal(packet + 1, dht->self_public_key)) {
         uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
         uint8_t data[MAX_CRYPTO_REQUEST_SIZE];
-        uint8_t number;
+        uint8_t number = 0;
         const int len = handle_request(dht->self_public_key, dht->self_secret_key, public_key,
                                        data, &number, packet, length);
 
@@ -2675,7 +2675,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
         crypto_new_keypair(rng, random_public_key_bytes, random_secret_key_bytes);
 
-        uint32_t token; // We don't intend to delete these ever, but need to pass the token
+        uint32_t token = 0; // We don't intend to delete these ever, but need to pass the token
         if (dht_addfriend(dht, random_public_key_bytes, nullptr, nullptr, 0, &token) != 0) {
             kill_dht(dht);
             return nullptr;
@@ -2914,7 +2914,7 @@ int dht_load(DHT *dht, const uint8_t *data, uint32_t length)
     const uint32_t cookie_len = sizeof(uint32_t);
 
     if (length > cookie_len) {
-        uint32_t data32;
+        uint32_t data32 = 0;
         lendian_bytes_to_host32(&data32, data);
 
         if (data32 == DHT_STATE_COOKIE_GLOBAL) {

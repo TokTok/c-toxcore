@@ -290,7 +290,7 @@ static void test_basic(void)
     ck_assert_msg((onion1_a != nullptr) && (onion2_a != nullptr), "Onion_Announce failed initializing.");
     uint8_t zeroes[64] = {0};
     random_bytes(rng, sb_data, sizeof(sb_data));
-    uint64_t s;
+    uint64_t s = 0;
     memcpy(&s, sb_data, sizeof(uint64_t));
     memcpy(test_3_pub_key, nodes[3].public_key, CRYPTO_PUBLIC_KEY_SIZE);
     int ret = send_announce_request(onion1->net, rng, &path, &nodes[3],
@@ -574,7 +574,7 @@ static void dht_pk_callback(void *object, int32_t number, const uint8_t *dht_pub
 
 static void test_announce(void)
 {
-    uint32_t i, j;
+    uint32_t i = 0, j = 0;
     uint32_t index[NUM_ONIONS];
     Onions *onions[NUM_ONIONS];
     const Random *rng = system_random();

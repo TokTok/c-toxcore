@@ -82,7 +82,7 @@ static void test_save_compatibility(const char *save_path)
     options.savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
 
     size_t index = 0;
-    Tox_Err_New err;
+    Tox_Err_New err = TOX_ERR_NEW_OK;
     Tox *tox = tox_new_log(&options, &err, &index);
     ck_assert_msg(tox, "failed to create tox, error number: %d", err);
 

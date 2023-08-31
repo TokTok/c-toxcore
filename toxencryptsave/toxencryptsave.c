@@ -253,7 +253,7 @@ bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t *plaintext, siz
 bool tox_pass_encrypt(const uint8_t *plaintext, size_t plaintext_len, const uint8_t *passphrase, size_t passphrase_len,
                       uint8_t *ciphertext, Tox_Err_Encryption *error)
 {
-    Tox_Err_Key_Derivation err;
+    Tox_Err_Key_Derivation err = TOX_ERR_KEY_DERIVATION_OK;
     Tox_Pass_Key *key = tox_pass_key_derive(passphrase, passphrase_len, &err);
 
     if (key == nullptr) {

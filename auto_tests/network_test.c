@@ -101,7 +101,7 @@ static void test_addr_resolv_localhost(void)
 
 static void test_ip_equal(void)
 {
-    int res;
+    int res = 0;
     IP ip1, ip2;
     ip_reset(&ip1);
     ip_reset(&ip2);

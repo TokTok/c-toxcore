@@ -70,7 +70,7 @@ static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id
 {
     ck_assert(length <= TOX_GROUP_MAX_TOPIC_LENGTH);
 
-    Tox_Err_Group_State_Queries query_err;
+    Tox_Err_Group_State_Queries query_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint8_t topic2[TOX_GROUP_MAX_TOPIC_LENGTH];
     tox_group_get_topic(tox, groupnumber, topic2, &query_err);
     ck_assert(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -83,7 +83,7 @@ static void group_topic_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_id
 
 static void group_topic_lock_handler(Tox *tox, uint32_t groupnumber, Tox_Group_Topic_Lock topic_lock, void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     Tox_Group_Topic_Lock current_lock = tox_group_get_topic_lock(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -96,7 +96,7 @@ static void group_topic_lock_handler(Tox *tox, uint32_t groupnumber, Tox_Group_T
  */
 static bool set_topic(Tox *tox, uint32_t groupnumber, const char *topic, size_t length)
 {
-    Tox_Err_Group_Topic_Set err;
+    Tox_Err_Group_Topic_Set err = TOX_ERR_GROUP_TOPIC_SET_OK;
     tox_group_set_topic(tox, groupnumber, (const uint8_t *)topic, length, &err);
 
     return err == TOX_ERR_GROUP_TOPIC_SET_OK;
@@ -107,7 +107,7 @@ static bool set_topic(Tox *tox, uint32_t groupnumber, const char *topic, size_t 
  */
 static int check_topic(const Tox *tox, uint32_t groupnumber, const char *expected_topic, size_t expected_length)
 {
-    Tox_Err_Group_State_Queries query_err;
+    Tox_Err_Group_State_Queries query_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     size_t topic_length = tox_group_get_topic_size(tox, groupnumber, &query_err);
 
     if (query_err != TOX_ERR_GROUP_STATE_QUERIES_OK) {
@@ -140,7 +140,7 @@ static void wait_topic_lock(AutoTox *autotoxes, uint32_t groupnumber, Tox_Group_
         uint32_t count = 0;
 
         for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-            Tox_Err_Group_State_Queries err;
+            Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
             Tox_Group_Topic_Lock topic_lock = tox_group_get_topic_lock(autotoxes[i].tox, groupnumber, &err);
             ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
 
@@ -220,7 +220,7 @@ static void group_topic_test(AutoTox *autotoxes)
     }
 
     /* Tox1 creates a group and is the founder of a newly created group */
-    Tox_Err_Group_New new_err;
+    Tox_Err_Group_New new_err = TOX_ERR_GROUP_NEW_OK;
     const uint32_t groupnumber = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME,
                                  GROUP_NAME_LEN,
                                  (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
@@ -234,7 +234,7 @@ static void group_topic_test(AutoTox *autotoxes)
     ck_assert_msg(s_ret, "Founder failed to set topic");
 
     /* Founder gets the Chat ID and implicitly shares it publicly */
-    Tox_Err_Group_State_Queries id_err;
+    Tox_Err_Group_State_Queries id_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(tox0, groupnumber, chat_id, &id_err);
 
@@ -244,7 +244,7 @@ static void group_topic_test(AutoTox *autotoxes)
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
-        Tox_Err_Group_Join join_err;
+        Tox_Err_Group_Join join_err = TOX_ERR_GROUP_JOIN_OK;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
 
@@ -258,7 +258,7 @@ static void group_topic_test(AutoTox *autotoxes)
     wait_state_topic(autotoxes, groupnumber, TOPIC, TOPIC_LEN);
 
     /* Founder disables topic lock */
-    Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err;
+    Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err = TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK;
     tox_group_founder_set_topic_lock(tox0, groupnumber, TOX_GROUP_TOPIC_LOCK_DISABLED, &lock_set_err);
     ck_assert_msg(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to disable topic lock: %d",
                   lock_set_err);
@@ -274,7 +274,7 @@ static void group_topic_test(AutoTox *autotoxes)
     ck_assert_msg(change_count == NUM_GROUP_TOXES, "%u peers changed the topic with topic lock disabled", change_count);
 
     /* founder silences the last peer he saw join */
-    Tox_Err_Group_Mod_Set_Role merr;
+    Tox_Err_Group_Mod_Set_Role merr = TOX_ERR_GROUP_MOD_SET_ROLE_OK;
     tox_group_mod_set_role(tox0, groupnumber, state0->peer_id, TOX_GROUP_ROLE_OBSERVER, &merr);
     ck_assert_msg(merr == TOX_ERR_GROUP_MOD_SET_ROLE_OK, "Failed to set %u to observer role: %d", state0->peer_id, merr);
 
@@ -312,7 +312,7 @@ static void group_topic_test(AutoTox *autotoxes)
     wait_state_topic(autotoxes, groupnumber, TOPIC2, TOPIC_LEN2);
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        Tox_Err_Group_Leave err_exit;
+        Tox_Err_Group_Leave err_exit = TOX_ERR_GROUP_LEAVE_OK;
         tox_group_leave(autotoxes[i].tox, groupnumber, nullptr, 0, &err_exit);
         ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
     }

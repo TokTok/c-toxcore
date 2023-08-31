@@ -156,7 +156,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
     }
 
     // Get PID file location
-    const char *tmp_pid_file;
+    const char *tmp_pid_file = NULL;
 
     if (config_lookup_string(&cfg, NAME_PID_FILE_PATH, &tmp_pid_file) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_PID_FILE_PATH);
@@ -169,7 +169,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
     memcpy(*pid_file_path, tmp_pid_file, pid_file_path_len);
 
     // Get keys file location
-    const char *tmp_keys_file;
+    const char *tmp_keys_file = NULL;
 
     if (config_lookup_string(&cfg, NAME_KEYS_FILE_PATH, &tmp_keys_file) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_KEYS_FILE_PATH);
@@ -228,7 +228,7 @@ int get_general_config(const char *cfg_file_path, char **pid_file_path, char **k
 
     if (*enable_motd) {
         // Get MOTD
-        const char *tmp_motd;
+        const char *tmp_motd = NULL;
 
         if (config_lookup_string(&cfg, NAME_MOTD, &tmp_motd) == CONFIG_FALSE) {
             log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_MOTD);
@@ -297,7 +297,7 @@ static uint8_t *bootstrap_hex_string_to_bin(const char *hex_string)
     const char *pos = hex_string;
 
     for (size_t i = 0; i < len; ++i, pos += 2) {
-        unsigned int val;
+        unsigned int val = 0;
         sscanf(pos, "%02x", &val);
         ret[i] = val;
     }
@@ -338,17 +338,17 @@ int bootstrap_from_config(const char *cfg_file_path, DHT *dht, int enable_ipv6)
         return 1;
     }
 
-    int bs_port;
-    const char *bs_address;
-    const char *bs_public_key;
+    int bs_port = 0;
+    const char *bs_address = NULL;
+    const char *bs_public_key = NULL;
 
-    config_setting_t *node;
+    config_setting_t *node = NULL;
 
     int i = 0;
 
     while (config_setting_length(node_list)) {
-        int address_resolved;
-        uint8_t *bs_public_key_bin;
+        int address_resolved = 0;
+        uint8_t *bs_public_key_bin = NULL;
 
         node = config_setting_get_elem(node_list, 0);
 

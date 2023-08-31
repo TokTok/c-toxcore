@@ -462,7 +462,7 @@ static int handle_announce_request_common(
 
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
-    int index;
+    int index = 0;
 
     if (check_timed_auth(onion_a->mono_time, PING_ID_TIMEOUT, onion_a->hmac_key,
                          ping_id_data, ping_id_data_len, plain)) {

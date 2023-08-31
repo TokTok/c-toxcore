@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     unsigned char public_key[crypto_box_PUBLICKEYBYTES]; // null terminator
     unsigned char secret_key[crypto_box_SECRETKEYBYTES];
     long int offset = 0;
-    size_t len;
+    size_t len = 0;
     unsigned char desired_bin[crypto_box_PUBLICKEYBYTES]; // null terminator
 
     if (argc == 3) {
@@ -89,10 +89,10 @@ int main(int argc, char *argv[])
 
         // convert hex to bin
         char *pos = desired_hex;
-        size_t i;
+        size_t i = 0;
 
         for (i = 0; i < len; pos += 2) {
-            unsigned int value;
+            unsigned int value = 0;
             sscanf(pos, "%02x", &value);
             desired_bin[i] = value;
             ++i;

@@ -302,7 +302,7 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
         return -1;
     }
 
-    int success;
+    int success = 0;
     Group_Audio_Packet *pk = dequeue(peer_av->buffer, &success);
 
     if (success == 0) {
@@ -333,7 +333,7 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
                 peer_av->audio_decoder = nullptr;
             }
 
-            int rc;
+            int rc = 0;
             peer_av->audio_decoder = opus_decoder_create(sample_rate, channels, &rc);
 
             if (rc != OPUS_OK) {

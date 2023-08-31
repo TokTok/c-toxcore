@@ -46,7 +46,7 @@ static void test_many_clients_tcp(void)
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
     uint32_t index[NUM_TOXES_TCP];
-    uint32_t i, j;
+    uint32_t i = 0, j = 0;
     uint32_t to_comp = 974536;
 
     for (i = 0; i < NUM_TOXES_TCP; ++i) {
@@ -59,7 +59,7 @@ static void test_many_clients_tcp(void)
         }
 
         index[i] = i + 1;
-        Tox_Err_New err;
+        Tox_Err_New err = TOX_ERR_NEW_OK;
         toxes[i] = tox_new_log(opts, &err, &index[i]);
         if (i == 0 && err == TOX_ERR_NEW_PORT_ALLOC) {
             ck_assert(toxes[i] == nullptr);
@@ -101,7 +101,7 @@ loop_top:
 
         tox_self_get_address(toxes[pairs[i].tox1], address);
 
-        Tox_Err_Friend_Add test;
+        Tox_Err_Friend_Add test = TOX_ERR_FRIEND_ADD_OK;
         uint32_t num = tox_friend_add(toxes[pairs[i].tox2], address, (const uint8_t *)"Gentoo", 7, &test);
 
         if (test == TOX_ERR_FRIEND_ADD_ALREADY_SENT) {
@@ -149,7 +149,7 @@ static void test_many_clients_tcp_b(void)
     long long unsigned int cur_time = time(nullptr);
     Tox *toxes[NUM_TOXES_TCP];
     uint32_t index[NUM_TOXES_TCP];
-    uint32_t i, j;
+    uint32_t i = 0, j = 0;
     uint32_t to_comp = 974536;
 
     for (i = 0; i < NUM_TOXES_TCP; ++i) {
@@ -196,7 +196,7 @@ loop_top:
 
         tox_self_get_address(toxes[pairs[i].tox1], address);
 
-        Tox_Err_Friend_Add test;
+        Tox_Err_Friend_Add test = TOX_ERR_FRIEND_ADD_OK;
         uint32_t num = tox_friend_add(toxes[pairs[i].tox2], address, (const uint8_t *)"Gentoo", 7, &test);
 
         if (test == TOX_ERR_FRIEND_ADD_ALREADY_SENT) {

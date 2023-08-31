@@ -157,7 +157,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     }
 
     // TODO(iphydf): Don't rely on toxcore internals.
-    Messenger *m;
+    Messenger *m = NULL;
     m = tox->m;
 
     if (m->msi_packet != nullptr) {
@@ -365,7 +365,7 @@ bool toxav_call(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, uint
                 Toxav_Err_Call *error)
 {
     Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     pthread_mutex_lock(av->mutex);
 
@@ -419,7 +419,7 @@ bool toxav_answer(ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, ui
     pthread_mutex_lock(av->mutex);
 
     Toxav_Err_Answer rc = TOXAV_ERR_ANSWER_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     if (!m_friend_exists(av->m, friend_number)) {
         rc = TOXAV_ERR_ANSWER_FRIEND_NOT_FOUND;
@@ -642,7 +642,7 @@ bool toxav_audio_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
                               Toxav_Err_Bit_Rate_Set *error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     if (!m_friend_exists(av->m, friend_number)) {
         rc = TOXAV_ERR_BIT_RATE_SET_FRIEND_NOT_FOUND;
@@ -714,7 +714,7 @@ bool toxav_video_set_bit_rate(ToxAV *av, uint32_t friend_number, uint32_t bit_ra
                               Toxav_Err_Bit_Rate_Set *error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     if (!m_friend_exists(av->m, friend_number)) {
         rc = TOXAV_ERR_BIT_RATE_SET_FRIEND_NOT_FOUND;
@@ -800,7 +800,7 @@ bool toxav_audio_send_frame(ToxAV *av, uint32_t friend_number, const int16_t *pc
                             uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     if (!m_friend_exists(av->m, friend_number)) {
         rc = TOXAV_ERR_SEND_FRAME_FRIEND_NOT_FOUND;
@@ -925,7 +925,7 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
                             const uint8_t *u, const uint8_t *v, Toxav_Err_Send_Frame *error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
-    ToxAVCall *call;
+    ToxAVCall *call = NULL;
 
     int vpx_encode_flags = 0;
 

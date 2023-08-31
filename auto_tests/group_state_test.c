@@ -63,7 +63,7 @@ static bool all_group_peers_connected(const AutoTox *autotoxes, uint32_t tox_cou
 static void group_topic_lock_handler(Tox *tox, uint32_t groupnumber, Tox_Group_Topic_Lock topic_lock,
                                      void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     Tox_Group_Topic_Lock current_topic_lock = tox_group_get_topic_lock(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -74,7 +74,7 @@ static void group_topic_lock_handler(Tox *tox, uint32_t groupnumber, Tox_Group_T
 static void group_voice_state_handler(Tox *tox, uint32_t groupnumber, Tox_Group_Voice_State voice_state,
                                       void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     Tox_Group_Voice_State current_voice_state = tox_group_get_voice_state(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -85,7 +85,7 @@ static void group_voice_state_handler(Tox *tox, uint32_t groupnumber, Tox_Group_
 static void group_privacy_state_handler(Tox *tox, uint32_t groupnumber, Tox_Group_Privacy_State privacy_state,
                                         void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     Tox_Group_Privacy_State current_pstate = tox_group_get_privacy_state(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -94,7 +94,7 @@ static void group_privacy_state_handler(Tox *tox, uint32_t groupnumber, Tox_Grou
 
 static void group_peer_limit_handler(Tox *tox, uint32_t groupnumber, uint32_t peer_limit, void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint32_t current_plimit = tox_group_get_peer_limit(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -105,7 +105,7 @@ static void group_peer_limit_handler(Tox *tox, uint32_t groupnumber, uint32_t pe
 static void group_password_handler(Tox *tox, uint32_t groupnumber, const uint8_t *password, size_t length,
                                    void *user_data)
 {
-    Tox_Err_Group_State_Queries err;
+    Tox_Err_Group_State_Queries err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     size_t curr_pwlength = tox_group_get_password_size(tox, groupnumber, &err);
 
     ck_assert(err == TOX_ERR_GROUP_STATE_QUERIES_OK);
@@ -137,7 +137,7 @@ static int check_group_state(const Tox *tox, uint32_t groupnumber, uint32_t peer
                              Tox_Group_Privacy_State priv_state, Tox_Group_Voice_State voice_state,
                              const uint8_t *password, size_t pass_len, Tox_Group_Topic_Lock topic_lock)
 {
-    Tox_Err_Group_State_Queries query_err;
+    Tox_Err_Group_State_Queries query_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
 
     Tox_Group_Privacy_State my_priv_state = tox_group_get_privacy_state(tox, groupnumber, &query_err);
     ck_assert_msg(query_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "Failed to get privacy state: %d", query_err);
@@ -213,24 +213,24 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
                             Tox_Group_Topic_Lock topic_lock)
 {
 
-    Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err;
+    Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err = TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK;
     tox_group_founder_set_peer_limit(tox, groupnumber, peer_limit, &limit_set_err);
     ck_assert_msg(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK, "failed to set peer limit: %d", limit_set_err);
 
-    Tox_Err_Group_Founder_Set_Privacy_State priv_err;
+    Tox_Err_Group_Founder_Set_Privacy_State priv_err = TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK;
     tox_group_founder_set_privacy_state(tox, groupnumber, priv_state, &priv_err);
     ck_assert_msg(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK, "failed to set privacy state: %d", priv_err);
 
-    Tox_Err_Group_Founder_Set_Password pass_set_err;
+    Tox_Err_Group_Founder_Set_Password pass_set_err = TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK;
     tox_group_founder_set_password(tox, groupnumber, password, pass_len, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "failed to set password: %d", pass_set_err);
 
-    Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err;
+    Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err = TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK;
     tox_group_founder_set_topic_lock(tox, groupnumber, topic_lock, &lock_set_err);
     ck_assert_msg(lock_set_err == TOX_ERR_GROUP_FOUNDER_SET_TOPIC_LOCK_OK, "failed to set topic lock: %d",
                   lock_set_err);
 
-    Tox_Err_Group_Founder_Set_Voice_State voice_set_err;
+    Tox_Err_Group_Founder_Set_Voice_State voice_set_err = TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK;
     tox_group_founder_set_voice_state(tox, groupnumber, voice_state, &voice_set_err);
     ck_assert_msg(voice_set_err == TOX_ERR_GROUP_FOUNDER_SET_VOICE_STATE_OK, "failed to set voice state: %d",
                   voice_set_err);
@@ -253,7 +253,7 @@ static void group_state_test(AutoTox *autotoxes)
     Tox *tox0 = autotoxes[0].tox;
 
     /* Tox 0 creates a group and is the founder of a newly created group */
-    Tox_Err_Group_New new_err;
+    Tox_Err_Group_New new_err = TOX_ERR_GROUP_NEW_OK;
     uint32_t groupnum = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)GROUP_NAME, GROUP_NAME_LEN,
                                       (const uint8_t *)PEER0_NICK, PEER0_NICK_LEN, &new_err);
 
@@ -264,7 +264,7 @@ static void group_state_test(AutoTox *autotoxes)
                     (const uint8_t *)PASSWORD, PASS_LEN, TOX_GROUP_TOPIC_LOCK_ENABLED);
 
     /* Founder gets the Chat ID and implicitly shares it publicly */
-    Tox_Err_Group_State_Queries id_err;
+    Tox_Err_Group_State_Queries id_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
     tox_group_get_chat_id(tox0, groupnum, chat_id, &id_err);
 
@@ -274,7 +274,7 @@ static void group_state_test(AutoTox *autotoxes)
     for (size_t i = 1; i < NUM_GROUP_TOXES; ++i) {
         iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
-        Tox_Err_Group_Join join_err;
+        Tox_Err_Group_Join join_err = TOX_ERR_GROUP_JOIN_OK;
         tox_group_join(autotoxes[i].tox, chat_id, (const uint8_t *)"Test", 4, (const uint8_t *)PASSWORD, PASS_LEN,
                        &join_err);
         ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "tox_group_join failed: %d", join_err);
@@ -312,7 +312,7 @@ static void group_state_test(AutoTox *autotoxes)
     }
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; ++i) {
-        Tox_Err_Group_Leave err_exit;
+        Tox_Err_Group_Leave err_exit = TOX_ERR_GROUP_LEAVE_OK;
         tox_group_leave(autotoxes[i].tox, groupnum, nullptr, 0, &err_exit);
         ck_assert_msg(err_exit == TOX_ERR_GROUP_LEAVE_OK, "%d", err_exit);
     }

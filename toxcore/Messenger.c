@@ -241,7 +241,7 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
         return FAERR_BADCHECKSUM;
     }
 
-    uint16_t check;
+    uint16_t check = 0;
     const uint16_t checksum = data_checksum(address, FRIEND_ADDRESS_SIZE - sizeof(checksum));
     memcpy(&check, address + CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t), sizeof(check));
 
@@ -264,7 +264,7 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
             return FAERR_ALREADYSENT;
         }
 
-        uint32_t nospam;
+        uint32_t nospam = 0;
         memcpy(&nospam, address + CRYPTO_PUBLIC_KEY_SIZE, sizeof(nospam));
 
         if (m->friendlist[friend_id].friendrequest_nospam == nospam) {
@@ -471,7 +471,7 @@ int m_delfriend(Messenger *m, int32_t friendnumber)
     kill_friend_connection(m->fr_c, m->friendlist[friendnumber].friendcon_id);
     m->friendlist[friendnumber] = empty_friend;
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = m->numfriends; i != 0; --i) {
         if (m->friendlist[i - 1].status != NOFRIEND) {
@@ -1129,9 +1129,9 @@ int file_get_id(const Messenger *m, int32_t friendnumber, uint32_t filenumber, u
         return -2;
     }
 
-    uint32_t temp_filenum;
-    bool inbound;
-    uint8_t file_number;
+    uint32_t temp_filenum = 0;
+    bool inbound = 0;
+    uint8_t file_number = 0;
 
     if (filenumber >= (1 << 16)) {
         inbound = true;
@@ -1211,7 +1211,7 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
         return -2;
     }
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = 0; i < MAX_CONCURRENT_FILE_PIPES; ++i) {
         if (m->friendlist[friendnumber].file_sending[i].status == FILESTATUS_NONE) {
@@ -1289,9 +1289,9 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
         return -2;
     }
 
-    uint32_t temp_filenum;
-    bool inbound;
-    uint8_t file_number;
+    uint32_t temp_filenum = 0;
+    bool inbound = 0;
+    uint8_t file_number = 0;
 
     if (filenumber >= (1 << 16)) {
         inbound = true;
@@ -1307,7 +1307,7 @@ int file_control(const Messenger *m, int32_t friendnumber, uint32_t filenumber, 
 
     file_number = temp_filenum;
 
-    struct File_Transfers *ft;
+    struct File_Transfers *ft = NULL;
 
     if (inbound) {
         ft = &m->friendlist[friendnumber].file_receiving[file_number];
@@ -1684,7 +1684,7 @@ non_null()
 static struct File_Transfers *get_file_transfer(bool outbound, uint8_t filenumber,
         uint32_t *real_filenumber, Friend *sender)
 {
-    struct File_Transfers *ft;
+    struct File_Transfers *ft = NULL;
 
     if (outbound) {
         *real_filenumber = filenumber;
@@ -1708,7 +1708,7 @@ non_null(1, 6) nullable(8)
 static int handle_filecontrol(Messenger *m, int32_t friendnumber, bool outbound, uint8_t filenumber,
                               uint8_t control_type, const uint8_t *data, uint16_t length, void *userdata)
 {
-    uint32_t real_filenumber;
+    uint32_t real_filenumber = 0;
     struct File_Transfers *ft = get_file_transfer(outbound, filenumber, &real_filenumber, &m->friendlist[friendnumber]);
 
     if (ft == nullptr) {
@@ -1771,7 +1771,7 @@ static int handle_filecontrol(Messenger *m, int32_t friendnumber, bool outbound,
         }
 
         case FILECONTROL_SEEK: {
-            uint64_t position;
+            uint64_t position = 0;
 
             if (length != sizeof(position)) {
                 LOGGER_DEBUG(m->log, "file control (friend %d, file %d): expected payload of length %d, but got %d",
@@ -2169,8 +2169,8 @@ static int m_handle_packet_file_sendrequest(Messenger *m, const int i, const uin
 
 #endif
 
-    uint64_t filesize;
-    uint32_t file_type;
+    uint64_t filesize = 0;
+    uint32_t file_type = 0;
     const uint16_t filename_length = data_length - head_length;
 
     if (filename_length > MAX_FILENAME_LENGTH) {
@@ -2274,7 +2274,7 @@ static int m_handle_packet_file_data(Messenger *m, const int i, const uint8_t *d
     real_filenumber += 1;
     real_filenumber <<= 16;
     uint16_t file_data_length = data_length - 1;
-    const uint8_t *file_data;
+    const uint8_t *file_data = NULL;
 
     if (file_data_length == 0) {
         file_data = nullptr;
@@ -2656,7 +2656,7 @@ void do_messenger(Messenger *m, void *userdata)
 
     if (mono_time_get(m->mono_time) > m->lastdump + DUMPING_CLIENTS_FRIENDS_EVERY_N_SECONDS) {
         m->lastdump = mono_time_get(m->mono_time);
-        uint32_t last_pinged;
+        uint32_t last_pinged = 0;
 
         for (uint32_t client = 0; client < LCLIENT_LIST; ++client) {
             const Client_data *cptr = dht_get_close_client(m->dht, client);
@@ -2982,7 +2982,7 @@ static State_Load_Status load_nospam_keys(Messenger *m, const uint8_t *data, uin
         return STATE_LOAD_STATUS_ERROR;
     }
 
-    uint32_t nospam;
+    uint32_t nospam = 0;
     lendian_bytes_to_host32(&nospam, data);
     set_nospam(m->fr, nospam);
     load_secret_key(m->net_crypto, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE);
@@ -3205,7 +3205,7 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
         return STATE_LOAD_STATUS_ERROR;
     }
 
-    uint32_t num_groups;
+    uint32_t num_groups = 0;
     if (!bin_unpack_array(bu, &num_groups)) {
         LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array: expected array");
         bin_unpack_free(bu);

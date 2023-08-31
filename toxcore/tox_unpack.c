@@ -11,7 +11,7 @@
 
 bool tox_unpack_conference_type(Bin_Unpack *bu, Tox_Conference_Type *val)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     if (!bin_unpack_u32(bu, &u32)) {
         return false;
@@ -23,7 +23,7 @@ bool tox_unpack_conference_type(Bin_Unpack *bu, Tox_Conference_Type *val)
 
 bool tox_unpack_connection(Bin_Unpack *bu, Tox_Connection *val)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     if (!bin_unpack_u32(bu, &u32)) {
         return false;
@@ -35,7 +35,7 @@ bool tox_unpack_connection(Bin_Unpack *bu, Tox_Connection *val)
 
 bool tox_unpack_file_control(Bin_Unpack *bu, Tox_File_Control *val)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     if (!bin_unpack_u32(bu, &u32)) {
         return false;
@@ -47,7 +47,7 @@ bool tox_unpack_file_control(Bin_Unpack *bu, Tox_File_Control *val)
 
 bool tox_unpack_message_type(Bin_Unpack *bu, Tox_Message_Type *val)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     if (!bin_unpack_u32(bu, &u32)) {
         return false;
@@ -59,7 +59,7 @@ bool tox_unpack_message_type(Bin_Unpack *bu, Tox_Message_Type *val)
 
 bool tox_unpack_user_status(Bin_Unpack *bu, Tox_User_Status *val)
 {
-    uint32_t u32;
+    uint32_t u32 = 0;
 
     if (!bin_unpack_u32(bu, &u32)) {
         return false;

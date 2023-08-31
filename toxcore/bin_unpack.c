@@ -75,7 +75,7 @@ bool bin_unpack_array(Bin_Unpack *bu, uint32_t *size)
 
 bool bin_unpack_array_fixed(Bin_Unpack *bu, uint32_t required_size)
 {
-    uint32_t size;
+    uint32_t size = 0;
     return cmp_read_array(&bu->ctx, &size) && size == required_size;
 }
 
@@ -111,7 +111,7 @@ bool bin_unpack_nil(Bin_Unpack *bu)
 
 bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_ptr)
 {
-    uint32_t bin_size;
+    uint32_t bin_size = 0;
     if (!bin_unpack_bin_size(bu, &bin_size) || bin_size > bu->bytes_size) {
         // There aren't as many bytes as this bin claims to want to allocate.
         return false;
@@ -130,7 +130,7 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
 
 bool bin_unpack_bin_fixed(Bin_Unpack *bu, uint8_t *data, uint32_t data_length)
 {
-    uint32_t bin_size;
+    uint32_t bin_size = 0;
     if (!bin_unpack_bin_size(bu, &bin_size) || bin_size != data_length) {
         return false;
     }

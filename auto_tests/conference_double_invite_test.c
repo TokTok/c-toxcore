@@ -25,7 +25,7 @@ static void handle_conference_invite(
     ck_assert_msg(!state->joined, "invitation callback generated for already joined conference");
 
     if (friend_number != -1) {
-        Tox_Err_Conference_Join err;
+        Tox_Err_Conference_Join err = TOX_ERR_CONFERENCE_JOIN_OK;
         state->conference = tox_conference_join(tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,
                       "attempting to join the conference returned with an error: %d", err);
@@ -46,7 +46,7 @@ static void conference_double_invite_test(AutoTox *autotoxes)
 
     {
         // Create new conference, tox0 is the founder.
-        Tox_Err_Conference_New err;
+        Tox_Err_Conference_New err = TOX_ERR_CONFERENCE_NEW_OK;
         state[0]->conference = tox_conference_new(autotoxes[0].tox, &err);
         state[0]->joined = true;
         ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK,
@@ -56,7 +56,7 @@ static void conference_double_invite_test(AutoTox *autotoxes)
 
     {
         // Invite friend.
-        Tox_Err_Conference_Invite err;
+        Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
         tox_conference_invite(autotoxes[0].tox, 0, state[0]->conference, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK,
                       "attempting to invite a friend returned with an error: %d", err);

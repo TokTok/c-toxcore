@@ -55,7 +55,7 @@ static void handle_conference_invite(
     const AutoTox *autotox = (AutoTox *)user_data;
     ck_assert_msg(type == TOX_CONFERENCE_TYPE_TEXT, "tox #%u: wrong conference type: %d", autotox->index, type);
 
-    Tox_Err_Conference_Join err;
+    Tox_Err_Conference_Join err = TOX_ERR_CONFERENCE_JOIN_OK;
     uint32_t g_num = tox_conference_join(tox, friendnumber, data, length, &err);
 
     ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "tox #%u: error joining group: %d", autotox->index, err);
@@ -77,7 +77,7 @@ static void handle_conference_connected(
         return;
     }
 
-    Tox_Err_Conference_Invite err;
+    Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
     tox_conference_invite(tox, 1, 0, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %d", autotox->index,
                   err);
@@ -181,7 +181,7 @@ static bool names_propagated(uint32_t tox_count, AutoTox *autotoxes)
  */
 static uint32_t random_false_index(const Random *rng, bool *list, const uint32_t length)
 {
-    uint32_t index;
+    uint32_t index = 0;
 
     do {
         index = random_u32(rng) % length;
@@ -204,7 +204,7 @@ static void run_conference_tests(AutoTox *autotoxes)
     printf("restricting number of frozen peers to %u\n", max_frozen);
 
     for (uint16_t i = 0; i < NUM_GROUP_TOX; ++i) {
-        Tox_Err_Conference_Set_Max_Offline err;
+        Tox_Err_Conference_Set_Max_Offline err = TOX_ERR_CONFERENCE_SET_MAX_OFFLINE_OK;
         tox_conference_set_max_offline(autotoxes[i].tox, 0, max_frozen, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_SET_MAX_OFFLINE_OK,
                       "tox #%u failed to set max offline: err = %d", autotoxes[i].index, err);
@@ -291,7 +291,7 @@ static void run_conference_tests(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_GROUP_TOX, ITERATION_INTERVAL);
     }
 
-    Tox_Err_Conference_Send_Message err;
+    Tox_Err_Conference_Send_Message err = TOX_ERR_CONFERENCE_SEND_MESSAGE_OK;
     ck_assert_msg(
         tox_conference_send_message(
             autotoxes[random_u32(rng) % NUM_GROUP_TOX].tox, 0, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)GROUP_MESSAGE,
@@ -382,7 +382,7 @@ static void test_many_group(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_GROUP_TOX, ITERATION_INTERVAL);
 
         for (uint32_t i = 0; i < NUM_GROUP_TOX; ++i) {
-            Tox_Err_Conference_Peer_Query err;
+            Tox_Err_Conference_Peer_Query err = TOX_ERR_CONFERENCE_PEER_QUERY_OK;
             uint32_t peer_count = tox_conference_peer_count(autotoxes[i].tox, 0, &err);
 
             if (err != TOX_ERR_CONFERENCE_PEER_QUERY_OK) {

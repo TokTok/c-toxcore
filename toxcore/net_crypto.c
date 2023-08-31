@@ -281,7 +281,7 @@ static int open_cookie(const Mono_Time *mono_time, uint8_t *bytes, const uint8_t
         return -1;
     }
 
-    uint64_t cookie_time;
+    uint64_t cookie_time = 0;
     memcpy(&cookie_time, contents, sizeof(cookie_time));
     const uint64_t temp_time = mono_time_get(mono_time);
 
@@ -881,7 +881,7 @@ static int clear_buffer_until(const Memory *mem, Packets_Array *array, uint32_t 
         return -1;
     }
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = array->buffer_start; i != number; ++i) {
         const uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
@@ -899,7 +899,7 @@ static int clear_buffer_until(const Memory *mem, Packets_Array *array, uint32_t 
 non_null()
 static int clear_buffer(const Memory *mem, Packets_Array *array)
 {
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = array->buffer_start; i != array->buffer_end; ++i) {
         const uint32_t num = i % CRYPTO_PACKET_BUFFER_SIZE;
@@ -1237,7 +1237,7 @@ static int64_t send_lossless_packet(Net_Crypto *c, int crypt_connection_id, cons
 non_null()
 static uint16_t get_nonce_uint16(const uint8_t *nonce)
 {
-    uint16_t num;
+    uint16_t num = 0;
     memcpy(&num, nonce + (CRYPTO_NONCE_SIZE - sizeof(uint16_t)), sizeof(uint16_t));
     return net_ntohs(num);
 }
@@ -1270,7 +1270,7 @@ static int handle_data_packet(const Net_Crypto *c, int crypt_connection_id, uint
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     memcpy(nonce, conn->recv_nonce, CRYPTO_NONCE_SIZE);
     const uint16_t num_cur_nonce = get_nonce_uint16(nonce);
-    uint16_t num;
+    uint16_t num = 0;
     net_unpack_u16(packet + 1, &num);
     const uint16_t diff = num - num_cur_nonce;
     increment_nonce_number(nonce, diff);
@@ -1336,7 +1336,7 @@ static int send_requested_packets(Net_Crypto *c, int crypt_connection_id, uint32
     uint32_t num_sent = 0;
 
     for (uint32_t i = 0; i < array_size; ++i) {
-        Packet_Data *dt;
+        Packet_Data *dt = NULL;
         const uint32_t packet_num = i + conn->send_array.buffer_start;
         const int ret = get_data_pointer(&conn->send_array, &dt, packet_num);
 
@@ -1560,8 +1560,8 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
         return -1;
     }
 
-    uint32_t buffer_start;
-    uint32_t num;
+    uint32_t buffer_start = 0;
+    uint32_t num = 0;
     memcpy(&buffer_start, data, sizeof(uint32_t));
     memcpy(&num, data + sizeof(uint32_t), sizeof(uint32_t));
     buffer_start = net_ntohl(buffer_start);
@@ -1570,7 +1570,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
     uint64_t rtt_calc_time = 0;
 
     if (buffer_start != conn->send_array.buffer_start) {
-        Packet_Data *packet_time;
+        Packet_Data *packet_time = NULL;
 
         if (get_data_pointer(&conn->send_array, &packet_time, conn->send_array.buffer_start) == 1) {
             rtt_calc_time = packet_time->sent_time;
@@ -1609,7 +1609,7 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
     }
 
     if (real_data[0] == PACKET_ID_REQUEST) {
-        uint64_t rtt_time;
+        uint64_t rtt_time = 0;
 
         if (udp) {
             rtt_time = conn->rtt_time;
@@ -1694,7 +1694,7 @@ static int handle_packet_cookie_response(Net_Crypto *c, int crypt_connection_id,
     }
 
     uint8_t cookie[COOKIE_LENGTH];
-    uint64_t number;
+    uint64_t number = 0;
 
     if (handle_cookie_response(cookie, &number, packet, length, conn->shared_key) != sizeof(cookie)) {
         return -1;
@@ -1911,7 +1911,7 @@ static int wipe_crypto_connection(Net_Crypto *c, int crypt_connection_id)
         return -1;
     }
 
-    uint32_t i;
+    uint32_t i = 0;
 
     pthread_mutex_destroy(c->crypto_connections[crypt_connection_id].mutex);
     mem_delete(c->mem, c->crypto_connections[crypt_connection_id].mutex);
@@ -1983,7 +1983,7 @@ static int crypto_connection_add_source(Net_Crypto *c, int crypt_connection_id, 
         return 0;
     }
 
-    unsigned int tcp_connections_number;
+    unsigned int tcp_connections_number = 0;
 
     if (ip_port_to_tcp_connections_number(source, &tcp_connections_number)) {
         if (add_tcp_number_relay_connection(c->tcp_c, conn->connection_number_tcp, tcp_connections_number) == 0) {

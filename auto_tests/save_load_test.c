@@ -139,7 +139,7 @@ static void test_few_clients(void)
 
     struct Tox_Options *opts1 = tox_options_new(nullptr);
     tox_options_set_tcp_port(opts1, TCP_RELAY_PORT);
-    Tox_Err_New t_n_error;
+    Tox_Err_New t_n_error = TOX_ERR_NEW_OK;
     Tox *tox1 = tox_new_log(opts1, &t_n_error, &index[0]);
     ck_assert_msg(t_n_error == TOX_ERR_NEW_OK, "Failed to create tox instance: %d", t_n_error);
     tox_options_free(opts1);

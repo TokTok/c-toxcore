@@ -211,7 +211,7 @@ static int wipe_connection(TCP_Connections *tcp_c, int connections_number)
         return -1;
     }
 
-    uint32_t i;
+    uint32_t i = 0;
     tcp_c->connections[connections_number] = empty_tcp_connection_to;
 
     for (i = tcp_c->connections_length; i != 0; --i) {
@@ -244,7 +244,7 @@ static int wipe_tcp_connection(TCP_Connections *tcp_c, int tcp_connections_numbe
 
     tcp_c->tcp_connections[tcp_connections_number] = empty_tcp_con;
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = tcp_c->tcp_connections_length; i != 0; --i) {
         if (tcp_c->tcp_connections[i - 1].status != TCP_CONN_NONE) {

@@ -43,7 +43,7 @@ static void test_typing(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, 2, 200);
     } while (((State *)autotoxes[1].state)->friend_is_typing);
 
-    Tox_Err_Friend_Query err_t;
+    Tox_Err_Friend_Query err_t = TOX_ERR_FRIEND_QUERY_OK;
     ck_assert_msg(tox_friend_get_typing(autotoxes[1].tox, 0, &err_t) == 0,
                   "tox_friend_get_typing should have returned false, but it didn't");
     ck_assert_msg(err_t == TOX_ERR_FRIEND_QUERY_OK, "tox_friend_get_typing call did not return correct error");

@@ -9,7 +9,7 @@
 
 static void rand_bytes(const Random *rng, uint8_t *b, size_t blen)
 {
-    size_t i;
+    size_t i = 0;
 
     for (i = 0; i < blen; i++) {
         b[i] = random_u08(rng);
@@ -84,7 +84,7 @@ static void test_known(void)
 {
     uint8_t c[147];
     uint8_t m[131];
-    uint16_t clen, mlen;
+    uint16_t clen = 0, mlen = 0;
 
     ck_assert_msg(sizeof(c) == sizeof(m) + CRYPTO_MAC_SIZE * sizeof(uint8_t),
                   "cyphertext should be CRYPTO_MAC_SIZE bytes longer than plaintext");
@@ -107,7 +107,7 @@ static void test_fast_known(void)
     uint8_t k[CRYPTO_SHARED_KEY_SIZE];
     uint8_t c[147];
     uint8_t m[131];
-    uint16_t clen, mlen;
+    uint16_t clen = 0, mlen = 0;
 
     encrypt_precompute(bobpk, alicesk, k);
 
@@ -275,7 +275,7 @@ static void test_large_data_symmetric(void)
 
 static void increment_nonce_number_cmp(uint8_t *nonce, uint32_t num)
 {
-    uint32_t num1, num2;
+    uint32_t num1 = 0, num2 = 0;
     memcpy(&num1, nonce + (CRYPTO_NONCE_SIZE - sizeof(num1)), sizeof(num1));
     num1 = net_ntohl(num1);
     num2 = num + num1;
@@ -299,7 +299,7 @@ static void test_increment_nonce(void)
     const Random *rng = system_random();
     ck_assert(rng != nullptr);
 
-    uint32_t i;
+    uint32_t i = 0;
 
     uint8_t n[CRYPTO_NONCE_SIZE];
 
@@ -331,7 +331,7 @@ static void test_memzero(void)
     memcpy(src, test_c, sizeof(test_c));
 
     crypto_memzero(src, sizeof(src));
-    size_t i;
+    size_t i = 0;
 
     for (i = 0; i < sizeof(src); i++) {
         ck_assert_msg(src[i] == 0, "Memory is not zeroed");

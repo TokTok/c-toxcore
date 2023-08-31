@@ -630,7 +630,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     struct Tox_Options *default_options = nullptr;
 
     if (options == nullptr) {
-        Tox_Err_Options_New err;
+        Tox_Err_Options_New err = TOX_ERR_OPTIONS_NEW_OK;
         default_options = tox_options_new(&err);
 
         switch (err) {
@@ -808,7 +808,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     tox_lock(tox);
 
-    Messenger_Error m_error;
+    Messenger_Error m_error = MESSENGER_ERROR_NONE;
     tox->m = new_messenger(tox->mono_time, tox->sys.mem, tox->sys.rng, tox->sys.ns, &m_options, &m_error);
 
     if (tox->m == nullptr) {
@@ -1014,7 +1014,7 @@ static int32_t resolve_bootstrap_node(Tox *tox, const char *host, uint16_t port,
 
 bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key, Tox_Err_Bootstrap *error)
 {
-    IP_Port *root;
+    IP_Port *root = NULL;
     const int32_t count = resolve_bootstrap_node(tox, host, port, public_key, &root, error);
 
     if (count == -1) {
@@ -1066,7 +1066,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const uint8_t *pub
 bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const uint8_t *public_key,
                        Tox_Err_Bootstrap *error)
 {
-    IP_Port *root;
+    IP_Port *root = NULL;
     const int32_t count = resolve_bootstrap_node(tox, host, port, public_key, &root, error);
 
     if (count == -1) {
@@ -2642,7 +2642,7 @@ uint32_t tox_conference_by_id(const Tox *tox, const uint8_t *id, Tox_Err_Confere
 uint32_t tox_conference_by_uid(const Tox *tox, const uint8_t *uid, Tox_Err_Conference_By_Uid *error)
 {
     assert(tox != nullptr);
-    Tox_Err_Conference_By_Id id_error;
+    Tox_Err_Conference_By_Id id_error = TOX_ERR_CONFERENCE_BY_ID_OK;
     const uint32_t res = tox_conference_by_id(tox, uid, &id_error);
 
     switch (id_error) {

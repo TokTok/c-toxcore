@@ -236,7 +236,7 @@ static uint16_t read_tcp_length(const Logger *logger, const Memory *mem, const N
             return 0;
         }
 
-        uint16_t length;
+        uint16_t length = 0;
         net_unpack_u16(length_buf, &length);
 
         if (length > MAX_PACKET_SIZE) {

@@ -66,7 +66,7 @@ static void test_save_friend(void)
     size_t size2 = size + TOX_PASS_ENCRYPTION_EXTRA_LENGTH;
     uint8_t *enc_data = (uint8_t *)malloc(size2);
     ck_assert(enc_data != nullptr);
-    Tox_Err_Encryption error1;
+    Tox_Err_Encryption error1 = TOX_ERR_ENCRYPTION_OK;
     bool ret = tox_pass_encrypt(data, size, (const uint8_t *)"correcthorsebatterystaple", 25, enc_data, &error1);
     ck_assert_msg(ret, "failed to encrypted save: %d", error1);
     ck_assert_msg(tox_is_data_encrypted(enc_data), "magic number missing");
@@ -76,14 +76,14 @@ static void test_save_friend(void)
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
     tox_options_set_savedata_data(options, enc_data, size2);
 
-    Tox_Err_New err2;
+    Tox_Err_New err2 = TOX_ERR_NEW_OK;
     Tox *tox3 = tox_new_log(options, &err2, nullptr);
     ck_assert_msg(err2 == TOX_ERR_NEW_LOAD_ENCRYPTED, "wrong error! %d. should fail with %d", err2,
                   TOX_ERR_NEW_LOAD_ENCRYPTED);
     ck_assert_msg(tox3 == nullptr, "tox_new with error should return NULL");
     uint8_t *dec_data = (uint8_t *)malloc(size);
     ck_assert(dec_data != nullptr);
-    Tox_Err_Decryption err3;
+    Tox_Err_Decryption err3 = TOX_ERR_DECRYPTION_OK;
     ret = tox_pass_decrypt(enc_data, size2, (const uint8_t *)"correcthorsebatterystaple", 25, dec_data, &err3);
     ck_assert_msg(ret, "failed to decrypt save: %d", err3);
     tox_options_set_savedata_data(options, dec_data, size);
@@ -98,7 +98,7 @@ static void test_save_friend(void)
     uint8_t *data2 = (uint8_t *)malloc(size);
     ck_assert(data2 != nullptr);
     tox_get_savedata(tox3, data2);
-    Tox_Err_Key_Derivation keyerr;
+    Tox_Err_Key_Derivation keyerr = TOX_ERR_KEY_DERIVATION_OK;
     Tox_Pass_Key *key = tox_pass_key_derive((const uint8_t *)"123qweasdzxc", 12, &keyerr);
     ck_assert_msg(key != nullptr, "pass key allocation failure");
     memcpy((uint8_t *)key, test_salt, TOX_PASS_SALT_LENGTH);
@@ -149,9 +149,9 @@ static void test_save_friend(void)
 
 static void test_keys(void)
 {
-    Tox_Err_Encryption encerr;
-    Tox_Err_Decryption decerr;
-    Tox_Err_Key_Derivation keyerr;
+    Tox_Err_Encryption encerr = TOX_ERR_ENCRYPTION_OK;
+    Tox_Err_Decryption decerr = TOX_ERR_DECRYPTION_OK;
+    Tox_Err_Key_Derivation keyerr = TOX_ERR_KEY_DERIVATION_OK;
     const uint8_t *key_char = (const uint8_t *)"123qweasdzxc";
     Tox_Pass_Key *key = tox_pass_key_derive(key_char, 12, &keyerr);
     ck_assert_msg(key != nullptr, "generic failure 1: %d", keyerr);
@@ -213,7 +213,7 @@ static void test_keys(void)
     ck_assert_msg(memcmp(out1, string, 44) == 0, "decryption 3 failed");
 
     uint8_t salt[TOX_PASS_SALT_LENGTH];
-    Tox_Err_Get_Salt salt_err;
+    Tox_Err_Get_Salt salt_err = TOX_ERR_GET_SALT_OK;
     ck_assert_msg(tox_get_salt(encrypted, salt, &salt_err), "couldn't get salt");
     ck_assert_msg(salt_err == TOX_ERR_GET_SALT_OK, "get_salt returned an error");
     Tox_Pass_Key *key2 = tox_pass_key_derive_with_salt((const uint8_t *)"123qweasdzxc", 12, salt, &keyerr);

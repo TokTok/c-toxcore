@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
             goto fail;
         }
 
-        unsigned long long smlen;
+        unsigned long long smlen = 0;
         unsigned char *sm = (unsigned char *)malloc(size + crypto_sign_ed25519_BYTES * 2);
         crypto_sign_ed25519(sm, &smlen, data, size, secret_key);
         free(data);
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
 
     if (argc == 4 && argv[1][0] == 'c') {
         unsigned char *public_key = hex_string_to_bin(argv[2]);
-        unsigned char *data;
+        unsigned char *data = NULL;
         int size = load_file(argv[3], &data);
 
         if (size < 0) {
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
         free(data);
 
         unsigned char *m = (unsigned char *)malloc(size);
-        unsigned long long mlen;
+        unsigned long long mlen = 0;
 
         if (crypto_sign_ed25519_open(m, &mlen, signe, size, public_key) == -1) {
             printf("Failed checking sig.\n");
