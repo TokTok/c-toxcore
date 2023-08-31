@@ -43,7 +43,7 @@ ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
         return nullptr;
     }
 
-    int status;
+    int status = 0;
     ac->decoder = opus_decoder_create(AUDIO_DECODER_START_SAMPLE_RATE, AUDIO_DECODER_START_CHANNEL_COUNT, &status);
 
     if (status != OPUS_OK) {
@@ -482,7 +482,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
             return false;
         }
 
-        int status;
+        int status = 0;
         OpusDecoder *new_dec = opus_decoder_create(sampling_rate, channels, &status);
 
         if (status != OPUS_OK) {

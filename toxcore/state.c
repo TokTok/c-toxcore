@@ -21,10 +21,10 @@ int state_load(const Logger *log, state_load_cb *state_load_callback, void *oute
     const uint32_t size_head = sizeof(uint32_t) * 2;
 
     while (length >= size_head) {
-        uint32_t length_sub;
+        uint32_t length_sub = 0;
         lendian_bytes_to_host32(&length_sub, data);
 
-        uint32_t cookie_type;
+        uint32_t cookie_type = 0;
         lendian_bytes_to_host32(&cookie_type, data + sizeof(uint32_t));
 
         data += size_head;
@@ -105,7 +105,7 @@ void host_to_lendian_bytes64(uint8_t *dest, uint64_t num)
 
 void lendian_bytes_to_host64(uint64_t *dest, const uint8_t *lendian)
 {
-    uint64_t d;
+    uint64_t d = 0;
     memcpy(&d, lendian, sizeof(uint64_t));
 #ifdef WORDS_BIGENDIAN
     d = ((d << 8) & 0xFF00FF00FF00FF00) | ((d >> 8) & 0xFF00FF00FF00FF);
@@ -126,7 +126,7 @@ void host_to_lendian_bytes32(uint8_t *dest, uint32_t num)
 
 void lendian_bytes_to_host32(uint32_t *dest, const uint8_t *lendian)
 {
-    uint32_t d;
+    uint32_t d = 0;
     memcpy(&d, lendian, sizeof(uint32_t));
 #ifdef WORDS_BIGENDIAN
     d = ((d << 8) & 0xFF00FF00) | ((d >> 8) & 0xFF00FF);
@@ -145,7 +145,7 @@ void host_to_lendian_bytes16(uint8_t *dest, uint16_t num)
 
 void lendian_bytes_to_host16(uint16_t *dest, const uint8_t *lendian)
 {
-    uint16_t d;
+    uint16_t d = 0;
     memcpy(&d, lendian, sizeof(uint16_t));
 #ifdef WORDS_BIGENDIAN
     d = (d << 8) | (d >> 8);

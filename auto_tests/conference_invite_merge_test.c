@@ -19,7 +19,7 @@ static void handle_conference_invite(
     State *state = (State *)autotox->state;
 
     if (friend_number != -1) {
-        Tox_Err_Conference_Join err;
+        Tox_Err_Conference_Join err = TOX_ERR_CONFERENCE_JOIN_OK;
         state->conference = tox_conference_join(tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,
                       "attempting to join the conference returned with an error: %d", err);
@@ -48,7 +48,7 @@ static void do_invite(AutoTox *autotoxes, AutoTox *inviter, AutoTox *invitee, ui
 {
     fprintf(stderr, "#%u inviting #%u\n", inviter->index, invitee->index);
 
-    Tox_Err_Conference_Invite err;
+    Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
     tox_conference_invite(inviter->tox, friendnum, ((State *)inviter->state)->conference, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK,
                   "#%u attempting to invite #%u (friendnumber %u) returned with an error: %d", inviter->index, invitee->index,
@@ -103,7 +103,7 @@ static void conference_invite_merge_test(AutoTox *autotoxes)
 
     {
         // Create new conference, tox 2 is the founder.
-        Tox_Err_Conference_New err;
+        Tox_Err_Conference_New err = TOX_ERR_CONFERENCE_NEW_OK;
         state2->conference = tox_conference_new(autotoxes[2].tox, &err);
         state2->connected = true;
         ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK,

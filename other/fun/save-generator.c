@@ -41,7 +41,7 @@ static bool bootstrap_tox(Tox *tox)
         return false;
     }
 
-    Tox_Err_Bootstrap err;
+    Tox_Err_Bootstrap err = TOX_ERR_BOOTSTRAP_OK;
     tox_bootstrap(tox, BOOTSTRAP_IP, BOOTSTRAP_UDP_PORT, key, &err);
     free(key);
 
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
         c_sleep(tox_iteration_interval(tox));
     }
 
-    Tox_Err_Set_Info err;
+    Tox_Err_Set_Info err = TOX_ERR_SET_INFO_OK;
     const uint8_t *name = (uint8_t *)argv[1];
     tox_self_set_name(tox, name, strlen((const char *)name), &err);
 
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
     for (unsigned int i = 2; i < argc; i++) { //start at 2 because that is where the tox ids are
         uint8_t *address = hex_string_to_bin(argv[i]);
-        Tox_Err_Friend_Add friend_err;
+        Tox_Err_Friend_Add friend_err = TOX_ERR_FRIEND_ADD_OK;
         tox_friend_add(tox, address, (const uint8_t *)GENERATED_REQUEST_MESSAGE, strlen(GENERATED_REQUEST_MESSAGE),
                        &friend_err);
         free(address);

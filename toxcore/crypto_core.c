@@ -217,28 +217,28 @@ bool crypto_sha256_eq(const uint8_t *cksum1, const uint8_t *cksum2)
 
 uint8_t random_u08(const Random *rng)
 {
-    uint8_t randnum;
+    uint8_t randnum = 0;
     random_bytes(rng, &randnum, 1);
     return randnum;
 }
 
 uint16_t random_u16(const Random *rng)
 {
-    uint16_t randnum;
+    uint16_t randnum = 0;
     random_bytes(rng, (uint8_t *)&randnum, sizeof(randnum));
     return randnum;
 }
 
 uint32_t random_u32(const Random *rng)
 {
-    uint32_t randnum;
+    uint32_t randnum = 0;
     random_bytes(rng, (uint8_t *)&randnum, sizeof(randnum));
     return randnum;
 }
 
 uint64_t random_u64(const Random *rng)
 {
-    uint64_t randnum;
+    uint64_t randnum = 0;
     random_bytes(rng, (uint8_t *)&randnum, sizeof(randnum));
     return randnum;
 }

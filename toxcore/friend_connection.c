@@ -172,7 +172,7 @@ static int wipe_friend_conn(Friend_Connections *fr_c, int friendcon_id)
 
     fr_c->conns[friendcon_id] = empty_friend_conn;
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = fr_c->num_cons; i != 0; --i) {
         if (fr_c->conns[i - 1].status != FRIENDCONN_STATUS_NONE) {

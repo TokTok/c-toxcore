@@ -80,7 +80,7 @@ static void t_accept_friend_request_cb(Tox *m, const uint8_t *public_key, const 
  */
 static ToxAV *setup_av_instance(Tox *tox, CallControl *cc)
 {
-    Toxav_Err_New error;
+    Toxav_Err_New error = TOXAV_ERR_NEW_OK;
 
     ToxAV *av = toxav_new(tox, &error);
     ck_assert(error == TOXAV_ERR_NEW_OK);
@@ -160,16 +160,16 @@ static void set_current_time_callback(Tox *tox, Time_Data *time_data)
 static void test_av_three_calls(void)
 {
     uint32_t index[] = { 1, 2, 3, 4, 5 };
-    Tox *alice, *bootstrap, *bobs[3];
-    ToxAV *alice_av, *bobs_av[3];
-    void *retval;
+    Tox *alice = nullptr, *bootstrap = nullptr, *bobs[3];
+    ToxAV *alice_av = nullptr, *bobs_av[3];
+    void *retval = nullptr;
 
     CallControl alice_cc[3], bobs_cc[3];
 
     Time_Data time_data;
     pthread_mutex_init(&time_data.lock, nullptr);
     {
-        Tox_Err_New error;
+        Tox_Err_New error = TOX_ERR_NEW_OK;
 
         bootstrap = tox_new_log(nullptr, &error, &index[0]);
         ck_assert(error == TOX_ERR_NEW_OK);
@@ -290,7 +290,7 @@ static void test_av_three_calls(void)
 
     /* Call */
     for (size_t i = 0; i < 3; i++) {
-        Toxav_Err_Call rc;
+        Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
         toxav_call(alice_av, tds[i].friend_number, 48, 3000, &rc);
 
         if (rc != TOXAV_ERR_CALL_OK) {
@@ -310,7 +310,7 @@ static void test_av_three_calls(void)
         for (size_t i = 0; i < 3; i++) {
             if (bobs_cc[i].incoming) {
                 /* Answer */
-                Toxav_Err_Answer rc;
+                Toxav_Err_Answer rc = TOXAV_ERR_ANSWER_OK;
                 toxav_answer(bobs_av[i], 0, 8, 500, &rc);
 
                 if (rc != TOXAV_ERR_ANSWER_OK) {
@@ -328,7 +328,7 @@ static void test_av_three_calls(void)
 
     /* Hangup */
     for (size_t i = 0; i < 3; i++) {
-        Toxav_Err_Call_Control rc;
+        Toxav_Err_Call_Control rc = TOXAV_ERR_CALL_CONTROL_OK;
         toxav_call_control(alice_av, i, TOXAV_CALL_CONTROL_CANCEL, &rc);
 
         if (rc != TOXAV_ERR_CALL_CONTROL_OK) {

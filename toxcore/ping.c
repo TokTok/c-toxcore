@@ -46,8 +46,8 @@ struct Ping {
 void ping_send_request(Ping *ping, const IP_Port *ipp, const uint8_t *public_key)
 {
     uint8_t   pk[DHT_PING_SIZE];
-    int       rc;
-    uint64_t  ping_id;
+    int       rc = 0;
+    uint64_t  ping_id = 0;
 
     if (pk_equal(public_key, dht_get_self_public_key(ping->dht))) {
         return;
@@ -154,7 +154,7 @@ static int handle_ping_request(void *object, const IP_Port *source, const uint8_
         return 1;
     }
 
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, ping_plain + 1, sizeof(ping_id));
     // Send response
     ping_send_response(ping, source, packet + 1, ping_id, shared_key);
@@ -168,7 +168,7 @@ static int handle_ping_response(void *object, const IP_Port *source, const uint8
                                 void *userdata)
 {
     DHT      *dht = (DHT *)object;
-    int       rc;
+    int       rc = 0;
 
     if (length != DHT_PING_SIZE) {
         return 1;
@@ -199,7 +199,7 @@ static int handle_ping_response(void *object, const IP_Port *source, const uint8
         return 1;
     }
 
-    uint64_t   ping_id;
+    uint64_t   ping_id = 0;
     memcpy(&ping_id, ping_plain + 1, sizeof(ping_id));
     uint8_t data[PING_DATA_SIZE];
 
@@ -233,7 +233,7 @@ static bool in_list(const Client_data *list, uint16_t length, const Mono_Time *m
 {
     for (unsigned int i = 0; i < length; ++i) {
         if (pk_equal(list[i].public_key, public_key)) {
-            const IPPTsPng *ipptp;
+            const IPPTsPng *ipptp = nullptr;
 
             if (net_family_is_ipv4(ip_port->ip.family)) {
                 ipptp = &list[i].assoc4;
@@ -315,7 +315,7 @@ void ping_iterate(Ping *ping)
         return;
     }
 
-    unsigned int i;
+    unsigned int i = 0;
 
     for (i = 0; i < MAX_TO_PING; ++i) {
         if (!ip_isset(&ping->to_ping[i].ip_port.ip)) {

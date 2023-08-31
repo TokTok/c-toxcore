@@ -47,7 +47,7 @@ static void handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Confe
     fprintf(stderr, "tox%u joining conference\n", state->id);
 
     {
-        Tox_Err_Conference_Join err;
+        Tox_Err_Conference_Join err = TOX_ERR_CONFERENCE_JOIN_OK;
         state->conference = tox_conference_join(tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK, "failed to join a conference: err = %d", err);
         fprintf(stderr, "tox%u Joined conference %u\n", state->id, state->conference);
@@ -74,7 +74,7 @@ static void handle_conference_peer_list_changed(Tox *tox, uint32_t conference_nu
     fprintf(stderr, "handle_conference_peer_list_changed(#%u, %u, _)\n",
             state->id, conference_number);
 
-    Tox_Err_Conference_Peer_Query err;
+    Tox_Err_Conference_Peer_Query err = TOX_ERR_CONFERENCE_PEER_QUERY_OK;
     uint32_t count = tox_conference_peer_count(tox, conference_number, &err);
 
     if (err != TOX_ERR_CONFERENCE_PEER_QUERY_OK) {
@@ -92,7 +92,7 @@ static void handle_conference_connected(Tox *tox, uint32_t conference_number, vo
 
     // We're tox2, so now we invite tox3.
     if (state->id == 2 && !state->invited_next) {
-        Tox_Err_Conference_Invite err;
+        Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
         tox_conference_invite(tox, 1, state->conference, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox2 failed to invite tox3: err = %d", err);
 
@@ -187,7 +187,7 @@ int main(void)
 
     {
         // Create new conference, tox1 is the founder.
-        Tox_Err_Conference_New err;
+        Tox_Err_Conference_New err = TOX_ERR_CONFERENCE_NEW_OK;
         state1.conference = tox_conference_new(tox1, &err);
         state1.joined = true;
         ck_assert_msg(err == TOX_ERR_CONFERENCE_NEW_OK, "failed to create a conference: err = %d", err);
@@ -196,7 +196,7 @@ int main(void)
 
     {
         // Invite friend.
-        Tox_Err_Conference_Invite err;
+        Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
         tox_conference_invite(tox1, 0, state1.conference, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "failed to invite a friend: err = %d", err);
         state1.invited_next = true;
@@ -229,7 +229,7 @@ int main(void)
 
     {
         fprintf(stderr, "tox1 sends a message to the group: \"hello!\"\n");
-        Tox_Err_Conference_Send_Message err;
+        Tox_Err_Conference_Send_Message err = TOX_ERR_CONFERENCE_SEND_MESSAGE_OK;
         tox_conference_send_message(tox1, state1.conference, TOX_MESSAGE_TYPE_NORMAL,
                                     (const uint8_t *)"hello!", 7, &err);
 

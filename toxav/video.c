@@ -147,7 +147,7 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
                   toxav_video_receive_frame_cb *cb, void *cb_data)
 {
     VCSession *vc = (VCSession *)calloc(1, sizeof(VCSession));
-    vpx_codec_err_t rc;
+    vpx_codec_err_t rc = VPX_CODEC_OK;
 
     if (vc == nullptr) {
         LOGGER_WARNING(log, "Allocation failed! Application might misbehave!");
@@ -275,7 +275,7 @@ void vc_kill(VCSession *vc)
 
     vpx_codec_destroy(vc->encoder);
     vpx_codec_destroy(vc->decoder);
-    void *p;
+    void *p = nullptr;
 
     while (rb_read(vc->vbuf_raw, &p)) {
         free(p);
@@ -295,7 +295,7 @@ void vc_iterate(VCSession *vc)
 
     pthread_mutex_lock(vc->queue_mutex);
 
-    struct RTPMessage *p;
+    struct RTPMessage *p = nullptr;
 
     if (!rb_read(vc->vbuf_raw, (void **)&p)) {
         LOGGER_TRACE(vc->log, "no Video frame data available");
@@ -307,7 +307,7 @@ void vc_iterate(VCSession *vc)
     pthread_mutex_unlock(vc->queue_mutex);
     const struct RTPHeader *const header = &p->header;
 
-    uint32_t full_data_len;
+    uint32_t full_data_len = 0;
 
     if ((header->flags & RTP_LARGE_FRAME) != 0) {
         full_data_len = header->data_length_full;

@@ -1241,7 +1241,7 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     memcpy(shared_state->group_name, data + len_processed, MAX_GC_GROUP_NAME_SIZE);
     len_processed += MAX_GC_GROUP_NAME_SIZE;
 
-    uint8_t privacy_state;
+    uint8_t privacy_state = 0;
     memcpy(&privacy_state, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
 
@@ -1254,7 +1254,7 @@ static uint16_t unpack_gc_shared_state(GC_SharedState *shared_state, const uint8
     net_unpack_u32(data + len_processed, &shared_state->topic_lock);
     len_processed += sizeof(uint32_t);
 
-    uint8_t voice_state;
+    uint8_t voice_state = 0;
     memcpy(&voice_state, data + len_processed, sizeof(uint8_t));
     len_processed += sizeof(uint8_t);
 
@@ -1964,7 +1964,7 @@ static int handle_gc_sync_request(GC_Chat *chat, uint32_t peer_number, const uin
         return 0;
     }
 
-    uint16_t sync_flags;
+    uint16_t sync_flags = 0;
     net_unpack_u16(data, &sync_flags);
 
     if (chat_is_password_protected(chat)) {
@@ -1972,7 +1972,7 @@ static int handle_gc_sync_request(GC_Chat *chat, uint32_t peer_number, const uin
             return -2;
         }
 
-        uint16_t password_length;
+        uint16_t password_length = 0;
         net_unpack_u16(data + sizeof(uint16_t), &password_length);
 
         const uint8_t *password = data + (sizeof(uint16_t) * 2);
@@ -2196,7 +2196,7 @@ static int handle_gc_invite_request(GC_Chat *chat, uint32_t peer_number, const u
 
     int ret = -1;
 
-    uint8_t invite_error;
+    uint8_t invite_error = 0;
 
     if (get_gc_confirmed_numpeers(chat) >= chat->shared_state.maxpeers && !peer_is_founder(chat, peer_number)) {
         invite_error = GJ_GROUP_FULL;
@@ -2211,7 +2211,7 @@ static int handle_gc_invite_request(GC_Chat *chat, uint32_t peer_number, const u
             goto FAILED_INVITE;
         }
 
-        uint16_t password_length;
+        uint16_t password_length = 0;
         net_unpack_u16(data, &password_length);
 
         const uint8_t *password = data + sizeof(uint16_t);
@@ -2363,13 +2363,13 @@ static bool do_gc_peer_state_sync(GC_Chat *chat, GC_Connection *gconn, const uin
         return false;
     }
 
-    uint16_t peers_checksum;
-    uint16_t peer_count;
-    uint32_t sstate_version;
-    uint32_t screds_version;
-    uint16_t roles_checksum;
-    uint32_t topic_version;
-    uint16_t topic_checksum;
+    uint16_t peers_checksum = 0;
+    uint16_t peer_count = 0;
+    uint32_t sstate_version = 0;
+    uint32_t screds_version = 0;
+    uint16_t roles_checksum = 0;
+    uint32_t topic_version = 0;
+    uint16_t topic_checksum = 0;
 
     size_t unpacked_len = 0;
 
@@ -2673,7 +2673,7 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
             return -5;
         }
 
-        uint16_t password_length;
+        uint16_t password_length = 0;
         net_unpack_u16(data, &password_length);
         unpacked_len += sizeof(uint16_t);
 
@@ -2910,7 +2910,7 @@ static int handle_gc_shared_state(const GC_Session *c, GC_Chat *chat, GC_Connect
         return handle_gc_shared_state_error(chat, gconn);
     }
 
-    uint32_t version;
+    uint32_t version = 0;
     net_unpack_u32(ss_data, &version);  // version is the first 4 bytes of shared state data payload
 
     if (version == 0 || version < chat->shared_state.version) {
@@ -3003,7 +3003,7 @@ static int handle_gc_mod_list(const GC_Session *c, GC_Chat *chat, const uint8_t 
         return 0;
     }
 
-    uint16_t num_mods;
+    uint16_t num_mods = 0;
     net_unpack_u16(data, &num_mods);
 
     const int unpack_ret = validate_unpack_mod_list(chat, data + sizeof(uint16_t), length - sizeof(uint16_t), num_mods);
@@ -3080,7 +3080,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, const ui
         return -2;
     }
 
-    uint16_t num_sanctions;
+    uint16_t num_sanctions = 0;
     net_unpack_u16(data, &num_sanctions);
 
     if (num_sanctions > MOD_MAX_NUM_SANCTIONS) {
@@ -3877,7 +3877,7 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
         return -1;
     }
 
-    bool is_response;
+    bool is_response = 0;
     net_unpack_bool(&data[0], &is_response);
 
     const uint8_t *sender_public_session_key = data + 1;
@@ -4005,7 +4005,7 @@ non_null()
 static int validate_unpack_gc_set_mod(GC_Chat *chat, uint32_t peer_number, const uint8_t *data, uint16_t length,
                                       bool add_mod)
 {
-    int target_peer_number;
+    int target_peer_number = 0;
     uint8_t mod_data[MOD_LIST_ENTRY_SIZE];
 
     if (add_mod) {
@@ -4078,7 +4078,7 @@ static int handle_gc_set_mod(const GC_Session *c, GC_Chat *chat, uint32_t peer_n
         return 0;
     }
 
-    bool add_mod;
+    bool add_mod = 0;
     net_unpack_bool(&data[0], &add_mod);
 
     const int target_peer_number = validate_unpack_gc_set_mod(chat, peer_number, data, length, add_mod);
@@ -4259,7 +4259,7 @@ static int handle_gc_set_observer(const GC_Session *c, GC_Chat *chat, uint32_t p
         return 0;
     }
 
-    bool add_obs;
+    bool add_obs = 0;
     net_unpack_bool(&data[0], &add_obs);
 
     const uint8_t *public_key = data + 1;
@@ -4794,7 +4794,7 @@ static int handle_gc_message(const GC_Session *c, const GC_Chat *chat, const GC_
 
     const uint8_t cb_type = (type == GM_PLAIN_MESSAGE) ? MESSAGE_NORMAL : MESSAGE_ACTION;
 
-    uint32_t pseudo_msg_id;
+    uint32_t pseudo_msg_id = 0;
     net_unpack_u32(data, &pseudo_msg_id);
 
     if (c->message != nullptr) {
@@ -4932,7 +4932,7 @@ int gc_send_custom_private_packet(const GC_Chat *chat, bool lossless, uint32_t p
         return -4;
     }
 
-    bool ret;
+    bool ret = 0;
 
     if (lossless) {
         ret = send_lossless_group_packet(chat, gconn, message, length, GP_CUSTOM_PRIVATE_PACKET);
@@ -5186,7 +5186,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
         return -1;
     }
 
-    uint64_t message_id;
+    uint64_t message_id = 0;
     net_unpack_u64(data + 1, &message_id);
 
     const Group_Message_Ack_Type type = (Group_Message_Ack_Type) data[0];
@@ -5829,7 +5829,7 @@ static int handle_gc_handshake_packet(GC_Chat *chat, const uint8_t *sender_pk, c
     const uint8_t *real_data = data + 1;
     const uint16_t real_len = (uint16_t)plain_len - 1;
 
-    int peer_number;
+    int peer_number = 0;
 
     if (handshake_type == GH_REQUEST) {
         peer_number = handle_gc_handshake_request(chat, ipp, sender_pk, real_data, real_len);
@@ -5866,7 +5866,7 @@ bool handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     GC_Connection *gconn = &peer->gconn;
 
-    int ret;
+    int ret = 0;
 
     switch (packet_type) {
         case GP_BROADCAST: {
@@ -6042,8 +6042,8 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
         return false;
     }
 
-    uint8_t packet_type;
-    uint64_t message_id;
+    uint8_t packet_type = 0;
+    uint64_t message_id = 0;
 
     const int len = group_packet_unwrap(chat->log, gconn, data, &message_id, &packet_type, packet, length);
 
@@ -6163,7 +6163,7 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
         return false;
     }
 
-    uint8_t packet_type;
+    uint8_t packet_type = 0;
 
     const int len = group_packet_unwrap(chat->log, gconn, data, nullptr, &packet_type, packet, length);
 
@@ -8134,7 +8134,7 @@ static void group_delete(GC_Session *c, GC_Chat *chat)
 
     c->chats[chat->group_number] = empty_gc_chat;
 
-    uint32_t i;
+    uint32_t i = 0;
 
     for (i = c->chats_index; i > 0; --i) {
         if (c->chats[i - 1].connection_state != CS_NONE) {

@@ -8,7 +8,7 @@
 #include <stdio.h>
 int main(int i, char** msg)
 {
-  int j, fd[4], xpd, xid;
+  int j = 0, fd[4], xpd = 0, xid = 0;
   if (--i<1)  return 1;
   srand(getpid());
   pipe(fd);

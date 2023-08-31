@@ -72,7 +72,7 @@ void handle_command_line_arguments(int argc, char *argv[], char **cfg_file_path,
 
     *run_in_foreground = false;
 
-    int opt;
+    int opt = 0;
 
     while ((opt = getopt_long(argc, argv, ":", long_options, nullptr)) != -1) {
 

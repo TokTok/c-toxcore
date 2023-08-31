@@ -30,7 +30,7 @@ static void net_crypto_overflow_test(AutoTox *autotoxes)
             uint8_t message[128] = {0};
             snprintf((char *)message, sizeof(message), "%u-%u", tox_index, i);
 
-            Tox_Err_Friend_Send_Message err;
+            Tox_Err_Friend_Send_Message err = TOX_ERR_FRIEND_SEND_MESSAGE_OK;
             tox_friend_send_message(autotoxes[tox_index].tox, 0, TOX_MESSAGE_TYPE_NORMAL, message, sizeof message, &err);
 
             if (err == TOX_ERR_FRIEND_SEND_MESSAGE_SENDQ) {

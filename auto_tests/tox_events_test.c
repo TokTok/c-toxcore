@@ -60,7 +60,7 @@ static void test_tox_events(void)
     }
 
     uint64_t clock = current_time_monotonic(toxes[0]->mono_time);
-    Mono_Time *mono_time;
+    Mono_Time *mono_time = nullptr;
 
     mono_time = toxes[0]->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
@@ -104,7 +104,7 @@ static void test_tox_events(void)
     printf("friends are connected via %s, now sending message\n",
            tox_friend_get_connection_status(toxes[0], 0, nullptr) == TOX_CONNECTION_TCP ? "TCP" : "UDP");
 
-    Tox_Err_Friend_Send_Message err;
+    Tox_Err_Friend_Send_Message err = TOX_ERR_FRIEND_SEND_MESSAGE_OK;
     tox_friend_send_message(toxes[0], 0, TOX_MESSAGE_TYPE_NORMAL, message, sizeof(message), &err);
     ck_assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
 

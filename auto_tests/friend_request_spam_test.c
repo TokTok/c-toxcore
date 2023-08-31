@@ -41,7 +41,7 @@ static void test_friend_request(AutoTox *autotoxes)
     tox_self_get_address(autotoxes[0].tox, address);
 
     for (uint32_t i = 2; i < FR_TOX_COUNT; ++i) {
-        Tox_Err_Friend_Add err;
+        Tox_Err_Friend_Add err = TOX_ERR_FRIEND_ADD_OK;
         tox_friend_add(autotoxes[i].tox, address, (const uint8_t *)FR_MESSAGE, sizeof(FR_MESSAGE), &err);
         ck_assert_msg(err == TOX_ERR_FRIEND_ADD_OK, "tox %u failed to add friend error code: %d", autotoxes[i].index, err);
     }

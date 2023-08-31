@@ -22,7 +22,7 @@ int main(void)
     ck_assert(tox2 != nullptr);
 
     uint64_t clock = current_time_monotonic(tox1->mono_time);
-    Mono_Time *mono_time;
+    Mono_Time *mono_time = nullptr;
 
     mono_time = tox1->mono_time;
     mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);

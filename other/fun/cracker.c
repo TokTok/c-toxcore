@@ -46,12 +46,12 @@ static void print_key(const uint8_t *client_id)
 /// bytes needs to be at least (hex_len+1)/2 long
 static size_t hex_string_to_bin(const char *hex_string, size_t hex_len, uint8_t *bytes)
 {
-    size_t i;
+    size_t i = 0;
     const char *pos = hex_string;
     // make even
 
     for (i = 0; i < hex_len / 2; ++i, pos += 2) {
-        uint8_t val;
+        uint8_t val = 0;
 
         if (sscanf(pos, "%02hhx", &val) != 1) {
             return 0;
@@ -61,7 +61,7 @@ static size_t hex_string_to_bin(const char *hex_string, size_t hex_len, uint8_t 
     }
 
     if (i * 2 < hex_len) {
-        uint8_t val;
+        uint8_t val = 0;
 
         if (sscanf(pos, "%hhx", &val) != 1) {
             return 0;
@@ -78,7 +78,7 @@ static size_t match_hex_prefix(const uint8_t *key, const uint8_t *prefix, size_t
 {
     size_t same = 0;
     uint8_t diff = 0;
-    size_t i;
+    size_t i = 0;
 
     for (i = 0; i < prefix_len / 2; ++i) {
         diff = key[i] ^ prefix[i];
@@ -133,7 +133,7 @@ static void cracker_core(uint64_t range_start, uint64_t range_end, uint64_t rang
         const unsigned matching = (unsigned) match_hex_prefix(pub_key, hex_prefix, prefix_chars_len);
 
         // Global compare and update
-        uint32_t l_longest_match;
+        uint32_t l_longest_match = 0;
         #pragma omp atomic read
         l_longest_match = *longest_match;
 

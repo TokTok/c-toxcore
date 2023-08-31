@@ -19,7 +19,7 @@
 
 static bool create_tox(const unsigned char *const secret_key, Tox **const tox)
 {
-    Tox_Err_Options_New options_error;
+    Tox_Err_Options_New options_error = TOX_ERR_OPTIONS_NEW_OK;
     struct Tox_Options *const options = tox_options_new(&options_error);
 
     if (options_error != TOX_ERR_OPTIONS_NEW_OK) {
@@ -29,7 +29,7 @@ static bool create_tox(const unsigned char *const secret_key, Tox **const tox)
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
     tox_options_set_savedata_data(options, secret_key, crypto_box_SECRETKEYBYTES);
-    Tox_Err_New tox_error;
+    Tox_Err_New tox_error = TOX_ERR_NEW_OK;
     *tox = tox_new(options, &tox_error);
 
     if (tox_error != TOX_ERR_NEW_OK) {
@@ -90,7 +90,7 @@ int main(const int argc, const char *const argv[])
 
     print_keys(public_key, secret_key);
 
-    Tox *tox;
+    Tox *tox = NULL;
 
     if (!create_tox(secret_key, &tox)) {
         printf("Error: Failed to create a Tox instance.\n");

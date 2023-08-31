@@ -755,7 +755,7 @@ static int handle_tcp_client_ping(const Logger *logger, TCP_Client_Connection *c
         return -1;
     }
 
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, data + 1, sizeof(uint64_t));
     conn->ping_response_id = ping_id;
     tcp_send_ping_response(logger, conn);
@@ -769,7 +769,7 @@ static int handle_tcp_client_pong(TCP_Client_Connection *conn, const uint8_t *da
         return -1;
     }
 
-    uint64_t ping_id;
+    uint64_t ping_id = 0;
     memcpy(&ping_id, data + 1, sizeof(uint64_t));
 
     if (ping_id != 0) {

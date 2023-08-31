@@ -90,7 +90,7 @@ static void handle_conference_connected(
         return;
     }
 
-    Tox_Err_Conference_Invite err;
+    Tox_Err_Conference_Invite err = TOX_ERR_CONFERENCE_INVITE_OK;
     tox_conference_invite(tox, 1, 0, &err);
     ck_assert_msg(err == TOX_ERR_CONFERENCE_INVITE_OK, "tox #%u failed to invite next friend: err = %d", autotox->index,
                   err);
@@ -167,7 +167,7 @@ static bool all_connected_to_group(uint32_t tox_count, AutoTox *autotoxes)
  */
 static uint32_t random_false_index(const Random *rng, bool *list, const uint32_t length)
 {
-    uint32_t index;
+    uint32_t index = 0;
 
     do {
         index = random_u32(rng) % length;
@@ -255,8 +255,12 @@ static void test_eventual_audio(AutoTox *autotoxes, const bool *disabled, uint64
     uint64_t start = autotoxes[0].clock;
 
     while (autotoxes[0].clock < start + timeout) {
-        if (test_audio(autotoxes, disabled, true)
-                && test_audio(autotoxes, disabled, true)) {
+        if (!test_audio(autotoxes, disabled, true)) {
+            continue;
+        }
+
+        // It needs to succeed twice in a row for the test to pass.
+        if (test_audio(autotoxes, disabled, true)) {
             printf("audio test successful after %d seconds\n", (int)((autotoxes[0].clock - start) / 1000));
             return;
         }
@@ -433,7 +437,7 @@ static void test_groupav(AutoTox *autotoxes)
         iterate_all_wait(autotoxes, NUM_AV_GROUP_TOX, ITERATION_INTERVAL);
 
         for (uint32_t i = 0; i < NUM_AV_GROUP_TOX; ++i) {
-            Tox_Err_Conference_Peer_Query err;
+            Tox_Err_Conference_Peer_Query err = TOX_ERR_CONFERENCE_PEER_QUERY_OK;
             uint32_t peer_count = tox_conference_peer_count(autotoxes[i].tox, 0, &err);
 
             if (err != TOX_ERR_CONFERENCE_PEER_QUERY_OK) {

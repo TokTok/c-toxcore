@@ -126,21 +126,21 @@ static void group_invite_test(AutoTox *autotoxes)
     State *state5 = (State *)autotoxes[5].state;
     State *state6 = (State *)autotoxes[6].state;
 
-    Tox_Err_Group_New new_err;
+    Tox_Err_Group_New new_err = TOX_ERR_GROUP_NEW_OK;
     uint32_t groupnumber = tox_group_new(tox0, TOX_GROUP_PRIVACY_STATE_PUBLIC, (const uint8_t *)"test", 4,
                                          (const uint8_t *)"test", 4, &new_err);
     ck_assert_msg(new_err == TOX_ERR_GROUP_NEW_OK, "tox_group_new failed: %d", new_err);
 
     iterate_all_wait(autotoxes, NUM_GROUP_TOXES, ITERATION_INTERVAL);
 
-    Tox_Err_Group_State_Queries id_err;
+    Tox_Err_Group_State_Queries id_err = TOX_ERR_GROUP_STATE_QUERIES_OK;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 
     tox_group_get_chat_id(tox0, groupnumber, chat_id, &id_err);
     ck_assert_msg(id_err == TOX_ERR_GROUP_STATE_QUERIES_OK, "%d", id_err);
 
     // peer 1 joins public group with no password
-    Tox_Err_Group_Join join_err;
+    Tox_Err_Group_Join join_err = TOX_ERR_GROUP_JOIN_OK;
     tox_group_join(tox1, chat_id, (const uint8_t *)"Test", 4, nullptr, 0, &join_err);
     ck_assert_msg(join_err == TOX_ERR_GROUP_JOIN_OK, "%d", join_err);
 
@@ -151,7 +151,7 @@ static void group_invite_test(AutoTox *autotoxes)
     printf("Peer 1 joined group\n");
 
     // founder sets a password
-    Tox_Err_Group_Founder_Set_Password pass_set_err;
+    Tox_Err_Group_Founder_Set_Password pass_set_err = TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK;
     tox_group_founder_set_password(tox0, groupnumber, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
     ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "%d", pass_set_err);
 
@@ -178,7 +178,7 @@ static void group_invite_test(AutoTox *autotoxes)
     printf("Peer 3 successfully blocked with invalid password\n");
 
     // founder sets peer limit to 1
-    Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err;
+    Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err = TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK;
     tox_group_founder_set_peer_limit(tox0, groupnumber, 1, &limit_set_err);
     ck_assert_msg(limit_set_err == TOX_ERR_GROUP_FOUNDER_SET_PEER_LIMIT_OK, "%d", limit_set_err);
 
@@ -214,7 +214,7 @@ static void group_invite_test(AutoTox *autotoxes)
     printf("Peer 5 successfully joined the group\n");
 
     // founder makes group private
-    Tox_Err_Group_Founder_Set_Privacy_State priv_err;
+    Tox_Err_Group_Founder_Set_Privacy_State priv_err = TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK;
     tox_group_founder_set_privacy_state(tox0, groupnumber, TOX_GROUP_PRIVACY_STATE_PRIVATE, &priv_err);
     ck_assert_msg(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK, "%d", priv_err);
 
@@ -254,7 +254,7 @@ static void group_invite_test(AutoTox *autotoxes)
     printf("Every peer sees every other peer\n");
 
     for (size_t i = 0; i < NUM_GROUP_TOXES; i++) {
-        Tox_Err_Group_Leave err_exit;
+        Tox_Err_Group_Leave err_exit = TOX_ERR_GROUP_LEAVE_OK;
         tox_group_leave(autotoxes[i].tox, 0, nullptr, 0, &err_exit);
         ck_assert(err_exit == TOX_ERR_GROUP_LEAVE_OK);
     }

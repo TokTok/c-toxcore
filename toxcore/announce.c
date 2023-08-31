@@ -452,7 +452,7 @@ static int create_reply_plain_store_announce_request(Announcements *announce,
     }
 
     const uint8_t *const auth = plain;
-    uint32_t requested_timeout;
+    uint32_t requested_timeout = 0;
     net_unpack_u32(plain + TIMED_AUTH_SIZE, &requested_timeout);
     const uint32_t timeout = calculate_timeout(announce, requested_timeout);
     const uint8_t announcement_type = plain[TIMED_AUTH_SIZE + sizeof(uint32_t)];

@@ -1087,7 +1087,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
 
     IP_Port ip_port;
     uint8_t data[MAX_UDP_PACKET_SIZE];
-    uint32_t length;
+    uint32_t length = 0;
 
     while (receivepacket(net->ns, net->mem, net->log, net->sock, &ip_port, data, &length) != -1) {
         if (length < 1) {
@@ -1718,7 +1718,7 @@ bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP
 bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
 {
     struct sockaddr_storage addr = {0};
-    size_t addrsize;
+    size_t addrsize = 0;
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
         struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
@@ -1798,7 +1798,7 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
 #endif
 
     // It's not an IP address, so now we try doing a DNS lookup.
-    struct addrinfo *infos;
+    struct addrinfo *infos = nullptr;
     const int ret = getaddrinfo(node, nullptr, nullptr, &infos);
     *res = nullptr;
 
@@ -1981,8 +1981,8 @@ size_t net_unpack_u16(const uint8_t *bytes, uint16_t *v)
 size_t net_unpack_u32(const uint8_t *bytes, uint32_t *v)
 {
     const uint8_t *p = bytes;
-    uint16_t hi;
-    uint16_t lo;
+    uint16_t hi = 0;
+    uint16_t lo = 0;
     p += net_unpack_u16(p, &hi);
     p += net_unpack_u16(p, &lo);
     *v = ((uint32_t)hi << 16) | lo;
@@ -1992,8 +1992,8 @@ size_t net_unpack_u32(const uint8_t *bytes, uint32_t *v)
 size_t net_unpack_u64(const uint8_t *bytes, uint64_t *v)
 {
     const uint8_t *p = bytes;
-    uint32_t hi;
-    uint32_t lo;
+    uint32_t hi = 0;
+    uint32_t lo = 0;
     p += net_unpack_u32(p, &hi);
     p += net_unpack_u32(p, &lo);
     *v = ((uint64_t)hi << 32) | lo;

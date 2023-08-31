@@ -115,7 +115,7 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
         return false;
     }
 
-    IP_Port *root;
+    IP_Port *root = nullptr;
 
     const int32_t count = net_getipport(tox->sys.mem, ip, &root, TOX_SOCK_DGRAM);
 

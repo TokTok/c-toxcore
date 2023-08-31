@@ -211,7 +211,7 @@ static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t 
         offset += ip_port_length;
     }
 
-    uint16_t nodes_length;
+    uint16_t nodes_length = 0;
     const int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count, &nodes_length,
                                          data + offset, length - offset, true);
 

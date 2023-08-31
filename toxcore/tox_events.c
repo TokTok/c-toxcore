@@ -117,7 +117,7 @@ bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp)
 non_null()
 static bool tox_event_unpack(Tox_Events *events, Bin_Unpack *bu)
 {
-    uint32_t size;
+    uint32_t size = 0;
     if (!bin_unpack_array(bu, &size)) {
         return false;
     }
@@ -126,7 +126,7 @@ static bool tox_event_unpack(Tox_Events *events, Bin_Unpack *bu)
         return false;
     }
 
-    uint8_t type;
+    uint8_t type = 0;
     if (!bin_unpack_u08(bu, &type)) {
         return false;
     }
@@ -204,7 +204,7 @@ static bool tox_event_unpack(Tox_Events *events, Bin_Unpack *bu)
 
 bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu)
 {
-    uint32_t size;
+    uint32_t size = 0;
     if (!bin_unpack_array(bu, &size)) {
         return false;
     }

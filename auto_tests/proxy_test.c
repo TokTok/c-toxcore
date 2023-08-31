@@ -55,7 +55,7 @@ int main(int argc, char **argv)
     setvbuf(stdout, nullptr, _IONBF, 0);
     if (argc >= 3) {
         char *proxy_bin = argv[2];
-        pthread_t proxy_thread;
+        pthread_t proxy_thread = 0;
         pthread_create(&proxy_thread, nullptr, proxy_routine, proxy_bin);
         c_sleep(100);
     }

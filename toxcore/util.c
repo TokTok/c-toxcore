@@ -42,7 +42,7 @@ void free_uint8_t_pointer_array(const Memory *mem, uint8_t **ary, size_t n_items
 uint16_t data_checksum(const uint8_t *data, uint32_t length)
 {
     uint8_t checksum[2] = {0};
-    uint16_t check;
+    uint16_t check = 0;
 
     for (uint32_t i = 0; i < length; ++i) {
         checksum[i % 2] ^= data[i];

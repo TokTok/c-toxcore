@@ -601,7 +601,7 @@ non_null()
 static int handle_onion_recv_1(void *object, const IP_Port *dest, const uint8_t *data, uint16_t length)
 {
     TCP_Server *tcp_server = (TCP_Server *)object;
-    uint32_t index;
+    uint32_t index = 0;
 
     if (!ip_port_to_con_id(tcp_server, dest, &index)) {
         return 1;
@@ -634,8 +634,8 @@ static bool handle_forward_reply_tcp(void *object, const uint8_t *sendback_data,
         return false;
     }
 
-    uint32_t con_id;
-    uint64_t identifier;
+    uint32_t con_id = 0;
+    uint64_t identifier = 0;
     net_unpack_u32(sendback_data + 1, &con_id);
     net_unpack_u64(sendback_data + 1 + sizeof(uint32_t), &identifier);
 
@@ -718,7 +718,7 @@ static int handle_tcp_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
 
             LOGGER_TRACE(tcp_server->logger, "handling pong for %d", con_id);
 
-            uint64_t ping_id;
+            uint64_t ping_id = 0;
             memcpy(&ping_id, data + 1, sizeof(uint64_t));
 
             if (ping_id != 0) {

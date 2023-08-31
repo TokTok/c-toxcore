@@ -85,7 +85,7 @@ void bootstrap_tox_live_network(Tox *tox, bool enable_tcp)
         uint16_t port = bootstrap_nodes[j].port;
         const uint8_t *key = bootstrap_nodes[j].key;
 
-        Tox_Err_Bootstrap err;
+        Tox_Err_Bootstrap err = TOX_ERR_BOOTSTRAP_OK;
         tox_bootstrap(tox, ip, port, key, &err);
 
         if (err != TOX_ERR_BOOTSTRAP_OK) {
@@ -287,7 +287,7 @@ static void autotox_add_friend(AutoTox *autotoxes, uint32_t adding, uint32_t add
 {
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
     tox_self_get_public_key(autotoxes[added].tox, public_key);
-    Tox_Err_Friend_Add err;
+    Tox_Err_Friend_Add err = TOX_ERR_FRIEND_ADD_OK;
     tox_friend_add_norequest(autotoxes[adding].tox, public_key, &err);
     ck_assert(err == TOX_ERR_FRIEND_ADD_OK);
 }
@@ -330,7 +330,7 @@ static void bootstrap_autotoxes(struct Tox_Options *options, uint32_t tox_count,
     const uint16_t dht_port = tox_self_get_udp_port(autotoxes[0].tox, nullptr);
 
     for (uint32_t i = 1; i < tox_count; ++i) {
-        Tox_Err_Bootstrap err;
+        Tox_Err_Bootstrap err = TOX_ERR_BOOTSTRAP_OK;
         tox_bootstrap(autotoxes[i].tox, "localhost", dht_port, dht_key, &err);
         ck_assert(err == TOX_ERR_BOOTSTRAP_OK);
     }
@@ -340,7 +340,7 @@ static void bootstrap_autotoxes(struct Tox_Options *options, uint32_t tox_count,
         printf("bootstrapping all toxes to local TCP relay running on port %d\n", autotest_opts->tcp_port);
 
         for (uint32_t i = 0; i < tox_count; ++i) {
-            Tox_Err_Bootstrap err;
+            Tox_Err_Bootstrap err = TOX_ERR_BOOTSTRAP_OK;
             tox_add_tcp_relay(autotoxes[i].tox, "localhost", autotest_opts->tcp_port, dht_key, &err);
             ck_assert(err == TOX_ERR_BOOTSTRAP_OK);
         }

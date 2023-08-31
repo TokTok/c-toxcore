@@ -73,7 +73,7 @@ static void test_forwarded_response_cb(void *object,
         return;
     }
 
-    uint32_t send_back;
+    uint32_t send_back = 0;
     net_unpack_u32(data + 8, &send_back);
 
     if (test_data->send_back == send_back) {
