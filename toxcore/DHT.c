@@ -778,11 +778,7 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *public_key, 
 
         const IPPTsPng *ipptp = NULL;
 
-        if (net_family_is_ipv4(sa_family)) {
-            ipptp = &client->assoc4;
-        } else if (net_family_is_ipv6(sa_family)) {
-            ipptp = &client->assoc6;
-        } else if (client->assoc4.timestamp >= client->assoc6.timestamp) {
+        if (net_family_is_ipv4(sa_family) || client->assoc4.timestamp >= client->assoc6.timestamp) {
             ipptp = &client->assoc4;
         } else {
             ipptp = &client->assoc6;
@@ -2466,9 +2462,7 @@ static uint16_t list_nodes(const Random *rng, const Client_data *list, size_t le
         }
 
         if (!assoc_timeout(cur_time, &list[i - 1].assoc6)) {
-            if (assoc == nullptr) {
-                assoc = &list[i - 1].assoc6;
-            } else if ((random_u08(rng) % 2) != 0) {
+            if (assoc == nullptr || (random_u08(rng) % 2) != 0) {
                 assoc = &list[i - 1].assoc6;
             }
         }
