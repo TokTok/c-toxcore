@@ -20,6 +20,13 @@
 #include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
 
+#ifndef VANILLA_NACL
+// We use libsodium by default.
+#include <sodium.h>
+#else
+#include <randombytes.h>
+#endif
+
 /**
  * The number of milliseconds we want to keep a keyframe in the buffer for,
  * even though there are no free slots for incoming frames.
@@ -661,6 +668,14 @@ size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header)
     return p - data;
 }
 
+static uint32_t rtp_random_u32()
+{
+    uint32_t randnum;
+    // HINT: uses libsodium function
+    randombytes((uint8_t *)&randnum, sizeof(randnum));
+    return randnum;
+}
+
 RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb)
 {
@@ -685,7 +700,7 @@ RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav,
     // First entry is free.
     session->work_buffer_list->next_free_entry = 0;
 
-    session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : random_u32(&tox->rng); // Zoff: what is this??
+    session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : rtp_random_u32(); // Zoff: what is this??
     session->payload_type = payload_type;
     session->tox = tox;
     session->toxav = toxav;
