@@ -257,7 +257,7 @@ RETURN:
     }
 
     if (rc != TOXAV_ERR_NEW_OK) {
-        if (av) {
+        if (av != nullptr) {
             free(av);
             av = nullptr;
         }
