@@ -308,7 +308,6 @@ void toxav_kill(ToxAV *av)
     tox_set_av_object(av->tox, nullptr);
 
     free(av);
-    av = nullptr;
 }
 
 Tox *toxav_get_tox(const ToxAV *av)
