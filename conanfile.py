@@ -74,7 +74,8 @@ class ToxConan(ConanFile):
         cmake.build()
 
         if self.options.with_tests:
-            cmake.test(args=["--repeat", "until-pass:6"], output_on_failure=True)
+            cmake.test(args=["--repeat", "until-pass:6"],
+                       output_on_failure=True)
 
     def package(self):
         cmake = self._create_cmake()
