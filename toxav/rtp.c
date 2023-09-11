@@ -668,7 +668,7 @@ size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header)
     return p - data;
 }
 
-static uint32_t rtp_random_u32()
+static uint32_t rtp_random_u32(void)
 {
     uint32_t randnum;
     // HINT: uses libsodium function

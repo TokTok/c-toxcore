@@ -209,22 +209,6 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
-    struct Tox_Options *opts;
-
-    opts = tox_options_new(nullptr);
-
-    if (opts == nullptr) {
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
-    }
-
-    tox_log_cb *log_callback;
-    void *log_user_data;
-    log_callback = tox_options_get_log_callback(opts);
-    log_user_data = tox_options_get_log_user_data(opts);
-
-    tox_options_free(opts);
-
     av = (ToxAV *)calloc(1, sizeof(ToxAV));
 
     if (av == nullptr) {
@@ -237,16 +221,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
-    Logger *log;
-    log = logger_new();
-    logger_callback_log(log, (logger_cb *)log_callback, tox, log_user_data);
-
-    if (log == nullptr) {
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
-    }
-
-    av->log = log;
+    av->log = tox->m->log;
     av->tox = tox;
     av->msi = msi_new(av->log, av->tox);
 
@@ -283,9 +258,6 @@ RETURN:
 
     if (rc != TOXAV_ERR_NEW_OK) {
         if (av) {
-            if (av->log) {
-                logger_kill(av->log);
-            }
             free(av);
             av = nullptr;
         }
@@ -335,7 +307,6 @@ void toxav_kill(ToxAV *av)
     // set ToxAV object to NULL in toxcore, to signal ToxAV has been shutdown
     tox_set_av_object(av->tox, nullptr);
 
-    logger_kill(av->log);
     free(av);
     av = nullptr;
 }
