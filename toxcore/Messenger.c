@@ -291,10 +291,6 @@ int32_t m_addfriend(Messenger *m, const uint8_t *address, const uint8_t *data, u
 
 int32_t m_addfriend_norequest(Messenger *m, const uint8_t *real_pk)
 {
-    if (getfriend_id(m, real_pk) != -1) {
-        return FAERR_ALREADYSENT;
-    }
-
     if (!public_key_valid(real_pk)) {
         return FAERR_BADCHECKSUM;
     }
@@ -2319,7 +2315,7 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
         case PACKET_ID_MSI:
             return handle_custom_lossless_packet(object, i, temp, len, userdata);
 	case PACKET_ID_INVITE_GROUPCHAT:
-	    return m_handle_packet_invite_groupchat(m, i, temp, len, userdata);
+	    return m_handle_packet_invite_groupchat(m, i, data, data_length, userdata);
     }
 
     return handle_custom_lossless_packet(object, i, temp, len, userdata);
