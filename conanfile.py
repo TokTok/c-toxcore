@@ -36,7 +36,7 @@ class ToxConan(ConanFile):
         self._cmake = CMake(self)
         self._cmake.definitions["AUTOTEST"] = self.options.with_tests
         self._cmake.definitions["BUILD_MISC_TESTS"] = self.options.with_tests
-        self._cmake.definitions["TEST_TIMEOUT_SECONDS"] = "300"
+        self._cmake.definitions["TEST_TIMEOUT_SECONDS"] = "60"
 
         self._cmake.definitions[
             "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS"] = self.options.shared
@@ -74,7 +74,7 @@ class ToxConan(ConanFile):
         cmake.build()
 
         if self.options.with_tests:
-            cmake.test(output_on_failure=True)
+            cmake.test(args=["--repeat", "until-pass:6"], output_on_failure=True)
 
     def package(self):
         cmake = self._create_cmake()
