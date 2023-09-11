@@ -1011,7 +1011,6 @@ void tox_kill(Tox *tox)
     }
 
     mem_delete(tox->sys.mem, tox);
-    tox = nullptr;
 }
 
 void tox_get_options(Tox *tox, struct Tox_Options *options)
