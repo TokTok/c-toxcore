@@ -9,6 +9,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef VANILLA_NACL
+// We use libsodium by default.
+#include <sodium.h>
+#else
+#include <randombytes.h>
+#endif
+
 #include "bwcontroller.h"
 #include "toxav_hacks.h"
 
@@ -19,13 +26,6 @@
 #include "../toxcore/tox_private.h"
 #include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
-
-#ifndef VANILLA_NACL
-// We use libsodium by default.
-#include <sodium.h>
-#else
-#include <randombytes.h>
-#endif
 
 /**
  * The number of milliseconds we want to keep a keyframe in the buffer for,
