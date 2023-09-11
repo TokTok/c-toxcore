@@ -362,9 +362,11 @@ static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format
     }
 
     Ip_Ntoa ip_str;
+    tox_unlock(tox_data->tox);
     tox_data->tox->dht_get_nodes_response_callback(
         tox_data->tox, node->public_key, net_ip_ntoa(&node->ip_port.ip, &ip_str), net_ntohs(node->ip_port.port),
         tox_data->user_data);
+    tox_lock(tox_data->tox);
 }
 
 static m_friend_lossy_packet_cb tox_friend_lossy_packet_handler;
@@ -411,7 +413,9 @@ static void tox_group_peer_name_handler(const Messenger *m, uint32_t group_numbe
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_peer_name_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_peer_name_callback(tox_data->tox, group_number, peer_id, name, length, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -422,8 +426,10 @@ static void tox_group_peer_status_handler(const Messenger *m, uint32_t group_num
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_peer_status_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_peer_status_callback(tox_data->tox, group_number, peer_id, (Tox_User_Status)status,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -434,7 +440,9 @@ static void tox_group_topic_handler(const Messenger *m, uint32_t group_number, u
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_topic_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_topic_callback(tox_data->tox, group_number, peer_id, topic, length, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -445,8 +453,10 @@ static void tox_group_topic_lock_handler(const Messenger *m, uint32_t group_numb
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_topic_lock_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_topic_lock_callback(tox_data->tox, group_number, (Tox_Group_Topic_Lock)topic_lock,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -457,8 +467,10 @@ static void tox_group_voice_state_handler(const Messenger *m, uint32_t group_num
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_voice_state_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_voice_state_callback(tox_data->tox, group_number, (Tox_Group_Voice_State)voice_state,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -469,7 +481,9 @@ static void tox_group_peer_limit_handler(const Messenger *m, uint32_t group_numb
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_peer_limit_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_peer_limit_callback(tox_data->tox, group_number, peer_limit, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -480,8 +494,10 @@ static void tox_group_privacy_state_handler(const Messenger *m, uint32_t group_n
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_privacy_state_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_privacy_state_callback(tox_data->tox, group_number, (Tox_Group_Privacy_State)privacy_state,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -492,7 +508,9 @@ static void tox_group_password_handler(const Messenger *m, uint32_t group_number
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_password_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_password_callback(tox_data->tox, group_number, password, length, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -503,8 +521,10 @@ static void tox_group_message_handler(const Messenger *m, uint32_t group_number,
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_message_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_message_callback(tox_data->tox, group_number, peer_id, (Tox_Message_Type)type, message, length,
                                               message_id, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -515,9 +535,11 @@ static void tox_group_private_message_handler(const Messenger *m, uint32_t group
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_private_message_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_private_message_callback(tox_data->tox, group_number, peer_id, (Tox_Message_Type)type, message,
                 length,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -528,7 +550,9 @@ static void tox_group_custom_packet_handler(const Messenger *m, uint32_t group_n
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_custom_packet_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_custom_packet_callback(tox_data->tox, group_number, peer_id, data, length, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -539,8 +563,10 @@ static void tox_group_custom_private_packet_handler(const Messenger *m, uint32_t
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_custom_private_packet_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_custom_private_packet_callback(tox_data->tox, group_number, peer_id, data, length,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -551,8 +577,10 @@ static void tox_group_invite_handler(const Messenger *m, uint32_t friend_number,
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_invite_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_invite_callback(tox_data->tox, friend_number, invite_data, length, group_name, group_name_length,
                                              tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -562,7 +590,9 @@ static void tox_group_peer_join_handler(const Messenger *m, uint32_t group_numbe
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_peer_join_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_peer_join_callback(tox_data->tox, group_number, peer_id, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -574,9 +604,11 @@ static void tox_group_peer_exit_handler(const Messenger *m, uint32_t group_numbe
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_peer_exit_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_peer_exit_callback(tox_data->tox, group_number, peer_id, (Tox_Group_Exit_Type) exit_type, name,
                                                 name_length,
                                                 part_message, length, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -586,7 +618,9 @@ static void tox_group_self_join_handler(const Messenger *m, uint32_t group_numbe
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_self_join_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_self_join_callback(tox_data->tox, group_number, tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -597,8 +631,10 @@ static void tox_group_join_fail_handler(const Messenger *m, uint32_t group_numbe
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_join_fail_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_join_fail_callback(tox_data->tox, group_number, (Tox_Group_Join_Fail)fail_type,
                                                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 
@@ -609,9 +645,11 @@ static void tox_group_moderation_handler(const Messenger *m, uint32_t group_numb
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
     if (tox_data->tox->group_moderation_callback != nullptr) {
+        tox_unlock(tox_data->tox);
         tox_data->tox->group_moderation_callback(tox_data->tox, group_number, source_peer_number, target_peer_number,
                 (Tox_Group_Mod_Event)mod_type,
                 tox_data->user_data);
+        tox_lock(tox_data->tox);
     }
 }
 #endif
