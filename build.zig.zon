@@ -1,0 +1,11 @@
+.{
+    .name = "c-toxcore",
+    .version = "0.2.18",
+    .paths = .{},
+    .dependencies = .{
+        .libsodium = .{
+	    .url = "https://github.com/jedisct1/libsodium/archive/refs/tags/1.0.19-RELEASE.tar.gz",
+	    .hash = "12202e22cfa91a80566bac594b2d0ebcd053a529a9b0a3d2a5e7e56a0df13988e8b6", 
+        },
+    }
+}

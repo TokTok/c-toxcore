@@ -92,3 +92,7 @@ cscope.files
 tox.spec
 
 .idea/
+
+# zig
+zig-cache
+zig-out
