@@ -60,6 +60,7 @@ pub fn build(b: *std.build.Builder) !void {
         b.installArtifact(lib);
         lib.installHeader("toxcore/tox.h", "tox.h");
         lib.linkLibC();
+        lib.installHeadersDirectory("toxcore", "toxcore");
         lib.linkLibrary(libsodium_dep.artifact("sodium"));
 
         var allocator = heap.page_allocator;

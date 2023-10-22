@@ -1,13 +1,17 @@
 .{
     .name = "c-toxcore",
     .version = "0.2.18",
-    .paths = .{ "" },
     .dependencies = .{
         .libsodium = .{
-	    //.url = "https://github.com/jedisct1/libsodium/archive/refs/tags/1.0.19-RELEASE.tar.gz",
-	    //.hash = "12202e22cfa91a80566bac594b2d0ebcd053a529a9b0a3d2a5e7e56a0df13988e8b6", 
             .url = "https://github.com/nodecum/libsodium/archive/7606e22.tar.gz",
-	    .hash = "12205d22a3e53299115e450e159eed32e1d7dda791a2e356e0858c2478bb2e9fce60",
+            .hash = "12205d22a3e53299115e450e159eed32e1d7dda791a2e356e0858c2478bb2e9fce60",
         },
-    }
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "toxcore",
+	"third_party",
+	"toxencryptsave",
+    },
 }
