@@ -3,8 +3,8 @@
     .version = "0.2.18",
     .dependencies = .{
         .libsodium = .{
-            .url = "https://github.com/nodecum/libsodium/archive/7606e22.tar.gz",
-            .hash = "12205d22a3e53299115e450e159eed32e1d7dda791a2e356e0858c2478bb2e9fce60",
+            .url = "https://github.com/nodecum/libsodium/archive/5391211b5d1f356211eec32e8a93c8760401996a.tar.gz",
+            .hash = "12206193e0ed86d03d3eafbd6fd829f1e0be3c4da3fe582f33f7f05d46eb5bb55c59",
         },
     },
     .paths = .{
