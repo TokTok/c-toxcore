@@ -70,10 +70,17 @@ pub fn build(b: *std.build.Builder) !void {
             const name = entry.basename;
             if (mem.endsWith(u8, name, ".c")) {
                 const full_path = try fmt.allocPrint(allocator, "{s}/{s}", .{ src_path, entry.path });
-                lib.addCSourceFiles(&.{full_path}, &.{});
+                lib.addCSourceFile(.{
+                    .file = .{ .path = full_path },
+                    .flags = &.{},
+                });
             }
         }
-        lib.addCSourceFiles(&.{"third_party/cmp/cmp.c"}, &.{});
+        lib.addCSourceFile(.{
+            .file = .{ .path = "third_party/cmp/cmp.c" },
+            .flags = &.{},
+        });
+
         if (lib.isStaticLibrary()) {
             var toxcore_zig = b.addTranslateC(.{
                 .optimize = optimize,
