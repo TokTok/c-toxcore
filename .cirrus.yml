@@ -48,3 +48,15 @@ cimple_task:
         --test_tag_filters=haskell
         --
         //c-toxcore/...
+
+freebsd_task:
+  container:
+    image: toxchat/freebsd:latest
+    cpu: 2
+    memory: 4G
+    kvm: true
+  configure_script:
+    - git submodule update --init --recursive
+    - cd .. && mv cirrus-ci-build /work/c-toxcore && mkdir cirrus-ci-build
+  test_all_script:
+    - cd /work/c-toxcore && .github/scripts/cmake-freebsd
