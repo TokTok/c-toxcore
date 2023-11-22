@@ -1,5 +1,5 @@
 pool:
-  vmImage: "windows-2019"
+  vmImage: "windows-2022"
 jobs:
   - job: "windows_msvc_conan"
     strategy:
@@ -11,5 +11,5 @@ jobs:
     steps:
       - bash: python -m pip install conan==1.59.0
       - bash: git submodule update --init --recursive
-      - bash: conan install -if _build -o with_tests=True -o shared=$(conan.shared) .
+      - bash: conan install --build=libsodium --build=libvpx --build=opus --build=pthreads4w -if _build -o with_tests=True -o shared=$(conan.shared) .
       - bash: CONAN_CPU_COUNT=50 CTEST_OUTPUT_ON_FAILURE=1 conan build -bf _build -if _build .
