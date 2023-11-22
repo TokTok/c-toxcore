@@ -2,6 +2,9 @@
 
 CHECKS="*"
 
+# We don't use memcpy_s.
+CHECKS="$CHECKS,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+
 # __attribute__((nonnull)) causes this warning on defensive null checks.
 CHECKS="$CHECKS,-clang-diagnostic-pointer-bool-conversion"
 CHECKS="$CHECKS,-clang-diagnostic-tautological-pointer-compare"
