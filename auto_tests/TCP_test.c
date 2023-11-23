@@ -34,11 +34,11 @@ static IP get_loopback(void)
     return ip;
 }
 
-static void do_TCP_server_delay(TCP_Server *tcp_s, Mono_Time *mono_time, int delay)
+static void do_tcp_server_delay(TCP_Server *tcp_s, Mono_Time *mono_time, int delay)
 {
     c_sleep(delay);
     mono_time_update(mono_time);
-    do_TCP_server(tcp_s, mono_time);
+    do_tcp_server(tcp_s, mono_time);
     c_sleep(delay);
 }
 static uint16_t ports[NUM_PORTS] = {13215, 33445, 25643};

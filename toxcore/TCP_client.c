@@ -670,8 +670,6 @@ static int handle_tcp_client_routing_response(TCP_Client_Connection *conn, const
         return -1;
     }
 
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
-
     if (data[1] < NUM_RESERVED_PORTS) {
         return 0;
     }
@@ -700,8 +698,6 @@ static int handle_tcp_client_connection_notification(TCP_Client_Connection *conn
         return -1;
     }
 
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
-
     if (data[1] < NUM_RESERVED_PORTS) {
         return -1;
     }
@@ -728,8 +724,6 @@ static int handle_tcp_client_disconnect_notification(TCP_Client_Connection *conn
     if (length != 1 + 1) {
         return -1;
     }
-
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
 
     if (data[1] < NUM_RESERVED_PORTS) {
         return -1;
@@ -762,8 +756,6 @@ static int handle_tcp_client_ping(const Logger *logger, TCP_Client_Connection *c
         return -1;
     }
 
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
-
     uint64_t ping_id;
     memcpy(&ping_id, data + 1, sizeof(uint64_t));
     conn->ping_response_id = ping_id;
@@ -777,8 +769,6 @@ static int handle_tcp_client_pong(TCP_Client_Connection *conn, const uint8_t *da
     if (length != 1 + sizeof(uint64_t)) {
         return -1;
     }
-
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
 
     uint64_t ping_id;
     memcpy(&ping_id, data + 1, sizeof(uint64_t));

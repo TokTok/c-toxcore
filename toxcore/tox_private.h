@@ -293,6 +293,17 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_ONION_RECV_2         = 0x8d,
     TOX_NETPROF_PACKET_ID_ONION_RECV_1         = 0x8e,
 
+    TOX_NETPROF_PACKET_FORWARD_REQUEST         = 0x90,
+    TOX_NETPROF_FORWARDING                     = 0x91,
+    TOX_NETPROF_FORWARD_REPLY                  = 0x92,
+
+    TOX_NETPROF_DATA_SEARCH_REQUEST            = 0x93,
+    TOX_NETPROF_DATA_SEARCH_RESPONSE           = 0x94,
+    TOX_NETPROF_DATA_RETRIEVE_REQUEST          = 0x95,
+    TOX_NETPROF_DATA_RETRIEVE_RESPONSE         = 0x96,
+    TOX_NETPROF_STORE_ANNOUNCE_REQUEST         = 0x97,
+    TOX_NETPROF_STORE_ANNOUNCE_RESPONSE        = 0x98,
+
     /**
      * Bootstrap info packet.
      */

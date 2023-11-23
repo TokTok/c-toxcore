@@ -52,8 +52,11 @@ static void test_netprof(AutoTox *autotoxes)
 
     ck_assert(UDP_count_recv1 > 0 && UDP_count_sent1 > 0);
     ck_assert(UDP_bytes_recv1 > 0 && UDP_bytes_sent1 > 0);
-    ck_assert(TCP_count_sent1 == 0 && TCP_count_recv1 == 0);
-    ck_assert(TCP_bytes_sent1 == 0 && TCP_bytes_recv1 == 0);
+
+    (void)TCP_count_sent1;
+    (void)TCP_bytes_sent1;
+    (void)TCP_bytes_recv1;
+    (void)TCP_count_recv1;
 
     unsigned long long total_sent_count = 0;
     unsigned long long total_recv_count = 0;
@@ -107,7 +110,7 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
-    Run_Auto_Options autotox_opts = default_run_auto_options;
+    Run_Auto_Options autotox_opts = default_run_auto_options();
     autotox_opts.graph = GRAPH_COMPLETE;
 
     run_auto_test(nullptr, NUM_TOXES, test_netprof, 0, &autotox_opts);

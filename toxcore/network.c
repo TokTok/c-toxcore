@@ -802,9 +802,15 @@ static void loglogdata(const Logger *log, const char *message, const uint8_t *bu
 }
 
 int net_send(const Network *ns, const Logger *log,
-             Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port)
+             Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
 {
     const int res = ns->funcs->send(ns->obj, sock.sock, buf, len);
+
+    if (buf != nullptr && res == len) {
+        const uint8_t *data = buf;
+        netprof_record_packet(net_profile, data[0], len, DIR_SENT);
+    }
+
     loglogdata(log, "T=>", buf, len, ip_port, res);
     return res;
 }
