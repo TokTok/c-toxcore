@@ -77,7 +77,6 @@ jobs:
             llvm-dev
             ninja-build
             pkg-config
-            llvm-dev
       - checkout
       - run: git submodule update --init --recursive
       - run: CC=clang .circleci/cmake-asan

@@ -791,8 +791,6 @@ static int handle_tcp_client_oob_recv(TCP_Client_Connection *conn, const uint8_t
         return -1;
     }
 
-    netprof_record_packet(conn->con.net_profile, data[0], length, DIR_RECV);
-
     if (conn->oob_data_callback != nullptr) {
         conn->oob_data_callback(conn->oob_data_callback_object, data + 1, data + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                 length - (1 + CRYPTO_PUBLIC_KEY_SIZE), userdata);

@@ -260,6 +260,13 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_LAN_DISCOVERY        = 0x21,
 
     /**
+     * DHT groupchat packets.
+     */
+    TOX_NETPROF_PACKET_ID_GC_HANDSHAKE         = 0x5a,
+    TOX_NETPROF_PACKET_ID_GC_LOSSLESS          = 0x5b,
+    TOX_NETPROF_PACKET_ID_GC_LOSSY             = 0x5c,
+
+    /**
      * Onion send packets.
      */
     TOX_NETPROF_PACKET_ID_ONION_SEND_INITIAL   = 0x80,
@@ -267,14 +274,14 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_ONION_SEND_2         = 0x82,
 
     /**
-     * DHT announce request packet.
+     * DHT announce request packet (deprecated).
      */
-    TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST     = 0x83,
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST_OLD = 0x83,
 
     /**
-     * DHT announce response packet.
+     * DHT announce response packet (deprecated).
      */
-    TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE    = 0x84,
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE_OLD = 0x84,
 
     /**
      * Onion data request packet.
@@ -287,22 +294,32 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_ONION_DATA_RESPONSE  = 0x86,
 
     /**
+     * DHT announce request packet.
+     */
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST     = 0x87,
+
+    /**
+     * DHT announce response packet.
+     */
+    TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE    = 0x88,
+
+    /**
      * Onion receive packets.
      */
     TOX_NETPROF_PACKET_ID_ONION_RECV_3         = 0x8c,
     TOX_NETPROF_PACKET_ID_ONION_RECV_2         = 0x8d,
     TOX_NETPROF_PACKET_ID_ONION_RECV_1         = 0x8e,
 
-    TOX_NETPROF_PACKET_FORWARD_REQUEST         = 0x90,
-    TOX_NETPROF_FORWARDING                     = 0x91,
-    TOX_NETPROF_FORWARD_REPLY                  = 0x92,
+    TOX_NETPROF_PACKET_ID_FORWARD_REQUEST      = 0x90,
+    TOX_NETPROF_PACKET_ID_FORWARDING           = 0x91,
+    TOX_NETPROF_PACKET_ID_FORWARD_REPLY        = 0x92,
 
-    TOX_NETPROF_DATA_SEARCH_REQUEST            = 0x93,
-    TOX_NETPROF_DATA_SEARCH_RESPONSE           = 0x94,
-    TOX_NETPROF_DATA_RETRIEVE_REQUEST          = 0x95,
-    TOX_NETPROF_DATA_RETRIEVE_RESPONSE         = 0x96,
-    TOX_NETPROF_STORE_ANNOUNCE_REQUEST         = 0x97,
-    TOX_NETPROF_STORE_ANNOUNCE_RESPONSE        = 0x98,
+    TOX_NETPROF_PACKET_ID_DATA_SEARCH_REQUEST     = 0x93,
+    TOX_NETPROF_PACKET_ID_DATA_SEARCH_RESPONSE    = 0x94,
+    TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_REQUEST   = 0x95,
+    TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_RESPONSE  = 0x96,
+    TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_REQUEST  = 0x97,
+    TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_RESPONSE = 0x98,
 
     /**
      * Bootstrap info packet.
