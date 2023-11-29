@@ -32,6 +32,7 @@
 #include <time.h>
 
 #include "ccompat.h"
+#include "util.h"
 
 /** don't call into system billions of times for no reason */
 struct Mono_Time {
@@ -165,7 +166,7 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     // Maximum reproducibility. Never return time = 0.
     mono_time->base_time = 1;
 #else
-    mono_time->base_time = (uint64_t)time(nullptr) * 1000ULL - current_time_monotonic(mono_time);
+    mono_time->base_time = max_u64(1, (uint64_t)time(nullptr)) * 1000ULL - current_time_monotonic(mono_time);
 #endif
 
     mono_time_update(mono_time);

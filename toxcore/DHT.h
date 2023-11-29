@@ -194,6 +194,9 @@ typedef struct Node_format {
 
 extern const Node_format empty_node_format;
 
+non_null()
+bool node_list_contains(const Node_format *const *nodes, uint16_t nodes_size, const uint8_t *public_key);
+
 typedef struct DHT_Friend DHT_Friend;
 
 non_null() const uint8_t *dht_friend_public_key(const DHT_Friend *dht_friend);
