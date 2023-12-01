@@ -8,10 +8,10 @@ qemu-system-xtensa \
   -m 4 \
   -drive file=flash.bin,if=mtd,format=raw \
   -nic user,model=open_eth,hostfwd=tcp::80-:80 \
-  -s \
-  | tee qemu.log &
+  -s |
+  tee qemu.log &
 
 echo "Waiting for program to complete"
-while ! grep 'Returned from app_main' qemu.log > /dev/null; do
+while ! grep 'Returned from app_main' qemu.log >/dev/null; do
   sleep 1
 done
