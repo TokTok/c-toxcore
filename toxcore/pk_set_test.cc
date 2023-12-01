@@ -8,12 +8,13 @@ namespace {
 
 struct PkSet : ::testing::Test {
 protected:
-    PkSet() : set_(pk_set_new(mem_, 1)) {}
+    PkSet()
+        : set_(pk_set_new(mem_, 1))
+    {
+    }
     ~PkSet() override { pk_set_free(set_); }
 
-    void SetUp() override {
-        ASSERT_NE(set_, nullptr);
-    }
+    void SetUp() override { ASSERT_NE(set_, nullptr); }
 
     const Memory *mem_ = system_memory();
     Pk_Set *set_;
