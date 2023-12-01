@@ -18,6 +18,7 @@
 #include "mono_time.h"
 #include "network.h"
 #include "ping.h"
+#include "pk_set.h"
 #include "shared_key_cache.h"
 #include "state.h"
 #include "util.h"
@@ -1792,7 +1793,16 @@ static uint8_t do_ping_and_sendnode_requests(DHT *dht, uint64_t *lastgetnode, co
     unsigned int sort = 0;
     bool sort_ok = false;
 
-    if (client_list == nullptr || assoc_list == nullptr) {
+    // Keep track of which public keys we've sent GET_NODES to in this iteration,
+    // so we don't send GET_NODES to the same node twice. We may send it again next
+    // iteration, but this avoids a bit of wasted bandwidth.
+    //
+    // We can't share this across all calls within an iteration, because we're
+    // potentially requesting different public_keys in each GET_NODES packet.
+    Pk_Set *sent = pk_set_new(dht->mem, list_count * 2);
+
+    if (client_list == nullptr || assoc_list == nullptr || sent == nullptr) {
+        pk_set_free(sent);
         mem_delete(dht->mem, assoc_list);
         mem_delete(dht->mem, client_list);
         return 0;
@@ -1812,7 +1822,16 @@ static uint8_t do_ping_and_sendnode_requests(DHT *dht, uint64_t *lastgetnode, co
                 ++not_kill;
 
                 if (mono_time_is_timeout(dht->mono_time, assoc->last_pinged, PING_INTERVAL)) {
-                    dht_getnodes(dht, &assoc->ip_port, client->public_key, public_key);
+                    const IP_Port *target = &assoc->ip_port;
+                    const uint8_t *target_key = client->public_key;
+                    if (!pk_set_contains(sent, target_key)) {
+                        dht_getnodes(dht, target, target_key, public_key);
+                        pk_set_add(sent, target_key);
+                    } else {
+                        Ip_Ntoa ip_str;
+                        LOGGER_TRACE(dht->log, "not sending repeated GET_NODES to %s:%d",
+                                net_ip_ntoa(&target->ip, &ip_str), net_ntohs(target->port));
+                    }
                     assoc->last_pinged = temp_time;
                 }
 
@@ -1845,12 +1864,22 @@ static uint8_t do_ping_and_sendnode_requests(DHT *dht, uint64_t *lastgetnode, co
             rand_node += random_range_u32(dht->rng, num_nodes - (rand_node + 1));
         }
 
-        dht_getnodes(dht, &assoc_list[rand_node]->ip_port, client_list[rand_node]->public_key, public_key);
+        const IP_Port *target = &assoc_list[rand_node]->ip_port;
+        const uint8_t *target_key = client_list[rand_node]->public_key;
+        if (!pk_set_contains(sent, target_key)) {
+            dht_getnodes(dht, target, target_key, public_key);
+            pk_set_add(sent, target_key);
+        } else {
+            Ip_Ntoa ip_str;
+            LOGGER_TRACE(dht->log, "not sending repeated GET_NODES to %s:%d",
+                    net_ip_ntoa(&target->ip, &ip_str), net_ntohs(target->port));
+        }
 
         *lastgetnode = temp_time;
         ++*bootstrap_times;
     }
 
+    pk_set_free(sent);
     mem_delete(dht->mem, assoc_list);
     mem_delete(dht->mem, client_list);
     return not_kill;
@@ -1874,8 +1903,7 @@ static void do_dht_friends(DHT *dht)
         dht_friend->num_to_bootstrap = 0;
 
         do_ping_and_sendnode_requests(dht, &dht_friend->lastgetnode, dht_friend->public_key, dht_friend->client_list,
-                                      MAX_FRIEND_CLIENTS,
-                                      &dht_friend->bootstrap_times, true);
+                                      MAX_FRIEND_CLIENTS, &dht_friend->bootstrap_times, true);
     }
 }
 
@@ -2618,6 +2646,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     DHT *const dht = (DHT *)mem_alloc(mem, sizeof(DHT));
 
     if (dht == nullptr) {
+        LOGGER_ERROR(log, "failed to allocate DHT struct (%ld bytes)", (unsigned long)sizeof(DHT));
         return nullptr;
     }
 
@@ -2635,6 +2664,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     dht->ping = ping_new(mem, mono_time, rng, dht);
 
     if (dht->ping == nullptr) {
+        LOGGER_ERROR(log, "failed to initialise ping");
         kill_dht(dht);
         return nullptr;
     }
@@ -2651,10 +2681,11 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
     crypto_new_keypair(rng, dht->self_public_key, dht->self_secret_key);
 
-    dht->shared_keys_recv = shared_key_cache_new(mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    dht->shared_keys_sent = shared_key_cache_new(mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    dht->shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    dht->shared_keys_sent = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
     if (dht->shared_keys_recv == nullptr || dht->shared_keys_sent == nullptr) {
+        LOGGER_ERROR(log, "failed to initialise shared key cache");
         kill_dht(dht);
         return nullptr;
     }
@@ -2663,6 +2694,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     dht->dht_ping_array = ping_array_new(mem, DHT_PING_ARRAY_SIZE, PING_TIMEOUT);
 
     if (dht->dht_ping_array == nullptr) {
+        LOGGER_ERROR(log, "failed to initialise ping array");
         kill_dht(dht);
         return nullptr;
     }
@@ -2675,6 +2707,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
         uint32_t token; // We don't intend to delete these ever, but need to pass the token
         if (dht_addfriend(dht, random_public_key_bytes, nullptr, nullptr, 0, &token) != 0) {
+            LOGGER_ERROR(log, "failed to add initial random seed DHT friends");
             kill_dht(dht);
             return nullptr;
         }
