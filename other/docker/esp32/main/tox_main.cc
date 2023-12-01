@@ -61,12 +61,15 @@ static const char *color(int index)
 {
     switch (index) {
     case 0:
-        return "\033" "[35m";
+        return "\033"
+               "[35m";
     case 1:
-        return "\033" "[36m";
+        return "\033"
+               "[36m";
     }
 
-    return "\033" "[0m";
+    return "\033"
+           "[0m";
 }
 
 static tox_log_cb log_handler;
