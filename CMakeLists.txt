@@ -284,6 +284,8 @@ set(toxcore_SOURCES
   toxcore/ping_array.h
   toxcore/ping.c
   toxcore/ping.h
+  toxcore/pk_set.c
+  toxcore/pk_set.h
   toxcore/shared_key_cache.c
   toxcore/shared_key_cache.h
   toxcore/state.c
@@ -434,9 +436,11 @@ unit_test(toxcore bin_pack)
 unit_test(toxcore crypto_core)
 unit_test(toxcore group_announce)
 unit_test(toxcore group_moderation)
+unit_test(toxcore list)
 unit_test(toxcore mem)
 unit_test(toxcore mono_time)
 unit_test(toxcore ping_array)
+unit_test(toxcore pk_set)
 unit_test(toxcore tox)
 unit_test(toxcore util)
 

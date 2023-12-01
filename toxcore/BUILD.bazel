@@ -136,6 +136,31 @@ cc_test(
 )
 
 cc_library(
+    name = "pk_set",
+    srcs = ["pk_set.c"],
+    hdrs = ["pk_set.h"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        ":mem",
+        ":util",
+    ],
+)
+
+cc_test(
+    name = "pk_set_test",
+    size = "small",
+    srcs = ["pk_set_test.cc"],
+    deps = [
+        ":crypto_core",
+        ":pk_set",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "list",
     srcs = ["list.c"],
     hdrs = ["list.h"],
@@ -197,6 +222,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":mem",
+        ":util",
         "@pthread",
     ],
 )
@@ -226,6 +252,7 @@ cc_library(
     deps = [
         ":ccompat",
         ":crypto_core",
+        ":logger",
         ":mem",
         ":mono_time",
     ],
@@ -344,6 +371,7 @@ cc_library(
         ":mono_time",
         ":network",
         ":ping_array",
+        ":pk_set",
         ":shared_key_cache",
         ":state",
         ":util",
