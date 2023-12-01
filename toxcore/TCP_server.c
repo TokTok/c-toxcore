@@ -33,7 +33,7 @@
 #endif
 
 typedef struct TCP_Secure_Conn {
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    Public_Key public_key;
     uint32_t index;
     // TODO(iphydf): Add an enum for this (same as in TCP_client.c, probably).
     uint8_t status; /* 0 if not used, 1 if other is offline, 2 if other is online. */
@@ -43,7 +43,7 @@ typedef struct TCP_Secure_Conn {
 typedef struct TCP_Secure_Connection {
     TCP_Connection con;
 
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    Public_Key public_key;
     uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
     uint16_t next_packet_length;
     TCP_Secure_Conn connections[NUM_CLIENT_CONNECTIONS];
@@ -71,7 +71,7 @@ struct TCP_Server {
     Socket *socks_listening;
     unsigned int num_listening_socks;
 
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    Public_Key public_key;
     uint8_t secret_key[CRYPTO_SECRET_KEY_SIZE];
     TCP_Secure_Connection incoming_connection_queue[MAX_INCOMING_CONNECTIONS];
     uint16_t incoming_connection_queue_index;
@@ -89,7 +89,7 @@ struct TCP_Server {
 
 const uint8_t *tcp_server_public_key(const TCP_Server *tcp_server)
 {
-    return tcp_server->public_key;
+    return tcp_server->public_key.data;
 }
 
 size_t tcp_server_listen_count(const TCP_Server *tcp_server)
@@ -189,7 +189,7 @@ static int kill_accepted(TCP_Server *tcp_server, int index);
 non_null()
 static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_Secure_Connection *con)
 {
-    int index = get_tcp_connection_index(tcp_server, con->public_key);
+    int index = get_tcp_connection_index(tcp_server, con->public_key.data);
 
     if (index != -1) { /* If an old connection to the same public key exists, kill it. */
         kill_accepted(tcp_server, index);
@@ -216,7 +216,7 @@ static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_
         return -1;
     }
 
-    if (!bs_list_add(&tcp_server->accepted_key_list, con->public_key, index)) {
+    if (!bs_list_add(&tcp_server->accepted_key_list, con->public_key.data, index)) {
         return -1;
     }
 
@@ -247,7 +247,7 @@ static int del_accepted(TCP_Server *tcp_server, int index)
         return -1;
     }
 
-    if (!bs_list_remove(&tcp_server->accepted_key_list, tcp_server->accepted_connection_array[index].public_key, index)) {
+    if (!bs_list_remove(&tcp_server->accepted_key_list, tcp_server->accepted_connection_array[index].public_key.data, index)) {
         return -1;
     }
 
@@ -327,7 +327,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
         return -1;
     }
 
-    memcpy(con->public_key, data, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(con->public_key.data, data, CRYPTO_PUBLIC_KEY_SIZE);
     uint8_t temp_secret_key[CRYPTO_SECRET_KEY_SIZE];
     uint8_t resp_plain[TCP_HANDSHAKE_PLAIN_SIZE];
     crypto_new_keypair(con->con.rng, resp_plain, temp_secret_key);
@@ -432,7 +432,7 @@ static int handle_tcp_routing_req(TCP_Server *tcp_server, uint32_t con_id, const
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[con_id];
 
     /* If person tries to cennect to himself we deny the request*/
-    if (pk_equal(con->public_key, public_key)) {
+    if (pk_equal(con->public_key.data, public_key)) {
         if (send_routing_response(tcp_server->logger, con, 0, public_key) == -1) {
             return -1;
         }
@@ -442,7 +442,7 @@ static int handle_tcp_routing_req(TCP_Server *tcp_server, uint32_t con_id, const
 
     for (uint32_t i = 0; i < NUM_CLIENT_CONNECTIONS; ++i) {
         if (con->connections[i].status != 0) {
-            if (pk_equal(public_key, con->connections[i].public_key)) {
+            if (pk_equal(public_key, con->connections[i].public_key.data)) {
                 if (send_routing_response(tcp_server->logger, con, i + NUM_RESERVED_PORTS, public_key) == -1) {
                     return -1;
                 }
@@ -473,7 +473,7 @@ static int handle_tcp_routing_req(TCP_Server *tcp_server, uint32_t con_id, const
     }
 
     con->connections[index].status = 1;
-    memcpy(con->connections[index].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(con->connections[index].public_key.data, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     const int other_index = get_tcp_connection_index(tcp_server, public_key);
 
     if (other_index != -1) {
@@ -482,7 +482,7 @@ static int handle_tcp_routing_req(TCP_Server *tcp_server, uint32_t con_id, const
 
         for (uint32_t i = 0; i < NUM_CLIENT_CONNECTIONS; ++i) {
             if (other_conn->connections[i].status == 1
-                    && pk_equal(other_conn->connections[i].public_key, con->public_key)) {
+                    && pk_equal(other_conn->connections[i].public_key.data, con->public_key.data)) {
                 other_id = i;
                 break;
             }
@@ -523,7 +523,7 @@ static int handle_tcp_oob_send(TCP_Server *tcp_server, uint32_t con_id, const ui
     if (other_index != -1) {
         VLA(uint8_t, resp_packet, 1 + CRYPTO_PUBLIC_KEY_SIZE + length);
         resp_packet[0] = TCP_PACKET_OOB_RECV;
-        memcpy(resp_packet + 1, con->public_key, CRYPTO_PUBLIC_KEY_SIZE);
+        memcpy(resp_packet + 1, con->public_key.data, CRYPTO_PUBLIC_KEY_SIZE);
         memcpy(resp_packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length);
         write_packet_tcp_secure_connection(tcp_server->logger, &tcp_server->accepted_connection_array[other_index].con,
                                            resp_packet, SIZEOF_VLA(resp_packet), false);
@@ -1025,7 +1025,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     }
 
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
-    crypto_derive_public_key(temp->public_key, temp->secret_key);
+    crypto_derive_public_key(temp->public_key.data, temp->secret_key);
 
     bs_list_init(&temp->accepted_key_list, CRYPTO_PUBLIC_KEY_SIZE, 8);
 

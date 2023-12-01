@@ -75,6 +75,10 @@ extern "C" {
  */
 #define CRYPTO_SHA512_SIZE             64
 
+typedef struct Public_Key {
+    uint8_t data[CRYPTO_PUBLIC_KEY_SIZE];
+} Public_Key;
+
 typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
 typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
 
