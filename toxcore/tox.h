@@ -3346,7 +3346,6 @@ uint32_t tox_group_chat_id_size(void);
 
 uint32_t tox_group_peer_public_key_size(void);
 
-
 /*******************************************************************************
  *
  * :: Group chat state enumerators
