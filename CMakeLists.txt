@@ -315,6 +315,7 @@ set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${LIBSODIUM_LIBRARIES})
 set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} libsodium)
 set(toxcore_API_HEADERS
   ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox
+  ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox)
 
