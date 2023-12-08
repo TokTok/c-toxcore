@@ -6,9 +6,10 @@ CACHEDIR="$HOME/cache"
 
 . ".github/scripts/flags-$CC.sh"
 add_flag -Werror
+add_flag -D_DEBUG
 add_flag -fdiagnostics-color=always
 add_flag -fno-omit-frame-pointer
-add_flag -fno-sanitize-recover=all
+add_flag -fsanitize-trap=all
 add_flag -fsanitize=undefined,nullability,local-bounds,float-divide-by-zero,integer
 add_flag -fno-sanitize=implicit-conversion,unsigned-integer-overflow
 # Enable extra checks. We only do this on ubsan because it shows useful error
