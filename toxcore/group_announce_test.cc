@@ -8,7 +8,11 @@ namespace {
 
 // A null pointer that doesn't trigger nullability warnings.
 struct make_nullptr {
-    template<typename T> operator T*() const { return nullptr; }
+    template <typename T>
+    operator T *() const
+    {
+        return nullptr;
+    }
 } nowarn_nullptr;
 
 struct Announces : ::testing::Test {
@@ -171,7 +175,8 @@ TEST_F(AnnouncesPack, UnpackEmptyPublicAnnounce)
     std::vector<uint8_t> packed(GCA_PUBLIC_ANNOUNCE_MAX_SIZE);
 
     EXPECT_EQ(gca_unpack_public_announce(logger_, nowarn_nullptr, 0, &ann), -1);
-    EXPECT_EQ(gca_unpack_public_announce(logger_, packed.data(), packed.size(), nowarn_nullptr), -1);
+    EXPECT_EQ(
+        gca_unpack_public_announce(logger_, packed.data(), packed.size(), nowarn_nullptr), -1);
 }
 
 TEST_F(AnnouncesPack, PackEmptyPublicAnnounce)
@@ -252,7 +257,8 @@ TEST_F(AnnouncesPack, PackingEmptyAnnounceFails)
     EXPECT_EQ(
         gca_pack_announces_list(logger_, packed.data(), packed.size(), &announce, 1, nullptr), -1);
     EXPECT_EQ(
-        gca_pack_announces_list(logger_, packed.data(), packed.size(), nowarn_nullptr, 1, nullptr), -1);
+        gca_pack_announces_list(logger_, packed.data(), packed.size(), nowarn_nullptr, 1, nullptr),
+        -1);
     EXPECT_EQ(gca_pack_announces_list(logger_, nowarn_nullptr, 0, &announce, 1, nullptr), -1);
 }
 
