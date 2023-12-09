@@ -171,8 +171,7 @@ TEST_F(AnnouncesPack, UnpackEmptyPublicAnnounce)
     std::vector<uint8_t> packed(GCA_PUBLIC_ANNOUNCE_MAX_SIZE);
 
     EXPECT_EQ(gca_unpack_public_announce(logger_, nullptr, 0, &ann), -1);
-    EXPECT_EQ(
-        gca_unpack_public_announce(logger_, packed.data(), packed.size(), nullptr), -1);
+    EXPECT_EQ(gca_unpack_public_announce(logger_, packed.data(), packed.size(), nullptr), -1);
 #endif
 }
 
@@ -261,8 +260,7 @@ TEST_F(AnnouncesPack, PackingEmptyAnnounceFails)
         gca_pack_announces_list(logger_, packed.data(), packed.size(), &announce, 1, nullptr), -1);
 #ifndef _DEBUG
     EXPECT_EQ(
-        gca_pack_announces_list(logger_, packed.data(), packed.size(), nullptr, 1, nullptr),
-        -1);
+        gca_pack_announces_list(logger_, packed.data(), packed.size(), nullptr, 1, nullptr), -1);
     EXPECT_EQ(gca_pack_announces_list(logger_, nullptr, 0, &announce, 1, nullptr), -1);
 #endif
 }
