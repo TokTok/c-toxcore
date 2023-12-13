@@ -2705,7 +2705,9 @@ void do_messenger(Messenger *m, void *userdata)
         for (uint32_t friend_idx = 0; friend_idx < num_dhtfriends; ++friend_idx) {
             m2dht[friend_idx] = -1;
             dht2m[friend_idx] = -1;
+        }
 
+        for (uint32_t friend_idx = 0; friend_idx < num_dhtfriends; ++friend_idx) {
             if (friend_idx >= m->numfriends) {
                 continue;
             }
