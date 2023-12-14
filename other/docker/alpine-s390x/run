@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eux
+BUILD=alpine-s390x
+docker build -t "toxchat/c-toxcore:$BUILD" -f "other/docker/$BUILD/Dockerfile" .

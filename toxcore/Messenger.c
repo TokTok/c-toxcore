@@ -757,6 +757,20 @@ int m_set_statusmessage(Messenger *m, const uint8_t *status, uint16_t length)
     return 0;
 }
 
+static Userstatus userstatus_from_int(uint8_t status)
+{
+    switch (status) {
+        case 0:
+            return USERSTATUS_NONE;
+        case 1:
+            return USERSTATUS_AWAY;
+        case 2:
+            return USERSTATUS_BUSY;
+        default:
+            return USERSTATUS_INVALID;
+    }
+}
+
 int m_set_userstatus(Messenger *m, uint8_t status)
 {
     if (status >= USERSTATUS_INVALID) {
@@ -767,7 +781,7 @@ int m_set_userstatus(Messenger *m, uint8_t status)
         return 0;
     }
 
-    m->userstatus = (Userstatus)status;
+    m->userstatus = userstatus_from_int(status);
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
         m->friendlist[i].userstatus_sent = false;
@@ -923,7 +937,7 @@ static int set_friend_statusmessage(const Messenger *m, int32_t friendnumber, co
 non_null()
 static void set_friend_userstatus(const Messenger *m, int32_t friendnumber, uint8_t status)
 {
-    m->friendlist[friendnumber].userstatus = (Userstatus)status;
+    m->friendlist[friendnumber].userstatus = userstatus_from_int(status);
 }
 
 non_null()
@@ -2024,7 +2038,7 @@ non_null(1, 3) nullable(5)
 static int m_handle_packet_offline(Messenger *m, const int i, const uint8_t *data, const uint16_t data_length, void *userdata)
 {
     if (data_length == 0) {
-    	set_friend_status(m, i, FRIEND_CONFIRMED, userdata);
+        set_friend_status(m, i, FRIEND_CONFIRMED, userdata);
     }
 
     return 0;
@@ -2081,9 +2095,9 @@ static int m_handle_packet_userstatus(Messenger *m, const int i, const uint8_t *
         return 0;
     }
 
-    const Userstatus status = (Userstatus)data[0];
+    const Userstatus status = userstatus_from_int(data[0]);
 
-    if (status >= USERSTATUS_INVALID) {
+    if (status == USERSTATUS_INVALID) {
         return 0;
     }
 
@@ -2403,8 +2417,8 @@ static int m_handle_packet(void *object, int i, const uint8_t *temp, uint16_t le
             return m_handle_packet_file_data(m, i, data, data_length, userdata);
         case PACKET_ID_MSI:
             return m_handle_packet_msi(m, i, data, data_length, userdata);
-	    case PACKET_ID_INVITE_GROUPCHAT:
-	        return m_handle_packet_invite_groupchat(m, i, data, data_length, userdata);
+        case PACKET_ID_INVITE_GROUPCHAT:
+            return m_handle_packet_invite_groupchat(m, i, data, data_length, userdata);
     }
 
     return handle_custom_lossless_packet(object, i, temp, len, userdata);
@@ -2627,7 +2641,7 @@ void do_messenger(Messenger *m, void *userdata)
         if (m->tcp_server != nullptr) {
             /* Add self tcp server. */
             IP_Port local_ip_port;
-            local_ip_port.port = m->options.tcp_server_port;
+            local_ip_port.port = net_htons(m->options.tcp_server_port);
             local_ip_port.ip.family = net_family_ipv4();
             local_ip_port.ip.ip.v4 = get_ip4_loopback();
             add_tcp_relay(m->net_crypto, &local_ip_port, tcp_server_public_key(m->tcp_server));
@@ -2988,6 +3002,7 @@ static State_Load_Status load_nospam_keys(Messenger *m, const uint8_t *data, uin
     load_secret_key(m->net_crypto, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE);
 
     if (!pk_equal(data + sizeof(uint32_t), nc_get_self_public_key(m->net_crypto))) {
+        LOGGER_ERROR(m->log, "public key stored in savedata does not match its secret key");
         return STATE_LOAD_STATUS_ERROR;
     }
 
@@ -3152,7 +3167,7 @@ static void pack_groupchats(const GC_Session *c, Bin_Pack *bp)
 }
 
 non_null()
-static bool pack_groupchats_handler(Bin_Pack *bp, const void *obj)
+static bool pack_groupchats_handler(Bin_Pack *bp, const Logger *log, const void *obj)
 {
     pack_groupchats((const GC_Session *)obj, bp);
     return true;  // TODO(iphydf): Return bool from pack functions.
@@ -3162,7 +3177,7 @@ non_null()
 static uint32_t saved_groups_size(const Messenger *m)
 {
     GC_Session *c = m->group_handler;
-    return bin_pack_obj_size(pack_groupchats_handler, c);
+    return bin_pack_obj_size(pack_groupchats_handler, m->log, c);
 }
 
 non_null()
@@ -3184,7 +3199,7 @@ static uint8_t *groups_save(const Messenger *m, uint8_t *data)
 
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_GROUPS);
 
-    if (!bin_pack_obj(pack_groupchats_handler, c, data, len)) {
+    if (!bin_pack_obj(pack_groupchats_handler, m->log, c, data, len)) {
         LOGGER_FATAL(m->log, "failed to pack group chats into buffer of length %u", len);
         return data;
     }
@@ -3219,8 +3234,12 @@ static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t
 
         if (group_number < 0) {
             LOGGER_WARNING(m->log, "Failed to load group %u", i);
+            // Can't recover trivially. We may need to skip over some data here.
+            break;
         }
     }
+
+    LOGGER_DEBUG(m->log, "Successfully loaded %u groups", gc_count_groups(m->group_handler));
 
     bin_unpack_free(bu);
 
@@ -3617,7 +3636,9 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht);
     m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
-    m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+    if (m->onion_c != nullptr) {
+        m->fr_c = new_friend_connections(m->log, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+    }
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
             m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {

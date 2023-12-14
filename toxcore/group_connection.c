@@ -366,7 +366,7 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
     // search backwards in recv array until we find an empty slot or a non-fragment packet type
     while (!array_entry_is_empty(entry) && entry->packet_type == GP_FRAGMENT) {
         assert(entry->data != nullptr);
-        assert(entry->data_length <= MAX_GC_PACKET_CHUNK_SIZE);
+        assert(entry->data_length <= MAX_GC_PACKET_INCOMING_CHUNK_SIZE);
 
         const uint16_t diff = packet_length + entry->data_length;
 
@@ -453,6 +453,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
     gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
+        free(payload);
         return 0;
     }
 

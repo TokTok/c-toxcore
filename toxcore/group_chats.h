@@ -162,7 +162,7 @@ uint16_t gc_get_wrapped_packet_size(uint16_t length, Net_Packet_Type packet_type
  * Returns -4 if the sender does not have permission to speak.
  * Returns -5 if the packet fails to send.
  */
-non_null(1, 2, 3, 4) nullable(5)
+non_null(1, 2) nullable(5)
 int gc_send_message(const GC_Chat *chat, const uint8_t *message, uint16_t length, uint8_t type,
                     uint32_t *message_id);
 
@@ -392,9 +392,12 @@ int gc_get_peer_public_key_by_peer_id(const GC_Chat *chat, uint32_t peer_id, uin
 
 /** @brief Gets the connection status for peer associated with `peer_id`.
  *
+ * If `peer_id` designates ourself, the return value indicates whether we're capable
+ * of making UDP connections with other peers, or are limited to TCP connections.
+ *
  * Returns 2 if we have a direct (UDP) connection with a peer.
  * Returns 1 if we have an indirect (TCP) connection with a peer.
- * Returns 0 if peer_id is invalid or corresponds to ourselves.
+ * Returns 0 if peer_id is invalid.
  *
  * Note: Return values must correspond to Tox_Connection enum in API.
  */

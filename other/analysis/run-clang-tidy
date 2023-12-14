@@ -2,6 +2,9 @@
 
 CHECKS="*"
 
+# We don't use memcpy_s.
+CHECKS="$CHECKS,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling"
+
 # __attribute__((nonnull)) causes this warning on defensive null checks.
 CHECKS="$CHECKS,-clang-diagnostic-pointer-bool-conversion"
 CHECKS="$CHECKS,-clang-diagnostic-tautological-pointer-compare"
@@ -56,6 +59,27 @@ CHECKS="$CHECKS,-readability-redundant-control-flow"
 # very helpful as a diagnostic.
 CHECKS="$CHECKS,-bugprone-narrowing-conversions"
 CHECKS="$CHECKS,-cppcoreguidelines-narrowing-conversions"
+
+# Mistakenly thinks that
+#   const int a = 0, b = 1;
+#   assert(a < b);
+# is a constant expression in C (it is in C++ though, which is probably why it's
+# mistaken), suggesting to replace 'assert()' with 'static_assert()' in cases
+# where that won't work.
+#
+# There are ways to make 'static_assert()' work, but they are rather annoying --
+# they are somewhat ugly, hurting the readability, and some are error-prone:
+#
+# - Turning 'a' and 'b' into enum constants would make it work, but this falls
+#   apart if the enum types are compared against non-enums down the line
+#     error: enumerated and non-enumerated type in conditional expression [-Werror=extra]
+#
+# - Turning 'a' and 'b' into pre-processor macros is the only option left, but
+#   #defines and #undefs in the middle of a function hurt the readability and
+#   are less idiomatic than simply using 'const int'.
+CHECKS="$CHECKS,-cert-dcl03-c"
+CHECKS="$CHECKS,-hicpp-static-assert"
+CHECKS="$CHECKS,-misc-static-assert"
 
 # TODO(iphydf): We might want some of these. For the ones we don't want, add a
 # comment explaining why not.

@@ -28,6 +28,8 @@
  * For an explanation on why this value was chosen, see the following link: https://archive.ph/vsCOG
  */
 #define MAX_GC_PACKET_CHUNK_SIZE 500
+/* Max size of an incoming packet chunk that is allowed */
+#define MAX_GC_PACKET_INCOMING_CHUNK_SIZE 1372
 
 #define MAX_GC_MESSAGE_SIZE GROUP_MAX_MESSAGE_LENGTH
 #define MAX_GC_MESSAGE_RAW_SIZE (MAX_GC_MESSAGE_SIZE + GC_MESSAGE_PSEUDO_ID_SIZE)
@@ -399,7 +401,8 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length);
 
 /** @brief Packs all valid entries from saved peerlist into `data`.
  *
- * If `processed` is non-null it will be set to the length of the packed data.
+ * If `processed` is non-null it will be set to the length of the packed data
+ * on success, and will be untouched on error.
  *
  * Return the number of packed saved peers on success.
  * Return -1 if buffer is too small.
