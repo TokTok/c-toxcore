@@ -14,7 +14,7 @@ pub fn build(b: *std.build.Builder) !void {
     var target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    var build_static = b.option(bool, "static", "Build libtoxcore as a static library.") orelse true;
+    const build_static = b.option(bool, "static", "Build libtoxcore as a static library.") orelse true;
     const build_shared = b.option(bool, "shared", "Build libtoxcore as a shared library.") orelse true;
 
     const static_lib = b.addStaticLibrary(.{
@@ -63,9 +63,9 @@ pub fn build(b: *std.build.Builder) !void {
         lib.installHeadersDirectory("toxcore", "toxcore");
         lib.linkLibrary(libsodium_dep.artifact("sodium"));
 
-        var allocator = heap.page_allocator;
+        const allocator = heap.page_allocator;
         const src_path = "toxcore";
-        const src_dir = try fs.Dir.openIterableDir(cwd, src_path, .{ .no_follow = true });
+        const src_dir = try fs.Dir.openDir(cwd, src_path, .{ .iterate = true, .no_follow = true });
         var walker = try src_dir.walk(allocator);
         while (try walker.next()) |entry| {
             const name = entry.basename;
