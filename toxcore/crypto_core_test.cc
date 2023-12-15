@@ -37,7 +37,8 @@ TEST(CryptoCore, EncryptLargeData)
     std::vector<uint8_t> plain(100 * 1024 * 1024);
     std::vector<uint8_t> encrypted(plain.size() + CRYPTO_MAC_SIZE);
 
-    encrypt_data(pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data(), mem);
+    encrypt_data(
+        pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data(), mem);
 }
 
 TEST(CryptoCore, IncrementNonce)
