@@ -177,10 +177,6 @@ AC_ARG_ENABLE([[test_network]],
     [use_test_network='no']
   )
 
-if test "$use_test_network" == "yes"; then
-  AC_DEFINE([USE_TEST_NETWORK],[1],[define to 1 to enable the test network])
-fi
-
 AX_HAVE_EPOLL
 if test "$enable_epoll" != "no"; then
   if test "${ax_cv_have_epoll}" = "yes"; then
