@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 namespace {
 
