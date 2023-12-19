@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -129,8 +130,10 @@ static Tox_Event_Friend_Lossy_Packet *tox_events_add_friend_lossy_packet(Tox_Eve
 
     if (events->friend_lossy_packet_size == events->friend_lossy_packet_capacity) {
         const uint32_t new_friend_lossy_packet_capacity = events->friend_lossy_packet_capacity * 2 + 1;
-        Tox_Event_Friend_Lossy_Packet *new_friend_lossy_packet = (Tox_Event_Friend_Lossy_Packet *)realloc(
-                    events->friend_lossy_packet, new_friend_lossy_packet_capacity * sizeof(Tox_Event_Friend_Lossy_Packet));
+        Tox_Event_Friend_Lossy_Packet *new_friend_lossy_packet = (Tox_Event_Friend_Lossy_Packet *)
+                realloc(
+                    events->friend_lossy_packet,
+                    new_friend_lossy_packet_capacity * sizeof(Tox_Event_Friend_Lossy_Packet));
 
         if (new_friend_lossy_packet == nullptr) {
             return nullptr;

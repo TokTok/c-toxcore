@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -48,8 +49,7 @@ static void tox_event_friend_lossless_packet_set_friend_number(Tox_Event_Friend_
     assert(friend_lossless_packet != nullptr);
     friend_lossless_packet->friend_number = friend_number;
 }
-uint32_t tox_event_friend_lossless_packet_get_friend_number(const Tox_Event_Friend_Lossless_Packet
-        *friend_lossless_packet)
+uint32_t tox_event_friend_lossless_packet_get_friend_number(const Tox_Event_Friend_Lossless_Packet *friend_lossless_packet)
 {
     assert(friend_lossless_packet != nullptr);
     return friend_lossless_packet->friend_number;
@@ -130,8 +130,10 @@ static Tox_Event_Friend_Lossless_Packet *tox_events_add_friend_lossless_packet(T
 
     if (events->friend_lossless_packet_size == events->friend_lossless_packet_capacity) {
         const uint32_t new_friend_lossless_packet_capacity = events->friend_lossless_packet_capacity * 2 + 1;
-        Tox_Event_Friend_Lossless_Packet *new_friend_lossless_packet = (Tox_Event_Friend_Lossless_Packet *)realloc(
-                    events->friend_lossless_packet, new_friend_lossless_packet_capacity * sizeof(Tox_Event_Friend_Lossless_Packet));
+        Tox_Event_Friend_Lossless_Packet *new_friend_lossless_packet = (Tox_Event_Friend_Lossless_Packet *)
+                realloc(
+                    events->friend_lossless_packet,
+                    new_friend_lossless_packet_capacity * sizeof(Tox_Event_Friend_Lossless_Packet));
 
         if (new_friend_lossless_packet == nullptr) {
             return nullptr;

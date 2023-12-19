@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -42,28 +42,26 @@ static void tox_event_friend_connection_status_destruct(Tox_Event_Friend_Connect
 }
 
 non_null()
-static void tox_event_friend_connection_status_set_friend_number(Tox_Event_Friend_Connection_Status
-        *friend_connection_status, uint32_t friend_number)
+static void tox_event_friend_connection_status_set_friend_number(Tox_Event_Friend_Connection_Status *friend_connection_status,
+        uint32_t friend_number)
 {
     assert(friend_connection_status != nullptr);
     friend_connection_status->friend_number = friend_number;
 }
-uint32_t tox_event_friend_connection_status_get_friend_number(const Tox_Event_Friend_Connection_Status
-        *friend_connection_status)
+uint32_t tox_event_friend_connection_status_get_friend_number(const Tox_Event_Friend_Connection_Status *friend_connection_status)
 {
     assert(friend_connection_status != nullptr);
     return friend_connection_status->friend_number;
 }
 
 non_null()
-static void tox_event_friend_connection_status_set_connection_status(Tox_Event_Friend_Connection_Status
-        *friend_connection_status, Tox_Connection connection_status)
+static void tox_event_friend_connection_status_set_connection_status(Tox_Event_Friend_Connection_Status *friend_connection_status,
+        Tox_Connection connection_status)
 {
     assert(friend_connection_status != nullptr);
     friend_connection_status->connection_status = connection_status;
 }
-Tox_Connection tox_event_friend_connection_status_get_connection_status(const Tox_Event_Friend_Connection_Status
-        *friend_connection_status)
+Tox_Connection tox_event_friend_connection_status_get_connection_status(const Tox_Event_Friend_Connection_Status *friend_connection_status)
 {
     assert(friend_connection_status != nullptr);
     return friend_connection_status->connection_status;
@@ -111,8 +109,10 @@ static Tox_Event_Friend_Connection_Status *tox_events_add_friend_connection_stat
 
     if (events->friend_connection_status_size == events->friend_connection_status_capacity) {
         const uint32_t new_friend_connection_status_capacity = events->friend_connection_status_capacity * 2 + 1;
-        Tox_Event_Friend_Connection_Status *new_friend_connection_status = (Tox_Event_Friend_Connection_Status *)realloc(
-                    events->friend_connection_status, new_friend_connection_status_capacity * sizeof(Tox_Event_Friend_Connection_Status));
+        Tox_Event_Friend_Connection_Status *new_friend_connection_status = (Tox_Event_Friend_Connection_Status *)
+                realloc(
+                    events->friend_connection_status,
+                    new_friend_connection_status_capacity * sizeof(Tox_Event_Friend_Connection_Status));
 
         if (new_friend_connection_status == nullptr) {
             return nullptr;
@@ -154,8 +154,7 @@ uint32_t tox_events_get_friend_connection_status_size(const Tox_Events *events)
     return events->friend_connection_status_size;
 }
 
-const Tox_Event_Friend_Connection_Status *tox_events_get_friend_connection_status(const Tox_Events *events,
-        uint32_t index)
+const Tox_Event_Friend_Connection_Status *tox_events_get_friend_connection_status(const Tox_Events *events, uint32_t index)
 {
     assert(index < events->friend_connection_status_size);
     assert(events->friend_connection_status != nullptr);

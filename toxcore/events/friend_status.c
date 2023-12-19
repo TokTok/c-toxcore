@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -7,9 +7,9 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../bin_unpack.h"
 
 #include "../bin_pack.h"
+#include "../bin_unpack.h"
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
@@ -109,8 +109,10 @@ static Tox_Event_Friend_Status *tox_events_add_friend_status(Tox_Events *events)
 
     if (events->friend_status_size == events->friend_status_capacity) {
         const uint32_t new_friend_status_capacity = events->friend_status_capacity * 2 + 1;
-        Tox_Event_Friend_Status *new_friend_status = (Tox_Event_Friend_Status *)realloc(
-                    events->friend_status, new_friend_status_capacity * sizeof(Tox_Event_Friend_Status));
+        Tox_Event_Friend_Status *new_friend_status = (Tox_Event_Friend_Status *)
+                realloc(
+                    events->friend_status,
+                    new_friend_status_capacity * sizeof(Tox_Event_Friend_Status));
 
         if (new_friend_status == nullptr) {
             return nullptr;
@@ -120,7 +122,8 @@ static Tox_Event_Friend_Status *tox_events_add_friend_status(Tox_Events *events)
         events->friend_status_capacity = new_friend_status_capacity;
     }
 
-    Tox_Event_Friend_Status *const friend_status = &events->friend_status[events->friend_status_size];
+    Tox_Event_Friend_Status *const friend_status =
+        &events->friend_status[events->friend_status_size];
     tox_event_friend_status_construct(friend_status);
     ++events->friend_status_size;
     return friend_status;
@@ -190,7 +193,7 @@ bool tox_events_unpack_friend_status(Tox_Events *events, Bin_Unpack *bu)
 
 
 void tox_events_handle_friend_status(Tox *tox, uint32_t friend_number, Tox_User_Status status,
-                                     void *user_data)
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

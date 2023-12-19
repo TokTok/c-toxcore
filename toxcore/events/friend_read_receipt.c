@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -108,8 +109,10 @@ static Tox_Event_Friend_Read_Receipt *tox_events_add_friend_read_receipt(Tox_Eve
 
     if (events->friend_read_receipt_size == events->friend_read_receipt_capacity) {
         const uint32_t new_friend_read_receipt_capacity = events->friend_read_receipt_capacity * 2 + 1;
-        Tox_Event_Friend_Read_Receipt *new_friend_read_receipt = (Tox_Event_Friend_Read_Receipt *)realloc(
-                    events->friend_read_receipt, new_friend_read_receipt_capacity * sizeof(Tox_Event_Friend_Read_Receipt));
+        Tox_Event_Friend_Read_Receipt *new_friend_read_receipt = (Tox_Event_Friend_Read_Receipt *)
+                realloc(
+                    events->friend_read_receipt,
+                    new_friend_read_receipt_capacity * sizeof(Tox_Event_Friend_Read_Receipt));
 
         if (new_friend_read_receipt == nullptr) {
             return nullptr;
@@ -189,7 +192,8 @@ bool tox_events_unpack_friend_read_receipt(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_friend_read_receipt(Tox *tox, uint32_t friend_number, uint32_t message_id, void *user_data)
+void tox_events_handle_friend_read_receipt(Tox *tox, uint32_t friend_number, uint32_t message_id,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

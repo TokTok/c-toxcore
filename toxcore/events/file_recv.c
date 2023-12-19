@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -97,8 +98,8 @@ uint64_t tox_event_file_recv_get_file_size(const Tox_Event_File_Recv *file_recv)
 }
 
 non_null()
-static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *file_recv, const uint8_t *filename,
-        uint32_t filename_length)
+static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *file_recv,
+        const uint8_t *filename, uint32_t filename_length)
 {
     assert(file_recv != nullptr);
 
@@ -177,8 +178,10 @@ static Tox_Event_File_Recv *tox_events_add_file_recv(Tox_Events *events)
 
     if (events->file_recv_size == events->file_recv_capacity) {
         const uint32_t new_file_recv_capacity = events->file_recv_capacity * 2 + 1;
-        Tox_Event_File_Recv *new_file_recv = (Tox_Event_File_Recv *)realloc(
-                events->file_recv, new_file_recv_capacity * sizeof(Tox_Event_File_Recv));
+        Tox_Event_File_Recv *new_file_recv = (Tox_Event_File_Recv *)
+                realloc(
+                    events->file_recv,
+                    new_file_recv_capacity * sizeof(Tox_Event_File_Recv));
 
         if (new_file_recv == nullptr) {
             return nullptr;
@@ -188,7 +191,8 @@ static Tox_Event_File_Recv *tox_events_add_file_recv(Tox_Events *events)
         events->file_recv_capacity = new_file_recv_capacity;
     }
 
-    Tox_Event_File_Recv *const file_recv = &events->file_recv[events->file_recv_size];
+    Tox_Event_File_Recv *const file_recv =
+        &events->file_recv[events->file_recv_size];
     tox_event_file_recv_construct(file_recv);
     ++events->file_recv_size;
     return file_recv;
@@ -257,8 +261,8 @@ bool tox_events_unpack_file_recv(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_file_recv(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t kind,
-                                 uint64_t file_size, const uint8_t *filename, size_t filename_length, void *user_data)
+void tox_events_handle_file_recv(Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t kind, uint64_t file_size, const uint8_t *filename, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);
@@ -278,5 +282,5 @@ void tox_events_handle_file_recv(Tox *tox, uint32_t friend_number, uint32_t file
     tox_event_file_recv_set_file_number(file_recv, file_number);
     tox_event_file_recv_set_kind(file_recv, kind);
     tox_event_file_recv_set_file_size(file_recv, file_size);
-    tox_event_file_recv_set_filename(file_recv, filename, filename_length);
+    tox_event_file_recv_set_filename(file_recv, filename, length);
 }

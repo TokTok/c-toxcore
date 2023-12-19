@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -57,7 +57,8 @@ uint32_t tox_event_friend_message_get_friend_number(const Tox_Event_Friend_Messa
 }
 
 non_null()
-static void tox_event_friend_message_set_type(Tox_Event_Friend_Message *friend_message, Tox_Message_Type type)
+static void tox_event_friend_message_set_type(Tox_Event_Friend_Message *friend_message,
+        Tox_Message_Type type)
 {
     assert(friend_message != nullptr);
     friend_message->type = type;
@@ -69,8 +70,8 @@ Tox_Message_Type tox_event_friend_message_get_type(const Tox_Event_Friend_Messag
 }
 
 non_null()
-static bool tox_event_friend_message_set_message(Tox_Event_Friend_Message *friend_message, const uint8_t *message,
-        uint32_t message_length)
+static bool tox_event_friend_message_set_message(Tox_Event_Friend_Message *friend_message,
+        const uint8_t *message, uint32_t message_length)
 {
     assert(friend_message != nullptr);
 
@@ -145,8 +146,10 @@ static Tox_Event_Friend_Message *tox_events_add_friend_message(Tox_Events *event
 
     if (events->friend_message_size == events->friend_message_capacity) {
         const uint32_t new_friend_message_capacity = events->friend_message_capacity * 2 + 1;
-        Tox_Event_Friend_Message *new_friend_message = (Tox_Event_Friend_Message *)realloc(
-                    events->friend_message, new_friend_message_capacity * sizeof(Tox_Event_Friend_Message));
+        Tox_Event_Friend_Message *new_friend_message = (Tox_Event_Friend_Message *)
+                realloc(
+                    events->friend_message,
+                    new_friend_message_capacity * sizeof(Tox_Event_Friend_Message));
 
         if (new_friend_message == nullptr) {
             return nullptr;
@@ -156,7 +159,8 @@ static Tox_Event_Friend_Message *tox_events_add_friend_message(Tox_Events *event
         events->friend_message_capacity = new_friend_message_capacity;
     }
 
-    Tox_Event_Friend_Message *const friend_message = &events->friend_message[events->friend_message_size];
+    Tox_Event_Friend_Message *const friend_message =
+        &events->friend_message[events->friend_message_size];
     tox_event_friend_message_construct(friend_message);
     ++events->friend_message_size;
     return friend_message;
@@ -225,8 +229,8 @@ bool tox_events_unpack_friend_message(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_friend_message(Tox *tox, uint32_t friend_number, Tox_Message_Type type, const uint8_t *message,
-                                      size_t length, void *user_data)
+void tox_events_handle_friend_message(Tox *tox, uint32_t friend_number, Tox_Message_Type type, const uint8_t *message, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

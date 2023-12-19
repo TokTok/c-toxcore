@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -125,8 +125,10 @@ static Tox_Event_File_Recv_Control *tox_events_add_file_recv_control(Tox_Events 
 
     if (events->file_recv_control_size == events->file_recv_control_capacity) {
         const uint32_t new_file_recv_control_capacity = events->file_recv_control_capacity * 2 + 1;
-        Tox_Event_File_Recv_Control *new_file_recv_control = (Tox_Event_File_Recv_Control *)realloc(
-                    events->file_recv_control, new_file_recv_control_capacity * sizeof(Tox_Event_File_Recv_Control));
+        Tox_Event_File_Recv_Control *new_file_recv_control = (Tox_Event_File_Recv_Control *)
+                realloc(
+                    events->file_recv_control,
+                    new_file_recv_control_capacity * sizeof(Tox_Event_File_Recv_Control));
 
         if (new_file_recv_control == nullptr) {
             return nullptr;
@@ -136,7 +138,8 @@ static Tox_Event_File_Recv_Control *tox_events_add_file_recv_control(Tox_Events 
         events->file_recv_control_capacity = new_file_recv_control_capacity;
     }
 
-    Tox_Event_File_Recv_Control *const file_recv_control = &events->file_recv_control[events->file_recv_control_size];
+    Tox_Event_File_Recv_Control *const file_recv_control =
+        &events->file_recv_control[events->file_recv_control_size];
     tox_event_file_recv_control_construct(file_recv_control);
     ++events->file_recv_control_size;
     return file_recv_control;
@@ -205,8 +208,8 @@ bool tox_events_unpack_file_recv_control(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_file_recv_control(Tox *tox, uint32_t friend_number, uint32_t file_number,
-        Tox_File_Control control, void *user_data)
+void tox_events_handle_file_recv_control(Tox *tox, uint32_t friend_number, uint32_t file_number, Tox_File_Control control,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

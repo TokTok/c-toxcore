@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -55,8 +56,8 @@ uint32_t tox_event_friend_name_get_friend_number(const Tox_Event_Friend_Name *fr
 }
 
 non_null()
-static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name, const uint8_t *name,
-        uint32_t name_length)
+static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name,
+        const uint8_t *name, uint32_t name_length)
 {
     assert(friend_name != nullptr);
 
@@ -129,8 +130,10 @@ static Tox_Event_Friend_Name *tox_events_add_friend_name(Tox_Events *events)
 
     if (events->friend_name_size == events->friend_name_capacity) {
         const uint32_t new_friend_name_capacity = events->friend_name_capacity * 2 + 1;
-        Tox_Event_Friend_Name *new_friend_name = (Tox_Event_Friend_Name *)realloc(
-                    events->friend_name, new_friend_name_capacity * sizeof(Tox_Event_Friend_Name));
+        Tox_Event_Friend_Name *new_friend_name = (Tox_Event_Friend_Name *)
+                realloc(
+                    events->friend_name,
+                    new_friend_name_capacity * sizeof(Tox_Event_Friend_Name));
 
         if (new_friend_name == nullptr) {
             return nullptr;
@@ -140,7 +143,8 @@ static Tox_Event_Friend_Name *tox_events_add_friend_name(Tox_Events *events)
         events->friend_name_capacity = new_friend_name_capacity;
     }
 
-    Tox_Event_Friend_Name *const friend_name = &events->friend_name[events->friend_name_size];
+    Tox_Event_Friend_Name *const friend_name =
+        &events->friend_name[events->friend_name_size];
     tox_event_friend_name_construct(friend_name);
     ++events->friend_name_size;
     return friend_name;
@@ -210,7 +214,7 @@ bool tox_events_unpack_friend_name(Tox_Events *events, Bin_Unpack *bu)
 
 
 void tox_events_handle_friend_name(Tox *tox, uint32_t friend_number, const uint8_t *name, size_t length,
-                                   void *user_data)
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

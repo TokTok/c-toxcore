@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -27,29 +28,26 @@ struct Tox_Event_Conference_Peer_List_Changed {
 };
 
 non_null()
-static void tox_event_conference_peer_list_changed_construct(Tox_Event_Conference_Peer_List_Changed
-        *conference_peer_list_changed)
+static void tox_event_conference_peer_list_changed_construct(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)
 {
     *conference_peer_list_changed = (Tox_Event_Conference_Peer_List_Changed) {
         0
     };
 }
 non_null()
-static void tox_event_conference_peer_list_changed_destruct(Tox_Event_Conference_Peer_List_Changed
-        *conference_peer_list_changed)
+static void tox_event_conference_peer_list_changed_destruct(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)
 {
     return;
 }
 
 non_null()
-static void tox_event_conference_peer_list_changed_set_conference_number(Tox_Event_Conference_Peer_List_Changed
-        *conference_peer_list_changed, uint32_t conference_number)
+static void tox_event_conference_peer_list_changed_set_conference_number(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed,
+        uint32_t conference_number)
 {
     assert(conference_peer_list_changed != nullptr);
     conference_peer_list_changed->conference_number = conference_number;
 }
-uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_Event_Conference_Peer_List_Changed
-        *conference_peer_list_changed)
+uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)
 {
     assert(conference_peer_list_changed != nullptr);
     return conference_peer_list_changed->conference_number;
@@ -62,6 +60,7 @@ static bool tox_event_conference_peer_list_changed_pack(
     assert(event != nullptr);
     return bin_pack_array(bp, 2)
            && bin_pack_u32(bp, TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED)
+
            && bin_pack_u32(bp, event->conference_number);
 }
 
@@ -135,8 +134,7 @@ uint32_t tox_events_get_conference_peer_list_changed_size(const Tox_Events *even
     return events->conference_peer_list_changed_size;
 }
 
-const Tox_Event_Conference_Peer_List_Changed *tox_events_get_conference_peer_list_changed(const Tox_Events *events,
-        uint32_t index)
+const Tox_Event_Conference_Peer_List_Changed *tox_events_get_conference_peer_list_changed(const Tox_Events *events, uint32_t index)
 {
     assert(index < events->conference_peer_list_changed_size);
     assert(events->conference_peer_list_changed != nullptr);
@@ -174,7 +172,8 @@ bool tox_events_unpack_conference_peer_list_changed(Tox_Events *events, Bin_Unpa
  *****************************************************/
 
 
-void tox_events_handle_conference_peer_list_changed(Tox *tox, uint32_t conference_number, void *user_data)
+void tox_events_handle_conference_peer_list_changed(Tox *tox, uint32_t conference_number,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);
@@ -183,8 +182,7 @@ void tox_events_handle_conference_peer_list_changed(Tox *tox, uint32_t conferenc
         return;
     }
 
-    Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_events_add_conference_peer_list_changed(
-                state->events);
+    Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_events_add_conference_peer_list_changed(state->events);
 
     if (conference_peer_list_changed == nullptr) {
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;

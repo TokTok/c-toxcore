@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -40,14 +41,13 @@ static void tox_event_conference_connected_destruct(Tox_Event_Conference_Connect
 }
 
 non_null()
-static void tox_event_conference_connected_set_conference_number(
-    Tox_Event_Conference_Connected *conference_connected, uint32_t conference_number)
+static void tox_event_conference_connected_set_conference_number(Tox_Event_Conference_Connected *conference_connected,
+        uint32_t conference_number)
 {
     assert(conference_connected != nullptr);
     conference_connected->conference_number = conference_number;
 }
-uint32_t tox_event_conference_connected_get_conference_number(
-    const Tox_Event_Conference_Connected *conference_connected)
+uint32_t tox_event_conference_connected_get_conference_number(const Tox_Event_Conference_Connected *conference_connected)
 {
     assert(conference_connected != nullptr);
     return conference_connected->conference_number;
@@ -60,6 +60,7 @@ static bool tox_event_conference_connected_pack(
     assert(event != nullptr);
     return bin_pack_array(bp, 2)
            && bin_pack_u32(bp, TOX_EVENT_CONFERENCE_CONNECTED)
+
            && bin_pack_u32(bp, event->conference_number);
 }
 
@@ -88,8 +89,10 @@ static Tox_Event_Conference_Connected *tox_events_add_conference_connected(Tox_E
 
     if (events->conference_connected_size == events->conference_connected_capacity) {
         const uint32_t new_conference_connected_capacity = events->conference_connected_capacity * 2 + 1;
-        Tox_Event_Conference_Connected *new_conference_connected = (Tox_Event_Conference_Connected *)realloc(
-                    events->conference_connected, new_conference_connected_capacity * sizeof(Tox_Event_Conference_Connected));
+        Tox_Event_Conference_Connected *new_conference_connected = (Tox_Event_Conference_Connected *)
+                realloc(
+                    events->conference_connected,
+                    new_conference_connected_capacity * sizeof(Tox_Event_Conference_Connected));
 
         if (new_conference_connected == nullptr) {
             return nullptr;
@@ -162,7 +165,6 @@ bool tox_events_unpack_conference_connected(Tox_Events *events, Bin_Unpack *bu)
 }
 
 
-
 /*****************************************************
  *
  * :: event handler
@@ -170,7 +172,8 @@ bool tox_events_unpack_conference_connected(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_conference_connected(Tox *tox, uint32_t conference_number, void *user_data)
+void tox_events_handle_conference_connected(Tox *tox, uint32_t conference_number,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -162,8 +162,10 @@ static Tox_Event_Conference_Message *tox_events_add_conference_message(Tox_Event
 
     if (events->conference_message_size == events->conference_message_capacity) {
         const uint32_t new_conference_message_capacity = events->conference_message_capacity * 2 + 1;
-        Tox_Event_Conference_Message *new_conference_message = (Tox_Event_Conference_Message *)realloc(
-                    events->conference_message, new_conference_message_capacity * sizeof(Tox_Event_Conference_Message));
+        Tox_Event_Conference_Message *new_conference_message = (Tox_Event_Conference_Message *)
+                realloc(
+                    events->conference_message,
+                    new_conference_message_capacity * sizeof(Tox_Event_Conference_Message));
 
         if (new_conference_message == nullptr) {
             return nullptr;
@@ -173,7 +175,8 @@ static Tox_Event_Conference_Message *tox_events_add_conference_message(Tox_Event
         events->conference_message_capacity = new_conference_message_capacity;
     }
 
-    Tox_Event_Conference_Message *const conference_message = &events->conference_message[events->conference_message_size];
+    Tox_Event_Conference_Message *const conference_message =
+        &events->conference_message[events->conference_message_size];
     tox_event_conference_message_construct(conference_message);
     ++events->conference_message_size;
     return conference_message;
@@ -242,8 +245,8 @@ bool tox_events_unpack_conference_message(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_conference_message(Tox *tox, uint32_t conference_number, uint32_t peer_number,
-        Tox_Message_Type type, const uint8_t *message, size_t length, void *user_data)
+void tox_events_handle_conference_message(Tox *tox, uint32_t conference_number, uint32_t peer_number, Tox_Message_Type type, const uint8_t *message, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

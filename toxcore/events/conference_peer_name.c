@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -49,8 +50,7 @@ static void tox_event_conference_peer_name_set_conference_number(Tox_Event_Confe
     assert(conference_peer_name != nullptr);
     conference_peer_name->conference_number = conference_number;
 }
-uint32_t tox_event_conference_peer_name_get_conference_number(const Tox_Event_Conference_Peer_Name
-        *conference_peer_name)
+uint32_t tox_event_conference_peer_name_get_conference_number(const Tox_Event_Conference_Peer_Name *conference_peer_name)
 {
     assert(conference_peer_name != nullptr);
     return conference_peer_name->conference_number;
@@ -146,8 +146,10 @@ static Tox_Event_Conference_Peer_Name *tox_events_add_conference_peer_name(Tox_E
 
     if (events->conference_peer_name_size == events->conference_peer_name_capacity) {
         const uint32_t new_conference_peer_name_capacity = events->conference_peer_name_capacity * 2 + 1;
-        Tox_Event_Conference_Peer_Name *new_conference_peer_name = (Tox_Event_Conference_Peer_Name *)realloc(
-                    events->conference_peer_name, new_conference_peer_name_capacity * sizeof(Tox_Event_Conference_Peer_Name));
+        Tox_Event_Conference_Peer_Name *new_conference_peer_name = (Tox_Event_Conference_Peer_Name *)
+                realloc(
+                    events->conference_peer_name,
+                    new_conference_peer_name_capacity * sizeof(Tox_Event_Conference_Peer_Name));
 
         if (new_conference_peer_name == nullptr) {
             return nullptr;
@@ -227,8 +229,8 @@ bool tox_events_unpack_conference_peer_name(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_conference_peer_name(Tox *tox, uint32_t conference_number, uint32_t peer_number,
-        const uint8_t *name, size_t length, void *user_data)
+void tox_events_handle_conference_peer_name(Tox *tox, uint32_t conference_number, uint32_t peer_number, const uint8_t *name, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

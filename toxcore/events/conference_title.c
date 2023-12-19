@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -69,8 +70,8 @@ uint32_t tox_event_conference_title_get_peer_number(const Tox_Event_Conference_T
 }
 
 non_null()
-static bool tox_event_conference_title_set_title(Tox_Event_Conference_Title *conference_title, const uint8_t *title,
-        uint32_t title_length)
+static bool tox_event_conference_title_set_title(Tox_Event_Conference_Title *conference_title,
+        const uint8_t *title, uint32_t title_length)
 {
     assert(conference_title != nullptr);
 
@@ -145,8 +146,10 @@ static Tox_Event_Conference_Title *tox_events_add_conference_title(Tox_Events *e
 
     if (events->conference_title_size == events->conference_title_capacity) {
         const uint32_t new_conference_title_capacity = events->conference_title_capacity * 2 + 1;
-        Tox_Event_Conference_Title *new_conference_title = (Tox_Event_Conference_Title *)realloc(
-                    events->conference_title, new_conference_title_capacity * sizeof(Tox_Event_Conference_Title));
+        Tox_Event_Conference_Title *new_conference_title = (Tox_Event_Conference_Title *)
+                realloc(
+                    events->conference_title,
+                    new_conference_title_capacity * sizeof(Tox_Event_Conference_Title));
 
         if (new_conference_title == nullptr) {
             return nullptr;
@@ -156,7 +159,8 @@ static Tox_Event_Conference_Title *tox_events_add_conference_title(Tox_Events *e
         events->conference_title_capacity = new_conference_title_capacity;
     }
 
-    Tox_Event_Conference_Title *const conference_title = &events->conference_title[events->conference_title_size];
+    Tox_Event_Conference_Title *const conference_title =
+        &events->conference_title[events->conference_title_size];
     tox_event_conference_title_construct(conference_title);
     ++events->conference_title_size;
     return conference_title;
@@ -225,8 +229,8 @@ bool tox_events_unpack_conference_title(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_conference_title(Tox *tox, uint32_t conference_number, uint32_t peer_number,
-                                        const uint8_t *title, size_t length, void *user_data)
+void tox_events_handle_conference_title(Tox *tox, uint32_t conference_number, uint32_t peer_number, const uint8_t *title, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -146,8 +146,10 @@ static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events 
 
     if (events->conference_invite_size == events->conference_invite_capacity) {
         const uint32_t new_conference_invite_capacity = events->conference_invite_capacity * 2 + 1;
-        Tox_Event_Conference_Invite *new_conference_invite = (Tox_Event_Conference_Invite *)realloc(
-                    events->conference_invite, new_conference_invite_capacity * sizeof(Tox_Event_Conference_Invite));
+        Tox_Event_Conference_Invite *new_conference_invite = (Tox_Event_Conference_Invite *)
+                realloc(
+                    events->conference_invite,
+                    new_conference_invite_capacity * sizeof(Tox_Event_Conference_Invite));
 
         if (new_conference_invite == nullptr) {
             return nullptr;
@@ -157,7 +159,8 @@ static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events 
         events->conference_invite_capacity = new_conference_invite_capacity;
     }
 
-    Tox_Event_Conference_Invite *const conference_invite = &events->conference_invite[events->conference_invite_size];
+    Tox_Event_Conference_Invite *const conference_invite =
+        &events->conference_invite[events->conference_invite_size];
     tox_event_conference_invite_construct(conference_invite);
     ++events->conference_invite_size;
     return conference_invite;
@@ -226,8 +229,8 @@ bool tox_events_unpack_conference_invite(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Conference_Type type,
-        const uint8_t *cookie, size_t length, void *user_data)
+void tox_events_handle_conference_invite(Tox *tox, uint32_t friend_number, Tox_Conference_Type type, const uint8_t *cookie, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

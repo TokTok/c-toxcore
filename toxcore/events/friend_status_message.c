@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -76,14 +77,12 @@ static bool tox_event_friend_status_message_set_message(Tox_Event_Friend_Status_
     friend_status_message->message_length = message_length;
     return true;
 }
-uint32_t tox_event_friend_status_message_get_message_length(const Tox_Event_Friend_Status_Message
-        *friend_status_message)
+uint32_t tox_event_friend_status_message_get_message_length(const Tox_Event_Friend_Status_Message *friend_status_message)
 {
     assert(friend_status_message != nullptr);
     return friend_status_message->message_length;
 }
-const uint8_t *tox_event_friend_status_message_get_message(const Tox_Event_Friend_Status_Message
-        *friend_status_message)
+const uint8_t *tox_event_friend_status_message_get_message(const Tox_Event_Friend_Status_Message *friend_status_message)
 {
     assert(friend_status_message != nullptr);
     return friend_status_message->message;
@@ -131,8 +130,10 @@ static Tox_Event_Friend_Status_Message *tox_events_add_friend_status_message(Tox
 
     if (events->friend_status_message_size == events->friend_status_message_capacity) {
         const uint32_t new_friend_status_message_capacity = events->friend_status_message_capacity * 2 + 1;
-        Tox_Event_Friend_Status_Message *new_friend_status_message = (Tox_Event_Friend_Status_Message *)realloc(
-                    events->friend_status_message, new_friend_status_message_capacity * sizeof(Tox_Event_Friend_Status_Message));
+        Tox_Event_Friend_Status_Message *new_friend_status_message = (Tox_Event_Friend_Status_Message *)
+                realloc(
+                    events->friend_status_message,
+                    new_friend_status_message_capacity * sizeof(Tox_Event_Friend_Status_Message));
 
         if (new_friend_status_message == nullptr) {
             return nullptr;
@@ -212,8 +213,8 @@ bool tox_events_unpack_friend_status_message(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_friend_status_message(Tox *tox, uint32_t friend_number, const uint8_t *message,
-        size_t length, void *user_data)
+void tox_events_handle_friend_status_message(Tox *tox, uint32_t friend_number, const uint8_t *message, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

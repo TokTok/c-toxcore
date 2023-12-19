@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -13,6 +13,7 @@
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"
+#include "../tox_unpack.h"
 
 
 /*****************************************************
@@ -83,8 +84,8 @@ uint64_t tox_event_file_recv_chunk_get_position(const Tox_Event_File_Recv_Chunk 
 }
 
 non_null()
-static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_recv_chunk, const uint8_t *data,
-        uint32_t data_length)
+static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_recv_chunk,
+        const uint8_t *data, uint32_t data_length)
 {
     assert(file_recv_chunk != nullptr);
 
@@ -104,7 +105,7 @@ static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_r
     file_recv_chunk->data_length = data_length;
     return true;
 }
-uint32_t tox_event_file_recv_chunk_get_length(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
+uint32_t tox_event_file_recv_chunk_get_data_length(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
 {
     assert(file_recv_chunk != nullptr);
     return file_recv_chunk->data_length;
@@ -161,8 +162,10 @@ static Tox_Event_File_Recv_Chunk *tox_events_add_file_recv_chunk(Tox_Events *eve
 
     if (events->file_recv_chunk_size == events->file_recv_chunk_capacity) {
         const uint32_t new_file_recv_chunk_capacity = events->file_recv_chunk_capacity * 2 + 1;
-        Tox_Event_File_Recv_Chunk *new_file_recv_chunk = (Tox_Event_File_Recv_Chunk *)realloc(
-                    events->file_recv_chunk, new_file_recv_chunk_capacity * sizeof(Tox_Event_File_Recv_Chunk));
+        Tox_Event_File_Recv_Chunk *new_file_recv_chunk = (Tox_Event_File_Recv_Chunk *)
+                realloc(
+                    events->file_recv_chunk,
+                    new_file_recv_chunk_capacity * sizeof(Tox_Event_File_Recv_Chunk));
 
         if (new_file_recv_chunk == nullptr) {
             return nullptr;
@@ -172,7 +175,8 @@ static Tox_Event_File_Recv_Chunk *tox_events_add_file_recv_chunk(Tox_Events *eve
         events->file_recv_chunk_capacity = new_file_recv_chunk_capacity;
     }
 
-    Tox_Event_File_Recv_Chunk *const file_recv_chunk = &events->file_recv_chunk[events->file_recv_chunk_size];
+    Tox_Event_File_Recv_Chunk *const file_recv_chunk =
+        &events->file_recv_chunk[events->file_recv_chunk_size];
     tox_event_file_recv_chunk_construct(file_recv_chunk);
     ++events->file_recv_chunk_size;
     return file_recv_chunk;
@@ -241,8 +245,8 @@ bool tox_events_unpack_file_recv_chunk(Tox_Events *events, Bin_Unpack *bu)
  *****************************************************/
 
 
-void tox_events_handle_file_recv_chunk(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position,
-                                       const uint8_t *data, size_t length, void *user_data)
+void tox_events_handle_file_recv_chunk(Tox *tox, uint32_t friend_number, uint32_t file_number, uint64_t position, const uint8_t *data, size_t length,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2022 The TokTok team.
+ * Copyright © 2023 The TokTok team.
  */
 
 #include "events_alloc.h"
@@ -31,7 +31,7 @@ non_null()
 static void tox_event_self_connection_status_construct(Tox_Event_Self_Connection_Status *self_connection_status)
 {
     *self_connection_status = (Tox_Event_Self_Connection_Status) {
-        TOX_CONNECTION_NONE
+        0
     };
 }
 non_null()
@@ -41,14 +41,13 @@ static void tox_event_self_connection_status_destruct(Tox_Event_Self_Connection_
 }
 
 non_null()
-static void tox_event_self_connection_status_set_connection_status(Tox_Event_Self_Connection_Status
-        *self_connection_status, Tox_Connection connection_status)
+static void tox_event_self_connection_status_set_connection_status(Tox_Event_Self_Connection_Status *self_connection_status,
+        Tox_Connection connection_status)
 {
     assert(self_connection_status != nullptr);
     self_connection_status->connection_status = connection_status;
 }
-Tox_Connection tox_event_self_connection_status_get_connection_status(const Tox_Event_Self_Connection_Status
-        *self_connection_status)
+Tox_Connection tox_event_self_connection_status_get_connection_status(const Tox_Event_Self_Connection_Status *self_connection_status)
 {
     assert(self_connection_status != nullptr);
     return self_connection_status->connection_status;
@@ -61,6 +60,7 @@ static bool tox_event_self_connection_status_pack(
     assert(event != nullptr);
     return bin_pack_array(bp, 2)
            && bin_pack_u32(bp, TOX_EVENT_SELF_CONNECTION_STATUS)
+
            && bin_pack_u32(bp, event->connection_status);
 }
 
@@ -89,8 +89,10 @@ static Tox_Event_Self_Connection_Status *tox_events_add_self_connection_status(T
 
     if (events->self_connection_status_size == events->self_connection_status_capacity) {
         const uint32_t new_self_connection_status_capacity = events->self_connection_status_capacity * 2 + 1;
-        Tox_Event_Self_Connection_Status *new_self_connection_status = (Tox_Event_Self_Connection_Status *)realloc(
-                    events->self_connection_status, new_self_connection_status_capacity * sizeof(Tox_Event_Self_Connection_Status));
+        Tox_Event_Self_Connection_Status *new_self_connection_status = (Tox_Event_Self_Connection_Status *)
+                realloc(
+                    events->self_connection_status,
+                    new_self_connection_status_capacity * sizeof(Tox_Event_Self_Connection_Status));
 
         if (new_self_connection_status == nullptr) {
             return nullptr;
@@ -170,7 +172,8 @@ bool tox_events_unpack_self_connection_status(Tox_Events *events, Bin_Unpack *bu
  *****************************************************/
 
 
-void tox_events_handle_self_connection_status(Tox *tox, Tox_Connection connection_status, void *user_data)
+void tox_events_handle_self_connection_status(Tox *tox, Tox_Connection connection_status,
+        void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);
