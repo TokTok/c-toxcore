@@ -21,7 +21,7 @@
 #define _XOPEN_SOURCE 700
 #endif
 
-#if defined(_WIN32) && _WIN32_WINNT >= _WIN32_WINNT_WINXP
+#if defined(_WIN32) && defined(_WIN32_WINNT) && _WIN32_WINNT >= _WIN32_WINNT_WINXP
 #undef _WIN32_WINNT
 #define _WIN32_WINNT  0x501
 #endif
@@ -207,8 +207,10 @@ static int inet_pton4(const char *addrString, struct in_addr *addrbuf)
     struct sockaddr_in saddr = {0};
 
     INT len = sizeof(saddr);
+    char addrStringMut[128] = {0};
+    memcpy(addrStringMut, addrString, min_u16(sizeof(addrStringMut) - 1, strlen(addrString)));
 
-    if (WSAStringToAddress((LPTSTR)addrString, AF_INET, nullptr, (LPSOCKADDR)&saddr, &len)) {
+    if (WSAStringToAddress(addrStringMut, AF_INET, nullptr, (LPSOCKADDR)&saddr, &len)) {
         return 0;
     }
 
@@ -223,8 +225,10 @@ static int inet_pton6(const char *addrString, struct in6_addr *addrbuf)
     struct sockaddr_in6 saddr = {0};
 
     INT len = sizeof(saddr);
+    char addrStringMut[128] = {0};
+    memcpy(addrStringMut, addrString, min_u16(sizeof(addrStringMut) - 1, strlen(addrString)));
 
-    if (WSAStringToAddress((LPTSTR)addrString, AF_INET6, nullptr, (LPSOCKADDR)&saddr, &len)) {
+    if (WSAStringToAddress(addrStringMut, AF_INET6, nullptr, (LPSOCKADDR)&saddr, &len)) {
         return 0;
     }
 
@@ -361,13 +365,9 @@ IP4 get_ip4_loopback(void)
 
 IP6 get_ip6_loopback(void)
 {
-    IP6 loopback;
-#ifdef ESP_PLATFORM
-    loopback = empty_ip_port.ip.ip.v6;
+    /* in6addr_loopback isn't available everywhere, so we do it ourselves. */
+    IP6 loopback = empty_ip_port.ip.ip.v6;
     loopback.uint8[15] = 1;
-#else
-    get_ip6(&loopback, &in6addr_loopback);
-#endif
     return loopback;
 }
 
@@ -565,7 +565,7 @@ non_null()
 static int sys_getsockopt(void *obj, int sock, int level, int optname, void *optval, size_t *optlen)
 {
     socklen_t len = *optlen;
-    const int ret = getsockopt(sock, level, optname, optval, &len);
+    const int ret = getsockopt(sock, level, optname, (char *)optval, &len);
     *optlen = len;
     return ret;
 }
@@ -573,7 +573,7 @@ static int sys_getsockopt(void *obj, int sock, int level, int optname, void *opt
 non_null()
 static int sys_setsockopt(void *obj, int sock, int level, int optname, const void *optval, size_t optlen)
 {
-    return setsockopt(sock, level, optname, optval, optlen);
+    return setsockopt(sock, level, optname, (const char *)optval, optlen);
 }
 
 static const Network_Funcs system_network_funcs = {
