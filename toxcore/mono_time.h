@@ -63,14 +63,14 @@ void mono_time_update(Mono_Time *mono_time);
 
 /** @brief Return current monotonic time in milliseconds (ms).
  *
- * The starting point is UNIX epoch as measured by `time()` in `mono_time_new()`.
+ * The starting point is implementation defined.
  */
 non_null()
 uint64_t mono_time_get_ms(const Mono_Time *mono_time);
 
 /** @brief Return a monotonically increasing time in seconds.
  *
- * The starting point is UNIX epoch as measured by `time()` in `mono_time_new()`.
+ * The starting point is implementation defined.
  */
 non_null()
 uint64_t mono_time_get(const Mono_Time *mono_time);
@@ -85,6 +85,9 @@ bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64
  *
  * The starting point is unspecified and in particular is likely not comparable
  * to the return value of `mono_time_get_ms()`.
+ *
+ * TODO(Green-Sky): Get rid of this from the api.
+ *                  The only user seems to be net_crypt and for no good reason.
  */
 non_null()
 uint64_t current_time_monotonic(Mono_Time *mono_time);
