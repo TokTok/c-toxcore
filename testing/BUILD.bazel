@@ -15,11 +15,37 @@ sh_test(
         "-Wno-callback-names",
         "-Wno-enum-names",
         "+RTS",
-        "-N3",
+        "-N4",
         "-RTS",
     ],
     data = CIMPLE_FILES,
     tags = ["haskell"],
+)
+
+sh_test(
+    name = "c_test",
+    size = "small",
+    srcs = ["//hs-tokstyle/tools:check-c"],
+    args = [
+        "--cc=$(CC)",
+        "-Iexternal/libsodium/include",
+        "-Iexternal/libvpx",
+        "-Iexternal/opus/include",
+        "-Ihs-tokstyle/include",
+    ] + ["$(locations %s)" % f for f in CIMPLE_FILES] + [
+        "+RTS",
+        "-N4",
+        "-RTS",
+    ],
+    data = CIMPLE_FILES + [
+        "//c-toxcore/third_party:headers",
+        "//hs-tokstyle:headers",
+        "@libsodium//:headers",
+        "@libvpx//:headers",
+        "@opus//:headers",
+    ],
+    tags = ["haskell"],
+    toolchains = ["@rules_cc//cc:current_cc_toolchain"],
 )
 
 sh_test(

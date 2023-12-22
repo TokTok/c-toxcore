@@ -43,6 +43,8 @@ static_assert(FILE_ID_LENGTH == CRYPTO_SYMMETRIC_KEY_SIZE,
               "FILE_ID_LENGTH is assumed to be equal to CRYPTO_SYMMETRIC_KEY_SIZE");
 static_assert(TOX_DHT_NODE_IP_STRING_SIZE == IP_NTOA_LEN,
               "TOX_DHT_NODE_IP_STRING_SIZE is assumed to be equal to IP_NTOA_LEN");
+static_assert(TOX_GROUP_PEER_IP_STRING_MAX_LENGTH == IP_NTOA_LEN,
+              "TOX_GROUP_PEER_IP_STRING_MAX_LENGTH is assumed to be equal to IP_NTOA_LEN");
 static_assert(TOX_DHT_NODE_PUBLIC_KEY_SIZE == CRYPTO_PUBLIC_KEY_SIZE,
               "TOX_DHT_NODE_PUBLIC_KEY_SIZE is assumed to be equal to CRYPTO_PUBLIC_KEY_SIZE");
 static_assert(TOX_FILE_ID_LENGTH == CRYPTO_SYMMETRIC_KEY_SIZE,
@@ -635,6 +637,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         switch (err) {
             case TOX_ERR_OPTIONS_NEW_OK: {
+                assert(default_options != nullptr);
                 break;
             }
 
@@ -658,6 +661,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     if (sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
         // TODO(iphydf): Not quite right, but similar.
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -715,6 +719,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -741,8 +746,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         default: {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_TYPE);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
     }
@@ -752,8 +757,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -769,8 +774,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
                 || !addr_resolve_or_parse_ip(tox->sys.ns, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -781,8 +786,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-        tox_options_free(default_options);
         mem_delete(sys->mem, tox);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -791,8 +796,8 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         if (tox->mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-            tox_options_free(default_options);
             mem_delete(sys->mem, tox);
+            tox_options_free(default_options);
             return nullptr;
         }
 
@@ -826,7 +831,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         }
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -835,6 +839,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
 
         mem_delete(sys->mem, tox->mutex);
         mem_delete(sys->mem, tox);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -842,7 +847,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         kill_messenger(tox->m);
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -853,6 +857,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         mem_delete(sys->mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -862,7 +867,6 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         kill_messenger(tox->m);
 
         mono_time_free(tox->sys.mem, tox->mono_time);
-        tox_options_free(default_options);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
@@ -873,6 +877,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         mem_delete(sys->mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_LOAD_BAD_FORMAT);
+        tox_options_free(default_options);
         return nullptr;
     }
 
@@ -924,12 +929,11 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     gc_callback_voice_state(tox->m, tox_group_voice_state_handler);
 #endif
 
-    tox_options_free(default_options);
-
     tox_unlock(tox);
 
     SET_ERROR_PARAMETER(error, TOX_ERR_NEW_OK);
 
+    tox_options_free(default_options);
     return tox;
 }
 
@@ -2810,7 +2814,7 @@ uint16_t tox_self_get_udp_port(const Tox *tox, Tox_Err_Get_Port *error)
 {
     assert(tox != nullptr);
     tox_lock(tox);
-    const uint16_t port = net_htons(net_port(tox->m->net));
+    const uint16_t port = tox->m == nullptr || tox->m->net == nullptr ? 0 : net_htons(net_port(tox->m->net));
     tox_unlock(tox);
 
     if (port == 0) {
@@ -2827,7 +2831,7 @@ uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error)
     assert(tox != nullptr);
     tox_lock(tox);
 
-    if (tox->m->tcp_server != nullptr) {
+    if (tox->m != nullptr && tox->m->tcp_server != nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GET_PORT_OK);
         const uint16_t ret = tox->m->options.tcp_server_port;
         tox_unlock(tox);
