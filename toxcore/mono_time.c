@@ -39,7 +39,7 @@
 /** don't call into system billions of times for no reason */
 struct Mono_Time {
     uint64_t cur_time;
-    uint64_t base_time;
+
 #ifdef OS_WIN32
     /* protect `last_clock_update` and `last_clock_mono` from concurrent access */
     pthread_mutex_t last_clock_lock;
@@ -67,6 +67,7 @@ static uint64_t current_time_monotonic_default(void *user_data)
     /* GetTickCount provides only a 32 bit counter, but we can't use
      * GetTickCount64 for backwards compatibility, so we handle wraparound
      * ourselves.
+     * TODO(Green-Sky): switch to QPC, since GTC only advertises a precision of "typically" 10-16ms
      */
     const uint32_t ticks = GetTickCount();
 
@@ -90,7 +91,7 @@ static uint64_t current_time_monotonic_default(void *user_data)
 #else // !OS_WIN32
 static uint64_t timespec_to_u64(struct timespec clock_mono)
 {
-    return 1000ULL * clock_mono.tv_sec + (clock_mono.tv_nsec / 1000000ULL);
+    return UINT64_C(1000) * clock_mono.tv_sec + (clock_mono.tv_nsec / UINT64_C(1000000));
 }
 #ifdef __APPLE__
 non_null()
@@ -151,7 +152,6 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     mono_time_set_current_time_callback(mono_time, current_time_callback, user_data);
 
 #ifdef OS_WIN32
-
     mono_time->last_clock_mono = 0;
     mono_time->last_clock_update = false;
 
@@ -160,18 +160,10 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
         mem_delete(mem, mono_time);
         return nullptr;
     }
-
 #endif
 
-    mono_time->cur_time = 0;
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     // Maximum reproducibility. Never return time = 0.
-    mono_time->base_time = 1;
-#else
-    // Never return time = 0 in case time() returns 0 (e.g. on microcontrollers
-    // without battery-powered RTC or ones where NTP didn't initialise it yet).
-    mono_time->base_time = max_u64(1, (uint64_t)time(nullptr)) * 1000ULL - current_time_monotonic(mono_time);
-#endif
+    mono_time->cur_time = 1;
 
     mono_time_update(mono_time);
 
@@ -200,8 +192,7 @@ void mono_time_update(Mono_Time *mono_time)
     pthread_mutex_lock(&mono_time->last_clock_lock);
     mono_time->last_clock_update = true;
 #endif
-    const uint64_t cur_time =
-        mono_time->base_time + mono_time->current_time_callback(mono_time->user_data);
+    const uint64_t cur_time = mono_time->current_time_callback(mono_time->user_data);
 #ifdef OS_WIN32
     pthread_mutex_unlock(&mono_time->last_clock_lock);
 #endif
@@ -230,7 +221,7 @@ uint64_t mono_time_get_ms(const Mono_Time *mono_time)
 
 uint64_t mono_time_get(const Mono_Time *mono_time)
 {
-    return mono_time_get_ms(mono_time) / 1000ULL;
+    return mono_time_get_ms(mono_time) / UINT64_C(1000);
 }
 
 bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout)
@@ -250,11 +241,6 @@ void mono_time_set_current_time_callback(Mono_Time *mono_time,
     }
 }
 
-/** @brief Return current monotonic time in milliseconds (ms).
- *
- * The starting point is unspecified and in particular is likely not comparable
- * to the return value of `mono_time_get_ms()`.
- */
 uint64_t current_time_monotonic(Mono_Time *mono_time)
 {
     /* For WIN32 we don't want to change overflow state of mono_time here */
