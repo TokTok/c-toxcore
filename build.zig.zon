@@ -3,15 +3,15 @@
     .version = "0.2.18",
     .dependencies = .{
         .libsodium = .{
-	    .url="https://github.com/jedisct1/libsodium/archive/93a6e79750a31bc0b946bf483b2ba1c77f9e94ce.tar.gz",
-	    .hash="122083cb3829e7420fc7315f0201d44067ee2df870213680d7146df3faa9310b0bdc",
+            .url = "https://github.com/jedisct1/libsodium/archive/93a6e79750a31bc0b946bf483b2ba1c77f9e94ce.tar.gz",
+            .hash = "1220f4d80a9bd3cf5db236a469020fbcd2e14ceb91fd2f775e3142ddccaee2b8698d",
         },
     },
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "toxcore",
-	"third_party",
-	"toxencryptsave",
+        "third_party",
+        "toxencryptsave",
     },
 }
