@@ -38,6 +38,7 @@ pub fn build(b: *std.build.Builder) !void {
         },
     );
 
+    const cmp_dep = b.dependency("cmp", .{});
     // work out which libraries we are building
     var libs = std.ArrayList(*LibExeObjStep).init(b.allocator);
     defer libs.deinit();
@@ -77,11 +78,16 @@ pub fn build(b: *std.build.Builder) !void {
                 });
             }
         }
+        //lib.addCSourceFile(.{
+        //    .file = .{ .path = "third_party/cmp/cmp.c" },
+        //    .flags = &.{},
+        //});
+
         lib.addCSourceFile(.{
-            .file = .{ .path = "third_party/cmp/cmp.c" },
+            .file = cmp_dep.path("cmp.c"), //third_party/cmp/cmp.c"),
             .flags = &.{},
         });
-
+        lib.addIncludePath(cmp_dep.path("."));
         if (lib.isStaticLibrary()) {
             var toxcore_zig = b.addTranslateC(.{
                 .optimize = optimize,
