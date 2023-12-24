@@ -13,3 +13,6 @@ jobs:
       - bash: git submodule update --init --recursive
       - bash: conan install -if _build -o with_tests=True -o shared=$(conan.shared) .
       - bash: CONAN_CPU_COUNT=50 CTEST_OUTPUT_ON_FAILURE=1 conan build -bf _build -if _build . || true
+      - bash:
+          ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 ||
+            ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
