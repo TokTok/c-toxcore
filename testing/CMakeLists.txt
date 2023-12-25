@@ -3,7 +3,7 @@ set(misc_tools_SOURCES
   misc_tools.c
   misc_tools.h)
 add_library(misc_tools STATIC ${misc_tools_SOURCES})
-target_link_modules(misc_tools toxcore)
+target_link_libraries(misc_tools PRIVATE toxcore_static)
 
 ################################################################################
 #
@@ -13,5 +13,5 @@ target_link_modules(misc_tools toxcore)
 
 if(BUILD_MISC_TESTS)
   add_executable(Messenger_test Messenger_test.c)
-  target_link_modules(Messenger_test toxcore misc_tools)
+  target_link_libraries(Messenger_test PRIVATE toxcore_static misc_tools)
 endif()

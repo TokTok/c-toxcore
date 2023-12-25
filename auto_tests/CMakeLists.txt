@@ -3,18 +3,16 @@ set(TEST_TIMEOUT_SECONDS "" CACHE STRING "Limit runtime of each test to the numb
 add_library(auto_test_support
   auto_test_support.c
   auto_test_support.h)
-target_link_modules(auto_test_support toxcore misc_tools)
+target_link_libraries(auto_test_support PRIVATE toxcore_static misc_tools)
 
 function(auto_test target)
-  if(AUTOTEST AND NOT (MSVC AND ARGV1 STREQUAL "MSVC_DONT_BUILD"))
+  if(AUTOTEST)
     add_executable(auto_${target}_test ${target}_test.c)
-    target_link_modules(auto_${target}_test toxcore misc_tools auto_test_support)
-    if(NOT ARGV1 STREQUAL "DONT_RUN")
-      add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} auto_${target}_test)
-      set_tests_properties(${target} PROPERTIES TIMEOUT "${TEST_TIMEOUT_SECONDS}")
-      # add the source dir as environment variable, so the testdata can be found
-      set_tests_properties(${target} PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw;srcdir=${CMAKE_CURRENT_SOURCE_DIR}")
-    endif()
+    target_link_libraries(auto_${target}_test PRIVATE toxcore_static misc_tools auto_test_support)
+    add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} auto_${target}_test)
+    set_tests_properties(${target} PROPERTIES TIMEOUT "${TEST_TIMEOUT_SECONDS}")
+    # add the source dir as environment variable, so the testdata can be found
+    set_tests_properties(${target} PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw;srcdir=${CMAKE_CURRENT_SOURCE_DIR}")
   endif()
 endfunction()
 
@@ -75,11 +73,10 @@ if(NON_HERMETIC_TESTS)
 endif()
 
 if(BUILD_TOXAV)
-  auto_test(conference_av MSVC_DONT_BUILD)
+  auto_test(conference_av)
   auto_test(toxav_basic)
   auto_test(toxav_many)
 endif()
-
 
 if(PROXY_TEST)
   auto_test(proxy)

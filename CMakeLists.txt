@@ -405,7 +405,12 @@ endif()
 add_module(toxcore ${toxcore_SOURCES})
 
 # Link it to all dependencies.
-target_link_modules(toxcore ${toxcore_LINK_MODULES})
+if(TARGET toxcore_static)
+  target_link_libraries(toxcore_static PRIVATE ${toxcore_LINK_MODULES})
+endif()
+if(TARGET toxcore_shared)
+  target_link_libraries(toxcore_shared PRIVATE ${toxcore_LINK_MODULES})
+endif()
 
 # Make version script (on systems that support it) to limit symbol visibility.
 make_version_script(toxcore ${toxcore_API_HEADERS})
@@ -422,8 +427,8 @@ install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
 
 function(unit_test subdir target)
   add_executable(unit_${target}_test ${subdir}/${target}_test.cc)
-  target_link_modules(unit_${target}_test toxcore)
-  target_link_libraries(unit_${target}_test GTest::GTest GTest::Main)
+  target_link_libraries(unit_${target}_test toxcore_static)
+  target_link_libraries(unit_${target}_test PRIVATE GTest::GTest GTest::Main)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
   add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} unit_${target}_test)
   set_property(TEST ${target} PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw")
@@ -469,7 +474,7 @@ if(DHT_BOOTSTRAP)
   add_executable(DHT_bootstrap
     other/DHT_bootstrap.c
     other/bootstrap_node_packets.c)
-  target_link_modules(DHT_bootstrap toxcore misc_tools)
+  target_link_libraries(DHT_bootstrap toxcore_static misc_tools)
   install(TARGETS DHT_bootstrap RUNTIME DESTINATION bin)
 endif()
 
