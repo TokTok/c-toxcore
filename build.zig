@@ -6,6 +6,22 @@ const mem = std.mem;
 const LibExeObjStep = std.build.LibExeObjStep;
 const Target = std.Target;
 
+fn thisDir() []const u8 {
+    return std.fs.path.dirname(@src().file) orelse ".";
+}
+fn ensureDependencySubmodule(allocator: std.mem.Allocator, path: []const u8) !void {
+    if (std.process.getEnvVarOwned(allocator, "NO_ENSURE_SUBMODULES")) |no_ensure_submodules| {
+        defer allocator.free(no_ensure_submodules);
+        if (std.mem.eql(u8, no_ensure_submodules, "true")) return;
+    } else |_| {}
+    var child = std.ChildProcess.init(&.{ "git", "submodule", "update", "--init", path }, allocator);
+    child.cwd = (comptime thisDir());
+    child.stderr = std.io.getStdErr();
+    child.stdout = std.io.getStdOut();
+
+    _ = try child.spawnAndWait();
+}
+
 pub fn build(b: *std.build.Builder) !void {
     const root_path = b.pathFromRoot(".");
     var cwd = try fs.openDirAbsolute(root_path, .{});
@@ -38,7 +54,8 @@ pub fn build(b: *std.build.Builder) !void {
         },
     );
 
-    const cmp_dep = b.dependency("cmp", .{});
+    ensureDependencySubmodule(b.allocator, "third_party/cmp") catch unreachable;
+
     // work out which libraries we are building
     var libs = std.ArrayList(*LibExeObjStep).init(b.allocator);
     defer libs.deinit();
@@ -78,16 +95,11 @@ pub fn build(b: *std.build.Builder) !void {
                 });
             }
         }
-        //lib.addCSourceFile(.{
-        //    .file = .{ .path = "third_party/cmp/cmp.c" },
-        //    .flags = &.{},
-        //});
-
         lib.addCSourceFile(.{
-            .file = cmp_dep.path("cmp.c"), //third_party/cmp/cmp.c"),
+            .file = .{ .path = "third_party/cmp/cmp.c" },
             .flags = &.{},
         });
-        lib.addIncludePath(cmp_dep.path("."));
+
         if (lib.isStaticLibrary()) {
             var toxcore_zig = b.addTranslateC(.{
                 .optimize = optimize,

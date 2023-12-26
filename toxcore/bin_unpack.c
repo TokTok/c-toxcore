@@ -8,10 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-
-// make zig build without git submodule work
-#include "cmp.h"
-// #include "../third_party/cmp/cmp.h"
+#include "../third_party/cmp/cmp.h"
 #include "ccompat.h"
 
 struct Bin_Unpack {
