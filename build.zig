@@ -2,7 +2,7 @@ const std = @import("std");
 const fmt = std.fmt;
 const heap = std.heap;
 const fs = std.fs;
-const mem = std.mem;
+//const mem = std.mem;
 const LibExeObjStep = std.build.LibExeObjStep;
 const Target = std.Target;
 
@@ -46,14 +46,16 @@ pub fn build(b: *std.build.Builder) !void {
 
     const libsodium_dep = b.dependency(
         "libsodium",
+        .{ .target = target, .optimize = optimize, .static = true, .shared = false },
+    );
+
+    const gtest_dep = b.dependency(
+        "gtest",
         .{
             .target = target,
             .optimize = optimize,
-            .static = true,
-            .shared = false,
         },
     );
-
     ensureDependencySubmodule(b.allocator, "third_party/cmp") catch unreachable;
 
     // work out which libraries we are building
@@ -87,7 +89,7 @@ pub fn build(b: *std.build.Builder) !void {
         var walker = try src_dir.walk(allocator);
         while (try walker.next()) |entry| {
             const name = entry.basename;
-            if (mem.endsWith(u8, name, ".c")) {
+            if (std.mem.endsWith(u8, name, ".c")) {
                 const full_path = try fmt.allocPrint(allocator, "{s}/{s}", .{ src_path, entry.path });
                 lib.addCSourceFile(.{
                     .file = .{ .path = full_path },
@@ -99,24 +101,33 @@ pub fn build(b: *std.build.Builder) !void {
             .file = .{ .path = "third_party/cmp/cmp.c" },
             .flags = &.{},
         });
-
-        if (lib.isStaticLibrary()) {
-            var toxcore_zig = b.addTranslateC(.{
-                .optimize = optimize,
-                .target = target,
-                .source_file = .{ .path = "toxcore/tox.h" },
-            });
-            toxcore_zig.addIncludeDir("toxcore");
-            //_ = b.addModule(
-            //    "toxcore",
-            //    .{ .source_file = .{ .generated = &translate_header.output_file } },
-            //);
-            //_ = b.addInstallHeaderFile("toxcore/tox.h", "tox.h");
-            const toxcore_zig_step = b.step("toxcoreWrapper", "Build Zig wrapper around toxcore API");
-            //lib.step.dependOn(&translate_header.step);
-            const f: std.build.FileSource = .{ .generated = &toxcore_zig.output_file };
-            toxcore_zig_step.dependOn(&toxcore_zig.step);
-            toxcore_zig_step.dependOn(&b.addInstallFile(f, "toxcore.zig").step);
-        }
     }
+    // build zig wrapper
+    var toxcore_zig = b.addTranslateC(.{
+        .optimize = optimize,
+        .target = target,
+        .source_file = .{ .path = "toxcore/tox.h" },
+    });
+    toxcore_zig.addIncludeDir("toxcore");
+    const toxcore_zig_step = b.step("toxcore_zig", "Build Zig wrapper around toxcore API");
+    const toxcore_zig_file = std.build.FileSource{ .generated = &toxcore_zig.output_file };
+    toxcore_zig_step.dependOn(&toxcore_zig.step);
+    toxcore_zig_step.dependOn(&b.addInstallFile(toxcore_zig_file, "toxcore.zig").step);
+
+    // build tests
+    const gtest_lib = gtest_dep.artifact("gtest");
+    const gtest_main = gtest_dep.artifact("gtest-main");
+
+    const mem = b.addObject(.{ .name = "mem", .target = target, .optimize = optimize });
+    mem.addCSourceFile(.{ .file = .{ .path = "toxcore/mem.c" }, .flags = &.{} });
+    mem.addIncludePath(.{ .path = "toxcore" });
+    mem.linkLibC();
+    const mem_test = b.addExecutable(.{ .name = "mem_test" });
+    mem_test.addCSourceFile(.{ .file = .{ .path = "toxcore/mem_test.cc" }, .flags = &.{} });
+    mem_test.addObject(mem);
+    mem_test.installLibraryHeaders(gtest_lib);
+    mem_test.linkLibrary(gtest_lib);
+    mem_test.linkLibrary(gtest_main);
+    mem_test.linkLibC();
+    b.installArtifact(mem_test);
 }

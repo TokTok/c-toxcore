@@ -6,6 +6,10 @@
             .url = "https://github.com/jedisct1/libsodium/archive/93a6e79750a31bc0b946bf483b2ba1c77f9e94ce.tar.gz",
             .hash = "1220f4d80a9bd3cf5db236a469020fbcd2e14ceb91fd2f775e3142ddccaee2b8698d",
         },
+        .gtest = .{
+            .url = "https://github.com/nodecum/gtest-zig/archive/96ea46cd250b14745c2c3e935eff01fff219a9ea.tar.gz",
+            .hash = "12204aedcd1b41d9c9fd3608ca1ad813af6a45be0229d9d6125518dd13f669d767cb",
+        },
     },
     .paths = .{
         "build.zig",
