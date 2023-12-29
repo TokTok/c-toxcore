@@ -42,25 +42,29 @@ const Relief = struct {
         name: []const u8 = "", // if empty then the stem of first c file
         c: []const u8 = "", // if not empty then only one c file
         cs: []const []const u8 = &.{}, // possibly multiple c files
-        libs: []const *Compile = &.{},
+        l: ?*Compile = null, // one lib
+        ls: []const *Compile = &.{}, // or possibly more libs
     };
     // this two kind of options is to have an easy input for the common case
     const Opt = struct {
         name: []const u8,
         cs: []const []const u8,
-        libs: []const *Compile,
+        ls: []const *Compile,
         fn init(b: *Build, o: Options) Opt {
             const cs = if (o.c.len > 0) b.dupeStrings(&.{o.c}) else o.cs;
             const name =
                 if (o.name.len > 0) o.name else if (cs.len > 0) trimRight(u8, cs[0], ".c") else "noname";
+            const ls = if (o.l) |l_| blk: {
+                break :blk b.allocator.dupe(*Compile, &.{l_}) catch unreachable;
+            } else o.ls;
             // std.debug.print("name = {s}, {s}\n", .{ name, cs[0] });
-            return Opt{ .name = name, .cs = cs, .libs = o.libs };
+            return Opt{ .name = name, .cs = cs, .ls = ls };
         }
     };
-    // add object
-    fn addObj(self: Relief, op: Options) [1]*Compile {
+    // add lib
+    fn lib(self: Relief, op: Options) *Compile {
         const o = Opt.init(self.b, op);
-        const c = self.b.addObject(
+        const c = self.b.addStaticLibrary( //addObject(
             .{ .name = o.name, .target = self.target, .optimize = self.optimize },
         );
         c.linkLibC();
@@ -70,13 +74,13 @@ const Relief = struct {
                 .{ .file = .{ .path = self.inSubdir(file) }, .flags = &.{} },
             );
         }
-        for (o.libs) |l| {
+        for (o.ls) |l| {
             c.installLibraryHeaders(l);
             c.linkLibrary(l);
         }
-        return [_]*Compile{c};
+        return c;
     }
-    fn addGTest(self: Relief, op: Options, d: []const *Compile) *Compile {
+    fn gtest(self: Relief, op: Options) *Compile {
         const o = Opt.init(self.b, op);
         const c = self.b.addExecutable(.{ .name = o.name });
         for (o.cs) |file| {
@@ -85,17 +89,17 @@ const Relief = struct {
             );
         }
         // we ommit duplicate dependencies
-        for (0..d.len) |i| {
-            var unique = true;
-            for (0..i) |j| {
-                if (j < i and d[i] == d[j]) {
-                    unique = false;
-                    break;
-                }
-            }
-            if (unique) c.addObject(d[i]);
-        }
-        for (o.libs) |l| {
+        // for (0..d.len) |i| {
+        //     var unique = true;
+        //     for (0..i) |j| {
+        //         if (j < i and d[i] == d[j]) {
+        //             unique = false;
+        //             break;
+        //         }
+        //     }
+        //     if (unique) c.linkLibrary(d[i]); // c.addObject(d[i]);
+        // }
+        for (o.ls) |l| {
             c.installLibraryHeaders(l);
             c.linkLibrary(l);
         }
@@ -211,59 +215,75 @@ pub fn build(b: *std.build.Builder) !void {
     toxcore_zig_step.dependOn(&toxcore_zig.step);
     toxcore_zig_step.dependOn(&b.addInstallFile(toxcore_zig_file, "toxcore.zig").step);
 
-    const mem = r.addObj(.{ .c = "mem.c" });
-    const util = r.addObj(.{ .c = "util.c" }) ++ mem;
-    const logger = r.addObj(.{ .c = "logger.c" });
-    const cmp = r.addObj(.{ .name = "cmp", .c = "../third_party/cmp/cmp.c" });
-    const bin_pack = r.addObj(.{ .c = "bin_pack.c" }) ++ logger ++ cmp;
-    const bin_unpack = r.addObj(.{ .c = "bin_unpack.c" }) ++ cmp;
-    const crypto_core = r.addObj(.{ .c = "crypto_core.c", .libs = &.{libsodium} });
-    const list = r.addObj(.{ .c = "list.c" });
-    const state = r.addObj(.{ .c = "state.c" });
-    const mono_time = r.addObj(.{ .c = "mono_time.c" }) ++ mem ++ util;
-    const shared_key_cache = r.addObj(.{ .c = "shared_key_cache.c" }) ++ crypto_core ++ logger ++ mem ++ mono_time;
-    const network = r.addObj(.{ .c = "network.c", .libs = &.{libsodium} }) ++ crypto_core ++ logger ++ mem ++ mono_time ++ util;
-    const timed_auth = r.addObj(.{ .c = "timed_auth.c" }) ++ crypto_core ++ mono_time;
-    const ping_array = r.addObj(.{ .c = "ping_array.c" }) ++ crypto_core ++ mem ++ mono_time ++ util;
-    const LAN_discovery = r.addObj(.{ .c = "LAN_discovery.c" }) ++ network;
-    const DHT = r.addObj(.{ .cs = &.{ "DHT.c", "ping.c" } }) ++ bin_pack ++ network ++ ping_array ++ LAN_discovery ++ shared_key_cache ++ state;
-    const onion = r.addObj(.{ .c = "onion.c" }) ++ DHT;
-    const forwarding = r.addObj(.{ .c = "forwarding.c" }) ++ network ++ timed_auth;
-    const announce = r.addObj(.{ .c = "announce.c" }) ++ LAN_discovery ++ forwarding ++ shared_key_cache;
-    const TCP_common = r.addObj(.{ .c = "TCP_common.c" }) ++ network;
+    const mem = r.lib(.{ .c = "mem.c" });
+    const util = r.lib(.{ .c = "util.c", .l = mem });
+    const logger = r.lib(.{ .c = "logger.c" });
+    const cmp = r.lib(.{ .name = "cmp", .c = "../third_party/cmp/cmp.c" });
+    const bin_pack = r.lib(.{ .c = "bin_pack.c", .ls = &.{ logger, cmp } });
+    const bin_unpack = r.lib(.{ .c = "bin_unpack.c", .l = cmp });
+    const crypto_core = r.lib(.{ .c = "crypto_core.c", .l = libsodium });
+    const list = r.lib(.{ .c = "list.c" });
+    const state = r.lib(.{ .c = "state.c" });
+    const mono_time = r.lib(.{ .c = "mono_time.c", .ls = &.{ mem, util } });
+    const shared_key_cache = r.lib(.{
+        .c = "shared_key_cache.c",
+        .ls = &.{ crypto_core, logger, mem, mono_time },
+    });
+    const network = r.lib(.{
+        .c = "network.c",
+        .ls = &.{ libsodium, crypto_core, logger, mem, mono_time, util },
+    });
+    const timed_auth = r.lib(.{ .c = "timed_auth.c", .ls = &.{ crypto_core, mono_time } });
+    const ping_array = r.lib(.{ .c = "ping_array.c", .ls = &.{ crypto_core, mem, mono_time, util } });
+    const LAN_discovery = r.lib(.{ .c = "LAN_discovery.c", .l = network });
+    const DHT = r.lib(.{
+        .cs = &.{ "DHT.c", "ping.c" },
+        .ls = &.{ bin_pack, network, ping_array, LAN_discovery, shared_key_cache, state },
+    });
+    const onion = r.lib(.{ .c = "onion.c", .l = DHT });
+    const forwarding = r.lib(.{ .c = "forwarding.c", .ls = &.{ network, timed_auth } });
+    const announce = r.lib(.{ .c = "announce.c", .ls = &.{ LAN_discovery, forwarding, shared_key_cache } });
+    const TCP_common = r.lib(.{ .c = "TCP_common.c", .l = network });
     // TODO     copts = select({
     // "//tools/config:linux": ["-DTCP_SERVER_USE_EPOLL=1"],
     //    "//conditions:default": [],
     //}),
-    const TCP_server = r.addObj(.{ .c = "TCP_server.c" }) ++ TCP_common ++ crypto_core ++ forwarding ++ list ++ mono_time ++ onion;
-    const TCP_client = r.addObj(.{ .c = "TCP_client.c" }) ++ TCP_common ++ crypto_core ++ forwarding;
-    const TCP_connection = r.addObj(.{ .c = "TCP_connection.c" }) ++ TCP_client;
-    const net_crypto = r.addObj(.{ .c = "net_crypto.c" }) ++ DHT ++ TCP_connection ++ list;
-    const onion_announce = r.addObj(.{ .c = "onion_announce.c" }) ++ DHT ++ onion;
-    const group_announce = r.addObj(.{ .c = "group_announce.c" }) ++ DHT;
-    const group_onion_announce = r.addObj(.{ .c = "group_announce.c" }) ++ group_announce ++ onion_announce;
-    const onion_client = r.addObj(.{ .c = "onion_client.c" }) ++ group_onion_announce;
-    const friend_connection = r.addObj(.{ .c = "friend_connection.c" }) ++ net_crypto ++ onion_client;
+    const TCP_server = r.lib(.{
+        .c = "TCP_server.c",
+        .ls = &.{ TCP_common, crypto_core, forwarding, list, mono_time, onion },
+    });
+    const TCP_client = r.lib(.{ .c = "TCP_client.c", .ls = &.{ TCP_common, crypto_core, forwarding } });
+    const TCP_connection = r.lib(.{ .c = "TCP_connection.c", .l = TCP_client });
+    const net_crypto = r.lib(.{ .c = "net_crypto.c", .ls = &.{ DHT, TCP_connection, list } });
+    const onion_announce = r.lib(.{ .c = "onion_announce.c", .ls = &.{ DHT, onion } });
+    const group_announce = r.lib(.{ .c = "group_announce.c", .l = DHT });
+    const group_onion_announce = r.lib(.{ .c = "group_announce.c", .ls = &.{ group_announce, onion_announce } });
+    const onion_client = r.lib(.{ .c = "onion_client.c", .l = group_onion_announce });
+    const friend_connection = r.lib(.{ .c = "friend_connection.c", .ls = &.{ net_crypto, onion_client } });
+    const friend_requests = r.lib(.{ .c = "friend_requests.c", .l = friend_connection });
+    const group_moderation = r.lib(.{ .c = "group_moderation.c", .ls = &.{ crypto_core, network, libsodium } });
     _ = TCP_server;
-    //_ = TCP_client;
+    _ = friend_requests;
     _ = announce;
     //_ = onion_announce;
-    _ = friend_connection;
+    // _ = friend_connection;
     // tests
-    _ = r.addGTest(.{ .c = "mem_test.cc" }, &mem);
-    _ = r.addGTest(.{ .c = "util_test.cc" }, &(util ++ crypto_core));
-    _ = r.addGTest(.{ .c = "bin_pack_test.cc" }, &(bin_pack ++ bin_unpack));
-    _ = r.addGTest(.{ .c = "crypto_core_test.cc" }, &crypto_core);
-    _ = r.addGTest(.{ .c = "list_test.cc" }, &list);
-    _ = r.addGTest(.{ .c = "mono_time_test.cc" }, &mono_time);
-    _ = r.addGTest(.{ .c = "network_test.cc" }, &network);
-    _ = r.addGTest(.{ .c = "ping_array_test.cc" }, &ping_array);
-    _ = r.addGTest(.{ .c = "DHT_test.cc" }, &DHT);
+    _ = r.gtest(.{ .c = "mem_test.cc", .l = mem });
+    _ = r.gtest(.{ .c = "util_test.cc", .ls = &.{ util, crypto_core } });
+    _ = r.gtest(.{ .c = "bin_pack_test.cc", .ls = &.{ bin_pack, bin_unpack } });
+    _ = r.gtest(.{ .c = "crypto_core_test.cc", .l = crypto_core });
+    _ = r.gtest(.{ .c = "list_test.cc", .l = list });
+    _ = r.gtest(.{ .c = "mono_time_test.cc", .l = mono_time });
+    _ = r.gtest(.{ .c = "network_test.cc", .l = network });
+    _ = r.gtest(.{ .c = "ping_array_test.cc", .l = ping_array });
+    _ = r.gtest(.{ .c = "DHT_test.cc", .l = DHT });
     // TODO DHT_fuzz_test
     // TODO forwarding_fuzz_test
-    _ = r.addGTest(.{ .c = "TCP_connection_test.cc" }, &TCP_connection);
-    _ = r.addGTest(.{ .c = "group_announce_test.cc" }, &group_announce);
+    _ = r.gtest(.{ .c = "TCP_connection_test.cc", .l = TCP_connection });
+    _ = r.gtest(.{ .c = "group_announce_test.cc", .l = group_announce });
     // TODO group_announce_fuzz_test
     // duplicated symbols !!
-    // _ = r.addGTest(.{ .c = "friend_connection_test.cc" }, &friend_connection);
+    _ = r.gtest(.{ .c = "friend_connection_test.cc", .l = friend_connection });
+    _ = r.gtest(.{ .c = "group_moderation_test.cc", .l = group_moderation });
+    // TODO group_moderation_fuzz_test
 }
