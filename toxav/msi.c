@@ -657,12 +657,13 @@ CLEAR_CONTAINER:
 }
 static void on_peer_status(Messenger *m, uint32_t friend_number, uint8_t status, void *data)
 {
+    MSISession *session = (MSISession *)data;
+
     if (status != 0) {
         // Friend is online.
         return;
     }
 
-    MSISession *session = (MSISession *)data;
     LOGGER_DEBUG(m->log, "Friend %d is now offline", friend_number);
 
     pthread_mutex_lock(session->mutex);
@@ -851,9 +852,10 @@ static void handle_pop(MSICall *call, const MSIMessage *msg)
 }
 static void handle_msi_packet(Messenger *m, uint32_t friend_number, const uint8_t *data, uint16_t length, void *object)
 {
+    MSISession *session = (MSISession *)object;
+
     LOGGER_DEBUG(m->log, "Got msi message");
 
-    MSISession *session = (MSISession *)object;
     MSIMessage msg;
 
     if (msg_parse_in(m->log, &msg, data, length) == -1) {
