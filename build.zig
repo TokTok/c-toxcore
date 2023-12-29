@@ -257,16 +257,50 @@ pub fn build(b: *std.build.Builder) !void {
     const net_crypto = r.lib(.{ .c = "net_crypto.c", .ls = &.{ DHT, TCP_connection, list } });
     const onion_announce = r.lib(.{ .c = "onion_announce.c", .ls = &.{ DHT, onion } });
     const group_announce = r.lib(.{ .c = "group_announce.c", .l = DHT });
-    const group_onion_announce = r.lib(.{ .c = "group_announce.c", .ls = &.{ group_announce, onion_announce } });
+    const group_onion_announce = r.lib(.{ .c = "group_onion_announce.c", .ls = &.{ group_announce, onion_announce } });
     const onion_client = r.lib(.{ .c = "onion_client.c", .l = group_onion_announce });
     const friend_connection = r.lib(.{ .c = "friend_connection.c", .ls = &.{ net_crypto, onion_client } });
     const friend_requests = r.lib(.{ .c = "friend_requests.c", .l = friend_connection });
     const group_moderation = r.lib(.{ .c = "group_moderation.c", .ls = &.{ crypto_core, network, libsodium } });
-    _ = TCP_server;
-    _ = friend_requests;
-    _ = announce;
-    //_ = onion_announce;
-    // _ = friend_connection;
+    const Messenger = r.lib(.{
+        .cs = &.{ "Messenger.c", "group_chats.c", "group_connection.c", "group_pack.c" },
+        .ls = &.{ DHT, onion_client, TCP_connection, TCP_server, friend_requests, group_moderation, announce, bin_unpack },
+    });
+    const group = r.lib(.{ .c = "group.c", .l = Messenger });
+    // TODO "//c-toxcore/toxencryptsave:defines",
+    const tox = r.lib(.{ .cs = &.{ "tox.c", "tox_api.c", "tox_private.c" }, .ls = &.{ Messenger, group } });
+    const tox_unpack = r.lib(.{ .c = "tox_unpack.c", .l = Messenger });
+    const tox_events = r.lib(.{
+        .cs = &.{
+            "tox_events.c",
+            "events/conference_connected.c",
+            "events/conference_invite.c",
+            "events/conference_message.c",
+            "events/conference_peer_list_changed.c",
+            "events/conference_peer_name.c",
+            "events/conference_title.c",
+            "events/events_alloc.c",
+            "events/file_chunk_request.c",
+            "events/file_recv.c",
+            "events/file_recv_chunk.c",
+            "events/file_recv_control.c",
+            "events/friend_connection_status.c",
+            "events/friend_lossless_packet.c",
+            "events/friend_lossy_packet.c",
+            "events/friend_message.c",
+            "events/friend_name.c",
+            "events/friend_read_receipt.c",
+            "events/friend_request.c",
+            "events/friend_status.c",
+            "events/friend_status_message.c",
+            "events/friend_typing.c",
+            "events/self_connection_status.c",
+        },
+        .ls = &.{ tox, tox_unpack },
+    });
+    const tox_dispatch = r.lib(.{ .c = "tox_dispatch.c", .l = tox_events });
+    const toxcore = tox_dispatch;
+
     // tests
     _ = r.gtest(.{ .c = "mem_test.cc", .l = mem });
     _ = r.gtest(.{ .c = "util_test.cc", .ls = &.{ util, crypto_core } });
@@ -286,4 +320,7 @@ pub fn build(b: *std.build.Builder) !void {
     _ = r.gtest(.{ .c = "friend_connection_test.cc", .l = friend_connection });
     _ = r.gtest(.{ .c = "group_moderation_test.cc", .l = group_moderation });
     // TODO group_moderation_fuzz_test
+    _ = r.gtest(.{ .c = "tox_test.cc", .l = tox });
+    _ = r.gtest(.{ .c = "tox_events_test.cc", .l = tox_events });
+    // TODO tox_events_fuzz_test
 }
