@@ -12,8 +12,9 @@ with open(f"{os.environ['HOME']}/.github-token") as fh:
     token = fh.read().strip()
 
 head_sha = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        capture_output=True, check=True).stdout.decode("utf-8").strip()
+    ["git", "rev-parse", "HEAD"],
+    capture_output=True, check=True).stdout.decode("utf-8").strip()
+
 
 def request(url: str) -> any:
     return json.loads(urllib.request.urlopen(urllib.request.Request(
@@ -22,7 +23,8 @@ def request(url: str) -> any:
             "Accept": "application/vnd.github+json",
             "Authorization": "Bearer " + token,
             "X-GitHub-Api-Version": "2022-11-28",
-            })).read())
+        })).read())
+
 
 pp = pprint.PrettyPrinter(indent=2, compact=True)
 annots = [a
