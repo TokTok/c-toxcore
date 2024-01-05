@@ -921,8 +921,8 @@ static Toxav_Err_Send_Frame send_frames(const Logger *log, ToxAVCall *call)
     return TOXAV_ERR_SEND_FRAME_OK;
 }
 
-bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, uint16_t height, const uint8_t *y,
-                            const uint8_t *u, const uint8_t *v, Toxav_Err_Send_Frame *error)
+bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, uint16_t height, const uint8_t y[/*! height * width */],
+                            const uint8_t u[/*! height/2 * width/2 */], const uint8_t v[/*! height/2 * width/2 */], Toxav_Err_Send_Frame *error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
     ToxAVCall *call;
