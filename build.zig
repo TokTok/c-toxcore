@@ -6,7 +6,6 @@ const Build = std.Build;
 const Step = Build.Step;
 const Compile = Step.Compile;
 const trimRight = std.mem.trimRight;
-const LibExeObjStep = std.build.LibExeObjStep;
 const Target = std.Target;
 
 fn thisDir() []const u8 {
@@ -25,7 +24,7 @@ fn ensureDependencySubmodule(allocator: std.mem.Allocator, path: []const u8) !vo
     _ = try child.spawnAndWait();
 }
 
-pub fn build(b: *std.build.Builder) !void {
+pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -112,12 +111,13 @@ pub fn build(b: *std.build.Builder) !void {
 
     const static_lib = b.addStaticLibrary(.{ .name = "toxcore", .target = target, .optimize = optimize });
     const shared_lib = b.addSharedLibrary(.{
-        .name = if (target.isWindows()) "toxcore_shared" else "toxcore",
+        .name = if (target.result.isMinGW()) "toxcore_shared" else "toxcore",
         .target = target,
         .optimize = optimize,
+        .strip = optimize != .Debug and !target.result.isMinGW(),
     });
     // work out which libraries we are building
-    var libs = std.ArrayList(*LibExeObjStep).init(b.allocator);
+    var libs = std.ArrayList(*Compile).init(b.allocator);
     defer libs.deinit();
     if (build_static) {
         try libs.append(static_lib);
@@ -127,13 +127,10 @@ pub fn build(b: *std.build.Builder) !void {
     }
     for (libs.items) |lib| {
         if (lib.isDynamicLibrary() and
-            !(target.isDarwin() or target.isDragonFlyBSD() or target.isFreeBSD() or
-            target.isLinux() or target.isNetBSD() or target.isOpenBSD() or target.isWindows()))
+            !(target.result.isDarwin() or target.result.isBSD() or target.result.isGnu() or
+            target.result.isAndroid()))
         {
             continue;
-        }
-        if (optimize != .Debug and !target.isWindows() and !lib.isStaticLibrary()) {
-            lib.strip = true;
         }
         b.installArtifact(lib);
         lib.installHeader("toxcore/tox.h", "tox.h");
@@ -144,16 +141,33 @@ pub fn build(b: *std.build.Builder) !void {
     }
 
     // ----- build zig wrapper
-    var toxcore_zig = b.addTranslateC(.{
-        .optimize = optimize,
-        .target = target,
-        .source_file = .{ .path = "toxcore/tox.h" },
-    });
-    toxcore_zig.addIncludeDir("toxcore");
-    const toxcore_zig_step = b.step("toxcore_zig", "Build Zig wrapper around toxcore API");
-    const toxcore_zig_file = std.build.FileSource{ .generated = &toxcore_zig.output_file };
-    toxcore_zig_step.dependOn(&toxcore_zig.step);
-    toxcore_zig_step.dependOn(&b.addInstallFile(toxcore_zig_file, "toxcore.zig").step);
+    const toxcore_zig_step = b.step("toxcore_zig", "Build Zig wrappers around toxcore API");
+    {
+        const toxcore_zig = b.addTranslateC(.{
+            .optimize = optimize,
+            .target = target,
+            .source_file = .{ .path = "toxcore/tox.h" },
+        });
+        toxcore_zig.addIncludeDir("toxcore");
+        toxcore_zig_step.dependOn(&toxcore_zig.step);
+        toxcore_zig_step.dependOn(&b.addInstallFile(
+            std.Build.LazyPath{ .generated = &toxcore_zig.output_file },
+            "toxcore.zig",
+        ).step);
+    }
+    {
+        const network_zig = b.addTranslateC(.{
+            .optimize = optimize,
+            .target = target,
+            .source_file = .{ .path = "toxcore/network.h" },
+        });
+        network_zig.addIncludeDir("toxcore");
+        toxcore_zig_step.dependOn(&network_zig.step);
+        toxcore_zig_step.dependOn(&b.addInstallFile(
+            std.Build.LazyPath{ .generated = &network_zig.output_file },
+            "network.zig",
+        ).step);
+    }
     // -----
     if (build_static) {
         const gtest_lib = gtest_dep.artifact("gtest");
@@ -175,7 +189,11 @@ pub fn build(b: *std.build.Builder) !void {
             "toxcore/tox_test.cc",
             "toxcore/util_test.cc",
         };
-        const gtest = b.addExecutable(.{ .name = "gtest" });
+        const gtest = b.addExecutable(.{
+            .name = "gtest",
+            .target = target,
+            .optimize = optimize,
+        });
         gtest.addCSourceFiles(.{ .files = gtest_files });
         gtest.installLibraryHeaders(static_lib);
         gtest.linkLibrary(static_lib);
