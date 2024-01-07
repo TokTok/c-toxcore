@@ -1,28 +1,7 @@
 const std = @import("std");
-const fmt = std.fmt;
-const heap = std.heap;
-const fs = std.fs;
 const Build = std.Build;
 const Step = Build.Step;
 const Compile = Step.Compile;
-const trimRight = std.mem.trimRight;
-const Target = std.Target;
-
-fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
-}
-
-fn ensureDependencySubmodule(allocator: std.mem.Allocator, path: []const u8) !void {
-    if (std.process.getEnvVarOwned(allocator, "NO_ENSURE_SUBMODULES")) |no_ensure_submodules| {
-        defer allocator.free(no_ensure_submodules);
-        if (std.mem.eql(u8, no_ensure_submodules, "true")) return;
-    } else |_| {}
-    var child = std.ChildProcess.init(&.{ "git", "submodule", "update", "--init", path }, allocator);
-    child.cwd = (comptime thisDir());
-    child.stderr = std.io.getStdErr();
-    child.stdout = std.io.getStdOut();
-    _ = try child.spawnAndWait();
-}
 
 pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
@@ -34,8 +13,19 @@ pub fn build(b: *Build) !void {
     );
     const libsodium = libsodium_dep.artifact("sodium");
     const gtest_dep = b.dependency("gtest", .{ .target = target, .optimize = optimize });
-
-    ensureDependencySubmodule(b.allocator, "third_party/cmp") catch unreachable;
+    const cmp_dep = b.dependency("cmp", .{});
+    // we copy the third_party dependencies into the source tree
+    // not an ideal solution but we need them there and git
+    // submodule want work for zig dependency snapshots.
+    const copy_files = b.addWriteFiles();
+    _ = copy_files.addCopyFileToSource(
+        .{ .dependency = .{ .dependency = cmp_dep, .sub_path = "cmp.c" } },
+        "third_party/cmp/cmp.c",
+    );
+    _ = copy_files.addCopyFileToSource(
+        .{ .dependency = .{ .dependency = cmp_dep, .sub_path = "cmp.h" } },
+        "third_party/cmp/cmp.h",
+    );
 
     const lib_src_files = &.{
         "third_party/cmp/cmp.c",
@@ -138,6 +128,7 @@ pub fn build(b: *Build) !void {
         lib.installHeadersDirectory("toxcore", "toxcore");
         lib.linkLibrary(libsodium);
         lib.addCSourceFiles(.{ .files = lib_src_files });
+        lib.step.dependOn(&copy_files.step);
     }
 
     // ----- build zig wrapper
