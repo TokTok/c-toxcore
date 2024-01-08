@@ -350,22 +350,24 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
 
     // No entry for this chat_id exists so we create one
     if (announces == nullptr) {
-        announces = (GC_Announces *)calloc(1, sizeof(GC_Announces));
+        GC_Announces *new_announces = (GC_Announces *)calloc(1, sizeof(GC_Announces));
 
-        if (announces == nullptr) {
+        if (new_announces == nullptr) {
             return nullptr;
         }
 
-        announces->index = 0;
-        announces->prev_announce = nullptr;
+        new_announces->index = 0;
+        new_announces->prev_announce = nullptr;
 
         if (gc_announces_list->root_announces != nullptr) {
-            gc_announces_list->root_announces->prev_announce = announces;
+            gc_announces_list->root_announces->prev_announce = new_announces;
         }
 
-        announces->next_announce = gc_announces_list->root_announces;
-        gc_announces_list->root_announces = announces;
-        memcpy(announces->chat_id, public_announce->chat_public_key, CHAT_ID_SIZE);
+        new_announces->next_announce = gc_announces_list->root_announces;
+        gc_announces_list->root_announces = new_announces;
+        memcpy(new_announces->chat_id, public_announce->chat_public_key, CHAT_ID_SIZE);
+
+        announces = new_announces;
     }
 
     const uint64_t cur_time = mono_time_get(mono_time);

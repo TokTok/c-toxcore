@@ -2903,22 +2903,26 @@ static State_Load_Status dht_load_state_callback(void *outer, const uint8_t *dat
             }
 
             mem_delete(dht->mem, dht->loaded_nodes_list);
-            // Copy to loaded_clients_list
-            dht->loaded_nodes_list = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
-            if (dht->loaded_nodes_list == nullptr) {
+            // Copy to loaded_clients_list
+            Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
+
+            if (nodes == nullptr) {
                 LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);
                 dht->loaded_num_nodes = 0;
                 break;
             }
 
-            const int num = unpack_nodes(dht->loaded_nodes_list, MAX_SAVED_DHT_NODES, nullptr, data, length, false);
+            const int num = unpack_nodes(nodes, MAX_SAVED_DHT_NODES, nullptr, data, length, false);
 
-            if (num > 0) {
-                dht->loaded_num_nodes = num;
-            } else {
+            if (num < 0) {
+                // Unpack error happened, we ignore it.
                 dht->loaded_num_nodes = 0;
+            } else {
+                dht->loaded_num_nodes = num;
             }
+
+            dht->loaded_nodes_list = nodes;
 
             break;
         }
