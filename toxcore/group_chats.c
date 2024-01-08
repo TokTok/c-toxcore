@@ -4048,13 +4048,14 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
     const uint16_t oldlen = chat->shared_state.password_length;
 
     if (oldlen > 0) {
-        oldpasswd = (uint8_t *)malloc(oldlen);
+        uint8_t *tmp = (uint8_t *)malloc(oldlen);
 
-        if (oldpasswd == nullptr) {
+        if (tmp == nullptr) {
             return -4;
         }
 
-        memcpy(oldpasswd, chat->shared_state.password, oldlen);
+        memcpy(tmp, chat->shared_state.password, oldlen);
+        oldpasswd = tmp;
     }
 
     if (!set_gc_password_local(chat, password, password_length)) {
