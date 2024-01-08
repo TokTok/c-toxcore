@@ -119,18 +119,20 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     }
 
 #ifndef ESP_PLATFORM
-    mono_time->time_update_lock = (pthread_rwlock_t *)mem_alloc(mem, sizeof(pthread_rwlock_t));
+    pthread_rwlock_t *mutex = (pthread_rwlock_t *)mem_alloc(mem, sizeof(pthread_rwlock_t));
 
-    if (mono_time->time_update_lock == nullptr) {
+    if (mutex == nullptr) {
         mem_delete(mem, mono_time);
         return nullptr;
     }
 
-    if (pthread_rwlock_init(mono_time->time_update_lock, nullptr) != 0) {
-        mem_delete(mem, mono_time->time_update_lock);
+    if (pthread_rwlock_init(mutex, nullptr) != 0) {
+        mem_delete(mem, mutex);
         mem_delete(mem, mono_time);
         return nullptr;
     }
+
+    mono_time->time_update_lock = mutex;
 #endif
 
     mono_time_set_current_time_callback(mono_time, current_time_callback, user_data);
