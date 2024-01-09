@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 7dfcf534fb80fbd8337337f5aa9eaa120febc72386046c7ab0d5c7545e900657  /usr/local/bin/tox-bootstrapd
+=======
+cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
+>>>>>>> 80ac793b3 (feat: allow the large custom NGC packets to be handled also by the client)
