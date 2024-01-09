@@ -18,8 +18,8 @@ std::array<T, N> to_array(T const (&arr)[N])
     return stdarr;
 }
 
-template <size_t N, typename T, typename ...Args>
-auto array_of(T &&make, Args ...args)
+template <size_t N, typename T, typename... Args>
+auto array_of(T &&make, Args... args)
 {
     std::array<typename std::result_of<T(Args...)>::type, N> arr;
     for (auto &elem : arr) {
@@ -28,8 +28,8 @@ auto array_of(T &&make, Args ...args)
     return arr;
 }
 
-template <typename T, typename ...Args>
-auto vector_of(size_t n, T &&make, Args ...args)
+template <typename T, typename... Args>
+auto vector_of(size_t n, T &&make, Args... args)
 {
     std::vector<typename std::result_of<T(Args...)>::type> vec(n);
     for (auto &elem : vec) {
@@ -48,19 +48,24 @@ Container sorted(Container arr, Less less)
 struct PublicKey : private std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> {
     using Base = std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;
 
-    using Base::data;
-    using Base::size;
     using Base::begin;
+    using Base::data;
     using Base::end;
+    using Base::size;
     using Base::operator[];
 
     PublicKey() = default;
-    PublicKey(uint8_t const (&arr)[CRYPTO_PUBLIC_KEY_SIZE]) : PublicKey(to_array(arr)) {}
-    PublicKey(std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> const &arr) {
+    PublicKey(uint8_t const (&arr)[CRYPTO_PUBLIC_KEY_SIZE])
+        : PublicKey(to_array(arr))
+    {
+    }
+    PublicKey(std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> const &arr)
+    {
         std::copy(arr.begin(), arr.end(), begin());
     }
 
-    PublicKey(std::initializer_list<uint8_t> const &arr) {
+    PublicKey(std::initializer_list<uint8_t> const &arr)
+    {
         std::copy(arr.begin(), arr.end(), begin());
     }
 
@@ -106,18 +111,16 @@ static std::ostream &operator<<(std::ostream &out, IP const &v)
 
 static std::ostream &operator<<(std::ostream &out, IP_Port const &v)
 {
-    return out
-        << "IP_Port{\n"
-        << "        ip = " << v.ip << ",\n"
-        << "        port = " << std::dec << std::setw(0) << v.port << " }";
+    return out << "IP_Port{\n"
+               << "        ip = " << v.ip << ",\n"
+               << "        port = " << std::dec << std::setw(0) << v.port << " }";
 }
 
 static std::ostream &operator<<(std::ostream &out, Node_format const &v)
 {
-    return out
-        << "\n    Node_format{\n"
-        << "      public_key = " << PublicKey(v.public_key) << ",\n"
-        << "      ip_port = " << v.ip_port << " }";
+    return out << "\n    Node_format{\n"
+               << "      public_key = " << PublicKey(v.public_key) << ",\n"
+               << "      ip_port = " << v.ip_port << " }";
 }
 
 PublicKey random_pk(const Random *rng);
@@ -170,8 +173,13 @@ struct KeyPair {
 class increasing_ip_port {
     uint8_t start_;
     const Random *rng_;
-    public:
-    explicit increasing_ip_port(uint8_t start, const Random *rng) : start_(start), rng_(rng) {}
+
+public:
+    explicit increasing_ip_port(uint8_t start, const Random *rng)
+        : start_(start)
+        , rng_(rng)
+    {
+    }
 
     IP_Port operator()()
     {
@@ -308,87 +316,99 @@ TEST(AddToList, AddsFirstKeysInOrder)
 
     // Make cmp_key the furthest away from 00000... as possible, so all initial inserts succeed.
     PublicKey const cmp_pk{
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
     };
 
     // Generate a bunch of other keys, sorted by distance from cmp_pk.
-    auto const keys = sorted(array_of<20>(random_pk, rng),
-            [&cmp_pk](auto const &pk1, auto const &pk2) {
-                return id_closest(cmp_pk.data(), pk1.data(), pk2.data()) < 2;
-            });
+    auto const keys
+        = sorted(array_of<20>(random_pk, rng), [&cmp_pk](auto const &pk1, auto const &pk2) {
+              return id_closest(cmp_pk.data(), pk1.data(), pk2.data()) < 2;
+          });
     auto const ips = array_of<20>(increasing_ip_port(0, rng));
 
     std::vector<Node_format> nodes(4);
 
     // Add a bunch of nodes.
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[2].data(), &ips[2], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[2]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[2]
         << "\n  nodes_list = " << PrintToString(nodes);
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[5].data(), &ips[5], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[5]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[5]
         << "\n  nodes_list = " << PrintToString(nodes);
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[7].data(), &ips[7], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[7]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[7]
         << "\n  nodes_list = " << PrintToString(nodes);
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[9].data(), &ips[9], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[9]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[9]
         << "\n  nodes_list = " << PrintToString(nodes);
 
     // They should all appear in order.
-    EXPECT_THAT(nodes, ElementsAre(
-                fill(Node_format{}, keys[2], ips[2]),
-                fill(Node_format{}, keys[5], ips[5]),
-                fill(Node_format{}, keys[7], ips[7]),
-                fill(Node_format{}, keys[9], ips[9])));
+    EXPECT_THAT(nodes,
+        ElementsAre(fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[5], ips[5]),
+            fill(Node_format{}, keys[7], ips[7]), fill(Node_format{}, keys[9], ips[9])));
 
     // Adding another node that's further away will not happen.
     ASSERT_FALSE(add_to_list(nodes.data(), nodes.size(), keys[10].data(), &ips[10], cmp_pk.data()))
-        << "incorrectly inserted\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[10]
+        << "incorrectly inserted\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[10]
         << "\n  nodes_list = " << PrintToString(nodes);
 
     // Adding one that's closer will happen.
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[8].data(), &ips[8], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[8]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[8]
         << "\n  nodes_list = " << PrintToString(nodes);
 
-    EXPECT_THAT(nodes, ElementsAre(
-                fill(Node_format{}, keys[2], ips[2]),
-                fill(Node_format{}, keys[5], ips[5]),
-                fill(Node_format{}, keys[7], ips[7]),
-                fill(Node_format{}, keys[8], ips[8])));
+    EXPECT_THAT(nodes,
+        ElementsAre(fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[5], ips[5]),
+            fill(Node_format{}, keys[7], ips[7]), fill(Node_format{}, keys[8], ips[8])));
 
     // Adding one that's closer than almost all of them will happen.
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[4].data(), &ips[4], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[4]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[4]
         << "\n  nodes_list = " << PrintToString(nodes);
 
-    EXPECT_THAT(nodes, ElementsAre(
-                fill(Node_format{}, keys[2], ips[2]),
-                fill(Node_format{}, keys[4], ips[4]),
-                fill(Node_format{}, keys[5], ips[5]),
-                fill(Node_format{}, keys[7], ips[7])));
+    EXPECT_THAT(nodes,
+        ElementsAre(fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[4], ips[4]),
+            fill(Node_format{}, keys[5], ips[5]), fill(Node_format{}, keys[7], ips[7])));
 
     // Adding one that's closer than all of them will happen.
     ASSERT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[1].data(), &ips[1], cmp_pk.data()))
-        << "failed to insert\n  cmp_pk = " << cmp_pk
-        << "\n  pk     = " << keys[1]
+        << "failed to insert\n  cmp_pk = " << cmp_pk << "\n  pk     = " << keys[1]
         << "\n  nodes_list = " << PrintToString(nodes);
 
-    EXPECT_THAT(nodes, ElementsAre(
-                fill(Node_format{}, keys[1], ips[1]),
-                fill(Node_format{}, keys[2], ips[2]),
-                fill(Node_format{}, keys[4], ips[4]),
-                fill(Node_format{}, keys[5], ips[5])));
+    EXPECT_THAT(nodes,
+        ElementsAre(fill(Node_format{}, keys[1], ips[1]), fill(Node_format{}, keys[2], ips[2]),
+            fill(Node_format{}, keys[4], ips[4]), fill(Node_format{}, keys[5], ips[5])));
 }
 
 TEST(AddToList, KeepsKeysInOrder)
@@ -398,10 +418,38 @@ TEST(AddToList, KeepsKeysInOrder)
 
     // Make cmp_key the furthest away from 00000... as possible, so all initial inserts succeed.
     PublicKey const cmp_pk{
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
-        0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
+        0xff,
     };
 
     auto const by_distance = [&cmp_pk](auto const &node1, auto const &node2) {
@@ -415,7 +463,8 @@ TEST(AddToList, KeepsKeysInOrder)
 
     // Add all of them.
     for (Node_format const &node : nodes) {
-        add_to_list(node_list.data(), node_list.size(), node.public_key, &node.ip_port, cmp_pk.data());
+        add_to_list(
+            node_list.data(), node_list.size(), node.public_key, &node.ip_port, cmp_pk.data());
     }
 
     // Nodes should be sorted.
