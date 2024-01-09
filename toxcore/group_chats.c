@@ -5020,6 +5020,22 @@ static bool custom_gc_packet_length_is_valid(uint16_t length, bool lossless)
     return true;
 }
 
+/** @brief Returns false if a custom incoming (non private) packet is too large. */
+static bool custom_gc_incoming_non_private_packet_length_is_valid(uint16_t length, bool lossless)
+{
+    if (lossless) {
+        if (length > MAX_GC_CUSTOM_LOSSLESS_INCOMING_ASSEMBLED_PACKET_SIZE) {
+            return false;
+        }
+    } else {
+        if (length > MAX_GC_CUSTOM_LOSSY_PACKET_SIZE) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int gc_send_custom_private_packet(const GC_Chat *chat, bool lossless, uint32_t peer_id, const uint8_t *message,
                                   uint16_t length)
 {
@@ -5118,7 +5134,7 @@ non_null(1, 2, 3, 4) nullable(7)
 static int handle_gc_custom_packet(const GC_Session *c, const GC_Chat *chat, const GC_Peer *peer, const uint8_t *data,
                                    uint16_t length, bool lossless, void *userdata)
 {
-    if (!custom_gc_packet_length_is_valid(length, lossless)) {
+    if (!custom_gc_incoming_non_private_packet_length_is_valid(length, lossless)) {
         return -1;
     }
 
