@@ -363,8 +363,9 @@ TEST(AddToList, AddsFirstKeysInOrder)
         << "\n  nodes_list = " << PrintToString(nodes);
 
     EXPECT_THAT(nodes,
-        UnorderedElementsAre(fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[5], ips[5]),
-            fill(Node_format{}, keys[7], ips[7]), fill(Node_format{}, keys[8], ips[8])));
+        UnorderedElementsAre(fill(Node_format{}, keys[2], ips[2]),
+            fill(Node_format{}, keys[5], ips[5]), fill(Node_format{}, keys[7], ips[7]),
+            fill(Node_format{}, keys[8], ips[8])));
 
     // Adding one that's closer than almost all of them will happen.
     std::shuffle(nodes.begin(), nodes.end(), g);
@@ -373,8 +374,9 @@ TEST(AddToList, AddsFirstKeysInOrder)
         << "\n  nodes_list = " << PrintToString(nodes);
 
     EXPECT_THAT(nodes,
-        UnorderedElementsAre(fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[4], ips[4]),
-            fill(Node_format{}, keys[5], ips[5]), fill(Node_format{}, keys[7], ips[7])));
+        UnorderedElementsAre(fill(Node_format{}, keys[2], ips[2]),
+            fill(Node_format{}, keys[4], ips[4]), fill(Node_format{}, keys[5], ips[5]),
+            fill(Node_format{}, keys[7], ips[7])));
 
     // Adding one that's closer than all of them will happen.
     std::shuffle(nodes.begin(), nodes.end(), g);
@@ -383,8 +385,9 @@ TEST(AddToList, AddsFirstKeysInOrder)
         << "\n  nodes_list = " << PrintToString(nodes);
 
     EXPECT_THAT(nodes,
-        UnorderedElementsAre(fill(Node_format{}, keys[1], ips[1]), fill(Node_format{}, keys[2], ips[2]),
-            fill(Node_format{}, keys[4], ips[4]), fill(Node_format{}, keys[5], ips[5])));
+        UnorderedElementsAre(fill(Node_format{}, keys[1], ips[1]),
+            fill(Node_format{}, keys[2], ips[2]), fill(Node_format{}, keys[4], ips[4]),
+            fill(Node_format{}, keys[5], ips[5])));
 }
 
 TEST(AddToList, KeepsKeysInOrder)
