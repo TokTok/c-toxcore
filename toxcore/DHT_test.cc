@@ -315,7 +315,7 @@ TEST(AddToList, AddsFirstKeysInOrder)
     ASSERT_NE(rng, nullptr);
 
     // Make cmp_key the furthest away from 00000... as possible, so all initial inserts succeed.
-    PublicKey const cmp_pk{0xff,0xff,0xff,0xff};
+    PublicKey const cmp_pk{0xff, 0xff, 0xff, 0xff};
 
     // Generate a bunch of other keys, sorted by distance from cmp_pk.
     auto const keys
