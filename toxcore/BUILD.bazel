@@ -357,12 +357,23 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "DHT_test_util",
+    hdrs = ["DHT_test_util.h"],
+    srcs = ["DHT_test_util.cc"],
+    deps = [
+        ":DHT",
+        ":crypto_core",
+    ],
+)
+
 cc_test(
     name = "DHT_test",
     size = "small",
     srcs = ["DHT_test.cc"],
     deps = [
         ":DHT",
+        ":DHT_test_util",
         ":crypto_core",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
