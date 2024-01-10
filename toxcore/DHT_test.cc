@@ -360,10 +360,12 @@ TEST(AnnounceNodes, SetAndTest)
     EXPECT_TRUE(addto_lists(dht.get(), &ip_port, pk2.data()));
 
     Node_format nodes[MAX_SENT_NODES];
-    EXPECT_EQ(0, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(
+        0, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
     set_announce_node(dht.get(), pk1.data());
     set_announce_node(dht.get(), pk2.data());
-    EXPECT_EQ(2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(
+        2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
 
     mono_time_free(mem, mono_time);
     logger_kill(log);
