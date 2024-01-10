@@ -2,17 +2,21 @@
     .name = "c-toxcore",
     .version = "0.2.18",
     .dependencies = .{
-        .cmp = . {
+        .cmp = .{
             .url = "https://github.com/camgunz/cmp/archive/e836703291392aba9db92b46fb47929521fac71f.tar.gz",
             .hash = "1220bf2ca61fc63d98326e7aba10bca9158912826401dd7b2de2e0d5f063ff022e12",
         },
         .libsodium = .{
             .url = "https://github.com/jedisct1/libsodium/archive/56bef8abc59b6db7ce5a94ebce5d0843313d3ce2.tar.gz",
-            .hash = "1220af4c5faf5ab037d3e574d462d47a01796eabdf7c32e52220d4065922a2ed8f55",  
+            .hash = "1220af4c5faf5ab037d3e574d462d47a01796eabdf7c32e52220d4065922a2ed8f55",
         },
         .gtest = .{
             .url = "https://github.com/nodecum/gtest-zig/archive/96ea46cd250b14745c2c3e935eff01fff219a9ea.tar.gz",
             .hash = "12204aedcd1b41d9c9fd3608ca1ad813af6a45be0229d9d6125518dd13f669d767cb",
+        },
+        .winpthreads = .{
+            .url = "https://github.com/kassane/winpthreads-zigbuild/archive/4850eab41943f3ea828de705d2f1b8714a310c8e.tar.gz",
+            .hash = "1220aeeca34cc8ca36dd1b0784b714d39e0a37c534dbbe48531aaa814d7ddf167c9c",
         },
     },
     .paths = .{

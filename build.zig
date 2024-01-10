@@ -2,6 +2,7 @@ const std = @import("std");
 const Build = std.Build;
 const Step = Build.Step;
 const Compile = Step.Compile;
+const fs = std.fs;
 
 pub fn build(b: *Build) !void {
     const target = b.standardTargetOptions(.{});
@@ -12,20 +13,30 @@ pub fn build(b: *Build) !void {
         .{ .target = target, .optimize = optimize, .static = true, .shared = false },
     );
     const libsodium = libsodium_dep.artifact("sodium");
+    const winpthreads_dep = b.dependency("winpthreads", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const winpthreads = winpthreads_dep.artifact("winpthreads");
     const gtest_dep = b.dependency("gtest", .{ .target = target, .optimize = optimize });
     const cmp_dep = b.dependency("cmp", .{});
     // we copy the third_party dependencies into the source tree
     // not an ideal solution but we need them there and git
     // submodule want work for zig dependency snapshots.
+    // we do the copy only if the file does not exist at the
+    // target position
     const copy_files = b.addWriteFiles();
-    _ = copy_files.addCopyFileToSource(
-        .{ .dependency = .{ .dependency = cmp_dep, .sub_path = "cmp.c" } },
-        "third_party/cmp/cmp.c",
-    );
-    _ = copy_files.addCopyFileToSource(
-        .{ .dependency = .{ .dependency = cmp_dep, .sub_path = "cmp.h" } },
-        "third_party/cmp/cmp.h",
-    );
+    inline for (.{ "cmp.h", "cmp.c" }) |file| {
+        const rpath = b.pathJoin(&.{ "third_party/cmp", file });
+        const apath = b.pathFromRoot(rpath);
+        if (fs.accessAbsolute(apath, .{})) |_| {} else |_| {
+            // if the file does not exist we copy it
+            _ = copy_files.addCopyFileToSource(
+                .{ .dependency = .{ .dependency = cmp_dep, .sub_path = file } },
+                rpath,
+            );
+        }
+    }
 
     const lib_src_files = &.{
         "third_party/cmp/cmp.c",
@@ -123,15 +134,20 @@ pub fn build(b: *Build) !void {
             continue;
         }
         b.installArtifact(lib);
-        lib.installHeader("toxcore/tox.h", "tox.h");
         lib.linkLibC();
         lib.installHeadersDirectory("toxcore", "toxcore");
         lib.linkLibrary(libsodium);
+        if (target.result.isMinGW()) {
+            lib.linkLibrary(winpthreads);
+            lib.addIncludePath(winpthreads_dep.path("include"));
+            lib.linkSystemLibrary("ws2_32");
+            lib.linkSystemLibrary("iphlpapi");
+        }
         lib.addCSourceFiles(.{ .files = lib_src_files });
         lib.step.dependOn(&copy_files.step);
     }
 
-    // ----- build zig wrapper
+    // ----- build zig code for header files
     const toxcore_zig_step = b.step("toxcore_zig", "Build Zig wrappers around toxcore API");
     {
         const toxcore_zig = b.addTranslateC(.{
@@ -192,6 +208,12 @@ pub fn build(b: *Build) !void {
         gtest.linkLibrary(gtest_lib);
         gtest.linkLibrary(gtest_main);
         gtest.linkLibC();
+        if (target.result.isMinGW()) {
+            gtest.linkLibrary(winpthreads);
+            gtest.addIncludePath(winpthreads_dep.path("include"));
+            gtest.linkSystemLibrary("ws2_32");
+            gtest.linkSystemLibrary("iphlpapi");
+        }
         b.installArtifact(gtest);
     }
 }
