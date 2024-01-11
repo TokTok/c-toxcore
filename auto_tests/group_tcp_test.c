@@ -127,7 +127,6 @@ static bool all_peers_got_code(AutoTox *autotoxes)
 
 static void group_tcp_test(AutoTox *autotoxes)
 {
-#ifndef VANILLA_NACL
     ck_assert(NUM_GROUP_TOXES >= 2);
 
     State *state0 = (State *)autotoxes[0].state;
@@ -207,7 +206,7 @@ static void group_tcp_test(AutoTox *autotoxes)
 
     Tox_Err_Group_Send_Message merr;
     tox_group_send_message(autotoxes[0].tox, groupnumber, TOX_MESSAGE_TYPE_NORMAL,
-                           (const uint8_t *)CODEWORD, CODEWORD_LEN, nullptr, &merr);
+                           (const uint8_t *)CODEWORD, CODEWORD_LEN, &merr);
     ck_assert(merr == TOX_ERR_GROUP_SEND_MESSAGE_OK);
 
     while (!state1->got_second_code) {
@@ -220,8 +219,6 @@ static void group_tcp_test(AutoTox *autotoxes)
     }
 
     printf("Test passed!\n");
-
-#endif // VANILLA_NACL
 }
 
 int main(int argc, char **argv)

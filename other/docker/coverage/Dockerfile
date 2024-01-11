@@ -11,6 +11,7 @@ RUN apt-get update && \
  git \
  golang-1.18 \
  libconfig-dev \
+ libgmock-dev \
  libgtest-dev \
  libopus-dev \
  libsodium-dev \
@@ -19,12 +20,17 @@ RUN apt-get update && \
  make \
  ninja-build \
  pkg-config \
+ python3-lxml \
  python3-pip \
  python3-pygments \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && pip3 install --no-cache-dir gcovr
+# strip gtest/gmock so it doesn't end up in stack traces. This speeds up the
+# mallocfail run below by a lot.
 RUN ["strip", "-g",\
+ "/usr/lib/x86_64-linux-gnu/libgmock.a",\
+ "/usr/lib/x86_64-linux-gnu/libgmock_main.a",\
  "/usr/lib/x86_64-linux-gnu/libgtest.a",\
  "/usr/lib/x86_64-linux-gnu/libgtest_main.a"]
 RUN ["curl", "-s", "https://codecov.io/bash", "-o", "/usr/local/bin/codecov"]
@@ -64,12 +70,12 @@ RUN /work/other/proxy/proxy_server \
 
 WORKDIR /work/mallocfail
 RUN ["git", "clone", "--depth=1", "https://github.com/ralight/mallocfail", "/work/mallocfail"]
-COPY syscall_funcs.c src/
+COPY other/docker/coverage/syscall_funcs.c src/
 RUN gcc -fPIC -shared -O2 -g3 -Wall -Ideps/uthash -Ideps/sha3 deps/*/*.c src/*.c -o mallocfail.so -ldl -lbacktrace \
  && install mallocfail.so /usr/local/lib/mallocfail.so
 
 WORKDIR /work/_build
-COPY run_mallocfail /usr/local/bin/
+COPY other/docker/coverage/run_mallocfail /usr/local/bin/
 RUN ["run_mallocfail", "--ctest=2", "--jobs=8"]
 RUN ["gcovr", \
  "--sort-percentage", \

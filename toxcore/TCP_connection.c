@@ -9,12 +9,17 @@
 #include "TCP_connection.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
 #include "TCP_client.h"
 #include "ccompat.h"
+#include "crypto_core.h"
+#include "forwarding.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
+#include "network.h"
 #include "util.h"
 
 struct TCP_Connections {
@@ -285,8 +290,9 @@ static TCP_con *get_tcp_connection(const TCP_Connections *tcp_c, int tcp_connect
 uint32_t tcp_connected_relays_count(const TCP_Connections *tcp_c)
 {
     uint32_t count = 0;
+    const uint32_t size = tcp_connections_count(tcp_c);
 
-    for (uint32_t i = 0; i < tcp_connections_count(tcp_c); ++i) {
+    for (uint32_t i = 0; i < size; ++i) {
         const TCP_con *tcp_con = get_tcp_connection(tcp_c, i);
 
         if (tcp_con == nullptr) {
@@ -407,7 +413,7 @@ int get_random_tcp_onion_conn_number(const TCP_Connections *tcp_c)
  * return -1 on failure.
  */
 non_null()
-static int get_conn_number_by_ip_port(TCP_Connections *tcp_c, const IP_Port *ip_port)
+static int get_conn_number_by_ip_port(const TCP_Connections *tcp_c, const IP_Port *ip_port)
 {
     for (uint32_t i = 0; i < tcp_c->tcp_connections_length; ++i) {
         const IP_Port conn_ip_port = tcp_con_ip_port(tcp_c->tcp_connections[i].connection);
@@ -1059,7 +1065,7 @@ static int send_tcp_relay_routing_request(const TCP_Connections *tcp_c, int tcp_
 non_null()
 static int tcp_response_callback(void *object, uint8_t connection_id, const uint8_t *public_key)
 {
-    TCP_Client_Connection *tcp_client_con = (TCP_Client_Connection *)object;
+    const TCP_Client_Connection *tcp_client_con = (const TCP_Client_Connection *)object;
     const TCP_Connections *tcp_c = (const TCP_Connections *)tcp_con_custom_object(tcp_client_con);
 
     const unsigned int tcp_connections_number = tcp_con_custom_uint(tcp_client_con);
@@ -1133,11 +1139,12 @@ non_null(1, 4) nullable(6)
 static int tcp_conn_data_callback(void *object, uint32_t number, uint8_t connection_id, const uint8_t *data,
                                   uint16_t length, void *userdata)
 {
+    const TCP_Client_Connection *tcp_client_con = (TCP_Client_Connection *)object;
+
     if (length == 0) {
         return -1;
     }
 
-    const TCP_Client_Connection *tcp_client_con = (TCP_Client_Connection *)object;
     TCP_Connections *tcp_c = (TCP_Connections *)tcp_con_custom_object(tcp_client_con);
 
     const unsigned int tcp_connections_number = tcp_con_custom_uint(tcp_client_con);
@@ -1164,11 +1171,12 @@ non_null()
 static int tcp_conn_oob_callback(void *object, const uint8_t *public_key, const uint8_t *data, uint16_t length,
                                  void *userdata)
 {
+    const TCP_Client_Connection *tcp_client_con = (const TCP_Client_Connection *)object;
+
     if (length == 0) {
         return -1;
     }
 
-    const TCP_Client_Connection *tcp_client_con = (const TCP_Client_Connection *)object;
     TCP_Connections *tcp_c = (TCP_Connections *)tcp_con_custom_object(tcp_client_con);
 
     const unsigned int tcp_connections_number = tcp_con_custom_uint(tcp_client_con);
@@ -1256,7 +1264,7 @@ static int tcp_relay_on_online(TCP_Connections *tcp_c, int tcp_connections_numbe
     bool sent_any = false;
 
     for (uint32_t i = 0; i < tcp_c->connections_length; ++i) {
-        TCP_Connection_to *con_to = get_connection(tcp_c, i);
+        const TCP_Connection_to *con_to = get_connection(tcp_c, i);
 
         if (con_to != nullptr) {
             if (tcp_connection_in_conn(con_to, tcp_connections_number)) {

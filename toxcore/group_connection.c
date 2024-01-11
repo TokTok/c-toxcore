@@ -15,14 +15,15 @@
 #include <string.h>
 
 #include "DHT.h"
+#include "TCP_connection.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "group_chats.h"
 #include "group_common.h"
+#include "logger.h"
 #include "mono_time.h"
+#include "network.h"
 #include "util.h"
-
-#ifndef VANILLA_NACL
 
 /** Seconds since last direct UDP packet was received before the connection is considered dead */
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
@@ -91,23 +92,27 @@ non_null(1, 2) nullable(3)
 static bool create_array_entry(const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry, const uint8_t *data,
                                uint16_t length, uint8_t packet_type, uint64_t message_id)
 {
-    if (length > 0) {
+    if (length == 0) {
+        array_entry->data = nullptr;
+        array_entry->data_length = 0;
+    } else {
         if (data == nullptr) {
             return false;
         }
 
-        array_entry->data = (uint8_t *)malloc(sizeof(uint8_t) * length);
+        uint8_t *entry_data = (uint8_t *)malloc(length);
 
-        if (array_entry->data == nullptr) {
+        if (entry_data == nullptr) {
             return false;
         }
 
-        memcpy(array_entry->data, data, length);
+        memcpy(entry_data, data, length);
+        array_entry->data = entry_data;
+        array_entry->data_length = length;
     }
 
     const uint64_t tm = mono_time_get(mono_time);
 
-    array_entry->data_length = length;
     array_entry->packet_type = packet_type;
     array_entry->message_id = message_id;
     array_entry->time_added = tm;
@@ -211,7 +216,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
     const uint16_t end_idx = gcc_get_array_index(gconn->send_message_id);
 
     for (uint16_t i = start_idx; i != end_idx; i = (i + 1) % GCC_BUFFER_SIZE) {
-        GC_Message_Array_Entry *entry = &gconn->send_array[i];
+        const GC_Message_Array_Entry *entry = &gconn->send_array[i];
 
         if (array_entry_is_empty(entry)) {
             LOGGER_FATAL(chat->log, "array entry for packet chunk is empty");
@@ -391,10 +396,9 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
         return 0;
     }
 
-    assert(*payload == nullptr);
-    *payload = (uint8_t *)malloc(packet_length);
+    uint8_t *tmp_payload = (uint8_t *)malloc(packet_length);
 
-    if (*payload == nullptr) {
+    if (tmp_payload == nullptr) {
         LOGGER_ERROR(log, "Failed to allocate %u bytes for payload buffer", packet_length);
         return 0;
     }
@@ -408,11 +412,14 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
         entry = &gconn->recv_array[i];
 
         assert(processed + entry->data_length <= packet_length);
-        memcpy(*payload + processed, entry->data, entry->data_length);
+        memcpy(tmp_payload + processed, entry->data, entry->data_length);
         processed += entry->data_length;
 
         clear_array_entry(entry);
     }
+
+    assert(*payload == nullptr);
+    *payload = tmp_payload;
 
     return processed;
 }
@@ -704,5 +711,3 @@ void gcc_cleanup(const GC_Chat *chat)
         gcc_peer_cleanup(gconn);
     }
 }
-
-#endif // VANILLA_NACL

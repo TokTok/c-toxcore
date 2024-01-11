@@ -6,10 +6,9 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
-#include "../bin_unpack.h"
 
 #include "../bin_pack.h"
+#include "../bin_unpack.h"
 #include "../ccompat.h"
 #include "../tox.h"
 #include "../tox_events.h"

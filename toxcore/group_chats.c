@@ -9,28 +9,32 @@
 
 #include "group_chats.h"
 
-#include <assert.h>
-
-#ifndef VANILLA_NACL
 #include <sodium.h>
-#endif
 
+#include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
-#include "LAN_discovery.h"
 #include "Messenger.h"
 #include "TCP_connection.h"
+#include "bin_pack.h"
+#include "bin_unpack.h"
 #include "ccompat.h"
+#include "crypto_core.h"
 #include "friend_connection.h"
+#include "group_announce.h"
 #include "group_common.h"
+#include "group_connection.h"
 #include "group_moderation.h"
 #include "group_pack.h"
+#include "logger.h"
 #include "mono_time.h"
+#include "net_crypto.h"
 #include "network.h"
+#include "onion_announce.h"
+#include "onion_client.h"
 #include "util.h"
-
-#ifndef VANILLA_NACL
 
 /* The minimum size of a plaintext group handshake packet */
 #define GC_MIN_HS_PACKET_PAYLOAD_SIZE (1 + ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE + 1 + 1)
@@ -160,7 +164,7 @@ non_null() static bool self_gc_is_founder(const GC_Chat *chat);
 non_null() static bool group_number_valid(const GC_Session *c, int group_number);
 non_null() static int peer_update(const GC_Chat *chat, const GC_Peer *peer, uint32_t peer_number);
 non_null() static void group_delete(GC_Session *c, GC_Chat *chat);
-non_null() static void group_cleanup(GC_Session *c, GC_Chat *chat);
+non_null() static void group_cleanup(const GC_Session *c, GC_Chat *chat);
 non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
 non_null(1, 2) nullable(4)
@@ -1378,7 +1382,7 @@ static int make_gc_shared_state_packet(const GC_Chat *chat, uint8_t *data, uint1
         return -1;
     }
 
-    return (int)(header_len + packed_len);
+    return header_len + packed_len;
 }
 
 /** @brief Creates a signature for the group's shared state in packed form.
@@ -2103,16 +2107,17 @@ static int handle_gc_tcp_relays(GC_Chat *chat, GC_Connection *gconn, const uint8
 non_null()
 static bool send_gc_invite_request(const GC_Chat *chat, GC_Connection *gconn)
 {
-    uint16_t length = 0;
+    if (!chat_is_password_protected(chat)) {
+        return send_lossless_group_packet(chat, gconn, nullptr, 0, GP_INVITE_REQUEST);
+    }
+
     uint8_t data[sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE];
 
-    if (chat_is_password_protected(chat)) {
-        net_pack_u16(data, chat->shared_state.password_length);
-        length += sizeof(uint16_t);
+    net_pack_u16(data, chat->shared_state.password_length);
+    uint16_t length = sizeof(uint16_t);
 
-        memcpy(data + length, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
-        length += MAX_GC_PASSWORD_SIZE;
-    }
+    memcpy(data + length, chat->shared_state.password, MAX_GC_PASSWORD_SIZE);
+    length += MAX_GC_PASSWORD_SIZE;
 
     return send_lossless_group_packet(chat, gconn, data, length, GP_INVITE_REQUEST);
 }
@@ -3245,7 +3250,7 @@ static int make_gc_sanctions_list_packet(const GC_Chat *chat, uint8_t *data, uin
         return -1;
     }
 
-    return (int)(length + packed_len);
+    return length + packed_len;
 }
 
 /** @brief Sends the sanctions list to peer.
@@ -6207,6 +6212,39 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
     return true;
 }
 
+non_null(1, 2, 3, 4, 6) nullable(8)
+static int handle_gc_lossy_packet_decoded(
+    const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, const GC_Peer *peer,
+    uint8_t packet_type, const uint8_t *data, uint16_t payload_len, void *userdata)
+{
+    switch (packet_type) {
+        case GP_MESSAGE_ACK: {
+            return handle_gc_message_ack(chat, gconn, data, payload_len);
+        }
+
+        case GP_PING: {
+            return handle_gc_ping(chat, gconn, data, payload_len);
+        }
+
+        case GP_INVITE_RESPONSE_REJECT: {
+            return handle_gc_invite_response_reject(c, chat, data, payload_len, userdata);
+        }
+
+        case GP_CUSTOM_PACKET: {
+            return handle_gc_custom_packet(c, chat, peer, data, payload_len, false, userdata);
+        }
+
+        case GP_CUSTOM_PRIVATE_PACKET: {
+            return handle_gc_custom_private_packet(c, chat, peer, data, payload_len, false, userdata);
+        }
+
+        default: {
+            LOGGER_WARNING(chat->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
+            return -1;
+        }
+    }
+}
+
 /** @brief Handles lossy groupchat message packets.
  *
  * This function assumes the length has already been validated.
@@ -6255,41 +6293,7 @@ static bool handle_gc_lossy_packet(const GC_Session *c, GC_Chat *chat, const uin
         return false;
     }
 
-    int ret = -1;
-    const uint16_t payload_len = (uint16_t)len;
-
-    switch (packet_type) {
-        case GP_MESSAGE_ACK: {
-            ret = handle_gc_message_ack(chat, gconn, data, payload_len);
-            break;
-        }
-
-        case GP_PING: {
-            ret = handle_gc_ping(chat, gconn, data, payload_len);
-            break;
-        }
-
-        case GP_INVITE_RESPONSE_REJECT: {
-            ret = handle_gc_invite_response_reject(c, chat, data, payload_len, userdata);
-            break;
-        }
-
-        case GP_CUSTOM_PACKET: {
-            ret = handle_gc_custom_packet(c, chat, peer, data, payload_len, false, userdata);
-            break;
-        }
-
-        case GP_CUSTOM_PRIVATE_PACKET: {
-            ret = handle_gc_custom_private_packet(c, chat, peer, data, payload_len, false, userdata);
-            break;
-        }
-
-        default: {
-            LOGGER_WARNING(chat->log, "Warning: handling invalid lossy group packet type 0x%02x", packet_type);
-            free(data);
-            return false;
-        }
-    }
+    const int ret = handle_gc_lossy_packet_decoded(c, chat, gconn, peer, packet_type, data, (uint16_t)len, userdata);
 
     free(data);
 
@@ -8182,7 +8186,7 @@ GC_Session *new_dht_groupchats(Messenger *m)
     return c;
 }
 
-static void group_cleanup(GC_Session *c, GC_Chat *chat)
+static void group_cleanup(const GC_Session *c, GC_Chat *chat)
 {
     kill_group_friend_connection(c, chat);
 
@@ -8496,4 +8500,3 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
 
     return added_peers;
 }
-#endif  // VANILLA_NACL

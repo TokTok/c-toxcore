@@ -15,9 +15,14 @@
 #include "DHT.h"
 #include "LAN_discovery.h"
 #include "ccompat.h"
+#include "crypto_core.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
+#include "network.h"
+#include "onion.h"
 #include "shared_key_cache.h"
-#include "util.h"
+#include "timed_auth.h"
 
 #define PING_ID_TIMEOUT ONION_ANNOUNCE_TIMEOUT
 
@@ -669,6 +674,7 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
 
     onion_a->shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht_get_self_secret_key(dht), KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (onion_a->shared_keys_recv == nullptr) {
+        // cppcheck-suppress mismatchAllocDealloc
         kill_onion_announce(onion_a);
         return nullptr;
     }

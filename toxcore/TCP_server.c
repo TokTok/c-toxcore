@@ -8,7 +8,6 @@
  */
 #include "TCP_server.h"
 
-#include <stdlib.h>
 #include <string.h>
 #if !defined(_WIN32) && !defined(__WIN32__) && !defined (WIN32)
 #include <sys/ioctl.h>
@@ -19,11 +18,17 @@
 #include <unistd.h>
 #endif
 
+#include "DHT.h"
 #include "TCP_common.h"
 #include "ccompat.h"
+#include "crypto_core.h"
+#include "forwarding.h"
 #include "list.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
-#include "util.h"
+#include "network.h"
+#include "onion.h"
 
 #ifdef TCP_SERVER_USE_EPOLL
 #define TCP_SOCKET_LISTENING 0
@@ -86,6 +91,9 @@ struct TCP_Server {
 
     BS_List accepted_key_list;
 };
+
+static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,
+              "TCP_Server struct should not grow more; it's already 6MB");
 
 const uint8_t *tcp_server_public_key(const TCP_Server *tcp_server)
 {
@@ -909,7 +917,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
 
     if (!sock_valid(sock)) {
         LOGGER_ERROR(logger, "TCP socket creation failed (family = %d)", family.value);
-        return net_invalid_socket;
+        return net_invalid_socket();
     }
 
     bool ok = set_socket_nonblock(ns, sock);
@@ -930,7 +938,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
                        port, family.value, error != nullptr ? error : "(null)");
         net_kill_strerror(error);
         kill_sock(ns, sock);
-        return net_invalid_socket;
+        return net_invalid_socket();
     }
 
     LOGGER_DEBUG(logger, "successfully bound to TCP port %d", port);
@@ -963,20 +971,22 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     temp->ns = ns;
     temp->rng = rng;
 
-    temp->socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
+    Socket *socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
 
-    if (temp->socks_listening == nullptr) {
+    if (socks_listening == nullptr) {
         LOGGER_ERROR(logger, "socket allocation failed");
         mem_delete(mem, temp);
         return nullptr;
     }
+
+    temp->socks_listening = socks_listening;
 
 #ifdef TCP_SERVER_USE_EPOLL
     temp->efd = epoll_create(8);
 
     if (temp->efd == -1) {
         LOGGER_ERROR(logger, "epoll initialisation failed");
-        mem_delete(mem, temp->socks_listening);
+        mem_delete(mem, socks_listening);
         mem_delete(mem, temp);
         return nullptr;
     }
@@ -1144,8 +1154,7 @@ non_null()
 static void do_confirmed_recv(TCP_Server *tcp_server, uint32_t i)
 {
     while (tcp_process_secure_packet(tcp_server, i)) {
-        // Keep reading until an error occurs or there is no more data to read.
-        continue;
+        /* Keep reading until an error occurs or there is no more data to read. */
     }
 }
 

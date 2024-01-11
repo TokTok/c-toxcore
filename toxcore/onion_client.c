@@ -13,10 +13,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
 #include "LAN_discovery.h"
+#include "TCP_connection.h"
 #include "ccompat.h"
+#include "crypto_core.h"
 #include "group_onion_announce.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
+#include "net_crypto.h"
+#include "network.h"
+#include "onion.h"
+#include "onion_announce.h"
+#include "ping_array.h"
 #include "util.h"
 
 /** @brief defines for the array size and timeout for onion announce packets. */
@@ -671,7 +681,6 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
                       onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                       zero_ping_id, sendback);
         } else { // contact is a gc
-#ifndef VANILLA_NACL
             onion_friend->is_groupchat = true;
 
             len = create_gca_announce_request(
@@ -679,9 +688,6 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
                       onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
                       zero_ping_id, sendback, onion_friend->gc_data,
                       onion_friend->gc_data_length);
-#else
-            return -1;
-#endif  // VANILLA_NACL
         }
     }
 

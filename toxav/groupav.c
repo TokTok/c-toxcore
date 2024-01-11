@@ -290,8 +290,9 @@ static void group_av_peer_delete(void *object, uint32_t groupnumber, void *peer_
 
 static void group_av_groupchat_delete(void *object, uint32_t groupnumber)
 {
-    if (object != nullptr) {
-        kill_group_av((Group_AV *)object);
+    Group_AV *group_av = (Group_AV *)object;
+    if (group_av != nullptr) {
+        kill_group_av(group_av);
     }
 }
 
@@ -404,11 +405,12 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, uint3
 static int handle_group_audio_packet(void *object, uint32_t groupnumber, uint32_t friendgroupnumber, void *peer_object,
                                      const uint8_t *packet, uint16_t length)
 {
-    if (peer_object == nullptr || object == nullptr || length <= sizeof(uint16_t)) {
+    Group_AV *group_av = (Group_AV *)object;
+    Group_Peer_AV *peer_av = (Group_Peer_AV *)peer_object;
+
+    if (group_av == nullptr || peer_av == nullptr || length <= sizeof(uint16_t)) {
         return -1;
     }
-
-    Group_Peer_AV *peer_av = (Group_Peer_AV *)peer_object;
 
     Group_Audio_Packet *pk = (Group_Audio_Packet *)calloc(1, sizeof(Group_Audio_Packet));
 
@@ -433,8 +435,8 @@ static int handle_group_audio_packet(void *object, uint32_t groupnumber, uint32_
         return -1;
     }
 
-    while (decode_audio_packet((Group_AV *)object, peer_av, groupnumber, friendgroupnumber) == 0) {
-        continue;
+    while (decode_audio_packet(group_av, peer_av, groupnumber, friendgroupnumber) == 0) {
+        /* Continue. */
     }
 
     return 0;
@@ -612,7 +614,7 @@ static int send_audio_packet(const Group_Chats *g_c, uint32_t groupnumber, const
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-int group_send_audio(Group_Chats *g_c, uint32_t groupnumber, const int16_t *pcm, unsigned int samples, uint8_t channels,
+int group_send_audio(const Group_Chats *g_c, uint32_t groupnumber, const int16_t *pcm, unsigned int samples, uint8_t channels,
                      uint32_t sample_rate)
 {
     Group_AV *group_av = (Group_AV *)group_get_object(g_c, groupnumber);

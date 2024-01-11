@@ -23,17 +23,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 // toxcore
-#include "../../../toxcore/tox.h"
+#include "../../../toxcore/DHT.h"
 #include "../../../toxcore/LAN_discovery.h"
 #include "../../../toxcore/TCP_server.h"
 #include "../../../toxcore/announce.h"
+#include "../../../toxcore/ccompat.h"
+#include "../../../toxcore/crypto_core.h"
+#include "../../../toxcore/forwarding.h"
+#include "../../../toxcore/group_announce.h"
 #include "../../../toxcore/group_onion_announce.h"
 #include "../../../toxcore/logger.h"
+#include "../../../toxcore/mem.h"
 #include "../../../toxcore/mono_time.h"
+#include "../../../toxcore/network.h"
+#include "../../../toxcore/onion.h"
 #include "../../../toxcore/onion_announce.h"
-#include "../../../toxcore/util.h"
 
 // misc
 #include "../../bootstrap_node_packets.h"
@@ -57,7 +64,7 @@ static void sleep_milliseconds(uint32_t ms)
 // returns 1 on success
 //         0 on failure - no keys were read or stored
 
-static int manage_keys(DHT *dht, char *keys_file_path)
+static int manage_keys(DHT *dht, const char *keys_file_path)
 {
     enum { KEYS_SIZE = CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SECRET_KEY_SIZE };
     uint8_t keys[KEYS_SIZE];
@@ -116,7 +123,7 @@ static void print_public_key(const uint8_t *public_key)
 // Demonizes the process, appending PID to the PID file and closing file descriptors based on log backend
 // Terminates the application if the daemonization fails.
 
-static void daemonize(LOG_BACKEND log_backend, char *pid_file_path)
+static Cli_Status daemonize(LOG_BACKEND log_backend, char *pid_file_path)
 {
     // Check if the PID file exists
     FILE *pid_file = fopen(pid_file_path, "r");
@@ -131,7 +138,7 @@ static void daemonize(LOG_BACKEND log_backend, char *pid_file_path)
 
     if (pid_file == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't open the PID file for writing: %s. Exiting.\n", pid_file_path);
-        exit(1);
+        return CLI_STATUS_ERROR;
     }
 
     // Fork off from the parent process
@@ -141,27 +148,27 @@ static void daemonize(LOG_BACKEND log_backend, char *pid_file_path)
         fprintf(pid_file, "%d", pid);
         fclose(pid_file);
         log_write(LOG_LEVEL_INFO, "Forked successfully: PID: %d.\n", pid);
-        exit(0);
+        return CLI_STATUS_DONE;
     } else {
         fclose(pid_file);
     }
 
     if (pid < 0) {
         log_write(LOG_LEVEL_ERROR, "Forking failed. Exiting.\n");
-        exit(1);
+        return CLI_STATUS_ERROR;
     }
 
     // Create a new SID for the child process
     if (setsid() < 0) {
         log_write(LOG_LEVEL_ERROR, "SID creation failure. Exiting.\n");
-        exit(1);
+        return CLI_STATUS_ERROR;
     }
 
 
     // Change the current working directory
     if ((chdir("/")) < 0) {
         log_write(LOG_LEVEL_ERROR, "Couldn't change working directory to '/'. Exiting.\n");
-        exit(1);
+        return CLI_STATUS_ERROR;
     }
 
     // Go quiet
@@ -170,6 +177,8 @@ static void daemonize(LOG_BACKEND log_backend, char *pid_file_path)
         close(STDIN_FILENO);
         close(STDERR_FILENO);
     }
+
+    return CLI_STATUS_OK;
 }
 
 // Logs toxcore logger message using our logger facility
@@ -212,11 +221,18 @@ int main(int argc, char *argv[])
     char *cfg_file_path = nullptr;
     bool run_in_foreground = false;
 
-    // choose backend for printing command line argument parsing output based on whether the daemon is being run from a terminal
+    // Choose backend for printing command line argument parsing output based on whether the daemon is being run from a terminal
     LOG_BACKEND log_backend = isatty(STDOUT_FILENO) ? LOG_BACKEND_STDOUT : LOG_BACKEND_SYSLOG;
 
     log_open(log_backend);
-    handle_command_line_arguments(argc, argv, &cfg_file_path, &log_backend, &run_in_foreground);
+    switch (handle_command_line_arguments(argc, argv, &cfg_file_path, &log_backend, &run_in_foreground)) {
+        case CLI_STATUS_OK:
+            break;
+        case CLI_STATUS_DONE:
+            return 0;
+        case CLI_STATUS_ERROR:
+            return 1;
+    }
     log_close();
 
     log_open(log_backend);
@@ -254,7 +270,14 @@ int main(int argc, char *argv[])
     }
 
     if (!run_in_foreground) {
-        daemonize(log_backend, pid_file_path);
+        switch (daemonize(log_backend, pid_file_path)) {
+            case CLI_STATUS_OK:
+                break;
+            case CLI_STATUS_DONE:
+                return 0;
+            case CLI_STATUS_ERROR:
+                return 1;
+        }
     }
 
     free(pid_file_path);

@@ -232,7 +232,7 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
 non_null()
 int dht_create_packet(const Memory *mem, const Random *rng,
                       const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE],
-                      const uint8_t *shared_key, const uint8_t type,
+                      const uint8_t *shared_key, uint8_t type,
                       const uint8_t *plain, size_t plain_length,
                       uint8_t *packet, size_t length);
 
@@ -370,7 +370,8 @@ unsigned int bit_by_bit_cmp(const uint8_t *pk1, const uint8_t *pk2);
  */
 non_null()
 bool add_to_list(
-    Node_format *nodes_list, uint32_t length, const uint8_t *pk, const IP_Port *ip_port, const uint8_t *cmp_pk);
+        Node_format *nodes_list, uint32_t length, const uint8_t pk[CRYPTO_PUBLIC_KEY_SIZE],
+        const IP_Port *ip_port, const uint8_t cmp_pk[CRYPTO_PUBLIC_KEY_SIZE]);
 
 /** Return 1 if node can be added to close list, 0 if it can't. */
 non_null()
@@ -383,18 +384,20 @@ void set_announce_node(DHT *dht, const uint8_t *public_key);
 #endif
 
 /**
- * Get the (maximum MAX_SENT_NODES) closest nodes to public_key we know
+ * @brief Get the (maximum MAX_SENT_NODES) closest nodes to public_key we know
  * and put them in nodes_list (must be MAX_SENT_NODES big).
  *
- * sa_family = family (IPv4 or IPv6) (0 if we don't care)?
- * is_LAN = return some LAN ips (true or false)
- * want_announce: return only nodes which implement the dht announcements protocol.
+ * @param sa_family family (IPv4 or IPv6) (0 if we don't care)?
+ * @param is_lan return some LAN ips (true or false).
+ * @param want_announce return only nodes which implement the dht announcements protocol.
  *
  * @return the number of nodes returned.
  */
 non_null()
-int get_close_nodes(const DHT *dht, const uint8_t *public_key, Node_format *nodes_list, Family sa_family,
-                    bool is_lan, bool want_announce);
+int get_close_nodes(
+        const DHT *dht, const uint8_t *public_key,
+        Node_format *nodes_list, Family sa_family,
+        bool is_lan, bool want_announce);
 
 
 /** @brief Put up to max_num nodes in nodes from the random friends.

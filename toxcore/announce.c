@@ -12,8 +12,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
 #include "LAN_discovery.h"
 #include "ccompat.h"
+#include "crypto_core.h"
+#include "forwarding.h"
+#include "logger.h"
+#include "mem.h"
+#include "mono_time.h"
+#include "network.h"
 #include "shared_key_cache.h"
 #include "timed_auth.h"
 #include "util.h"
@@ -236,13 +243,15 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
             free(entry->data);
         }
 
-        entry->data = (uint8_t *)malloc(length);
+        uint8_t *entry_data = (uint8_t *)malloc(length);
 
-        if (entry->data == nullptr) {
+        if (entry_data == nullptr) {
+            entry->data = nullptr;  // TODO(iphydf): Is this necessary?
             return false;
         }
 
-        memcpy(entry->data, data, length);
+        memcpy(entry_data, data, length);
+        entry->data = entry_data;
     }
 
     entry->length = length;
@@ -302,7 +311,7 @@ static int create_reply_plain_data_search_request(Announcements *announce,
         const IP_Port *source,
         const uint8_t *data, uint16_t length,
         uint8_t *reply, uint16_t reply_max_length,
-        uint8_t *to_auth, uint16_t to_auth_length)
+        const uint8_t *to_auth, uint16_t to_auth_length)
 {
     if (length != CRYPTO_PUBLIC_KEY_SIZE &&
             length != CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA256_SIZE) {
@@ -377,11 +386,12 @@ static int create_reply_plain_data_search_request(Announcements *announce,
 }
 
 non_null()
-static int create_reply_plain_data_retrieve_request(Announcements *announce,
+static int create_reply_plain_data_retrieve_request(
+        const Announcements *announce,
         const IP_Port *source,
         const uint8_t *data, uint16_t length,
         uint8_t *reply, uint16_t reply_max_length,
-        uint8_t *to_auth, uint16_t to_auth_length)
+        const uint8_t *to_auth, uint16_t to_auth_length)
 {
     if (length != CRYPTO_PUBLIC_KEY_SIZE + 1 + TIMED_AUTH_SIZE) {
         return -1;
@@ -423,10 +433,10 @@ static int create_reply_plain_store_announce_request(Announcements *announce,
         const IP_Port *source,
         const uint8_t *data, uint16_t length,
         uint8_t *reply, uint16_t reply_max_length,
-        uint8_t *to_auth, uint16_t to_auth_length)
+        const uint8_t *to_auth, uint16_t to_auth_length)
 {
     const int plain_len = (int)length - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
-    const int announcement_len = (int)plain_len - (TIMED_AUTH_SIZE + sizeof(uint32_t) + 1);
+    const int announcement_len = plain_len - (TIMED_AUTH_SIZE + sizeof(uint32_t) + 1);
 
     const uint8_t *const data_public_key = data;
 

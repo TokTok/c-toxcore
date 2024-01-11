@@ -9,7 +9,7 @@ namespace {
 struct Announces : ::testing::Test {
 protected:
     const Memory *mem_ = system_memory();
-    uint64_t clock_ = 0;
+    uint64_t clock_ = 1000;
     Mono_Time *mono_time_ = nullptr;
     GC_Announces_List *gca_ = nullptr;
     GC_Announce _ann1;
@@ -141,7 +141,7 @@ protected:
         ann2.ip_port_is_set = 1;
         ann2.tcp_relays_count = 1;
         ann2.tcp_relays[0].ip_port.ip.family = net_family_ipv4();
-        ann2.tcp_relays[0].ip_port.ip.ip.v4 = ip4_broadcast;
+        ann2.tcp_relays[0].ip_port.ip.ip.v4 = get_ip4_broadcast();
         ann2.tcp_relays[0].public_key[0] = 0xea;
     }
 

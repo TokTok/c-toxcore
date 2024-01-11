@@ -15,9 +15,10 @@
 #include <string.h>
 #include <time.h>
 
+#include "DHT.h"
 #include "ccompat.h"
 #include "crypto_core.h"
-#include "mono_time.h"
+#include "logger.h"
 #include "network.h"
 #include "util.h"
 
@@ -58,14 +59,16 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length
     uint16_t unpacked_len = 0;
 
     for (uint16_t i = 0; i < num_mods; ++i) {
-        tmp_list[i] = (uint8_t *)malloc(sizeof(uint8_t) * MOD_LIST_ENTRY_SIZE);
+        uint8_t *entry = (uint8_t *)malloc(MOD_LIST_ENTRY_SIZE);
 
-        if (tmp_list[i] == nullptr) {
+        if (entry == nullptr) {
             free_uint8_t_pointer_array(moderation->mem, tmp_list, i);
             return -1;
         }
 
-        memcpy(tmp_list[i], &data[i * MOD_LIST_ENTRY_SIZE], MOD_LIST_ENTRY_SIZE);
+        memcpy(entry, &data[i * MOD_LIST_ENTRY_SIZE], MOD_LIST_ENTRY_SIZE);
+        tmp_list[i] = entry;
+
         unpacked_len += MOD_LIST_ENTRY_SIZE;
     }
 
@@ -207,13 +210,15 @@ bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
 
     moderation->mod_list = tmp_list;
 
-    tmp_list[moderation->num_mods] = (uint8_t *)malloc(sizeof(uint8_t) * MOD_LIST_ENTRY_SIZE);
+    uint8_t *entry = (uint8_t *)malloc(MOD_LIST_ENTRY_SIZE);
 
-    if (tmp_list[moderation->num_mods] == nullptr) {
+    if (entry == nullptr) {
         return false;
     }
 
-    memcpy(tmp_list[moderation->num_mods], mod_data, MOD_LIST_ENTRY_SIZE);
+    memcpy(entry, mod_data, MOD_LIST_ENTRY_SIZE);
+
+    tmp_list[moderation->num_mods] = entry;
     ++moderation->num_mods;
 
     return true;
@@ -305,7 +310,7 @@ int sanctions_list_pack(uint8_t *data, uint16_t length, const Mod_Sanction *sanc
         return -1;
     }
 
-    return (int)(packed_len + cred_len);
+    return packed_len + cred_len;
 }
 
 uint16_t sanctions_creds_unpack(Mod_Sanction_Creds *creds, const uint8_t *data)
@@ -457,7 +462,7 @@ static bool sanctions_list_validate_entry(const Moderation *moderation, const Mo
     uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, 1, nullptr);
 
-    if (packed_len <= (int) SIGNATURE_SIZE) {
+    if (packed_len <= SIGNATURE_SIZE) {
         return false;
     }
 
@@ -785,7 +790,7 @@ static bool sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction
     uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, 1, nullptr);
 
-    if (packed_len <= (int) SIGNATURE_SIZE) {
+    if (packed_len <= SIGNATURE_SIZE) {
         LOGGER_ERROR(moderation->log, "Failed to pack sanctions list: %d", packed_len);
         return false;
     }

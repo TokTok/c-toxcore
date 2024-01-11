@@ -10,13 +10,19 @@
  */
 #include "net_crypto.h"
 
-#include <math.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
+#include "LAN_discovery.h"
+#include "TCP_client.h"
+#include "TCP_connection.h"
 #include "ccompat.h"
+#include "crypto_core.h"
 #include "list.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
+#include "network.h"
 #include "util.h"
 
 typedef struct Packet_Data {
@@ -219,10 +225,9 @@ static int create_cookie_request(const Net_Crypto *c, uint8_t *packet, const uin
                                  uint64_t number, uint8_t *shared_key)
 {
     uint8_t plain[COOKIE_REQUEST_PLAIN_LENGTH];
-    uint8_t padding[CRYPTO_PUBLIC_KEY_SIZE] = {0};
 
     memcpy(plain, c->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(plain + CRYPTO_PUBLIC_KEY_SIZE, padding, CRYPTO_PUBLIC_KEY_SIZE);
+    memset(plain + CRYPTO_PUBLIC_KEY_SIZE, 0, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(plain + (CRYPTO_PUBLIC_KEY_SIZE * 2), &number, sizeof(uint64_t));
     const uint8_t *tmp_shared_key = dht_get_shared_key_sent(c->dht, dht_public_key);
     memcpy(shared_key, tmp_shared_key, CRYPTO_SHARED_KEY_SIZE);
@@ -1863,25 +1868,26 @@ static int create_crypto_connection(Net_Crypto *c)
     }
 
     if (id != -1) {
+        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(c->mem, sizeof(pthread_mutex_t));
+
+        if (mutex == nullptr) {
+            pthread_mutex_unlock(&c->connections_mutex);
+            return -1;
+        }
+
+        if (pthread_mutex_init(mutex, nullptr) != 0) {
+            mem_delete(c->mem, mutex);
+            pthread_mutex_unlock(&c->connections_mutex);
+            return -1;
+        }
+
         // Memsetting float/double to 0 is non-portable, so we explicitly set them to 0
-        c->crypto_connections[id].packet_recv_rate = 0;
-        c->crypto_connections[id].packet_send_rate = 0;
-        c->crypto_connections[id].last_packets_left_rem = 0;
-        c->crypto_connections[id].packet_send_rate_requested = 0;
-        c->crypto_connections[id].last_packets_left_requested_rem = 0;
-        c->crypto_connections[id].mutex = (pthread_mutex_t *)mem_alloc(c->mem, sizeof(pthread_mutex_t));
-
-        if (c->crypto_connections[id].mutex == nullptr) {
-            pthread_mutex_unlock(&c->connections_mutex);
-            return -1;
-        }
-
-        if (pthread_mutex_init(c->crypto_connections[id].mutex, nullptr) != 0) {
-            mem_delete(c->mem, c->crypto_connections[id].mutex);
-            pthread_mutex_unlock(&c->connections_mutex);
-            return -1;
-        }
-
+        c->crypto_connections[id].packet_recv_rate = 0.0;
+        c->crypto_connections[id].packet_send_rate = 0.0;
+        c->crypto_connections[id].last_packets_left_rem = 0.0;
+        c->crypto_connections[id].packet_send_rate_requested = 0.0;
+        c->crypto_connections[id].last_packets_left_requested_rem = 0.0;
+        c->crypto_connections[id].mutex = mutex;
         c->crypto_connections[id].status = CRYPTO_CONN_NO_CONNECTION;
     }
 
@@ -2017,13 +2023,14 @@ non_null(1, 2, 3) nullable(5)
 static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source, const uint8_t *data, uint16_t length,
         void *userdata)
 {
-    New_Connection n_c;
-    n_c.cookie = (uint8_t *)mem_balloc(c->mem, COOKIE_LENGTH);
+    uint8_t *cookie = (uint8_t *)mem_balloc(c->mem, COOKIE_LENGTH);
 
-    if (n_c.cookie == nullptr) {
+    if (cookie == nullptr) {
         return -1;
     }
 
+    New_Connection n_c = {{{{0}}}};
+    n_c.cookie = cookie;
     n_c.source = *source;
     n_c.cookie_length = COOKIE_LENGTH;
 

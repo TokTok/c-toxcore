@@ -1,9 +1,11 @@
 #include <cassert>
 #include <cstdio>
 
+#include "../../toxcore/crypto_core.h"
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_private.h"
 #include "fuzz_support.h"
 #include "fuzz_tox.h"
 

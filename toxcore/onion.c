@@ -9,12 +9,16 @@
 #include "onion.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
+#include "DHT.h"
 #include "ccompat.h"
+#include "crypto_core.h"
+#include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
-#include "util.h"
+#include "network.h"
+#include "shared_key_cache.h"
 
 #define RETURN_1 ONION_RETURN_1
 #define RETURN_2 ONION_RETURN_2
@@ -735,6 +739,7 @@ Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_tim
     if (onion->shared_keys_1 == nullptr ||
         onion->shared_keys_2 == nullptr ||
         onion->shared_keys_3 == nullptr) {
+        // cppcheck-suppress mismatchAllocDealloc
         kill_onion(onion);
         return nullptr;
     }

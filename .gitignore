@@ -14,6 +14,8 @@ Thumbs.db
 /_build
 /_install
 /tox-0.0.0*
+/.vs
+/CppProperties.json
 CMakeCache.txt
 CMakeFiles
 Makefile
@@ -91,6 +93,7 @@ cscope.files
 # rpm
 tox.spec
 
+/infer
 .idea/
 
 # zig

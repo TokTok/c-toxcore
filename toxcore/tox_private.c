@@ -10,10 +10,15 @@
 
 #include <assert.h>
 
+#include "DHT.h"
 #include "ccompat.h"
+#include "crypto_core.h"
 #include "group_chats.h"
+#include "group_common.h"
 #include "mem.h"
+#include "net_crypto.h"
 #include "network.h"
+#include "tox.h"
 #include "tox_struct.h"
 
 #define SET_ERROR_PARAMETER(param, x) \
@@ -167,7 +172,6 @@ uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox){
     return num_cap;
 }
 
-#ifndef VANILLA_NACL
 size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number, uint32_t peer_id,
                                           Tox_Err_Group_Peer_Query *error)
 {
@@ -219,5 +223,3 @@ bool tox_group_peer_get_ip_address(const Tox *tox, uint32_t group_number, uint32
     SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_QUERY_OK);
     return true;
 }
-
-#endif  /* VANILLA_NACL */

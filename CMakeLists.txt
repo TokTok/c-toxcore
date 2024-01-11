@@ -81,7 +81,7 @@ find_package(GTest)
 set(CMAKE_MACOSX_RPATH ON)
 
 # Set standard version for compiler.
-if(MSVC)
+if(MSVC AND MSVC_TOOLSET_VERSION LESS 143)
   # https://developercommunity.visualstudio.com/t/older-winsdk-headers-are-incompatible-with-zcprepr/1593479
   set(CMAKE_C_STANDARD 99)
 else()
@@ -93,6 +93,35 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 message(STATUS "Supported C compiler features = ${CMAKE_C_COMPILE_FEATURES}")
 message(STATUS "Supported C++ compiler features = ${CMAKE_CXX_COMPILE_FEATURES}")
+
+# Enable some warnings if we know the compiler.
+if(MSVC)
+  add_compile_options(/W4 /analyze)
+  add_compile_options(/wd4100)  # unreferenced formal parameter
+  add_compile_options(/wd4267)  # narrowing conversion
+  add_compile_options(/wd4244)  # narrowing conversion
+  add_compile_options(/wd4127)  # conditional expression is constant
+  add_compile_options(/wd4995)  # #pragma deprecated
+  add_compile_options(/wd4018)  # signed/unsigned compare
+  add_compile_options(/wd4310)  # cast truncates constant value
+  add_compile_options(/wd4389)  # signed/unsigned compare
+  add_compile_options(/wd4245)  # signed/unsigned assign/return/function call
+  add_compile_options(/wd4200)  # nonstandard extension used: zero-sized array in struct/union
+  add_compile_options(/wd4702)  # unreachable code
+  add_compile_options(/wd6340)  # unsigned int passed to signed parameter
+  add_compile_options(/wd6326)  # potential comparison of a constant with another constant
+
+  # TODO(iphydf): Look into these
+  add_compile_options(/wd4996)  # use WSAAddressToStringW() instead of WSAAddressToStringA()
+  add_compile_options(/wd6255)  # don't use alloca
+  add_compile_options(/wd6385)  # reading invalid data
+  add_compile_options(/wd6001)  # using uninitialized memory
+  add_compile_options(/wd6101)  # returning uninitialized memory
+  add_compile_options(/wd6386)  # buffer overrun
+  add_compile_options(/wd6011)  # NULL dereference
+  add_compile_options(/wd6031)  # sscanf return value ignored
+  add_compile_options(/wd6387)  # passing NULL to fwrite
+endif()
 
 set(MIN_LOGGER_LEVEL "" CACHE STRING "Logging level to use (TRACE, DEBUG, INFO, WARNING, ERROR)")
 if(MIN_LOGGER_LEVEL)
@@ -116,7 +145,7 @@ option(BUILD_MISC_TESTS "Build additional tests and utilities" OFF)
 option(BUILD_FUN_UTILS "Build additional just for fun utilities" OFF)
 
 option(AUTOTEST "Enable autotests (mainly for CI)" OFF)
-if (AUTOTEST)
+if(AUTOTEST)
   option(NON_HERMETIC_TESTS "Whether to build and run tests that depend on an internet connection" OFF)
   option(PROXY_TEST "Enable proxy test (needs HTTP/SOCKS5 proxy on port 8080/8081)" OFF)
 endif()
@@ -307,7 +336,14 @@ set(toxcore_SOURCES
   toxcore/tox_unpack.h
   toxcore/util.c
   toxcore/util.h)
-set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${LIBSODIUM_LIBRARIES})
+if(TARGET unofficial-sodium::sodium)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} unofficial-sodium::sodium)
+else()
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${LIBSODIUM_LIBRARIES})
+  set(toxcore_LINK_DIRECTORIES ${toxcore_LINK_DIRECTORIES} ${LIBSODIUM_LIBRARY_DIRS})
+  set(toxcore_INCLUDE_DIRECTORIES ${toxcore_INCLUDE_DIRECTORIES} ${LIBSODIUM_INCLUDE_DIRS})
+  set(toxcore_COMPILE_OPTIONS ${toxcore_COMPILE_OPTIONS} ${LIBSODIUM_CFLAGS_OTHER})
+endif()
 set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} libsodium)
 set(toxcore_API_HEADERS
   ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox
@@ -343,7 +379,14 @@ if(BUILD_TOXAV)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
     ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
 
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${OPUS_LIBRARIES} ${VPX_LIBRARIES})
+  if(MSVC)
+    set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} PkgConfig::OPUS PkgConfig::VPX)
+  else()
+    set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${OPUS_LIBRARIES} ${VPX_LIBRARIES})
+    set(toxcore_LINK_DIRECTORIES ${toxcore_LINK_DIRECTORIES} ${OPUS_LIBRARY_DIRS} ${VPX_LIBRARY_DIRS})
+    set(toxcore_INCLUDE_DIRECTORIES ${toxcore_INCLUDE_DIRECTORIES} ${OPUS_INCLUDE_DIRS} ${VPX_INCLUDE_DIRS})
+    set(toxcore_COMPILE_OPTIONS ${toxcore_COMPILE_OPTIONS} ${OPUS_CFLAGS_OTHER} ${VPX_CFLAGS_OTHER})
+  endif()
   set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} opus vpx)
 endif()
 
@@ -370,29 +413,32 @@ set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
 # any potential libvpx linking.
 message("CMAKE_THREAD_LIBS_INIT: ${CMAKE_THREAD_LIBS_INIT}")
 if(CMAKE_THREAD_LIBS_INIT)
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${CMAKE_THREAD_LIBS_INIT})
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
   set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
-
 if(NSL_LIBRARIES)
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${NSL_LIBRARIES})
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${NSL_LIBRARIES})
   set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} -lnsl)
 endif()
 
 if(RT_LIBRARIES)
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${RT_LIBRARIES})
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${RT_LIBRARIES})
   set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} -lrt)
 endif()
 
 if(SOCKET_LIBRARIES)
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ${SOCKET_LIBRARIES})
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} ${SOCKET_LIBRARIES})
   set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} -lsocket)
 endif()
 
+if(TARGET PThreads4W::PThreads4W)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} PThreads4W::PThreads4W)
+elseif(TARGET Threads::Threads)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Threads::Threads)
+endif()
 if(WIN32)
-  set(toxcore_LINK_MODULES ${toxcore_LINK_MODULES} ws2_32 iphlpapi)
-  set(toxcore_PKGCONFIG_LIBS ${toxcore_PKGCONFIG_LIBS} -lws2_32 -liphlpapi)
+  set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} iphlpapi wsock32 ws2_32)
 endif()
 
 ################################################################################
@@ -405,7 +451,18 @@ endif()
 add_module(toxcore ${toxcore_SOURCES})
 
 # Link it to all dependencies.
-target_link_modules(toxcore ${toxcore_LINK_MODULES})
+if(TARGET toxcore_static)
+  target_link_libraries(toxcore_static PRIVATE ${toxcore_LINK_LIBRARIES})
+  target_link_directories(toxcore_static PUBLIC ${toxcore_LINK_DIRECTORIES})
+  target_include_directories(toxcore_static SYSTEM PRIVATE ${toxcore_INCLUDE_DIRECTORIES})
+  target_compile_options(toxcore_static PRIVATE ${toxcore_COMPILE_OPTIONS})
+endif()
+if(TARGET toxcore_shared)
+  target_link_libraries(toxcore_shared PRIVATE ${toxcore_LINK_LIBRARIES})
+  target_link_directories(toxcore_shared PUBLIC ${toxcore_LINK_DIRECTORIES})
+  target_include_directories(toxcore_shared SYSTEM PRIVATE ${toxcore_INCLUDE_DIRECTORIES})
+  target_compile_options(toxcore_shared PRIVATE ${toxcore_COMPILE_OPTIONS})
+endif()
 
 # Make version script (on systems that support it) to limit symbol visibility.
 make_version_script(toxcore ${toxcore_API_HEADERS})
@@ -420,10 +477,25 @@ install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
 #
 ################################################################################
 
+add_library(test_util STATIC
+  toxcore/DHT_test_util.cc
+  toxcore/DHT_test_util.hh
+  toxcore/crypto_core_test_util.cc
+  toxcore/crypto_core_test_util.hh
+  toxcore/network_test_util.cc
+  toxcore/network_test_util.hh
+  toxcore/test_util.cc
+  toxcore/test_util.hh)
+
 function(unit_test subdir target)
   add_executable(unit_${target}_test ${subdir}/${target}_test.cc)
-  target_link_modules(unit_${target}_test toxcore)
-  target_link_libraries(unit_${target}_test GTest::GTest GTest::Main)
+  target_link_libraries(unit_${target}_test PRIVATE test_util)
+  if(TARGET toxcore_static)
+    target_link_libraries(unit_${target}_test PRIVATE toxcore_static)
+  else()
+    target_link_libraries(unit_${target}_test PRIVATE toxcore_shared)
+  endif()
+  target_link_libraries(unit_${target}_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
   add_test(NAME ${target} COMMAND ${CROSSCOMPILING_EMULATOR} unit_${target}_test)
   set_property(TEST ${target} PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw")
@@ -443,6 +515,7 @@ if(GTEST_FOUND)
   unit_test(toxcore mem)
   unit_test(toxcore mono_time)
   unit_test(toxcore ping_array)
+  unit_test(toxcore test_util)
   unit_test(toxcore tox)
   unit_test(toxcore util)
 endif()
@@ -469,7 +542,20 @@ if(DHT_BOOTSTRAP)
   add_executable(DHT_bootstrap
     other/DHT_bootstrap.c
     other/bootstrap_node_packets.c)
-  target_link_modules(DHT_bootstrap toxcore misc_tools)
+  if(TARGET toxcore_static)
+    target_link_libraries(DHT_bootstrap PRIVATE toxcore_static)
+  else()
+    target_link_libraries(DHT_bootstrap PRIVATE toxcore_shared)
+  endif()
+  target_link_libraries(DHT_bootstrap PRIVATE misc_tools)
+  if(TARGET unofficial-sodium::sodium)
+    target_link_libraries(DHT_bootstrap PRIVATE unofficial-sodium::sodium)
+  endif()
+  if(TARGET PThreads4W::PThreads4W)
+    target_link_libraries(DHT_bootstrap PRIVATE PThreads4W::PThreads4W)
+  elseif(TARGET Threads::Threads)
+    target_link_libraries(DHT_bootstrap PRIVATE Threads::Threads)
+  endif()
   install(TARGETS DHT_bootstrap RUNTIME DESTINATION bin)
 endif()
 
