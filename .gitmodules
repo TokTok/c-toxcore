@@ -1,3 +1,6 @@
 [submodule "third_party/cmp"]
 	path = third_party/cmp
 	url = https://github.com/camgunz/cmp
+[submodule "other/docker/coverage/mallocfail"]
+	path = other/docker/coverage/mallocfail
+	url = https://github.com/TokTok/mallocfail
