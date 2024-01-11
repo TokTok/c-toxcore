@@ -2,6 +2,7 @@ const std = @import("std");
 const Build = std.Build;
 const Step = Build.Step;
 const Compile = Step.Compile;
+const Dependency = Build.Dependency;
 const fs = std.fs;
 
 pub fn build(b: *Build) !void {
@@ -13,12 +14,19 @@ pub fn build(b: *Build) !void {
         .{ .target = target, .optimize = optimize, .static = true, .shared = false },
     );
     const libsodium = libsodium_dep.artifact("sodium");
-    const winpthreads_dep = b.dependency("winpthreads", .{
-        .target = target,
-        .optimize = optimize,
-    });
-    const winpthreads = winpthreads_dep.artifact("winpthreads");
-    const gtest_dep = b.dependency("gtest", .{ .target = target, .optimize = optimize });
+
+    const win_build = target.result.isMinGW();
+    var winpthreads_dep: ?*Dependency = null;
+    var winpthreads: ?*Compile = null;
+    if (win_build) {
+        winpthreads_dep = b.dependency(
+            "winpthreads",
+            .{ .target = target, .optimize = optimize },
+        );
+        winpthreads =
+            winpthreads_dep.?.artifact("winpthreads");
+    }
+    const gt_dep = b.dependency("gtest", .{ .target = target, .optimize = optimize });
     const cmp_dep = b.dependency("cmp", .{});
     // we copy the third_party dependencies into the source tree
     // not an ideal solution but we need them there and git
@@ -112,10 +120,10 @@ pub fn build(b: *Build) !void {
 
     const static_lib = b.addStaticLibrary(.{ .name = "toxcore", .target = target, .optimize = optimize });
     const shared_lib = b.addSharedLibrary(.{
-        .name = if (target.result.isMinGW()) "toxcore_shared" else "toxcore",
+        .name = if (win_build) "toxcore_shared" else "toxcore",
         .target = target,
         .optimize = optimize,
-        .strip = optimize != .Debug and !target.result.isMinGW(),
+        .strip = optimize != .Debug and !win_build,
     });
     // work out which libraries we are building
     var libs = std.ArrayList(*Compile).init(b.allocator);
@@ -137,9 +145,10 @@ pub fn build(b: *Build) !void {
         lib.linkLibC();
         lib.installHeadersDirectory("toxcore", "toxcore");
         lib.linkLibrary(libsodium);
-        if (target.result.isMinGW()) {
-            lib.linkLibrary(winpthreads);
-            lib.addIncludePath(winpthreads_dep.path("include"));
+        if (winpthreads) |w| {
+            lib.linkLibrary(w);
+            if (winpthreads_dep) |d|
+                lib.addIncludePath(d.path("include"));
             lib.linkSystemLibrary("ws2_32");
             lib.linkSystemLibrary("iphlpapi");
         }
@@ -175,14 +184,15 @@ pub fn build(b: *Build) !void {
             "network.zig",
         ).step);
     }
-    // -----
     if (build_static) {
-        const gtest_lib = gtest_dep.artifact("gtest");
-        const gtest_main = gtest_dep.artifact("gtest-main");
+        // ----- gtest ---------------
+        const gtest_lib = gt_dep.artifact("gtest");
+        const gtest_main = gt_dep.artifact("gtest-main");
         const gtest_files = &.{
             "toxcore/bin_pack_test.cc",
             "toxcore/crypto_core_test.cc",
-            "toxcore/DHT_test.cc",
+            "toxcore/crypto_core_test_util.cc",
+            //"toxcore/DHT_test.cc",
             "toxcore/friend_connection_test.cc",
             "toxcore/group_announce_test.cc",
             "toxcore/group_moderation_test.cc",
@@ -208,12 +218,42 @@ pub fn build(b: *Build) !void {
         gtest.linkLibrary(gtest_lib);
         gtest.linkLibrary(gtest_main);
         gtest.linkLibC();
-        if (target.result.isMinGW()) {
-            gtest.linkLibrary(winpthreads);
-            gtest.addIncludePath(winpthreads_dep.path("include"));
+        if (winpthreads) |w| {
+            gtest.linkLibrary(w);
+            if (winpthreads_dep) |d|
+                gtest.addIncludePath(d.path("include"));
             gtest.linkSystemLibrary("ws2_32");
             gtest.linkSystemLibrary("iphlpapi");
         }
         b.installArtifact(gtest);
+        // ----- gmock---------------
+        const gmock_lib = gt_dep.artifact("gmock");
+        const gmock_main = gt_dep.artifact("gmock-main");
+        const gmock_files = &.{
+            "toxcore/DHT_test.cc",
+            "toxcore/DHT_test_util.cc",
+            "toxcore/network_test_util.cc",
+            "toxcore/crypto_core_test_util.cc",
+        };
+        const gmock = b.addExecutable(.{
+            .name = "gmock",
+            .target = target,
+            .optimize = optimize,
+        });
+        gmock.addCSourceFiles(.{ .files = gmock_files });
+        gmock.installLibraryHeaders(static_lib);
+        gmock.linkLibrary(static_lib);
+        gmock.installLibraryHeaders(gmock_lib);
+        gmock.linkLibrary(gmock_lib);
+        gmock.linkLibrary(gmock_main);
+        gmock.linkLibC();
+        if (winpthreads) |w| {
+            gmock.linkLibrary(w);
+            if (winpthreads_dep) |d|
+                gmock.addIncludePath(d.path("include"));
+            gmock.linkSystemLibrary("ws2_32");
+            gmock.linkSystemLibrary("iphlpapi");
+        }
+        b.installArtifact(gmock);
     }
 }

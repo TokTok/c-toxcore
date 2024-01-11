@@ -11,8 +11,8 @@
             .hash = "1220af4c5faf5ab037d3e574d462d47a01796eabdf7c32e52220d4065922a2ed8f55",
         },
         .gtest = .{
-            .url = "https://github.com/nodecum/gtest-zig/archive/96ea46cd250b14745c2c3e935eff01fff219a9ea.tar.gz",
-            .hash = "12204aedcd1b41d9c9fd3608ca1ad813af6a45be0229d9d6125518dd13f669d767cb",
+            .url = "https://github.com/nodecum/gtest-zig/archive/30e2f0eacc2d6ef8d6401acde004911e1c9af36.tar.gz",
+            .hash = "1220a5cfec9e4092a368de3fe0be74b1baea9f2f21d8cb55c8ba6aecf51e3497d16a",
         },
         .winpthreads = .{
             .url = "https://github.com/kassane/winpthreads-zigbuild/archive/4850eab41943f3ea828de705d2f1b8714a310c8e.tar.gz",
