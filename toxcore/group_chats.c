@@ -5023,17 +5023,7 @@ static bool custom_gc_packet_length_is_valid(uint16_t length, bool lossless)
 /** @brief Returns false if a custom incoming (non private) packet is too large. */
 static bool custom_gc_incoming_non_private_packet_length_is_valid(uint16_t length, bool lossless)
 {
-    if (lossless) {
-        if (length > MAX_GC_CUSTOM_LOSSLESS_INCOMING_ASSEMBLED_PACKET_SIZE) {
-            return false;
-        }
-    } else {
-        if (length > MAX_GC_CUSTOM_LOSSY_PACKET_SIZE) {
-            return false;
-        }
-    }
-
-    return true;
+    return length <= (lossless ? MAX_GC_CUSTOM_LOSSLESS_INCOMING_ASSEMBLED_PACKET_SIZE : MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
 }
 
 int gc_send_custom_private_packet(const GC_Chat *chat, bool lossless, uint32_t peer_id, const uint8_t *message,
