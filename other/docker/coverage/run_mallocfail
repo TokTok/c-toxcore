@@ -102,8 +102,8 @@ def find_prog(name: str) -> Tuple[Optional[str], ...]:
             return path
         return None
 
-    return (# attempt(f"./unit_{name}_test"),
-            attempt(f"auto_tests/auto_{name}_test"),)
+    return (  # attempt(f"./unit_{name}_test"),
+        attempt(f"auto_tests/auto_{name}_test"),)
 
 
 def parse_flags(args: List[str]) -> Tuple[Dict[str, str], List[str]]:
