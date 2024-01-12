@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 template <typename T, void (*Delete)(T *)>
