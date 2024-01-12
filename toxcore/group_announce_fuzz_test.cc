@@ -50,13 +50,13 @@ void TestDoGca(Fuzz_Data &input)
 {
     const Memory *mem = system_memory();
     std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(), logger_kill);
-    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
-        mono_time_new(mem, nullptr, nullptr), [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
-    assert(mono_time != nullptr);
+
     uint64_t clock = 1;
-    mono_time_set_current_time_callback(
-        mono_time.get(), [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
-        &clock);
+    std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
+        mono_time_new(
+            mem, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock),
+        [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
+    assert(mono_time != nullptr);
     std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(new_gca_list(), kill_gca);
     assert(gca != nullptr);
 
@@ -106,6 +106,6 @@ void TestDoGca(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target(data, size, TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca);
+    fuzz_select_target<TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca>(data, size);
     return 0;
 }

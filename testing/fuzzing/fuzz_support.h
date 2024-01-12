@@ -109,28 +109,38 @@ struct Fuzz_Data {
     }                                                 \
     DECL = INPUT.consume(SIZE)
 
-inline void fuzz_select_target(uint8_t selector, Fuzz_Data &input)
-{
-    // The selector selected no function, so we do nothing and rely on the
-    // fuzzer to come up with a better selector.
-}
+using Fuzz_Target = void(*)(Fuzz_Data &input);
 
-template <typename Arg, typename... Args>
-void fuzz_select_target(uint8_t selector, Fuzz_Data &input, Arg &&fn, Args &&...args)
-{
-    if (selector == sizeof...(Args)) {
-        return fn(input);
+template <Fuzz_Target... Args>
+struct Fuzz_Target_Selector;
+
+template <Fuzz_Target Arg, Fuzz_Target... Args>
+struct Fuzz_Target_Selector<Arg, Args...> {
+    static void select(uint8_t selector, Fuzz_Data &input)
+    {
+        if (selector == sizeof...(Args)) {
+            return Arg(input);
+        }
+        return Fuzz_Target_Selector<Args...>::select(selector, input);
     }
-    return fuzz_select_target(selector - 1, input, std::forward<Args>(args)...);
-}
+};
 
-template <typename... Args>
-void fuzz_select_target(const uint8_t *data, std::size_t size, Args &&...args)
+template <>
+struct Fuzz_Target_Selector<> {
+    static void select(uint8_t selector, Fuzz_Data &input)
+    {
+        // The selector selected no function, so we do nothing and rely on the
+        // fuzzer to come up with a better selector.
+    }
+};
+
+template <Fuzz_Target... Args>
+void fuzz_select_target(const uint8_t *data, std::size_t size)
 {
     Fuzz_Data input{data, size};
 
     CONSUME1_OR_RETURN(const uint8_t, selector, input);
-    return fuzz_select_target(selector, input, std::forward<Args>(args)...);
+    return Fuzz_Target_Selector<Args...>::select(selector, input);
 }
 
 struct Memory;
