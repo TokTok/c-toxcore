@@ -178,7 +178,7 @@ void TestEndToEnd(Fuzz_Data &input)
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
-        tox_events_equal(tox_get_system(tox), events, events); // TODO(iphydf): assert?
+        tox_events_equal(tox_get_system(tox), events, events);  // TODO(iphydf): assert?
         tox_dispatch_invoke(dispatch, events, tox, nullptr);
         tox_events_free(events);
         const uint8_t clock_increment = random_u08(sys.rng.get());
