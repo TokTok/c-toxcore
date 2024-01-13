@@ -20,8 +20,14 @@ Tox_Network_Funcs const Network_Class::vtable = {
     Method<tox_network_freeaddrinfo_cb, Network_Class>::invoke<&Network_Class::freeaddrinfo>,
 };
 
-int Test_Network::close(void *obj, int sock) { return net->funcs->close_callback(net->user_data, sock); }
-int Test_Network::accept(void *obj, int sock) { return net->funcs->accept_callback(net->user_data, sock); }
+int Test_Network::close(void *obj, int sock)
+{
+    return net->funcs->close_callback(net->user_data, sock);
+}
+int Test_Network::accept(void *obj, int sock)
+{
+    return net->funcs->accept_callback(net->user_data, sock);
+}
 int Test_Network::bind(void *obj, int sock, const Network_Addr *addr)
 {
     return net->funcs->bind_callback(net->user_data, sock, addr);
@@ -30,7 +36,10 @@ int Test_Network::listen(void *obj, int sock, int backlog)
 {
     return net->funcs->listen_callback(net->user_data, sock, backlog);
 }
-int Test_Network::recvbuf(void *obj, int sock) { return net->funcs->recvbuf_callback(net->user_data, sock); }
+int Test_Network::recvbuf(void *obj, int sock)
+{
+    return net->funcs->recvbuf_callback(net->user_data, sock);
+}
 int Test_Network::recv(void *obj, int sock, uint8_t *buf, size_t len)
 {
     return net->funcs->recv_callback(net->user_data, sock, buf, len);
