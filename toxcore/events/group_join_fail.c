@@ -32,7 +32,6 @@ non_null()
 static void tox_event_group_join_fail_set_group_number(Tox_Event_Group_Join_Fail *group_join_fail,
         uint32_t group_number)
 {
-    assert(group_join_fail != nullptr);
     group_join_fail->group_number = group_number;
 }
 uint32_t tox_event_group_join_fail_get_group_number(const Tox_Event_Group_Join_Fail *group_join_fail)
@@ -45,7 +44,6 @@ non_null()
 static void tox_event_group_join_fail_set_fail_type(Tox_Event_Group_Join_Fail *group_join_fail,
         Tox_Group_Join_Fail fail_type)
 {
-    assert(group_join_fail != nullptr);
     group_join_fail->fail_type = fail_type;
 }
 Tox_Group_Join_Fail tox_event_group_join_fail_get_fail_type(const Tox_Event_Group_Join_Fail *group_join_fail)

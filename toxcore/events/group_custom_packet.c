@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -34,7 +33,6 @@ non_null()
 static void tox_event_group_custom_packet_set_group_number(Tox_Event_Group_Custom_Packet *group_custom_packet,
         uint32_t group_number)
 {
-    assert(group_custom_packet != nullptr);
     group_custom_packet->group_number = group_number;
 }
 uint32_t tox_event_group_custom_packet_get_group_number(const Tox_Event_Group_Custom_Packet *group_custom_packet)
@@ -47,7 +45,6 @@ non_null()
 static void tox_event_group_custom_packet_set_peer_id(Tox_Event_Group_Custom_Packet *group_custom_packet,
         uint32_t peer_id)
 {
-    assert(group_custom_packet != nullptr);
     group_custom_packet->peer_id = peer_id;
 }
 uint32_t tox_event_group_custom_packet_get_peer_id(const Tox_Event_Group_Custom_Packet *group_custom_packet)
@@ -60,24 +57,7 @@ non_null()
 static bool tox_event_group_custom_packet_set_data(Tox_Event_Group_Custom_Packet *group_custom_packet,
         const uint8_t *data, uint32_t data_length)
 {
-    assert(group_custom_packet != nullptr);
-
-    if (group_custom_packet->data != nullptr) {
-        free(group_custom_packet->data);
-        group_custom_packet->data = nullptr;
-        group_custom_packet->data_length = 0;
-    }
-
-    uint8_t *data_copy = (uint8_t *)malloc(data_length);
-
-    if (data_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(data_copy, data, data_length);
-    group_custom_packet->data = data_copy;
-    group_custom_packet->data_length = data_length;
-    return true;
+    return clone_byte_array(&group_custom_packet->data, &group_custom_packet->data_length, data, data_length);
 }
 uint32_t tox_event_group_custom_packet_get_data_length(const Tox_Event_Group_Custom_Packet *group_custom_packet)
 {

@@ -30,7 +30,6 @@ non_null()
 static void tox_event_friend_read_receipt_set_friend_number(Tox_Event_Friend_Read_Receipt *friend_read_receipt,
         uint32_t friend_number)
 {
-    assert(friend_read_receipt != nullptr);
     friend_read_receipt->friend_number = friend_number;
 }
 uint32_t tox_event_friend_read_receipt_get_friend_number(const Tox_Event_Friend_Read_Receipt *friend_read_receipt)
@@ -43,7 +42,6 @@ non_null()
 static void tox_event_friend_read_receipt_set_message_id(Tox_Event_Friend_Read_Receipt *friend_read_receipt,
         uint32_t message_id)
 {
-    assert(friend_read_receipt != nullptr);
     friend_read_receipt->message_id = message_id;
 }
 uint32_t tox_event_friend_read_receipt_get_message_id(const Tox_Event_Friend_Read_Receipt *friend_read_receipt)

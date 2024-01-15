@@ -30,7 +30,6 @@ non_null()
 static void tox_event_group_peer_join_set_group_number(Tox_Event_Group_Peer_Join *group_peer_join,
         uint32_t group_number)
 {
-    assert(group_peer_join != nullptr);
     group_peer_join->group_number = group_number;
 }
 uint32_t tox_event_group_peer_join_get_group_number(const Tox_Event_Group_Peer_Join *group_peer_join)
@@ -43,7 +42,6 @@ non_null()
 static void tox_event_group_peer_join_set_peer_id(Tox_Event_Group_Peer_Join *group_peer_join,
         uint32_t peer_id)
 {
-    assert(group_peer_join != nullptr);
     group_peer_join->peer_id = peer_id;
 }
 uint32_t tox_event_group_peer_join_get_peer_id(const Tox_Event_Group_Peer_Join *group_peer_join)

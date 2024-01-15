@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -33,7 +32,6 @@ non_null()
 static void tox_event_friend_name_set_friend_number(Tox_Event_Friend_Name *friend_name,
         uint32_t friend_number)
 {
-    assert(friend_name != nullptr);
     friend_name->friend_number = friend_number;
 }
 uint32_t tox_event_friend_name_get_friend_number(const Tox_Event_Friend_Name *friend_name)
@@ -46,24 +44,7 @@ non_null()
 static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *friend_name,
         const uint8_t *name, uint32_t name_length)
 {
-    assert(friend_name != nullptr);
-
-    if (friend_name->name != nullptr) {
-        free(friend_name->name);
-        friend_name->name = nullptr;
-        friend_name->name_length = 0;
-    }
-
-    uint8_t *name_copy = (uint8_t *)malloc(name_length);
-
-    if (name_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(name_copy, name, name_length);
-    friend_name->name = name_copy;
-    friend_name->name_length = name_length;
-    return true;
+    return clone_byte_array(&friend_name->name, &friend_name->name_length, name, name_length);
 }
 uint32_t tox_event_friend_name_get_name_length(const Tox_Event_Friend_Name *friend_name)
 {

@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -37,7 +36,6 @@ non_null()
 static void tox_event_conference_message_set_conference_number(Tox_Event_Conference_Message *conference_message,
         uint32_t conference_number)
 {
-    assert(conference_message != nullptr);
     conference_message->conference_number = conference_number;
 }
 uint32_t tox_event_conference_message_get_conference_number(const Tox_Event_Conference_Message *conference_message)
@@ -50,7 +48,6 @@ non_null()
 static void tox_event_conference_message_set_peer_number(Tox_Event_Conference_Message *conference_message,
         uint32_t peer_number)
 {
-    assert(conference_message != nullptr);
     conference_message->peer_number = peer_number;
 }
 uint32_t tox_event_conference_message_get_peer_number(const Tox_Event_Conference_Message *conference_message)
@@ -63,7 +60,6 @@ non_null()
 static void tox_event_conference_message_set_type(Tox_Event_Conference_Message *conference_message,
         Tox_Message_Type type)
 {
-    assert(conference_message != nullptr);
     conference_message->type = type;
 }
 Tox_Message_Type tox_event_conference_message_get_type(const Tox_Event_Conference_Message *conference_message)
@@ -76,24 +72,7 @@ non_null()
 static bool tox_event_conference_message_set_message(Tox_Event_Conference_Message *conference_message,
         const uint8_t *message, uint32_t message_length)
 {
-    assert(conference_message != nullptr);
-
-    if (conference_message->message != nullptr) {
-        free(conference_message->message);
-        conference_message->message = nullptr;
-        conference_message->message_length = 0;
-    }
-
-    uint8_t *message_copy = (uint8_t *)malloc(message_length);
-
-    if (message_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(message_copy, message, message_length);
-    conference_message->message = message_copy;
-    conference_message->message_length = message_length;
-    return true;
+    return clone_byte_array(&conference_message->message, &conference_message->message_length, message, message_length);
 }
 uint32_t tox_event_conference_message_get_message_length(const Tox_Event_Conference_Message *conference_message)
 {

@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -35,7 +34,6 @@ non_null()
 static void tox_event_file_recv_chunk_set_friend_number(Tox_Event_File_Recv_Chunk *file_recv_chunk,
         uint32_t friend_number)
 {
-    assert(file_recv_chunk != nullptr);
     file_recv_chunk->friend_number = friend_number;
 }
 uint32_t tox_event_file_recv_chunk_get_friend_number(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
@@ -48,7 +46,6 @@ non_null()
 static void tox_event_file_recv_chunk_set_file_number(Tox_Event_File_Recv_Chunk *file_recv_chunk,
         uint32_t file_number)
 {
-    assert(file_recv_chunk != nullptr);
     file_recv_chunk->file_number = file_number;
 }
 uint32_t tox_event_file_recv_chunk_get_file_number(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
@@ -61,7 +58,6 @@ non_null()
 static void tox_event_file_recv_chunk_set_position(Tox_Event_File_Recv_Chunk *file_recv_chunk,
         uint64_t position)
 {
-    assert(file_recv_chunk != nullptr);
     file_recv_chunk->position = position;
 }
 uint64_t tox_event_file_recv_chunk_get_position(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
@@ -74,24 +70,7 @@ non_null()
 static bool tox_event_file_recv_chunk_set_data(Tox_Event_File_Recv_Chunk *file_recv_chunk,
         const uint8_t *data, uint32_t data_length)
 {
-    assert(file_recv_chunk != nullptr);
-
-    if (file_recv_chunk->data != nullptr) {
-        free(file_recv_chunk->data);
-        file_recv_chunk->data = nullptr;
-        file_recv_chunk->data_length = 0;
-    }
-
-    uint8_t *data_copy = (uint8_t *)malloc(data_length);
-
-    if (data_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(data_copy, data, data_length);
-    file_recv_chunk->data = data_copy;
-    file_recv_chunk->data_length = data_length;
-    return true;
+    return clone_byte_array(&file_recv_chunk->data, &file_recv_chunk->data_length, data, data_length);
 }
 uint32_t tox_event_file_recv_chunk_get_data_length(const Tox_Event_File_Recv_Chunk *file_recv_chunk)
 {

@@ -32,7 +32,6 @@ non_null()
 static void tox_event_friend_connection_status_set_friend_number(Tox_Event_Friend_Connection_Status *friend_connection_status,
         uint32_t friend_number)
 {
-    assert(friend_connection_status != nullptr);
     friend_connection_status->friend_number = friend_number;
 }
 uint32_t tox_event_friend_connection_status_get_friend_number(const Tox_Event_Friend_Connection_Status *friend_connection_status)
@@ -45,7 +44,6 @@ non_null()
 static void tox_event_friend_connection_status_set_connection_status(Tox_Event_Friend_Connection_Status *friend_connection_status,
         Tox_Connection connection_status)
 {
-    assert(friend_connection_status != nullptr);
     friend_connection_status->connection_status = connection_status;
 }
 Tox_Connection tox_event_friend_connection_status_get_connection_status(const Tox_Event_Friend_Connection_Status *friend_connection_status)

@@ -32,7 +32,6 @@ non_null()
 static void tox_event_group_privacy_state_set_group_number(Tox_Event_Group_Privacy_State *group_privacy_state,
         uint32_t group_number)
 {
-    assert(group_privacy_state != nullptr);
     group_privacy_state->group_number = group_number;
 }
 uint32_t tox_event_group_privacy_state_get_group_number(const Tox_Event_Group_Privacy_State *group_privacy_state)
@@ -45,7 +44,6 @@ non_null()
 static void tox_event_group_privacy_state_set_privacy_state(Tox_Event_Group_Privacy_State *group_privacy_state,
         Tox_Group_Privacy_State privacy_state)
 {
-    assert(group_privacy_state != nullptr);
     group_privacy_state->privacy_state = privacy_state;
 }
 Tox_Group_Privacy_State tox_event_group_privacy_state_get_privacy_state(const Tox_Event_Group_Privacy_State *group_privacy_state)

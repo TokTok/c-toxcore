@@ -135,9 +135,8 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         exit(1);
     }
 
-    bool need_stdlib_h = false;
-    bool need_string_h = false;
     bool need_tox_unpack_h = false;
+    bool need_stdlib_h = false;
     for (const auto& t : event_types) {
         std::visit(
             overloaded{
@@ -148,7 +147,6 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                 },
                 [&](const EventTypeByteRange&) {
                     need_stdlib_h = true;
-                    need_string_h = true;
                 }
             },
             t
@@ -165,10 +163,6 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     if (need_stdlib_h) {
         f << R"(
 #include <stdlib.h>)";
-    }
-    if (need_string_h) {
-        f << R"(
-#include <string.h>)";
     }
     f << R"(
 
@@ -242,25 +236,14 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             },
             t
         );
-        f << "{\n    assert(" << event_name_l << " != nullptr);\n";
+        f << "{\n";
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
                     f << "    " << event_name_l << "->" << t.name << " = " << t.name << ";\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "\n    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n";
-                    f << "        free(" << event_name_l << "->" << t.name_data << ");\n";
-                    f << "        " << event_name_l << "->" << t.name_data << " = nullptr;\n";
-                    f << "        " << event_name_l << "->" << t.name_length << " = 0;\n";
-                    f << "    }\n\n";
-                    f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)malloc(" << t.name_length << ");\n\n";
-                    f << "    if (" << t.name_data << "_copy == nullptr) {\n";
-                    f << "        return false;\n    }\n\n";
-                    f << "    memcpy(" << t.name_data << "_copy, " << t.name_data << ", " << t.name_length << ");\n";
-                    f << "    " << event_name_l << "->" << t.name_data << " = " << t.name_data << "_copy;\n";
-                    f << "    " << event_name_l << "->" << t.name_length << " = " << t.name_length << ";\n";
-                    f << "    return true;\n";
+                    f << "    return clone_byte_array(&" << event_name_l << "->" << t.name_data << ", &" << event_name_l << "->" << t.name_length << ", " << t.name_data << ", " << t.name_length << ");\n";
                 }
             },
             t

@@ -29,7 +29,6 @@ non_null()
 static void tox_event_conference_peer_list_changed_set_conference_number(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed,
         uint32_t conference_number)
 {
-    assert(conference_peer_list_changed != nullptr);
     conference_peer_list_changed->conference_number = conference_number;
 }
 uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)

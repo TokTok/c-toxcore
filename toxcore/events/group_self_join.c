@@ -29,7 +29,6 @@ non_null()
 static void tox_event_group_self_join_set_group_number(Tox_Event_Group_Self_Join *group_self_join,
         uint32_t group_number)
 {
-    assert(group_self_join != nullptr);
     group_self_join->group_number = group_number;
 }
 uint32_t tox_event_group_self_join_get_group_number(const Tox_Event_Group_Self_Join *group_self_join)

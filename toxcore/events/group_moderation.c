@@ -34,7 +34,6 @@ non_null()
 static void tox_event_group_moderation_set_group_number(Tox_Event_Group_Moderation *group_moderation,
         uint32_t group_number)
 {
-    assert(group_moderation != nullptr);
     group_moderation->group_number = group_number;
 }
 uint32_t tox_event_group_moderation_get_group_number(const Tox_Event_Group_Moderation *group_moderation)
@@ -47,7 +46,6 @@ non_null()
 static void tox_event_group_moderation_set_source_peer_id(Tox_Event_Group_Moderation *group_moderation,
         uint32_t source_peer_id)
 {
-    assert(group_moderation != nullptr);
     group_moderation->source_peer_id = source_peer_id;
 }
 uint32_t tox_event_group_moderation_get_source_peer_id(const Tox_Event_Group_Moderation *group_moderation)
@@ -60,7 +58,6 @@ non_null()
 static void tox_event_group_moderation_set_target_peer_id(Tox_Event_Group_Moderation *group_moderation,
         uint32_t target_peer_id)
 {
-    assert(group_moderation != nullptr);
     group_moderation->target_peer_id = target_peer_id;
 }
 uint32_t tox_event_group_moderation_get_target_peer_id(const Tox_Event_Group_Moderation *group_moderation)
@@ -73,7 +70,6 @@ non_null()
 static void tox_event_group_moderation_set_mod_type(Tox_Event_Group_Moderation *group_moderation,
         Tox_Group_Mod_Event mod_type)
 {
-    assert(group_moderation != nullptr);
     group_moderation->mod_type = mod_type;
 }
 Tox_Group_Mod_Event tox_event_group_moderation_get_mod_type(const Tox_Event_Group_Moderation *group_moderation)

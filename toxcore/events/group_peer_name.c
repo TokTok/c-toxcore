@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -34,7 +33,6 @@ non_null()
 static void tox_event_group_peer_name_set_group_number(Tox_Event_Group_Peer_Name *group_peer_name,
         uint32_t group_number)
 {
-    assert(group_peer_name != nullptr);
     group_peer_name->group_number = group_number;
 }
 uint32_t tox_event_group_peer_name_get_group_number(const Tox_Event_Group_Peer_Name *group_peer_name)
@@ -47,7 +45,6 @@ non_null()
 static void tox_event_group_peer_name_set_peer_id(Tox_Event_Group_Peer_Name *group_peer_name,
         uint32_t peer_id)
 {
-    assert(group_peer_name != nullptr);
     group_peer_name->peer_id = peer_id;
 }
 uint32_t tox_event_group_peer_name_get_peer_id(const Tox_Event_Group_Peer_Name *group_peer_name)
@@ -60,24 +57,7 @@ non_null()
 static bool tox_event_group_peer_name_set_name(Tox_Event_Group_Peer_Name *group_peer_name,
         const uint8_t *name, uint32_t name_length)
 {
-    assert(group_peer_name != nullptr);
-
-    if (group_peer_name->name != nullptr) {
-        free(group_peer_name->name);
-        group_peer_name->name = nullptr;
-        group_peer_name->name_length = 0;
-    }
-
-    uint8_t *name_copy = (uint8_t *)malloc(name_length);
-
-    if (name_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(name_copy, name, name_length);
-    group_peer_name->name = name_copy;
-    group_peer_name->name_length = name_length;
-    return true;
+    return clone_byte_array(&group_peer_name->name, &group_peer_name->name_length, name, name_length);
 }
 uint32_t tox_event_group_peer_name_get_name_length(const Tox_Event_Group_Peer_Name *group_peer_name)
 {

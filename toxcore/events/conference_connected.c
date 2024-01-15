@@ -29,7 +29,6 @@ non_null()
 static void tox_event_conference_connected_set_conference_number(Tox_Event_Conference_Connected *conference_connected,
         uint32_t conference_number)
 {
-    assert(conference_connected != nullptr);
     conference_connected->conference_number = conference_number;
 }
 uint32_t tox_event_conference_connected_get_conference_number(const Tox_Event_Conference_Connected *conference_connected)

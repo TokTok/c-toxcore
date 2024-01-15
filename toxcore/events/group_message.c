@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -38,7 +37,6 @@ non_null()
 static void tox_event_group_message_set_group_number(Tox_Event_Group_Message *group_message,
         uint32_t group_number)
 {
-    assert(group_message != nullptr);
     group_message->group_number = group_number;
 }
 uint32_t tox_event_group_message_get_group_number(const Tox_Event_Group_Message *group_message)
@@ -51,7 +49,6 @@ non_null()
 static void tox_event_group_message_set_peer_id(Tox_Event_Group_Message *group_message,
         uint32_t peer_id)
 {
-    assert(group_message != nullptr);
     group_message->peer_id = peer_id;
 }
 uint32_t tox_event_group_message_get_peer_id(const Tox_Event_Group_Message *group_message)
@@ -64,7 +61,6 @@ non_null()
 static void tox_event_group_message_set_type(Tox_Event_Group_Message *group_message,
         Tox_Message_Type type)
 {
-    assert(group_message != nullptr);
     group_message->type = type;
 }
 Tox_Message_Type tox_event_group_message_get_type(const Tox_Event_Group_Message *group_message)
@@ -77,24 +73,7 @@ non_null()
 static bool tox_event_group_message_set_message(Tox_Event_Group_Message *group_message,
         const uint8_t *message, uint32_t message_length)
 {
-    assert(group_message != nullptr);
-
-    if (group_message->message != nullptr) {
-        free(group_message->message);
-        group_message->message = nullptr;
-        group_message->message_length = 0;
-    }
-
-    uint8_t *message_copy = (uint8_t *)malloc(message_length);
-
-    if (message_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(message_copy, message, message_length);
-    group_message->message = message_copy;
-    group_message->message_length = message_length;
-    return true;
+    return clone_byte_array(&group_message->message, &group_message->message_length, message, message_length);
 }
 uint32_t tox_event_group_message_get_message_length(const Tox_Event_Group_Message *group_message)
 {
@@ -111,7 +90,6 @@ non_null()
 static void tox_event_group_message_set_message_id(Tox_Event_Group_Message *group_message,
         uint32_t message_id)
 {
-    assert(group_message != nullptr);
     group_message->message_id = message_id;
 }
 uint32_t tox_event_group_message_get_message_id(const Tox_Event_Group_Message *group_message)

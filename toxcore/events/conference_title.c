@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -34,7 +33,6 @@ non_null()
 static void tox_event_conference_title_set_conference_number(Tox_Event_Conference_Title *conference_title,
         uint32_t conference_number)
 {
-    assert(conference_title != nullptr);
     conference_title->conference_number = conference_number;
 }
 uint32_t tox_event_conference_title_get_conference_number(const Tox_Event_Conference_Title *conference_title)
@@ -47,7 +45,6 @@ non_null()
 static void tox_event_conference_title_set_peer_number(Tox_Event_Conference_Title *conference_title,
         uint32_t peer_number)
 {
-    assert(conference_title != nullptr);
     conference_title->peer_number = peer_number;
 }
 uint32_t tox_event_conference_title_get_peer_number(const Tox_Event_Conference_Title *conference_title)
@@ -60,24 +57,7 @@ non_null()
 static bool tox_event_conference_title_set_title(Tox_Event_Conference_Title *conference_title,
         const uint8_t *title, uint32_t title_length)
 {
-    assert(conference_title != nullptr);
-
-    if (conference_title->title != nullptr) {
-        free(conference_title->title);
-        conference_title->title = nullptr;
-        conference_title->title_length = 0;
-    }
-
-    uint8_t *title_copy = (uint8_t *)malloc(title_length);
-
-    if (title_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(title_copy, title, title_length);
-    conference_title->title = title_copy;
-    conference_title->title_length = title_length;
-    return true;
+    return clone_byte_array(&conference_title->title, &conference_title->title_length, title, title_length);
 }
 uint32_t tox_event_conference_title_get_title_length(const Tox_Event_Conference_Title *conference_title)
 {

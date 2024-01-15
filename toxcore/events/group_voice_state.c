@@ -32,7 +32,6 @@ non_null()
 static void tox_event_group_voice_state_set_group_number(Tox_Event_Group_Voice_State *group_voice_state,
         uint32_t group_number)
 {
-    assert(group_voice_state != nullptr);
     group_voice_state->group_number = group_number;
 }
 uint32_t tox_event_group_voice_state_get_group_number(const Tox_Event_Group_Voice_State *group_voice_state)
@@ -45,7 +44,6 @@ non_null()
 static void tox_event_group_voice_state_set_voice_state(Tox_Event_Group_Voice_State *group_voice_state,
         Tox_Group_Voice_State voice_state)
 {
-    assert(group_voice_state != nullptr);
     group_voice_state->voice_state = voice_state;
 }
 Tox_Group_Voice_State tox_event_group_voice_state_get_voice_state(const Tox_Event_Group_Voice_State *group_voice_state)
