@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifdef ENABLE_PROFILING
+#include <gperftools/profiler.h>
+#endif
+
 typedef struct State {
     bool message_received;
 } State;
@@ -63,6 +67,10 @@ int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
+#ifdef ENABLE_PROFILING
+    ProfilerStart("send_message_test.prof");
+#endif
+
     struct Tox_Options *tox_options = tox_options_new(nullptr);
     ck_assert(tox_options != nullptr);
 
@@ -75,6 +83,10 @@ int main(void)
     run_auto_test(tox_options, 2, send_message_test, sizeof(State), &options);
 
     tox_options_free(tox_options);
+
+#ifdef ENABLE_PROFILING
+    ProfilerStop();
+#endif
 
     return 0;
 }

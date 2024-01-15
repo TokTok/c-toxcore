@@ -169,6 +169,8 @@ if(MSVC)
   endif()
 endif()
 
+option(ENABLE_PROFILING "Use libprofiler for profiling tests" OFF)
+
 include(Dependencies)
 
 if(MUST_BUILD_TOXAV)
