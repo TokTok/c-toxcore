@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -36,7 +35,6 @@ non_null()
 static void tox_event_file_recv_set_friend_number(Tox_Event_File_Recv *file_recv,
         uint32_t friend_number)
 {
-    assert(file_recv != nullptr);
     file_recv->friend_number = friend_number;
 }
 uint32_t tox_event_file_recv_get_friend_number(const Tox_Event_File_Recv *file_recv)
@@ -49,7 +47,6 @@ non_null()
 static void tox_event_file_recv_set_file_number(Tox_Event_File_Recv *file_recv,
         uint32_t file_number)
 {
-    assert(file_recv != nullptr);
     file_recv->file_number = file_number;
 }
 uint32_t tox_event_file_recv_get_file_number(const Tox_Event_File_Recv *file_recv)
@@ -62,7 +59,6 @@ non_null()
 static void tox_event_file_recv_set_kind(Tox_Event_File_Recv *file_recv,
         uint32_t kind)
 {
-    assert(file_recv != nullptr);
     file_recv->kind = kind;
 }
 uint32_t tox_event_file_recv_get_kind(const Tox_Event_File_Recv *file_recv)
@@ -75,7 +71,6 @@ non_null()
 static void tox_event_file_recv_set_file_size(Tox_Event_File_Recv *file_recv,
         uint64_t file_size)
 {
-    assert(file_recv != nullptr);
     file_recv->file_size = file_size;
 }
 uint64_t tox_event_file_recv_get_file_size(const Tox_Event_File_Recv *file_recv)
@@ -88,24 +83,7 @@ non_null()
 static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *file_recv,
         const uint8_t *filename, uint32_t filename_length)
 {
-    assert(file_recv != nullptr);
-
-    if (file_recv->filename != nullptr) {
-        free(file_recv->filename);
-        file_recv->filename = nullptr;
-        file_recv->filename_length = 0;
-    }
-
-    uint8_t *filename_copy = (uint8_t *)malloc(filename_length);
-
-    if (filename_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(filename_copy, filename, filename_length);
-    file_recv->filename = filename_copy;
-    file_recv->filename_length = filename_length;
-    return true;
+    return clone_byte_array(&file_recv->filename, &file_recv->filename_length, filename, filename_length);
 }
 uint32_t tox_event_file_recv_get_filename_length(const Tox_Event_File_Recv *file_recv)
 {

@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -33,7 +32,6 @@ non_null()
 static void tox_event_friend_lossy_packet_set_friend_number(Tox_Event_Friend_Lossy_Packet *friend_lossy_packet,
         uint32_t friend_number)
 {
-    assert(friend_lossy_packet != nullptr);
     friend_lossy_packet->friend_number = friend_number;
 }
 uint32_t tox_event_friend_lossy_packet_get_friend_number(const Tox_Event_Friend_Lossy_Packet *friend_lossy_packet)
@@ -46,24 +44,7 @@ non_null()
 static bool tox_event_friend_lossy_packet_set_data(Tox_Event_Friend_Lossy_Packet *friend_lossy_packet,
         const uint8_t *data, uint32_t data_length)
 {
-    assert(friend_lossy_packet != nullptr);
-
-    if (friend_lossy_packet->data != nullptr) {
-        free(friend_lossy_packet->data);
-        friend_lossy_packet->data = nullptr;
-        friend_lossy_packet->data_length = 0;
-    }
-
-    uint8_t *data_copy = (uint8_t *)malloc(data_length);
-
-    if (data_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(data_copy, data, data_length);
-    friend_lossy_packet->data = data_copy;
-    friend_lossy_packet->data_length = data_length;
-    return true;
+    return clone_byte_array(&friend_lossy_packet->data, &friend_lossy_packet->data_length, data, data_length);
 }
 uint32_t tox_event_friend_lossy_packet_get_data_length(const Tox_Event_Friend_Lossy_Packet *friend_lossy_packet)
 {

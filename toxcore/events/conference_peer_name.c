@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -34,7 +33,6 @@ non_null()
 static void tox_event_conference_peer_name_set_conference_number(Tox_Event_Conference_Peer_Name *conference_peer_name,
         uint32_t conference_number)
 {
-    assert(conference_peer_name != nullptr);
     conference_peer_name->conference_number = conference_number;
 }
 uint32_t tox_event_conference_peer_name_get_conference_number(const Tox_Event_Conference_Peer_Name *conference_peer_name)
@@ -47,7 +45,6 @@ non_null()
 static void tox_event_conference_peer_name_set_peer_number(Tox_Event_Conference_Peer_Name *conference_peer_name,
         uint32_t peer_number)
 {
-    assert(conference_peer_name != nullptr);
     conference_peer_name->peer_number = peer_number;
 }
 uint32_t tox_event_conference_peer_name_get_peer_number(const Tox_Event_Conference_Peer_Name *conference_peer_name)
@@ -60,24 +57,7 @@ non_null()
 static bool tox_event_conference_peer_name_set_name(Tox_Event_Conference_Peer_Name *conference_peer_name,
         const uint8_t *name, uint32_t name_length)
 {
-    assert(conference_peer_name != nullptr);
-
-    if (conference_peer_name->name != nullptr) {
-        free(conference_peer_name->name);
-        conference_peer_name->name = nullptr;
-        conference_peer_name->name_length = 0;
-    }
-
-    uint8_t *name_copy = (uint8_t *)malloc(name_length);
-
-    if (name_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(name_copy, name, name_length);
-    conference_peer_name->name = name_copy;
-    conference_peer_name->name_length = name_length;
-    return true;
+    return clone_byte_array(&conference_peer_name->name, &conference_peer_name->name_length, name, name_length);
 }
 uint32_t tox_event_conference_peer_name_get_name_length(const Tox_Event_Conference_Peer_Name *conference_peer_name)
 {

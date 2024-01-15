@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -34,7 +33,6 @@ non_null()
 static void tox_event_group_topic_set_group_number(Tox_Event_Group_Topic *group_topic,
         uint32_t group_number)
 {
-    assert(group_topic != nullptr);
     group_topic->group_number = group_number;
 }
 uint32_t tox_event_group_topic_get_group_number(const Tox_Event_Group_Topic *group_topic)
@@ -47,7 +45,6 @@ non_null()
 static void tox_event_group_topic_set_peer_id(Tox_Event_Group_Topic *group_topic,
         uint32_t peer_id)
 {
-    assert(group_topic != nullptr);
     group_topic->peer_id = peer_id;
 }
 uint32_t tox_event_group_topic_get_peer_id(const Tox_Event_Group_Topic *group_topic)
@@ -60,24 +57,7 @@ non_null()
 static bool tox_event_group_topic_set_topic(Tox_Event_Group_Topic *group_topic,
         const uint8_t *topic, uint32_t topic_length)
 {
-    assert(group_topic != nullptr);
-
-    if (group_topic->topic != nullptr) {
-        free(group_topic->topic);
-        group_topic->topic = nullptr;
-        group_topic->topic_length = 0;
-    }
-
-    uint8_t *topic_copy = (uint8_t *)malloc(topic_length);
-
-    if (topic_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(topic_copy, topic, topic_length);
-    group_topic->topic = topic_copy;
-    group_topic->topic_length = topic_length;
-    return true;
+    return clone_byte_array(&group_topic->topic, &group_topic->topic_length, topic, topic_length);
 }
 uint32_t tox_event_group_topic_get_topic_length(const Tox_Event_Group_Topic *group_topic)
 {

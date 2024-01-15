@@ -32,7 +32,6 @@ non_null()
 static void tox_event_file_recv_control_set_friend_number(Tox_Event_File_Recv_Control *file_recv_control,
         uint32_t friend_number)
 {
-    assert(file_recv_control != nullptr);
     file_recv_control->friend_number = friend_number;
 }
 uint32_t tox_event_file_recv_control_get_friend_number(const Tox_Event_File_Recv_Control *file_recv_control)
@@ -45,7 +44,6 @@ non_null()
 static void tox_event_file_recv_control_set_file_number(Tox_Event_File_Recv_Control *file_recv_control,
         uint32_t file_number)
 {
-    assert(file_recv_control != nullptr);
     file_recv_control->file_number = file_number;
 }
 uint32_t tox_event_file_recv_control_get_file_number(const Tox_Event_File_Recv_Control *file_recv_control)
@@ -58,7 +56,6 @@ non_null()
 static void tox_event_file_recv_control_set_control(Tox_Event_File_Recv_Control *file_recv_control,
         Tox_File_Control control)
 {
-    assert(file_recv_control != nullptr);
     file_recv_control->control = control;
 }
 Tox_File_Control tox_event_file_recv_control_get_control(const Tox_Event_File_Recv_Control *file_recv_control)

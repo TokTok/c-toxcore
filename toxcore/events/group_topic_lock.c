@@ -31,7 +31,6 @@ non_null()
 static void tox_event_group_topic_lock_set_group_number(Tox_Event_Group_Topic_Lock *group_topic_lock,
         uint32_t group_number)
 {
-    assert(group_topic_lock != nullptr);
     group_topic_lock->group_number = group_number;
 }
 uint32_t tox_event_group_topic_lock_get_group_number(const Tox_Event_Group_Topic_Lock *group_topic_lock)
@@ -44,7 +43,6 @@ non_null()
 static void tox_event_group_topic_lock_set_topic_lock(Tox_Event_Group_Topic_Lock *group_topic_lock,
         Tox_Group_Topic_Lock topic_lock)
 {
-    assert(group_topic_lock != nullptr);
     group_topic_lock->topic_lock = topic_lock;
 }
 Tox_Group_Topic_Lock tox_event_group_topic_lock_get_topic_lock(const Tox_Event_Group_Topic_Lock *group_topic_lock)

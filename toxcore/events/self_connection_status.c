@@ -30,7 +30,6 @@ non_null()
 static void tox_event_self_connection_status_set_connection_status(Tox_Event_Self_Connection_Status *self_connection_status,
         Tox_Connection connection_status)
 {
-    assert(self_connection_status != nullptr);
     self_connection_status->connection_status = connection_status;
 }
 Tox_Connection tox_event_self_connection_status_get_connection_status(const Tox_Event_Self_Connection_Status *self_connection_status)

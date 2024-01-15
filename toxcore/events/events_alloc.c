@@ -5,6 +5,8 @@
 #include "events_alloc.h"
 
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "../ccompat.h"
 #include "../mem.h"
@@ -76,5 +78,25 @@ bool tox_events_add(Tox_Events *events, const Tox_Event *event)
     events->events[events->events_size] = *event;
     ++events->events_size;
 
+    return true;
+}
+
+bool clone_byte_array(uint8_t **output, uint32_t *output_size, const uint8_t *input, uint32_t input_size)
+{
+    if (*output != nullptr) {
+        free(*output);
+        *output = nullptr;
+        *output_size = 0;
+    }
+
+    uint8_t *input_copy = (uint8_t *)malloc(input_size);
+
+    if (input_copy == nullptr) {
+        return false;
+    }
+
+    memcpy(input_copy, input, input_size);
+    *output = input_copy;
+    *output_size = input_size;
     return true;
 }

@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -35,7 +34,6 @@ non_null()
 static void tox_event_conference_invite_set_friend_number(Tox_Event_Conference_Invite *conference_invite,
         uint32_t friend_number)
 {
-    assert(conference_invite != nullptr);
     conference_invite->friend_number = friend_number;
 }
 uint32_t tox_event_conference_invite_get_friend_number(const Tox_Event_Conference_Invite *conference_invite)
@@ -48,7 +46,6 @@ non_null()
 static void tox_event_conference_invite_set_type(Tox_Event_Conference_Invite *conference_invite,
         Tox_Conference_Type type)
 {
-    assert(conference_invite != nullptr);
     conference_invite->type = type;
 }
 Tox_Conference_Type tox_event_conference_invite_get_type(const Tox_Event_Conference_Invite *conference_invite)
@@ -61,24 +58,7 @@ non_null()
 static bool tox_event_conference_invite_set_cookie(Tox_Event_Conference_Invite *conference_invite,
         const uint8_t *cookie, uint32_t cookie_length)
 {
-    assert(conference_invite != nullptr);
-
-    if (conference_invite->cookie != nullptr) {
-        free(conference_invite->cookie);
-        conference_invite->cookie = nullptr;
-        conference_invite->cookie_length = 0;
-    }
-
-    uint8_t *cookie_copy = (uint8_t *)malloc(cookie_length);
-
-    if (cookie_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(cookie_copy, cookie, cookie_length);
-    conference_invite->cookie = cookie_copy;
-    conference_invite->cookie_length = cookie_length;
-    return true;
+    return clone_byte_array(&conference_invite->cookie, &conference_invite->cookie_length, cookie, cookie_length);
 }
 uint32_t tox_event_conference_invite_get_cookie_length(const Tox_Event_Conference_Invite *conference_invite)
 {

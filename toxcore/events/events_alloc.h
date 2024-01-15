@@ -80,6 +80,10 @@ Tox_Events_State *tox_events_alloc(void *user_data);
 non_null()
 bool tox_events_add(Tox_Events *events, const Tox_Event *event);
 
+// TODO(iphydf): Move this somewhere central. Maybe to mem?
+non_null(1, 2) nullable(3)
+bool clone_byte_array(uint8_t **output, uint32_t *output_size, const uint8_t *input, uint32_t input_size);
+
 #ifdef __cplusplus
 }
 #endif

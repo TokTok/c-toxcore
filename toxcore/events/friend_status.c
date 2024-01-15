@@ -31,7 +31,6 @@ non_null()
 static void tox_event_friend_status_set_friend_number(Tox_Event_Friend_Status *friend_status,
         uint32_t friend_number)
 {
-    assert(friend_status != nullptr);
     friend_status->friend_number = friend_number;
 }
 uint32_t tox_event_friend_status_get_friend_number(const Tox_Event_Friend_Status *friend_status)
@@ -44,7 +43,6 @@ non_null()
 static void tox_event_friend_status_set_status(Tox_Event_Friend_Status *friend_status,
         Tox_User_Status status)
 {
-    assert(friend_status != nullptr);
     friend_status->status = status;
 }
 Tox_User_Status tox_event_friend_status_get_status(const Tox_Event_Friend_Status *friend_status)

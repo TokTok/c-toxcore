@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -35,7 +34,6 @@ non_null()
 static void tox_event_group_invite_set_friend_number(Tox_Event_Group_Invite *group_invite,
         uint32_t friend_number)
 {
-    assert(group_invite != nullptr);
     group_invite->friend_number = friend_number;
 }
 uint32_t tox_event_group_invite_get_friend_number(const Tox_Event_Group_Invite *group_invite)
@@ -48,24 +46,7 @@ non_null()
 static bool tox_event_group_invite_set_invite_data(Tox_Event_Group_Invite *group_invite,
         const uint8_t *invite_data, uint32_t invite_data_length)
 {
-    assert(group_invite != nullptr);
-
-    if (group_invite->invite_data != nullptr) {
-        free(group_invite->invite_data);
-        group_invite->invite_data = nullptr;
-        group_invite->invite_data_length = 0;
-    }
-
-    uint8_t *invite_data_copy = (uint8_t *)malloc(invite_data_length);
-
-    if (invite_data_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(invite_data_copy, invite_data, invite_data_length);
-    group_invite->invite_data = invite_data_copy;
-    group_invite->invite_data_length = invite_data_length;
-    return true;
+    return clone_byte_array(&group_invite->invite_data, &group_invite->invite_data_length, invite_data, invite_data_length);
 }
 uint32_t tox_event_group_invite_get_invite_data_length(const Tox_Event_Group_Invite *group_invite)
 {
@@ -82,24 +63,7 @@ non_null()
 static bool tox_event_group_invite_set_group_name(Tox_Event_Group_Invite *group_invite,
         const uint8_t *group_name, uint32_t group_name_length)
 {
-    assert(group_invite != nullptr);
-
-    if (group_invite->group_name != nullptr) {
-        free(group_invite->group_name);
-        group_invite->group_name = nullptr;
-        group_invite->group_name_length = 0;
-    }
-
-    uint8_t *group_name_copy = (uint8_t *)malloc(group_name_length);
-
-    if (group_name_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(group_name_copy, group_name, group_name_length);
-    group_invite->group_name = group_name_copy;
-    group_invite->group_name_length = group_name_length;
-    return true;
+    return clone_byte_array(&group_invite->group_name, &group_invite->group_name_length, group_name, group_name_length);
 }
 uint32_t tox_event_group_invite_get_group_name_length(const Tox_Event_Group_Invite *group_invite)
 {

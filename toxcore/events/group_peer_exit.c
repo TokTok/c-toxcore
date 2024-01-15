@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -38,7 +37,6 @@ non_null()
 static void tox_event_group_peer_exit_set_group_number(Tox_Event_Group_Peer_Exit *group_peer_exit,
         uint32_t group_number)
 {
-    assert(group_peer_exit != nullptr);
     group_peer_exit->group_number = group_number;
 }
 uint32_t tox_event_group_peer_exit_get_group_number(const Tox_Event_Group_Peer_Exit *group_peer_exit)
@@ -51,7 +49,6 @@ non_null()
 static void tox_event_group_peer_exit_set_peer_id(Tox_Event_Group_Peer_Exit *group_peer_exit,
         uint32_t peer_id)
 {
-    assert(group_peer_exit != nullptr);
     group_peer_exit->peer_id = peer_id;
 }
 uint32_t tox_event_group_peer_exit_get_peer_id(const Tox_Event_Group_Peer_Exit *group_peer_exit)
@@ -64,7 +61,6 @@ non_null()
 static void tox_event_group_peer_exit_set_exit_type(Tox_Event_Group_Peer_Exit *group_peer_exit,
         Tox_Group_Exit_Type exit_type)
 {
-    assert(group_peer_exit != nullptr);
     group_peer_exit->exit_type = exit_type;
 }
 Tox_Group_Exit_Type tox_event_group_peer_exit_get_exit_type(const Tox_Event_Group_Peer_Exit *group_peer_exit)
@@ -77,24 +73,7 @@ non_null()
 static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *group_peer_exit,
         const uint8_t *name, uint32_t name_length)
 {
-    assert(group_peer_exit != nullptr);
-
-    if (group_peer_exit->name != nullptr) {
-        free(group_peer_exit->name);
-        group_peer_exit->name = nullptr;
-        group_peer_exit->name_length = 0;
-    }
-
-    uint8_t *name_copy = (uint8_t *)malloc(name_length);
-
-    if (name_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(name_copy, name, name_length);
-    group_peer_exit->name = name_copy;
-    group_peer_exit->name_length = name_length;
-    return true;
+    return clone_byte_array(&group_peer_exit->name, &group_peer_exit->name_length, name, name_length);
 }
 uint32_t tox_event_group_peer_exit_get_name_length(const Tox_Event_Group_Peer_Exit *group_peer_exit)
 {
@@ -111,24 +90,7 @@ non_null()
 static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit *group_peer_exit,
         const uint8_t *part_message, uint32_t part_message_length)
 {
-    assert(group_peer_exit != nullptr);
-
-    if (group_peer_exit->part_message != nullptr) {
-        free(group_peer_exit->part_message);
-        group_peer_exit->part_message = nullptr;
-        group_peer_exit->part_message_length = 0;
-    }
-
-    uint8_t *part_message_copy = (uint8_t *)malloc(part_message_length);
-
-    if (part_message_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(part_message_copy, part_message, part_message_length);
-    group_peer_exit->part_message = part_message_copy;
-    group_peer_exit->part_message_length = part_message_length;
-    return true;
+    return clone_byte_array(&group_peer_exit->part_message, &group_peer_exit->part_message_length, part_message, part_message_length);
 }
 uint32_t tox_event_group_peer_exit_get_part_message_length(const Tox_Event_Group_Peer_Exit *group_peer_exit)
 {

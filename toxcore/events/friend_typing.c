@@ -30,7 +30,6 @@ non_null()
 static void tox_event_friend_typing_set_friend_number(Tox_Event_Friend_Typing *friend_typing,
         uint32_t friend_number)
 {
-    assert(friend_typing != nullptr);
     friend_typing->friend_number = friend_number;
 }
 uint32_t tox_event_friend_typing_get_friend_number(const Tox_Event_Friend_Typing *friend_typing)
@@ -43,7 +42,6 @@ non_null()
 static void tox_event_friend_typing_set_typing(Tox_Event_Friend_Typing *friend_typing,
         bool typing)
 {
-    assert(friend_typing != nullptr);
     friend_typing->typing = typing;
 }
 bool tox_event_friend_typing_get_typing(const Tox_Event_Friend_Typing *friend_typing)

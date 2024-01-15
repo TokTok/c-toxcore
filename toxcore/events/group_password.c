@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
@@ -33,7 +32,6 @@ non_null()
 static void tox_event_group_password_set_group_number(Tox_Event_Group_Password *group_password,
         uint32_t group_number)
 {
-    assert(group_password != nullptr);
     group_password->group_number = group_number;
 }
 uint32_t tox_event_group_password_get_group_number(const Tox_Event_Group_Password *group_password)
@@ -46,24 +44,7 @@ non_null()
 static bool tox_event_group_password_set_password(Tox_Event_Group_Password *group_password,
         const uint8_t *password, uint32_t password_length)
 {
-    assert(group_password != nullptr);
-
-    if (group_password->password != nullptr) {
-        free(group_password->password);
-        group_password->password = nullptr;
-        group_password->password_length = 0;
-    }
-
-    uint8_t *password_copy = (uint8_t *)malloc(password_length);
-
-    if (password_copy == nullptr) {
-        return false;
-    }
-
-    memcpy(password_copy, password, password_length);
-    group_password->password = password_copy;
-    group_password->password_length = password_length;
-    return true;
+    return clone_byte_array(&group_password->password, &group_password->password_length, password, password_length);
 }
 uint32_t tox_event_group_password_get_password_length(const Tox_Event_Group_Password *group_password)
 {

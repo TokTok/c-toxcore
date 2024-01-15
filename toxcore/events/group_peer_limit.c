@@ -30,7 +30,6 @@ non_null()
 static void tox_event_group_peer_limit_set_group_number(Tox_Event_Group_Peer_Limit *group_peer_limit,
         uint32_t group_number)
 {
-    assert(group_peer_limit != nullptr);
     group_peer_limit->group_number = group_number;
 }
 uint32_t tox_event_group_peer_limit_get_group_number(const Tox_Event_Group_Peer_Limit *group_peer_limit)
@@ -43,7 +42,6 @@ non_null()
 static void tox_event_group_peer_limit_set_peer_limit(Tox_Event_Group_Peer_Limit *group_peer_limit,
         uint32_t peer_limit)
 {
-    assert(group_peer_limit != nullptr);
     group_peer_limit->peer_limit = peer_limit;
 }
 uint32_t tox_event_group_peer_limit_get_peer_limit(const Tox_Event_Group_Peer_Limit *group_peer_limit)
