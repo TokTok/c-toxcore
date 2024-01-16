@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later
+/* SPDX-License-Identifier: GPL-2.0-or-later
  * Copyright © 2022 The TokTok team.
  */
 
@@ -118,8 +118,11 @@ bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp)
     return true;
 }
 
-bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
+non_null()
+static bool tox_events_unpack(Bin_Unpack *bu, void *obj)
 {
+    Tox_Events *events = (Tox_Events *)obj;
+
     uint32_t size;
     if (!bin_unpack_array(bu, &size)) {
         return false;
@@ -127,13 +130,13 @@ bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem)
 
     for (uint32_t i = 0; i < size; ++i) {
         Tox_Event event = {TOX_EVENT_INVALID};
-        if (!tox_event_unpack_into(&event, bu, mem)) {
-            tox_event_destruct(&event, mem);
+        if (!tox_event_unpack_into(&event, bu, events->mem)) {
+            tox_event_destruct(&event, events->mem);
             return false;
         }
 
         if (!tox_events_add(events, &event)) {
-            tox_event_destruct(&event, mem);
+            tox_event_destruct(&event, events->mem);
             return false;
         }
     }
@@ -162,16 +165,9 @@ bool tox_events_get_bytes(const Tox_Events *events, uint8_t *bytes)
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
-    Bin_Unpack *bu = bin_unpack_new(bytes, bytes_size);
-
-    if (bu == nullptr) {
-        return nullptr;
-    }
-
     Tox_Events *events = (Tox_Events *)mem_alloc(sys->mem, sizeof(Tox_Events));
 
     if (events == nullptr) {
-        bin_unpack_free(bu);
         return nullptr;
     }
 
@@ -180,13 +176,11 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     };
     events->mem = sys->mem;
 
-    if (!tox_events_unpack(events, bu, sys->mem)) {
+    if (!bin_unpack_obj(tox_events_unpack, events, bytes, bytes_size)) {
         tox_events_free(events);
-        bin_unpack_free(bu);
         return nullptr;
     }
 
-    bin_unpack_free(bu);
     return events;
 }
 
