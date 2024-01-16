@@ -5,7 +5,6 @@
 #include "bin_pack.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../third_party/cmp/cmp.h"
@@ -102,21 +101,6 @@ bool bin_pack_obj_array(bin_pack_array_cb *callback, const Logger *logger, const
         }
     }
     return true;
-}
-
-Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size)
-{
-    Bin_Pack *bp = (Bin_Pack *)calloc(1, sizeof(Bin_Pack));
-    if (bp == nullptr) {
-        return nullptr;
-    }
-    bin_pack_init(bp, buf, buf_size);
-    return bp;
-}
-
-void bin_pack_free(Bin_Pack *bp)
-{
-    free(bp);
 }
 
 bool bin_pack_array(Bin_Pack *bp, uint32_t size)

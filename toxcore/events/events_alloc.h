@@ -73,9 +73,6 @@ non_null(2) nullable(1)
 bool tox_events_pack(const Tox_Events *events, Bin_Pack *bp);
 
 non_null()
-bool tox_events_unpack(Tox_Events *events, Bin_Unpack *bu, const Memory *mem);
-
-non_null()
 Tox_Events_State *tox_events_alloc(void *user_data);
 
 non_null()

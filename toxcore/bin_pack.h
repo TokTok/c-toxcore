@@ -109,25 +109,6 @@ uint32_t bin_pack_obj_array_size(bin_pack_array_cb *callback, const Logger *logg
 non_null(1, 3, 5) nullable(2)
 bool bin_pack_obj_array(bin_pack_array_cb *callback, const Logger *logger, const void *arr, uint32_t count, uint8_t *buf, uint32_t buf_size);
 
-/** @brief Allocate a new packer object.
- *
- * This is the only function that allocates memory in this module.
- *
- * @param buf A byte array large enough to hold the serialised representation of `obj`.
- * @param buf_size The size of the byte array. Can be `UINT32_MAX` to disable bounds checking.
- *
- * @retval nullptr on allocation failure.
- */
-non_null()
-Bin_Pack *bin_pack_new(uint8_t *buf, uint32_t buf_size);
-
-/** @brief Deallocates a packer object.
- *
- * Does not deallocate the buffer inside.
- */
-nullable(1)
-void bin_pack_free(Bin_Pack *bp);
-
 /** @brief Start packing a MessagePack array.
  *
  * A call to this function must be followed by exactly `size` calls to other functions below.
