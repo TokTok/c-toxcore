@@ -14,9 +14,11 @@ TEST(BinPack, TooSmallBufferIsNotExceeded)
 {
     const uint64_t orig = 1234567812345678LL;
     std::array<uint8_t, sizeof(orig) - 1> buf;
-    EXPECT_FALSE(bin_pack_obj([](Bin_Pack *bp, const Logger *logger, const void *obj) {
-        return bin_pack_u64_b(bp, *static_cast<const uint64_t *>(obj));
-    }, nullptr, &orig, buf.data(), buf.size()));
+    EXPECT_FALSE(bin_pack_obj(
+        [](Bin_Pack *bp, const Logger *logger, const void *obj) {
+            return bin_pack_u64_b(bp, *static_cast<const uint64_t *>(obj));
+        },
+        nullptr, &orig, buf.data(), buf.size()));
 }
 
 TEST(BinPack, PackedUint64CanBeUnpacked)
@@ -42,15 +44,15 @@ TEST(BinPack, MsgPackedUint8CanBeUnpackedAsUint32)
 {
     const uint8_t orig = 123;
     std::array<uint8_t, 2> buf;
-    EXPECT_TRUE(bin_pack_obj([](Bin_Pack *bp, const Logger *logger, const void *obj) {
-        return bin_pack_u08(bp, *static_cast<const uint8_t *>(obj));
-    }, nullptr, &orig, buf.data(), buf.size()));
+    EXPECT_TRUE(bin_pack_obj(
+        [](Bin_Pack *bp, const Logger *logger, const void *obj) {
+            return bin_pack_u08(bp, *static_cast<const uint8_t *>(obj));
+        },
+        nullptr, &orig, buf.data(), buf.size()));
 
     uint32_t unpacked;
     EXPECT_TRUE(bin_unpack_obj(
-        [](Bin_Unpack *bu, void *obj) {
-            return bin_unpack_u32(bu, static_cast<uint32_t *>(obj));
-        },
+        [](Bin_Unpack *bu, void *obj) { return bin_unpack_u32(bu, static_cast<uint32_t *>(obj)); },
         &unpacked, buf.data(), buf.size()));
     EXPECT_EQ(unpacked, 123);
 }
