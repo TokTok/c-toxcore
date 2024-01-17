@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
 =======
 c028527fe5eecde7daa6ac9dacc47bd4bb765463e8e4b5af3881789797bf81a8  /usr/local/bin/tox-bootstrapd
@@ -11,3 +12,6 @@ c028527fe5eecde7daa6ac9dacc47bd4bb765463e8e4b5af3881789797bf81a8  /usr/local/bin
 =======
 48ed699a0da0282b7e12142648a322198a2f2af791df3fb49bbe3f7e41afadc4  /usr/local/bin/tox-bootstrapd
 >>>>>>> bdf460a3a (refactor: Rename `system_{memory,...}` to `os_{memory,...}`.)
+=======
+7dfcf534fb80fbd8337337f5aa9eaa120febc72386046c7ab0d5c7545e900657  /usr/local/bin/tox-bootstrapd
+>>>>>>> 6aa9e6850 (cleanup: Minor cleanup of event unpack code.)
