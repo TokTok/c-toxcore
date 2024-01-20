@@ -349,7 +349,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
         }
 
         if (num_nodes >= 2) {
-            nodes[0] = empty_node_format;
+            nodes[0] = empty_node_format();
             nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
@@ -363,7 +363,7 @@ static uint16_t random_nodes_path_onion(const Onion_Client *onion_c, Node_format
                 return 0;
             }
 
-            nodes[0] = empty_node_format;
+            nodes[0] = empty_node_format();
             nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {

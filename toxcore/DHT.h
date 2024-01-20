@@ -192,7 +192,7 @@ typedef struct Node_format {
     IP_Port     ip_port;
 } Node_format;
 
-extern const Node_format empty_node_format;
+Node_format empty_node_format(void);
 
 typedef struct DHT_Friend DHT_Friend;
 

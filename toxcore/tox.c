@@ -1972,11 +1972,12 @@ uint32_t tox_file_send(Tox *tox, uint32_t friend_number, uint32_t kind, uint64_t
     if (file_id == nullptr) {
         /* Tox keys are 32 bytes like FILE_ID_LENGTH. */
         new_symmetric_key(tox->sys.rng, f_id);
-        file_id = f_id;
+    } else {
+        memcpy(f_id, file_id, TOX_FILE_ID_LENGTH);
     }
 
     tox_lock(tox);
-    const long int file_num = new_filesender(tox->m, friend_number, kind, file_size, file_id, filename, filename_length);
+    const long int file_num = new_filesender(tox->m, friend_number, kind, file_size, f_id, filename, filename_length);
     tox_unlock(tox);
 
     if (file_num >= 0) {

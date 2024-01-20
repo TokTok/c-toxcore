@@ -82,7 +82,12 @@ struct DHT_Friend {
 };
 
 static const DHT_Friend empty_dht_friend = {{0}};
-const Node_format empty_node_format = {{0}};
+
+Node_format empty_node_format(void)
+{
+    const Node_format empty = {{0}};
+    return empty;
+}
 
 static_assert(sizeof (empty_dht_friend.lock_flags) * 8 == DHT_FRIEND_MAX_LOCKS, "Bitfield size and number of locks don't match");
 
