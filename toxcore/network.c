@@ -933,7 +933,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
 {
     IP_Port ipp_copy = *ip_port;
 
-    if (net_family_is_unspec(ip_port->ip.family)) {
+    if (net_family_is_unspec(ipp_copy.ip.family)) {
         // TODO(iphydf): Make this an error. Currently this fails sometimes when
         // called from DHT.c:do_ping_and_sendnode_requests.
         return -1;
@@ -996,7 +996,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
     }
 
     const long res = net_sendto(net->ns, net->sock, packet.data, packet.length, &addr, &ipp_copy);
-    loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
+    loglogdata(net->log, "O=>", packet.data, packet.length, &ipp_copy, res);
 
     assert(res <= INT_MAX);
     return (int)res;
@@ -1021,7 +1021,8 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
 non_null()
 static int receivepacket(const Network *ns, const Memory *mem, const Logger *log, Socket sock, IP_Port *ip_port, uint8_t *data, uint32_t *length)
 {
-    memset(ip_port, 0, sizeof(IP_Port));
+    ipport_reset(ip_port);
+
     Network_Addr addr = {{0}};
     addr.size = sizeof(addr.addr);
     *length = 0;
@@ -1514,13 +1515,25 @@ void ip_reset(IP *ip)
 static const IP_Port empty_ip_port = {{{0}}};
 
 /** nulls out ip_port */
-void ipport_reset(IP_Port *ipport)
+void ipport_reset(IP_Port *ip_port)
 {
-    if (ipport == nullptr) {
+    if (ip_port == nullptr) {
         return;
     }
 
-    *ipport = empty_ip_port;
+#ifdef RANDOM_PADDING
+    // Leave padding bytes as uninitialized data. This should not matter, because we
+    // then set all the actual fields to 0.
+    IP_Port empty;
+    empty.ip.family.value = 0;
+    empty.ip.ip.v6.uint64[0] = 0;
+    empty.ip.ip.v6.uint64[1] = 0;
+    empty.port = 0;
+
+    *ip_port = empty;
+#else
+    *ip_port = empty_ip_port;
+#endif /* RANDOM_PADDING */
 }
 
 /** nulls out ip, sets family according to flag */
@@ -1630,7 +1643,7 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
         Ip_Ntoa ip_str;
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
         // doing that, and turn this into an error.
-        LOGGER_TRACE(logger, "cannot pack invalid IP: %s", net_ip_ntoa(&ip_port->ip, &ip_str));
+        LOGGER_DEBUG(logger, "cannot pack invalid IP: %s", net_ip_ntoa(&ip_port->ip, &ip_str));
         return false;
     }
 
@@ -1651,6 +1664,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     const uint32_t size = bin_pack_obj_size(bin_pack_ip_port_handler, ip_port, logger);
 
     if (size > length) {
+        LOGGER_ERROR(logger, "not enough space for packed IP: %u but need %u", length, size);
         return -1;
     }
 
