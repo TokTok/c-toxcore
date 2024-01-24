@@ -1,5 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 7dfcf534fb80fbd8337337f5aa9eaa120febc72386046c7ab0d5c7545e900657  /usr/local/bin/tox-bootstrapd
 =======
 cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
 >>>>>>> 80ac793b3 (feat: allow the large custom NGC packets to be handled also by the client)
+=======
+cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
+=======
+c028527fe5eecde7daa6ac9dacc47bd4bb765463e8e4b5af3881789797bf81a8  /usr/local/bin/tox-bootstrapd
+>>>>>>> 8f0775583 (cleanup: Use `memzero(x, s)` instead of `memset(x, 0, s)`.)
+>>>>>>> a9d819d6a (cleanup: Use `memzero(x, s)` instead of `memset(x, 0, s)`.)
