@@ -246,12 +246,12 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *tcp_
     if (net_family_is_ipv4(tcp_conn->ip_port.ip.family)) {
         tcp_conn->con.last_packet[3] = TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4;
         ++length;
-        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v4.uint8, sizeof(IP4));
+        arrcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v4.uint8, sizeof(IP4));
         length += sizeof(IP4);
     } else {
         tcp_conn->con.last_packet[3] = TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6;
         ++length;
-        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v6.uint8, sizeof(IP6));
+        arrcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v6.uint8, sizeof(IP6));
         length += sizeof(IP6);
     }
 
@@ -309,8 +309,8 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     crypto_new_keypair(tcp_conn->con.rng, plain, tcp_conn->temp_secret_key);
     random_nonce(tcp_conn->con.rng, tcp_conn->con.sent_nonce);
-    memcpy(plain + CRYPTO_PUBLIC_KEY_SIZE, tcp_conn->con.sent_nonce, CRYPTO_NONCE_SIZE);
-    memcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(plain + CRYPTO_PUBLIC_KEY_SIZE, tcp_conn->con.sent_nonce, CRYPTO_NONCE_SIZE);
+    arrcpy(tcp_conn->con.last_packet, tcp_conn->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(tcp_conn->con.rng, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE);
     const int len = encrypt_data_symmetric(tcp_conn->con.shared_key, tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE, plain,
                                      sizeof(plain), tcp_conn->con.last_packet + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
@@ -341,7 +341,7 @@ static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data
         return -1;
     }
 
-    memcpy(tcp_conn->recv_nonce, plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
+    arrcpy(tcp_conn->recv_nonce, plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
     encrypt_precompute(plain, tcp_conn->temp_secret_key, tcp_conn->con.shared_key);
     crypto_memzero(tcp_conn->temp_secret_key, CRYPTO_SECRET_KEY_SIZE);
     return 0;
@@ -356,7 +356,7 @@ int send_routing_request(const Logger *logger, TCP_Client_Connection *con, const
 {
     uint8_t packet[1 + CRYPTO_PUBLIC_KEY_SIZE];
     packet[0] = TCP_PACKET_ROUTING_REQUEST;
-    memcpy(packet + 1, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(packet + 1, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     return write_packet_tcp_secure_connection(logger, &con->con, packet, sizeof(packet), true);
 }
 
@@ -396,7 +396,7 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
 
     VLA(uint8_t, packet, 1 + length);
     packet[0] = con_id + NUM_RESERVED_PORTS;
-    memcpy(packet + 1, data, length);
+    arrcpy(packet + 1, data, length);
     return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
 }
 
@@ -414,8 +414,8 @@ int send_oob_packet(const Logger *logger, TCP_Client_Connection *con, const uint
 
     VLA(uint8_t, packet, 1 + CRYPTO_PUBLIC_KEY_SIZE + length);
     packet[0] = TCP_PACKET_OOB_SEND;
-    memcpy(packet + 1, public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length);
+    arrcpy(packet + 1, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length);
     return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
 }
 
@@ -538,7 +538,7 @@ int send_onion_request(const Logger *logger, TCP_Client_Connection *con, const u
 {
     VLA(uint8_t, packet, 1 + length);
     packet[0] = TCP_PACKET_ONION_REQUEST;
-    memcpy(packet + 1, data, length);
+    arrcpy(packet + 1, data, length);
     return write_packet_tcp_secure_connection(logger, &con->con, packet, SIZEOF_VLA(packet), false);
 }
 
@@ -566,7 +566,7 @@ int send_forward_request_tcp(const Logger *logger, TCP_Client_Connection *con, c
         return 0;
     }
 
-    memcpy(packet + 1 + ipport_length, data, length);
+    arrcpy(packet + 1 + ipport_length, data, length);
     return write_packet_tcp_secure_connection(logger, &con->con, packet, 1 + ipport_length + length, false);
 }
 
@@ -632,8 +632,8 @@ TCP_Client_Connection *new_tcp_connection(
     temp->con.rng = rng;
     temp->con.sock = sock;
     temp->con.ip_port = *ip_port;
-    memcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key);
     temp->ip_port = *ip_port;
     temp->proxy_info = *proxy_info;
@@ -688,7 +688,7 @@ static int handle_tcp_client_routing_response(TCP_Client_Connection *conn, const
 
     conn->connections[con_id].status = 1;
     conn->connections[con_id].number = -1;
-    memcpy(conn->connections[con_id].public_key, data + 2, CRYPTO_PUBLIC_KEY_SIZE);
+    arrcpy(conn->connections[con_id].public_key, data + 2, CRYPTO_PUBLIC_KEY_SIZE);
 
     if (conn->response_callback != nullptr) {
         conn->response_callback(conn->response_callback_object, con_id, conn->connections[con_id].public_key);

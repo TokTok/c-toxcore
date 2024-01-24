@@ -96,6 +96,11 @@ uint8_t *memdup(const uint8_t *data, size_t data_size)
     return copy;
 }
 
+void arrcpy(uint8_t *dst, const uint8_t *src, size_t size)
+{
+    memcpy(dst, src, size);
+}
+
 void memzero(uint8_t *data, size_t data_size)
 {
     if (data == nullptr || data_size == 0) {

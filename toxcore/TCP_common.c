@@ -112,7 +112,7 @@ static bool add_priority(TCP_Connection *con, const uint8_t *packet, uint16_t si
         return false;
     }
 
-    memcpy(data, packet, size);
+    arrcpy(data, packet, size);
     new_list->data = data;
     new_list->size = size;
 
@@ -189,7 +189,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
         return 1;
     }
 
-    memcpy(con->last_packet, packet, SIZEOF_VLA(packet));
+    arrcpy(con->last_packet, packet, SIZEOF_VLA(packet));
     con->last_packet_length = SIZEOF_VLA(packet);
     con->last_packet_sent = len;
     return 1;
