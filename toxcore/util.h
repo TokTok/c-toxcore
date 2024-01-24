@@ -48,6 +48,11 @@ non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t 
  */
 nullable(1) uint8_t *memdup(const uint8_t *data, size_t data_size);
 
+/**
+ * @brief Set all bytes in `data` to 0.
+ */
+nullable(1) void memzero(uint8_t *data, size_t data_size);
+
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of
 // conversion to the caller. Use these instead of inline comparisons or MIN/MAX
