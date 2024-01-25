@@ -177,7 +177,7 @@ static int check_group_state(const Tox *tox, uint32_t groupnumber, uint32_t peer
     }
 
     if (password != nullptr && my_pass_len > 0) {
-        ck_assert(my_pass_len <= TOX_GROUP_MAX_PASSWORD_SIZE);
+        ck_assert(my_pass_len < TOX_GROUP_MAX_PASSWORD_SIZE);
 
         uint8_t my_pass[TOX_GROUP_MAX_PASSWORD_SIZE];
         tox_group_get_password(tox, groupnumber, my_pass, &query_err);
