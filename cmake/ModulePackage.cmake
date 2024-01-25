@@ -20,6 +20,7 @@ if(FULLY_STATIC)
 endif()
 
 function(install_module lib)
+  cmake_parse_arguments(INSTALL_MODULE "" "DESTINATION" "" ${ARGN})
   if(TARGET ${lib}_shared)
     set_target_properties(${lib}_shared PROPERTIES
       VERSION ${SOVERSION}
@@ -59,7 +60,10 @@ function(install_module lib)
   foreach(sublib ${${lib}_API_HEADERS})
     string(REPLACE "^" ";" sublib ${sublib})
     list(GET sublib 0 header)
+    string(REPLACE "${${lib}_SOURCE_DIR}/" "" target_header ${header})
+    get_filename_component(target_path ${target_header} DIRECTORY)
 
-    install(FILES ${header} ${ARGN})
+    install(FILES ${header} DESTINATION
+            "${INSTALL_MODULE_DESTINATION}/${target_path}")
   endforeach()
 endfunction()

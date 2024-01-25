@@ -47,7 +47,6 @@ cc_library(
     hdrs = ["bwcontroller.h"],
     deps = [
         ":ring_buffer",
-        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:logger",
@@ -129,7 +128,6 @@ cc_library(
     srcs = ["groupav.c"],
     hdrs = ["groupav.h"],
     deps = [
-        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:group",
         "//c-toxcore/toxcore:logger",

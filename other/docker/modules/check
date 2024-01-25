@@ -55,7 +55,7 @@ def main() -> None:
     with open("module.modulemap", "w") as fh:
         for name, lib in LIBS.items():
             fh.write("module " + name + " {\n")
-            for hdr in lib["hdrs"]:
+            for hdr in lib.get("hdrs", []):
                 fh.write(f'  header "toxcore/{hdr}"\n')
             for dep in lib.get("deps", []):
                 if dep[0] == ":":
