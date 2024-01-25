@@ -1,6 +1,7 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 7dfcf534fb80fbd8337337f5aa9eaa120febc72386046c7ab0d5c7545e900657  /usr/local/bin/tox-bootstrapd
 =======
 cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
@@ -8,6 +9,8 @@ cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin
 =======
 =======
 >>>>>>> 12fab0ced (cleanup: Remove all uses of `SIZEOF_VLA`.)
+=======
+>>>>>>> 959219b01 (refactor: Rename `system_{memory,...}` to `os_{memory,...}`.)
 cbc0080745e6606a0267be2e39cf56366010512be7e8167afe0dfad176441c7a  /usr/local/bin/tox-bootstrapd
 =======
 c028527fe5eecde7daa6ac9dacc47bd4bb765463e8e4b5af3881789797bf81a8  /usr/local/bin/tox-bootstrapd
@@ -18,4 +21,10 @@ c028527fe5eecde7daa6ac9dacc47bd4bb765463e8e4b5af3881789797bf81a8  /usr/local/bin
 =======
 8a2cc2e20ac0688b42c6e6211cb1bc5797c276ed52a2322d8b786f8ad562d535  /usr/local/bin/tox-bootstrapd
 >>>>>>> 5c093c488 (cleanup: Remove all uses of `SIZEOF_VLA`.)
+<<<<<<< HEAD
 >>>>>>> 12fab0ced (cleanup: Remove all uses of `SIZEOF_VLA`.)
+=======
+=======
+48ed699a0da0282b7e12142648a322198a2f2af791df3fb49bbe3f7e41afadc4  /usr/local/bin/tox-bootstrapd
+>>>>>>> bdf460a3a (refactor: Rename `system_{memory,...}` to `os_{memory,...}`.)
+>>>>>>> 959219b01 (refactor: Rename `system_{memory,...}` to `os_{memory,...}`.)
