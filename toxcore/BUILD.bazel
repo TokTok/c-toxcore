@@ -1116,10 +1116,10 @@ cc_library(
     ],
 )
 
-alias(
+cc_library(
     name = "toxcore",
-    actual = ":tox_dispatch",
-    visibility = ["//c-toxcore:__subpackages__"],
+    visibility = ["//c-toxcore:__pkg__"],
+    deps = [":tox_dispatch"],
 )
 
 sh_library(

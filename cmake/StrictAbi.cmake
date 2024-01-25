@@ -32,12 +32,14 @@ function(_make_version_script target)
       COMMAND ${SHELL} -c "egrep '^\\w' ${header} | grep '${ns}_[a-z0-9_]*(' | grep -v '^typedef' | grep -o '${ns}_[a-z0-9_]*(' | egrep -o '[a-z0-9_]+' | sort -u"
       OUTPUT_VARIABLE sublib_SYMS
       OUTPUT_STRIP_TRAILING_WHITESPACE)
-    string(REPLACE "\n" ";" sublib_SYMS ${sublib_SYMS})
+    if(sublib_SYMS)
+      string(REPLACE "\n" ";" sublib_SYMS ${sublib_SYMS})
 
-    foreach(sym ${sublib_SYMS})
-      file(APPEND ${${target}_VERSION_SCRIPT}
-        "${sym};\n")
-    endforeach(sym)
+      foreach(sym ${sublib_SYMS})
+        file(APPEND ${${target}_VERSION_SCRIPT}
+          "${sym};\n")
+      endforeach(sym)
+    endif()
   endforeach(sublib)
 
   file(APPEND ${${target}_VERSION_SCRIPT}
