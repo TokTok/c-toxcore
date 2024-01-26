@@ -1435,6 +1435,50 @@ bool ipport_equal(const IP_Port *a, const IP_Port *b)
     return ip_equal(&a->ip, &b->ip);
 }
 
+non_null()
+static int ip4_cmp(const IP4 *a, const IP4 *b)
+{
+    return cmp_u32(a->uint32, b->uint32);
+}
+
+non_null()
+static int ip6_cmp(const IP6 *a, const IP6 *b)
+{
+    const int res = cmp_u64(a->uint64[0], b->uint64[0]);
+    if (res != 0) {
+        return res;
+    }
+    return cmp_u64(a->uint64[1], b->uint64[1]);
+}
+
+non_null()
+static int ip_cmp(const IP *a, const IP *b)
+{
+    const int res = cmp_u08(a->family.value, b->family.value);
+    if (res != 0) {
+        return res;
+    }
+    if (net_family_is_ipv4(a->family)) {
+        return ip4_cmp(&a->ip.v4, &b->ip.v4);
+    }
+    // If family isn't ipv4, assume ipv6 and compare as many bytes as we can.
+    return ip6_cmp(&a->ip.v6, &b->ip.v6);
+}
+
+int ipport_cmp_handler(const void *a, const void *b, size_t size)
+{
+    const IP_Port *ipp_a = (const IP_Port *)a;
+    const IP_Port *ipp_b = (const IP_Port *)b;
+    assert(size == sizeof(IP_Port));
+
+    const int ip_res = ip_cmp(&ipp_a->ip, &ipp_b->ip);
+    if (ip_res != 0) {
+        return ip_res;
+    }
+
+    return cmp_u16(ipp_a->port, ipp_b->port);
+}
+
 /** nulls out ip */
 void ip_reset(IP *ip)
 {
@@ -1508,7 +1552,14 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
         return;
     }
 
-    *target = *source;
+    // Write to a temporary object first, so that padding bytes are
+    // uninitialised and msan can catch mistakes in downstream code.
+    IP_Port tmp;
+    tmp.ip.family = source->ip.family;
+    tmp.ip.ip = source->ip.ip;
+    tmp.port = source->port;
+
+    *target = tmp;
 }
 
 const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str)
