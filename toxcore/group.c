@@ -956,11 +956,6 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
     return true;
 }
 
-static int cmp_u64(uint64_t a, uint64_t b)
-{
-    return (a > b ? 1 : 0) - (a < b ? 1 : 0);
-}
-
 /** Order peers with friends first and with more recently active earlier */
 non_null()
 static int cmp_frozen(const void *a, const void *b)

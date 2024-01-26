@@ -34,4 +34,12 @@ TEST(Util, IdCopyMakesKeysEqual)
     EXPECT_TRUE(pk_equal(pk1, pk2));
 }
 
+TEST(Cmp, OrdersNumbersCorrectly)
+{
+    EXPECT_EQ(cmp_u32(1, 2), -1);
+    EXPECT_EQ(cmp_u32(0, UINT32_MAX), -1);
+    EXPECT_EQ(cmp_u32(UINT32_MAX, 0), 1);
+    EXPECT_EQ(cmp_u32(UINT32_MAX, UINT32_MAX), 0);
+}
+
 }  // namespace
