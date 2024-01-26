@@ -5117,8 +5117,14 @@ non_null(1, 2, 3, 4) nullable(7)
 static int handle_gc_custom_packet(const GC_Session *c, const GC_Chat *chat, const GC_Peer *peer, const uint8_t *data,
                                    uint16_t length, bool lossless, void *userdata)
 {
-    if (!custom_gc_packet_length_is_valid(length, lossless)) {
-        return -1;
+    if (lossless) {
+        if (length > MAX_GC_CUSTOM_LOSSLESS_INCOMING_ASSEMBLED_PACKET_SIZE) {
+            return -1;
+        }
+    } else {
+        if (length > MAX_GC_CUSTOM_LOSSY_PACKET_SIZE) {
+            return -1;
+        }
     }
 
     if (data == nullptr || length == 0) {

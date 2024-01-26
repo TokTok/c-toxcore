@@ -45,6 +45,12 @@
 /* Max size of a complete encrypted packet including headers. */
 #define MAX_GC_PACKET_SIZE (MAX_GC_PACKET_CHUNK_SIZE * 100)
 
+/* Allow incoming NGC custom packets to be up to the total max size of MAX_GC_PACKET_SIZE.
+ * The data itself can only be less than that because of NGC header overhead
+ */
+#define MAX_GC_CUSTOM_LOSSLESS_INCOMING_ASSEMBLED_PACKET_SIZE MAX_GC_PACKET_SIZE
+
+
 /* Max number of messages to store in the send/recv arrays */
 #define GCC_BUFFER_SIZE 8192
 
