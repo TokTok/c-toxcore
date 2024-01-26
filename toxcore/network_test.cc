@@ -82,4 +82,41 @@ TEST(IpParseAddr, FormatsIPv6)
     EXPECT_EQ(std::string(ip_str), "ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff");
 }
 
+TEST(IpportCmp, BehavesLikeMemcmp)
+{
+    auto cmp_val = [](int val) { return val < 0 ? -1 : val > 0 ? 1 : 0; };
+
+    IP_Port a = {0};
+    IP_Port b = {0};
+
+    a.ip.family.value = 10;
+    b.ip.family.value = 10;
+
+    a.port = 10;
+    b.port = 20;
+
+    EXPECT_EQ(  //
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))), -1)
+        << "a=" << a << "\n"
+        << "b=" << b;
+    EXPECT_EQ(  //
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))),
+        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        << "a=" << a << "\n"
+        << "b=" << b;
+
+    a.ip.ip.v6.uint8[0] = 0xba;
+    b.ip.ip.v6.uint8[0] = 0xab;
+
+    EXPECT_EQ(  //
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))), 1)
+        << "a=" << a << "\n"
+        << "b=" << b;
+    EXPECT_EQ(  //
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))),
+        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        << "a=" << a << "\n"
+        << "b=" << b;
+}
+
 }  // namespace
