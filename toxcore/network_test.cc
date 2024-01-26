@@ -100,8 +100,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
     b.port = 20;
 
     EXPECT_EQ(  //
-        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))),
-        -1)
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))), -1)
         << "a=" << a << "\n"
         << "b=" << b;
     EXPECT_EQ(  //
@@ -114,8 +113,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
     b.ip.ip.v6.uint8[0] = 0xab;
 
     EXPECT_EQ(  //
-        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))),
-        1)
+        cmp_val(ipport_cmp_handler(&a, &b, sizeof(IP_Port))), 1)
         << "a=" << a << "\n"
         << "b=" << b;
     EXPECT_EQ(  //
