@@ -321,6 +321,8 @@ cc_test(
     size = "small",
     srcs = ["network_test.cc"],
     deps = [
+        ":crypto_core",
+        ":crypto_core_test_util",
         ":network",
         ":network_test_util",
         "@com_google_googletest//:gtest",
