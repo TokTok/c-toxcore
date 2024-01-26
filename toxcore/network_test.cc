@@ -100,8 +100,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
         << "a=" << a << "\n"
         << "b=" << b;
     EXPECT_EQ(  //
-        ipport_cmp_handler(&a, &b, sizeof(IP_Port)),
-        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        ipport_cmp_handler(&a, &b, sizeof(IP_Port)), cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
         << "a=" << a << "\n"
         << "b=" << b;
 
@@ -113,8 +112,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
         << "a=" << a << "\n"
         << "b=" << b;
     EXPECT_EQ(  //
-        ipport_cmp_handler(&a, &b, sizeof(IP_Port)),
-        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        ipport_cmp_handler(&a, &b, sizeof(IP_Port)), cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
         << "a=" << a << "\n"
         << "b=" << b;
 }
