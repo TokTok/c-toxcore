@@ -1593,11 +1593,7 @@ static bool bin_pack_ip(Bin_Pack *bp, const IP *ip, bool is_ipv4)
     }
 }
 
-/** @brief Packs an IP_Port structure.
- *
- * @retval true on success.
- */
-bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port)
+bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port, bool pad)
 {
     bool is_ipv4;
     uint8_t family;
@@ -1625,14 +1621,16 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
 
     return bin_pack_u08_b(bp, family)
            && bin_pack_ip(bp, &ip_port->ip, is_ipv4)
-           && bin_pack_u16_b(bp, net_ntohs(ip_port->port));
+           && bin_pack_u16_b(bp, net_ntohs(ip_port->port))
+           // Padding the rest with zeroes in case of IPv4.
+           && bin_pack_zero_b(bp, (pad && is_ipv4) ? SIZE_IP6 - SIZE_IP4 : 0);
 }
 
 non_null()
 static bool bin_pack_ip_port_handler(const void *obj, const Logger *logger, Bin_Pack *bp)
 {
     const IP_Port *ip_port = (const IP_Port *)obj;
-    return bin_pack_ip_port(bp, logger, ip_port);
+    return bin_pack_ip_port(bp, logger, ip_port, true);
 }
 
 int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_Port *ip_port)
@@ -1647,7 +1645,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
         return -1;
     }
 
-    assert(size < INT_MAX);
+    assert(size == SIZE_IPPORT);
     return (int)size;
 }
 

@@ -1,10 +1,14 @@
 #include "network.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "network_test_util.hh"
 
 namespace {
+
+using ::testing::Each;
+using ::testing::Ne;
 
 TEST(TestUtil, ProducesNonNullNetwork)
 {
@@ -166,6 +170,54 @@ TEST(IpportCmp, InvalidAlwaysComparesEqual)
     b.ip.ip.v4.uint8[0] = 0xba;
 
     EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 0);
+}
+
+TEST(PackIpPort, Ipv6WritesToAllBytes)
+{
+    Logger *log = logger_new();
+    ASSERT_NE(log, nullptr);
+
+    IP_Port a;
+
+    a.ip.family = net_family_ipv6();
+    a.ip.ip.v6.uint8[0] = 0xde;
+    a.ip.ip.v6.uint8[1] = 0xad;
+    a.ip.ip.v6.uint8[14] = 0xbe;
+    a.ip.ip.v6.uint8[15] = 0xef;
+    a.port = 3128;
+
+    std::array<uint8_t, SIZE_IPPORT> buf;
+    std::fill(buf.begin(), buf.end(), 0xff);
+
+    pack_ip_port(log, buf.data(), buf.size(), &a);
+
+    EXPECT_THAT(buf, Each(Ne(0xff)));
+
+    logger_kill(log);
+}
+
+TEST(PackIpPort, Ipv4WritesToAllBytes)
+{
+    Logger *log = logger_new();
+    ASSERT_NE(log, nullptr);
+
+    IP_Port a;
+
+    a.ip.family = net_family_ipv4();
+    a.ip.ip.v4.uint8[0] = 192;
+    a.ip.ip.v4.uint8[1] = 168;
+    a.ip.ip.v4.uint8[2] = 1;
+    a.ip.ip.v4.uint8[3] = 50;
+    a.port = 3128;
+
+    std::array<uint8_t, SIZE_IPPORT> buf;
+    std::fill(buf.begin(), buf.end(), 0xff);
+
+    pack_ip_port(log, buf.data(), buf.size(), &a);
+
+    EXPECT_THAT(buf, Each(Ne(0xff)));
+
+    logger_kill(log);
 }
 
 }  // namespace

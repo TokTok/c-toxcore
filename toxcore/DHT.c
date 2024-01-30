@@ -407,7 +407,7 @@ non_null()
 static bool bin_pack_node_handler(const void *arr, uint32_t index, const Logger *logger, Bin_Pack *bp)
 {
     const Node_format *nodes = (const Node_format *)arr;
-    return bin_pack_ip_port(bp, logger, &nodes[index].ip_port)
+    return bin_pack_ip_port(bp, logger, &nodes[index].ip_port, false)
            && bin_pack_bin_b(bp, nodes[index].public_key, CRYPTO_PUBLIC_KEY_SIZE);
 }
 

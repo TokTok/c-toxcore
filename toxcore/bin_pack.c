@@ -201,3 +201,13 @@ bool bin_pack_bin_b(Bin_Pack *bp, const uint8_t *data, uint32_t length)
 {
     return bp->ctx.write(&bp->ctx, data, length) == length;
 }
+
+bool bin_pack_zero_b(Bin_Pack *bp, uint32_t length)
+{
+    for (uint32_t i = 0; i < length; ++i) {
+        if (!bin_pack_u08_b(bp, 0x00)) {
+            return false;
+        }
+    }
+    return true;
+}
