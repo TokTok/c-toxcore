@@ -34,7 +34,8 @@ def select(selector: dict[str, list[str]]) -> list[str]:
 
 def glob(include: list[str]) -> list[str]:
     return [
-        f[len("toxcore/"):] for p in include
+        f[len("toxcore/") :]
+        for p in include
         for f in py_glob.glob(os.path.join("toxcore", p))
     ]
 
@@ -63,8 +64,11 @@ def main() -> None:
 
     srcs = sorted(
         set(
-            os.path.join("toxcore", src) for lib in LIBS.values()
-            for src in lib.get("srcs", [])))
+            os.path.join("toxcore", src)
+            for lib in LIBS.values()
+            for src in lib.get("srcs", [])
+        )
+    )
     for src in srcs:
         print(f"Validating {src}", file=sys.stderr)
         subprocess.run(
