@@ -7,32 +7,42 @@ import sys
 
 LIBS = {}
 
+
 def load(bzl, *syms):
     pass
+
 
 def exports_files(srcs, visibility=None):
     pass
 
+
 def cc_library(name, **kwargs):
     LIBS[name] = kwargs
+
 
 def cc_test(name, **kwargs):
     pass
 
+
 def cc_fuzz_test(name, **kwargs):
     pass
+
 
 def select(selector):
     return selector["//tools/config:linux"]
 
+
 def glob(include):
     return [f[len("toxcore/"):] for p in include for f in py_glob.glob(os.path.join("toxcore", p))]
+
 
 def alias(name, actual, visibility):
     pass
 
+
 def sh_library(name, **kwargs):
     pass
+
 
 def main():
     with open("toxcore/BUILD.bazel", "r") as fh:
@@ -67,6 +77,7 @@ def main():
             "-fmodule-map-file=module.modulemap",
             src,
         ], check=True)
+
 
 if __name__ == "__main__":
     main()
