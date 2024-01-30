@@ -33,7 +33,11 @@ def select(selector):
 
 
 def glob(include):
-    return [f[len("toxcore/"):] for p in include for f in py_glob.glob(os.path.join("toxcore", p))]
+    return [
+        f[len("toxcore/") :]
+        for p in include
+        for f in py_glob.glob(os.path.join("toxcore", p))
+    ]
 
 
 def alias(name, actual, visibility):
@@ -58,25 +62,32 @@ def main():
                     fh.write(f"  use {dep[1:]}\n")
             fh.write("}\n")
 
-    srcs = sorted(set(os.path.join("toxcore", src)
-                      for lib in LIBS.values()
-                      for src in lib.get("srcs", [])))
+    srcs = sorted(
+        set(
+            os.path.join("toxcore", src)
+            for lib in LIBS.values()
+            for src in lib.get("srcs", [])
+        )
+    )
     for src in srcs:
         print(f"Validating {src}", file=sys.stderr)
-        subprocess.run([
-            "clang",
-            "-xc++",
-            "-fsyntax-only",
-            "-Wall",
-            "-Werror",
-            "-Wno-missing-braces",
-            "-std=c++23",
-            "-fdiagnostics-color=always",
-            "-fmodules",
-            "-fmodules-decluse",
-            "-fmodule-map-file=module.modulemap",
-            src,
-        ], check=True)
+        subprocess.run(
+            [
+                "clang",
+                "-xc++",
+                "-fsyntax-only",
+                "-Wall",
+                "-Werror",
+                "-Wno-missing-braces",
+                "-std=c++23",
+                "-fdiagnostics-color=always",
+                "-fmodules",
+                "-fmodules-decluse",
+                "-fmodule-map-file=module.modulemap",
+                src,
+            ],
+            check=True,
+        )
 
 
 if __name__ == "__main__":
