@@ -196,6 +196,12 @@ non_null() bool bin_pack_u64_b(Bin_Pack *bp, uint64_t val);
  */
 non_null() bool bin_pack_bin_b(Bin_Pack *bp, const uint8_t *data, uint32_t length);
 
+/** @brief Write `length` zero-bytes to the packer.
+ *
+ * Useful for padding.
+ */
+non_null() bool bin_pack_zero_b(Bin_Pack *bp, uint32_t length);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

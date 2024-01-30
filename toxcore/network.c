@@ -1595,6 +1595,9 @@ static bool bin_pack_ip(Bin_Pack *bp, const IP *ip, bool is_ipv4)
 
 /** @brief Packs an IP_Port structure.
  *
+ * Always writes exactly SIZE_IPPORT bytes to the packer, regardless of which
+ * IP family is selected.
+ *
  * @retval true on success.
  */
 bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port)
@@ -1625,7 +1628,9 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
 
     return bin_pack_u08_b(bp, family)
            && bin_pack_ip(bp, &ip_port->ip, is_ipv4)
-           && bin_pack_u16_b(bp, net_ntohs(ip_port->port));
+           && bin_pack_u16_b(bp, net_ntohs(ip_port->port))
+           // Padding the rest with zeroes in case of IPv4.
+           && bin_pack_zero_b(bp, is_ipv4 ? SIZE_IP6 - SIZE_IP4 : 0);
 }
 
 non_null()
