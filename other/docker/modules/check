@@ -73,6 +73,7 @@ module "@psocket" {
 }
 """
 
+
 @dataclass
 class Context:
     pkg: str
@@ -85,19 +86,19 @@ class Context:
             self,
             srcs: list[str],
             visibility: Optional[list[str]] = None,
-            ) -> None:
+    ) -> None:
         pass
 
     def bzl_cc_library(
-            self,
-            name: str,
-            srcs: Iterable[str] = tuple(),
-            hdrs: Iterable[str] = tuple(),
-            deps: Iterable[str] = tuple(),
-            visibility: Iterable[str] = tuple(),
-            testonly: bool = False,
-            copts: Iterable[str] = tuple(),
-        ) -> None:
+        self,
+        name: str,
+        srcs: Iterable[str] = tuple(),
+        hdrs: Iterable[str] = tuple(),
+        deps: Iterable[str] = tuple(),
+        visibility: Iterable[str] = tuple(),
+        testonly: bool = False,
+        copts: Iterable[str] = tuple(),
+    ) -> None:
         LIBS[name] = {
             "srcs": srcs,
             "deps": [f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep for dep in deps],
@@ -105,13 +106,13 @@ class Context:
         }
 
     def bzl_cc_test(
-            self,
-            name: str,
-            srcs: Iterable[str] = tuple(),
-            hdrs: Iterable[str] = tuple(),
-            deps: Iterable[str] = tuple(),
-            **kwargs: list[str],
-        ) -> None:
+        self,
+        name: str,
+        srcs: Iterable[str] = tuple(),
+        hdrs: Iterable[str] = tuple(),
+        deps: Iterable[str] = tuple(),
+        **kwargs: list[str],
+    ) -> None:
         LIBS[name] = {
             "srcs": srcs,
             "deps": [f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep for dep in deps],
