@@ -4,6 +4,7 @@ FROM alpine:3.19.0
 RUN ["apk", "add", "--no-cache", \
  "bash", \
  "clang", \
+ "gtest-dev", \
  "libconfig-dev", \
  "libsodium-dev", \
  "libvpx-dev", \
@@ -17,4 +18,5 @@ COPY --from=sources /src/ /work/
 
 COPY toxcore/BUILD.bazel /work/toxcore/
 COPY other/docker/modules/check /work/other/docker/modules/
+RUN find /usr -name gmock.h
 RUN ["other/docker/modules/check"]
