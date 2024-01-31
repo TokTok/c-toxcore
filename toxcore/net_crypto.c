@@ -2727,7 +2727,7 @@ static void send_crypto_packets(Net_Crypto *c)
                 crypto_connection_status(c, i, &direct_connected, nullptr);
 
                 /* When switching from TCP to UDP, don't change the packet send rate for CONGESTION_EVENT_TIMEOUT ms. */
-                if (!(direct_connected && conn->last_tcp_sent + CONGESTION_EVENT_TIMEOUT > temp_time)) {
+                if (!direct_connected || conn->last_tcp_sent + CONGESTION_EVENT_TIMEOUT <= temp_time) {
                     long signed int total_sent = 0;
                     long signed int total_resent = 0;
 

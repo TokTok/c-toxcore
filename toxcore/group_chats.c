@@ -3915,7 +3915,7 @@ static bool handle_gc_topic_validate(const GC_Chat *chat, const GC_Peer *peer, c
 
         // the topic version should never change when the topic lock is disabled except when
         // the founder changes the topic prior to enabling the lock
-        if (!(peer->role == GR_FOUNDER && topic_info->version == chat->shared_state.topic_lock + 1)) {
+        if (peer->role != GR_FOUNDER || topic_info->version != chat->shared_state.topic_lock + 1) {
             LOGGER_ERROR(chat->log, "topic version %u differs from topic lock %u", topic_info->version,
                          chat->shared_state.topic_lock);
             return false;
