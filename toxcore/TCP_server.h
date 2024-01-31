@@ -18,11 +18,11 @@
 #include "network.h"
 #include "onion.h"
 
-#define MAX_INCOMING_CONNECTIONS 256
+constant(int, MAX_INCOMING_CONNECTIONS, 256);
 
-#define TCP_MAX_BACKLOG MAX_INCOMING_CONNECTIONS
+constant(int, TCP_MAX_BACKLOG, MAX_INCOMING_CONNECTIONS);
 
-#define ARRAY_ENTRY_SIZE 6
+constant(int, ARRAY_ENTRY_SIZE, 6);
 
 typedef enum TCP_Status {
     TCP_STATUS_NO_STATUS,

@@ -17,7 +17,7 @@
 #include "mono_time.h"
 #include "network.h"
 
-#define TCP_CONNECTION_TIMEOUT 10
+constant(int, TCP_CONNECTION_TIMEOUT, 10);
 
 typedef enum TCP_Proxy_Type {
     TCP_PROXY_NONE,

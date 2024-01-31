@@ -31,16 +31,16 @@
 #include "onion_client.h"
 #include "state.h"
 
-#define MAX_NAME_LENGTH 128
+constant(int, MAX_NAME_LENGTH, 128);
 /* TODO(irungentoo): this must depend on other variable. */
-#define MAX_STATUSMESSAGE_LENGTH 1007
+constant(int, MAX_STATUSMESSAGE_LENGTH, 1007);
 /* Used for TCP relays in Messenger struct (may need to be `% 2 == 0`)*/
-#define NUM_SAVED_TCP_RELAYS 8
-/* This cannot be bigger than 256 */
+constant(int, NUM_SAVED_TCP_RELAYS, 8);
+
+constant(int, FRIEND_ADDRESS_SIZE, (CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t)));
+
+/* This cannot be bigger than UINT8_MAX. */
 #define MAX_CONCURRENT_FILE_PIPES 256
-
-
-#define FRIEND_ADDRESS_SIZE (CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint32_t) + sizeof(uint16_t))
 
 typedef enum Message_Type {
     MESSAGE_NORMAL,
@@ -120,7 +120,7 @@ typedef enum Friend_Add_Error {
 
 
 /** Default start timeout in seconds between friend requests. */
-#define FRIENDREQUEST_TIMEOUT 5
+constant(int, FRIENDREQUEST_TIMEOUT, 5);
 
 typedef enum Connection_Status {
     CONNECTION_NONE,
@@ -138,7 +138,7 @@ typedef enum Userstatus {
     USERSTATUS_INVALID,
 } Userstatus;
 
-#define FILE_ID_LENGTH 32
+constant(int, FILE_ID_LENGTH, 32);
 
 struct File_Transfers {
     uint64_t size;

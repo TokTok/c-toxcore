@@ -23,33 +23,32 @@
 extern "C" {
 #endif
 
-#define MOD_MODERATION_HASH_SIZE CRYPTO_SHA256_SIZE
-#define MOD_LIST_ENTRY_SIZE SIG_PUBLIC_KEY_SIZE
-#define MOD_SANCTION_HASH_SIZE CRYPTO_SHA256_SIZE
+constant(int, MOD_MODERATION_HASH_SIZE, CRYPTO_SHA256_SIZE);
+constant(int, MOD_LIST_ENTRY_SIZE, SIG_PUBLIC_KEY_SIZE);
+constant(int, MOD_SANCTION_HASH_SIZE, CRYPTO_SHA256_SIZE);
 
-#define TIME_STAMP_SIZE sizeof(uint64_t)
+constant(int, TIME_STAMP_SIZE, sizeof(uint64_t));
 
 /* The packed size of a Mod_Sanction_Creds */
-#define MOD_SANCTIONS_CREDS_SIZE (sizeof(uint32_t) + MOD_SANCTION_HASH_SIZE + sizeof(uint16_t) +\
-                                       SIG_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
+constant(int, MOD_SANCTIONS_CREDS_SIZE, (sizeof(uint32_t) + MOD_SANCTION_HASH_SIZE + sizeof(uint16_t) + SIG_PUBLIC_KEY_SIZE + SIGNATURE_SIZE));
 
 /* The packed size of a Mod_Sanction */
-#define MOD_SANCTION_PACKED_SIZE (SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + SIGNATURE_SIZE)
+constant(int, MOD_SANCTION_PACKED_SIZE, (SIG_PUBLIC_KEY_SIZE + TIME_STAMP_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + SIGNATURE_SIZE));
 
 /* The max size of a groupchat packet with 100 bytes reserved for header data */
-#define MAX_PACKET_SIZE_NO_HEADERS 49900
+constant(int, MAX_PACKET_SIZE_NO_HEADERS, 49900);
 
 /* The maximum possible number of moderators that can be sent in a group packet sequence. */
-#define MOD_MAX_NUM_MODERATORS_LIMIT (((MAX_PACKET_SIZE_NO_HEADERS) / (MOD_LIST_ENTRY_SIZE)))
+constant(int, MOD_MAX_NUM_MODERATORS_LIMIT, (((MAX_PACKET_SIZE_NO_HEADERS) / (MOD_LIST_ENTRY_SIZE))));
 
 /* The maximum number of moderators that we allow in a group: 100 */
-#define MOD_MAX_NUM_MODERATORS       ((MOD_MAX_NUM_MODERATORS_LIMIT / 16) + 3)
+constant(int, MOD_MAX_NUM_MODERATORS,       ((MOD_MAX_NUM_MODERATORS_LIMIT / 16) + 3));
 
 /* The maximum number of sanctions that be sent in a group packet sequence. */
-#define MOD_MAX_NUM_SANCTIONS_LIMIT  (((MAX_PACKET_SIZE_NO_HEADERS - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE)))
+constant(int, MOD_MAX_NUM_SANCTIONS_LIMIT,  (((MAX_PACKET_SIZE_NO_HEADERS - (MOD_SANCTIONS_CREDS_SIZE)) / (MOD_SANCTION_PACKED_SIZE))));
 
 /* The maximum number of sanctions that we allow in a group: 30 */
-#define MOD_MAX_NUM_SANCTIONS        (MOD_MAX_NUM_SANCTIONS_LIMIT / 12)
+constant(int, MOD_MAX_NUM_SANCTIONS,        (MOD_MAX_NUM_SANCTIONS_LIMIT / 12));
 
 typedef enum Mod_Sanction_Type {
     SA_OBSERVER = 0x00,

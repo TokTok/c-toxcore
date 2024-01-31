@@ -22,58 +22,58 @@ extern "C" {
 /**
  * The number of bytes in a signature.
  */
-#define CRYPTO_SIGNATURE_SIZE          64
+constant(int, CRYPTO_SIGNATURE_SIZE,          64);
 
 /**
  * The number of bytes in a Tox public key used for signatures.
  */
-#define CRYPTO_SIGN_PUBLIC_KEY_SIZE    32
+constant(int, CRYPTO_SIGN_PUBLIC_KEY_SIZE,    32);
 
 /**
  * The number of bytes in a Tox secret key used for signatures.
  */
-#define CRYPTO_SIGN_SECRET_KEY_SIZE    64
+constant(int, CRYPTO_SIGN_SECRET_KEY_SIZE,    64);
 
 /**
  * @brief The number of bytes in a Tox public key used for encryption.
  */
-#define CRYPTO_PUBLIC_KEY_SIZE         32
+constant(int, CRYPTO_PUBLIC_KEY_SIZE,         32);
 
 /**
  * @brief The number of bytes in a Tox secret key used for encryption.
  */
-#define CRYPTO_SECRET_KEY_SIZE         32
+constant(int, CRYPTO_SECRET_KEY_SIZE,         32);
 
 /**
  * @brief The number of bytes in a shared key computed from public and secret keys.
  */
-#define CRYPTO_SHARED_KEY_SIZE         32
+constant(int, CRYPTO_SHARED_KEY_SIZE,         32);
 
 /**
  * @brief The number of bytes in a symmetric key.
  */
-#define CRYPTO_SYMMETRIC_KEY_SIZE      CRYPTO_SHARED_KEY_SIZE
+constant(int, CRYPTO_SYMMETRIC_KEY_SIZE,      CRYPTO_SHARED_KEY_SIZE);
 
 /**
  * @brief The number of bytes needed for the MAC (message authentication code) in an
  *   encrypted message.
  */
-#define CRYPTO_MAC_SIZE                16
+constant(int, CRYPTO_MAC_SIZE,                16);
 
 /**
  * @brief The number of bytes in a nonce used for encryption/decryption.
  */
-#define CRYPTO_NONCE_SIZE              24
+constant(int, CRYPTO_NONCE_SIZE,              24);
 
 /**
  * @brief The number of bytes in a SHA256 hash.
  */
-#define CRYPTO_SHA256_SIZE             32
+constant(int, CRYPTO_SHA256_SIZE,             32);
 
 /**
  * @brief The number of bytes in a SHA512 hash.
  */
-#define CRYPTO_SHA512_SIZE             64
+constant(int, CRYPTO_SHA512_SIZE,             64);
 
 typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
 typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
@@ -93,47 +93,47 @@ const Random *os_random(void);
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
  */
-#define ENC_PUBLIC_KEY_SIZE            CRYPTO_PUBLIC_KEY_SIZE
+constant(int, ENC_PUBLIC_KEY_SIZE,            CRYPTO_PUBLIC_KEY_SIZE);
 
 /**
  * @brief The number of bytes in an encryption secret key used by DHT group chats.
  */
-#define ENC_SECRET_KEY_SIZE            CRYPTO_SECRET_KEY_SIZE
+constant(int, ENC_SECRET_KEY_SIZE,            CRYPTO_SECRET_KEY_SIZE);
 
 /**
  * @brief The number of bytes in a signature public key.
  */
-#define SIG_PUBLIC_KEY_SIZE            CRYPTO_SIGN_PUBLIC_KEY_SIZE
+constant(int, SIG_PUBLIC_KEY_SIZE,            CRYPTO_SIGN_PUBLIC_KEY_SIZE);
 
 /**
  * @brief The number of bytes in a signature secret key.
  */
-#define SIG_SECRET_KEY_SIZE            CRYPTO_SIGN_SECRET_KEY_SIZE
+constant(int, SIG_SECRET_KEY_SIZE,            CRYPTO_SIGN_SECRET_KEY_SIZE);
 
 /**
  * @brief The number of bytes in a DHT group chat public key identifier.
  */
-#define CHAT_ID_SIZE                   SIG_PUBLIC_KEY_SIZE
+constant(int, CHAT_ID_SIZE,                   SIG_PUBLIC_KEY_SIZE);
 
 /**
  * @brief The number of bytes in an extended public key used by DHT group chats.
  */
-#define EXT_PUBLIC_KEY_SIZE            (ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE)
+constant(int, EXT_PUBLIC_KEY_SIZE,            (ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE));
 
 /**
  * @brief The number of bytes in an extended secret key used by DHT group chats.
  */
-#define EXT_SECRET_KEY_SIZE            (ENC_SECRET_KEY_SIZE + SIG_SECRET_KEY_SIZE)
+constant(int, EXT_SECRET_KEY_SIZE,            (ENC_SECRET_KEY_SIZE + SIG_SECRET_KEY_SIZE));
 
 /**
  * @brief The number of bytes in an HMAC authenticator.
  */
-#define CRYPTO_HMAC_SIZE               32
+constant(int, CRYPTO_HMAC_SIZE,               32);
 
 /**
  * @brief The number of bytes in an HMAC secret key.
  */
-#define CRYPTO_HMAC_KEY_SIZE           32
+constant(int, CRYPTO_HMAC_KEY_SIZE,           32);
 
 /**
  * @brief A `bzero`-like function which won't be optimised away by the compiler.

@@ -8,7 +8,7 @@
 #include "crypto_core.h"
 #include "mono_time.h"
 
-#define TIMED_AUTH_SIZE CRYPTO_HMAC_SIZE
+constant(int, TIMED_AUTH_SIZE, CRYPTO_HMAC_SIZE);
 
 /**
  * @brief Write timed authentication code of data to timed_auth.

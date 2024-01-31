@@ -22,37 +22,37 @@
 #include "mono_time.h"
 #include "network.h"
 
-#define MAX_GC_PART_MESSAGE_SIZE 128
-#define MAX_GC_NICK_SIZE 128
-#define MAX_GC_TOPIC_SIZE 512
-#define MAX_GC_GROUP_NAME_SIZE 48
-#define GC_MESSAGE_PSEUDO_ID_SIZE 4
-#define GROUP_MAX_MESSAGE_LENGTH  1372
+constant(uint16_t, MAX_GC_PART_MESSAGE_SIZE, 128);
+constant(uint16_t, MAX_GC_NICK_SIZE, 128);
+constant(uint16_t, MAX_GC_TOPIC_SIZE, 512);
+constant(uint16_t, MAX_GC_GROUP_NAME_SIZE, 48);
+constant(int, GC_MESSAGE_PSEUDO_ID_SIZE, 4);
+constant(uint16_t, GROUP_MAX_MESSAGE_LENGTH,  1372);
 
 /* Max size of a packet chunk. Packets larger than this must be split up.
  *
  * For an explanation on why this value was chosen, see the following link: https://archive.ph/vsCOG
  */
-#define MAX_GC_PACKET_CHUNK_SIZE 500
+constant(uint16_t, MAX_GC_PACKET_CHUNK_SIZE, 500);
 /* Max size of an incoming packet chunk that is allowed */
-#define MAX_GC_PACKET_INCOMING_CHUNK_SIZE 1372
+constant(uint16_t, MAX_GC_PACKET_INCOMING_CHUNK_SIZE, 1372);
 
-#define MAX_GC_MESSAGE_SIZE GROUP_MAX_MESSAGE_LENGTH
-#define MAX_GC_MESSAGE_RAW_SIZE (MAX_GC_MESSAGE_SIZE + GC_MESSAGE_PSEUDO_ID_SIZE)
-#define MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE 1373
-#define MAX_GC_CUSTOM_LOSSY_PACKET_SIZE 1373
-#define MAX_GC_PASSWORD_SIZE 32
-#define MAX_GC_SAVED_INVITES 10
-#define MAX_GC_PEERS_DEFAULT 100
-#define MAX_GC_SAVED_TIMEOUTS 12
-#define GC_MAX_SAVED_PEERS 100
-#define GC_SAVED_PEER_SIZE (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port))
+constant(uint16_t, MAX_GC_MESSAGE_SIZE, GROUP_MAX_MESSAGE_LENGTH);
+constant(uint16_t, MAX_GC_MESSAGE_RAW_SIZE, (MAX_GC_MESSAGE_SIZE + GC_MESSAGE_PSEUDO_ID_SIZE));
+constant(uint16_t, MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE, 1373);
+constant(uint16_t, MAX_GC_CUSTOM_LOSSY_PACKET_SIZE, 1373);
+constant(uint8_t, MAX_GC_PASSWORD_SIZE, 32);
+constant(uint8_t, MAX_GC_SAVED_INVITES, 10);
+constant(uint8_t, MAX_GC_PEERS_DEFAULT, 100);
+constant(uint8_t, MAX_GC_SAVED_TIMEOUTS, 12);
+constant(uint8_t, GC_MAX_SAVED_PEERS, 100);
+constant(uint16_t, GC_SAVED_PEER_SIZE, (ENC_PUBLIC_KEY_SIZE + sizeof(Node_format) + sizeof(IP_Port)));
 
 /* Max size of a complete encrypted packet including headers. */
-#define MAX_GC_PACKET_SIZE (MAX_GC_PACKET_CHUNK_SIZE * 100)
+constant(uint16_t, MAX_GC_PACKET_SIZE, (MAX_GC_PACKET_CHUNK_SIZE * 100));
 
 /* Max number of messages to store in the send/recv arrays */
-#define GCC_BUFFER_SIZE 8192
+constant(uint16_t, GCC_BUFFER_SIZE, 8192);
 
 /** Self UDP status. Must correspond to return values from `ipport_self_copy()`. */
 typedef enum Self_UDP_Status {

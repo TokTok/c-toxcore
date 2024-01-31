@@ -26,6 +26,12 @@
 
 #define nullable(...)
 
+#ifdef __cplusplus
+#define constant(type, name, value) static constexpr type name = value
+#else
+#define constant(type, name, value) enum { name = value }
+#endif
+
 //!TOKSTYLE+
 
 #endif /* C_TOXCORE_TOXCORE_ATTRIBUTES_H */

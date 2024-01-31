@@ -16,16 +16,16 @@
 extern "C" {
 #endif
 
-#define SENDBACK_IPPORT 0
-#define SENDBACK_FORWARD 1
-#define SENDBACK_TCP 2
+constant(int, SENDBACK_IPPORT, 0);
+constant(int, SENDBACK_FORWARD, 1);
+constant(int, SENDBACK_TCP, 2);
 
-#define MAX_SENDBACK_SIZE (0xff - 1)
-#define MAX_FORWARD_DATA_SIZE (MAX_UDP_PACKET_SIZE - (1 + 1 + MAX_SENDBACK_SIZE))
+constant(int, MAX_SENDBACK_SIZE, (0xff - 1));
+constant(int, MAX_FORWARD_DATA_SIZE, (MAX_UDP_PACKET_SIZE - (1 + 1 + MAX_SENDBACK_SIZE)));
 
-#define MAX_FORWARD_CHAIN_LENGTH 4
+constant(int, MAX_FORWARD_CHAIN_LENGTH, 4);
 
-#define MAX_PACKED_IPPORT_SIZE (1 + SIZE_IP6 + sizeof(uint16_t))
+constant(int, MAX_PACKED_IPPORT_SIZE, (1 + SIZE_IP6 + sizeof(uint16_t)));
 
 typedef struct Forwarding Forwarding;
 

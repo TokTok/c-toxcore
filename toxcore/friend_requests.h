@@ -13,8 +13,9 @@
 
 #include "attributes.h"
 #include "friend_connection.h"
+#include "onion_client.h"
 
-#define MAX_FRIEND_REQUEST_DATA_SIZE (ONION_CLIENT_MAX_DATA_SIZE - (1 + sizeof(uint32_t)))
+constant(int, MAX_FRIEND_REQUEST_DATA_SIZE, (ONION_CLIENT_MAX_DATA_SIZE - (1 + sizeof(uint32_t))));
 
 typedef struct Friend_Requests Friend_Requests;
 

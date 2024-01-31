@@ -23,31 +23,31 @@
 #include "mono_time.h"
 #include "network.h"
 
-#define TCP_CONN_NONE 0
-#define TCP_CONN_VALID 1
+constant(int, TCP_CONN_NONE, 0);
+constant(int, TCP_CONN_VALID, 1);
 
 /** NOTE: only used by TCP_con */
-#define TCP_CONN_CONNECTED 2
+constant(int, TCP_CONN_CONNECTED, 2);
 
 /** Connection is not connected but can be quickly reconnected in case it is needed. */
-#define TCP_CONN_SLEEPING 3
+constant(int, TCP_CONN_SLEEPING, 3);
 
-#define TCP_CONNECTIONS_STATUS_NONE 0
-#define TCP_CONNECTIONS_STATUS_REGISTERED 1
-#define TCP_CONNECTIONS_STATUS_ONLINE 2
+constant(int, TCP_CONNECTIONS_STATUS_NONE, 0);
+constant(int, TCP_CONNECTIONS_STATUS_REGISTERED, 1);
+constant(int, TCP_CONNECTIONS_STATUS_ONLINE, 2);
 
-#define MAX_FRIEND_TCP_CONNECTIONS 6
+constant(int, MAX_FRIEND_TCP_CONNECTIONS, 6);
 
 /** Time until connection to friend gets killed (if it doesn't get locked within that time) */
-#define TCP_CONNECTION_ANNOUNCE_TIMEOUT TCP_CONNECTION_TIMEOUT
+constant(int, TCP_CONNECTION_ANNOUNCE_TIMEOUT, TCP_CONNECTION_TIMEOUT);
 
 /** @brief The amount of recommended connections for each friend
  * NOTE: Must be at most (MAX_FRIEND_TCP_CONNECTIONS / 2)
  */
-#define RECOMMENDED_FRIEND_TCP_CONNECTIONS (MAX_FRIEND_TCP_CONNECTIONS / 2)
+constant(int, RECOMMENDED_FRIEND_TCP_CONNECTIONS, (MAX_FRIEND_TCP_CONNECTIONS / 2));
 
 /** Number of TCP connections used for onion purposes. */
-#define NUM_ONION_TCP_CONNECTIONS RECOMMENDED_FRIEND_TCP_CONNECTIONS
+constant(int, NUM_ONION_TCP_CONNECTIONS, RECOMMENDED_FRIEND_TCP_CONNECTIONS);
 
 typedef struct TCP_Conn_to {
     uint32_t tcp_connection;

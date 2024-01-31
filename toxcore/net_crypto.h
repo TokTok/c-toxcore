@@ -22,30 +22,34 @@
 #include "mono_time.h"
 #include "network.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*** Crypto payloads. */
 
 /*** Ranges. */
 
 /** Packets in this range are reserved for net_crypto events_alloc use. */
-#define PACKET_ID_RANGE_RESERVED_START 0
-#define PACKET_ID_RANGE_RESERVED_END 15
+constant(uint8_t, PACKET_ID_RANGE_RESERVED_START, 0);
+constant(uint8_t, PACKET_ID_RANGE_RESERVED_END, 15);
 /** Packets in this range are reserved for Messenger use. */
-#define PACKET_ID_RANGE_LOSSLESS_START 16
-#define PACKET_ID_RANGE_LOSSLESS_NORMAL_START 16
-#define PACKET_ID_RANGE_LOSSLESS_NORMAL_END 159
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_START, 16);
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_NORMAL_START, 16);
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_NORMAL_END, 159);
 /** Packets in this range can be used for anything. */
-#define PACKET_ID_RANGE_LOSSLESS_CUSTOM_START 160
-#define PACKET_ID_RANGE_LOSSLESS_CUSTOM_END 191
-#define PACKET_ID_RANGE_LOSSLESS_END 191
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_CUSTOM_START, 160);
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_CUSTOM_END, 191);
+constant(uint8_t, PACKET_ID_RANGE_LOSSLESS_END, 191);
 /** Packets in this range are reserved for AV use. */
-#define PACKET_ID_RANGE_LOSSY_START 192
-#define PACKET_ID_RANGE_LOSSY_AV_START 192
-#define PACKET_ID_RANGE_LOSSY_AV_SIZE 8
-#define PACKET_ID_RANGE_LOSSY_AV_END 199
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_START, 192);
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_AV_START, 192);
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_AV_SIZE, 8);
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_AV_END, 199);
 /** Packets in this range can be used for anything. */
-#define PACKET_ID_RANGE_LOSSY_CUSTOM_START 200
-#define PACKET_ID_RANGE_LOSSY_CUSTOM_END 254
-#define PACKET_ID_RANGE_LOSSY_END 254
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_CUSTOM_START, 200);
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_CUSTOM_END, 254);
+constant(uint8_t, PACKET_ID_RANGE_LOSSY_END, 254);
 
 /*** Messages. */
 
@@ -74,51 +78,51 @@ typedef enum Packet_Id {
     PACKET_ID_LOSSY_CONFERENCE   = 199,
 } Packet_Id;
 
-/** Maximum size of receiving and sending packet buffers. */
-#define CRYPTO_PACKET_BUFFER_SIZE 32768 // Must be a power of 2
-
 /** Minimum packet rate per second. */
 #define CRYPTO_PACKET_MIN_RATE 4.0
 
+/** Maximum size of receiving and sending packet buffers. */
+constant(int, CRYPTO_PACKET_BUFFER_SIZE, (1 << 15)); // Must be a power of 2
+
 /** Minimum packet queue max length. */
-#define CRYPTO_MIN_QUEUE_LENGTH 64
+constant(int, CRYPTO_MIN_QUEUE_LENGTH, 64);
 
 /** Maximum total size of packets that net_crypto sends. */
-#define MAX_CRYPTO_PACKET_SIZE (uint16_t)1400
+constant(uint16_t, MAX_CRYPTO_PACKET_SIZE, 1400);
 
-#define CRYPTO_DATA_PACKET_MIN_SIZE (uint16_t)(1 + sizeof(uint16_t) + (sizeof(uint32_t) + sizeof(uint32_t)) + CRYPTO_MAC_SIZE)
+constant(uint16_t, CRYPTO_DATA_PACKET_MIN_SIZE, (1 + sizeof(uint16_t) + (sizeof(uint32_t) + sizeof(uint32_t)) + CRYPTO_MAC_SIZE));
 
 /** Max size of data in packets */
-#define MAX_CRYPTO_DATA_SIZE (uint16_t)(MAX_CRYPTO_PACKET_SIZE - CRYPTO_DATA_PACKET_MIN_SIZE)
+constant(uint16_t, MAX_CRYPTO_DATA_SIZE, (MAX_CRYPTO_PACKET_SIZE - CRYPTO_DATA_PACKET_MIN_SIZE));
 
 /** Interval in ms between sending cookie request/handshake packets. */
-#define CRYPTO_SEND_PACKET_INTERVAL 1000
+constant(int, CRYPTO_SEND_PACKET_INTERVAL, 1000);
 
 /**
  * The maximum number of times we try to send the cookie request and handshake
  * before giving up.
  */
-#define MAX_NUM_SENDPACKET_TRIES 8
+constant(int, MAX_NUM_SENDPACKET_TRIES, 8);
 
 /** The timeout of no received UDP packets before the direct UDP connection is considered dead. */
-#define UDP_DIRECT_TIMEOUT 8
+constant(int, UDP_DIRECT_TIMEOUT, 8);
 
-#define MAX_TCP_CONNECTIONS 64
-#define MAX_TCP_RELAYS_PEER 4
+constant(int, MAX_TCP_CONNECTIONS, 64);
+constant(int, MAX_TCP_RELAYS_PEER, 4);
 
 /** All packets will be padded a number of bytes based on this number. */
-#define CRYPTO_MAX_PADDING 8
+constant(int, CRYPTO_MAX_PADDING, 8);
 
 /**
  * Base current transfer speed on last CONGESTION_QUEUE_ARRAY_SIZE number of points taken
  * at the dT defined in net_crypto.c
  */
-#define CONGESTION_QUEUE_ARRAY_SIZE 12
-#define CONGESTION_LAST_SENT_ARRAY_SIZE (CONGESTION_QUEUE_ARRAY_SIZE * 2)
+constant(int, CONGESTION_QUEUE_ARRAY_SIZE, 12);
+constant(int, CONGESTION_LAST_SENT_ARRAY_SIZE, (CONGESTION_QUEUE_ARRAY_SIZE * 2));
 
 /** Default connection ping in ms. */
-#define DEFAULT_PING_CONNECTION 1000
-#define DEFAULT_TCP_PING_CONNECTION 500
+constant(int, DEFAULT_PING_CONNECTION, 1000);
+constant(int, DEFAULT_TCP_PING_CONNECTION, 500);
 
 typedef struct Net_Crypto Net_Crypto;
 
@@ -418,5 +422,9 @@ void do_net_crypto(Net_Crypto *c, void *userdata);
 
 nullable(1)
 void kill_net_crypto(Net_Crypto *c);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_NET_CRYPTO_H */

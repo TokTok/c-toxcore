@@ -774,6 +774,7 @@ cc_library(
     deps = [
         ":DHT",
         ":LAN_discovery",
+        ":TCP_connection",
         ":attributes",
         ":ccompat",
         ":logger",
@@ -799,6 +800,7 @@ cc_library(
         ":ccompat",
         ":friend_connection",
         ":network",
+        ":onion_client",
         ":util",
     ],
 )

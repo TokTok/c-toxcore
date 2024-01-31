@@ -14,7 +14,6 @@ add_flag -Wchar-subscripts
 add_flag -Wdouble-promotion
 add_flag -Wduplicated-cond
 add_flag -Wempty-body
-add_flag -Wenum-compare
 add_flag -Wfloat-equal
 add_flag -Wformat=2
 add_flag -Wframe-address
@@ -61,3 +60,5 @@ add_flag -Wno-unused-function
 add_flag -Wno-missing-braces
 # __attribute__((nonnull)) causes this warning on defensive null checks.
 add_flag -Wno-nonnull-compare
+# Used for integral constants.
+add_flag -Wno-enum-compare

@@ -23,67 +23,53 @@
 extern "C" {
 #endif
 
-/* Encryption and signature keys definition */
-#define ENC_PUBLIC_KEY_SIZE CRYPTO_PUBLIC_KEY_SIZE
-#define ENC_SECRET_KEY_SIZE CRYPTO_SECRET_KEY_SIZE
-#define SIG_PUBLIC_KEY_SIZE CRYPTO_SIGN_PUBLIC_KEY_SIZE
-#define SIG_SECRET_KEY_SIZE CRYPTO_SIGN_SECRET_KEY_SIZE
-
-/* Size of the group chat_id */
-#define CHAT_ID_SIZE SIG_PUBLIC_KEY_SIZE
-
-/* Extended keys for group chats */
-#define EXT_SECRET_KEY_SIZE (ENC_SECRET_KEY_SIZE + SIG_SECRET_KEY_SIZE)
-#define EXT_PUBLIC_KEY_SIZE (ENC_PUBLIC_KEY_SIZE + SIG_PUBLIC_KEY_SIZE)
-
-
 /* Maximum size of a signature (may be smaller) */
-#define SIGNATURE_SIZE CRYPTO_SIGNATURE_SIZE
+constant(int, SIGNATURE_SIZE, CRYPTO_SIGNATURE_SIZE);
 /** Maximum number of clients stored per friend. */
-#define MAX_FRIEND_CLIENTS 8
+constant(uint8_t, MAX_FRIEND_CLIENTS, 8);
 
-#define LCLIENT_NODES MAX_FRIEND_CLIENTS
-#define LCLIENT_LENGTH 128
+constant(uint8_t, LCLIENT_NODES, MAX_FRIEND_CLIENTS);
+constant(uint8_t, LCLIENT_LENGTH, 128);
 
 /** A list of the clients mathematically closest to ours. */
-#define LCLIENT_LIST (LCLIENT_LENGTH * LCLIENT_NODES)
+constant(int, LCLIENT_LIST, (LCLIENT_LENGTH * LCLIENT_NODES));
 
-#define MAX_CLOSE_TO_BOOTSTRAP_NODES 8
+constant(int, MAX_CLOSE_TO_BOOTSTRAP_NODES, 8);
 
 /** The max number of nodes to send with send nodes. */
-#define MAX_SENT_NODES 4
+constant(uint8_t, MAX_SENT_NODES, 4);
 
 /** Ping timeout in seconds */
-#define PING_TIMEOUT 5
+constant(uint8_t, PING_TIMEOUT, 5);
 
 /** size of DHT ping arrays. */
-#define DHT_PING_ARRAY_SIZE 512
+constant(int, DHT_PING_ARRAY_SIZE, 512);
 
 /** Ping interval in seconds for each node in our lists. */
-#define PING_INTERVAL 60
+constant(uint8_t, PING_INTERVAL, 60);
 
 /** The number of seconds for a non responsive node to become bad. */
-#define PINGS_MISSED_NODE_GOES_BAD 1
-#define PING_ROUNDTRIP 2
-#define BAD_NODE_TIMEOUT (PING_INTERVAL + PINGS_MISSED_NODE_GOES_BAD * (PING_INTERVAL + PING_ROUNDTRIP))
+constant(uint8_t, PINGS_MISSED_NODE_GOES_BAD, 1);
+constant(uint8_t, PING_ROUNDTRIP, 2);
+constant(int, BAD_NODE_TIMEOUT, (PING_INTERVAL + PINGS_MISSED_NODE_GOES_BAD * (PING_INTERVAL + PING_ROUNDTRIP)));
 
 /**
  * The number of "fake" friends to add.
  *
  * (for optimization purposes and so our paths for the onion part are more random)
  */
-#define DHT_FAKE_FRIEND_NUMBER 2
+constant(uint8_t, DHT_FAKE_FRIEND_NUMBER, 2);
 
 /** Maximum packet size for a DHT request packet. */
-#define MAX_CRYPTO_REQUEST_SIZE 1024
+constant(int, MAX_CRYPTO_REQUEST_SIZE, 1024);
 
-#define CRYPTO_PACKET_FRIEND_REQ    32  // Friend request crypto packet ID.
-#define CRYPTO_PACKET_DHTPK         156
-#define CRYPTO_PACKET_NAT_PING      254 // NAT ping crypto packet ID.
+constant(uint8_t, CRYPTO_PACKET_FRIEND_REQ,    32);  // Friend request crypto packet ID.
+constant(uint8_t, CRYPTO_PACKET_DHTPK,         156);
+constant(uint8_t, CRYPTO_PACKET_NAT_PING,      254); // NAT ping crypto packet ID.
 
 /* Max size of a packed node for IPV4 and IPV6 respectively */
-#define PACKED_NODE_SIZE_IP4 (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
-#define PACKED_NODE_SIZE_IP6 (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE)
+constant(int, PACKED_NODE_SIZE_IP4, (1 + SIZE_IP4 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE));
+constant(int, PACKED_NODE_SIZE_IP6, (1 + SIZE_IP6 + sizeof(uint16_t) + CRYPTO_PUBLIC_KEY_SIZE));
 
 /**
  * This define can eventually be removed; it is necessary if a significant

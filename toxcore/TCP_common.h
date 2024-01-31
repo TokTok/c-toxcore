@@ -23,8 +23,8 @@ struct TCP_Priority_List {
 non_null(1) nullable(2)
 void wipe_priority_list(const Memory *mem, TCP_Priority_List *p);
 
-#define NUM_RESERVED_PORTS 16
-#define NUM_CLIENT_CONNECTIONS (256 - NUM_RESERVED_PORTS)
+constant(int, NUM_RESERVED_PORTS, 16);
+constant(int, NUM_CLIENT_CONNECTIONS, (256 - NUM_RESERVED_PORTS));
 
 typedef enum Tcp_Packet {
     TCP_PACKET_ROUTING_REQUEST          = 0,
@@ -41,16 +41,16 @@ typedef enum Tcp_Packet {
     TCP_PACKET_FORWARDING               = 11,
 } Tcp_Packet;
 
-#define TCP_HANDSHAKE_PLAIN_SIZE (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE)
-#define TCP_SERVER_HANDSHAKE_SIZE (CRYPTO_NONCE_SIZE + TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE)
-#define TCP_CLIENT_HANDSHAKE_SIZE (CRYPTO_PUBLIC_KEY_SIZE + TCP_SERVER_HANDSHAKE_SIZE)
-#define TCP_MAX_OOB_DATA_LENGTH 1024
+constant(int, TCP_HANDSHAKE_PLAIN_SIZE, (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE));
+constant(int, TCP_SERVER_HANDSHAKE_SIZE, (CRYPTO_NONCE_SIZE + TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE));
+constant(int, TCP_CLIENT_HANDSHAKE_SIZE, (CRYPTO_PUBLIC_KEY_SIZE + TCP_SERVER_HANDSHAKE_SIZE));
+constant(int, TCP_MAX_OOB_DATA_LENGTH, 1024);
 
 /** frequency to ping connected nodes and timeout in seconds */
-#define TCP_PING_FREQUENCY 30
-#define TCP_PING_TIMEOUT 10
+constant(int, TCP_PING_FREQUENCY, 30);
+constant(int, TCP_PING_TIMEOUT, 10);
 
-#define MAX_PACKET_SIZE 2048
+constant(int, MAX_PACKET_SIZE, 2048);
 
 typedef struct TCP_Connection {
     const Memory *mem;

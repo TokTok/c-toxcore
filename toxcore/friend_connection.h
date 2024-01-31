@@ -13,6 +13,7 @@
 
 #include "DHT.h"
 #include "LAN_discovery.h"
+#include "TCP_connection.h"
 #include "attributes.h"
 #include "logger.h"
 #include "mono_time.h"
@@ -20,30 +21,30 @@
 #include "network.h"
 #include "onion_client.h"
 
-#define MAX_FRIEND_CONNECTION_CALLBACKS 2
-#define MESSENGER_CALLBACK_INDEX 0
-#define GROUPCHAT_CALLBACK_INDEX 1
+constant(int, MAX_FRIEND_CONNECTION_CALLBACKS, 2);
+constant(int, MESSENGER_CALLBACK_INDEX, 0);
+constant(int, GROUPCHAT_CALLBACK_INDEX, 1);
 
-#define PACKET_ID_ALIVE 16
-#define PACKET_ID_SHARE_RELAYS 17
-#define PACKET_ID_FRIEND_REQUESTS 18
+constant(int, PACKET_ID_ALIVE, 16);
+constant(int, PACKET_ID_SHARE_RELAYS, 17);
+constant(int, PACKET_ID_FRIEND_REQUESTS, 18);
 
 /** Interval between the sending of ping packets. */
-#define FRIEND_PING_INTERVAL 8
+constant(int, FRIEND_PING_INTERVAL, 8);
 
 /** If no packets are received from friend in this time interval, kill the connection. */
-#define FRIEND_CONNECTION_TIMEOUT (FRIEND_PING_INTERVAL * 4)
+constant(int, FRIEND_CONNECTION_TIMEOUT, (FRIEND_PING_INTERVAL * 4));
 
 /** Time before friend is removed from the DHT after last hearing about him. */
-#define FRIEND_DHT_TIMEOUT BAD_NODE_TIMEOUT
+constant(int, FRIEND_DHT_TIMEOUT, BAD_NODE_TIMEOUT);
 
-#define FRIEND_MAX_STORED_TCP_RELAYS (MAX_FRIEND_TCP_CONNECTIONS * 4)
+constant(int, FRIEND_MAX_STORED_TCP_RELAYS, (MAX_FRIEND_TCP_CONNECTIONS * 4));
 
 /** Max number of tcp relays sent to friends */
-#define MAX_SHARED_RELAYS RECOMMENDED_FRIEND_TCP_CONNECTIONS
+constant(int, MAX_SHARED_RELAYS, RECOMMENDED_FRIEND_TCP_CONNECTIONS);
 
 /** How often we share our TCP relays with each friend connection */
-#define SHARE_RELAYS_INTERVAL (60 * 2)
+constant(int, SHARE_RELAYS_INTERVAL, (60 * 2));
 
 
 typedef enum Friendconn_Status {

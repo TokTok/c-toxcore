@@ -15,7 +15,7 @@
 /**
  * Interval in seconds between LAN discovery packet sending.
  */
-#define LAN_DISCOVERY_INTERVAL         10
+constant(int, LAN_DISCOVERY_INTERVAL,         10);
 
 typedef struct Broadcast_Info Broadcast_Info;
 

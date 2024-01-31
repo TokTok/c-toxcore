@@ -97,7 +97,7 @@ Family net_family_tcp_ipv6(void);
 Family net_family_tox_tcp_ipv4(void);
 Family net_family_tox_tcp_ipv6(void);
 
-#define MAX_UDP_PACKET_SIZE 2048
+constant(int, MAX_UDP_PACKET_SIZE, 2048);
 
 typedef enum Net_Packet_Type {
     NET_PACKET_PING_REQUEST         = 0x00, /* Ping request packet ID. */
@@ -149,34 +149,34 @@ typedef enum Net_Packet_Type {
 } Net_Packet_Type;
 
 
-#define TOX_PORTRANGE_FROM 33445
-#define TOX_PORTRANGE_TO   33545
-#define TOX_PORT_DEFAULT   TOX_PORTRANGE_FROM
+constant(int, TOX_PORTRANGE_FROM, 33445);
+constant(int, TOX_PORTRANGE_TO,   33545);
+constant(int, TOX_PORT_DEFAULT,   TOX_PORTRANGE_FROM);
 
 /** Redefinitions of variables for safe transfer over wire. */
-#define TOX_AF_UNSPEC 0
-#define TOX_AF_INET 2
-#define TOX_AF_INET6 10
-#define TOX_TCP_INET 130
-#define TOX_TCP_INET6 138
+constant(int, TOX_AF_UNSPEC, 0);
+constant(int, TOX_AF_INET, 2);
+constant(int, TOX_AF_INET6, 10);
+constant(int, TOX_TCP_INET, 130);
+constant(int, TOX_TCP_INET6, 138);
 
-#define TOX_SOCK_STREAM 1
-#define TOX_SOCK_DGRAM 2
+constant(int, TOX_SOCK_STREAM, 1);
+constant(int, TOX_SOCK_DGRAM, 2);
 
-#define TOX_PROTO_TCP 1
-#define TOX_PROTO_UDP 2
+constant(int, TOX_PROTO_TCP, 1);
+constant(int, TOX_PROTO_UDP, 2);
 
 /** TCP related */
-#define TCP_CLIENT_FAMILY (TOX_AF_INET6 + 1)
-#define TCP_INET (TOX_AF_INET6 + 2)
-#define TCP_INET6 (TOX_AF_INET6 + 3)
-#define TCP_SERVER_FAMILY (TOX_AF_INET6 + 4)
+constant(int, TCP_CLIENT_FAMILY, (TOX_AF_INET6 + 1));
+constant(int, TCP_INET, (TOX_AF_INET6 + 2));
+constant(int, TCP_INET6, (TOX_AF_INET6 + 3));
+constant(int, TCP_SERVER_FAMILY, (TOX_AF_INET6 + 4));
 
-#define SIZE_IP4 4
-#define SIZE_IP6 16
-#define SIZE_IP (1 + SIZE_IP6)
-#define SIZE_PORT 2
-#define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
+constant(int, SIZE_IP4, 4);
+constant(int, SIZE_IP6, 16);
+constant(int, SIZE_IP, (1 + SIZE_IP6));
+constant(int, SIZE_PORT, 2);
+constant(int, SIZE_IPPORT, (SIZE_IP + SIZE_PORT));
 
 typedef union IP4 {
     uint32_t uint32;
@@ -286,11 +286,11 @@ bool ipv6_ipv4_in_v6(const IP6 *a);
 
 #define TOX_ENABLE_IPV6_DEFAULT true
 
-#define TOX_INET6_ADDRSTRLEN 66
-#define TOX_INET_ADDRSTRLEN 22
+constant(int, TOX_INET6_ADDRSTRLEN, 66);
+constant(int, TOX_INET_ADDRSTRLEN, 22);
 
 /** this would be TOX_INET6_ADDRSTRLEN, but it might be too short for the error message */
-#define IP_NTOA_LEN 96 // TODO(irungentoo): magic number. Why not INET6_ADDRSTRLEN ?
+constant(int, IP_NTOA_LEN, 96); // TODO(irungentoo): magic number. Why not INET6_ADDRSTRLEN ?
 
 /** Contains a null terminated string of an IP address. */
 typedef struct Ip_Ntoa {

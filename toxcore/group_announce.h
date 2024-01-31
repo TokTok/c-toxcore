@@ -24,19 +24,19 @@ extern "C" {
 #endif
 
 /* The maximum number of announces to save for a particular group chat. */
-#define GCA_MAX_SAVED_ANNOUNCES_PER_GC 16
+constant(int, GCA_MAX_SAVED_ANNOUNCES_PER_GC, 16);
 
 /* Maximum number of TCP relays that can be in an announce. */
-#define GCA_MAX_ANNOUNCED_TCP_RELAYS 1
+constant(int, GCA_MAX_ANNOUNCED_TCP_RELAYS, 1);
 
 /* Maximum number of announces we can send in an announce response. */
-#define GCA_MAX_SENT_ANNOUNCES 4
+constant(int, GCA_MAX_SENT_ANNOUNCES, 4);
 
 /* Maximum size of an announce. */
-#define GCA_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + 1 + 1 + (PACKED_NODE_SIZE_IP6 * 2))
+constant(int, GCA_ANNOUNCE_MAX_SIZE, (ENC_PUBLIC_KEY_SIZE + 1 + 1 + (PACKED_NODE_SIZE_IP6 * 2)));
 
 /* Maximum size of a public announce. */
-#define GCA_PUBLIC_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + GCA_ANNOUNCE_MAX_SIZE)
+constant(int, GCA_PUBLIC_ANNOUNCE_MAX_SIZE, (ENC_PUBLIC_KEY_SIZE + GCA_ANNOUNCE_MAX_SIZE));
 
 typedef struct GC_Announce GC_Announce;
 typedef struct GC_Peer_Announce GC_Peer_Announce;

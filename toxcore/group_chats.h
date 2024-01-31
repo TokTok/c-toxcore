@@ -24,12 +24,12 @@
 #include "logger.h"
 #include "network.h"
 
-#define GC_PING_TIMEOUT 12
-#define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
-#define GC_CONFIRMED_PEER_TIMEOUT (GC_PING_TIMEOUT * 4 + 10)
-#define GC_UNCONFIRMED_PEER_TIMEOUT GC_PING_TIMEOUT
+constant(int, GC_PING_TIMEOUT, 12);
+constant(int, GC_SEND_IP_PORT_INTERVAL, (GC_PING_TIMEOUT * 5));
+constant(int, GC_CONFIRMED_PEER_TIMEOUT, (GC_PING_TIMEOUT * 4 + 10));
+constant(int, GC_UNCONFIRMED_PEER_TIMEOUT, GC_PING_TIMEOUT);
 
-#define GC_JOIN_DATA_LENGTH (ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE)
+constant(int, GC_JOIN_DATA_LENGTH, (ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE));
 
 /** Group topic lock states. */
 typedef enum Group_Topic_Lock {

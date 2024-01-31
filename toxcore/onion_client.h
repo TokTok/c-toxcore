@@ -23,34 +23,33 @@
 #include "onion_announce.h"
 #include "ping_array.h"
 
-#define MAX_ONION_CLIENTS 8
-#define MAX_ONION_CLIENTS_ANNOUNCE 12 // Number of nodes to announce ourselves to.
-#define ONION_NODE_PING_INTERVAL 15
-#define ONION_NODE_TIMEOUT ONION_NODE_PING_INTERVAL
+constant(int, MAX_ONION_CLIENTS, 8);
+/* Number of nodes to announce ourselves to. */
+constant(int, MAX_ONION_CLIENTS_ANNOUNCE, 12);
+constant(int, ONION_NODE_PING_INTERVAL, 15);
+constant(int, ONION_NODE_TIMEOUT, ONION_NODE_PING_INTERVAL);
 
 /** The interval in seconds at which to tell our friends where we are */
-#define ONION_DHTPK_SEND_INTERVAL 30
-#define DHT_DHTPK_SEND_INTERVAL 20
+constant(int, ONION_DHTPK_SEND_INTERVAL, 30);
+constant(int, DHT_DHTPK_SEND_INTERVAL, 20);
 
-#define NUMBER_ONION_PATHS 6
+constant(int, NUMBER_ONION_PATHS, 6);
 
 /**
  * The timeout the first time the path is added and
  * then for all the next consecutive times
  */
-#define ONION_PATH_FIRST_TIMEOUT 4
-#define ONION_PATH_TIMEOUT 10
-#define ONION_PATH_MAX_LIFETIME 1200
-#define ONION_PATH_MAX_NO_RESPONSE_USES 4
+constant(int, ONION_PATH_FIRST_TIMEOUT, 4);
+constant(int, ONION_PATH_TIMEOUT, 10);
+constant(int, ONION_PATH_MAX_LIFETIME, 1200);
+constant(int, ONION_PATH_MAX_NO_RESPONSE_USES, 4);
 
-#define MAX_STORED_PINGED_NODES 9
-#define MIN_NODE_PING_TIME 10
+constant(int, MAX_STORED_PINGED_NODES, 9);
+constant(int, MIN_NODE_PING_TIME, 10);
 
-#define ONION_NODE_MAX_PINGS 3
+constant(int, ONION_NODE_MAX_PINGS, 3);
 
-#define MAX_PATH_NODES 32
-
-#define GCA_MAX_DATA_LENGTH GCA_PUBLIC_ANNOUNCE_MAX_SIZE
+constant(int, MAX_PATH_NODES, 32);
 
 /**
  * If no announce response packets are received within this interval tox will
@@ -58,11 +57,14 @@
  * that it times out, which leads to the network being thoroughly tested as it
  * is replaced.
  */
-#define ONION_OFFLINE_TIMEOUT (ONION_NODE_PING_INTERVAL * (ONION_NODE_MAX_PINGS+2))
+constant(int, ONION_OFFLINE_TIMEOUT, (ONION_NODE_PING_INTERVAL * (ONION_NODE_MAX_PINGS+2)));
 
 /** Onion data packet ids. */
-#define ONION_DATA_FRIEND_REQ CRYPTO_PACKET_FRIEND_REQ
-#define ONION_DATA_DHTPK CRYPTO_PACKET_DHTPK
+constant(int, ONION_DATA_FRIEND_REQ, CRYPTO_PACKET_FRIEND_REQ);
+constant(int, ONION_DATA_DHTPK, CRYPTO_PACKET_DHTPK);
+
+// TODO(iphydf): Put into enum{}.
+#define GCA_MAX_DATA_LENGTH GCA_PUBLIC_ANNOUNCE_MAX_SIZE
 
 typedef struct Onion_Client Onion_Client;
 
@@ -182,8 +184,8 @@ int onion_set_friend_dht_pubkey(Onion_Client *onion_c, int friend_num, const uin
 non_null()
 unsigned int onion_getfriend_dht_pubkey(const Onion_Client *onion_c, int friend_num, uint8_t *dht_key);
 
-#define ONION_DATA_IN_RESPONSE_MIN_SIZE (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
-#define ONION_CLIENT_MAX_DATA_SIZE (MAX_DATA_REQUEST_SIZE - ONION_DATA_IN_RESPONSE_MIN_SIZE)
+constant(int, ONION_DATA_IN_RESPONSE_MIN_SIZE, (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE));
+constant(int, ONION_CLIENT_MAX_DATA_SIZE, (MAX_DATA_REQUEST_SIZE - ONION_DATA_IN_RESPONSE_MIN_SIZE));
 
 /** @brief Send data of length length to friendnum.
  * Maximum length of data is ONION_CLIENT_MAX_DATA_SIZE.

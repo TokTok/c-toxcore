@@ -9,6 +9,14 @@ ERRORS="*"
 # TODO(iphydf): Fix these.
 ERRORS="$ERRORS,-cert-err34-c"
 ERRORS="$ERRORS,-readability-suspicious-call-argument"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-hicpp-no-array-decay"
+CHECKS="$CHECKS,-readability-implicit-bool-conversion"
+CHECKS="$CHECKS,-misc-const-correctness"
+CHECKS="$CHECKS,-cppcoreguidelines-avoid-goto,-hicpp-avoid-goto"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-type-member-init,-hicpp-member-init"
+CHECKS="$CHECKS,-readability-simplify-boolean-expr"
+CHECKS="$CHECKS,-bugprone-incorrect-roundings"
+CHECKS="$CHECKS,-modernize-use-bool-literals"
 
 # TODO(iphydf): Fix once cimple 0.0.19 is released.
 CHECKS="$CHECKS,-google-readability-casting"
@@ -115,8 +123,7 @@ CHECKS="$CHECKS,-readability-redundant-control-flow"
 #                                      ^
 # Trip the checker, which is true, because of integer promotion, but also not
 # very helpful as a diagnostic.
-CHECKS="$CHECKS,-bugprone-narrowing-conversions"
-CHECKS="$CHECKS,-cppcoreguidelines-narrowing-conversions"
+CHECKS="$CHECKS,-bugprone-narrowing-conversions,-cppcoreguidelines-narrowing-conversions"
 
 # Mistakenly thinks that
 #   const int a = 0, b = 1;
@@ -135,13 +142,30 @@ CHECKS="$CHECKS,-cppcoreguidelines-narrowing-conversions"
 # - Turning 'a' and 'b' into pre-processor macros is the only option left, but
 #   #defines and #undefs in the middle of a function hurt the readability and
 #   are less idiomatic than simply using 'const int'.
-CHECKS="$CHECKS,-cert-dcl03-c"
-CHECKS="$CHECKS,-hicpp-static-assert"
-CHECKS="$CHECKS,-misc-static-assert"
+CHECKS="$CHECKS,-cert-dcl03-c,-hicpp-static-assert,-misc-static-assert"
 
 # Doesn't consider use of preprocessor macros as needing a header, breaking
 # struct definitions that depend on size macros from e.g. crypto_core.h.
 CHECKS="$CHECKS,-misc-include-cleaner"
+
+CHECKS="$CHECKS,-cppcoreguidelines-avoid-c-arrays,-hicpp-avoid-c-arrays,-modernize-avoid-c-arrays"
+CHECKS="$CHECKS,-cppcoreguidelines-macro-usage"
+CHECKS="$CHECKS,-hicpp-deprecated-headers,-modernize-deprecated-headers"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-type-vararg,-hicpp-vararg,-cert-dcl50-cpp"
+CHECKS="$CHECKS,-llvmlibc-*"
+CHECKS="$CHECKS,-misc-use-anonymous-namespace"
+CHECKS="$CHECKS,-modernize-redundant-void-arg"
+CHECKS="$CHECKS,-modernize-use-trailing-return-type"
+CHECKS="$CHECKS,-modernize-use-using"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-bounds-constant-array-index"
+CHECKS="$CHECKS,-cppcoreguidelines-owning-memory"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-bounds-pointer-arithmetic"
+CHECKS="$CHECKS,-cppcoreguidelines-no-malloc,-hicpp-no-malloc"
+CHECKS="$CHECKS,-cppcoreguidelines-pro-type-cstyle-cast"
+CHECKS="$CHECKS,-hicpp-use-auto,-modernize-use-auto"
+CHECKS="$CHECKS,-cppcoreguidelines-avoid-do-while"
+CHECKS="$CHECKS,-modernize-loop-convert"
+CHECKS="$CHECKS,-google-runtime-int"
 
 set -eux
 
@@ -188,5 +212,6 @@ run() {
 }
 
 cmake . -B_build -GNinja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+sed -i -e 's/-std=c11/-xc++/' _build/compile_commands.json
 
 . other/analysis/variants.sh

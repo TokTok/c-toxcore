@@ -14,7 +14,7 @@
 #include "mem.h"
 #include "mono_time.h"
 
-#define MAX_ANNOUNCEMENT_SIZE 512
+constant(int, MAX_ANNOUNCEMENT_SIZE, 512);
 
 typedef void announce_on_retrieve_cb(void *object, const uint8_t *data, uint16_t length);
 
@@ -57,9 +57,9 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
                          const uint8_t *data, uint32_t length, uint32_t timeout);
 
 /** @private */
-#define MAX_MAX_ANNOUNCEMENT_TIMEOUT 900
-#define MIN_MAX_ANNOUNCEMENT_TIMEOUT 10
-#define MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO 4
+constant(int, MAX_MAX_ANNOUNCEMENT_TIMEOUT, 900);
+constant(int, MIN_MAX_ANNOUNCEMENT_TIMEOUT, 10);
+constant(int, MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO, 4);
 
 /** @private
  * For efficient lookup and updating, entries are stored as a hash table keyed
@@ -68,8 +68,8 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
  * (2-adically) closest keys preferentially stored within a given bucket. A
  * given key appears at most once (even if timed out).
  */
-#define ANNOUNCE_BUCKET_SIZE 8
-#define ANNOUNCE_BUCKET_PREFIX_LENGTH 5
-#define ANNOUNCE_BUCKETS 32 // ANNOUNCE_BUCKETS = 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
+constant(int, ANNOUNCE_BUCKET_SIZE, 8);
+constant(int, ANNOUNCE_BUCKET_PREFIX_LENGTH, 5);
+constant(int, ANNOUNCE_BUCKETS, 32); // 2 ** ANNOUNCE_BUCKET_PREFIX_LENGTH
 
 #endif /* C_TOXCORE_TOXCORE_ANNOUNCE_H */
