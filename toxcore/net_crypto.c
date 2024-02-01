@@ -130,7 +130,12 @@ typedef struct Crypto_Connection {
     uint32_t dht_pk_callback_number;
 } Crypto_Connection;
 
-static const Crypto_Connection empty_crypto_connection = {{0}};
+non_null()
+static void crypto_connection_reset(Crypto_Connection *con)
+{
+    // Crypto_Connection is too large for Crypto_Connection empty_crypto_connection = {0}.
+    memset(con, 0, sizeof(Crypto_Connection));
+}
 
 struct Net_Crypto {
     const Logger *log;
@@ -1865,7 +1870,7 @@ static int create_crypto_connection(Net_Crypto *c)
         if (realloc_cryptoconnection(c, c->crypto_connections_length + 1) == 0) {
             id = c->crypto_connections_length;
             ++c->crypto_connections_length;
-            c->crypto_connections[id] = empty_crypto_connection;
+            crypto_connection_reset(&c->crypto_connections[id]);
         }
     }
 
