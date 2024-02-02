@@ -8,7 +8,8 @@
 #include "test_util.hh"
 
 template <>
-struct Deleter<DHT> : Function_Deleter<DHT, kill_dht> { };
+struct Deleter<DHT> : Function_Deleter<DHT, kill_dht> {
+};
 
 bool operator==(Node_format const &a, Node_format const &b);
 

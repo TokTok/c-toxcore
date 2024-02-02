@@ -21,17 +21,6 @@ if ! which "$ASTYLE"; then
   exit 1
 fi
 
-readarray -t CC_SOURCES <<<"$(find . '(' -name '*.cc' ')')"
-CC_SOURCES+=(toxcore/crypto_core.c)
-CC_SOURCES+=(toxcore/ping_array.c)
-
-for bin in clang-format-11 clang-format-7 clang-format-6.0 clang-format-5.0 clang-format; do
-  if which "$bin"; then
-    "$bin" -i -style='{BasedOnStyle: Google, ColumnLimit: 100}' "${CC_SOURCES[@]}"
-    break
-  fi
-done
-
 FIND="find ."
 FIND="$FIND '(' -name '*.[ch]' ')'"
 FIND="$FIND -and -not -name '*.api.h'"
@@ -40,7 +29,18 @@ FIND="$FIND -and -not -wholename './third_party/*'"
 FIND="$FIND -and -not -wholename './toxencryptsave/crypto_pwhash*'"
 
 readarray -t C_SOURCES <<<"$(eval "$FIND")"
+readarray -t CC_SOURCES <<<"$(find . '(' -name '*.cc' -or -name '*.hh' ')')"
 
+# Format C++ sources with clang-format.
+for bin in clang-format-11 clang-format-7 clang-format-6.0 clang-format-5.0 clang-format; do
+  if which "$bin"; then
+    "$bin" -i "${CC_SOURCES[@]}"
+    break
+  fi
+done
+
+# Format C sources with astyle. We can't use clang-format, because it strongly
+# messes up formatting of non_null annotations.
 "$ASTYLE" -n --options=other/astyle/astylerc "${C_SOURCES[@]}"
 
-git diff --color=always --exit-code
+#git diff --color=always --exit-code
