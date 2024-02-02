@@ -355,7 +355,7 @@ static int handle_send_initial(void *object, const IP_Port *source, const uint8_
     }
 
     const int len = decrypt_data_symmetric(
-            shared_key, &packet[nonce_start], &packet[ciphertext_start], ciphertext_length, plain, onion->mem);
+                        shared_key, &packet[nonce_start], &packet[ciphertext_start], ciphertext_length, plain, onion->mem);
 
     if (len != plaintext_length) {
         LOGGER_TRACE(onion->log, "decrypt failed: %d != %d", len, plaintext_length);
@@ -575,7 +575,7 @@ static int handle_recv_3(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT + RETURN_2];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                     SIZE_IPPORT + RETURN_2 + CRYPTO_MAC_SIZE, plain, onion->mem);
+                                           SIZE_IPPORT + RETURN_2 + CRYPTO_MAC_SIZE, plain, onion->mem);
 
     if ((uint32_t)len != sizeof(plain)) {
         return 1;
@@ -628,7 +628,7 @@ static int handle_recv_2(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT + RETURN_1];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                     SIZE_IPPORT + RETURN_1 + CRYPTO_MAC_SIZE, plain, onion->mem);
+                                           SIZE_IPPORT + RETURN_1 + CRYPTO_MAC_SIZE, plain, onion->mem);
 
     if ((uint32_t)len != sizeof(plain)) {
         return 1;
@@ -680,7 +680,7 @@ static int handle_recv_1(void *object, const IP_Port *source, const uint8_t *pac
 
     uint8_t plain[SIZE_IPPORT];
     const int len = decrypt_data_symmetric(onion->secret_symmetric_key, packet + 1, packet + 1 + CRYPTO_NONCE_SIZE,
-                                     SIZE_IPPORT + CRYPTO_MAC_SIZE, plain, onion->mem);
+                                           SIZE_IPPORT + CRYPTO_MAC_SIZE, plain, onion->mem);
 
     if ((uint32_t)len != SIZE_IPPORT) {
         return 1;

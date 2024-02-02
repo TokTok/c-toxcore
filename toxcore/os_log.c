@@ -11,9 +11,9 @@
 
 non_null()
 static void os_log_log(
-        void *self, Tox_Log_Level level,
-        const char *file, uint32_t line, const char *func,
-        const char *message)
+    void *self, Tox_Log_Level level,
+    const char *file, uint32_t line, const char *func,
+    const char *message)
 {
     // Do nothing with the log message by default.
     return;

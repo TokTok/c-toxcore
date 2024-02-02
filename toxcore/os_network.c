@@ -209,12 +209,14 @@ static int os_send(void *self, int sock, const uint8_t *buf, size_t len)
 }
 
 non_null()
-static int os_sendto(void *self, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
+static int os_sendto(void *self, int sock, const uint8_t *buf, size_t len, const Network_Addr *addr)
+{
     return sendto(sock, (const char *)buf, len, 0, (const struct sockaddr *)&addr->addr, addr->size);
 }
 
 non_null()
-static int os_recvfrom(void *self, int sock, uint8_t *buf, size_t len, Network_Addr *addr) {
+static int os_recvfrom(void *self, int sock, uint8_t *buf, size_t len, Network_Addr *addr)
+{
     socklen_t size = addr->size;
     const int ret = recvfrom(sock, (char *)buf, len, 0, (struct sockaddr *)&addr->addr, &size);
     addr->size = size;

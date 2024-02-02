@@ -31,9 +31,9 @@ extern "C" {
  * @param message The log message.
  */
 typedef void tox_log_log_cb(
-        void *self, Tox_Log_Level level,
-        const char *file, uint32_t line, const char *func,
-        const char *message);
+    void *self, Tox_Log_Level level,
+    const char *file, uint32_t line, const char *func,
+    const char *message);
 
 
 struct Tox_Log_Funcs {

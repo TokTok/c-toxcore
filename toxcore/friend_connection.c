@@ -909,8 +909,8 @@ int send_friend_request_packet(Friend_Connections *fr_c, int friendcon_id, uint3
 
 /** Create new friend_connections instance. */
 Friend_Connections *new_friend_connections(
-        const Logger *logger, const Mono_Time *mono_time, const Memory *mem, const Network *ns,
-        Onion_Client *onion_c, bool local_discovery_enabled)
+    const Logger *logger, const Mono_Time *mono_time, const Memory *mem, const Network *ns,
+    Onion_Client *onion_c, bool local_discovery_enabled)
 {
     if (onion_c == nullptr) {
         return nullptr;

@@ -638,7 +638,7 @@ static int handle_dht_announce_request(
     uint8_t reply[MAX_FORWARD_DATA_SIZE];
 
     const int len = create_reply(
-        announce, source, nullptr, 0, packet, length, reply, sizeof(reply), announce->mem);
+                        announce, source, nullptr, 0, packet, length, reply, sizeof(reply), announce->mem);
 
     if (len == -1) {
         return -1;

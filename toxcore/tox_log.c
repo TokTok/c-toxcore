@@ -32,9 +32,9 @@ void tox_log_free(Tox_Log *log)
 }
 
 void tox_log_log(
-        const Tox_Log *log, Tox_Log_Level level,
-        const char *file, uint32_t line, const char *func,
-        const char *message)
+    const Tox_Log *log, Tox_Log_Level level,
+    const char *file, uint32_t line, const char *func,
+    const char *message)
 {
     log->funcs->log_callback(log->user_data, level, file, line, func, message);
 }

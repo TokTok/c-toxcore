@@ -59,4 +59,7 @@ void *mem_vrealloc(const Memory *mem, void *ptr, uint32_t nmemb, uint32_t size)
     return new_ptr;
 }
 
-void mem_delete(const Memory *mem, void *ptr) { tox_memory_dealloc(mem, ptr); }
+void mem_delete(const Memory *mem, void *ptr)
+{
+    tox_memory_dealloc(mem, ptr);
+}

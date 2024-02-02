@@ -45,7 +45,9 @@ non_null() static void clear_array_entry(
         mem_delete(mem, array_entry->data);
     }
 
-    *array_entry = (GC_Message_Array_Entry){nullptr};
+    *array_entry = (GC_Message_Array_Entry) {
+        nullptr
+    };
 }
 
 /**
@@ -67,7 +69,10 @@ non_null() static void clear_send_queue_id_range(
     gconn->send_message_id = start_id;
 }
 
-uint16_t gcc_get_array_index(uint64_t message_id) { return message_id % GCC_BUFFER_SIZE; }
+uint16_t gcc_get_array_index(uint64_t message_id)
+{
+    return message_id % GCC_BUFFER_SIZE;
+}
 
 void gcc_set_send_message_id(GC_Connection *gconn, uint64_t id)
 {
@@ -75,7 +80,10 @@ void gcc_set_send_message_id(GC_Connection *gconn, uint64_t id)
     gconn->send_array_start = id % GCC_BUFFER_SIZE;
 }
 
-void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id) { gconn->received_message_id = id; }
+void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
+{
+    gconn->received_message_id = id;
+}
 
 /** @brief Puts packet data in array_entry.
  *
@@ -86,7 +94,7 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id) { gconn->receive
  */
 non_null(1, 2, 3, 8) nullable(4)
 static bool create_array_entry(const Logger *log, const Mono_Time *mono_time, GC_Message_Array_Entry *array_entry,
-        const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id, const Memory *mem)
+                               const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id, const Memory *mem)
 {
     if (!array_entry_is_empty(array_entry)) {
         LOGGER_WARNING(log, "Failed to create array entry; entry is not empty.");
@@ -129,8 +137,8 @@ static bool create_array_entry(const Logger *log, const Mono_Time *mono_time, GC
  * Returns true and increments gconn's send_message_id on success.
  */
 non_null(1, 2, 3, 7) nullable(4) static bool add_to_send_array(const Logger *log,
-    const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data, uint16_t length,
-    uint8_t packet_type, const Memory *mem)
+        const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+        uint8_t packet_type, const Memory *mem)
 {
     /* check if send_array is full */
     if ((gconn->send_message_id % GCC_BUFFER_SIZE) == (uint16_t)(gconn->send_array_start - 1)) {
@@ -151,14 +159,14 @@ non_null(1, 2, 3, 7) nullable(4) static bool add_to_send_array(const Logger *log
 }
 
 int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
-    uint16_t length, uint8_t packet_type)
+                             uint16_t length, uint8_t packet_type)
 {
     const uint64_t message_id = gconn->send_message_id;
 
     if (!add_to_send_array(
-            chat->log, chat->mono_time, gconn, data, length, packet_type, chat->mem)) {
+                chat->log, chat->mono_time, gconn, data, length, packet_type, chat->mem)) {
         LOGGER_WARNING(chat->log, "Failed to add payload to send array: (type: 0x%02x, length: %d)",
-            packet_type, length);
+                       packet_type, length);
         return -1;
     }
 
@@ -178,7 +186,7 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
 }
 
 bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn,
-    const uint8_t *data, uint16_t length, uint8_t packet_type)
+                                        const uint8_t *data, uint16_t length, uint8_t packet_type)
 {
     if (length <= MAX_GC_PACKET_CHUNK_SIZE || data == nullptr) {
         LOGGER_FATAL(chat->log, "invalid length or null data pointer");
@@ -193,7 +201,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
     memcpy(chunk + 1, data, MAX_GC_PACKET_CHUNK_SIZE - 1);
 
     if (!add_to_send_array(chat->log, chat->mono_time, gconn, chunk, MAX_GC_PACKET_CHUNK_SIZE,
-            GP_FRAGMENT, chat->mem)) {
+                           GP_FRAGMENT, chat->mem)) {
         return false;
     }
 
@@ -207,7 +215,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
         processed += chunk_len;
 
         if (!add_to_send_array(
-                chat->log, chat->mono_time, gconn, chunk, chunk_len, GP_FRAGMENT, chat->mem)) {
+                    chat->log, chat->mono_time, gconn, chunk, chunk_len, GP_FRAGMENT, chat->mem)) {
             clear_send_queue_id_range(gconn, start_id, gconn->send_message_id, chat->mem);
             return false;
         }
@@ -268,7 +276,10 @@ bool gcc_handle_ack(const Logger *log, GC_Connection *gconn, uint64_t message_id
     return true;
 }
 
-bool gcc_ip_port_is_set(const GC_Connection *gconn) { return ipport_isset(&gconn->addr.ip_port); }
+bool gcc_ip_port_is_set(const GC_Connection *gconn)
+{
+    return ipport_isset(&gconn->addr.ip_port);
+}
 
 void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
 {
@@ -333,8 +344,8 @@ int gcc_save_tcp_relay(const Random *rng, GC_Connection *gconn, const Node_forma
  */
 non_null(1, 2, 3, 8) nullable(4)
 static bool store_in_recv_array(const Logger *log,
-    const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data, uint16_t length,
-    uint8_t packet_type, uint64_t message_id, const Memory *mem)
+                                const Mono_Time *mono_time, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+                                uint8_t packet_type, uint64_t message_id, const Memory *mem)
 {
     const uint16_t idx = gcc_get_array_index(message_id);
     GC_Message_Array_Entry *ary_entry = &gconn->recv_array[idx];
@@ -354,7 +365,7 @@ static bool store_in_recv_array(const Logger *log,
  * Return 0 on failure.
  */
 non_null(1, 3, 5) nullable(2) static uint16_t reassemble_packet(const Logger *log,
-    GC_Connection *gconn, uint8_t **payload, uint64_t message_id, const Memory *mem)
+        GC_Connection *gconn, uint8_t **payload, uint64_t message_id, const Memory *mem)
 {
     uint16_t end_idx = gcc_get_array_index(message_id - 1);
     uint16_t start_idx = end_idx;
@@ -374,7 +385,7 @@ non_null(1, 3, 5) nullable(2) static uint16_t reassemble_packet(const Logger *lo
 
         if (packet_length > MAX_GC_PACKET_SIZE) {
             LOGGER_ERROR(log, "Payload of size %u exceeded max packet size",
-                packet_length);  // should never happen
+                         packet_length);  // should never happen
             return 0;
         }
 
@@ -420,12 +431,12 @@ non_null(1, 3, 5) nullable(2) static uint16_t reassemble_packet(const Logger *lo
 }
 
 int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number,
-    GC_Connection *gconn, const uint8_t *chunk, uint16_t length, uint8_t packet_type,
-    uint64_t message_id, void *userdata)
+                               GC_Connection *gconn, const uint8_t *chunk, uint16_t length, uint8_t packet_type,
+                               uint64_t message_id, void *userdata)
 {
     if (length > 0) {
         if (!store_in_recv_array(chat->log, chat->mono_time, gconn, chunk, length, packet_type,
-                message_id, chat->mem)) {
+                                 message_id, chat->mem)) {
             return -1;
         }
 
@@ -448,7 +459,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
     }
 
     if (!handle_gc_lossless_helper(
-            c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata)) {
+                c, chat, peer_number, payload + 1, processed_len - 1, payload[0], userdata)) {
         mem_delete(chat->mem, payload);
         return -1;
     }
@@ -471,8 +482,8 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
 }
 
 int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, GC_Connection *gconn,
-    const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
-    bool direct_conn, const Memory *mem)
+                                const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
+                                bool direct_conn, const Memory *mem)
 {
     if (direct_conn) {
         gconn->last_received_direct_time = mono_time_get(mono_time);
@@ -490,7 +501,7 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
     /* we're missing an older message from this peer so we store it in recv_array */
     if (message_id > gconn->received_message_id + 1) {
         if (!store_in_recv_array(
-                log, mono_time, gconn, data, length, packet_type, message_id, mem)) {
+                    log, mono_time, gconn, data, length, packet_type, message_id, mem)) {
             return -1;
         }
 
@@ -509,14 +520,14 @@ int gcc_handle_received_message(const Logger *log, const Mono_Time *mono_time, G
  * Return true on success.
  */
 non_null(1, 2, 3, 5) nullable(6) static bool process_recv_array_entry(const GC_Session *c,
-    GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-    GC_Message_Array_Entry *const array_entry, void *userdata)
+        GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
+        GC_Message_Array_Entry *const array_entry, void *userdata)
 {
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
     const bool ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data,
-        array_entry->data_length, array_entry->packet_type, userdata);
+                     array_entry->data_length, array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
@@ -590,7 +601,7 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
         /* if this occurrs less than once per second this won't be reliable */
         if (delta > 1 && is_power_of_2(delta)) {
             gcc_encrypt_and_send_lossless_packet(chat, gconn, array_entry->data,
-                array_entry->data_length, array_entry->message_id, array_entry->packet_type);
+                                                 array_entry->data_length, array_entry->message_id, array_entry->packet_type);
         }
     }
 }
@@ -631,8 +642,8 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     }
 
     const int enc_len = group_packet_wrap(chat->log, chat->mem, chat->rng, chat->self_public_key,
-        gconn->session_shared_key, packet, packet_size, data, length, message_id, packet_type,
-        NET_PACKET_GC_LOSSLESS);
+                                          gconn->session_shared_key, packet, packet_size, data, length, message_id, packet_type,
+                                          NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
         LOGGER_ERROR(chat->log, "Failed to wrap packet (type: 0x%02x, error: %d)", packet_type, enc_len);
@@ -664,11 +675,11 @@ bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn)
 {
     return !net_family_is_unspec(gconn->addr.ip_port.ip.family)
-        && !net_family_is_unspec(net_family(chat->net));
+           && !net_family_is_unspec(net_family(chat->net));
 }
 
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
-    const uint8_t *part_message, uint16_t length)
+                           const uint8_t *part_message, uint16_t length)
 {
     if (gconn == nullptr) {
         return;

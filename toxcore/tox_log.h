@@ -59,9 +59,9 @@ void tox_log_free(Tox_Log *log);
 
 non_null()
 void tox_log_log(
-        const Tox_Log *log, Tox_Log_Level level,
-        const char *file, uint32_t line, const char *func,
-        const char *message);
+    const Tox_Log *log, Tox_Log_Level level,
+    const char *file, uint32_t line, const char *func,
+    const char *message);
 
 #ifdef __cplusplus
 } /* extern "C" */

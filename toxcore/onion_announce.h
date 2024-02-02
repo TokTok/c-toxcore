@@ -66,9 +66,9 @@ void onion_announce_entry_set_time(Onion_Announce *onion_a, uint32_t entry, uint
  */
 non_null()
 int create_announce_request(
-        const Random *rng, const Memory *mem, uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
-        const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id, const uint8_t *client_id,
-        const uint8_t *data_public_key, uint64_t sendback_data);
+    const Random *rng, const Memory *mem, uint8_t *packet, uint16_t max_packet_length, const uint8_t *dest_client_id,
+    const uint8_t *public_key, const uint8_t *secret_key, const uint8_t *ping_id, const uint8_t *client_id,
+    const uint8_t *data_public_key, uint64_t sendback_data);
 
 /** @brief Create an onion data request packet in packet of max_packet_length.
  *
@@ -103,11 +103,11 @@ int create_data_request(const Random *rng, const Memory *mem, uint8_t *packet, u
  */
 non_null()
 int send_announce_request(
-        const Logger *log, const Networking_Core *net, const Random *rng, const Memory *mem,
-        const Onion_Path *path, const Node_format *dest,
-        const uint8_t *public_key, const uint8_t *secret_key,
-        const uint8_t *ping_id, const uint8_t *client_id,
-        const uint8_t *data_public_key, uint64_t sendback_data);
+    const Logger *log, const Networking_Core *net, const Random *rng, const Memory *mem,
+    const Onion_Path *path, const Node_format *dest,
+    const uint8_t *public_key, const uint8_t *secret_key,
+    const uint8_t *ping_id, const uint8_t *client_id,
+    const uint8_t *data_public_key, uint64_t sendback_data);
 
 /** @brief Create and send an onion data request packet.
  *
@@ -127,10 +127,10 @@ int send_announce_request(
  */
 non_null()
 int send_data_request(
-        const Logger *log, const Networking_Core *net, const Random *rng, const Memory *mem,
-        const Onion_Path *path, const IP_Port *dest,
-        const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
-        const uint8_t *data, uint16_t length);
+    const Logger *log, const Networking_Core *net, const Random *rng, const Memory *mem,
+    const Onion_Path *path, const IP_Port *dest,
+    const uint8_t *public_key, const uint8_t *encrypt_public_key, const uint8_t *nonce,
+    const uint8_t *data, uint16_t length);
 
 typedef int pack_extra_data_cb(void *object, const Logger *logger, const Mono_Time *mono_time,
                                uint8_t num_nodes, uint8_t *plain, uint16_t plain_size,
