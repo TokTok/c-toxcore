@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 
 #define TCP_CONNECTION_TIMEOUT 10
@@ -60,11 +61,11 @@ non_null()
 void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value);
 
 /** Create new TCP connection to ip_port/public_key */
-non_null(1, 2, 3, 4, 5, 6, 7, 8, 9) nullable(10)
+non_null(1, 2, 3, 4, 5, 6, 7, 8, 9) nullable(10, 11)
 TCP_Client_Connection *new_tcp_connection(
     const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
     const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
-    const TCP_Proxy_Info *proxy_info);
+    const TCP_Proxy_Info *proxy_info, Net_Profile *net_profile);
 
 /** Run the TCP connection */
 non_null(1, 2, 3) nullable(4)

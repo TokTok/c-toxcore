@@ -36,6 +36,7 @@ testing/data
 
 # Vim
 *.swp
+*.nvimlog
 
 # Object files
 *.o
