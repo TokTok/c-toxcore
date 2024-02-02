@@ -45,7 +45,6 @@
 
 #define MAX_INTERFACES 16
 
-
 struct Broadcast_Info {
     uint32_t count;
     IP ips[MAX_INTERFACES];
@@ -340,7 +339,6 @@ bool ip_is_lan(const IP *ip)
     return false;
 }
 
-
 bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk,
                         uint16_t port)
 {
@@ -376,7 +374,6 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
 
     return res;
 }
-
 
 Broadcast_Info *lan_discovery_init(const Network *ns)
 {

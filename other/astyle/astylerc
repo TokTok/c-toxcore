@@ -1,5 +1,6 @@
 # Bracket Style Options
 --style=kr
+--attach-namespaces
 
 # Tab Options
 --indent=spaces=4
@@ -9,7 +10,6 @@
 
 # Padding Options
 --pad-header
---break-blocks
 --pad-oper
 --unpad-paren
 --align-pointer=name
@@ -17,7 +17,7 @@
 
 # Formatting Options
 --convert-tabs
---max-code-length=120
+--max-code-length=200
 
 # Other Options
 --preserve-date
