@@ -128,8 +128,8 @@ static int alloc_new_connections(TCP_Server *tcp_server, uint32_t num)
     }
 
     TCP_Secure_Connection *new_connections = (TCP_Secure_Connection *)mem_vrealloc(
-            tcp_server->mem, tcp_server->accepted_connection_array,
-            new_size, sizeof(TCP_Secure_Connection));
+                tcp_server->mem, tcp_server->accepted_connection_array,
+                new_size, sizeof(TCP_Secure_Connection));
 
     if (new_connections == nullptr) {
         return -1;

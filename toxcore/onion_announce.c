@@ -112,7 +112,7 @@ int create_announce_request(const Random *rng, uint8_t *packet, uint16_t max_pac
     }
 
     uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE +
-                  ONION_ANNOUNCE_SENDBACK_DATA_LENGTH];
+                                     ONION_ANNOUNCE_SENDBACK_DATA_LENGTH];
     memcpy(plain, ping_id, ONION_PING_ID_SIZE);
     memcpy(plain + ONION_PING_ID_SIZE, client_id, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
@@ -529,9 +529,9 @@ static int handle_announce_request_common(
 
     const int extra_size = pack_extra_data_callback == nullptr ? 0
                            : pack_extra_data_callback(onion_a->extra_data_object,
-                               onion_a->log, onion_a->mono_time, num_nodes,
-                               plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
-                               response, response_size, offset);
+                                   onion_a->log, onion_a->mono_time, num_nodes,
+                                   plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
+                                   response, response_size, offset);
 
     if (extra_size == -1) {
         mem_delete(onion_a->mem, response);

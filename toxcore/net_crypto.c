@@ -1817,7 +1817,7 @@ static int realloc_cryptoconnection(Net_Crypto *c, uint32_t num)
     }
 
     Crypto_Connection *newcrypto_connections = (Crypto_Connection *)mem_vrealloc(
-            c->mem, c->crypto_connections, num, sizeof(Crypto_Connection));
+                c->mem, c->crypto_connections, num, sizeof(Crypto_Connection));
 
     if (newcrypto_connections == nullptr) {
         return -1;

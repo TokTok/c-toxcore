@@ -266,10 +266,10 @@ static uint32_t calculate_timeout(const Announcements *announce, uint32_t reques
 {
     const uint64_t uptime = mono_time_get(announce->mono_time) - announce->start_time;
     const uint32_t max_announcement_timeout = max_u32(
-            (uint32_t)min_u64(
-                MAX_MAX_ANNOUNCEMENT_TIMEOUT,
-                uptime / MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO),
-            MIN_MAX_ANNOUNCEMENT_TIMEOUT);
+                (uint32_t)min_u64(
+                    MAX_MAX_ANNOUNCEMENT_TIMEOUT,
+                    uptime / MAX_ANNOUNCEMENT_TIMEOUT_UPTIME_RATIO),
+                MIN_MAX_ANNOUNCEMENT_TIMEOUT);
 
     return min_u32(max_announcement_timeout, requested_timeout);
 }
