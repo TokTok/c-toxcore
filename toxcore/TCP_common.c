@@ -165,7 +165,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
     }
 
     if (priority) {
-        len = sendpriority ? net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port, 
+        len = sendpriority ? net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port,
                                       con->net_profile) : 0;
 
         if (len <= 0) {
