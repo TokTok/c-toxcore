@@ -27,6 +27,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 #include "onion.h"
 
@@ -91,6 +92,9 @@ struct TCP_Server {
     uint64_t counter;
 
     BS_List accepted_key_list;
+
+    /* Network profile for all TCP server packets. */
+    Net_Profile net_profile;
 };
 
 static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,
@@ -236,6 +240,7 @@ static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_
     tcp_server->accepted_connection_array[index].identifier = ++tcp_server->counter;
     tcp_server->accepted_connection_array[index].last_pinged = mono_time_get(mono_time);
     tcp_server->accepted_connection_array[index].ping_id = 0;
+    tcp_server->accepted_connection_array[index].con.net_profile = &tcp_server->net_profile;
 
     return index;
 }
@@ -357,7 +362,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
 
     const IP_Port ipp = {{{0}}};
 
-    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.ns, logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp)) {
+    if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.ns, logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp, con->con.net_profile)) {
         crypto_memzero(shared_key, sizeof(shared_key));
         return -1;
     }
@@ -680,6 +685,7 @@ static int handle_tcp_packet(TCP_Server *tcp_server, uint32_t con_id, const uint
     }
 
     TCP_Secure_Connection *const con = &tcp_server->accepted_connection_array[con_id];
+    netprof_record_packet(con->con.net_profile, data[0], length, PACKET_DIRECTION_RECV);
 
     switch (data[0]) {
         case TCP_PACKET_ROUTING_REQUEST: {
@@ -1424,4 +1430,13 @@ void kill_tcp_server(TCP_Server *tcp_server)
 
     mem_delete(tcp_server->mem, tcp_server->socks_listening);
     mem_delete(tcp_server->mem, tcp_server);
+}
+
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server)
+{
+    if (tcp_server == nullptr) {
+        return nullptr;
+    }
+
+    return &tcp_server->net_profile;
 }
