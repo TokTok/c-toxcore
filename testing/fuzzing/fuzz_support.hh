@@ -216,7 +216,8 @@ struct System {
     std::unique_ptr<Tox_Time> tm;
 
     System(std::unique_ptr<Tox_System> sys, std::unique_ptr<Tox_Memory> mem,
-        std::unique_ptr<Tox_Network> ns, std::unique_ptr<Tox_Random> rng, std::unique_ptr<Tox_Time> tm);
+        std::unique_ptr<Tox_Network> ns, std::unique_ptr<Tox_Random> rng,
+        std::unique_ptr<Tox_Time> tm);
     System(System &&);
 
     // Not inline because sizeof of the above 2 structs is not known everywhere.
