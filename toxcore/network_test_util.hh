@@ -65,8 +65,7 @@ class Test_Network : public Network_Class {
 };
 
 template <>
-struct Deleter<Networking_Core> : Function_Deleter<Networking_Core, kill_networking> {
-};
+struct Deleter<Networking_Core> : Function_Deleter<Networking_Core, kill_networking> { };
 
 IP_Port random_ip_port(const Random *rng);
 
