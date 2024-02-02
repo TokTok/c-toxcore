@@ -1923,14 +1923,14 @@ static bool path_exists(const Mono_Time *mono_time, const Onion_Client_Paths *on
  */
 non_null()
 static bool path_is_stable(const Mono_Time *mono_time, const Onion_Client_Paths *paths,
-    uint32_t pathnum, const Onion_Node *node)
+                           uint32_t pathnum, const Onion_Node *node)
 {
     return mono_time_is_timeout(mono_time, node->added_time, TIME_TO_STABLE)
-        && !(node->pings_since_last_response > 0
-            && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT))
-        && mono_time_is_timeout(mono_time, paths->path_creation_time[pathnum], TIME_TO_STABLE)
-        && !(paths->last_path_used_times[pathnum] > 0
-            && mono_time_is_timeout(mono_time, paths->last_path_used[pathnum], ONION_PATH_TIMEOUT));
+           && !(node->pings_since_last_response > 0
+                && mono_time_is_timeout(mono_time, node->last_pinged, ONION_NODE_TIMEOUT))
+           && mono_time_is_timeout(mono_time, paths->path_creation_time[pathnum], TIME_TO_STABLE)
+           && !(paths->last_path_used_times[pathnum] > 0
+                && mono_time_is_timeout(mono_time, paths->last_path_used[pathnum], ONION_PATH_TIMEOUT));
 }
 
 non_null()

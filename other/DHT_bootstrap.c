@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
 
         uint8_t *bootstrap_key = hex_string_to_bin(argv[argvoffset + 3]);
         const bool res = dht_bootstrap_from_address(dht, argv[argvoffset + 1],
-                                                    ipv6enabled, port, bootstrap_key);
+                         ipv6enabled, port, bootstrap_key);
         free(bootstrap_key);
 
         if (!res) {
