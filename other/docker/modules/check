@@ -83,42 +83,50 @@ class Context:
         pass
 
     def bzl_exports_files(
-        self, srcs: list[str], visibility: Optional[list[str]] = None,
+            self,
+            srcs: list[str],
+            visibility: Optional[list[str]] = None,
     ) -> None:
         pass
 
     def bzl_cc_library(
-        self,
-        name: str,
-        srcs: Iterable[str] = tuple(),
-        hdrs: Iterable[str] = tuple(),
-        deps: Iterable[str] = tuple(),
-        visibility: Iterable[str] = tuple(),
-        testonly: bool = False,
-        copts: Iterable[str] = tuple(),
+            self,
+            name: str,
+            srcs: Iterable[str] = tuple(),
+            hdrs: Iterable[str] = tuple(),
+            deps: Iterable[str] = tuple(),
+            visibility: Iterable[str] = tuple(),
+            testonly: bool = False,
+            copts: Iterable[str] = tuple(),
     ) -> None:
         LIBS[name] = {
-            "srcs": srcs,
+            "srcs":
+            srcs,
             "deps": [
-                f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep for dep in deps
+                f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep
+                for dep in deps
             ],
-            "hdrs": hdrs,
+            "hdrs":
+            hdrs,
         }
 
     def bzl_cc_test(
-        self,
-        name: str,
-        srcs: Iterable[str] = tuple(),
-        hdrs: Iterable[str] = tuple(),
-        deps: Iterable[str] = tuple(),
-        **kwargs: list[str],
+            self,
+            name: str,
+            srcs: Iterable[str] = tuple(),
+            hdrs: Iterable[str] = tuple(),
+            deps: Iterable[str] = tuple(),
+            **kwargs: list[str],
     ) -> None:
         LIBS[name] = {
-            "srcs": srcs,
+            "srcs":
+            srcs,
             "deps": [
-                f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep for dep in deps
+                f"{self.pkg_prefix}{dep}" if dep[0] == ":" else dep
+                for dep in deps
             ],
-            "hdrs": hdrs,
+            "hdrs":
+            hdrs,
         }
 
     def bzl_cc_fuzz_test(self, name: str, **kwargs: list[str]) -> None:
@@ -129,8 +137,7 @@ class Context:
 
     def bzl_glob(self, include: list[str]) -> list[str]:
         return [
-            f[len(self.pkg) + 1 :]
-            for p in include
+            f[len(self.pkg) + 1:] for p in include
             for f in glob.glob(os.path.join(self.pkg, p))
         ]
 
@@ -143,7 +150,7 @@ class Context:
 
 def main() -> None:
     srcs: list[str] = []
-    for pkg in ("toxcore",):
+    for pkg in ("toxcore", ):
         # TODO(iphydf): Why does this break everything?
         # ctx = Context(pkg, "//c-toxcore/{pkg}")
         ctx = Context(pkg, "")
@@ -179,14 +186,10 @@ def main() -> None:
                 MODS[os.path.join(pkg, src)] = name
         srcs.extend(
             os.path.join(pkg, src)  # just within a package for now
-            for lib in LIBS.values()
-            for src in lib.get("srcs", [])
-        )
+            for lib in LIBS.values() for src in lib.get("srcs", []))
     # subprocess.run(["cat", "module.modulemap"], check=True)
     for src in sorted(
-        set(srcs)
-        - set(
-            [
+            set(srcs) - set([
                 # TODO(iphydf): Figure out what's wrong here.
                 "toxcore/bin_pack_test.cc",
                 "toxcore/crypto_core_test.cc",
@@ -196,9 +199,7 @@ def main() -> None:
                 "toxcore/network_test.cc",
                 "toxcore/ping_array_test.cc",
                 "toxcore/util_test.cc",
-            ]
-        )
-    ):
+            ])):
         print(f"Validating {src}", file=sys.stderr)
         subprocess.run(
             [
