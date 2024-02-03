@@ -51,7 +51,7 @@ static void change_symmetric_key(Onion *onion)
 non_null()
 static void ip_pack_to_bytes(uint8_t *data, const IP *source)
 {
-    data[0] = source->family.value;
+    data[0] = family_to_int(source->family);
 
     if (net_family_is_ipv4(source->family) || net_family_is_tox_tcp_ipv4(source->family)) {
         memzero(data + 1, SIZE_IP6);
@@ -69,8 +69,12 @@ static int ip_unpack_from_bytes(IP *target, const uint8_t *data, unsigned int da
         return -1;
     }
 
-    // TODO(iphydf): Validate input.
-    target->family.value = data[0];
+    Net_Family family;
+    if (!net_family_from_int(data[0], &family)) {
+        return -1;
+    }
+
+    target->family = family_from_net_family(family);
 
     if (net_family_is_ipv4(target->family) || net_family_is_tox_tcp_ipv4(target->family)) {
         memcpy(target->ip.v4.uint8, data + 1, SIZE_IP4);

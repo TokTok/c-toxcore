@@ -1475,7 +1475,7 @@ static bool copy_tcp_relay_conn(const TCP_Connections *tcp_c, Node_format *tcp_r
 
 /** @brief Copy a maximum of max_num TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the family of the copied ip ports will be set to NET_FAMILY_TCP_IPV4 or NET_FAMILY_TCP_IPV6.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.
