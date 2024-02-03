@@ -87,7 +87,8 @@ TEST(MergeSort, BehavesLikeStdSort)
 TEST(MergeSort, WorksWithNonTrivialTypes)
 {
     std::mt19937 rng;
-    std::uniform_int_distribution<int> dist{std::numeric_limits<int>::min(), std::numeric_limits<int>::max()};
+    std::uniform_int_distribution<int> dist{
+        std::numeric_limits<int>::min(), std::numeric_limits<int>::max()};
 
     const auto string_funcs = sort_funcs<std::string>();
 
