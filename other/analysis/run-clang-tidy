@@ -10,9 +10,6 @@ ERRORS="*"
 ERRORS="$ERRORS,-cert-err34-c"
 ERRORS="$ERRORS,-readability-suspicious-call-argument"
 
-# TODO(iphydf): Fix once cimple 0.0.19 is released.
-CHECKS="$CHECKS,-google-readability-casting"
-
 # TODO(iphydf): Fix these.
 CHECKS="$CHECKS,-bugprone-switch-missing-default-case"
 
