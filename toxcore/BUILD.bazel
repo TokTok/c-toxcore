@@ -95,16 +95,34 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "util_test_util",
+    testonly = True,
+    srcs = ["util_test_util.cc"],
+    hdrs = ["util_test_util.hh"],
+    deps = [":util"],
+)
+
 cc_test(
     name = "util_test",
     size = "small",
     srcs = ["util_test.cc"],
     deps = [
-        ":crypto_core",
-        ":crypto_core_test_util",
         ":util",
+        ":util_test_util",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "util_bench",
+    testonly = True,
+    srcs = ["util_bench.cc"],
+    deps = [
+        ":util",
+        ":util_test_util",
+        "@benchmark",
     ],
 )
 
@@ -953,6 +971,7 @@ cc_library(
         ":crypto_core",
         ":friend_connection",
         ":logger",
+        ":mem",
         ":mono_time",
         ":net_crypto",
         ":network",

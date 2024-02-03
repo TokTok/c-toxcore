@@ -20,6 +20,7 @@
 #include "friend_connection.h"
 #include "group_common.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
@@ -957,24 +958,75 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
 
 /** Order peers with friends first and with more recently active earlier */
 non_null()
-static int cmp_frozen(const void *a, const void *b)
+static bool group_peer_less_handler(const void *object, const void *a, const void *b)
 {
     const Group_Peer *pa = (const Group_Peer *)a;
     const Group_Peer *pb = (const Group_Peer *)b;
 
-    if (pa->is_friend ^ pb->is_friend) {
-        return pa->is_friend ? -1 : 1;
+    if (((pa->is_friend ? 1 : 0) ^ (pb->is_friend ? 1 : 0)) != 0) {
+        return pa->is_friend;
     }
 
-    return cmp_uint(pb->last_active, pa->last_active);
+    return cmp_uint(pb->last_active, pa->last_active) < 0;
 }
+
+non_null()
+static const void *group_peer_get_handler(const void *arr, uint32_t index)
+{
+    const Group_Peer *entries = (const Group_Peer *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void group_peer_set_handler(void *arr, uint32_t index, const void *val)
+{
+    Group_Peer *entries = (Group_Peer *)arr;
+    const Group_Peer *entry = (const Group_Peer *)val;
+    entries[index] = *entry;
+}
+
+non_null()
+static void *group_peer_subarr_handler(void *arr, uint32_t index, uint32_t size)
+{
+    Group_Peer *entries = (Group_Peer *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void *group_peer_alloc_handler(const void *object, uint32_t size)
+{
+    const Memory *mem = (const Memory *)object;
+    Group_Peer *tmp = (Group_Peer *)mem_valloc(mem, size, sizeof(Group_Peer));
+
+    if (tmp == nullptr) {
+        return nullptr;
+    }
+
+    return tmp;
+}
+
+non_null()
+static void group_peer_delete_handler(const void *object, void *arr, uint32_t size)
+{
+    const Memory *mem = (const Memory *)object;
+    mem_delete(mem, arr);
+}
+
+static const Sort_Funcs group_peer_cmp_funcs = {
+    group_peer_less_handler,
+    group_peer_get_handler,
+    group_peer_set_handler,
+    group_peer_subarr_handler,
+    group_peer_alloc_handler,
+    group_peer_delete_handler,
+};
 
 /** @brief Delete frozen peers as necessary to ensure at most `g->maxfrozen` remain.
  *
  * @retval true if any frozen peers are removed.
  */
 non_null()
-static bool delete_old_frozen(Group_c *g)
+static bool delete_old_frozen(Group_c *g, const Memory *mem)
 {
     if (g->numfrozen <= g->maxfrozen) {
         return false;
@@ -987,7 +1039,7 @@ static bool delete_old_frozen(Group_c *g)
         return true;
     }
 
-    qsort(g->frozen, g->numfrozen, sizeof(Group_Peer), cmp_frozen);
+    merge_sort(g->frozen, g->numfrozen, mem, &group_peer_cmp_funcs);
 
     Group_Peer *temp = (Group_Peer *)realloc(g->frozen, g->maxfrozen * sizeof(Group_Peer));
 
@@ -1032,7 +1084,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
 
     ++g->numfrozen;
 
-    delete_old_frozen(g);
+    delete_old_frozen(g, g_c->m->mem);
 
     return true;
 }
@@ -1519,7 +1571,7 @@ int group_set_max_frozen(const Group_Chats *g_c, uint32_t groupnumber, uint32_t 
     }
 
     g->maxfrozen = maxfrozen;
-    delete_old_frozen(g);
+    delete_old_frozen(g, g_c->m->mem);
     return 0;
 }
 

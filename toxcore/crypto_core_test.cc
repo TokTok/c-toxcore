@@ -19,6 +19,35 @@ using ExtSecretKey = std::array<uint8_t, EXT_SECRET_KEY_SIZE>;
 using Signature = std::array<uint8_t, CRYPTO_SIGNATURE_SIZE>;
 using Nonce = std::array<uint8_t, CRYPTO_NONCE_SIZE>;
 
+TEST(PkEqual, TwoRandomIdsAreNotEqual)
+{
+    std::mt19937 rng;
+    std::uniform_int_distribution<unsigned short> dist{0, UINT8_MAX};
+
+    uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE];
+
+    std::generate(std::begin(pk1), std::end(pk1), [&]() { return dist(rng); });
+    std::generate(std::begin(pk2), std::end(pk2), [&]() { return dist(rng); });
+
+    EXPECT_FALSE(pk_equal(pk1, pk2));
+}
+
+TEST(PkEqual, IdCopyMakesKeysEqual)
+{
+    std::mt19937 rng;
+    std::uniform_int_distribution<unsigned short> dist{0, UINT8_MAX};
+
+    uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE] = {0};
+
+    std::generate(std::begin(pk1), std::end(pk1), [&]() { return dist(rng); });
+
+    pk_copy(pk2, pk1);
+
+    EXPECT_TRUE(pk_equal(pk1, pk2));
+}
+
 TEST(CryptoCore, EncryptLargeData)
 {
     Test_Random rng;
