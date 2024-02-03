@@ -606,7 +606,7 @@ static bool client_or_ip_port_in_list(const Logger *log, const Mono_Time *mono_t
     LOGGER_DEBUG(log, "coipil[%u]: switching public_key (ipv%d)", index, ip_version);
 
     /* kill the other address, if it was set */
-    const IPPTsPng empty_ipptspng = {{{{0}}}};
+    const IPPTsPng empty_ipptspng = {{{0}}};
     *assoc = empty_ipptspng;
     return true;
 }
@@ -964,7 +964,7 @@ static void update_client_with_reset(const Mono_Time *mono_time, Client_data *cl
     ipptp_write->ret_ip_self = false;
 
     /* zero out other address */
-    const IPPTsPng empty_ipptp = {{{{0}}}};
+    const IPPTsPng empty_ipptp = {{{0}}};
     *ipptp_clear = empty_ipptp;
 }
 

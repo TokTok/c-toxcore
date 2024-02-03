@@ -594,7 +594,7 @@ TCP_Client_Connection *new_tcp_connection(
         return nullptr;
     }
 
-    const TCP_Proxy_Info default_proxyinfo = {{{{0}}}};
+    const TCP_Proxy_Info default_proxyinfo = {{{0}}};
 
     if (proxy_info == nullptr) {
         proxy_info = &default_proxyinfo;

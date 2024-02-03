@@ -106,8 +106,6 @@ IP_Port random_ip_port(const Random *rng)
     return ip_port;
 }
 
-bool operator==(Family const &a, Family const &b) { return a.value == b.value; }
-
 bool operator==(IP4 const &a, IP4 const &b) { return a.uint32 == b.uint32; }
 
 bool operator==(IP6 const &a, IP6 const &b)

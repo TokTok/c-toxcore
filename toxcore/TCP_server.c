@@ -355,7 +355,7 @@ static int handle_tcp_handshake(const Logger *logger, TCP_Secure_Connection *con
         return -1;
     }
 
-    const IP_Port ipp = {{{0}}};
+    const IP_Port ipp = {{0}};
 
     if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.ns, logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp)) {
         crypto_memzero(shared_key, sizeof(shared_key));
@@ -584,7 +584,7 @@ static int rm_connection_index(TCP_Server *tcp_server, TCP_Secure_Connection *co
  */
 static IP_Port con_id_to_ip_port(uint32_t con_id, uint64_t identifier)
 {
-    IP_Port ip_port = {{{0}}};
+    IP_Port ip_port = {{0}};
     ip_port.ip.family = net_family_tcp_client();
     ip_port.ip.ip.v6.uint32[0] = con_id;
     ip_port.ip.ip.v6.uint64[1] = identifier;
@@ -919,7 +919,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
     const Socket sock = net_socket(ns, family, TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
     if (!sock_valid(sock)) {
-        LOGGER_ERROR(logger, "TCP socket creation failed (family = %d)", family.value);
+        LOGGER_ERROR(logger, "TCP socket creation failed (family = %d)", family);
         return net_invalid_socket();
     }
 
@@ -938,7 +938,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Network *ns, 
     if (!ok) {
         char *const error = net_new_strerror(net_error());
         LOGGER_WARNING(logger, "could not bind to TCP port %d (family = %d): %s",
-                       port, family.value, error != nullptr ? error : "(null)");
+                       port, family, error != nullptr ? error : "(null)");
         net_kill_strerror(error);
         kill_sock(ns, sock);
         return net_invalid_socket();

@@ -624,7 +624,7 @@ static int add_ip_port_connection(Net_Crypto *c, int crypt_connection_id, const 
 non_null()
 static IP_Port return_ip_port_connection(const Net_Crypto *c, int crypt_connection_id)
 {
-    const IP_Port empty = {{{0}}};
+    const IP_Port empty = {{0}};
 
     const Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
@@ -2023,7 +2023,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
         return -1;
     }
 
-    New_Connection n_c = {{{{0}}}};
+    New_Connection n_c = {{{0}}};
     n_c.cookie = cookie;
     n_c.source = *source;
     n_c.cookie_length = COOKIE_LENGTH;
@@ -2381,7 +2381,7 @@ int send_tcp_forward_request(const Logger *logger, Net_Crypto *c, const IP_Port 
 
 /** @brief Copy a maximum of num random TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the family of the copied ip ports will be set to NET_FAMILY_TCP_IPV4 or NET_FAMILY_TCP_IPV6.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.

@@ -21,7 +21,7 @@ static uint8_t bootstrap_motd[MAX_MOTD_LENGTH];
 static uint16_t bootstrap_motd_length;
 
 /* To request this packet just send a packet of length INFO_REQUEST_PACKET_LENGTH
- * with the first byte being BOOTSTRAP_INFO_PACKET_ID
+ * with the first byte being NET_PACKET_BOOTSTRAP_INFO
  */
 static int handle_info_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
                                void *userdata)
@@ -33,7 +33,7 @@ static int handle_info_request(void *object, const IP_Port *source, const uint8_
     const Networking_Core *nc = (const Networking_Core *)object;
 
     uint8_t data[1 + sizeof(bootstrap_version) + MAX_MOTD_LENGTH];
-    data[0] = BOOTSTRAP_INFO_PACKET_ID;
+    data[0] = NET_PACKET_BOOTSTRAP_INFO;
     memcpy(data + 1, &bootstrap_version, sizeof(bootstrap_version));
     const uint16_t len = 1 + sizeof(bootstrap_version) + bootstrap_motd_length;
     memcpy(data + 1 + sizeof(bootstrap_version), bootstrap_motd, bootstrap_motd_length);
@@ -55,6 +55,6 @@ int bootstrap_set_callbacks(Networking_Core *net, uint32_t version, const uint8_
     memcpy(bootstrap_motd, motd, motd_length);
     bootstrap_motd_length = motd_length;
 
-    networking_registerhandler(net, BOOTSTRAP_INFO_PACKET_ID, &handle_info_request, net);
+    networking_registerhandler(net, NET_PACKET_BOOTSTRAP_INFO, &handle_info_request, net);
     return 0;
 }

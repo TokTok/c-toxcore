@@ -578,7 +578,7 @@ void set_forwarding_packet_tcp_connection_callback(TCP_Connections *tcp_c,
  */
 IP_Port tcp_connections_number_to_ip_port(unsigned int tcp_connections_number)
 {
-    IP_Port ip_port = {{{0}}};
+    IP_Port ip_port = {{0}};
     ip_port.ip.family = net_family_tcp_server();
     ip_port.ip.ip.v6.uint32[0] = tcp_connections_number;
     return ip_port;
@@ -1475,7 +1475,7 @@ static bool copy_tcp_relay_conn(const TCP_Connections *tcp_c, Node_format *tcp_r
 
 /** @brief Copy a maximum of max_num TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the family of the copied ip ports will be set to NET_FAMILY_TCP_IPV4 or NET_FAMILY_TCP_IPV6.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.

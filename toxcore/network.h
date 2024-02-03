@@ -73,9 +73,31 @@ typedef struct Network {
 
 const Network *os_network(void);
 
-typedef struct Family {
-    uint8_t value;
-} Family;
+typedef enum Net_Family {
+    /** Redefinitions of variables for safe transfer over wire. */
+    NET_FAMILY_UNSPEC = 0,
+    NET_FAMILY_IPV4 = 2,
+    NET_FAMILY_IPV6 = 10,
+    NET_FAMILY_TOX_TCP_IPV4 = 130,
+    NET_FAMILY_TOX_TCP_IPV6 = 138,
+
+    /** TCP related */
+    NET_FAMILY_TCP_CLIENT = NET_FAMILY_IPV6 + 1,
+    NET_FAMILY_TCP_IPV4 = NET_FAMILY_IPV6 + 2,
+    NET_FAMILY_TCP_IPV6 = NET_FAMILY_IPV6 + 3,
+    NET_FAMILY_TCP_SERVER = NET_FAMILY_IPV6 + 4,
+} Net_Family;
+
+// TODO(https://github.com/TokTok/c-toxcore/pull/2595): Use the enum.
+typedef bitwise uint8_t Family;
+
+non_null()
+bool net_family_from_int(uint8_t family, Net_Family *out);
+
+// TODO(https://github.com/TokTok/c-toxcore/pull/2595): Remove.
+Family family_from_net_family(Net_Family family);
+// TODO(https://github.com/TokTok/c-toxcore/pull/2595): Rename to family_to_int.
+uint8_t family_to_int(Family family);
 
 bool net_family_is_unspec(Family family);
 bool net_family_is_ipv4(Family family);
@@ -143,7 +165,7 @@ typedef enum Net_Packet_Type {
     NET_PACKET_STORE_ANNOUNCE_REQUEST  = 0x97,
     NET_PACKET_STORE_ANNOUNCE_RESPONSE = 0x98,
 
-    BOOTSTRAP_INFO_PACKET_ID        = 0xf0, /* Only used for bootstrap nodes */
+    NET_PACKET_BOOTSTRAP_INFO        = 0xf0, /* Only used for bootstrap nodes */
 
     NET_PACKET_MAX                  = 0xff, /* This type must remain within a single uint8. */
 } Net_Packet_Type;
@@ -152,24 +174,15 @@ typedef enum Net_Packet_Type {
 #define TOX_PORTRANGE_TO   33545
 #define TOX_PORT_DEFAULT   TOX_PORTRANGE_FROM
 
-/** Redefinitions of variables for safe transfer over wire. */
-#define TOX_AF_UNSPEC 0
-#define TOX_AF_INET 2
-#define TOX_AF_INET6 10
-#define TOX_TCP_INET 130
-#define TOX_TCP_INET6 138
+typedef enum Tox_Sock_Type {
+    TOX_SOCK_STREAM = 1,
+    TOX_SOCK_DGRAM = 2,
+} Tox_Sock_Type;
 
-#define TOX_SOCK_STREAM 1
-#define TOX_SOCK_DGRAM 2
-
-#define TOX_PROTO_TCP 1
-#define TOX_PROTO_UDP 2
-
-/** TCP related */
-#define TCP_CLIENT_FAMILY (TOX_AF_INET6 + 1)
-#define TCP_INET (TOX_AF_INET6 + 2)
-#define TCP_INET6 (TOX_AF_INET6 + 3)
-#define TCP_SERVER_FAMILY (TOX_AF_INET6 + 4)
+typedef enum Tox_Proto {
+    TOX_PROTO_TCP = 1,
+    TOX_PROTO_UDP = 2,
+} Tox_Proto;
 
 #define SIZE_IP4 4
 #define SIZE_IP6 16
@@ -216,7 +229,7 @@ typedef struct Socket {
 } Socket;
 
 non_null()
-Socket net_socket(const Network *ns, Family domain, int type, int protocol);
+Socket net_socket(const Network *ns, Family domain, Tox_Sock_Type type, Tox_Proto protocol);
 
 /**
  * Check if socket is valid.
@@ -312,10 +325,10 @@ const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str);
 /**
  * Parses IP structure into an address string.
  *
- * @param ip IP of TOX_AF_INET or TOX_AF_INET6 families.
+ * @param ip IP of NET_FAMILY_IPV4 or NET_FAMILY_IPV6 families.
  * @param length length of the address buffer.
- *   Must be at least TOX_INET_ADDRSTRLEN for TOX_AF_INET
- *   and TOX_INET6_ADDRSTRLEN for TOX_AF_INET6
+ *   Must be at least TOX_INET_ADDRSTRLEN for NET_FAMILY_IPV4
+ *   and TOX_INET6_ADDRSTRLEN for NET_FAMILY_IPV6
  *
  * @param address dotted notation (IPv4: quad, IPv6: 16) or colon notation (IPv6).
  *
@@ -396,12 +409,12 @@ void ipport_copy(IP_Port *target, const IP_Port *source);
  *
  * @param address a hostname (or something parseable to an IP address)
  * @param to to.family MUST be initialized, either set to a specific IP version
- *   (TOX_AF_INET/TOX_AF_INET6) or to the unspecified TOX_AF_UNSPEC (0), if both
+ *   (NET_FAMILY_IPV4/NET_FAMILY_IPV6) or to the unspecified NET_FAMILY_UNSPEC (0), if both
  *   IP versions are acceptable
  * @param extra can be NULL and is only set in special circumstances, see returns
  *
  * Returns in `*to` a matching address (IPv6 or IPv4)
- * Returns in `*extra`, if not NULL, an IPv4 address, if `to->family` was TOX_AF_UNSPEC
+ * Returns in `*extra`, if not NULL, an IPv4 address, if `to->family` was NET_FAMILY_UNSPEC
  *
  * @return true on success, false on failure
  */
@@ -513,7 +526,7 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
  * @retval -1 on error.
  */
 non_null()
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type);
+int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, Tox_Sock_Type tox_type);
 
 /** Deallocates memory allocated by net_getipport */
 non_null(1) nullable(2)

@@ -2491,7 +2491,7 @@ static int handle_gc_ping(GC_Chat *chat, GC_Connection *gconn, const uint8_t *da
     do_gc_peer_state_sync(chat, gconn, data, length);
 
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
-        IP_Port ip_port = {{{0}}};
+        IP_Port ip_port = {{0}};
 
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE,
                            length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
