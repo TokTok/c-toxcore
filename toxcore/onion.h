@@ -133,12 +133,12 @@ int send_onion_response(const Logger *_Nonnull log, const Networking_Core *_Nonn
  *
  * Used to handle these packets that are received in a non traditional way (by TCP for example).
  *
- * Source family must be set to something else than TOX_AF_INET6 or TOX_AF_INET so that the callback gets called
+ * Source family must be set to something else than NET_FAMILY_IPV6 or NET_FAMILY_IPV4 so that the callback gets called
  * when the response is received.
  */
 int onion_send_1(const Onion *_Nonnull onion, const uint8_t *_Nonnull plain, uint16_t len, const IP_Port *_Nonnull source, const uint8_t *_Nonnull nonce);
 
-/** Set the callback to be called when the dest ip_port doesn't have TOX_AF_INET6 or TOX_AF_INET as the family. */
+/** Set the callback to be called when the dest ip_port doesn't have NET_FAMILY_IPV6 or NET_FAMILY_IPV4 as the family. */
 void set_callback_handle_recv_1(Onion *_Nonnull onion, onion_recv_1_cb *_Nullable function, void *_Nullable object);
 Onion *_Nullable new_onion(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, DHT *_Nonnull dht);
 

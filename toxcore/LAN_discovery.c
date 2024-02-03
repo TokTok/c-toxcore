@@ -139,7 +139,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Ne
      * so it's wrapped in `__linux__` for now.
      * Definitely won't work like this on Windows...
      */
-    const Socket sock = net_socket(ns, net_family_ipv4(), TOX_SOCK_STREAM, 0);
+    const Socket sock = net_socket(ns, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
     if (!sock_valid(sock)) {
         mem_delete(mem, broadcast);

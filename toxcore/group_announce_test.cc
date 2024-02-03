@@ -216,7 +216,7 @@ TEST_F(AnnouncesPack, AnnouncesValidationCheck)
     EXPECT_EQ(gca_is_valid_announce(nullptr), false);
 #endif
 
-    GC_Announce announce = {0};
+    GC_Announce announce = {{{{0}}}};
     EXPECT_EQ(gca_is_valid_announce(&announce), false);
     EXPECT_EQ(gca_is_valid_announce(&announces_[0]), true);
     EXPECT_EQ(gca_is_valid_announce(&announces_[1]), true);

@@ -319,7 +319,7 @@ int send_tcp_forward_request(const Logger *_Nonnull logger, Net_Crypto *_Nonnull
 
 /** @brief Copy a maximum of num random TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the family of the copied ip ports will be set to NET_FAMILY_TCP_IPV4 or NET_FAMILY_TCP_IPV6.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.
