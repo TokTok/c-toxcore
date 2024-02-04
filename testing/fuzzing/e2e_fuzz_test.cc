@@ -39,33 +39,28 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         dispatch, [](const Tox_Event_Conference_Message *event, void *user_data) {
             assert(event != nullptr);
         });
-    tox_events_callback_conference_peer_list_changed(dispatch,
-        [](const Tox_Event_Conference_Peer_List_Changed *event, void *user_data) {
+    tox_events_callback_conference_peer_list_changed(
+        dispatch, [](const Tox_Event_Conference_Peer_List_Changed *event, void *user_data) {
             assert(event != nullptr);
         });
     tox_events_callback_conference_peer_name(
         dispatch, [](const Tox_Event_Conference_Peer_Name *event, void *user_data) {
             assert(event != nullptr);
         });
-    tox_events_callback_conference_title(
-        dispatch, [](const Tox_Event_Conference_Title *event, void *user_data) {
-            assert(event != nullptr);
-        });
+    tox_events_callback_conference_title(dispatch,
+        [](const Tox_Event_Conference_Title *event, void *user_data) { assert(event != nullptr); });
     tox_events_callback_file_chunk_request(
         dispatch, [](const Tox_Event_File_Chunk_Request *event, void *user_data) {
             assert(event == nullptr);
         });
-    tox_events_callback_file_recv(
-        dispatch, [](const Tox_Event_File_Recv *event, void *user_data) {
-            Tox *tox = static_cast<Tox *>(user_data);
-            const uint32_t friend_number = tox_event_file_recv_get_friend_number(event);
-            const uint32_t file_number = tox_event_file_recv_get_file_number(event);
-            tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, nullptr);
-        });
-    tox_events_callback_file_recv_chunk(
-        dispatch, [](const Tox_Event_File_Recv_Chunk *event, void *user_data) {
-            assert(event != nullptr);
-        });
+    tox_events_callback_file_recv(dispatch, [](const Tox_Event_File_Recv *event, void *user_data) {
+        Tox *tox = static_cast<Tox *>(user_data);
+        const uint32_t friend_number = tox_event_file_recv_get_friend_number(event);
+        const uint32_t file_number = tox_event_file_recv_get_file_number(event);
+        tox_file_control(tox, friend_number, file_number, TOX_FILE_CONTROL_RESUME, nullptr);
+    });
+    tox_events_callback_file_recv_chunk(dispatch,
+        [](const Tox_Event_File_Recv_Chunk *event, void *user_data) { assert(event != nullptr); });
     tox_events_callback_file_recv_control(
         dispatch, [](const Tox_Event_File_Recv_Control *event, void *user_data) {
             assert(event != nullptr);

@@ -68,30 +68,24 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         dispatch, [](const Tox_Event_Conference_Message *event, void *user_data) {
             assert(event == nullptr);
         });
-    tox_events_callback_conference_peer_list_changed(dispatch,
-        [](const Tox_Event_Conference_Peer_List_Changed *event, void *user_data) {
+    tox_events_callback_conference_peer_list_changed(
+        dispatch, [](const Tox_Event_Conference_Peer_List_Changed *event, void *user_data) {
             assert(event == nullptr);
         });
     tox_events_callback_conference_peer_name(
         dispatch, [](const Tox_Event_Conference_Peer_Name *event, void *user_data) {
             assert(event == nullptr);
         });
-    tox_events_callback_conference_title(
-        dispatch, [](const Tox_Event_Conference_Title *event, void *user_data) {
-            assert(event == nullptr);
-        });
+    tox_events_callback_conference_title(dispatch,
+        [](const Tox_Event_Conference_Title *event, void *user_data) { assert(event == nullptr); });
     tox_events_callback_file_chunk_request(
         dispatch, [](const Tox_Event_File_Chunk_Request *event, void *user_data) {
             assert(event == nullptr);
         });
-    tox_events_callback_file_recv(
-        dispatch, [](const Tox_Event_File_Recv *event, void *user_data) {
-            assert(event == nullptr);
-        });
-    tox_events_callback_file_recv_chunk(
-        dispatch, [](const Tox_Event_File_Recv_Chunk *event, void *user_data) {
-            assert(event == nullptr);
-        });
+    tox_events_callback_file_recv(dispatch,
+        [](const Tox_Event_File_Recv *event, void *user_data) { assert(event == nullptr); });
+    tox_events_callback_file_recv_chunk(dispatch,
+        [](const Tox_Event_File_Recv_Chunk *event, void *user_data) { assert(event == nullptr); });
     tox_events_callback_file_recv_control(
         dispatch, [](const Tox_Event_File_Recv_Control *event, void *user_data) {
             assert(event == nullptr);
@@ -105,7 +99,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
             assert(friend_number == 0);
             const uint8_t message = 'A';
             Tox_Err_Friend_Send_Message err;
-            tox_friend_send_message(state->tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &message, 1, &err);
+            tox_friend_send_message(
+                state->tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &message, 1, &err);
             assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
         });
     tox_events_callback_friend_lossless_packet(
@@ -126,7 +121,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
             const uint8_t *message = tox_event_friend_message_get_message(event);
             const uint8_t reply = message[0] + 1;
             Tox_Err_Friend_Send_Message err;
-            tox_friend_send_message(state->tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
+            tox_friend_send_message(
+                state->tox, friend_number, TOX_MESSAGE_TYPE_NORMAL, &reply, 1, &err);
             assert(err == TOX_ERR_FRIEND_SEND_MESSAGE_OK);
         });
     tox_events_callback_friend_name(
@@ -146,7 +142,8 @@ void setup_callbacks(Tox_Dispatch *dispatch)
         dispatch, [](const Tox_Event_Friend_Request *event, void *user_data) {
             State *state = static_cast<State *>(user_data);
             Tox_Err_Friend_Add err;
-            tox_friend_add_norequest(state->tox, tox_event_friend_request_get_public_key(event), &err);
+            tox_friend_add_norequest(
+                state->tox, tox_event_friend_request_get_public_key(event), &err);
             assert(err == TOX_ERR_FRIEND_ADD_OK || err == TOX_ERR_FRIEND_ADD_OWN_KEY
                 || err == TOX_ERR_FRIEND_ADD_ALREADY_SENT
                 || err == TOX_ERR_FRIEND_ADD_BAD_CHECKSUM);
