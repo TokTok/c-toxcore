@@ -175,6 +175,46 @@ struct Tox_Options {
     uint16_t proxy_port;
 
     /**
+     * The username to use to connect to a SOCKS5 proxy.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * The data pointed at by this member is owned by the user, so must
+     * outlive the options object (unless experimental_owned_data is set).
+     */
+    const uint8_t *proxy_socks5_username;
+
+    /**
+     * The length of the username.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH.
+     */
+    size_t proxy_socks5_username_length;
+
+    /**
+     * The password to use to connect to a SOCKS5 proxy.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * The data pointed at by this member is owned by the user, so must
+     * outlive the options object (unless experimental_owned_data is set).
+     */
+    const uint8_t *proxy_socks5_password;
+
+    /**
+     * The length of the password.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH.
+     */
+    size_t proxy_socks5_password_length;
+
+    /**
      * The start port of the inclusive port range to attempt to use.
      *
      * If both start_port and end_port are 0, the default port range will be
@@ -310,6 +350,18 @@ struct Tox_Options {
      * @private
      */
     char *owned_proxy_host;
+
+    /**
+     * @brief Owned pointer to the SOCKS5 proxy username.
+     * @private
+     */
+    uint8_t *owned_proxy_socks5_username;
+
+    /**
+     * @brief Owned pointer to the SOCKS5 proxy password.
+     * @private
+     */
+    uint8_t *owned_proxy_socks5_password;
 };
 #endif /* TOX_HIDE_DEPRECATED */
 
@@ -341,6 +393,18 @@ bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
 uint16_t tox_options_get_proxy_port(const Tox_Options *options);
 
 void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port);
+
+const uint8_t *tox_options_get_proxy_socks5_username(const Tox_Options *options);
+
+bool tox_options_set_proxy_socks5_username(Tox_Options *options, const uint8_t username[], size_t length);
+
+size_t tox_options_get_proxy_socks5_username_length(const Tox_Options *options);
+
+const uint8_t *tox_options_get_proxy_socks5_password(const Tox_Options *options);
+
+bool tox_options_set_proxy_socks5_password(Tox_Options *options, const uint8_t password[], size_t length);
+
+size_t tox_options_get_proxy_socks5_password_length(const Tox_Options *options);
 
 uint16_t tox_options_get_start_port(const Tox_Options *options);
 
