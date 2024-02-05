@@ -24,7 +24,7 @@ int main(void)
 
     bootstrap_tox_live_network(tox, true);
 
-    printf("Waiting for connection...");
+    printf("Waiting for connection...\n");
 
     for (uint16_t i = 0; i < NUM_ITERATIONS; i++) {
         tox_iterate(tox, nullptr);
