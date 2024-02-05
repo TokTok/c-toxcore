@@ -287,7 +287,7 @@ static int proxy_socks5_read_authentication_response(const Logger *logger, const
     }
 
     if (data[0] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_VERSION
-        && data[1] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_SUCCESS) {
+            && data[1] == TCP_SOCKS5_PROXY_HS_USERNAME_PASSWORD_AUTH_SUCCESS) {
         return 1;
     }
 
