@@ -217,7 +217,14 @@ typedef struct GC_TimedOutPeer {
     uint64_t    last_reconn_try;  // the last time we tried to establish a new connection
 } GC_TimedOutPeer;
 
-typedef bitwise uint32_t GC_Peer_Id;
+typedef bitwise uint32_t GC_Peer_Id_Value;
+
+typedef struct GC_Peer_Id {
+    GC_Peer_Id_Value value;
+} GC_Peer_Id;
+
+GC_Peer_Id gc_peer_id_from_int(uint32_t value);
+uint32_t gc_peer_id_to_int(GC_Peer_Id peer_id);
 
 typedef struct GC_Peer {
     /* Below state is sent to other peers in peer info exchange */

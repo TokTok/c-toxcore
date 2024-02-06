@@ -107,8 +107,6 @@
 /* The value the topic lock is set to when the topic lock is enabled. */
 #define GC_TOPIC_LOCK_ENABLED 0
 
-#define GC_INVALID_PEER_ID ((force GC_Peer_Id)-1)
-
 static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
 
@@ -178,6 +176,35 @@ non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *ad
 non_null() static bool saved_peer_is_valid(const GC_SavedPeerInfo *saved_peer);
 
 static const GC_Chat empty_gc_chat = {nullptr};
+
+#define GC_INVALID_PEER_ID_VALUE ((force GC_Peer_Id_Value)-1)
+
+static GC_Peer_Id gc_invalid_peer_id(void)
+{
+    const GC_Peer_Id invalid = {GC_INVALID_PEER_ID_VALUE};
+    return invalid;
+}
+
+static bool gc_peer_id_is_valid(GC_Peer_Id peer_id)
+{
+    return peer_id.value == GC_INVALID_PEER_ID_VALUE;
+}
+
+GC_Peer_Id gc_peer_id_from_int(uint32_t value)
+{
+    const GC_Peer_Id peer_id = {(force GC_Peer_Id_Value)value};
+    return peer_id;
+}
+
+uint32_t gc_peer_id_to_int(GC_Peer_Id peer_id)
+{
+    return (force uint32_t)peer_id.value;
+}
+
+static GC_Peer_Id gc_unknown_peer_id(void)
+{
+    return gc_peer_id_from_int(0);
+}
 
 non_null()
 static void kill_group_friend_connection(const GC_Session *c, const GC_Chat *chat)
@@ -694,7 +721,7 @@ non_null()
 static int get_peer_number_of_peer_id(const GC_Chat *chat, GC_Peer_Id peer_id)
 {
     for (uint32_t i = 0; i < chat->numpeers; ++i) {
-        if (chat->group[i].peer_id == peer_id) {
+        if (chat->group[i].peer_id.value == peer_id.value) {
             return i;
         }
     }
@@ -712,13 +739,13 @@ non_null()
 static GC_Peer_Id get_new_peer_id(const GC_Chat *chat)
 {
     for (uint32_t i = 0; i < UINT32_MAX - 1; ++i) {
-        const GC_Peer_Id peer_id = (force GC_Peer_Id)i;
+        const GC_Peer_Id peer_id = gc_peer_id_from_int(i);
         if (get_peer_number_of_peer_id(chat, peer_id) == -1) {
             return peer_id;
         }
     }
 
-    return GC_INVALID_PEER_ID;
+    return gc_invalid_peer_id();
 }
 
 /** @brief Sets the password for the group (locally only).
@@ -3072,7 +3099,7 @@ static int handle_gc_mod_list(const GC_Session *c, GC_Chat *chat, const uint8_t 
         update_gc_peer_roles(chat);
 
         if (chat->connection_state == CS_CONNECTED && c->moderation != nullptr) {
-            c->moderation(c->messenger, chat->group_number, GC_INVALID_PEER_ID, GC_INVALID_PEER_ID, MV_MOD, userdata);
+            c->moderation(c->messenger, chat->group_number, gc_invalid_peer_id(), gc_invalid_peer_id(), MV_MOD, userdata);
         }
 
         return 0;
@@ -3193,7 +3220,7 @@ static int handle_gc_sanctions_list(const GC_Session *c, GC_Chat *chat, const ui
 
     if (chat->connection_state == CS_CONNECTED) {
         if (c->moderation != nullptr) {
-            c->moderation(c->messenger, chat->group_number, GC_INVALID_PEER_ID, GC_INVALID_PEER_ID, MV_OBSERVER, userdata);
+            c->moderation(c->messenger, chat->group_number, gc_invalid_peer_id(), gc_invalid_peer_id(), MV_OBSERVER, userdata);
         }
     }
 
@@ -3973,7 +4000,7 @@ static int handle_gc_topic(const GC_Session *c, GC_Chat *chat, const GC_Peer *pe
 
     if (!skip_callback && chat->connection_state == CS_CONNECTED && c->topic_change != nullptr) {
         const int setter_peer_number = get_peer_number_of_sig_pk(chat, topic_info.public_sig_key);
-        const GC_Peer_Id peer_id = setter_peer_number >= 0 ? chat->group[setter_peer_number].peer_id : 0;
+        const GC_Peer_Id peer_id = setter_peer_number >= 0 ? chat->group[setter_peer_number].peer_id : gc_unknown_peer_id();
 
         c->topic_change(c->messenger, chat->group_number, peer_id, topic_info.topic, topic_info.length, userdata);
     }
@@ -6765,7 +6792,7 @@ int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key)
 
     const GC_Peer_Id peer_id = get_new_peer_id(chat);
 
-    if (peer_id == GC_INVALID_PEER_ID) {
+    if (gc_peer_id_is_valid(peer_id)) {
         LOGGER_WARNING(chat->log, "Failed to add peer: all peer ID's are taken?");
         return -1;
     }
