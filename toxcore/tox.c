@@ -1058,7 +1058,7 @@ void tox_kill(Tox *tox)
     }
 
     tox_lock(tox);
-    LOGGER_ASSERT(tox->m->log, tox->m->msi_packet == nullptr, "Attempted to kill tox while toxav is still alive");
+    LOGGER_ASSERT(tox->m->log, tox->toxav_object == nullptr, "Attempted to kill tox while toxav is still alive");
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     mono_time_free(tox->sys.mem, tox->mono_time);
@@ -1070,6 +1070,16 @@ void tox_kill(Tox *tox)
     }
 
     mem_delete(tox->sys.mem, tox);
+}
+
+void tox_get_options(Tox *tox, struct Tox_Options *options)
+{
+    tox_options_default(options);
+    const Messenger_Options *m_options = &tox->m->options;
+
+    // TODO(iphydf): Fill in the other options.
+    tox_options_set_log_callback(options, tox->log_callback);
+    tox_options_set_log_user_data(options, m_options->log_user_data);
 }
 
 static uint32_t end_size(void)
