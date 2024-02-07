@@ -20,8 +20,6 @@ CPPCHECK+=("--suppress=knownConditionTrueFalse")
 CPPCHECK+=("--suppress=missingIncludeSystem")
 # TODO(iphydf): Maybe fix?
 CPPCHECK+=("--suppress=signConversion")
-# TODO(iphydf): Fixed in the toxav refactor PR.
-CPPCHECK+=("--suppress=redundantAssignment")
 
 # We use this for VLAs.
 CPPCHECK_CXX+=("--suppress=allocaCalled")

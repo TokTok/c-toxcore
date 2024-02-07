@@ -1058,7 +1058,7 @@ void tox_kill(Tox *tox)
     }
 
     tox_lock(tox);
-    LOGGER_ASSERT(tox->m->log, tox->m->msi_packet == nullptr, "Attempted to kill tox while toxav is still alive");
+    LOGGER_ASSERT(tox->m->log, tox->toxav_object == nullptr, "Attempted to kill tox while toxav is still alive");
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     mono_time_free(tox->sys.mem, tox->mono_time);
