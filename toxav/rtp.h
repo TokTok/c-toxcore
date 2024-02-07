@@ -9,7 +9,6 @@
 
 #include "bwcontroller.h"
 
-#include "../toxcore/Messenger.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/tox.h"
 
@@ -35,6 +34,11 @@ typedef enum RTP_Type {
     RTP_TYPE_AUDIO = 192,
     RTP_TYPE_VIDEO = 193,
 } RTP_Type;
+
+#ifndef TOXAV_DEFINED
+#define TOXAV_DEFINED
+typedef struct ToxAV ToxAV;
+#endif /* TOXAV_DEFINED */
 
 /**
  * A bit mask (up to 64 bits) specifying features of the current frame affecting
@@ -157,13 +161,18 @@ typedef struct RTPSession {
     struct RTPMessage *mp; /* Expected parted message */
     struct RTPWorkBufferList *work_buffer_list;
     uint8_t  first_packets_counter; /* dismiss first few lost video packets */
-    Messenger *m;
+    const Logger *log;
     Tox *tox;
+    ToxAV *toxav;
     uint32_t friend_number;
+    bool rtp_receive_active; /* if this is set to false then incoming rtp packets will not be processed by handle_rtp_packet() */
     BWController *bwc;
     void *cs;
     rtp_m_cb *mcb;
 } RTPSession;
+
+
+void handle_rtp_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data);
 
 /**
  * Serialise an RTPHeader to bytes to be sent over the network.
@@ -183,13 +192,16 @@ size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
  */
 size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header);
 
-RTPSession *rtp_new(int payload_type, Messenger *m, Tox *tox, uint32_t friendnumber,
+RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb);
-void rtp_kill(RTPSession *session);
-int rtp_allow_receiving(RTPSession *session);
-int rtp_stop_receiving(RTPSession *session);
+void rtp_kill(const Logger *log, RTPSession *session);
+void rtp_allow_receiving_mark(RTPSession *session);
+void rtp_stop_receiving_mark(RTPSession *session);
+void rtp_allow_receiving(Tox *tox);
+void rtp_stop_receiving(Tox *tox);
+
 /**
- * Send a frame of audio or video data, chunked in @ref RTPMessage instances.
+ * @brief Send a frame of audio or video data, chunked in @ref RTPMessage instances.
  *
  * @param session The A/V session to send the data for.
  * @param data A byte array of length @p length.
@@ -197,8 +209,8 @@ int rtp_stop_receiving(RTPSession *session);
  * @param is_keyframe Whether this video frame is a key frame. If it is an
  *   audio frame, this parameter is ignored.
  */
-int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
-                  bool is_keyframe, const Logger *log);
+int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, uint32_t length,
+                  bool is_keyframe);
 
 #ifdef __cplusplus
 } /* extern "C" */

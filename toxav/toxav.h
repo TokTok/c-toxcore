@@ -73,6 +73,8 @@ typedef struct Tox Tox;
 #endif /* !TOX_DEFINED */
 #endif /* !APIGEN_IGNORE */
 
+#ifndef TOXAV_DEFINED
+#define TOXAV_DEFINED
 /**
  * @brief The ToxAV instance type.
  *
@@ -83,6 +85,7 @@ typedef struct Tox Tox;
  * notifying peers.
  */
 typedef struct ToxAV ToxAV;
+#endif /* TOXAV_DEFINED */
 
 /** @{
  * @brief Creation and destruction

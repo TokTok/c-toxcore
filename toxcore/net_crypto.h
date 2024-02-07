@@ -40,7 +40,6 @@
 /** Packets in this range are reserved for AV use. */
 #define PACKET_ID_RANGE_LOSSY_START 192
 #define PACKET_ID_RANGE_LOSSY_AV_START 192
-#define PACKET_ID_RANGE_LOSSY_AV_SIZE 8
 #define PACKET_ID_RANGE_LOSSY_AV_END 199
 /** Packets in this range can be used for anything. */
 #define PACKET_ID_RANGE_LOSSY_CUSTOM_START 200
@@ -311,7 +310,7 @@ int add_tcp_relay(Net_Crypto *c, const IP_Port *ip_port, const uint8_t *public_k
  * return -1 on failure.
  */
 non_null()
-int get_random_tcp_con_number(Net_Crypto *c);
+int get_random_tcp_con_number(const Net_Crypto *c);
 
 /** @brief Put IP_Port of a random onion TCP connection in ip_port.
  *
@@ -319,7 +318,7 @@ int get_random_tcp_con_number(Net_Crypto *c);
  * return false on failure.
  */
 non_null()
-bool get_random_tcp_conn_ip_port(Net_Crypto *c, IP_Port *ip_port);
+bool get_random_tcp_conn_ip_port(const Net_Crypto *c, IP_Port *ip_port);
 
 /** @brief Send an onion packet via the TCP relay corresponding to tcp_connections_number.
  *
@@ -351,7 +350,7 @@ int send_tcp_forward_request(const Logger *logger, Net_Crypto *c, const IP_Port 
  * return 0 on failure.
  */
 non_null()
-unsigned int copy_connected_tcp_relays(Net_Crypto *c, Node_format *tcp_relays, uint16_t num);
+unsigned int copy_connected_tcp_relays(const Net_Crypto *c, Node_format *tcp_relays, uint16_t num);
 
 /**
  * Copy a maximum of `max_num` TCP relays we are connected to starting at the index in the TCP relay array
@@ -360,7 +359,7 @@ unsigned int copy_connected_tcp_relays(Net_Crypto *c, Node_format *tcp_relays, u
  * Returns the number of relays successfully copied.
  */
 non_null()
-uint32_t copy_connected_tcp_relays_index(Net_Crypto *c, Node_format *tcp_relays, uint16_t num, uint32_t idx);
+uint32_t copy_connected_tcp_relays_index(const Net_Crypto *c, Node_format *tcp_relays, uint16_t num, uint32_t idx);
 
 /** @brief Kill a crypto connection.
  *
