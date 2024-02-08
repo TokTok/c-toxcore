@@ -17,6 +17,7 @@ restylers:
       include:
         - "**/*.cc"
         - "**/*.hh"
+  - prettier-markdown
   - prettier-yaml
   - reorder-python-imports
   - shellharden
