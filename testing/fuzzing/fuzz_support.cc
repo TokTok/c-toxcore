@@ -378,7 +378,8 @@ static constexpr Tox_Network_Funcs record_network_funcs = {
         return static_cast<int>(len);
     },
     /* .sendto = */
-    ![](Record_System *self, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
+    ![](Record_System *self, Socket sock, const uint8_t *buf, size_t len,
+         const Network_Addr *addr) {
         assert(sock.value == 42);
         assert(addr != nullptr);
         auto backend = self->global_.bound.find(net_addr_get_port(addr));
