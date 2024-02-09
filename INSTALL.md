@@ -1,6 +1,8 @@
 # Installation instructions
 
-These instructions will guide you through the process of building and installing the toxcore library and its components, as well as getting already pre-built binaries.
+These instructions will guide you through the process of building and
+installing the toxcore library and its components, as well as getting already
+pre-built binaries.
 
 ## Table of contents
 

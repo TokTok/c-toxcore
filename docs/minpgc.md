@@ -43,7 +43,7 @@ If we receive a Rejoin packet from a peer we update its DHT pubkey, add a
 temporary groupchat connection for the peer, and, once the connection is
 online, send out a New Peer message announcing the peer, and a Name message.
 
-Whenever we make a new friend connection, we check if the public key is that 
+Whenever we make a new friend connection, we check if the public key is that
 of any frozen peer. If so, we send it a Rejoin packet, add a temporary
 groupchat connection for it, and, once the connection is online, send the
 peer a Peer Query packet.
@@ -67,8 +67,10 @@ set or if at some point since it was last set, there were no unfrozen peers
 (except us).
 
 ## Discussion
+
 ### Overview
-The intention is to recover seamlessly from splits in the group, the most 
+
+The intention is to recover seamlessly from splits in the group, the most
 common form of which is a single peer temporarily losing all connectivity.
 
 To see how this works, first note that groups (even before the changes
@@ -97,8 +99,8 @@ title after the split. Short of a complicated voting system, this seems the
 only reasonable behaviour.
 
 ### Implementation notes
-Although I've described the logic in terms of an 'frozen' flag, it might 
-actually make more sense in the implementation to have a separate list for 
+Although I've described the logic in terms of an 'frozen' flag, it might
+actually make more sense in the implementation to have a separate list for
 frozen peers.
 
 ## Saving
