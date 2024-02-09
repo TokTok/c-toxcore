@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-DOCKERFLAGS=("--build-arg" "LICENSE_KEY=$(echo -n "$(cat $HOME/.pvs-license)")")
+DOCKERFLAGS=("--build-arg" "LICENSE_KEY=$(echo -n "$(cat "$HOME"/.pvs-license)")")
 . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../sources" && pwd)/run.sh"
