@@ -2597,19 +2597,15 @@ void gc_get_chat_id(const GC_Chat *chat, uint8_t *dest)
 non_null()
 static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
 {
-    GC_Peer *self = (GC_Peer *)calloc(1, sizeof(GC_Peer));
+    static_assert(sizeof(GC_Peer) < 2048, "GC_Peer is too large for stack allocation");
+    GC_Peer self = {0};
 
-    if (self == nullptr) {
-        return false;
-    }
-
-    copy_self(chat, self);
+    copy_self(chat, &self);
 
     const uint16_t data_size = PACKED_GC_PEER_SIZE + sizeof(uint16_t) + MAX_GC_PASSWORD_SIZE;
     uint8_t *data = (uint8_t *)malloc(data_size);
 
     if (data == nullptr) {
-        free(self);
         return false;
     }
 
@@ -2623,10 +2619,8 @@ static bool send_self_to_peer(const GC_Chat *chat, GC_Connection *gconn)
         length += MAX_GC_PASSWORD_SIZE;
     }
 
-    const int packed_len = pack_gc_peer(data + length, data_size - length, self);
+    const int packed_len = pack_gc_peer(data + length, data_size - length, &self);
     length += packed_len;
-
-    free(self);
 
     if (packed_len <= 0) {
         LOGGER_DEBUG(chat->log, "pack_gc_peer failed in handle_gc_peer_info_request_request %d", packed_len);
@@ -2747,25 +2741,17 @@ static int handle_gc_peer_info_response(const GC_Session *c, GC_Chat *chat, uint
         return -1;
     }
 
-    GC_Peer *peer_info = (GC_Peer *)calloc(1, sizeof(GC_Peer));
+    GC_Peer peer_info = {0};
 
-    if (peer_info == nullptr) {
-        return -8;
-    }
-
-    if (unpack_gc_peer(peer_info, data + unpacked_len, length - unpacked_len) == -1) {
+    if (unpack_gc_peer(&peer_info, data + unpacked_len, length - unpacked_len) == -1) {
         LOGGER_ERROR(chat->log, "unpack_gc_peer() failed");
-        free(peer_info);
         return -6;
     }
 
-    if (peer_update(chat, peer_info, peer_number) == -1) {
+    if (peer_update(chat, &peer_info, peer_number) == -1) {
         LOGGER_WARNING(chat->log, "peer_update() failed");
-        free(peer_info);
         return -6;
     }
-
-    free(peer_info);
 
     const bool was_confirmed = gconn->confirmed;
     gconn->confirmed = true;
