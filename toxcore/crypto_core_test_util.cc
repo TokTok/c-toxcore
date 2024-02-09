@@ -13,7 +13,7 @@ Random_Funcs const Random_Class::vtable = {
 
 Random_Class::~Random_Class() = default;
 
-void Test_Random::random_bytes(void *obj, uint8_t *bytes, size_t length)
+void Test_Random::random_bytes(void *obj, uint8_t bytes[], size_t length)
 {
     std::generate(bytes, &bytes[length], std::ref(lcg));
 }
@@ -35,7 +35,7 @@ std::ostream &operator<<(std::ostream &out, PublicKey const &pk)
 {
     out << '"';
     for (uint8_t byte : pk) {
-        out << std::setw(2) << std::setfill('0') << std::hex << uint32_t(byte);
+        out << std::setw(2) << std::setfill('0') << std::hex << static_cast<uint32_t>(byte);
     }
     out << '"';
     return out;
