@@ -34,6 +34,16 @@ void tox_unlock(const Tox *tox);
 const Tox_System *tox_get_system(Tox *tox);
 
 /**
+ * @brief Get a Tox_Options similar to the one used to create the Tox.
+ *
+ * Initialises the `options` object such that `tox_new` called with the passed
+ * options will recreate the current @ref Tox instance.
+ *
+ * @param options the options object we want to initialise.
+ */
+void tox_get_options(Tox *tox, struct Tox_Options *options);
+
+/**
  * Set the callback for the `friend_lossy_packet` event for a specific packet ID.
  * Pass NULL to unset.
  *

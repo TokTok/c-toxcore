@@ -42,124 +42,29 @@ cc_library(
 )
 
 cc_library(
-    name = "bwcontroller",
-    srcs = ["bwcontroller.c"],
-    hdrs = ["bwcontroller.h"],
+    name = "toxav",
+    srcs = glob(
+        [
+            "*.c",
+            "*.h",
+        ],
+        exclude = ["toxav.h"],
+    ),
+    hdrs = ["toxav.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":ring_buffer",
-        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:ccompat",
-        "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:util",
-    ],
-)
-
-cc_library(
-    name = "rtp",
-    srcs = ["rtp.c"],
-    hdrs = ["rtp.h"],
-    deps = [
-        ":bwcontroller",
-        "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:ccompat",
-        "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:util",
-    ],
-)
-
-cc_test(
-    name = "rtp_test",
-    size = "small",
-    srcs = ["rtp_test.cc"],
-    deps = [
-        ":rtp",
-        "//c-toxcore/toxcore:crypto_core",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "audio",
-    srcs = ["audio.c"],
-    hdrs = ["audio.h"],
-    deps = [
-        ":public_api",
-        ":rtp",
-        "//c-toxcore/toxcore:ccompat",
-        "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:util",
-        "@opus",
-    ],
-)
-
-cc_library(
-    name = "video",
-    srcs = [
-        "msi.c",
-        "video.c",
-    ],
-    hdrs = [
-        "msi.h",
-        "video.h",
-    ],
-    deps = [
-        ":audio",
-        ":public_api",
-        ":ring_buffer",
-        ":rtp",
-        "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:ccompat",
-        "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:network",
-        "//c-toxcore/toxcore:util",
-        "@libvpx",
-    ],
-)
-
-cc_library(
-    name = "groupav",
-    srcs = ["groupav.c"],
-    hdrs = ["groupav.h"],
-    deps = [
-        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:group",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:net_crypto",
+        "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:util",
+        "@libsodium",
+        "@libvpx",
         "@opus",
-    ],
-)
-
-cc_library(
-    name = "toxav",
-    srcs = [
-        "toxav.c",
-        "toxav_old.c",
-    ],
-    hdrs = [
-        "toxav.h",
-    ],
-    visibility = ["//c-toxcore:__subpackages__"],
-    deps = [
-        ":groupav",
-        ":rtp",
-        ":video",
-        "//c-toxcore/toxcore:Messenger",
-        "//c-toxcore/toxcore:ccompat",
-        "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:util",
     ],
 )
 

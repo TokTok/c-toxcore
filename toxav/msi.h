@@ -11,7 +11,6 @@
 #include "audio.h"
 #include "video.h"
 
-#include "../toxcore/Messenger.h"
 #include "../toxcore/logger.h"
 
 /**
@@ -42,22 +41,22 @@ typedef enum MSICapabilities {
  * Call state identifiers.
  */
 typedef enum MSICallState {
-    MSI_CALL_INACTIVE, /* Default */
-    MSI_CALL_ACTIVE,
-    MSI_CALL_REQUESTING, /* when sending call invite */
-    MSI_CALL_REQUESTED, /* when getting call invite */
+    MSI_CALL_INACTIVE = 0, /* Default */
+    MSI_CALL_ACTIVE = 1,
+    MSI_CALL_REQUESTING = 2, /* when sending call invite */
+    MSI_CALL_REQUESTED = 3, /* when getting call invite */
 } MSICallState;
 
 /**
  * Callbacks ids that handle the states
  */
 typedef enum MSICallbackID {
-    MSI_ON_INVITE, /* Incoming call */
-    MSI_ON_START, /* Call (RTP transmission) started */
-    MSI_ON_END, /* Call that was active ended */
-    MSI_ON_ERROR, /* On protocol error */
-    MSI_ON_PEERTIMEOUT, /* Peer timed out; stop the call */
-    MSI_ON_CAPABILITIES, /* Peer requested capabilities change */
+    MSI_ON_INVITE = 0, /* Incoming call */
+    MSI_ON_START = 1, /* Call (RTP transmission) started */
+    MSI_ON_END = 2, /* Call that was active ended */
+    MSI_ON_ERROR = 3, /* On protocol error */
+    MSI_ON_PEERTIMEOUT = 4, /* Peer timed out; stop the call */
+    MSI_ON_CAPABILITIES = 5, /* Peer requested capabilities change */
 } MSICallbackID;
 
 /**
@@ -96,7 +95,7 @@ typedef struct MSISession {
     uint32_t        calls_head;
 
     void           *av;
-    Messenger      *messenger;
+    Tox            *tox;
 
     pthread_mutex_t mutex[1];
 
@@ -111,11 +110,11 @@ typedef struct MSISession {
 /**
  * Start the control session.
  */
-MSISession *msi_new(Messenger *m);
+MSISession *msi_new(const Logger *log, Tox *tox);
 /**
  * Terminate control session. NOTE: all calls will be freed
  */
-int msi_kill(MSISession *session, const Logger *log);
+int msi_kill(const Logger *log, Tox *tox, MSISession *session);
 /**
  * Callback setters.
  */
@@ -128,18 +127,20 @@ void msi_callback_capabilities(MSISession *session, msi_action_cb *callback);
 /**
  * Send invite request to friend_number.
  */
-int msi_invite(MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities);
+int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t friend_number, uint8_t capabilities);
 /**
  * Hangup call. NOTE: `call` will be freed
  */
-int msi_hangup(MSICall *call);
+int msi_hangup(const Logger *log, MSICall *call);
 /**
  * Answer call request.
  */
-int msi_answer(MSICall *call, uint8_t capabilities);
+int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities);
 /**
  * Change capabilities of the call.
  */
-int msi_change_capabilities(MSICall *call, uint8_t capabilities);
+int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabilities);
+
+bool check_peer_offline_status(const Logger *log, const Tox *tox, MSISession *session, uint32_t friend_number);
 
 #endif /* C_TOXCORE_TOXAV_MSI_H */
