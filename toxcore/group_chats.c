@@ -4029,6 +4029,7 @@ static int handle_gc_key_exchange(const GC_Chat *chat, GC_Connection *gconn, con
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
     if (!send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION)) {
+        crypto_memunlock(new_session_sk, sizeof(new_session_sk));
         return -3;
     }
 
