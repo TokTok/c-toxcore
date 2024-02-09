@@ -37,7 +37,7 @@ template <typename T, std::size_t N>
 std::array<T, N> to_array(T const (&arr)[N])
 {
     std::array<T, N> stdarr;
-    std::copy(arr, arr + N, stdarr.begin());
+    std::copy(arr, &arr[N], stdarr.begin());
     return stdarr;
 }
 
