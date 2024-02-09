@@ -110,10 +110,7 @@ bool operator==(Family a, Family b) { return a.value == b.value; }
 
 bool operator==(IP4 a, IP4 b) { return a.uint32 == b.uint32; }
 
-bool operator==(IP6 a, IP6 b)
-{
-    return a.uint64[0] == b.uint64[0] && a.uint64[1] == b.uint64[1];
-}
+bool operator==(IP6 a, IP6 b) { return a.uint64[0] == b.uint64[0] && a.uint64[1] == b.uint64[1]; }
 
 bool operator==(IP const &a, IP const &b)
 {
