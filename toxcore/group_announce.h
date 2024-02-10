@@ -50,7 +50,7 @@ struct GC_Announce {
     uint8_t tcp_relays_count;
     bool ip_port_is_set;
     IP_Port ip_port;
-    uint8_t peer_public_key[ENC_PUBLIC_KEY_SIZE];
+    Public_Key peer_public_key;
 };
 
 /* Peer announce for specific group. */
@@ -62,12 +62,12 @@ struct GC_Peer_Announce {
 /* Used for announces in public groups. */
 struct GC_Public_Announce {
     GC_Announce base_announce;
-    uint8_t chat_public_key[ENC_PUBLIC_KEY_SIZE];
+    Public_Key chat_public_key;
 };
 
 /* A linked list that holds all announces for a particular group. */
 struct GC_Announces {
-    uint8_t chat_id[CHAT_ID_SIZE];
+    Public_Key chat_id;
     uint64_t index;
     uint64_t last_announce_received_timestamp;
 
@@ -109,7 +109,7 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list);
  * @param chat_id The chat ID that designates the entry we want to remove.
  */
 non_null()
-void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
+void cleanup_gca(GC_Announces_List *gc_announces_list, const Public_Key *chat_id);
 
 /** @brief Puts a set of announces from the announces list in supplied list.
  *
@@ -124,7 +124,7 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
  */
 non_null()
 int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
-                      const uint8_t *chat_id, const uint8_t *except_public_key);
+                      const Public_Key *chat_id, const Public_Key *except_public_key);
 
 /** @brief Adds a public_announce to list of announces.
  *
