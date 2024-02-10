@@ -787,7 +787,9 @@ bool sanctions_list_make_entry(Moderation *moderation, const Public_Key *public_
 {
     *sanction = (Mod_Sanction) {
         {
-            {0}
+            {
+                0
+            }
         }
     };
 
