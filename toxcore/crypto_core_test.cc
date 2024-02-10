@@ -82,9 +82,9 @@ TEST(CryptoCore, Signatures)
     for (uint8_t i = 0; i < 100; ++i) {
         Signature signature;
         EXPECT_TRUE(crypto_signature_create(
-            signature.data(), message.data(), message.size(), get_sig_sk(&sk)));
+            signature.data(), message.data(), message.size(), &sk.sig));
         EXPECT_TRUE(crypto_signature_verify(
-            signature.data(), message.data(), message.size(), get_sig_pk(&pk)));
+            signature.data(), message.data(), message.size(), &pk.sig));
 
         message.push_back(random_u08(rng));
     }

@@ -53,7 +53,7 @@ TEST_F(Announces, KillGcaOnNullptrIsNoop)
 TEST_F(Announces, CanBeCreatedAndDeleted)
 {
     GC_Public_Announce ann{};
-    ann.chat_public_key[0] = 0x88;
+    ann.chat_public_key.data[0] = 0x88;
     ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann), nullptr);
 #ifndef _DEBUG
     ASSERT_EQ(gca_add_announce(mono_time_, gca_, nullptr), nullptr);
@@ -66,10 +66,10 @@ TEST_F(Announces, AnnouncesCanTimeOut)
     advance_clock(100);
     ASSERT_EQ(gca_->root_announces, nullptr);
     GC_Public_Announce ann{};
-    ann.chat_public_key[0] = 0xae;
+    ann.chat_public_key.data[0] = 0xae;
     ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann), nullptr);
     ASSERT_NE(gca_->root_announces, nullptr);
-    ASSERT_EQ(gca_->root_announces->chat_id[0], 0xae);
+    ASSERT_EQ(gca_->root_announces->chat_id.data[0], 0xae);
 
     // One iteration without having any time passed => announce is still here.
     do_gca(mono_time_, gca_);
@@ -90,28 +90,28 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
 {
     GC_Public_Announce ann1{};
     GC_Public_Announce ann2{};
-    ann1.chat_public_key[0] = 0x91;
-    ann1.base_announce.peer_public_key[0] = 0x7f;
-    ann2.chat_public_key[0] = 0x92;
-    ann2.base_announce.peer_public_key[0] = 0x7c;
+    ann1.chat_public_key.data[0] = 0x91;
+    ann1.base_announce.peer_public_key.data[0] = 0x7f;
+    ann2.chat_public_key.data[0] = 0x92;
+    ann2.base_announce.peer_public_key.data[0] = 0x7c;
 
     ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann1), nullptr);
     ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann2), nullptr);
     ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann2), nullptr);
 
-    uint8_t empty_pk[ENC_PUBLIC_KEY_SIZE] = {0};
+    Public_Key empty_pk = {{0}};
 
     GC_Announce announces;
-    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, ann1.chat_public_key, empty_pk), 1);
-    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, ann2.chat_public_key, empty_pk), 1);
+    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, &ann1.chat_public_key, &empty_pk), 1);
+    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, &ann2.chat_public_key, &empty_pk), 1);
 
-    cleanup_gca(gca_, ann1.chat_public_key);
-    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, ann1.chat_public_key, empty_pk), 0);
+    cleanup_gca(gca_, &ann1.chat_public_key);
+    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, &ann1.chat_public_key, &empty_pk), 0);
 
-    cleanup_gca(gca_, ann2.chat_public_key);
-    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, ann2.chat_public_key, empty_pk), 0);
+    cleanup_gca(gca_, &ann2.chat_public_key);
+    ASSERT_EQ(gca_get_announces(gca_, &announces, 1, &ann2.chat_public_key, &empty_pk), 0);
 #ifndef _DEBUG
-    ASSERT_EQ(gca_get_announces(gca_, nullptr, 1, ann2.chat_public_key, empty_pk), -1);
+    ASSERT_EQ(gca_get_announces(gca_, nullptr, 1, &ann2.chat_public_key, &empty_pk), -1);
 #endif
 }
 
@@ -129,7 +129,7 @@ protected:
         announces_.emplace_back();
         auto &ann1 = announces_.back();
 
-        ann1.peer_public_key[0] = 0xae;
+        ann1.peer_public_key.data[0] = 0xae;
         ann1.ip_port.ip.family = net_family_ipv4();
         ann1.ip_port.ip.ip.v4.uint8[0] = 0x7f;  // 127.0.0.1
         ann1.ip_port.ip.ip.v4.uint8[3] = 0x1;
@@ -139,7 +139,7 @@ protected:
         announces_.emplace_back();
         auto &ann2 = announces_.back();
 
-        ann2.peer_public_key[0] = 0xaf;  // different key
+        ann2.peer_public_key.data[0] = 0xaf;  // different key
         ann2.ip_port.ip.family = net_family_ipv4();
         ann2.ip_port.ip.ip.v4.uint8[0] = 0x7f;  // 127.0.0.2
         ann2.ip_port.ip.ip.v4.uint8[3] = 0x2;
@@ -156,7 +156,7 @@ protected:
 TEST_F(AnnouncesPack, PublicAnnounceCanBePackedAndUnpacked)
 {
     GC_Public_Announce ann{};
-    ann.chat_public_key[0] = 0x88;
+    ann.chat_public_key.data[0] = 0x88;
     ann.base_announce = announces_[0];
 
     std::vector<uint8_t> packed(GCA_PUBLIC_ANNOUNCE_MAX_SIZE);
@@ -196,7 +196,7 @@ TEST_F(AnnouncesPack, PublicAnnouncePackNull)
     std::vector<uint8_t> packed(GCA_PUBLIC_ANNOUNCE_MAX_SIZE);
     EXPECT_EQ(gca_pack_public_announce(logger_, packed.data(), packed.size(), &ann), -1);
 
-    ann.chat_public_key[0] = 0x88;
+    ann.chat_public_key.data[0] = 0x88;
     ann.base_announce = announces_[0];
 
     std::vector<uint8_t> packedTooSmall(GCA_PUBLIC_ANNOUNCE_MAX_SIZE - 1);

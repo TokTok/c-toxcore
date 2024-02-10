@@ -19,6 +19,7 @@
 #include "bin_unpack.h"
 #include "ccompat.h"
 #include "crypto_core.h"
+#include "crypto_core_pack.h"
 #include "group_common.h"
 #include "group_moderation.h"
 #include "logger.h"
@@ -119,14 +120,10 @@ static bool load_unpack_state_bin(GC_Chat *chat, Bin_Unpack *bu)
         return false;
     }
 
-    uint8_t founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    if (!bin_unpack_bin_fixed(bu, founder_public_key, EXT_PUBLIC_KEY_SIZE)) {
+    if (!unpack_extended_public_key(&chat->shared_state.founder_public_key, bu)) {
         LOGGER_ERROR(chat->log, "Failed to unpack founder public key");
         return false;
     }
-
-    memcpy(chat->shared_state.founder_public_key.enc, founder_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(chat->shared_state.founder_public_key.sig, founder_public_key + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
 
     if (!(bin_unpack_bin_max(bu, chat->shared_state.group_name, &chat->shared_state.group_name_len, sizeof(chat->shared_state.group_name))
             && bin_unpack_bin_max(bu, chat->shared_state.password, &chat->shared_state.password_length, sizeof(chat->shared_state.password))
@@ -150,7 +147,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, Bin_Unpack *bu)
             && bin_unpack_u16(bu, &chat->topic_info.length)
             && bin_unpack_u16(bu, &chat->topic_info.checksum)
             && bin_unpack_bin_max(bu, chat->topic_info.topic, &chat->topic_info.length, sizeof(chat->topic_info.topic))
-            && bin_unpack_bin_fixed(bu, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->topic_info.public_sig_key.data, SIG_PUBLIC_KEY_SIZE)
             && bin_unpack_bin_fixed(bu, chat->topic_sig, SIGNATURE_SIZE))) {
         LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
@@ -212,37 +209,11 @@ static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
 non_null()
 static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
 {
-    if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
-        LOGGER_ERROR(chat->log, "Group keys array malformed");
-        return false;
-    }
-
-    uint8_t chat_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t chat_secret_key[EXT_SECRET_KEY_SIZE];
-    uint8_t self_public_key[EXT_PUBLIC_KEY_SIZE];
-    uint8_t self_secret_key[EXT_SECRET_KEY_SIZE];
-
-    if (!(bin_unpack_bin_fixed(bu, chat_public_key, EXT_PUBLIC_KEY_SIZE)
-            && bin_unpack_bin_fixed(bu, chat_secret_key, EXT_SECRET_KEY_SIZE)
-            && bin_unpack_bin_fixed(bu, self_public_key, EXT_PUBLIC_KEY_SIZE)
-            && bin_unpack_bin_fixed(bu, self_secret_key, EXT_SECRET_KEY_SIZE))) {
-        LOGGER_ERROR(chat->log, "Failed to unpack keys");
-        return false;
-    }
-
-    memcpy(chat->chat_public_key.enc, chat_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(chat->chat_public_key.sig, chat_public_key + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
-
-    memcpy(chat->chat_secret_key.enc, chat_secret_key, CRYPTO_SECRET_KEY_SIZE);
-    memcpy(chat->chat_secret_key.sig, chat_secret_key + CRYPTO_SECRET_KEY_SIZE, CRYPTO_SIGN_SECRET_KEY_SIZE);
-
-    memcpy(chat->self_public_key.enc, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(chat->self_public_key.sig, self_public_key + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
-
-    memcpy(chat->self_secret_key.enc, self_secret_key, CRYPTO_SECRET_KEY_SIZE);
-    memcpy(chat->self_secret_key.sig, self_secret_key + CRYPTO_SECRET_KEY_SIZE, CRYPTO_SIGN_SECRET_KEY_SIZE);
-
-    return true;
+    return bin_unpack_array_fixed(bu, 4, nullptr)
+        && unpack_extended_public_key(&chat->chat_public_key, bu)
+        && unpack_extended_secret_key(&chat->chat_secret_key, bu)
+        && unpack_extended_public_key(&chat->self_public_key, bu)
+        && unpack_extended_secret_key(&chat->self_secret_key, bu);
 }
 
 non_null()
@@ -276,7 +247,7 @@ static bool load_unpack_self_info(GC_Chat *chat, Bin_Unpack *bu)
     }
 
     // we have to add ourself before setting self info
-    if (peer_add(chat, nullptr, chat->self_public_key.enc) != 0) {
+    if (peer_add(chat, nullptr, &chat->self_public_key.enc) != 0) {
         LOGGER_ERROR(chat->log, "Failed to add self to peer list");
         return false;
     }
@@ -377,12 +348,8 @@ static void save_pack_state_bin(const GC_Chat *chat, Bin_Pack *bp)
 {
     bin_pack_array(bp, 5);
 
-    uint8_t founder_public_key[EXT_PUBLIC_KEY_SIZE];
-    memcpy(founder_public_key, chat->shared_state.founder_public_key.enc, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(founder_public_key + CRYPTO_PUBLIC_KEY_SIZE, chat->shared_state.founder_public_key.sig, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
-
     bin_pack_bin(bp, chat->shared_state_sig, SIGNATURE_SIZE); // 1
-    bin_pack_bin(bp, founder_public_key, EXT_PUBLIC_KEY_SIZE); // 2
+    pack_extended_public_key(&chat->shared_state.founder_public_key, bp); // 2
     bin_pack_bin(bp, chat->shared_state.group_name, chat->shared_state.group_name_len); // 3
     bin_pack_bin(bp, chat->shared_state.password, chat->shared_state.password_length); // 4
     bin_pack_bin(bp, chat->shared_state.mod_list_hash, MOD_MODERATION_HASH_SIZE); // 5
@@ -397,7 +364,7 @@ static void save_pack_topic_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_u16(bp, chat->topic_info.length); // 2
     bin_pack_u16(bp, chat->topic_info.checksum); // 3
     bin_pack_bin(bp, chat->topic_info.topic, chat->topic_info.length); // 4
-    bin_pack_bin(bp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
+    bin_pack_bin(bp, chat->topic_info.public_sig_key.data, SIG_PUBLIC_KEY_SIZE); // 5
     bin_pack_bin(bp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 
@@ -440,26 +407,10 @@ static void save_pack_keys(const GC_Chat *chat, Bin_Pack *bp)
 {
     bin_pack_array(bp, 4);
 
-    uint8_t chat_public_key[EXT_PUBLIC_KEY_SIZE];
-    memcpy(chat_public_key, chat->chat_public_key.enc, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(chat_public_key + CRYPTO_PUBLIC_KEY_SIZE, chat->chat_public_key.sig, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
-
-    uint8_t chat_secret_key[EXT_SECRET_KEY_SIZE];
-    memcpy(chat_secret_key, chat->chat_secret_key.enc, CRYPTO_SECRET_KEY_SIZE);
-    memcpy(chat_secret_key + CRYPTO_SECRET_KEY_SIZE, chat->chat_secret_key.sig, CRYPTO_SIGN_SECRET_KEY_SIZE);
-
-    uint8_t self_public_key[EXT_PUBLIC_KEY_SIZE];
-    memcpy(self_public_key, chat->self_public_key.enc, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(self_public_key + CRYPTO_PUBLIC_KEY_SIZE, chat->self_public_key.sig, CRYPTO_SIGN_PUBLIC_KEY_SIZE);
-
-    uint8_t self_secret_key[EXT_SECRET_KEY_SIZE];
-    memcpy(self_secret_key, chat->self_secret_key.enc, CRYPTO_SECRET_KEY_SIZE);
-    memcpy(self_secret_key + CRYPTO_SECRET_KEY_SIZE, chat->self_secret_key.sig, CRYPTO_SIGN_SECRET_KEY_SIZE);
-
-    bin_pack_bin(bp, chat_public_key, EXT_PUBLIC_KEY_SIZE); // 1
-    bin_pack_bin(bp, chat_secret_key, EXT_SECRET_KEY_SIZE); // 2
-    bin_pack_bin(bp, self_public_key, EXT_PUBLIC_KEY_SIZE); // 3
-    bin_pack_bin(bp, self_secret_key, EXT_SECRET_KEY_SIZE); // 4
+    pack_extended_public_key(&chat->chat_public_key, bp); // 1
+    pack_extended_secret_key(&chat->chat_secret_key, bp); // 2
+    pack_extended_public_key(&chat->self_public_key, bp); // 3
+    pack_extended_secret_key(&chat->self_secret_key, bp); // 4
 }
 
 non_null()
