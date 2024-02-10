@@ -48,40 +48,40 @@ static_assert(CRYPTO_SIGN_SECRET_KEY_SIZE == crypto_sign_SECRETKEYBYTES,
 bool create_extended_keypair(Extended_Public_Key *pk, Extended_Secret_Key *sk)
 {
     /* create signature key pair */
-    crypto_sign_keypair(pk->sig, sk->sig);
+    crypto_sign_keypair(pk->sig.data, sk->sig.data);
 
     /* convert public signature key to public encryption key */
-    const int res1 = crypto_sign_ed25519_pk_to_curve25519(pk->enc, pk->sig);
+    const int res1 = crypto_sign_ed25519_pk_to_curve25519(pk->enc.data, pk->sig.data);
 
     /* convert secret signature key to secret encryption key */
-    const int res2 = crypto_sign_ed25519_sk_to_curve25519(sk->enc, sk->sig);
+    const int res2 = crypto_sign_ed25519_sk_to_curve25519(sk->enc.data, sk->sig.data);
 
     return res1 == 0 && res2 == 0;
 }
 
 const uint8_t *get_enc_key(const Extended_Public_Key *key)
 {
-    return key->enc;
+    return key->enc.data;
 }
 
 const uint8_t *get_sig_pk(const Extended_Public_Key *key)
 {
-    return key->sig;
+    return key->sig.data;
 }
 
 void set_sig_pk(Extended_Public_Key *key, const uint8_t *sig_pk)
 {
-    memcpy(key->sig, sig_pk, SIG_PUBLIC_KEY_SIZE);
+    memcpy(key->sig.data, sig_pk, SIG_PUBLIC_KEY_SIZE);
 }
 
 const uint8_t *get_sig_sk(const Extended_Secret_Key *key)
 {
-    return key->sig;
+    return key->sig.data;
 }
 
 const uint8_t *get_chat_id(const Extended_Public_Key *key)
 {
-    return key->sig;
+    return key->sig.data;
 }
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
@@ -207,16 +207,16 @@ uint32_t random_range_u32(const Random *rng, uint32_t upper_bound)
 
 bool crypto_signature_create(uint8_t signature[CRYPTO_SIGNATURE_SIZE],
                              const uint8_t *message, uint64_t message_length,
-                             const uint8_t secret_key[SIG_SECRET_KEY_SIZE])
+                             const Sign_Secret_Key *secret_key)
 {
-    return crypto_sign_detached(signature, nullptr, message, message_length, secret_key) == 0;
+    return crypto_sign_detached(signature, nullptr, message, message_length, secret_key->data) == 0;
 }
 
 bool crypto_signature_verify(const uint8_t signature[CRYPTO_SIGNATURE_SIZE],
                              const uint8_t *message, uint64_t message_length,
-                             const uint8_t public_key[SIG_PUBLIC_KEY_SIZE])
+                             const Sign_Public_Key *public_key)
 {
-    return crypto_sign_verify_detached(signature, message, message_length, public_key) == 0;
+    return crypto_sign_verify_detached(signature, message, message_length, public_key->data) == 0;
 }
 
 bool public_key_valid(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE])

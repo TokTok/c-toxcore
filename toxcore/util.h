@@ -24,10 +24,6 @@ extern "C" {
 
 bool is_power_of_2(uint64_t x);
 
-/** @brief Frees all pointers in a uint8_t pointer array, as well as the array itself. */
-non_null(1) nullable(2)
-void free_uint8_t_pointer_array(const Memory *mem, uint8_t **ary, size_t n_items);
-
 /** Returns -1 if failed or 0 if success */
 non_null() int create_recursive_mutex(pthread_mutex_t *mutex);
 
