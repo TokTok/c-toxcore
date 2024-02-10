@@ -160,6 +160,32 @@ const Random *os_random(void);
  */
 #define CRYPTO_HMAC_KEY_SIZE           32
 
+typedef struct Public_Key {
+    uint8_t data[CRYPTO_PUBLIC_KEY_SIZE];
+} Public_Key;
+
+typedef struct Secret_Key {
+    uint8_t data[CRYPTO_SECRET_KEY_SIZE];
+} Secret_Key;
+
+typedef struct Sign_Public_Key {
+    uint8_t data[CRYPTO_SIGN_PUBLIC_KEY_SIZE];
+} Sign_Public_Key;
+
+typedef struct Sign_Secret_Key {
+    uint8_t data[CRYPTO_SIGN_SECRET_KEY_SIZE];
+} Sign_Secret_Key;
+
+typedef struct Extended_Public_Key {
+    Public_Key enc;
+    Sign_Public_Key sig;
+} Extended_Public_Key;
+
+typedef struct Extended_Secret_Key {
+    Secret_Key enc;
+    Sign_Secret_Key sig;
+} Extended_Secret_Key;
+
 /**
  * @brief A `bzero`-like function which won't be optimised away by the compiler.
  *
@@ -285,7 +311,7 @@ uint32_t random_range_u32(const Random *rng, uint32_t upper_bound);
 non_null()
 bool crypto_signature_create(uint8_t signature[CRYPTO_SIGNATURE_SIZE],
                              const uint8_t *message, uint64_t message_length,
-                             const uint8_t secret_key[SIG_SECRET_KEY_SIZE]);
+                             const Sign_Secret_Key *secret_key);
 
 /** @brief Verifies that the given signature was produced by a given message and public key.
  *
@@ -300,7 +326,7 @@ bool crypto_signature_create(uint8_t signature[CRYPTO_SIGNATURE_SIZE],
 non_null()
 bool crypto_signature_verify(const uint8_t signature[CRYPTO_SIGNATURE_SIZE],
                              const uint8_t *message, uint64_t message_length,
-                             const uint8_t public_key[SIG_PUBLIC_KEY_SIZE]);
+                             const Sign_Public_Key *public_key);
 
 /**
  * @brief Fill the given nonce with random bytes.
@@ -323,21 +349,6 @@ void random_bytes(const Random *rng, uint8_t *bytes, size_t length);
  */
 non_null()
 bool public_key_valid(const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]);
-
-typedef uint8_t Public_Key[CRYPTO_PUBLIC_KEY_SIZE];
-typedef uint8_t Secret_Key[CRYPTO_SECRET_KEY_SIZE];
-typedef uint8_t Sign_Public_Key[CRYPTO_SIGN_PUBLIC_KEY_SIZE];
-typedef uint8_t Sign_Secret_Key[CRYPTO_SIGN_SECRET_KEY_SIZE];
-
-typedef struct Extended_Public_Key {
-    Public_Key enc;
-    Sign_Public_Key sig;
-} Extended_Public_Key;
-
-typedef struct Extended_Secret_Key {
-    Secret_Key enc;
-    Sign_Secret_Key sig;
-} Extended_Secret_Key;
 
 /**
  * @brief Creates an extended keypair: curve25519 and ed25519 for encryption and signing

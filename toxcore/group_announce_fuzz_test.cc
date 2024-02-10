@@ -87,16 +87,25 @@ void TestDoGca(Fuzz_Data &input)
             CONSUME1_OR_RETURN(const uint8_t, max_nodes, input);
             // Always allocate at least something to avoid passing nullptr to functions below.
             std::vector<GC_Announce> gc_announces(max_nodes + 1);
-            CONSUME_OR_RETURN(const uint8_t *chat_id, input, CHAT_ID_SIZE);
-            CONSUME_OR_RETURN(const uint8_t *except_public_key, input, ENC_PUBLIC_KEY_SIZE);
+
+            CONSUME_OR_RETURN(const uint8_t *chat_id_data, input, CHAT_ID_SIZE);
+            Public_Key chat_id;
+            memcpy(chat_id.data, chat_id_data, CHAT_ID_SIZE);
+
+            CONSUME_OR_RETURN(const uint8_t *except_public_key_data, input, ENC_PUBLIC_KEY_SIZE);
+            Public_Key except_public_key;
+            memcpy(except_public_key.data, except_public_key_data, ENC_PUBLIC_KEY_SIZE);
+
             gca_get_announces(
-                gca.get(), gc_announces.data(), max_nodes, chat_id, except_public_key);
+                gca.get(), gc_announces.data(), max_nodes, &chat_id, &except_public_key);
             break;
         }
         case 3: {
             // Remove a chat.
-            CONSUME_OR_RETURN(const uint8_t *chat_id, input, CHAT_ID_SIZE);
-            cleanup_gca(gca.get(), chat_id);
+            CONSUME_OR_RETURN(const uint8_t *chat_id_data, input, CHAT_ID_SIZE);
+            Public_Key chat_id;
+            memcpy(chat_id.data, chat_id_data, CHAT_ID_SIZE);
+            cleanup_gca(gca.get(), &chat_id);
             break;
         }
         }
