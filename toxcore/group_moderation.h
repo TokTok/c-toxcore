@@ -60,13 +60,13 @@ typedef struct Mod_Sanction_Creds {
     uint32_t    version;
     uint8_t     hash[MOD_SANCTION_HASH_SIZE];    // hash of all sanctions list signatures + version
     uint16_t    checksum;  // a sum of the hash
-    uint8_t     sig_pk[SIG_PUBLIC_KEY_SIZE];    // Last mod to have modified the sanctions list
+    Sign_Public_Key sig_pk;    // Last mod to have modified the sanctions list
     uint8_t     sig[SIGNATURE_SIZE];    // signature of hash, signed by sig_pk
 } Mod_Sanction_Creds;
 
 /** Holds data pertaining to a peer who has been sanctioned. */
 typedef struct Mod_Sanction {
-    uint8_t     setter_public_sig_key[SIG_PUBLIC_KEY_SIZE];
+    Sign_Public_Key setter_public_sig_key;
 
     // TODO(Jfreegman): This timestamp can potentially be used to track a user across
     // different group chats if they're a moderator and set many sanctions across the
@@ -74,7 +74,7 @@ typedef struct Mod_Sanction {
     uint64_t    time_set;
 
     uint8_t     type;
-    uint8_t     target_public_enc_key[ENC_PUBLIC_KEY_SIZE];
+    Public_Key target_public_enc_key;
 
     /* Signature of all above packed data signed by the owner of public_sig_key */
     uint8_t     signature[SIGNATURE_SIZE];
@@ -89,13 +89,13 @@ typedef struct Moderation {
 
     Mod_Sanction_Creds sanctions_creds;
 
-    uint8_t     **mod_list;  // array of public signature keys of all the mods
+    Sign_Public_Key *mod_list;  // array of public signature keys of all the mods
     uint16_t    num_mods;
 
     // copies from parent/sibling chat/shared state objects
-    uint8_t     founder_public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    uint8_t     self_public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    uint8_t     self_secret_sig_key[SIG_SECRET_KEY_SIZE];
+    Sign_Public_Key founder_public_sig_key;
+    Sign_Public_Key self_public_sig_key;
+    Sign_Secret_Key self_secret_sig_key;
     uint32_t    shared_state_version;
 } Moderation;
 
@@ -149,7 +149,7 @@ bool mod_list_remove_index(Moderation *moderation, uint16_t index);
  * Returns true on success.
  */
 non_null()
-bool mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key);
+bool mod_list_remove_entry(Moderation *moderation, const Sign_Public_Key *public_sig_key);
 
 /** @brief Adds a mod to the moderator list.
  *
@@ -158,11 +158,11 @@ bool mod_list_remove_entry(Moderation *moderation, const uint8_t *public_sig_key
  * Returns true on success.
  */
 non_null()
-bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data);
+bool mod_list_add_entry(Moderation *moderation, const Sign_Public_Key *mod_data);
 
 /** @return true if the public signature key belongs to a moderator or the founder */
 non_null()
-bool mod_list_verify_sig_pk(const Moderation *moderation, const uint8_t *sig_pk);
+bool mod_list_verify_sig_pk(const Moderation *moderation, const Sign_Public_Key *sig_pk);
 
 /** @brief Frees all memory associated with the moderator list and sets num_mods to 0. */
 nullable(1)
@@ -260,12 +260,12 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
  * Returns true on success.
  */
 non_null()
-bool sanctions_list_make_entry(Moderation *moderation, const uint8_t *public_key, Mod_Sanction *sanction,
+bool sanctions_list_make_entry(Moderation *moderation, const Public_Key *public_key, Mod_Sanction *sanction,
                                uint8_t type);
 
 /** @return true if public key is in the observer list. */
 non_null()
-bool sanctions_list_is_observer(const Moderation *moderation, const uint8_t *public_key);
+bool sanctions_list_is_observer(const Moderation *moderation, const Public_Key *public_key);
 
 /** @return true if sanction already exists in the sanctions list. */
 non_null()
@@ -278,7 +278,7 @@ bool sanctions_list_entry_exists(const Moderation *moderation, const Mod_Sanctio
  * Returns false on failure or if entry was not found.
  */
 non_null(1, 2) nullable(3)
-bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *public_key,
+bool sanctions_list_remove_observer(Moderation *moderation, const Public_Key *public_key,
                                     const Mod_Sanction_Creds *creds);
 
 /** @brief Replaces all sanctions list signatures made by public_sig_key with the caller's.
@@ -288,7 +288,7 @@ bool sanctions_list_remove_observer(Moderation *moderation, const uint8_t *publi
  * Returns the number of entries re-signed.
  */
 non_null()
-uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *public_sig_key);
+uint16_t sanctions_list_replace_sig(Moderation *moderation, const Sign_Public_Key *public_sig_key);
 
 non_null()
 void sanctions_list_cleanup(Moderation *moderation);

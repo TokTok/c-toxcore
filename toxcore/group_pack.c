@@ -147,7 +147,7 @@ static bool load_unpack_topic_info(GC_Chat *chat, Bin_Unpack *bu)
             && bin_unpack_u16(bu, &chat->topic_info.length)
             && bin_unpack_u16(bu, &chat->topic_info.checksum)
             && bin_unpack_bin_max(bu, chat->topic_info.topic, &chat->topic_info.length, sizeof(chat->topic_info.topic))
-            && bin_unpack_bin_fixed(bu, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE)
+            && bin_unpack_bin_fixed(bu, chat->topic_info.public_sig_key.data, SIG_PUBLIC_KEY_SIZE)
             && bin_unpack_bin_fixed(bu, chat->topic_sig, SIGNATURE_SIZE))) {
         LOGGER_ERROR(chat->log, "Failed to unpack topic info");
         return false;
@@ -256,7 +256,7 @@ static bool load_unpack_self_info(GC_Chat *chat, Bin_Unpack *bu)
     }
 
     // we have to add ourself before setting self info
-    if (peer_add(chat, nullptr, chat->self_public_key.enc) != 0) {
+    if (peer_add(chat, nullptr, &chat->self_public_key.enc) != 0) {
         LOGGER_ERROR(chat->log, "Failed to add self to peer list");
         return false;
     }
@@ -373,7 +373,7 @@ static void save_pack_topic_info(const GC_Chat *chat, Bin_Pack *bp)
     bin_pack_u16(bp, chat->topic_info.length); // 2
     bin_pack_u16(bp, chat->topic_info.checksum); // 3
     bin_pack_bin(bp, chat->topic_info.topic, chat->topic_info.length); // 4
-    bin_pack_bin(bp, chat->topic_info.public_sig_key, SIG_PUBLIC_KEY_SIZE); // 5
+    bin_pack_bin(bp, chat->topic_info.public_sig_key.data, SIG_PUBLIC_KEY_SIZE); // 5
     bin_pack_bin(bp, chat->topic_sig, SIGNATURE_SIZE); // 6
 }
 

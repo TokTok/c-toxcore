@@ -205,7 +205,7 @@ typedef enum Group_Handshake_Join_Type {
 } Group_Handshake_Join_Type;
 
 typedef struct GC_SavedPeerInfo {
-    uint8_t     public_key[ENC_PUBLIC_KEY_SIZE];
+    Public_Key public_key;
     Node_format tcp_relay;
     IP_Port     ip_port;
 } GC_SavedPeerInfo;
@@ -259,7 +259,7 @@ typedef struct GC_TopicInfo {
     uint16_t    length;
     uint16_t    checksum;  // used for syncing problems. the checksum with the highest value gets priority.
     uint8_t     topic[MAX_GC_TOPIC_SIZE];
-    uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];  // Public signature key of the topic setter
+    Sign_Public_Key public_sig_key;  // Public signature key of the topic setter
 } GC_TopicInfo;
 
 typedef struct GC_Chat {
@@ -407,7 +407,7 @@ typedef struct GC_Session {
  * Return -2 if a peer with public_key is already in our peerlist.
  */
 non_null(1, 3) nullable(2)
-int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
+int peer_add(GC_Chat *chat, const IP_Port *ipp, const Public_Key *public_key);
 
 /** @brief Unpacks saved peers from `data` of size `length` into `chat`.
  *

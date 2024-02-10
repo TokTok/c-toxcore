@@ -48,8 +48,8 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
     const int num_ann = gca_get_announces(gc_announces_list,
                                           gc_announces,
                                           GCA_MAX_SENT_ANNOUNCES,
-                                          public_announce.chat_public_key,
-                                          new_announce->base_announce.peer_public_key);
+                                          &public_announce.chat_public_key,
+                                          &new_announce->base_announce.peer_public_key);
 
     if (num_ann < 0) {
         LOGGER_ERROR(logger, "failed to get group announce");
