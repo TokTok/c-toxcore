@@ -786,7 +786,9 @@ bool sanctions_list_make_entry(Moderation *moderation, const Public_Key *public_
                                uint8_t type)
 {
     *sanction = (Mod_Sanction) {
-        {0}
+        {
+            0
+        }
     };
 
     if (type == SA_OBSERVER) {

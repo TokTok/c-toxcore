@@ -210,10 +210,10 @@ non_null()
 static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
 {
     return bin_unpack_array_fixed(bu, 4, nullptr)
-        && unpack_extended_public_key(&chat->chat_public_key, bu)
-        && unpack_extended_secret_key(&chat->chat_secret_key, bu)
-        && unpack_extended_public_key(&chat->self_public_key, bu)
-        && unpack_extended_secret_key(&chat->self_secret_key, bu);
+           && unpack_extended_public_key(&chat->chat_public_key, bu)
+           && unpack_extended_secret_key(&chat->chat_secret_key, bu)
+           && unpack_extended_public_key(&chat->self_public_key, bu)
+           && unpack_extended_secret_key(&chat->self_secret_key, bu);
 }
 
 non_null()
