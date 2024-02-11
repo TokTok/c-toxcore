@@ -217,7 +217,7 @@ static bool load_unpack_keys(GC_Chat *chat, Bin_Unpack *bu)
     if (!(unpack_extended_public_key(&chat->chat_public_key, bu)
             && unpack_extended_secret_key(&chat->chat_secret_key, bu)
             && unpack_extended_public_key(&chat->self_public_key, bu)
-            && unpack_extended_secret_key(&chat->self_secret_key, bu))){
+            && unpack_extended_secret_key(&chat->self_secret_key, bu))) {
         LOGGER_ERROR(chat->log, "Failed to unpack keys");
         return false;
     }
