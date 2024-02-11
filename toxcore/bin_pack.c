@@ -48,7 +48,11 @@ static size_t buf_writer(cmp_ctx_t *ctx, const void *data, size_t count)
             // Buffer too small.
             return 0;
         }
-        memcpy(&bp->bytes[bp->bytes_pos], data, count);
+        if (data == nullptr) {
+            assert(count == 0);
+        } else {
+            memcpy(&bp->bytes[bp->bytes_pos], data, count);
+        }
     }
     bp->bytes_pos += count;
     return count;
