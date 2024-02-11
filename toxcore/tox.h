@@ -678,6 +678,13 @@ struct Tox_Options {
      */
     const Tox_System *operating_system;
 
+    /**
+     * Enable saving DHT-based group chats to Tox save data (via `tox_get_savedata`).
+     * This format will change in the future, so don't rely on it.
+     *
+     * Default: false.
+     */
+    bool experimental_groups_persistence;
 };
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
@@ -751,6 +758,10 @@ void tox_options_set_experimental_thread_safety(Tox_Options *options, bool exper
 const Tox_System *tox_options_get_operating_system(const Tox_Options *options);
 
 void tox_options_set_operating_system(Tox_Options *options, const Tox_System *operating_system);
+
+bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
+
+void tox_options_set_experimental_groups_persistence(Tox_Options *options, bool experimental_groups_persistence);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
