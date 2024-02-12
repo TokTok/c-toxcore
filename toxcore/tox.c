@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2016-2018 The TokTok team.
+ * Copyright © 2016-2024 The TokTok team.
  * Copyright © 2013 Tox project.
  */
 
@@ -18,6 +18,7 @@
 #include "DHT.h"
 #include "Messenger.h"
 #include "TCP_client.h"
+#include "TCP_server.h"
 #include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
