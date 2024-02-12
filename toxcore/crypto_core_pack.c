@@ -13,9 +13,9 @@
 #include "crypto_core.h"
 
 static_assert(EXT_PUBLIC_KEY_SIZE == CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SIGN_PUBLIC_KEY_SIZE,
-    "extended public key size is not the sum of the encryption and sign public key sizes");
+              "extended public key size is not the sum of the encryption and sign public key sizes");
 static_assert(EXT_SECRET_KEY_SIZE == CRYPTO_SECRET_KEY_SIZE + CRYPTO_SIGN_SECRET_KEY_SIZE,
-    "extended secret key size is not the sum of the encryption and sign secret key sizes");
+              "extended secret key size is not the sum of the encryption and sign secret key sizes");
 
 bool pack_extended_public_key(const Extended_Public_Key *key, Bin_Pack *bp)
 {
