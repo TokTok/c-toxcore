@@ -111,12 +111,12 @@ static void test_basic(void)
 
     // Sending the handshake
     ck_assert_msg(net_send(ns, logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
-                           &localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "An attempt to send the initial handshake minus last byte failed.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost) == 1,
+    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "The attempt to send the last byte of handshake failed.");
 
     free(handshake);
@@ -155,7 +155,7 @@ static void test_basic(void)
             msg_length = sizeof(r_req) - i;
         }
 
-        ck_assert_msg(net_send(ns, logger, sock, r_req + i, msg_length, &localhost) == msg_length,
+        ck_assert_msg(net_send(ns, logger, sock, r_req + i, msg_length, &localhost, nullptr) == msg_length,
                       "Failed to send request after completing the handshake.");
         i += msg_length;
 
@@ -234,12 +234,12 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
                   "Failed to encrypt the outgoing handshake.");
 
     ck_assert_msg(net_send(ns, logger, sock, handshake, TCP_CLIENT_HANDSHAKE_SIZE - 1,
-                           &localhost) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
+                           &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "Failed to send the first portion of the handshake to the TCP relay server.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
 
-    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost) == 1,
+    ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "Failed to send last byte of handshake.");
 
     do_tcp_server_delay(tcp_s, mono_time, 50);
@@ -283,7 +283,7 @@ static int write_packet_tcp_test_connection(const Logger *logger, struct sec_TCP
     localhost.ip = get_loopback();
     localhost.port = 0;
 
-    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, packet_size, &localhost) == packet_size,
+    ck_assert_msg(net_send(con->ns, logger, con->sock, packet, packet_size, &localhost, nullptr) == packet_size,
                   "Failed to send a packet.");
     return 0;
 }
@@ -524,7 +524,7 @@ static void test_client(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr);
+    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
     // TCP sockets might need a moment before they can be written to.
     c_sleep(50);
     do_tcp_connection(logger, mono_time, conn, nullptr);
@@ -657,7 +657,7 @@ static void test_client_invalid(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
     TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s,
-                                  self_public_key, f_public_key, f_secret_key, nullptr);
+                                  self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
 
     // Run the client's main loop but not the server.
     mono_time_update(mono_time);

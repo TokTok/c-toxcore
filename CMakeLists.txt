@@ -306,6 +306,8 @@ set(toxcore_SOURCES
   toxcore/mem.h
   toxcore/mono_time.c
   toxcore/mono_time.h
+  toxcore/net_profile.c
+  toxcore/net_profile.h
   toxcore/net_crypto.c
   toxcore/net_crypto.h
   toxcore/network.c
