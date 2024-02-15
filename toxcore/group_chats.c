@@ -962,7 +962,7 @@ non_null() static bool broadcast_gc_shared_state(const GC_Chat *chat);
 non_null() static bool update_gc_sanctions_list(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool update_gc_topic(GC_Chat *chat, const uint8_t *public_sig_key);
 non_null() static bool send_gc_set_observer(const GC_Chat *chat, const Extended_Public_Key *target_ext_pk,
-                                            const uint8_t *sanction_data, uint16_t length, bool add_obs);
+        const uint8_t *sanction_data, uint16_t length, bool add_obs);
 
 /** Returns true if peer designated by `peer_number` is in the sanctions list as an observer. */
 non_null()
