@@ -668,6 +668,24 @@ struct Tox_Options {
      * Default: false.
      */
     bool experimental_groups_persistence;
+
+    /**
+     * @brief Disable DNS hostname resolution.
+     *
+     * Hostnames or IP addresses are passed to the bootstrap/add_tcp_relay
+     * function and proxy host options. If disabled (this flag is true), only
+     * IP addresses are allowed.
+     *
+     * If this is set to true, the library will not attempt to resolve
+     * hostnames. This is useful for clients that want to resolve hostnames
+     * themselves and pass the resolved IP addresses to the library (e.g. in
+     * case it wants to use Tor).
+     * Passing hostnames will result in a TOX_ERR_BOOTSTRAP_BAD_HOST error if
+     * this is set to true.
+     *
+     * Default: false. May become true in the future (0.3.0).
+     */
+    bool experimental_disable_dns;
 };
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
@@ -741,6 +759,10 @@ void tox_options_set_experimental_thread_safety(Tox_Options *options, bool exper
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
 
 void tox_options_set_experimental_groups_persistence(Tox_Options *options, bool experimental_groups_persistence);
+
+bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
+
+void tox_options_set_experimental_disable_dns(Tox_Options *options, bool dns_enabled);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.

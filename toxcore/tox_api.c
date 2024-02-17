@@ -274,6 +274,14 @@ void tox_options_set_experimental_groups_persistence(
 {
     options->experimental_groups_persistence = experimental_groups_persistence;
 }
+bool tox_options_get_experimental_disable_dns(const Tox_Options *options)
+{
+    return options->experimental_disable_dns;
+}
+void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experimental_disable_dns)
+{
+    options->experimental_disable_dns = experimental_disable_dns;
+}
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
@@ -299,6 +307,7 @@ void tox_options_default(Tox_Options *options)
         tox_options_set_dht_announcements_enabled(options, true);
         tox_options_set_experimental_thread_safety(options, false);
         tox_options_set_experimental_groups_persistence(options, false);
+        tox_options_set_experimental_disable_dns(options, false);
     }
 }
 

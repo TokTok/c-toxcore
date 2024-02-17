@@ -1822,19 +1822,19 @@ bool addr_parse_ip(const char *address, IP *to)
  * prefers v6 if `ip.family` was TOX_AF_UNSPEC and both available
  * Returns in `*extra` an IPv4 address, if family was TOX_AF_UNSPEC and `*to` is TOX_AF_INET6
  *
- * @return 0 on failure, `TOX_ADDR_RESOLVE_*` on success.
+ * @return false on failure, true on success.
  */
 non_null(1, 2, 3) nullable(4)
-static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extra)
+static bool addr_resolve(const Network *ns, const char *address, IP *to, IP *extra)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
-        return 0;
+        return false;
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
     if (address == nullptr || to == nullptr) {
-        return 0;
+        return false;
     }
 
     const Family tox_family = to->family;
@@ -1850,7 +1850,7 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
 
     // Lookup failed.
     if (rc != 0) {
-        return 0;
+        return false;
     }
 
     IP ip4;
@@ -1914,18 +1914,16 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
     }
 
     freeaddrinfo(server);
-    return result;
+    return result != 0;
 }
 
-bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP *extra)
+bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP *extra, bool dns_enabled)
 {
-    if (addr_resolve(ns, address, to, extra) == 0) {
-        if (!addr_parse_ip(address, to)) {
-            return false;
-        }
+    if (dns_enabled && addr_resolve(ns, address, to, extra)) {
+        return true;
     }
 
-    return true;
+    return addr_parse_ip(address, to);
 }
 
 bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
@@ -1980,7 +1978,7 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
     return true;
 }
 
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type)
+int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type, bool dns_enabled)
 {
     assert(node != nullptr);
 
@@ -2000,6 +1998,10 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
         tmp[0] = parsed;
         *res = tmp;
         return 1;
+    }
+
+    if (!dns_enabled) {
+        return -1;
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
