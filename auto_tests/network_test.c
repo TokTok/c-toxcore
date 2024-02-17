@@ -28,7 +28,7 @@ static void test_addr_resolv_localhost(void)
     IP ip;
     ip_init(&ip, 0); // ipv6enabled = 0
 
-    bool res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr);
+    bool res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr, true);
 
     int error = net_error();
     char *strerror = net_new_strerror(error);
@@ -42,14 +42,14 @@ static void test_addr_resolv_localhost(void)
                   net_ip_ntoa(&ip, &ip_str));
 
     ip_init(&ip, 1); // ipv6enabled = 1
-    res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr);
+    res = addr_resolve_or_parse_ip(ns, localhost, &ip, nullptr, true);
 
 #if USE_IPV6
 
     int localhost_split = 0;
 
     if (!net_family_is_ipv6(ip.family)) {
-        res = addr_resolve_or_parse_ip(ns, "ip6-localhost", &ip, nullptr);
+        res = addr_resolve_or_parse_ip(ns, "ip6-localhost", &ip, nullptr, true);
         localhost_split = 1;
     }
 
@@ -75,7 +75,7 @@ static void test_addr_resolv_localhost(void)
     ip.family = net_family_unspec();
     IP extra;
     ip_reset(&extra);
-    res = addr_resolve_or_parse_ip(ns, localhost, &ip, &extra);
+    res = addr_resolve_or_parse_ip(ns, localhost, &ip, &extra, true);
     error = net_error();
     strerror = net_new_strerror(error);
     ck_assert_msg(res, "Resolver failed: %d, %s", error, strerror);
