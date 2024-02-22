@@ -1505,32 +1505,32 @@ const char *tox_group_join_fail_to_string(Tox_Group_Join_Fail value)
 
     return "<invalid Tox_Group_Join_Fail>";
 }
-const char *tox_err_group_founder_set_password_to_string(Tox_Err_Group_Founder_Set_Password value)
+const char *tox_err_group_set_password_to_string(Tox_Err_Group_Set_Password value)
 {
     switch (value) {
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK";
+        case TOX_ERR_GROUP_SET_PASSWORD_OK:
+            return "TOX_ERR_GROUP_SET_PASSWORD_OK";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_GROUP_NOT_FOUND:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_GROUP_NOT_FOUND";
+        case TOX_ERR_GROUP_SET_PASSWORD_GROUP_NOT_FOUND:
+            return "TOX_ERR_GROUP_SET_PASSWORD_GROUP_NOT_FOUND";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_PERMISSIONS:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_PERMISSIONS";
+        case TOX_ERR_GROUP_SET_PASSWORD_PERMISSIONS:
+            return "TOX_ERR_GROUP_SET_PASSWORD_PERMISSIONS";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_TOO_LONG:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_TOO_LONG";
+        case TOX_ERR_GROUP_SET_PASSWORD_TOO_LONG:
+            return "TOX_ERR_GROUP_SET_PASSWORD_TOO_LONG";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_FAIL_SEND:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_FAIL_SEND";
+        case TOX_ERR_GROUP_SET_PASSWORD_FAIL_SEND:
+            return "TOX_ERR_GROUP_SET_PASSWORD_FAIL_SEND";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_MALLOC:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_MALLOC";
+        case TOX_ERR_GROUP_SET_PASSWORD_MALLOC:
+            return "TOX_ERR_GROUP_SET_PASSWORD_MALLOC";
 
-        case TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_DISCONNECTED:
-            return "TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_DISCONNECTED";
+        case TOX_ERR_GROUP_SET_PASSWORD_DISCONNECTED:
+            return "TOX_ERR_GROUP_SET_PASSWORD_DISCONNECTED";
     }
 
-    return "<invalid Tox_Err_Group_Founder_Set_Password>";
+    return "<invalid Tox_Err_Group_Set_Password>";
 }
 const char *tox_err_group_founder_set_topic_lock_to_string(Tox_Err_Group_Founder_Set_Topic_Lock value)
 {

@@ -252,9 +252,9 @@ static void set_group_state(Tox *tox, uint32_t groupnumber, uint32_t peer_limit,
     tox_group_founder_set_privacy_state(tox, groupnumber, priv_state, &priv_err);
     ck_assert_msg(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK, "failed to set privacy state: %d", priv_err);
 
-    Tox_Err_Group_Founder_Set_Password pass_set_err;
-    tox_group_founder_set_password(tox, groupnumber, password, pass_len, &pass_set_err);
-    ck_assert_msg(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK, "failed to set password: %d", pass_set_err);
+    Tox_Err_Group_Set_Password pass_set_err;
+    tox_group_set_password(tox, groupnumber, password, pass_len, &pass_set_err);
+    ck_assert_msg(pass_set_err == TOX_ERR_GROUP_SET_PASSWORD_OK, "failed to set password: %d", pass_set_err);
 
     Tox_Err_Group_Founder_Set_Topic_Lock lock_set_err;
     tox_group_founder_set_topic_lock(tox, groupnumber, topic_lock, &lock_set_err);

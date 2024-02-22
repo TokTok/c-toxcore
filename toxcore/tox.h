@@ -5083,46 +5083,46 @@ void tox_callback_group_join_fail(Tox *tox, tox_group_join_fail_cb *callback);
  *
  ******************************************************************************/
 
-typedef enum Tox_Err_Group_Founder_Set_Password {
+typedef enum Tox_Err_Group_Set_Password {
 
     /**
      * The function returned successfully.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK,
+    TOX_ERR_GROUP_SET_PASSWORD_OK,
 
     /**
      * The group number passed did not designate a valid group.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_GROUP_NOT_FOUND,
+    TOX_ERR_GROUP_SET_PASSWORD_GROUP_NOT_FOUND,
 
     /**
      * The caller does not have the required permissions to set the password.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_PERMISSIONS,
+    TOX_ERR_GROUP_SET_PASSWORD_PERMISSIONS,
 
     /**
      * Password length exceeded TOX_GROUP_MAX_PASSWORD_SIZE.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_TOO_LONG,
+    TOX_ERR_GROUP_SET_PASSWORD_TOO_LONG,
 
     /**
      * The packet failed to send.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_FAIL_SEND,
+    TOX_ERR_GROUP_SET_PASSWORD_FAIL_SEND,
 
     /**
      * The function failed to allocate enough memory for the operation.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_MALLOC,
+    TOX_ERR_GROUP_SET_PASSWORD_MALLOC,
 
     /**
      * The group is disconnected.
      */
-    TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_DISCONNECTED,
+    TOX_ERR_GROUP_SET_PASSWORD_DISCONNECTED,
 
-} Tox_Err_Group_Founder_Set_Password;
+} Tox_Err_Group_Set_Password;
 
-const char *tox_err_group_founder_set_password_to_string(Tox_Err_Group_Founder_Set_Password value);
+const char *tox_err_group_set_password_to_string(Tox_Err_Group_Set_Password value);
 
 /**
  * Set or unset the group password.
@@ -5136,10 +5136,10 @@ const char *tox_err_group_founder_set_password_to_string(Tox_Err_Group_Founder_S
  *
  * @return true on success.
  */
-bool tox_group_founder_set_password(
+bool tox_group_set_password(
     Tox *tox, Tox_Group_Number group_number,
     const uint8_t password[], size_t length,
-    Tox_Err_Group_Founder_Set_Password *error);
+    Tox_Err_Group_Set_Password *error);
 
 typedef enum Tox_Err_Group_Founder_Set_Topic_Lock {
 
