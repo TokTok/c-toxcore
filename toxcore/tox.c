@@ -4295,7 +4295,7 @@ uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t
 }
 
 bool tox_group_set_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
-                                    Tox_Err_Group_Set_Password *error)
+                            Tox_Err_Group_Set_Password *error)
 {
     assert(tox != nullptr);
 
