@@ -4294,8 +4294,8 @@ uint32_t tox_group_invite_accept(Tox *tox, uint32_t friend_number, const uint8_t
     return UINT32_MAX;
 }
 
-bool tox_group_founder_set_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
-                                    Tox_Err_Group_Founder_Set_Password *error)
+bool tox_group_set_password(Tox *tox, uint32_t group_number, const uint8_t *password, size_t length,
+                                    Tox_Err_Group_Set_Password *error)
 {
     assert(tox != nullptr);
 
@@ -4303,43 +4303,43 @@ bool tox_group_founder_set_password(Tox *tox, uint32_t group_number, const uint8
     GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
     if (chat == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_GROUP_NOT_FOUND);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_GROUP_NOT_FOUND);
         tox_unlock(tox);
         return false;
     }
 
     if (chat->connection_state == CS_DISCONNECTED) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_DISCONNECTED);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_DISCONNECTED);
         tox_unlock(tox);
         return false;
     }
 
-    const int ret = gc_founder_set_password(chat, password, length);
+    const int ret = gc_set_password(chat, password, length);
     tox_unlock(tox);
 
     switch (ret) {
         case 0: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK);
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_OK);
             return true;
         }
 
         case -1: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_PERMISSIONS);
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_PERMISSIONS);
             return false;
         }
 
         case -2: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_TOO_LONG);
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_TOO_LONG);
             return false;
         }
 
         case -3: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_FAIL_SEND);
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_FAIL_SEND);
             return false;
         }
 
         case -4: {
-            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_MALLOC);
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_MALLOC);
             return false;
         }
     }

@@ -4109,7 +4109,7 @@ uint16_t gc_get_password_size(const GC_Chat *chat)
     return chat->shared_state.password_length;
 }
 
-int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length)
+int gc_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length)
 {
     if (!self_gc_is_founder(chat)) {
         return -1;

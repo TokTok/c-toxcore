@@ -483,7 +483,7 @@ int gc_set_peer_role(const Messenger *m, int group_number, GC_Peer_Id peer_id, G
  * Returns -4 if malloc failed.
  */
 non_null(1) nullable(2)
-int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length);
+int gc_set_password(GC_Chat *chat, const uint8_t *password, uint16_t password_length);
 
 /** @brief Sets the topic lock and distributes the new shared state to the group.
  *

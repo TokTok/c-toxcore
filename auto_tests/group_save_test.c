@@ -208,9 +208,9 @@ static void group_save_test(AutoTox *autotoxes)
     tox_group_founder_set_privacy_state(tox0, group_number, NEW_PRIV_STATE, &priv_err);
     ck_assert(priv_err == TOX_ERR_GROUP_FOUNDER_SET_PRIVACY_STATE_OK);
 
-    Tox_Err_Group_Founder_Set_Password pass_set_err;
-    tox_group_founder_set_password(tox0, group_number, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
-    ck_assert(pass_set_err == TOX_ERR_GROUP_FOUNDER_SET_PASSWORD_OK);
+    Tox_Err_Group_Set_Password pass_set_err;
+    tox_group_set_password(tox0, group_number, (const uint8_t *)PASSWORD, PASS_LEN, &pass_set_err);
+    ck_assert(pass_set_err == TOX_ERR_GROUP_SET_PASSWORD_OK);
 
     Tox_Err_Group_Founder_Set_Peer_Limit limit_set_err;
     tox_group_founder_set_peer_limit(tox0, group_number, PEER_LIMIT, &limit_set_err);
