@@ -343,6 +343,109 @@ uint32_t tox_max_hostname_length(void);
 /** @} */
 
 /** @{
+ * @name Canonical error codes.
+ */
+
+/**
+ * @brief List of canonical error codes.
+ *
+ * All function-specific error codes have a mapping to canonical codes. These
+ * can be useful to implement generic error handling.
+ */
+typedef enum Tox_Err {
+
+    /**
+     * Operation was successful.
+     */
+    TOX_ERR_OK,
+
+    /**
+     * An error occurred but it's unclear how to map it to any of the
+     * canonical codes.
+     *
+     * Not retriable.
+     */
+    TOX_ERR_UNKNOWN,
+
+    /**
+     * A function parameter had an invalid format. E.g. host names, tox save
+     * data, port numbers, etc. or NULL was passed where non-NULL was expected.
+     *
+     * Not retriable.
+     */
+    TOX_ERR_INVALID_ARGUMENT,
+
+    /**
+     * A numeric input was outside the valid range. E.g. friend numbers. Could
+     * be valid later if a friend with that number is added. INVALID_ARGUMENT
+     * is issued when the input passed can never be valid. OUT_OF_RANGE is
+     * issued when it's only currently not valid.
+     *
+     * Retriable if the system state has changed.
+     */
+    TOX_ERR_OUT_OF_RANGE,
+
+    /**
+     * The system state is not ready for the operation to be performed.
+     *
+     * Retriable if the system state has changed.
+     */
+    TOX_ERR_FAILED_PRECONDITION,
+
+    /**
+     * A non-memory resource allocation failed (e.g. sockets).
+     *
+     * Retriable, but not likely to succeed.
+     */
+    TOX_ERR_RESOURCE_EXHAUSTED,
+
+    /**
+     * The function failed to allocate enough memory for the operation. This
+     * is special-cased from `RESOURCE_EXHAUSTED`, because it's more likely
+     * that the client can do something about it (e.g. free some memory).
+     *
+     * Retriable.
+     */
+    TOX_ERR_MALLOC,
+
+    /**
+     * An object requested (group, friend, hostname, etc.) does not exist.
+     *
+     * Not retriable.
+     */
+    TOX_ERR_NOT_FOUND,
+
+    /**
+     * The entity we're trying to create (or add, e.g. a friend) already
+     * exists.
+     *
+     * Not retriable.
+     */
+    TOX_ERR_ALREADY_EXISTS,
+
+    /**
+     * The caller's role does not have the permission to perform the action.
+     *
+     * Not retriable.
+     */
+    TOX_ERR_PERMISSION_DENIED,
+
+    /**
+     * Packet send failed or some other intermittent failure made the operation
+     * fail. Retrying is likely to eventually succeed. This could also mean the
+     * target (e.g. friend) is offline.
+     *
+     * Retriable.
+     */
+    TOX_ERR_UNAVAILABLE,
+
+} Tox_Err;
+
+const char *tox_err_to_string(Tox_Err value);
+
+/** @} */
+
+/** @{
  * @name Global enumerations
  */
 
@@ -795,6 +898,7 @@ typedef enum Tox_Err_Options_New {
 } Tox_Err_Options_New;
 
 const char *tox_err_options_new_to_string(Tox_Err_Options_New value);
+Tox_Err tox_err_options_new_to_err(Tox_Err_Options_New value);
 
 /**
  * @brief Allocates a new Tox_Options object and initialises it with the default
@@ -887,6 +991,7 @@ typedef enum Tox_Err_New {
 } Tox_Err_New;
 
 const char *tox_err_new_to_string(Tox_Err_New value);
+Tox_Err tox_err_new_to_err(Tox_Err_New value);
 
 /**
  * @brief Creates and initialises a new Tox instance with the options passed.

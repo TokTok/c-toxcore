@@ -1721,3 +1721,52 @@ const char *tox_group_mod_event_to_string(Tox_Group_Mod_Event value)
 
     return "<invalid Tox_Group_Mod_Event>";
 }
+
+Tox_Err tox_err_options_new_to_err(Tox_Err_Options_New value)
+{
+    switch (value) {
+        case TOX_ERR_OPTIONS_NEW_OK:
+            return TOX_ERR_OK;
+
+        case TOX_ERR_OPTIONS_NEW_MALLOC:
+            return TOX_ERR_MALLOC;
+    }
+
+    return TOX_ERR_UNKNOWN;
+}
+Tox_Err tox_err_new_to_err(Tox_Err_New value)
+{
+    switch (value) {
+        case TOX_ERR_NEW_OK:
+            return TOX_ERR_OK;
+
+        case TOX_ERR_NEW_NULL:
+            return TOX_ERR_INVALID_ARGUMENT;
+
+        case TOX_ERR_NEW_MALLOC:
+            return TOX_ERR_MALLOC;
+
+        case TOX_ERR_NEW_PORT_ALLOC:
+            return TOX_ERR_RESOURCE_EXHAUSTED;
+
+        case TOX_ERR_NEW_PROXY_BAD_TYPE:
+            return TOX_ERR_INVALID_ARGUMENT;
+
+        case TOX_ERR_NEW_PROXY_BAD_HOST:
+            return TOX_ERR_INVALID_ARGUMENT;
+
+        case TOX_ERR_NEW_PROXY_BAD_PORT:
+            return TOX_ERR_INVALID_ARGUMENT;
+
+        case TOX_ERR_NEW_PROXY_NOT_FOUND:
+            return TOX_ERR_NOT_FOUND;
+
+        case TOX_ERR_NEW_LOAD_ENCRYPTED:
+            return TOX_ERR_INVALID_ARGUMENT;
+
+        case TOX_ERR_NEW_LOAD_BAD_FORMAT:
+            return TOX_ERR_INVALID_ARGUMENT;
+    }
+
+    return TOX_ERR_UNKNOWN;
+}
