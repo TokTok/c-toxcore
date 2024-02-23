@@ -2,9 +2,7 @@
 
 set -eux
 
-BUILD=coverage
-other/docker/sources/build
-docker build -t "toxchat/c-toxcore:$BUILD" -f "other/docker/$BUILD/$BUILD.Dockerfile" .
+. "$(realpath -- "$(dirname "${BASH_SOURCE[0]}")/../sources/run.sh")"
 
-docker build -t toxchat/c-toxcore:coverage-nginx -f other/docker/coverage/nginx.Dockerfile other/docker/coverage
-docker run --name toxcore-coverage --rm -it -p "28192:80" toxchat/c-toxcore:coverage-nginx
+docker build -t "toxchat/c-toxcore:$BUILD-nginx" -f "$DOCKERDIR/nginx.Dockerfile" "$DOCKERDIR"
+docker run --name "toxcore-$BUILD" --rm -it -p "28192:80" "toxchat/c-toxcore:$BUILD-nginx"

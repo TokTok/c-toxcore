@@ -1,4 +1,3 @@
-FROM toxchat/c-toxcore:sources AS sources
 FROM ubuntu:20.04 AS build
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -41,10 +40,10 @@ ENV CC=clang-17 \
     PYTHONUNBUFFERED=1 \
     PATH=$PATH:/usr/lib/go-1.18/bin
 
-COPY --from=sources /src/ /work/
+COPY . /work/
 
 WORKDIR /work
-RUN git clone --depth=1 https://github.com/TokTok/toktok-fuzzer /work/testing/fuzzing/toktok-fuzzer
+RUN ["git", "clone", "--depth=1", "https://github.com/TokTok/toktok-fuzzer", "/work/testing/fuzzing/toktok-fuzzer"]
 RUN source .github/scripts/flags-coverage.sh \
  && go version \
  && (cd other/proxy && go get github.com/things-go/go-socks5 && go build proxy_server.go) \
@@ -76,8 +75,7 @@ RUN clang-17 -fuse-ld=lld -fPIC -shared -O2 -g3 -Wall -I/usr/lib/llvm-17/include
  && install mallocfail.so /usr/local/lib/mallocfail.so
 
 WORKDIR /work/_build
-COPY other/docker/coverage/run_mallocfail /usr/local/bin/
-RUN ["run_mallocfail", "--ctest=1", "--jobs=8"]
+RUN ["/work/other/docker/coverage/run_mallocfail", "--ctest=1", "--jobs=8"]
 RUN llvm-profdata-17 merge -sparse $(find . -name "*.profraw") -o toxcore.profdata
 RUN llvm-cov-17 show -format=text -instr-profile=toxcore.profdata -sources $(cmake --build . --target help | grep -o '[^:]*_test:' | grep -o '[^:]*' | xargs -n1 find . -type f -name | awk '{print "-object "$1}') > coverage.txt
 RUN llvm-cov-17 show -format=html -instr-profile=toxcore.profdata -sources $(cmake --build . --target help | grep -o '[^:]*_test:' | grep -o '[^:]*' | xargs -n1 find . -type f -name | awk '{print "-object "$1}') -output-dir=html
