@@ -2,6 +2,9 @@
 
 set -e -x
 
+# Note: when modifying this script, don't forget to update the appropriate
+#       parts of the cross-compilation section of the INSTALL.md.
+
 #=== Cross-Compile Toxcore ===
 
 build() {
@@ -23,13 +26,8 @@ build() {
 
   rm -rf /tmp/*
 
-  # where to install static/shared toxcores before deciding whether they should be copied over to the user
-  STATIC_TOXCORE_PREFIX_DIR="/tmp/static_prefix"
-  SHARED_TOXCORE_PREFIX_DIR="/tmp/shared_prefix"
-  mkdir -p "$STATIC_TOXCORE_PREFIX_DIR" "$SHARED_TOXCORE_PREFIX_DIR"
-
   export MAKEFLAGS=j"$(nproc)"
-  export CFLAGS=-O3
+  export CFLAGS="-D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE -pie -fstack-protector-strong -fstack-clash-protection -fcf-protection=full"
 
   echo
   echo "=== Building toxcore $ARCH ==="
@@ -61,19 +59,39 @@ build() {
     echo "SET(CROSSCOMPILING_EMULATOR /usr/bin/wine)" >>windows_toolchain.cmake
   fi
 
+  if [ "$ARCH" = "i686" ]; then
+    TOXCORE_CFLAGS=""
+  else
+    # This makes the build work with -fstack-clash-protection, as otherwise it crashes with:
+    #/tmp/toxcore/toxcore/logger.c: In function 'logger_abort':
+    #/tmp/toxcore/toxcore/logger.c:124:1: internal compiler error: in seh_emit_stackalloc, at config/i386/winnt.cc:1055
+    # Should get patched in a future gcc version: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458
+    TOXCORE_CFLAGS="-fno-asynchronous-unwind-tables"
+  fi
+
+  # Patch CMakeLists.txt to make cracker.exe statically link against OpenMP. For some reason
+  # -DCMAKE_EXE_LINKER_FLAGS="-static" doesn't do it.
+  sed -i "s|OpenMP::OpenMP_C)|$(realpath -- /usr/lib/gcc/"$WINDOWS_TOOLCHAIN"/*-win32/libgomp.a) \${CMAKE_THREAD_LIBS_INIT})\ntarget_compile_options(cracker PRIVATE -fopenmp)|g" ../other/fun/CMakeLists.txt
+
   # Silly way to bypass a shellharden check
   read -ra EXTRA_CMAKE_FLAGS_ARRAY <<<"$EXTRA_CMAKE_FLAGS"
-  cmake -DCMAKE_TOOLCHAIN_FILE=windows_toolchain.cmake \
-    -DCMAKE_INSTALL_PREFIX="$STATIC_TOXCORE_PREFIX_DIR" \
-    -DENABLE_SHARED=OFF \
+  CFLAGS="$CFLAGS $TOXCORE_CFLAGS" \
+    cmake \
+    -DCMAKE_TOOLCHAIN_FILE=windows_toolchain.cmake \
+    -DCMAKE_INSTALL_PREFIX="$RESULT_PREFIX_DIR" \
+    -DCMAKE_BUILD_TYPE="Release" \
+    -DENABLE_SHARED=ON \
     -DENABLE_STATIC=ON \
-    -DCMAKE_C_FLAGS="$CMAKE_C_FLAGS" \
-    -DCMAKE_CXX_FLAGS="$CMAKE_CXX_FLAGS" \
-    -DCMAKE_EXE_LINKER_FLAGS="$CMAKE_EXE_LINKER_FLAGS -fstack-protector" \
-    -DCMAKE_SHARED_LINKER_FLAGS="$CMAKE_SHARED_LINKER_FLAGS" \
+    -DSTRICT_ABI=ON \
+    -DEXPERIMENTAL_API=ON \
+    -DBUILD_FUN_UTILS=ON \
+    -DCMAKE_EXE_LINKER_FLAGS="-static" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-static" \
     "${EXTRA_CMAKE_FLAGS_ARRAY[@]}" \
     -S ..
-  cmake --build . --target install -- -j"$(nproc)"
+  cmake --build . --target install --parallel "$(nproc)"
+  # CMake doesn't install fun utils, so do it manually
+  cp -a other/fun/*.exe "$RESULT_PREFIX_DIR/bin/"
 
   if [ "$ENABLE_TEST" = "true" ]; then
     rm -rf /root/.wine
@@ -87,10 +105,12 @@ build() {
 
     winecfg
     export CTEST_OUTPUT_ON_FAILURE=1
-    # add libgcc_s_sjlj-1.dll libwinpthread-1.dll into PATH env var of wine
+    # we don't have to do this since autotests are statically compiled now,
+    # but just in case add MinGW-w64 dll locations to the PATH anyway
     export WINEPATH="$(
-      cd /usr/lib/gcc/"$WINDOWS_TOOLCHAIN"/*posix/
+      cd /usr/lib/gcc/"$WINDOWS_TOOLCHAIN"/*win32/
       winepath -w "$PWD"
+      cd -
     )"\;"$(winepath -w /usr/"$WINDOWS_TOOLCHAIN"/lib/)"
 
     if [ "$ALLOW_TEST_FAILURE" = "true" ]; then
@@ -102,47 +122,48 @@ build() {
     fi
   fi
 
-  # move static dependencies
-  cp -a "$STATIC_TOXCORE_PREFIX_DIR"/* "$RESULT_PREFIX_DIR"
-  cp -a "$DEP_PREFIX_DIR"/* "$RESULT_PREFIX_DIR"
-
-  # make libtox.dll
-  cd "$SHARED_TOXCORE_PREFIX_DIR"
-  for archive in "$STATIC_TOXCORE_PREFIX_DIR"/lib/libtox*.a; do
-    "$WINDOWS_TOOLCHAIN"-ar xv "$archive"
+  # generate def, lib and exp as they supposedly help with linking against the dlls,
+  # especially the lib is supposed to be of great help when linking on msvc.
+  # cd in order to keep the object names inside .lib and .dll.a short
+  cd "$RESULT_PREFIX_DIR"/bin/
+  for TOX_DLL in *.dll; do
+    gendef - "$TOX_DLL" >"${TOX_DLL%.*}.def"
+    # we overwrite the CMake-generated .dll.a for the better
+    # compatibility with the .lib being generated here
+    "$WINDOWS_TOOLCHAIN"-dlltool \
+      --input-def "${TOX_DLL%.*}.def" \
+      --output-lib "${TOX_DLL%.*}.lib" \
+      --output-exp "${TOX_DLL%.*}.exp" \
+      --output-delaylib "../lib/${TOX_DLL%.*}.dll.a" \
+      --dllname "$TOX_DLL"
   done
+  cd -
 
+  # copy over the deps
   if [ "$CROSS_COMPILE" = "true" ]; then
     LIBWINPTHREAD="/usr/$WINDOWS_TOOLCHAIN/lib/libwinpthread.a"
+    cd /usr/lib/gcc/"$WINDOWS_TOOLCHAIN"/*win32/
+    LIBSSP="$PWD/libssp.a"
+    cd -
   else
     LIBWINPTHREAD="/usr/$WINDOWS_TOOLCHAIN/sys-root/mingw/lib/libwinpthread.a"
+    LIBSSP="/usr/$WINDOWS_TOOLCHAIN/sys-root/mingw/lib/libssp.a"
   fi
+  cp -a "$LIBWINPTHREAD" "$LIBSSP" "$RESULT_PREFIX_DIR/lib/"
+  for STATIC_LIB in "$DEP_PREFIX_DIR"/lib/*.a; do
+    [[ "$STATIC_LIB" == *.dll.a ]] && continue
+    cp -a "$STATIC_LIB" "$RESULT_PREFIX_DIR/lib/"
+  done
+  cp "$DEP_PREFIX_DIR"/lib/pkgconfig/* "$RESULT_PREFIX_DIR/lib/pkgconfig/"
 
-  "$WINDOWS_TOOLCHAIN"-gcc -Wl,--export-all-symbols \
-    -Wl,--out-implib=libtox.dll.a \
-    -shared \
-    -o libtox.dll \
-    *.obj \
-    "$STATIC_TOXCORE_PREFIX_DIR"/lib/*.a \
-    "$DEP_PREFIX_DIR"/lib/*.a \
-    "$LIBWINPTHREAD" \
-    -liphlpapi \
-    -lws2_32 \
-    -static-libgcc \
-    -lssp
-  cp libtox.dll.a "$RESULT_PREFIX_DIR"/lib
-  mkdir -p "$RESULT_PREFIX_DIR"/bin
-  cp libtox.dll "$RESULT_PREFIX_DIR"/bin
+  # strip everything
+  set +e
+  "$WINDOWS_TOOLCHAIN"-strip --strip-unneeded "$RESULT_PREFIX_DIR"/bin/*.* "$RESULT_PREFIX_DIR"/lib/*.*
+  set -e
 
   rm -rf /tmp/*
 
-  # remove everything from include directory except tox headers
-  mv "$RESULT_PREFIX_DIR"/include/tox "$RESULT_PREFIX_DIR"/tox
-  rm -rf "$RESULT_PREFIX_DIR"/include/*
-  mv "$RESULT_PREFIX_DIR"/tox "$RESULT_PREFIX_DIR"/include/tox
-
   sed -i "s|^prefix=.*|prefix=$RESULT_PREFIX_DIR|g" "$RESULT_PREFIX_DIR"/lib/pkgconfig/*.pc
-  sed -i "s|^libdir=.*|libdir=$RESULT_PREFIX_DIR/lib|g" "$RESULT_PREFIX_DIR"/lib/*.la
 }
 
 #=== Test Supported vs. Enabled ===

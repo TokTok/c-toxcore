@@ -7,6 +7,8 @@ fi
 
 #=== Cross-Compile Dependencies ===
 
+. ./check_sha256.sh
+
 build() {
   ARCH=${1}
 
@@ -21,7 +23,7 @@ build() {
   mkdir -p "$PREFIX_DIR"
 
   export MAKEFLAGS=j"$(nproc)"
-  export CFLAGS=-O3
+  export CFLAGS="-O3 -D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS -ftrivial-auto-var-init=zero -fPIE -pie -fstack-protector-strong -fstack-clash-protection -fcf-protection=full"
 
   CURL_OPTIONS=(-L --connect-timeout 10)
 
@@ -41,19 +43,42 @@ build() {
   echo
   echo "=== Building Sodium $VERSION_SODIUM $ARCH ==="
   curl "${CURL_OPTIONS[@]}" -O "https://github.com/jedisct1/libsodium/releases/download/$VERSION_SODIUM-RELEASE/libsodium-$VERSION_SODIUM.tar.gz"
+  check_sha256 "018d79fe0a045cca07331d37bd0cb57b2e838c51bc48fd837a1472e50068bbea" "libsodium-$VERSION_SODIUM.tar.gz"
   tar -xf "libsodium-$VERSION_SODIUM.tar.gz"
   cd "libsodium-stable"
-  ./configure --host="$WINDOWS_TOOLCHAIN" --prefix="$PREFIX_DIR" --disable-shared --enable-static
+  ./configure \
+    --host="$WINDOWS_TOOLCHAIN" \
+    --prefix="$PREFIX_DIR" \
+    --disable-shared \
+    --enable-static
   make
   make install
   cd ..
 
   echo
   echo "=== Building Opus $VERSION_OPUS $ARCH ==="
-  curl "${CURL_OPTIONS[@]}" -O "https://archive.mozilla.org/pub/opus/opus-$VERSION_OPUS.tar.gz"
+  if [ "$ARCH" = "i686" ]; then
+    LIB_OPUS_CFLAGS=""
+  else
+    # This makes the build work with -fstack-clash-protection, as otherwise it crashes with:
+    # silk/float/encode_frame_FLP.c: In function 'silk_encode_frame_FLP':
+    # silk/float/encode_frame_FLP.c:379:1: internal compiler error: in i386_pe_seh_unwind_emit, at config/i386/winnt.cc:1274
+    # Should get patched in a future gcc version: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90458
+    LIB_OPUS_CFLAGS="-fno-asynchronous-unwind-tables"
+  fi
+
+  curl "${CURL_OPTIONS[@]}" -O "https://ftp.osuosl.org/pub/xiph/releases/opus/opus-$VERSION_OPUS.tar.gz"
+  check_sha256 "c9b32b4253be5ae63d1ff16eea06b94b5f0f2951b7a02aceef58e3a3ce49c51f" "opus-$VERSION_OPUS.tar.gz"
   tar -xf "opus-$VERSION_OPUS.tar.gz"
   cd "opus-$VERSION_OPUS"
-  ./configure --host="$WINDOWS_TOOLCHAIN" --prefix="$PREFIX_DIR" --disable-extra-programs --disable-doc --disable-shared --enable-static
+  CFLAGS="$CFLAGS $LIB_OPUS_CFLAGS" \
+    ./configure \
+    --host="$WINDOWS_TOOLCHAIN" \
+    --prefix="$PREFIX_DIR" \
+    --disable-extra-programs \
+    --disable-doc \
+    --disable-shared \
+    --enable-static
   make
   make install
   cd ..
@@ -72,9 +97,19 @@ build() {
     LIB_VPX_CFLAGS="-fno-asynchronous-unwind-tables"
   fi
   curl "${CURL_OPTIONS[@]}" "https://github.com/webmproject/libvpx/archive/v$VERSION_VPX.tar.gz" -o "libvpx-$VERSION_VPX.tar.gz"
+  check_sha256 "5f21d2db27071c8a46f1725928a10227ae45c5cd1cad3727e4aafbe476e321fa" "libvpx-$VERSION_VPX.tar.gz"
   tar -xf "libvpx-$VERSION_VPX.tar.gz"
   cd "libvpx-$VERSION_VPX"
-  CFLAGS="$LIB_VPX_CFLAGS" CROSS="$WINDOWS_TOOLCHAIN"- ./configure --target="$LIB_VPX_TARGET" --prefix="$PREFIX_DIR" --disable-examples --disable-unit-tests --disable-shared --enable-static
+  CFLAGS="$CFLAGS $LIB_VPX_CFLAGS" \
+    CROSS="$WINDOWS_TOOLCHAIN"- \
+    ./configure \
+    --target="$LIB_VPX_TARGET" \
+    --prefix="$PREFIX_DIR" \
+    --disable-examples \
+    --disable-unit-tests \
+    --disable-tools \
+    --disable-shared \
+    --enable-static
   make
   make install
   cd ..

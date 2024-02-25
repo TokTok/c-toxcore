@@ -1,5 +1,8 @@
 ---
 exclude:
+  # restyled GitHib App lacks 'workflows' permissions to open a PR with these edited
+  - ".github/workflows/**/*"
+  - ".github/workflows/*"
   # shfmt doesn't support this file.
   - "other/analysis/run-clang-tidy"
   # Generated file.
