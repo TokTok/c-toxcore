@@ -131,7 +131,7 @@ build() {
     # we overwrite the CMake-generated .dll.a for the better
     # compatibility with the .lib being generated here
     "$WINDOWS_TOOLCHAIN"-dlltool
-      --input-def "${TOX_DLL%.*}.def" \
+    --input-def "${TOX_DLL%.*}.def" \
       --output-lib "${TOX_DLL%.*}.lib" \
       --output-exp "${TOX_DLL%.*}.exp" \
       --output-delaylib "../lib/${TOX_DLL%.*}.dll.a" \
