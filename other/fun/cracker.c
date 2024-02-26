@@ -33,6 +33,7 @@
 #include <omp.h>
 #define NUM_THREADS() ((unsigned) omp_get_max_threads())
 #else
+#warning "Being built without OpenMP support -- the program will utilize a single thread only."
 #define NUM_THREADS() (1U)
 #endif
 
