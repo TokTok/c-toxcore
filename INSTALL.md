@@ -300,7 +300,7 @@ Build the container image based on the Dockerfile. The following options are
 available to customize the building of the container image.
 
 | Name                  | Description                                 | Expected Value                      | Default Value |
-| --------------------- | --------------------------------------------| ----------------------------------- | ------------- |
+| --------------------- | ------------------------------------------- | ----------------------------------- | ------------- |
 | `SUPPORT_ARCH_i686`   | Support building 32-bit toxcore.            | "true" or "false" (case sensitive). | true          |
 | `SUPPORT_ARCH_x86_64` | Support building 64-bit toxcore.            | "true" or "false" (case sensitive). | true          |
 | `SUPPORT_TEST`        | Support running toxcore automated tests.    | "true" or "false" (case sensitive). | false         |
