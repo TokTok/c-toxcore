@@ -26,4 +26,5 @@ docker run \
   -v "$PWD:/toxcore" \
   -v "$PWD/result:/prefix" \
   --rm \
+  --pull never \
   "toxchat/windows:$WINDOWS_ARCH"
