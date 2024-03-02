@@ -274,7 +274,7 @@ uint32_t tox_max_status_message_length(void);
  *
  * @deprecated The macro will be removed in 0.3.0. Use the function instead.
  */
-#define TOX_MAX_FRIEND_REQUEST_LENGTH  1016
+#define TOX_MAX_FRIEND_REQUEST_LENGTH  921
 
 uint32_t tox_max_friend_request_length(void);
 
