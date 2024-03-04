@@ -20,7 +20,7 @@
  * Removes `announces` from `gc_announces_list`.
  */
 non_null()
-static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *announces)
+static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *owner announces)
 {
     if (announces == nullptr || gc_announces_list == nullptr) {
         return;
@@ -44,9 +44,9 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
  * Returns null if no announce is found.
  */
 non_null()
-static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announces_list,  const uint8_t *chat_id)
+static const GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
 {
-    GC_Announces *announces = gc_announces_list->root_announces;
+    const GC_Announces *announces = gc_announces_list->root_announces;
 
     while (announces != nullptr) {
         if (memcmp(announces->chat_id, chat_id, CHAT_ID_SIZE) == 0) {
@@ -57,6 +57,37 @@ static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announ
     }
 
     return nullptr;
+}
+
+non_null()
+static GC_Announces *owner get_announces_by_chat_id_mut(const GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
+{
+    GC_Announces *owner announces = gc_announces_list->root_announces;
+
+    while (announces != nullptr) {
+        if (memcmp(announces->chat_id, chat_id, CHAT_ID_SIZE) == 0) {
+            return announces;
+        }
+
+        announces = announces->next_announce;
+    }
+
+    return nullptr;
+}
+
+non_null()
+static void remove_announces_by_chat_id(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
+{
+    GC_Announces *owner announces = gc_announces_list->root_announces;
+
+    while (announces != nullptr) {
+        if (memcmp(announces->chat_id, chat_id, CHAT_ID_SIZE) == 0) {
+            remove_announces(gc_announces_list, announces);
+            return;
+        }
+
+        announces = announces->next_announce;
+    }
 }
 
 int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
@@ -342,11 +373,11 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
 }
 
 non_null()
-static GC_Announces *gca_new_announces(
+static GC_Announces *owner gca_new_announces(
     GC_Announces_List *gc_announces_list,
     const GC_Public_Announce *public_announce)
 {
-    GC_Announces *announces = (GC_Announces *)calloc(1, sizeof(GC_Announces));
+    GC_Announces *owner announces = (GC_Announces *owner)calloc(1, sizeof(GC_Announces));
 
     if (announces == nullptr) {
         return nullptr;
@@ -373,7 +404,7 @@ GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List
         return nullptr;
     }
 
-    GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, public_announce->chat_public_key);
+    GC_Announces *owner announces = get_announces_by_chat_id_mut(gc_announces_list, public_announce->chat_public_key);
 
     // No entry for this chat_id exists so we create one
     if (announces == nullptr) {
@@ -412,19 +443,19 @@ bool gca_is_valid_announce(const GC_Announce *announce)
 
 GC_Announces_List *new_gca_list(void)
 {
-    return (GC_Announces_List *)calloc(1, sizeof(GC_Announces_List));
+    return (GC_Announces_List *owner)calloc(1, sizeof(GC_Announces_List));
 }
 
-void kill_gca(GC_Announces_List *announces_list)
+void kill_gca(GC_Announces_List *owner announces_list)
 {
     if (announces_list == nullptr) {
         return;
     }
 
-    GC_Announces *root = announces_list->root_announces;
+    GC_Announces *owner root = announces_list->root_announces;
 
     while (root != nullptr) {
-        GC_Announces *next = root->next_announce;
+        GC_Announces *owner next = root->next_announce;
         free(root);
         root = next;
     }
@@ -450,11 +481,11 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 
     gc_announces_list->last_timeout_check = mono_time_get(mono_time);
 
-    GC_Announces *announces = gc_announces_list->root_announces;
+    GC_Announces *owner announces = gc_announces_list->root_announces;
 
     while (announces != nullptr) {
         if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
-            GC_Announces *to_delete = announces;
+            GC_Announces *owner to_delete = announces;
             announces = announces->next_announce;
             remove_announces(gc_announces_list, to_delete);
             continue;
@@ -470,9 +501,5 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id)
         return;
     }
 
-    GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, chat_id);
-
-    if (announces != nullptr) {
-        remove_announces(gc_announces_list, announces);
-    }
+    remove_announces_by_chat_id(gc_announces_list, chat_id);
 }

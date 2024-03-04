@@ -53,15 +53,15 @@ struct Broadcast_Info {
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    Broadcast_Info *owner broadcast = (Broadcast_Info *owner)calloc(1, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
     }
 
-    IP_ADAPTER_INFO *adapter_info = (IP_ADAPTER_INFO *)malloc(sizeof(IP_ADAPTER_INFO));
+    IP_ADAPTER_INFO *owner adapter_info = (IP_ADAPTER_INFO *owner)malloc(sizeof(IP_ADAPTER_INFO));
 
     if (adapter_info == nullptr) {
         free(broadcast);
@@ -72,7 +72,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 
     if (GetAdaptersInfo(adapter_info, &out_buf_len) == ERROR_BUFFER_OVERFLOW) {
         free(adapter_info);
-        IP_ADAPTER_INFO *new_adapter_info = (IP_ADAPTER_INFO *)malloc(out_buf_len);
+        IP_ADAPTER_INFO *owner new_adapter_info = (IP_ADAPTER_INFO *owner)malloc(out_buf_len);
 
         if (new_adapter_info == nullptr) {
             free(broadcast);
@@ -122,9 +122,9 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 #elif !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && (defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__))
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    Broadcast_Info *owner broadcast = (Broadcast_Info *owner)calloc(1, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
@@ -197,9 +197,9 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 #else // TODO(irungentoo): Other platforms?
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Network *ns)
 {
-    return (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
+    return (Broadcast_Info *owner)calloc(1, sizeof(Broadcast_Info));
 }
 
 #endif /* platforms */
@@ -375,12 +375,12 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
     return res;
 }
 
-Broadcast_Info *lan_discovery_init(const Network *ns)
+Broadcast_Info *owner lan_discovery_init(const Network *ns)
 {
     return fetch_broadcast_info(ns);
 }
 
-void lan_discovery_kill(Broadcast_Info *broadcast)
+void lan_discovery_kill(Broadcast_Info *owner broadcast)
 {
     free(broadcast);
 }

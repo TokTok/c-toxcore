@@ -14,14 +14,14 @@
 
 typedef struct TCP_Priority_List TCP_Priority_List;
 struct TCP_Priority_List {
-    TCP_Priority_List *next;
+    TCP_Priority_List *owner next;
     uint16_t size;
     uint16_t sent;
-    uint8_t *data;
+    uint8_t *owner data;
 };
 
 non_null(1) nullable(2)
-void wipe_priority_list(const Memory *mem, TCP_Priority_List *p);
+void wipe_priority_list(const Memory *mem, TCP_Priority_List *owner p);
 
 #define NUM_RESERVED_PORTS 16
 #define NUM_CLIENT_CONNECTIONS (256 - NUM_RESERVED_PORTS)
@@ -64,7 +64,7 @@ typedef struct TCP_Connection {
     uint16_t last_packet_length;
     uint16_t last_packet_sent;
 
-    TCP_Priority_List *priority_queue_start;
+    TCP_Priority_List *owner priority_queue_start;
     TCP_Priority_List *priority_queue_end;
 } TCP_Connection;
 

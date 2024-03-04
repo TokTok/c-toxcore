@@ -110,10 +110,10 @@ struct DHT {
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
 
-    DHT_Friend    *friends_list;
+    DHT_Friend    *owner friends_list;
     uint16_t       num_friends;
 
-    Node_format   *loaded_nodes_list;
+    Node_format   *owner loaded_nodes_list;
     uint32_t       loaded_num_nodes;
     unsigned int   loaded_nodes_index;
 
@@ -370,7 +370,7 @@ int dht_create_packet(const Memory *mem, const Random *rng,
                       uint8_t *packet, size_t length)
 {
     uint8_t nonce[CRYPTO_NONCE_SIZE];
-    uint8_t *encrypted = (uint8_t *)mem_balloc(mem, plain_length + CRYPTO_MAC_SIZE);
+    uint8_t *owner encrypted = (uint8_t *owner)mem_balloc(mem, plain_length + CRYPTO_MAC_SIZE);
 
     if (encrypted == nullptr) {
         return -1;
@@ -920,7 +920,7 @@ static void sort_client_list(const Memory *mem, Client_data *list, uint64_t cur_
 {
     // Pass comp_public_key to qsort with each Client_data entry, so the
     // comparison function can use it as the base of comparison.
-    DHT_Cmp_Data *cmp_list = (DHT_Cmp_Data *)mem_valloc(mem, length, sizeof(DHT_Cmp_Data));
+    DHT_Cmp_Data *owner cmp_list = (DHT_Cmp_Data *owner)mem_valloc(mem, length, sizeof(DHT_Cmp_Data));
 
     if (cmp_list == nullptr) {
         return;
@@ -1591,7 +1591,8 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
         return 0;
     }
 
-    DHT_Friend *const temp = (DHT_Friend *)mem_vrealloc(dht->mem, dht->friends_list, dht->num_friends + 1, sizeof(DHT_Friend));
+    DHT_Friend *const owner temp =
+        (DHT_Friend *owner)mem_vrealloc(dht->mem, dht->friends_list, dht->num_friends + 1, sizeof(DHT_Friend));
 
     if (temp == nullptr) {
         return -1;
@@ -1641,7 +1642,8 @@ int dht_delfriend(DHT *dht, const uint8_t *public_key, uint32_t lock_token)
         return 0;
     }
 
-    DHT_Friend *const temp = (DHT_Friend *)mem_vrealloc(dht->mem, dht->friends_list, dht->num_friends, sizeof(DHT_Friend));
+    DHT_Friend *const owner temp =
+        (DHT_Friend *owner)mem_vrealloc(dht->mem, dht->friends_list, dht->num_friends, sizeof(DHT_Friend));
 
     if (temp == nullptr) {
         return -1;
@@ -1694,8 +1696,10 @@ static uint8_t do_ping_and_sendnode_requests(DHT *dht, uint64_t *lastgetnode, co
     const uint64_t temp_time = mono_time_get(dht->mono_time);
 
     uint32_t num_nodes = 0;
-    Client_data **client_list = (Client_data **)mem_valloc(dht->mem, list_count * 2, sizeof(Client_data *));
-    IPPTsPng **assoc_list = (IPPTsPng **)mem_valloc(dht->mem, list_count * 2, sizeof(IPPTsPng *));
+    Client_data **owner client_list =
+        (Client_data **owner)mem_valloc(dht->mem, list_count * 2, sizeof(Client_data *));
+    IPPTsPng **owner assoc_list =
+        (IPPTsPng **owner)mem_valloc(dht->mem, list_count * 2, sizeof(IPPTsPng *));
     unsigned int sort = 0;
     bool sort_ok = false;
 
@@ -2521,7 +2525,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
         return nullptr;
     }
 
-    DHT *const dht = (DHT *)mem_alloc(mem, sizeof(DHT));
+    DHT *const owner dht = (DHT *owner)mem_alloc(mem, sizeof(DHT));
 
     if (dht == nullptr) {
         LOGGER_ERROR(log, "failed to allocate DHT struct (%ld bytes)", (unsigned long)sizeof(DHT));
@@ -2620,7 +2624,7 @@ void do_dht(DHT *dht)
     ping_iterate(dht->ping);
 }
 
-void kill_dht(DHT *dht)
+void kill_dht(DHT *owner dht)
 {
     if (dht == nullptr) {
         return;
@@ -2693,7 +2697,8 @@ void dht_save(const DHT *dht, uint8_t *data)
     /* get right offset. we write the actual header later. */
     data = state_write_section_header(data, DHT_STATE_COOKIE_TYPE, 0, 0);
 
-    Node_format *clients = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
+    Node_format *owner clients =
+        (Node_format *owner)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
     if (clients == nullptr) {
         LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);
@@ -2790,7 +2795,8 @@ static State_Load_Status dht_load_state_callback(void *outer, const uint8_t *dat
             mem_delete(dht->mem, dht->loaded_nodes_list);
 
             // Copy to loaded_clients_list
-            Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
+            Node_format *owner nodes =
+                (Node_format *owner)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
             if (nodes == nullptr) {
                 LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);

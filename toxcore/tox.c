@@ -801,7 +801,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
         m_options.local_discovery_enabled = false;
     }
 
-    Tox *tox = (Tox *)mem_alloc(sys->mem, sizeof(Tox));
+    Tox *owner tox = (Tox *owner)mem_alloc(sys->mem, sizeof(Tox));
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -878,7 +878,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     }
 
     if (tox_options_get_experimental_thread_safety(opts)) {
-        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
+        pthread_mutex_t *owner mutex = (pthread_mutex_t *owner)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
 
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -1020,7 +1020,7 @@ Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
     return tox;
 }
 
-void tox_kill(Tox *tox)
+void tox_kill(Tox *owner tox)
 {
     if (tox == nullptr) {
         return;

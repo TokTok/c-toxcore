@@ -12,6 +12,19 @@
 
 //!TOKSTYLE-
 
+#ifdef __STDC_OWNERSHIP__
+#include <ownership.h>
+#else
+#define out
+#define opt
+#define owner
+#define obj_owner
+#define view
+#define static_debug(x)
+#define static_set(x, s)
+#define unchecked
+#endif
+
 #ifdef __GNUC__
 #define GNU_PRINTF(f, a) __attribute__((__format__(__printf__, f, a)))
 #else

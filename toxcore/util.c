@@ -24,7 +24,7 @@ bool is_power_of_2(uint64_t x)
     return x != 0 && (x & (~x + 1)) == x;
 }
 
-void free_uint8_t_pointer_array(const Memory *mem, uint8_t **ary, size_t n_items)
+void free_uint8_t_pointer_array(const Memory *mem, uint8_t *owner *owner ary, size_t n_items)
 {
     if (ary == nullptr) {
         return;
@@ -81,13 +81,13 @@ bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t b_size)
     return a_size == b_size && memcmp(a, b, a_size) == 0;
 }
 
-uint8_t *memdup(const uint8_t *data, size_t data_size)
+uint8_t *owner memdup(const uint8_t *data, size_t data_size)
 {
     if (data == nullptr || data_size == 0) {
         return nullptr;
     }
 
-    uint8_t *copy = (uint8_t *)malloc(data_size);
+    uint8_t *owner copy = (uint8_t *owner)malloc(data_size);
 
     if (copy != nullptr) {
         memcpy(copy, data, data_size);

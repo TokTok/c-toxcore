@@ -14,10 +14,10 @@
 #include "mem.h"
 #include "network.h"
 
-void wipe_priority_list(const Memory *mem, TCP_Priority_List *p)
+void wipe_priority_list(const Memory *mem, TCP_Priority_List *owner p)
 {
     while (p != nullptr) {
-        TCP_Priority_List *pp = p;
+        TCP_Priority_List *owner pp = p;
         p = p->next;
         mem_delete(mem, pp->data);
         mem_delete(mem, pp);
@@ -62,7 +62,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
         return -1;
     }
 
-    TCP_Priority_List *p = con->priority_queue_start;
+    TCP_Priority_List *owner p = con->priority_queue_start;
 
     while (p != nullptr) {
         const uint16_t left = p->size - p->sent;
@@ -76,7 +76,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
             break;
         }
 
-        TCP_Priority_List *pp = p;
+        TCP_Priority_List *owner pp = p;
         p = p->next;
         mem_delete(con->mem, pp->data);
         mem_delete(con->mem, pp);
@@ -100,13 +100,14 @@ non_null()
 static bool add_priority(TCP_Connection *con, const uint8_t *packet, uint16_t size, uint16_t sent)
 {
     TCP_Priority_List *p = con->priority_queue_end;
-    TCP_Priority_List *new_list = (TCP_Priority_List *)mem_alloc(con->mem, sizeof(TCP_Priority_List));
+    TCP_Priority_List *owner new_list =
+        (TCP_Priority_List *owner)mem_alloc(con->mem, sizeof(TCP_Priority_List));
 
     if (new_list == nullptr) {
         return false;
     }
 
-    uint8_t *data = (uint8_t *)mem_balloc(con->mem, size);
+    uint8_t *owner data = (uint8_t *owner)mem_balloc(con->mem, size);
 
     if (data == nullptr) {
         mem_delete(con->mem, new_list);

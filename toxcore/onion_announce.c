@@ -331,7 +331,7 @@ static void sort_onion_announce_list(const Memory *mem, const Mono_Time *mono_ti
 {
     // Pass comp_public_key to qsort with each Client_data entry, so the
     // comparison function can use it as the base of comparison.
-    Cmp_Data *cmp_list = (Cmp_Data *)mem_valloc(mem, length, sizeof(Cmp_Data));
+    Cmp_Data *owner cmp_list = (Cmp_Data *owner)mem_valloc(mem, length, sizeof(Cmp_Data));
 
     if (cmp_list == nullptr) {
         return;
@@ -449,7 +449,7 @@ static int handle_announce_request_common(
         return 1;
     }
 
-    uint8_t *plain = (uint8_t *)mem_balloc(onion_a->mem, plain_size);
+    uint8_t *owner plain = (uint8_t *owner)mem_balloc(onion_a->mem, plain_size);
 
     if (plain == nullptr) {
         return 1;
@@ -494,7 +494,7 @@ static int handle_announce_request_common(
     const uint16_t response_size = nodes_offset
                                    + MAX_SENT_NODES * PACKED_NODE_SIZE_IP6
                                    + max_extra_size;
-    uint8_t *response = (uint8_t *)mem_balloc(onion_a->mem, response_size);
+    uint8_t *owner response = (uint8_t *owner)mem_balloc(onion_a->mem, response_size);
 
     if (response == nullptr) {
         mem_delete(onion_a->mem, plain);
@@ -657,7 +657,7 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
         return nullptr;
     }
 
-    Onion_Announce *onion_a = (Onion_Announce *)mem_alloc(mem, sizeof(Onion_Announce));
+    Onion_Announce *owner onion_a = (Onion_Announce *owner)mem_alloc(mem, sizeof(Onion_Announce));
 
     if (onion_a == nullptr) {
         return nullptr;
@@ -688,7 +688,7 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
     return onion_a;
 }
 
-void kill_onion_announce(Onion_Announce *onion_a)
+void kill_onion_announce(Onion_Announce *owner onion_a)
 {
     if (onion_a == nullptr) {
         return;

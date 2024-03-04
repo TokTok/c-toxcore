@@ -109,7 +109,7 @@ static bool create_array_entry(const Logger *log, const Mono_Time *mono_time, GC
             return false;
         }
 
-        uint8_t *entry_data = (uint8_t *)malloc(length);
+        uint8_t *owner entry_data = (uint8_t *owner)malloc(length);
 
         if (entry_data == nullptr) {
             return false;
@@ -395,7 +395,7 @@ static uint16_t reassemble_packet(const Logger *log, GC_Connection *gconn, uint8
         return 0;
     }
 
-    uint8_t *tmp_payload = (uint8_t *)malloc(packet_length);
+    uint8_t *owner tmp_payload = (uint8_t *owner)malloc(packet_length);
 
     if (tmp_payload == nullptr) {
         LOGGER_ERROR(log, "Failed to allocate %u bytes for payload buffer", packet_length);
@@ -441,7 +441,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
-    uint8_t *payload = nullptr;
+    uint8_t *owner payload = nullptr;
     const uint16_t processed_len = reassemble_packet(chat->log, gconn, &payload, message_id);
 
     if (processed_len == 0) {
@@ -621,7 +621,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
     const uint16_t packet_size = gc_get_wrapped_packet_size(length, NET_PACKET_GC_LOSSLESS);
-    uint8_t *packet = (uint8_t *)malloc(packet_size);
+    uint8_t *owner packet = (uint8_t *owner)malloc(packet_size);
 
     if (packet == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for packet buffer");

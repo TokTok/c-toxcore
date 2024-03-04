@@ -33,7 +33,7 @@ typedef struct Packet_Data {
 } Packet_Data;
 
 typedef struct Packets_Array {
-    Packet_Data *buffer[CRYPTO_PACKET_BUFFER_SIZE];
+    Packet_Data *owner buffer[CRYPTO_PACKET_BUFFER_SIZE];
     uint32_t  buffer_start;
     uint32_t  buffer_end; /* packet numbers in array: `{buffer_start, buffer_end)` */
 } Packets_Array;
@@ -64,7 +64,7 @@ typedef struct Crypto_Connection {
     uint64_t cookie_request_number; /* number used in the cookie request packets for this connection */
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer */
 
-    uint8_t *temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
+    uint8_t *owner temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
     uint16_t temp_packet_length;
     uint64_t temp_packet_sent_time; /* The time at which the last temp_packet was sent in ms. */
     uint32_t temp_packet_num_sent;
@@ -123,7 +123,7 @@ typedef struct Crypto_Connection {
     bool maximum_speed_reached;
 
     /* Must be a pointer, because the struct is moved in memory */
-    pthread_mutex_t *mutex;
+    pthread_mutex_t *owner mutex;
 
     dht_pk_cb *dht_pk_callback;
     void *dht_pk_callback_object;
@@ -140,9 +140,9 @@ struct Net_Crypto {
     const Network *ns;
 
     DHT *dht;
-    TCP_Connections *tcp_c;
+    TCP_Connections *owner tcp_c;
 
-    Crypto_Connection *crypto_connections;
+    Crypto_Connection *owner crypto_connections;
     pthread_mutex_t tcp_mutex;
 
     pthread_mutex_t connections_mutex;
@@ -773,7 +773,7 @@ static int add_data_to_buffer(const Memory *mem, Packets_Array *array, uint32_t 
         return -1;
     }
 
-    Packet_Data *new_d = (Packet_Data *)mem_alloc(mem, sizeof(Packet_Data));
+    Packet_Data *owner new_d = (Packet_Data *owner)mem_alloc(mem, sizeof(Packet_Data));
 
     if (new_d == nullptr) {
         return -1;
@@ -829,7 +829,7 @@ static int64_t add_data_end_of_buffer(const Logger *logger, const Memory *mem, P
         return -1;
     }
 
-    Packet_Data *new_d = (Packet_Data *)mem_alloc(mem, sizeof(Packet_Data));
+    Packet_Data *owner new_d = (Packet_Data *owner)mem_alloc(mem, sizeof(Packet_Data));
 
     if (new_d == nullptr) {
         LOGGER_ERROR(logger, "packet data allocation failed");
@@ -1387,7 +1387,7 @@ static int new_temp_packet(const Net_Crypto *c, int crypt_connection_id, const u
         return -1;
     }
 
-    uint8_t *temp_packet = (uint8_t *)mem_balloc(c->mem, length);
+    uint8_t *owner temp_packet = (uint8_t *owner)mem_balloc(c->mem, length);
 
     if (temp_packet == nullptr) {
         return -1;
@@ -1816,8 +1816,8 @@ static int realloc_cryptoconnection(Net_Crypto *c, uint32_t num)
         return 0;
     }
 
-    Crypto_Connection *newcrypto_connections = (Crypto_Connection *)mem_vrealloc(
-                c->mem, c->crypto_connections, num, sizeof(Crypto_Connection));
+    Crypto_Connection *owner newcrypto_connections =
+        (Crypto_Connection *owner)mem_vrealloc(c->mem, c->crypto_connections, num, sizeof(Crypto_Connection));
 
     if (newcrypto_connections == nullptr) {
         return -1;
@@ -1863,7 +1863,7 @@ static int create_crypto_connection(Net_Crypto *c)
     }
 
     if (id != -1) {
-        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(c->mem, sizeof(pthread_mutex_t));
+        pthread_mutex_t *owner mutex = (pthread_mutex_t *owner)mem_alloc(c->mem, sizeof(pthread_mutex_t));
 
         if (mutex == nullptr) {
             pthread_mutex_unlock(&c->connections_mutex);
@@ -2017,7 +2017,7 @@ non_null(1, 2, 3) nullable(5)
 static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source, const uint8_t *data, uint16_t length,
         void *userdata)
 {
-    uint8_t *cookie = (uint8_t *)mem_balloc(c->mem, COOKIE_LENGTH);
+    uint8_t *owner cookie = (uint8_t *owner)mem_balloc(c->mem, COOKIE_LENGTH);
 
     if (cookie == nullptr) {
         return -1;
@@ -3113,7 +3113,7 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
         return nullptr;
     }
 
-    Net_Crypto *temp = (Net_Crypto *)mem_alloc(mem, sizeof(Net_Crypto));
+    Net_Crypto *owner temp = (Net_Crypto *owner)mem_alloc(mem, sizeof(Net_Crypto));
 
     if (temp == nullptr) {
         return nullptr;
@@ -3203,7 +3203,7 @@ void do_net_crypto(Net_Crypto *c, void *userdata)
     send_crypto_packets(c);
 }
 
-void kill_net_crypto(Net_Crypto *c)
+void kill_net_crypto(Net_Crypto *owner c)
 {
     if (c == nullptr) {
         return;

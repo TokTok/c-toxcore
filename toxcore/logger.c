@@ -70,10 +70,10 @@ static const Logger logger_stderr = {
 
 Logger *logger_new(void)
 {
-    return (Logger *)calloc(1, sizeof(Logger));
+    return (Logger *owner)calloc(1, sizeof(Logger));
 }
 
-void logger_kill(Logger *log)
+void logger_kill(Logger *owner log)
 {
     free(log);
 }

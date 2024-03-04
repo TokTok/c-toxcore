@@ -84,7 +84,7 @@ typedef struct GC_PeerAddress {
 } GC_PeerAddress;
 
 typedef struct GC_Message_Array_Entry {
-    uint8_t *data;
+    uint8_t *owner data;
     uint16_t data_length;
     uint8_t  packet_type;
     uint64_t message_id;
@@ -96,10 +96,10 @@ typedef struct GC_Connection {
     uint64_t send_message_id;   /* message_id of the next message we send to peer */
 
     uint16_t send_array_start;   /* send_array index of oldest item */
-    GC_Message_Array_Entry *send_array;
+    GC_Message_Array_Entry *owner send_array;
 
     uint64_t received_message_id;   /* message_id of peer's last message to us */
-    GC_Message_Array_Entry *recv_array;
+    GC_Message_Array_Entry *owner recv_array;
 
     uint64_t    last_chunk_id;  /* The message ID of the last packet fragment we received */
 
@@ -273,12 +273,12 @@ typedef struct GC_Chat {
     IP_Port         self_ip_port;
 
     Networking_Core *net;
-    TCP_Connections *tcp_conn;
+    TCP_Connections *owner tcp_conn;
 
     uint64_t        last_checked_tcp_relays;
     Group_Handshake_Join_Type join_type;
 
-    GC_Peer         *group;
+    GC_Peer         *owner group;
     Moderation      moderation;
 
     GC_Conn_State   connection_state;
@@ -376,7 +376,7 @@ typedef void gc_rejected_cb(const Messenger *m, uint32_t group_number, unsigned 
 
 typedef struct GC_Session {
     Messenger                 *messenger;
-    GC_Chat                   *chats;
+    GC_Chat                   *owner chats;
     struct GC_Announces_List  *announces_list;
 
     uint32_t     chats_index;

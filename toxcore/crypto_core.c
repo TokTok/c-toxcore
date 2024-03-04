@@ -88,9 +88,9 @@ const uint8_t *get_chat_id(const Extended_Public_Key *key)
 }
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-static uint8_t *crypto_malloc(size_t bytes)
+static uint8_t *owner crypto_malloc(size_t bytes)
 {
-    uint8_t *ptr = (uint8_t *)malloc(bytes);
+    uint8_t *owner ptr = (uint8_t *owner)malloc(bytes);
 
     if (ptr != nullptr) {
         crypto_memlock(ptr, bytes);
@@ -100,7 +100,7 @@ static uint8_t *crypto_malloc(size_t bytes)
 }
 
 nullable(1)
-static void crypto_free(uint8_t *ptr, size_t bytes)
+static void crypto_free(uint8_t *owner ptr, size_t bytes)
 {
     if (ptr != nullptr) {
         crypto_memzero(ptr, bytes);
@@ -258,8 +258,8 @@ int32_t encrypt_data_symmetric(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE],
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_MACBYTES + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(size_temp_encrypted);
+    uint8_t *owner temp_plain = crypto_malloc(size_temp_plain);
+    uint8_t *owner temp_encrypted = crypto_malloc(size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
         crypto_free(temp_plain, size_temp_plain);
@@ -310,8 +310,8 @@ int32_t decrypt_data_symmetric(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE],
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(size_temp_encrypted);
+    uint8_t *owner temp_plain = crypto_malloc(size_temp_plain);
+    uint8_t *owner temp_encrypted = crypto_malloc(size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
         crypto_free(temp_plain, size_temp_plain);
