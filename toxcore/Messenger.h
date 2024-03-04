@@ -84,7 +84,7 @@ typedef struct Messenger_Options {
     void *log_context;
     void *log_user_data;
 
-    Messenger_State_Plugin *state_plugins;
+    Messenger_State_Plugin *owner state_plugins;
     uint8_t state_plugins_length;
 
     bool dns_enabled;
@@ -93,7 +93,7 @@ typedef struct Messenger_Options {
 struct Receipts {
     uint32_t packet_num;
     uint32_t msg_id;
-    struct Receipts *next;
+    struct Receipts *owner next;
 };
 
 /** Status definitions. */
@@ -235,7 +235,7 @@ typedef struct Friend {
     uint32_t num_sending_files;
     struct File_Transfers file_receiving[MAX_CONCURRENT_FILE_PIPES];
 
-    struct Receipts *receipts_start;
+    struct Receipts *owner receipts_start;
     struct Receipts *receipts_end;
 } Friend;
 
@@ -248,10 +248,10 @@ struct Messenger {
 
     Networking_Core *net;
     Net_Crypto *net_crypto;
-    DHT *dht;
+    DHT *owner dht;
 
-    Forwarding *forwarding;
-    Announcements *announce;
+    Forwarding *owner forwarding;
+    Announcements *owner announce;
 
     Onion *onion;
     Onion_Announce *onion_a;
@@ -259,7 +259,7 @@ struct Messenger {
 
     Friend_Connections *fr_c;
 
-    TCP_Server *tcp_server;
+    TCP_Server *owner tcp_server;
     Friend_Requests *fr;
     uint8_t name[MAX_NAME_LENGTH];
     uint16_t name_length;
@@ -269,7 +269,7 @@ struct Messenger {
 
     Userstatus userstatus;
 
-    Friend *friendlist;
+    Friend *owner friendlist;
     uint32_t numfriends;
 
     uint64_t lastdump;
@@ -762,15 +762,16 @@ typedef enum Messenger_Error {
  * if error is not NULL it will be set to one of the values in the enum above.
  */
 non_null()
-Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
-                         Messenger_Options *options, Messenger_Error *error);
+Messenger *owner new_messenger(
+    Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
+    Messenger_Options *options, Messenger_Error *error);
 
 /** @brief Run this before closing shop.
  *
  * Free all datastructures.
  */
 nullable(1)
-void kill_messenger(Messenger *m);
+void kill_messenger(Messenger *owner m);
 
 /** @brief The main loop that needs to be run at least 20 times per second. */
 non_null(1) nullable(2)

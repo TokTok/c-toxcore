@@ -54,9 +54,9 @@ struct Broadcast_Info {
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
+    Broadcast_Info *owner broadcast = (Broadcast_Info *owner)mem_alloc(mem, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
@@ -64,7 +64,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
 
     broadcast->mem = mem;
 
-    IP_ADAPTER_INFO *adapter_info = (IP_ADAPTER_INFO *)mem_balloc(mem, sizeof(IP_ADAPTER_INFO));
+    IP_ADAPTER_INFO *owner adapter_info = (IP_ADAPTER_INFO *owner)mem_balloc(mem, sizeof(IP_ADAPTER_INFO));
 
     if (adapter_info == nullptr) {
         mem_delete(mem, broadcast);
@@ -75,7 +75,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
 
     if (GetAdaptersInfo(adapter_info, &out_buf_len) == ERROR_BUFFER_OVERFLOW) {
         mem_delete(mem, adapter_info);
-        IP_ADAPTER_INFO *new_adapter_info = (IP_ADAPTER_INFO *)mem_balloc(mem, out_buf_len);
+        IP_ADAPTER_INFO *owner new_adapter_info = (IP_ADAPTER_INFO *owner)mem_balloc(mem, out_buf_len);
 
         if (new_adapter_info == nullptr) {
             mem_delete(mem, broadcast);
@@ -128,9 +128,9 @@ non_null()
 static bool ip4_is_local(const IP4 *ip4);
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
+    Broadcast_Info *owner broadcast = (Broadcast_Info *owner)mem_alloc(mem, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
@@ -223,9 +223,9 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
 #else // TODO(irungentoo): Other platforms?
 
 non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *owner fetch_broadcast_info(const Memory *mem, const Network *ns)
 {
-    Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
+    Broadcast_Info *broadcast = (Broadcast_Info *owner)mem_alloc(mem, sizeof(Broadcast_Info));
 
     if (broadcast == nullptr) {
         return nullptr;
@@ -409,12 +409,12 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
     return res;
 }
 
-Broadcast_Info *lan_discovery_init(const Memory *mem, const Network *ns)
+Broadcast_Info *owner lan_discovery_init(const Memory *mem, const Network *ns)
 {
     return fetch_broadcast_info(mem, ns);
 }
 
-void lan_discovery_kill(Broadcast_Info *broadcast)
+void lan_discovery_kill(Broadcast_Info *owner broadcast)
 {
     if (broadcast == nullptr) {
         return;

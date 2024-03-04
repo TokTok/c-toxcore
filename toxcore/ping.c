@@ -334,7 +334,7 @@ void ping_iterate(Ping *ping)
 
 Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht)
 {
-    Ping *ping = (Ping *)mem_alloc(mem, sizeof(Ping));
+    Ping *owner ping = (Ping *owner)mem_alloc(mem, sizeof(Ping));
 
     if (ping == nullptr) {
         return nullptr;
@@ -357,7 +357,7 @@ Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng,
     return ping;
 }
 
-void ping_kill(const Memory *mem, Ping *ping)
+void ping_kill(const Memory *mem, Ping *owner ping)
 {
     if (ping == nullptr) {
         return;

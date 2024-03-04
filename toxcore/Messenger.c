@@ -58,7 +58,7 @@ bool friend_is_valid(const Messenger *m, int32_t friendnumber)
 
 /** @brief Set the size of the friend list to numfriends.
  *
- * @retval -1 if mem_vrealloc fails.
+ * @retval -1 if mem_vresize fails.
  */
 non_null()
 static int realloc_friendlist(Messenger *m, uint32_t num)
@@ -69,13 +69,13 @@ static int realloc_friendlist(Messenger *m, uint32_t num)
         return 0;
     }
 
-    Friend *newfriendlist = (Friend *)mem_vrealloc(m->mem, m->friendlist, num, sizeof(Friend));
+    bool ok;
+    m->friendlist = (Friend *owner)mem_vresize(m->mem, m->friendlist, num, sizeof(Friend), &ok);
 
-    if (newfriendlist == nullptr) {
+    if (!ok) {
         return -1;
     }
 
-    m->friendlist = newfriendlist;
     return 0;
 }
 
@@ -326,10 +326,10 @@ static int clear_receipts(Messenger *m, int32_t friendnumber)
         return -1;
     }
 
-    struct Receipts *receipts = m->friendlist[friendnumber].receipts_start;
+    struct Receipts *owner receipts = m->friendlist[friendnumber].receipts_start;
 
     while (receipts != nullptr) {
-        struct Receipts *temp_r = receipts->next;
+        struct Receipts *owner temp_r = receipts->next;
         mem_delete(m->mem, receipts);
         receipts = temp_r;
     }
@@ -346,7 +346,7 @@ static int add_receipt(Messenger *m, int32_t friendnumber, uint32_t packet_num, 
         return -1;
     }
 
-    struct Receipts *new_receipts = (struct Receipts *)mem_alloc(m->mem, sizeof(struct Receipts));
+    struct Receipts *owner new_receipts = (struct Receipts *owner)mem_alloc(m->mem, sizeof(struct Receipts));
 
     if (new_receipts == nullptr) {
         return -1;
@@ -434,7 +434,7 @@ static int do_receipts(Messenger *m, int32_t friendnumber, void *userdata)
         return -1;
     }
 
-    struct Receipts *receipts = m->friendlist[friendnumber].receipts_start;
+    struct Receipts *owner receipts = m->friendlist[friendnumber].receipts_start;
 
     while (receipts != nullptr) {
         if (friend_received_packet(m, friendnumber, receipts->packet_num) == -1) {
@@ -445,7 +445,7 @@ static int do_receipts(Messenger *m, int32_t friendnumber, void *userdata)
             m->read_receipt(m, friendnumber, receipts->msg_id, userdata);
         }
 
-        struct Receipts *r_next = receipts->next;
+        struct Receipts *owner r_next = receipts->next;
 
         mem_delete(m->mem, receipts);
 
@@ -2859,14 +2859,14 @@ bool m_register_state_plugin(Messenger *m, State_Type type, m_state_size_cb *siz
                              m_state_save_cb *save_callback)
 {
     const uint32_t new_length = m->options.state_plugins_length + 1;
-    Messenger_State_Plugin *temp = (Messenger_State_Plugin *)mem_vrealloc(
-                                       m->mem, m->options.state_plugins, new_length, sizeof(Messenger_State_Plugin));
+    bool ok;
+    m->options.state_plugins = (Messenger_State_Plugin *owner)mem_vresize(
+                                       m->mem, m->options.state_plugins, new_length, sizeof(Messenger_State_Plugin), &ok);
 
-    if (temp == nullptr) {
+    if (!ok) {
         return false;
     }
 
-    m->options.state_plugins = temp;
     m->options.state_plugins_length = new_length;
 
     const uint8_t index = m->options.state_plugins_length - 1;
@@ -3453,8 +3453,9 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
-                         Messenger_Options *options, Messenger_Error *error)
+Messenger *owner new_messenger(
+    Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
+    Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
         return nullptr;
@@ -3464,7 +3465,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         *error = MESSENGER_ERROR_OTHER;
     }
 
-    Messenger *m = (Messenger *)mem_alloc(mem, sizeof(Messenger));
+    Messenger *owner m = (Messenger *owner)mem_alloc(mem, sizeof(Messenger));
 
     if (m == nullptr) {
         return nullptr;
@@ -3673,7 +3674,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
  *
  * Free all datastructures.
  */
-void kill_messenger(Messenger *m)
+void kill_messenger(Messenger *owner m)
 {
     if (m == nullptr) {
         return;

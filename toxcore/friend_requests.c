@@ -170,9 +170,9 @@ void friendreq_init(Friend_Requests *fr, Friend_Connections *fr_c)
     set_friend_request_callback(fr_c, &friendreq_handlepacket, fr);
 }
 
-Friend_Requests *friendreq_new(const Memory *mem)
+Friend_Requests *owner friendreq_new(const Memory *mem)
 {
-    Friend_Requests *fr = (Friend_Requests *)mem_alloc(mem, sizeof(Friend_Requests));
+    Friend_Requests *owner fr = (Friend_Requests *owner)mem_alloc(mem, sizeof(Friend_Requests));
 
     if (fr == nullptr) {
         return nullptr;
@@ -183,7 +183,7 @@ Friend_Requests *friendreq_new(const Memory *mem)
     return fr;
 }
 
-void friendreq_kill(Friend_Requests *fr)
+void friendreq_kill(Friend_Requests *owner fr)
 {
     if (fr == nullptr) {
         return;

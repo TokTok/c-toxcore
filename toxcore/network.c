@@ -1271,7 +1271,7 @@ Networking_Core *new_networking_ex(
         return nullptr;
     }
 
-    Networking_Core *temp = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
+    Networking_Core *owner temp = (Networking_Core *owner)mem_alloc(mem, sizeof(Networking_Core));
 
     if (temp == nullptr) {
         return nullptr;
@@ -1484,7 +1484,7 @@ Networking_Core *new_networking_ex(
 Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns)
 {
     /* this is the easiest way to completely disable UDP without changing too much code. */
-    Networking_Core *net = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
+    Networking_Core *owner net = (Networking_Core *owner)mem_alloc(mem, sizeof(Networking_Core));
 
     if (net == nullptr) {
         return nullptr;
@@ -1498,7 +1498,7 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
 }
 
 /** Function to cleanup networking stuff (doesn't do much right now). */
-void kill_networking(Networking_Core *net)
+void kill_networking(Networking_Core *owner net)
 {
     if (net == nullptr) {
         return;
@@ -2121,7 +2121,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     *res = nullptr;
 
     if (addr_parse_ip(node, &parsed.ip)) {
-        IP_Port *tmp = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
+        IP_Port *owner tmp = (IP_Port *owner)mem_alloc(mem, sizeof(IP_Port));
 
         if (tmp == nullptr) {
             return -1;
@@ -2138,7 +2138,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
-        IP_Port *ip_port = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
+        IP_Port *owner ip_port = (IP_Port *owner)mem_alloc(mem, sizeof(IP_Port));
         if (ip_port == nullptr) {
             abort();
         }
@@ -2186,7 +2186,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
         return 0;
     }
 
-    IP_Port *ip_port = (IP_Port *)mem_valloc(mem, count, sizeof(IP_Port));
+    IP_Port *owner ip_port = (IP_Port *owner)mem_valloc(mem, count, sizeof(IP_Port));
 
     if (ip_port == nullptr) {
         ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
@@ -2225,7 +2225,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     return count;
 }
 
-void net_freeipport(const Memory *mem, IP_Port *ip_ports)
+void net_freeipport(const Memory *mem, IP_Port *owner ip_ports)
 {
     mem_delete(mem, ip_ports);
 }
@@ -2407,7 +2407,7 @@ static const char *net_strerror_r(int error, char *tmp, size_t tmp_size)
     return tmp;
 }
 #endif /* GNU */
-char *net_new_strerror(const Memory *mem, int error)
+char *owner net_new_strerror(const Memory *mem, int error)
 {
     char tmp[256];
 
@@ -2416,7 +2416,7 @@ char *net_new_strerror(const Memory *mem, int error)
     const char *retstr = net_strerror_r(error, tmp, sizeof(tmp));
     const size_t retstr_len = strlen(retstr);
 
-    char *str = (char *)mem_balloc(mem, retstr_len + 1);
+    char *owner str = (char *owner)mem_balloc(mem, retstr_len + 1);
 
     if (str == nullptr) {
         return nullptr;
@@ -2428,10 +2428,10 @@ char *net_new_strerror(const Memory *mem, int error)
 }
 #endif /* OS_WIN32 */
 
-void net_kill_strerror(const Memory *mem, char *strerror)
+void net_kill_strerror(const Memory *mem, char *owner strerror)
 {
 #ifdef OS_WIN32
-    LocalFree((char *)strerror);
+    LocalFree(strerror);
 #else
     mem_delete(mem, strerror);
 #endif /* OS_WIN32 */

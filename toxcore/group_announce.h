@@ -74,7 +74,7 @@ struct GC_Announces {
 
     GC_Peer_Announce peer_announces[GCA_MAX_SAVED_ANNOUNCES_PER_GC];
 
-    GC_Announces *next_announce;
+    GC_Announces *owner next_announce;
     GC_Announces *prev_announce;
 };
 
@@ -82,7 +82,7 @@ struct GC_Announces {
 struct GC_Announces_List {
     const Memory *mem;
 
-    GC_Announces *root_announces;
+    GC_Announces *owner root_announces;
     uint64_t last_timeout_check;
 };
 

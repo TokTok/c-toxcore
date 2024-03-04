@@ -21,7 +21,7 @@ typedef struct Shared_Key {
 } Shared_Key;
 
 struct Shared_Key_Cache {
-    Shared_Key *keys;
+    Shared_Key *owner keys;
     const uint8_t *self_secret_key;
     uint64_t timeout; /** After this time (in seconds), a key is erased on the next housekeeping cycle */
     const Mono_Time *mono_time;
@@ -61,7 +61,7 @@ Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_
         return nullptr;
     }
 
-    Shared_Key_Cache *res = (Shared_Key_Cache *)mem_alloc(mem, sizeof(Shared_Key_Cache));
+    Shared_Key_Cache *owner res = (Shared_Key_Cache *owner)mem_alloc(mem, sizeof(Shared_Key_Cache));
     if (res == nullptr) {
         return nullptr;
     }
@@ -74,7 +74,7 @@ Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_
 
     // We take one byte from the public key for each bucket and store keys_per_slot elements there
     const size_t cache_size = 256 * keys_per_slot;
-    Shared_Key *keys = (Shared_Key *)mem_valloc(mem, cache_size, sizeof(Shared_Key));
+    Shared_Key *owner keys = (Shared_Key *owner)mem_valloc(mem, cache_size, sizeof(Shared_Key));
 
     if (keys == nullptr) {
         mem_delete(mem, res);
@@ -88,7 +88,7 @@ Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_
     return res;
 }
 
-void shared_key_cache_free(Shared_Key_Cache *cache)
+void shared_key_cache_free(Shared_Key_Cache *owner cache)
 {
     if (cache == nullptr) {
         return;

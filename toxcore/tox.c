@@ -803,7 +803,7 @@ static Tox *tox_new_system(const struct Tox_Options *options, Tox_Err_New *error
         m_options.local_discovery_enabled = false;
     }
 
-    Tox *tox = (Tox *)mem_alloc(sys->mem, sizeof(Tox));
+    Tox *owner tox = (Tox *owner)mem_alloc(sys->mem, sizeof(Tox));
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -881,7 +881,7 @@ static Tox *tox_new_system(const struct Tox_Options *options, Tox_Err_New *error
     }
 
     if (tox_options_get_experimental_thread_safety(opts)) {
-        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
+        pthread_mutex_t *owner mutex = (pthread_mutex_t *owner)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
 
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -1054,7 +1054,7 @@ Tox *tox_new_testing(const Tox_Options *options, Tox_Err_New *error, const Tox_O
     return tox_new_system(options, error, sys);
 }
 
-void tox_kill(Tox *tox)
+void tox_kill(Tox *owner tox)
 {
     if (tox == nullptr) {
         return;
@@ -2085,11 +2085,12 @@ uint32_t tox_file_send(Tox *tox, uint32_t friend_number, uint32_t kind, uint64_t
     if (file_id == nullptr) {
         /* Tox keys are 32 bytes like FILE_ID_LENGTH. */
         new_symmetric_key(tox->sys.rng, f_id);
-        file_id = f_id;
+    } else {
+        memcpy(f_id, file_id, TOX_FILE_ID_LENGTH);
     }
 
     tox_lock(tox);
-    const long int file_num = new_filesender(tox->m, friend_number, kind, file_size, file_id, filename, filename_length);
+    const long int file_num = new_filesender(tox->m, friend_number, kind, file_size, f_id, filename, filename_length);
     tox_unlock(tox);
 
     if (file_num >= 0) {

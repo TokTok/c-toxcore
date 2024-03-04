@@ -75,7 +75,7 @@ struct TCP_Server {
     int efd;
     uint64_t last_run_pinged;
 #endif /* TCP_SERVER_USE_EPOLL */
-    Socket *socks_listening;
+    Socket *owner socks_listening;
     unsigned int num_listening_socks;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -85,7 +85,7 @@ struct TCP_Server {
     TCP_Secure_Connection unconfirmed_connection_queue[MAX_INCOMING_CONNECTIONS];
     uint16_t unconfirmed_connection_queue_index;
 
-    TCP_Secure_Connection *accepted_connection_array;
+    TCP_Secure_Connection *owner accepted_connection_array;
     uint32_t size_accepted_connections;
     uint32_t num_accepted_connections;
 
@@ -131,7 +131,7 @@ static int alloc_new_connections(TCP_Server *tcp_server, uint32_t num)
         return -1;
     }
 
-    TCP_Secure_Connection *new_connections = (TCP_Secure_Connection *)mem_vrealloc(
+    TCP_Secure_Connection *owner new_connections = (TCP_Secure_Connection *owner)mem_vrealloc(
                 tcp_server->mem, tcp_server->accepted_connection_array,
                 new_size, sizeof(TCP_Secure_Connection));
 
@@ -968,7 +968,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
         return nullptr;
     }
 
-    TCP_Server *temp = (TCP_Server *)mem_alloc(mem, sizeof(TCP_Server));
+    TCP_Server *owner temp = (TCP_Server *owner)mem_alloc(mem, sizeof(TCP_Server));
 
     if (temp == nullptr) {
         LOGGER_ERROR(logger, "TCP server allocation failed");
@@ -988,7 +988,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     temp->ns = ns;
     temp->rng = rng;
 
-    Socket *socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
+    Socket *owner socks_listening = (Socket *owner)mem_valloc(mem, num_sockets, sizeof(Socket));
 
     if (socks_listening == nullptr) {
         LOGGER_ERROR(logger, "socket allocation failed");
@@ -1406,7 +1406,7 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time)
     do_tcp_confirmed(tcp_server, mono_time);
 }
 
-void kill_tcp_server(TCP_Server *tcp_server)
+void kill_tcp_server(TCP_Server *owner tcp_server)
 {
     if (tcp_server == nullptr) {
         return;

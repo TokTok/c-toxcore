@@ -67,7 +67,7 @@ typedef struct TCP_Connection_to {
 
 typedef struct TCP_con {
     uint8_t status;
-    TCP_Client_Connection *connection;
+    TCP_Client_Connection *owner connection;
     uint64_t connected_time;
     uint32_t lock_count;
     uint32_t sleep_count;
@@ -306,8 +306,9 @@ uint32_t tcp_copy_connected_relays_index(const TCP_Connections *tcp_c, Node_form
  * Returns NULL on failure.
  */
 non_null()
-TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
-                                     Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info);
+TCP_Connections *owner new_tcp_connections(
+    const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
+    Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info);
 
 non_null()
 int kill_tcp_relay_connection(TCP_Connections *tcp_c, int tcp_connections_number);
@@ -316,7 +317,7 @@ non_null(1, 2) nullable(3)
 void do_tcp_connections(const Logger *logger, TCP_Connections *tcp_c, void *userdata);
 
 nullable(1)
-void kill_tcp_connections(TCP_Connections *tcp_c);
+void kill_tcp_connections(TCP_Connections *owner tcp_c);
 
 /** @brief a pointer to the tcp client net profile associated with tcp_c.
  *

@@ -75,7 +75,7 @@ void logger_abort(void);
 #define LOGGER_WRITE(log, level, ...)                                            \
     do {                                                                         \
         if (level >= MIN_LOGGER_LEVEL) {                                         \
-            logger_write(log, level, __FILE__, __LINE__, __func__, __VA_ARGS__); \
+            logger_write(log, level, "__FILE__", __LINE__, "__func__", __VA_ARGS__); \
         }                                                                        \
     } while (0)
 

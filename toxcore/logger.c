@@ -29,9 +29,9 @@ struct Logger {
  * Public Functions
  */
 
-Logger *logger_new(const Memory *mem)
+Logger *owner logger_new(const Memory *mem)
 {
-    Logger *log = (Logger *)mem_alloc(mem, sizeof(Logger));
+    Logger *owner log = (Logger *owner)mem_alloc(mem, sizeof(Logger));
 
     if (log == nullptr) {
         return nullptr;
@@ -42,7 +42,7 @@ Logger *logger_new(const Memory *mem)
     return log;
 }
 
-void logger_kill(Logger *log)
+void logger_kill(Logger *owner log)
 {
     if (log == nullptr) {
         return;
