@@ -347,6 +347,69 @@ uint32_t tox_max_hostname_length(void);
  */
 
 /**
+ * @brief Experiment IDs to control (incompatible) changes dynamically.
+ *
+ * Experiments are changes in toxcore that can be configured by client
+ * code. These are used to make incompatible changes to toxcore between
+ * API/ABI-breaking releases, so clients can already test some functionality
+ * that may break or be removed again on the next patch release. Compatible
+ * changes may still be rolled out using experiments, and the flag can be
+ * flipped to default to a different value (e.g. true for bool) on the next
+ * patch release. Clients can explicitly revert them again if desired.
+ *
+ * All experiment flags must have an explicit number in this enum. When
+ * removing an experiment flag, the gap it leaves can not be reused. Removal
+ * of an experiment flag is an API breaking change, so it can only be done in
+ * API-breaking releases. Changing the default value of an experiment may or
+ * may not be an API- or ABI-breaking change.
+ *
+ * @see TOX_VERSION_IS_API_COMPATIBLE for what an API-breaking release is.
+ *
+ * Next ID: 3
+ */
+typedef enum Tox_Experiment_Type {
+
+    /**
+     * Not a valid experiment ID. Not used to designate any experiment.
+     */
+    TOX_EXPERIMENT_INVALID = 0,
+
+    /**
+     * Make public API functions thread-safe using a per-instance lock.
+     *
+     * Type: bool
+     * Default: disabled
+     */
+    TOX_EXPERIMENT_THREAD_SAFETY = 1,
+
+    /**
+     * Enable saving DHT-based group chats to Tox save data (via `tox_get_savedata`).
+     * This format will change in the future, so don't rely on it.
+     *
+     * As an alternative, clients can save the group chat ID in client-owned
+     * savedata. Then, when the client starts, it can use `tox_group_join`
+     * with the saved chat ID to recreate the group chat.
+     *
+     * Type: bool
+     * Default: disabled
+     */
+    TOX_EXPERIMENT_GROUPS_PERSISTENCE = 2,
+
+} Tox_Experiment_Type;
+
+const char *tox_experiment_type_to_string(Tox_Experiment_Type value);
+
+/**
+ * @brief Opaque container for an experiment value.
+ *
+ * Can have different types (e.g. bool). See The Tox_Experiment_Type enum above
+ * to see which experiment has which type.
+ *
+ * @private
+ */
+typedef struct Tox_Experiment Tox_Experiment;
+
+/**
  * @brief Represents the possible statuses a client can have.
  */
 typedef enum Tox_User_Status {
@@ -492,7 +555,7 @@ const char *tox_log_level_to_string(Tox_Log_Level value);
  * any time. Thus, user code must make sure it is equipped to handle concurrent
  * execution, e.g. by employing appropriate mutex locking.
  *
- * When using the experimental_thread_safety option, no Tox API functions can
+ * When using the TOX_EXPERIMENT_THREAD_SAFETY flag, no Tox API functions can
  * be called from within the log callback.
  *
  * @param level The severity of the log message.
@@ -511,14 +574,19 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
  * This struct is opaque and generally shouldn't be used in clients, but in
  * combination with tox_private.h, it allows tests to inject non-IO (hermetic)
  * versions of low level network, RNG, and time keeping functions.
+ *
+ * @private
  */
 typedef struct Tox_System Tox_System;
 
 /**
- * @brief This struct contains all the startup options for Tox.
+ * @brief Opaque options struct containing all the startup options for Tox.
  *
  * You must tox_options_new to allocate an object of this type.
- *
+ */
+typedef struct Tox_Options Tox_Options;
+
+/**
  * WARNING: Although this struct happens to be visible in the API, it is
  * effectively private. Do not allocate this yourself or access members
  * directly, as it *will* break binary compatibility frequently.
@@ -528,8 +596,8 @@ typedef struct Tox_System Tox_System;
  *   tox_options_new to allocate the object and accessor functions to set the
  *   members. The struct will become opaque (i.e. the definition will become
  *   private) in v0.3.0.
- */
-typedef struct Tox_Options Tox_Options;
+ *
+ * @private */
 struct Tox_Options {
 
     /**
@@ -665,12 +733,6 @@ struct Tox_Options {
      * entirely in the future, or may be renamed to something non-experimental
      * if they become part of the supported API.
      */
-    /**
-     * Make public API functions thread-safe using a per-instance lock.
-     *
-     * Default: false.
-     */
-    bool experimental_thread_safety;
 
     /**
      * Low level operating system functionality such as send/recv, random
@@ -679,16 +741,14 @@ struct Tox_Options {
     const Tox_System *operating_system;
 
     /**
-     * Enable saving DHT-based group chats to Tox save data (via `tox_get_savedata`).
-     * This format will change in the future, so don't rely on it.
+     * @brief Set of enabled experiments.
      *
-     * As an alternative, clients can save the group chat ID in client-owned
-     * savedata. Then, when the client starts, it can use `tox_group_join`
-     * with the saved chat ID to recreate the group chat.
+     * Use set functions to set experiment values to custom values.
      *
-     * Default: false.
+     * Default: all experiments set to their default values.
      */
-    bool experimental_groups_persistence;
+    Tox_Experiment *experiments;
+    uint32_t experiments_size;
 };
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
@@ -755,17 +815,61 @@ void *tox_options_get_log_user_data(const Tox_Options *options);
 
 void tox_options_set_log_user_data(Tox_Options *options, void *log_user_data);
 
-bool tox_options_get_experimental_thread_safety(const Tox_Options *options);
-
-void tox_options_set_experimental_thread_safety(Tox_Options *options, bool experimental_thread_safety);
-
+/** @private */
 const Tox_System *tox_options_get_operating_system(const Tox_Options *options);
 
+/** @private */
 void tox_options_set_operating_system(Tox_Options *options, const Tox_System *operating_system);
 
+/** @deprecated Use tox_options_experiment_get_bool, instead. */
+bool tox_options_get_experimental_thread_safety(const Tox_Options *options);
+
+/** @deprecated Use tox_options_experiment_set_bool, instead. */
+void tox_options_set_experimental_thread_safety(Tox_Options *options, bool experimental_thread_safety);
+
+/** @deprecated Use tox_options_experiment_get_bool, instead. */
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
 
+/** @deprecated Use tox_options_experiment_set_bool, instead. */
 void tox_options_set_experimental_groups_persistence(Tox_Options *options, bool experimental_groups_persistence);
+
+typedef enum Tox_Err_Options_Experiment {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_OPTIONS_EXPERIMENT_OK,
+
+    /**
+     * The flag does not exist in this version of toxcore.
+     */
+    TOX_ERR_OPTIONS_EXPERIMENT_INVALID_FLAG,
+
+    /**
+     * The type of this experiment flag is different than the function type.
+     */
+    TOX_ERR_OPTIONS_EXPERIMENT_INVALID_TYPE,
+
+} Tox_Err_Options_Experiment;
+
+/** @brief Get the value of a boolean experiment flag.
+ *
+ * @retval true if the flag was enabled and the experiment type was boolean.
+ * @retval false if the flag was disabled OR the experiment type was not boolean.
+ */
+bool tox_options_experiment_get_bool(
+    const Tox_Options *options, Tox_Experiment_Type experiment, Tox_Err_Options_Experiment *err);
+
+/** @brief Enable or explicitly disable a boolean experiment flag.
+ *
+ * If the experiment is already enabled/disabled when enabling/disabling,
+ * respectively, this function does nothing.
+ *
+ * @retval true if the flag was set.
+ * @retval false on error.
+ */
+bool tox_options_experiment_set_bool(
+    Tox_Options *options, Tox_Experiment_Type experiment, bool value, Tox_Err_Options_Experiment *err);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
@@ -802,6 +906,7 @@ const char *tox_err_options_new_to_string(Tox_Err_Options_New value);
  *
  * This function can be used to preserve long term ABI compatibility by
  * giving the responsibility of allocation and deallocation to the Tox library.
+ * All experiment flags are set to their default values.
  *
  * Objects returned from this function must be freed using the tox_options_free
  * function.
