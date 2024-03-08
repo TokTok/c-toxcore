@@ -686,7 +686,7 @@ int main(int argc, char** argv) {
             {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
-                EventTypeByteRange{"name", "name_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"name", "name_length", "name_length"}, // they are :)
             }
         },
         {
@@ -702,7 +702,7 @@ int main(int argc, char** argv) {
             {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
-                EventTypeByteRange{"topic", "topic_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"topic", "topic_length", "topic_length"}, // they are :)
             }
         },
         {
@@ -737,7 +737,7 @@ int main(int argc, char** argv) {
             "Group_Password",
             {
                 EventTypeTrivial{"uint32_t", "group_number"},
-                EventTypeByteRange{"password", "password_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"password", "password_length", "password_length"}, // they are :)
             }
         },
         {
@@ -746,7 +746,7 @@ int main(int argc, char** argv) {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
                 EventTypeTrivial{"Tox_Message_Type", "type"},
-                EventTypeByteRange{"message", "message_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"message", "message_length", "message_length"}, // they are :)
                 EventTypeTrivial{"uint32_t", "message_id"},
             }
         },
@@ -756,7 +756,7 @@ int main(int argc, char** argv) {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
                 EventTypeTrivial{"Tox_Message_Type", "type"},
-                EventTypeByteRange{"message", "message_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"message", "message_length", "message_length"}, // they are :)
                 EventTypeTrivial{"uint32_t", "message_id"},
             }
         },
@@ -765,7 +765,7 @@ int main(int argc, char** argv) {
             {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
-                EventTypeByteRange{"data", "data_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"data", "data_length", "data_length"}, // they are :)
             }
         },
         {
@@ -773,14 +773,14 @@ int main(int argc, char** argv) {
             {
                 EventTypeTrivial{"uint32_t", "group_number"},
                 EventTypeTrivial{"uint32_t", "peer_id"},
-                EventTypeByteRange{"data", "data_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"data", "data_length", "data_length"}, // they are :)
             }
         },
         {
             "Group_Invite",
             {
                 EventTypeTrivial{"uint32_t", "friend_number"},
-                EventTypeByteRange{"invite_data", "invite_data_length", "length"}, // the latter two are ideally the same
+                EventTypeByteRange{"invite_data", "invite_data_length", "invite_data_length"}, // they are :)
                 EventTypeByteRange{"group_name", "group_name_length", "group_name_length"}, // they are :)
             }
         },
