@@ -256,15 +256,6 @@ void tox_options_set_dht_announcements_enabled(Tox_Options *options, bool dht_an
 {
     options->dht_announcements_enabled = dht_announcements_enabled;
 }
-bool tox_options_get_experimental_thread_safety(const Tox_Options *options)
-{
-    return options->experimental_thread_safety;
-}
-void tox_options_set_experimental_thread_safety(
-    Tox_Options *options, bool experimental_thread_safety)
-{
-    options->experimental_thread_safety = experimental_thread_safety;
-}
 const Tox_System *tox_options_get_operating_system(const Tox_Options *options)
 {
     return options->operating_system;
@@ -273,14 +264,23 @@ void tox_options_set_operating_system(Tox_Options *options, const Tox_System *op
 {
     options->operating_system = operating_system;
 }
+bool tox_options_get_experimental_thread_safety(const Tox_Options *options)
+{
+    return tox_options_experiment_get_bool(options, TOX_EXPERIMENT_THREAD_SAFETY, nullptr);
+}
+void tox_options_set_experimental_thread_safety(
+    Tox_Options *options, bool experimental_thread_safety)
+{
+    tox_options_experiment_set_bool(options, TOX_EXPERIMENT_THREAD_SAFETY, experimental_thread_safety, nullptr);
+}
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options)
 {
-    return options->experimental_groups_persistence;
+    return tox_options_experiment_get_bool(options, TOX_EXPERIMENT_GROUPS_PERSISTENCE, nullptr);
 }
 void tox_options_set_experimental_groups_persistence(
     Tox_Options *options, bool experimental_groups_persistence)
 {
-    options->experimental_groups_persistence = experimental_groups_persistence;
+    tox_options_experiment_set_bool(options, TOX_EXPERIMENT_GROUPS_PERSISTENCE, experimental_groups_persistence, nullptr);
 }
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
