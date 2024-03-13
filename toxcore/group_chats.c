@@ -168,8 +168,6 @@ non_null() static void group_delete(GC_Session *c, GC_Chat *chat);
 non_null() static void group_cleanup(const GC_Session *c, GC_Chat *chat);
 non_null() static bool group_exists(const GC_Session *c, const uint8_t *chat_id);
 non_null() static void add_tcp_relays_to_chat(const GC_Session *c, GC_Chat *chat);
-non_null(1, 2) nullable(4)
-static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata);
 non_null() static void create_gc_session_keypair(const Logger *log, const Random *rng, uint8_t *public_key,
         uint8_t *secret_key);
 non_null() static size_t load_gc_peers(GC_Chat *chat, const GC_SavedPeerInfo *addrs, uint16_t num_addrs);
@@ -835,6 +833,21 @@ static int saved_peer_index(const GC_Chat *chat, const uint8_t *public_key)
     }
 
     return -1;
+}
+
+/** @brief Removes entry containing `public_key` from the saved peers list. */
+non_null()
+static void saved_peers_remove_entry(GC_Chat *chat, const uint8_t *public_key)
+{
+    const int idx = saved_peer_index(chat, public_key);
+
+    if (idx < 0) {
+        return;
+    }
+
+    chat->saved_peers[idx] = (GC_SavedPeerInfo) {
+        0
+    };
 }
 
 /** @brief Returns the index of the first vacant entry in saved peers list.
@@ -6702,6 +6715,7 @@ void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function)
  *
  * Return true on success.
  */
+non_null(1, 2) nullable(4)
 static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, void *userdata)
 {
     GC_Peer *peer = get_gc_peer(chat, peer_number);
@@ -6710,17 +6724,23 @@ static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number
         return false;
     }
 
+    GC_Connection *gconn = &peer->gconn;
+
     // We need to save some peer info for the callback before deleting it
-    const bool peer_confirmed = peer->gconn.confirmed;
+    const bool peer_confirmed = gconn->confirmed;
     const GC_Peer_Id peer_id = peer->peer_id;
     uint8_t nick[MAX_GC_NICK_SIZE];
     const uint16_t nick_length = peer->nick_length;
-    const GC_Exit_Info exit_info = peer->gconn.exit_info;
+    const GC_Exit_Info exit_info = gconn->exit_info;
 
     assert(nick_length <= MAX_GC_NICK_SIZE);
     memcpy(nick, peer->nick, nick_length);
 
-    gcc_peer_cleanup(&peer->gconn);
+    if (exit_info.exit_type == GC_EXIT_TYPE_KICKED) {
+        saved_peers_remove_entry(chat, gconn->addr.public_key.enc);
+    }
+
+    gcc_peer_cleanup(gconn);
 
     --chat->numpeers;
 
