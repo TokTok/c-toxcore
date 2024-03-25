@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "os_memory.h"
+
 namespace {
 
 TEST(Mem, AllocLarge)
@@ -25,15 +27,15 @@ TEST(Mem, AllocOverflow)
     const Memory *mem = os_memory();
 
     // 1 gibi-elements of 100 bytes each.
-    void *ptr = mem_valloc(mem, GI, 100);
+    void *ptr = mem_vrealloc(mem, nullptr, GI, 100);
     EXPECT_EQ(ptr, nullptr);
 
     // 100 elements of 1 gibibyte each.
-    ptr = mem_valloc(mem, 100, GI);
+    ptr = mem_vrealloc(mem, nullptr, 100, GI);
     EXPECT_EQ(ptr, nullptr);
 
     // 128 (a multiple of 2) elements of 1 gibibyte each.
-    ptr = mem_valloc(mem, 128, GI);
+    ptr = mem_vrealloc(mem, nullptr, 128, GI);
     EXPECT_EQ(ptr, nullptr);
 }
 

@@ -12,10 +12,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

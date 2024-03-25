@@ -7,11 +7,11 @@
 
 #include <stdint.h>     // uint*_t
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 /**
  * This implements a cache for shared keys, since key generation is expensive.

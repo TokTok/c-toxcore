@@ -7,8 +7,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "attributes.h"
 #include "logger.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

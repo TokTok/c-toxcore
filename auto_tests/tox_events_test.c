@@ -7,9 +7,11 @@
 #include <time.h>
 
 #include "../testing/misc_tools.h"
+#include "../toxcore/os_memory.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_events.h"
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_impl.h"
+#include "../toxcore/tox_time_impl.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -54,6 +56,9 @@ static uint64_t get_state_clock_callback(void *user_data)
     const uint64_t *clock = (const uint64_t *)user_data;
     return *clock;
 }
+static const Tox_Time_Funcs mock_time_funcs = {
+    get_state_clock_callback,
+};
 
 static void test_tox_events(void)
 {
@@ -70,13 +75,17 @@ static void test_tox_events(void)
         ck_assert_msg(toxes[i] != nullptr, "failed to create tox instances %u", i);
     }
 
+    const Memory *mem = os_memory();
+
     uint64_t clock = current_time_monotonic(toxes[0]->mono_time);
+    Tox_Time *tm = tox_time_new(&mock_time_funcs, &clock, mem);
+
     Mono_Time *mono_time;
 
     mono_time = toxes[0]->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
+    mono_time_set_current_time_callback(mono_time, tm);
     mono_time = toxes[1]->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, &clock);
+    mono_time_set_current_time_callback(mono_time, tm);
 
     uint8_t pk[TOX_PUBLIC_KEY_SIZE];
     tox_self_get_dht_id(toxes[0], pk);
@@ -124,6 +133,8 @@ static void test_tox_events(void)
     for (uint32_t i = 0; i < 2; ++i) {
         tox_kill(toxes[i]);
     }
+
+    tox_time_free(tm);
 }
 
 int main(void)

@@ -8,17 +8,17 @@
  */
 #include "friend_requests.h"
 
-#include <stdlib.h>
 #include <string.h>
 
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "friend_connection.h"
+#include "mem.h"
 #include "network.h"
 #include "onion.h"
 #include "onion_announce.h"
 #include "onion_client.h"
+#include "tox_attributes.h"
 
 /**
  * NOTE: The following is just a temporary fix for the multiple friend requests received at the same time problem.
@@ -32,6 +32,8 @@ struct Received_Requests {
 };
 
 struct Friend_Requests {
+    const Memory *mem;
+
     uint32_t nospam;
     fr_friend_request_cb *handle_friendrequest;
     uint8_t handle_friendrequest_isset;
@@ -164,12 +166,20 @@ void friendreq_init(Friend_Requests *fr, Friend_Connections *fr_c)
     set_friend_request_callback(fr_c, &friendreq_handlepacket, fr);
 }
 
-Friend_Requests *friendreq_new(void)
+Friend_Requests *friendreq_new(const Memory *mem)
 {
-    return (Friend_Requests *)calloc(1, sizeof(Friend_Requests));
+    Friend_Requests *fr = (Friend_Requests *)mem_alloc(mem, sizeof(Friend_Requests));
+
+    if (fr == nullptr) {
+        return nullptr;
+    }
+
+    fr->mem = mem;
+
+    return fr;
 }
 
 void friendreq_kill(Friend_Requests *fr)
 {
-    free(fr);
+    mem_delete(fr->mem, fr);
 }
