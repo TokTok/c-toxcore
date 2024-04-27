@@ -62,7 +62,7 @@ jobs:
       - run: &apt_install
           apt-get update &&
           DEBIAN_FRONTEND=noninteractive
-          apt-get install -y --no-install-recommends
+          apt-get install -y
             ca-certificates
             clang
             cmake
