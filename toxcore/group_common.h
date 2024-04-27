@@ -52,7 +52,7 @@
 #define MAX_GC_PACKET_SIZE (MAX_GC_PACKET_CHUNK_SIZE * 100)
 
 /* Max number of messages to store in the send/recv arrays */
-#define GCC_BUFFER_SIZE 8192
+#define GCC_BUFFER_SIZE 2048
 
 /** Self UDP status. Must correspond to return values from `ipport_self_copy()`. */
 typedef enum Self_UDP_Status {
