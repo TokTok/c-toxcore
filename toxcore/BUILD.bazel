@@ -478,10 +478,12 @@ cc_test(
 cc_fuzz_test(
     name = "DHT_fuzz_test",
     size = "small",
+    testonly = True,
     srcs = ["DHT_fuzz_test.cc"],
     corpus = ["//tools/toktok-fuzzer/corpus:DHT_fuzz_test"],
     deps = [
         ":DHT",
+        ":DHT_test_util",
         "//c-toxcore/testing/fuzzing:fuzz_support",
     ],
 )
