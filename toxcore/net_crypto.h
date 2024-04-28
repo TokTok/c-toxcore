@@ -20,6 +20,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 
 /*** Crypto payloads. */
@@ -417,5 +418,12 @@ void do_net_crypto(Net_Crypto *c, void *userdata);
 
 nullable(1)
 void kill_net_crypto(Net_Crypto *c);
+
+/**
+ * Returns a pointer to the net profile object for the TCP client associated with `c`.
+ * Returns null if `c` is null or the TCP_Connections associated with `c` is null.
+ */
+non_null()
+const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
 
 #endif /* C_TOXCORE_TOXCORE_NET_CRYPTO_H */

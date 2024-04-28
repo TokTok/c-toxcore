@@ -25,7 +25,7 @@ typedef struct Broadcast_Info Broadcast_Info;
  * @return true on success, false on failure.
  */
 non_null()
-bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk,
+bool lan_discovery_send(Networking_Core *net, const Broadcast_Info *broadcast, const uint8_t *dht_pk,
                         uint16_t port);
 
 /**

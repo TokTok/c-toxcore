@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 #include "onion.h"
 
@@ -51,5 +52,12 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 /** Kill the TCP server */
 nullable(1)
 void kill_tcp_server(TCP_Server *tcp_server);
+
+/** @brief Returns a pointer to the net profile associated with `tcp_server`.
+ *
+ * Returns null if `tcp_server` is null.
+ */
+nullable(1)
+const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server);
 
 #endif /* C_TOXCORE_TOXCORE_TCP_SERVER_H */
