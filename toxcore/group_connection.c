@@ -438,8 +438,7 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
         return 1;
     }
 
-    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
+    const Public_Key sender_pk = gconn->addr.public_key.enc;
 
     uint8_t *payload = nullptr;
     const uint16_t processed_len = reassemble_packet(chat->log, gconn, &payload, message_id);
@@ -455,8 +454,8 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
     }
 
     /* peer number can change from peer add operations in packet handlers */
-    peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    gconn = get_gc_connection(chat, peer_number);
+    const uint32_t updated_peer_number = get_peer_number_of_enc_pk(chat, &sender_pk, false);
+    gconn = get_gc_connection(chat, updated_peer_number);
 
     if (gconn == nullptr) {
         free(payload);
@@ -512,14 +511,13 @@ non_null(1, 2, 3, 5) nullable(6)
 static bool process_recv_array_entry(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
                                      GC_Message_Array_Entry *const array_entry, void *userdata)
 {
-    uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
-    memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
+    const Public_Key sender_pk = gconn->addr.public_key.enc;
 
     const bool ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
                      array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */
-    peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
+    peer_number = get_peer_number_of_enc_pk(chat, &sender_pk, false);
     gconn = get_gc_connection(chat, peer_number);
 
     clear_array_entry(array_entry);
@@ -629,7 +627,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connectio
     }
 
     const int enc_len = group_packet_wrap(
-                            chat->log, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
+                            chat->log, chat->rng, &chat->self_public_key.enc, gconn->session_shared_key, packet,
                             packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {

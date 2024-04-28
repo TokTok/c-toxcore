@@ -15,10 +15,10 @@
 bool pack_extended_public_key(const Extended_Public_Key *key, Bin_Pack *bp)
 {
     uint8_t ext_key[EXT_PUBLIC_KEY_SIZE];
-    static_assert(sizeof(ext_key) == sizeof(key->enc) + sizeof(key->sig),
+    static_assert(sizeof(ext_key) == sizeof(key->enc.data) + sizeof(key->sig.data),
                   "extended secret key size is not the sum of the encryption and sign secret key sizes");
-    memcpy(ext_key, key->enc, sizeof(key->enc));
-    memcpy(&ext_key[sizeof(key->enc)], key->sig, sizeof(key->sig));
+    memcpy(ext_key, key->enc.data, sizeof(key->enc.data));
+    memcpy(&ext_key[sizeof(key->enc.data)], key->sig.data, sizeof(key->sig.data));
 
     return bin_pack_bin(bp, ext_key, sizeof(ext_key));
 }
@@ -26,10 +26,10 @@ bool pack_extended_public_key(const Extended_Public_Key *key, Bin_Pack *bp)
 bool pack_extended_secret_key(const Extended_Secret_Key *key, Bin_Pack *bp)
 {
     uint8_t ext_key[EXT_SECRET_KEY_SIZE];
-    static_assert(sizeof(ext_key) == sizeof(key->enc) + sizeof(key->sig),
+    static_assert(sizeof(ext_key) == sizeof(key->enc.data) + sizeof(key->sig.data),
                   "extended secret key size is not the sum of the encryption and sign secret key sizes");
-    memcpy(ext_key, key->enc, sizeof(key->enc));
-    memcpy(&ext_key[sizeof(key->enc)], key->sig, sizeof(key->sig));
+    memcpy(ext_key, key->enc.data, sizeof(key->enc.data));
+    memcpy(&ext_key[sizeof(key->enc.data)], key->sig.data, sizeof(key->sig.data));
 
     const bool result = bin_pack_bin(bp, ext_key, sizeof(ext_key));
     crypto_memzero(ext_key, sizeof(ext_key));
@@ -44,8 +44,8 @@ bool unpack_extended_public_key(Extended_Public_Key *key, Bin_Unpack *bu)
         return false;
     }
 
-    memcpy(key->enc, ext_key, sizeof(key->enc));
-    memcpy(key->sig, &ext_key[sizeof(key->enc)], sizeof(key->sig));
+    memcpy(key->enc.data, ext_key, sizeof(key->enc.data));
+    memcpy(key->sig.data, &ext_key[sizeof(key->enc.data)], sizeof(key->sig.data));
 
     return true;
 }
@@ -58,8 +58,8 @@ bool unpack_extended_secret_key(Extended_Secret_Key *key, Bin_Unpack *bu)
         return false;
     }
 
-    memcpy(key->enc, ext_key, sizeof(key->enc));
-    memcpy(key->sig, &ext_key[sizeof(key->enc)], sizeof(key->sig));
+    memcpy(key->enc.data, ext_key, sizeof(key->enc.data));
+    memcpy(key->sig.data, &ext_key[sizeof(key->enc.data)], sizeof(key->sig.data));
     crypto_memzero(ext_key, sizeof(ext_key));
 
     return true;

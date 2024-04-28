@@ -40,44 +40,44 @@ TEST(ModList, AddRemoveMultipleMods)
 {
     Test_Memory mem;
     Moderation mods{mem};
-    uint8_t sig_pk1[32] = {1};
-    uint8_t sig_pk2[32] = {2};
-    EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk1));
-    EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk2));
-    EXPECT_TRUE(mod_list_remove_entry(&mods, sig_pk1));
-    EXPECT_TRUE(mod_list_remove_entry(&mods, sig_pk2));
+    Sign_Public_Key sig_pk1 = {{1}};
+    Sign_Public_Key sig_pk2 = {{2}};
+    EXPECT_TRUE(mod_list_add_entry(&mods, &sig_pk1));
+    EXPECT_TRUE(mod_list_add_entry(&mods, &sig_pk2));
+    EXPECT_TRUE(mod_list_remove_entry(&mods, &sig_pk1));
+    EXPECT_TRUE(mod_list_remove_entry(&mods, &sig_pk2));
 }
 
 TEST(ModList, PackingAndUnpackingList)
 {
-    using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
     Test_Memory mem;
     Moderation mods{mem};
-    EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
+    Sign_Public_Key entry{};
+    EXPECT_TRUE(mod_list_add_entry(&mods, &entry));
 
     std::vector<uint8_t> packed(mod_list_packed_size(&mods));
     mod_list_pack(&mods, packed.data());
 
-    EXPECT_TRUE(mod_list_remove_entry(&mods, ModListEntry{}.data()));
+    EXPECT_TRUE(mod_list_remove_entry(&mods, &entry));
 
     Moderation mods2{mem};
     EXPECT_EQ(mod_list_unpack(&mods2, packed.data(), packed.size(), 1), packed.size());
-    EXPECT_TRUE(mod_list_remove_entry(&mods2, ModListEntry{}.data()));
+    EXPECT_TRUE(mod_list_remove_entry(&mods2, &entry));
 }
 
 TEST(ModList, UnpackingTooManyModsFails)
 {
-    using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
     Test_Memory mem;
     Moderation mods{mem};
-    EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
+    Sign_Public_Key entry{};
+    EXPECT_TRUE(mod_list_add_entry(&mods, &entry));
 
     std::vector<uint8_t> packed(mod_list_packed_size(&mods));
     mod_list_pack(&mods, packed.data());
 
     Moderation mods2{mem};
     EXPECT_EQ(mod_list_unpack(&mods2, packed.data(), packed.size(), 2), -1);
-    EXPECT_TRUE(mod_list_remove_entry(&mods, ModListEntry{}.data()));
+    EXPECT_TRUE(mod_list_remove_entry(&mods, &entry));
 }
 
 TEST(ModList, UnpackingFromEmptyBufferFails)
@@ -115,16 +115,16 @@ TEST(ModList, RemoveEntryFromEmptyModListFails)
 {
     Test_Memory mem;
     Moderation mods{mem};
-    uint8_t sig_pk[32] = {0};
-    EXPECT_FALSE(mod_list_remove_entry(&mods, sig_pk));
+    Sign_Public_Key sig_pk = {{0}};
+    EXPECT_FALSE(mod_list_remove_entry(&mods, &sig_pk));
 }
 
 TEST(ModList, ModListRemoveIndex)
 {
     Test_Memory mem;
     Moderation mods{mem};
-    uint8_t sig_pk[32] = {1};
-    EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk));
+    Sign_Public_Key sig_pk = {{1}};
+    EXPECT_TRUE(mod_list_add_entry(&mods, &sig_pk));
     EXPECT_TRUE(mod_list_remove_index(&mods, 0));
 }
 
@@ -139,31 +139,31 @@ TEST(ModList, EmptyModListCannotVerifyAnySigPk)
 {
     Test_Memory mem;
     Moderation mods{mem};
-    uint8_t sig_pk[32] = {1};
-    EXPECT_FALSE(mod_list_verify_sig_pk(&mods, sig_pk));
+    Sign_Public_Key sig_pk = {{1}};
+    EXPECT_FALSE(mod_list_verify_sig_pk(&mods, &sig_pk));
 }
 
 TEST(ModList, ModListAddVerifyRemoveSigPK)
 {
     Test_Memory mem;
     Moderation mods{mem};
-    uint8_t sig_pk[32] = {1};
-    EXPECT_TRUE(mod_list_add_entry(&mods, sig_pk));
-    EXPECT_TRUE(mod_list_verify_sig_pk(&mods, sig_pk));
-    EXPECT_TRUE(mod_list_remove_entry(&mods, sig_pk));
-    EXPECT_FALSE(mod_list_verify_sig_pk(&mods, sig_pk));
+    Sign_Public_Key sig_pk = {{1}};
+    EXPECT_TRUE(mod_list_add_entry(&mods, &sig_pk));
+    EXPECT_TRUE(mod_list_verify_sig_pk(&mods, &sig_pk));
+    EXPECT_TRUE(mod_list_remove_entry(&mods, &sig_pk));
+    EXPECT_FALSE(mod_list_verify_sig_pk(&mods, &sig_pk));
 }
 
 TEST(ModList, ModListHashCheck)
 {
     Test_Memory mem;
     Moderation mods1{mem};
-    uint8_t sig_pk1[32] = {1};
+    Sign_Public_Key sig_pk1 = {{1}};
     std::array<uint8_t, MOD_MODERATION_HASH_SIZE> hash1;
 
-    EXPECT_TRUE(mod_list_add_entry(&mods1, sig_pk1));
+    EXPECT_TRUE(mod_list_add_entry(&mods1, &sig_pk1));
     EXPECT_TRUE(mod_list_make_hash(&mods1, hash1.data()));
-    EXPECT_TRUE(mod_list_remove_entry(&mods1, sig_pk1));
+    EXPECT_TRUE(mod_list_remove_entry(&mods1, &sig_pk1));
 }
 
 TEST(SanctionsList, PackingIntoUndersizedBufferFails)
@@ -197,8 +197,8 @@ protected:
     Moderation mod{mem};
 
     Mod_Sanction sanctions[2] = {};
-    const uint8_t sanctioned_pk1[32] = {1};
-    const uint8_t sanctioned_pk2[32] = {2};
+    const Public_Key sanctioned_pk1 = {{1}};
+    const Public_Key sanctioned_pk2 = {{2}};
 
     void SetUp() override
     {
@@ -206,31 +206,31 @@ protected:
 
         mod.log = log;
 
-        memcpy(mod.self_public_sig_key, get_sig_pk(&pk), SIG_PUBLIC_KEY_SIZE);
-        memcpy(mod.self_secret_sig_key, get_sig_sk(&sk), SIG_SECRET_KEY_SIZE);
+        mod.self_public_sig_key = pk.sig;
+        mod.self_secret_sig_key = sk.sig;
 
-        ASSERT_TRUE(mod_list_add_entry(&mod, get_sig_pk(&pk)));
+        ASSERT_TRUE(mod_list_add_entry(&mod, &pk.sig));
 
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 0));
         EXPECT_FALSE(sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], 1));
         EXPECT_FALSE(
             sanctions_list_check_integrity(&mod, &mod.sanctions_creds, &sanctions[0], UINT16_MAX));
 
-        EXPECT_TRUE(sanctions_list_make_entry(&mod, sanctioned_pk1, &sanctions[0], SA_OBSERVER));
+        EXPECT_TRUE(sanctions_list_make_entry(&mod, &sanctioned_pk1, &sanctions[0], SA_OBSERVER));
         EXPECT_TRUE(sanctions_list_check_integrity(
             &mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
-        EXPECT_TRUE(sanctions_list_make_entry(&mod, sanctioned_pk2, &sanctions[1], SA_OBSERVER));
+        EXPECT_TRUE(sanctions_list_make_entry(&mod, &sanctioned_pk2, &sanctions[1], SA_OBSERVER));
         EXPECT_TRUE(sanctions_list_check_integrity(
             &mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
     }
 
     ~SanctionsListMod() override
     {
-        EXPECT_TRUE(sanctions_list_remove_observer(&mod, sanctioned_pk1, nullptr));
-        EXPECT_TRUE(sanctions_list_remove_observer(&mod, sanctioned_pk2, nullptr));
+        EXPECT_TRUE(sanctions_list_remove_observer(&mod, &sanctioned_pk1, nullptr));
+        EXPECT_TRUE(sanctions_list_remove_observer(&mod, &sanctioned_pk2, nullptr));
         EXPECT_FALSE(sanctions_list_entry_exists(&mod, &sanctions[0]));
         EXPECT_FALSE(sanctions_list_entry_exists(&mod, &sanctions[1]));
-        EXPECT_TRUE(mod_list_remove_entry(&mod, get_sig_pk(&pk)));
+        EXPECT_TRUE(mod_list_remove_entry(&mod, &pk.sig));
 
         logger_kill(log);
     }
@@ -260,7 +260,7 @@ TEST_F(SanctionsListMod, PackUnpackSanction)
 
 TEST_F(SanctionsListMod, ReplaceSanctionSignatures)
 {
-    EXPECT_EQ(sanctions_list_replace_sig(&mod, mod.self_public_sig_key), mod.num_sanctions);
+    EXPECT_EQ(sanctions_list_replace_sig(&mod, &mod.self_public_sig_key), mod.num_sanctions);
     EXPECT_TRUE(
         sanctions_list_check_integrity(&mod, &mod.sanctions_creds, sanctions, mod.num_sanctions));
 }
