@@ -357,13 +357,14 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *new_forwarding(const Logger *log, const Random *rng, const Mono_Time *mono_time, DHT *dht)
+Forwarding *owner new_forwarding(
+    const Logger *log, const Random *rng, const Mono_Time *mono_time, DHT *dht)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;
     }
 
-    Forwarding *forwarding = (Forwarding *)calloc(1, sizeof(Forwarding));
+    Forwarding *owner forwarding = (Forwarding *owner)calloc(1, sizeof(Forwarding));
 
     if (forwarding == nullptr) {
         return nullptr;
@@ -384,7 +385,7 @@ Forwarding *new_forwarding(const Logger *log, const Random *rng, const Mono_Time
     return forwarding;
 }
 
-void kill_forwarding(Forwarding *forwarding)
+void kill_forwarding(Forwarding *owner forwarding)
 {
     if (forwarding == nullptr) {
         return;

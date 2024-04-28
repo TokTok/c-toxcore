@@ -120,7 +120,7 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
         // There aren't as many bytes as this bin claims to want to allocate.
         return false;
     }
-    uint8_t *const data = (uint8_t *)malloc(bin_size);
+    uint8_t *const owner data = (uint8_t *owner)malloc(bin_size);
 
     if (!bin_unpack_bin_b(bu, data, bin_size)) {
         free(data);

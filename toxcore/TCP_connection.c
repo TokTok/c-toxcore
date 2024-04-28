@@ -34,10 +34,10 @@ struct TCP_Connections {
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
 
-    TCP_Connection_to *connections;
+    TCP_Connection_to *owner connections;
     uint32_t connections_length; /* Length of connections array. */
 
-    TCP_con *tcp_connections;
+    TCP_con *owner tcp_connections;
     uint32_t tcp_connections_length; /* Length of tcp_connections array. */
 
     tcp_data_cb *tcp_data_callback;
@@ -77,7 +77,7 @@ uint32_t tcp_connections_count(const TCP_Connections *tcp_c)
  * @retval 0 if it succeeds.
  */
 non_null()
-static int realloc_tcp_connection_to(const Memory *mem, TCP_Connection_to **array, size_t num)
+static int realloc_tcp_connection_to(const Memory *mem, TCP_Connection_to *owner *array, size_t num)
 {
     if (num == 0) {
         mem_delete(mem, *array);
@@ -85,8 +85,8 @@ static int realloc_tcp_connection_to(const Memory *mem, TCP_Connection_to **arra
         return 0;
     }
 
-    TCP_Connection_to *temp_pointer =
-        (TCP_Connection_to *)mem_vrealloc(mem, *array, num, sizeof(TCP_Connection_to));
+    TCP_Connection_to *owner temp_pointer =
+        (TCP_Connection_to *owner)mem_vrealloc(mem, *array, num, sizeof(TCP_Connection_to));
 
     if (temp_pointer == nullptr) {
         return -1;
@@ -98,7 +98,7 @@ static int realloc_tcp_connection_to(const Memory *mem, TCP_Connection_to **arra
 }
 
 non_null()
-static int realloc_tcp_con(const Memory *mem, TCP_con **array, size_t num)
+static int realloc_tcp_con(const Memory *mem, TCP_con *owner *array, size_t num)
 {
     if (num == 0) {
         mem_delete(mem, *array);
@@ -106,7 +106,8 @@ static int realloc_tcp_con(const Memory *mem, TCP_con **array, size_t num)
         return 0;
     }
 
-    TCP_con *temp_pointer = (TCP_con *)mem_vrealloc(mem, *array, num, sizeof(TCP_con));
+    TCP_con *owner temp_pointer =
+        (TCP_con *owner)mem_vrealloc(mem, *array, num, sizeof(TCP_con));
 
     if (temp_pointer == nullptr) {
         return -1;
@@ -1603,7 +1604,7 @@ TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, co
         return nullptr;
     }
 
-    TCP_Connections *temp = (TCP_Connections *)mem_alloc(mem, sizeof(TCP_Connections));
+    TCP_Connections *owner temp = (TCP_Connections *owner)mem_alloc(mem, sizeof(TCP_Connections));
 
     if (temp == nullptr) {
         return nullptr;
@@ -1711,7 +1712,7 @@ void do_tcp_connections(const Logger *logger, TCP_Connections *tcp_c, void *user
     kill_nonused_tcp(tcp_c);
 }
 
-void kill_tcp_connections(TCP_Connections *tcp_c)
+void kill_tcp_connections(TCP_Connections *owner tcp_c)
 {
     if (tcp_c == nullptr) {
         return;

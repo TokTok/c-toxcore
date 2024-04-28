@@ -111,10 +111,10 @@ typedef struct Group_c {
     bool need_send_name;
     bool title_fresh;
 
-    Group_Peer *group;
+    Group_Peer *owner group;
     uint32_t numpeers;
 
-    Group_Peer *frozen;
+    Group_Peer *owner frozen;
     uint32_t numfrozen;
 
     uint32_t maxfrozen;
@@ -152,7 +152,7 @@ struct Group_Chats {
     Messenger *m;
     Friend_Connections *fr_c;
 
-    Group_c *chats;
+    Group_c *owner chats;
     uint16_t num_chats;
 
     g_conference_invite_cb *invite_callback;
@@ -258,7 +258,7 @@ static bool realloc_conferences(Group_Chats *g_c, uint16_t num)
         return true;
     }
 
-    Group_c *newgroup_chats = (Group_c *)realloc(g_c->chats, num * sizeof(Group_c));
+    Group_c *owner newgroup_chats = (Group_c *owner)realloc(g_c->chats, num * sizeof(Group_c));
 
     if (newgroup_chats == nullptr) {
         return false;
@@ -683,7 +683,7 @@ static bool delete_frozen(Group_c *g, uint32_t frozen_index)
             g->frozen[frozen_index] = g->frozen[g->numfrozen];
         }
 
-        Group_Peer *const frozen_temp = (Group_Peer *)realloc(g->frozen, g->numfrozen * sizeof(Group_Peer));
+        Group_Peer *const owner frozen_temp = (Group_Peer *owner)realloc(g->frozen, g->numfrozen * sizeof(Group_Peer));
 
         if (frozen_temp == nullptr) {
             return false;
@@ -724,7 +724,7 @@ static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t pee
 
     /* Now thaw the peer */
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
+    Group_Peer *owner temp = (Group_Peer *owner)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return -1;
@@ -837,7 +837,7 @@ static int addpeer(Group_Chats *g_c, uint32_t groupnumber, const uint8_t *real_p
 
     delete_any_peer_with_pk(g_c, groupnumber, real_pk, userdata);
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
+    Group_Peer *owner temp = (Group_Peer *owner)realloc(g->group, (g->numpeers + 1) * sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return -1;
@@ -935,7 +935,7 @@ static bool delpeer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, void
             g->group[peer_index] = g->group[g->numpeers];
         }
 
-        Group_Peer *temp = (Group_Peer *)realloc(g->group, g->numpeers * sizeof(Group_Peer));
+        Group_Peer *owner temp = (Group_Peer *owner)realloc(g->group, g->numpeers * sizeof(Group_Peer));
 
         if (temp == nullptr) {
             return false;
@@ -989,7 +989,7 @@ static bool delete_old_frozen(Group_c *g)
 
     qsort(g->frozen, g->numfrozen, sizeof(Group_Peer), cmp_frozen);
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->frozen, g->maxfrozen * sizeof(Group_Peer));
+    Group_Peer *owner temp = (Group_Peer *owner)realloc(g->frozen, g->maxfrozen * sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return false;
@@ -1014,7 +1014,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
         return false;
     }
 
-    Group_Peer *temp = (Group_Peer *)realloc(g->frozen, (g->numfrozen + 1) * sizeof(Group_Peer));
+    Group_Peer *owner temp = (Group_Peer *owner)realloc(g->frozen, (g->numfrozen + 1) * sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return false;
@@ -3612,7 +3612,7 @@ static uint32_t load_group(Group_c *g, const Group_Chats *g_c, const uint8_t *da
         }
 
         // This is inefficient, but allows us to check data consistency before allocating memory
-        Group_Peer *tmp_frozen = (Group_Peer *)realloc(g->frozen, (j + 1) * sizeof(Group_Peer));
+        Group_Peer *owner tmp_frozen = (Group_Peer *owner)realloc(g->frozen, (j + 1) * sizeof(Group_Peer));
 
         if (tmp_frozen == nullptr) {
             // Memory allocation failure
@@ -3758,7 +3758,7 @@ Group_Chats *new_groupchats(const Mono_Time *mono_time, Messenger *m)
         return nullptr;
     }
 
-    Group_Chats *temp = (Group_Chats *)calloc(1, sizeof(Group_Chats));
+    Group_Chats *owner temp = (Group_Chats *owner)calloc(1, sizeof(Group_Chats));
 
     if (temp == nullptr) {
         return nullptr;
@@ -3801,7 +3801,7 @@ void do_groupchats(Group_Chats *g_c, void *userdata)
 }
 
 /** Free everything related with group chats. */
-void kill_groupchats(Group_Chats *g_c)
+void kill_groupchats(Group_Chats *owner g_c)
 {
     if (g_c == nullptr) {
         return;
