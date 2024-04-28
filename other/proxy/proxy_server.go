@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	debug      = false
-	httpAddr   = ":8080"
-	socks5Addr = ":8081"
+	debug                          = false
+	httpAddr                       = "127.0.0.1:8080"
+	socks5NoAuthAddr               = "127.0.0.1:8081"
+	socks5UsernamePasswordAuthAddr = "127.0.0.1:8082"
 )
 
 func handleTunneling(w http.ResponseWriter, r *http.Request) {
@@ -75,11 +76,19 @@ func main() {
 		TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 	}
 
-	log.Printf("starting SOCKS5 proxy server on %s", socks5Addr)
-	socks5Server := socks5.NewServer(
-		socks5.WithLogger(socks5.NewLogger(log.New(os.Stdout, "socks5: ", log.LstdFlags))),
+	log.Printf("starting SOCKS5 no-auth proxy server on %s", socks5NoAuthAddr)
+	socks5NoAuthServer := socks5.NewServer(
+		socks5.WithLogger(socks5.NewLogger(log.New(os.Stdout, "socks5 no-auth: ", log.LstdFlags))),
 	)
 
-	go socks5Server.ListenAndServe("tcp", socks5Addr)
+	log.Printf("starting SOCKS5 username/password auth proxy server on %s", socks5UsernamePasswordAuthAddr)
+	authenticator := socks5.UserPassAuthenticator{socks5.StaticCredentials{"nurupo": "hunter2"}}
+	socks5UsernamePasswordAuthServer := socks5.NewServer(
+		socks5.WithAuthMethods([]socks5.Authenticator{authenticator}),
+		socks5.WithLogger(socks5.NewLogger(log.New(os.Stdout, "socks5 username/password auth: ", log.LstdFlags))),
+	)
+
+	go socks5NoAuthServer.ListenAndServe("tcp", socks5NoAuthAddr)
+	go socks5UsernamePasswordAuthServer.ListenAndServe("tcp", socks5UsernamePasswordAuthAddr)
 	log.Fatal(httpServer.ListenAndServe())
 }
