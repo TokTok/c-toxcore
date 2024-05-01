@@ -21,6 +21,11 @@
 #include "ring_buffer.h"
 #include "rtp.h"
 
+#ifndef TOX_DEFINED
+#define TOX_DEFINED
+typedef struct Tox Tox;
+#endif /* TOX_DEFINED */
+
 typedef struct VCSession {
     /* encoding */
     vpx_codec_ctx_t encoder[1];
@@ -33,7 +38,6 @@ typedef struct VCSession {
     uint64_t linfts; /* Last received frame time stamp */
     uint32_t lcfd; /* Last calculated frame duration for incoming video payload */
 
-    const Logger *log;
     ToxAV *av;
     uint32_t friend_number;
 
@@ -42,9 +46,10 @@ typedef struct VCSession {
     void *vcb_user_data;
 
     pthread_mutex_t queue_mutex[1];
+    const Logger *log;
 } VCSession;
 
-VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
+VCSession *vc_new(const Logger *log, Mono_Time *mono_time, ToxAV *av, uint32_t friend_number,
                   toxav_video_receive_frame_cb *cb, void *cb_data);
 void vc_kill(VCSession *vc);
 void vc_iterate(VCSession *vc);

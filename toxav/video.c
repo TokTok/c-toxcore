@@ -143,7 +143,7 @@ static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int
 #endif /* 0 */
 }
 
-VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
+VCSession *vc_new(const Logger *log, Mono_Time *mono_time, ToxAV *av, uint32_t friend_number,
                   toxav_video_receive_frame_cb *cb, void *cb_data)
 {
     VCSession *vc = (VCSession *)calloc(1, sizeof(VCSession));
@@ -216,7 +216,7 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
 
     /* Set encoder to some initial values
      */
-    vpx_codec_enc_cfg_t  cfg;
+    vpx_codec_enc_cfg_t cfg;
     vc_init_encoder_cfg(log, &cfg, 1);
 
     LOGGER_DEBUG(log, "Using VP8 codec for encoder (0.1)");
@@ -250,6 +250,7 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
     }
 
 #endif /* 0 */
+
     vc->linfts = current_time_monotonic(mono_time);
     vc->lcfd = 60;
     vc->vcb = cb;
@@ -258,12 +259,14 @@ VCSession *vc_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t f
     vc->av = av;
     vc->log = log;
     return vc;
+
 BASE_CLEANUP_1:
     vpx_codec_destroy(vc->decoder);
 BASE_CLEANUP:
     pthread_mutex_destroy(vc->queue_mutex);
     rb_kill(vc->vbuf_raw);
     free(vc);
+
     return nullptr;
 }
 
