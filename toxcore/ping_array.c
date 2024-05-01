@@ -10,11 +10,11 @@
 
 #include <string.h>
 
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 typedef struct Ping_Array_Entry {
     uint8_t *data;

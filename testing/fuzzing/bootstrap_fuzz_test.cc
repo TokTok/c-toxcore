@@ -104,6 +104,7 @@ void TestBootstrap(Fuzz_Data &input)
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
     assert(opts != nullptr);
+    tox_options_set_operating_system(opts.get(), sys.sys.get());
 
     tox_options_set_log_callback(opts.get(),
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
@@ -133,12 +134,8 @@ void TestBootstrap(Fuzz_Data &input)
         tox_options_set_tcp_port(opts.get(), 33445);
     }
 
-    Tox_Options_Testing tox_options_testing;
-    tox_options_testing.operating_system = sys.sys.get();
-
     Tox_Err_New error_new;
-    Tox_Err_New_Testing error_new_testing;
-    Tox *tox = tox_new_testing(opts.get(), &error_new, &tox_options_testing, &error_new_testing);
+    Tox *tox = tox_new(opts.get(), &error_new);
 
     if (tox == nullptr) {
         // It might fail, because some I/O happens in tox_new, and the fuzzer
@@ -147,7 +144,6 @@ void TestBootstrap(Fuzz_Data &input)
     }
 
     assert(error_new == TOX_ERR_NEW_OK);
-    assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
 
     uint8_t pub_key[TOX_PUBLIC_KEY_SIZE] = {0};
 

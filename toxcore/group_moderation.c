@@ -11,16 +11,16 @@
 
 #include <assert.h>
 
-#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
 #include "DHT.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
+#include "mem.h"
 #include "network.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 static_assert(MOD_SANCTIONS_CREDS_SIZE <= MAX_PACKET_SIZE_NO_HEADERS,
@@ -51,7 +51,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length
         return 0;
     }
 
-    uint8_t **tmp_list = (uint8_t **)calloc(num_mods, sizeof(uint8_t *));
+    uint8_t **tmp_list = (uint8_t **)mem_valloc(moderation->mem, num_mods, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return -1;
@@ -60,7 +60,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length
     uint16_t unpacked_len = 0;
 
     for (uint16_t i = 0; i < num_mods; ++i) {
-        uint8_t *entry = (uint8_t *)malloc(MOD_LIST_ENTRY_SIZE);
+        uint8_t *entry = (uint8_t *)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
 
         if (entry == nullptr) {
             free_uint8_t_pointer_array(moderation->mem, tmp_list, i);
@@ -102,7 +102,7 @@ bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
 
     assert(data_buf_size > 0);
 
-    uint8_t *data = (uint8_t *)malloc(data_buf_size);
+    uint8_t *data = (uint8_t *)mem_balloc(moderation->mem, data_buf_size);
 
     if (data == nullptr) {
         return false;
@@ -112,7 +112,7 @@ bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
 
     mod_list_get_data_hash(hash, data, data_buf_size);
 
-    free(data);
+    mem_delete(moderation->mem, data);
 
     return true;
 }
@@ -166,10 +166,10 @@ bool mod_list_remove_index(Moderation *moderation, uint16_t index)
                MOD_LIST_ENTRY_SIZE);
     }
 
-    free(moderation->mod_list[moderation->num_mods]);
+    mem_delete(moderation->mem, moderation->mod_list[moderation->num_mods]);
     moderation->mod_list[moderation->num_mods] = nullptr;
 
-    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, moderation->num_mods * sizeof(uint8_t *));
+    uint8_t **tmp_list = (uint8_t **)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return false;
@@ -203,7 +203,7 @@ bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
         return false;
     }
 
-    uint8_t **tmp_list = (uint8_t **)realloc(moderation->mod_list, (moderation->num_mods + 1) * sizeof(uint8_t *));
+    uint8_t **tmp_list = (uint8_t **)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods + 1, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return false;
@@ -211,7 +211,7 @@ bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
 
     moderation->mod_list = tmp_list;
 
-    uint8_t *entry = (uint8_t *)malloc(MOD_LIST_ENTRY_SIZE);
+    uint8_t *entry = (uint8_t *)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
 
     if (entry == nullptr) {
         return false;
@@ -405,9 +405,9 @@ int sanctions_list_unpack(Mod_Sanction *sanctions, Mod_Sanction_Creds *creds, ui
  *
  * Return true on success.
  */
-non_null(4) nullable(1)
+non_null(4, 5) nullable(1)
 static bool sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new_version, uint16_t num_sanctions,
-                                     uint8_t *hash)
+                                     uint8_t *hash, const Memory *mem)
 {
     if (num_sanctions == 0 || sanctions == nullptr) {
         memzero(hash, MOD_SANCTION_HASH_SIZE);
@@ -422,7 +422,7 @@ static bool sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new
         return false;
     }
 
-    uint8_t *data = (uint8_t *)malloc(data_buf_size);
+    uint8_t *data = (uint8_t *)mem_balloc(mem, data_buf_size);
 
     if (data == nullptr) {
         return false;
@@ -435,7 +435,7 @@ static bool sanctions_list_make_hash(const Mod_Sanction *sanctions, uint32_t new
     memcpy(&data[sig_data_size], &new_version, sizeof(uint32_t));
     crypto_sha256(hash, data, data_buf_size);
 
-    free(data);
+    mem_delete(mem, data);
 
     return true;
 }
@@ -493,7 +493,7 @@ bool sanctions_list_make_creds(Moderation *moderation)
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
     if (!sanctions_list_make_hash(moderation->sanctions, moderation->sanctions_creds.version,
-                                  moderation->num_sanctions, hash)) {
+                                  moderation->num_sanctions, hash, moderation->mem)) {
         moderation->sanctions_creds = old_creds;
         return false;
     }
@@ -533,7 +533,7 @@ static bool sanctions_creds_validate(const Moderation *moderation, const Mod_San
 
     uint8_t hash[MOD_SANCTION_HASH_SIZE];
 
-    if (!sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash)) {
+    if (!sanctions_list_make_hash(sanctions, creds->version, num_sanctions, hash, moderation->mem)) {
         return false;
     }
 
@@ -612,9 +612,9 @@ static bool sanctions_apply_new(Moderation *moderation, Mod_Sanction *new_sancti
  * memory returned by this function.
  */
 non_null()
-static Mod_Sanction *sanctions_list_copy(const Mod_Sanction *sanctions, uint16_t num_sanctions)
+static Mod_Sanction *sanctions_list_copy(const Mod_Sanction *sanctions, uint16_t num_sanctions, const Memory *mem)
 {
-    Mod_Sanction *copy = (Mod_Sanction *)calloc(num_sanctions, sizeof(Mod_Sanction));
+    Mod_Sanction *copy = (Mod_Sanction *)mem_valloc(mem, num_sanctions, sizeof(Mod_Sanction));
 
     if (copy == nullptr) {
         return nullptr;
@@ -655,7 +655,7 @@ static bool sanctions_list_remove_index(Moderation *moderation, uint16_t index, 
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->sanctions, moderation->num_sanctions);
+    Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->sanctions, moderation->num_sanctions, moderation->mem);
 
     if (sanctions_copy == nullptr) {
         return false;
@@ -665,15 +665,15 @@ static bool sanctions_list_remove_index(Moderation *moderation, uint16_t index, 
         sanctions_copy[index] = sanctions_copy[new_num];
     }
 
-    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, new_num * sizeof(Mod_Sanction));
+    Mod_Sanction *new_list = (Mod_Sanction *)mem_vrealloc(moderation->mem, sanctions_copy, new_num, sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
-        free(sanctions_copy);
+        mem_delete(moderation->mem, sanctions_copy);
         return false;
     }
 
     if (!sanctions_apply_new(moderation, new_list, creds, new_num)) {
-        free(new_list);
+        mem_delete(moderation->mem, new_list);
         return false;
     }
 
@@ -753,7 +753,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
     Mod_Sanction *sanctions_copy = nullptr;
 
     if (moderation->num_sanctions > 0) {
-        sanctions_copy = sanctions_list_copy(moderation->sanctions, moderation->num_sanctions);
+        sanctions_copy = sanctions_list_copy(moderation->sanctions, moderation->num_sanctions, moderation->mem);
 
         if (sanctions_copy == nullptr) {
             return false;
@@ -761,17 +761,17 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
     }
 
     const uint16_t index = moderation->num_sanctions;
-    Mod_Sanction *new_list = (Mod_Sanction *)realloc(sanctions_copy, (index + 1) * sizeof(Mod_Sanction));
+    Mod_Sanction *new_list = (Mod_Sanction *)mem_vrealloc(moderation->mem, sanctions_copy, index + 1, sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
-        free(sanctions_copy);
+        mem_delete(moderation->mem, sanctions_copy);
         return false;
     }
 
     new_list[index] = *sanction;
 
     if (!sanctions_apply_new(moderation, new_list, creds, index + 1)) {
-        free(new_list);
+        mem_delete(moderation->mem, new_list);
         return false;
     }
 
@@ -864,7 +864,7 @@ uint16_t sanctions_list_replace_sig(Moderation *moderation, const uint8_t *publi
 
 void sanctions_list_cleanup(Moderation *moderation)
 {
-    free(moderation->sanctions);
+    mem_delete(moderation->mem, moderation->sanctions);
 
     moderation->sanctions = nullptr;
     moderation->num_sanctions = 0;

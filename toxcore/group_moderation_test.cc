@@ -191,9 +191,9 @@ struct SanctionsListMod : ::testing::Test {
 protected:
     Extended_Public_Key pk;
     Extended_Secret_Key sk;
-    Logger *log = logger_new();
     Test_Random rng;
     Test_Memory mem;
+    Logger *log = logger_new(mem);
     Moderation mod{mem};
 
     Mod_Sanction sanctions[2] = {};

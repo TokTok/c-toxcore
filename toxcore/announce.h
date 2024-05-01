@@ -7,12 +7,12 @@
 
 #include <stdint.h>
 
-#include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 #define MAX_ANNOUNCEMENT_SIZE 512
 

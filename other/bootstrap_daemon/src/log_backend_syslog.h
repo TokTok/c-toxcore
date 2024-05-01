@@ -12,7 +12,7 @@
 
 #include <stdarg.h>
 
-#include "../../../toxcore/attributes.h"
+#include "../../../toxcore/tox_attributes.h"
 #include "log.h"
 
 void log_backend_syslog_open(void);

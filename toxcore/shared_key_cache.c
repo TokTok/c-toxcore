@@ -7,12 +7,12 @@
 #include <stdint.h>
 #include <string.h>     // memcpy(...)
 
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "tox_attributes.h"
 
 typedef struct Shared_Key {
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];

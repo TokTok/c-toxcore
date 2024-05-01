@@ -14,7 +14,6 @@
 #include "TCP_client.h"
 #include "TCP_server.h"
 #include "announce.h"
-#include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
 #include "friend_connection.h"
@@ -30,6 +29,7 @@
 #include "onion_announce.h"
 #include "onion_client.h"
 #include "state.h"
+#include "tox_attributes.h"
 
 #define MAX_NAME_LENGTH 128
 /* TODO(irungentoo): this must depend on other variable. */

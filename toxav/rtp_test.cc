@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "../toxcore/crypto_core.h"
+#include "../toxcore/os_random.h"
 
 namespace {
 

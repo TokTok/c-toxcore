@@ -10,10 +10,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "crypto_core.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

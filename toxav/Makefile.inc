@@ -1,8 +1,9 @@
 if BUILD_AV
 
 lib_LTLIBRARIES +=  libtoxav.la
-                    libtoxav_la_include_HEADERS = ../toxav/toxav.h
-                    libtoxav_la_includedir = $(includedir)/tox
+
+libtoxav_la_include_HEADERS = ../toxav/toxav.h
+libtoxav_la_includedir = $(includedir)/tox/toxav
 
 libtoxav_la_SOURCES = ../toxav/rtp.h \
                     ../toxav/rtp.c \

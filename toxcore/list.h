@@ -15,7 +15,8 @@
 #include <stddef.h>  // size_t
 #include <stdint.h>
 
-#include "attributes.h"
+#include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,6 +25,8 @@ extern "C" {
 typedef int bs_list_cmp_cb(const void *a, const void *b, size_t size);
 
 typedef struct BS_List {
+    const Memory *mem;
+
     uint32_t n; // number of elements
     uint32_t capacity; // number of elements memory is allocated for
     uint32_t element_size; // size of the elements
@@ -41,7 +44,7 @@ typedef struct BS_List {
  * @retval 0 failure
  */
 non_null()
-int bs_list_init(BS_List *list, uint32_t element_size, uint32_t initial_capacity, bs_list_cmp_cb *cmp_callback);
+int bs_list_init(BS_List *list, uint32_t element_size, uint32_t initial_capacity, bs_list_cmp_cb *cmp_callback, const Memory *mem);
 
 /** Free a list initiated with list_init */
 nullable(1)
