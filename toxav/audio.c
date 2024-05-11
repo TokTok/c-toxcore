@@ -378,6 +378,21 @@ static OpusEncoder *create_audio_encoder(const Logger *log, uint32_t bit_rate, u
     }
 
     /*
+     * The libopus library defaults to VBR, which is unsafe in any VoIP environment
+     * (see for example doi:10.1109/SP.2011.34). Switching to CBR very slightly
+     * decreases audio quality at lower bitrates.
+     *
+     * Parameters:
+     *  `[in]`    `x`   `opus_int32`: Whether to use VBR mode, 1 (VBR) is default
+     */
+    status = opus_encoder_ctl(rc, OPUS_SET_VBR(0));
+
+    if (status != OPUS_OK) {
+        LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
+        goto FAILURE;
+    }
+
+    /*
      * Configures the encoder's use of inband forward error correction.
      * Note:
      *   This is only applicable to the LPC layer
