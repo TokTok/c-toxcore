@@ -70,6 +70,7 @@ typedef struct Messenger_State_Plugin {
 
 typedef struct Messenger_Options {
     bool ipv6enabled;
+    bool noise_compatibility_enabled;
     bool udp_disabled;
     TCP_Proxy_Info proxy_info;
     uint16_t port_range[2];

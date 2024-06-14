@@ -668,6 +668,16 @@ struct Tox_Options {
      * Default: false.
      */
     bool experimental_groups_persistence;
+
+    /**
+     * Compatibility for old non-Noise handshake.
+     *
+     * If this is set to false, non-Noise handshake
+     * will not work anymore.
+     *
+     * Default: true.
+     */
+    bool noise_compatibility_enabled;
 };
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
@@ -741,6 +751,10 @@ void tox_options_set_experimental_thread_safety(Tox_Options *options, bool exper
 bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
 
 void tox_options_set_experimental_groups_persistence(Tox_Options *options, bool experimental_groups_persistence);
+
+bool tox_options_get_noise_compatibility_enabled(const struct Tox_Options *options);
+
+void tox_options_set_noise_compatibility_enabled(struct Tox_Options *options, bool noise_compatibility_enabled);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
