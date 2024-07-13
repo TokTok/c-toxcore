@@ -378,7 +378,7 @@ non_null()
 void ip_reset(IP *ip);
 /** nulls out ip_port */
 non_null()
-void ipport_reset(IP_Port *ipport);
+void ipport_reset(IP_Port *ip_port);
 /** nulls out ip, sets family according to flag */
 non_null()
 void ip_init(IP *ip, bool ipv6enabled);

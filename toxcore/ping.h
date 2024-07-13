@@ -22,7 +22,7 @@
 typedef struct Ping Ping;
 
 non_null()
-Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht);
+Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Logger *log, const Random *rng, DHT *dht);
 
 non_null(1) nullable(2)
 void ping_kill(const Memory *mem, Ping *ping);
