@@ -12,6 +12,7 @@
 
 #include "auto_test_support.h"
 #include "check_compat.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 
 typedef struct State {

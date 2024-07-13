@@ -5,9 +5,9 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_UNPACK_H
 #define C_TOXCORE_TOXCORE_TOX_UNPACK_H
 
-#include "attributes.h"
 #include "bin_unpack.h"
 #include "tox.h"
+#include "tox_attributes.h"
 
 non_null() bool tox_conference_type_unpack(Tox_Conference_Type *val, Bin_Unpack *bu);
 non_null() bool tox_connection_unpack(Tox_Connection *val, Bin_Unpack *bu);

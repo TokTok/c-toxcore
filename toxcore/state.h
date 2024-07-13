@@ -17,8 +17,8 @@
 #ifndef C_TOXCORE_TOXCORE_STATE_H
 #define C_TOXCORE_TOXCORE_STATE_H
 
-#include "attributes.h"
 #include "logger.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

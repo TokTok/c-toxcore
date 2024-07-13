@@ -10,7 +10,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_impl.h"
 #include "../toxcore/util.h"
 
 #define GROUP_JBUF_SIZE 6

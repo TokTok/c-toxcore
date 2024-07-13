@@ -13,7 +13,6 @@
 
 #include "DHT.h"
 #include "TCP_client.h"
-#include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -21,6 +20,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_attributes.h"
 #include "util.h"
 
 struct TCP_Connections {

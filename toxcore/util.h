@@ -15,8 +15,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
 #include "mem.h"
+#include "tox_attributes.h"
 
 #ifdef __cplusplus
 extern "C" {

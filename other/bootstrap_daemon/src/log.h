@@ -12,7 +12,7 @@
 
 #include <stdbool.h>
 
-#include "../../../toxcore/attributes.h"
+#include "../../../toxcore/tox_attributes.h"
 
 typedef enum LOG_BACKEND {
     LOG_BACKEND_STDOUT,
