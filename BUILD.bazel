@@ -3,7 +3,17 @@ load("//tools/project:build_defs.bzl", "project")
 
 project(license = "gpl3-https")
 
-genrule(
+filegroup(
+    name = "legacy_headers",
+    srcs = [
+        "tox/tox.h",
+        "tox/toxav.h",
+        "tox/toxencryptsave.h",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
     name = "public_headers",
     srcs = [
         "//c-toxcore/toxav:toxav.h",
@@ -11,25 +21,16 @@ genrule(
         "//c-toxcore/toxcore:tox_private.h",
         "//c-toxcore/toxencryptsave:toxencryptsave.h",
     ],
-    outs = [
-        "tox/toxav.h",
-        "tox/tox.h",
-        "tox/tox_private.h",
-        "tox/toxencryptsave.h",
-    ],
-    cmd = """
-        cp $(location //c-toxcore/toxav:toxav.h) $(GENDIR)/c-toxcore/tox/toxav.h
-        cp $(location //c-toxcore/toxcore:tox.h) $(GENDIR)/c-toxcore/tox/tox.h
-        cp $(location //c-toxcore/toxcore:tox_private.h) $(GENDIR)/c-toxcore/tox/tox_private.h
-        cp $(location //c-toxcore/toxencryptsave:toxencryptsave.h) $(GENDIR)/c-toxcore/tox/toxencryptsave.h
-    """,
     visibility = ["//visibility:public"],
 )
 
 cc_library(
     name = "c-toxcore",
-    hdrs = [":public_headers"],
-    includes = ["."],
+    hdrs = [
+        ":legacy_headers",
+        ":public_headers",
+    ],
+    strip_include_prefix = ".",
     visibility = ["//visibility:public"],
     deps = [
         "//c-toxcore/toxav",
