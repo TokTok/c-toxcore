@@ -15,6 +15,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/tox.h"
 #include "../toxcore/util.h"
 
 /**
@@ -27,16 +28,12 @@
  * return -1 on failure, 0 on success
  *
  */
-static int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length)
+static Tox_Err_Friend_Custom_Packet rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length)
 {
     Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossy_packet(tox, friendnumber, data, (size_t)length, &error);
 
-    if (error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-        return 0;
-    }
-
-    return -1;
+    return error;
 }
 
 // allocate_len is NOT including header!
@@ -810,6 +807,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type
 
+    Tox_Err_Friend_Custom_Packet error;
     if (MAX_CRYPTO_DATA_SIZE > (length + RTP_HEADER_SIZE + 1)) {
         /*
          * The length is lesser than the maximum allowed length (including header)
@@ -818,12 +816,8 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         rtp_header_pack(rdata + 1, &header);
         memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
 
-        if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size)) {
-            char *netstrerror = net_new_strerror(net_error());
-            LOGGER_WARNING(session->m->log, "RTP send failed (len: %u)! net error: %s",
-                           rdata_size, netstrerror);
-            net_kill_strerror(netstrerror);
-        }
+        error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size);
+        rtp_report_error_maybe(error, session, rdata_size);
     } else {
         /*
          * The length is greater than the maximum allowed length (including header)
@@ -836,13 +830,9 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number,
-                                                   rdata, piece + RTP_HEADER_SIZE + 1)) {
-                char *netstrerror = net_new_strerror(net_error());
-                LOGGER_WARNING(session->m->log, "RTP send failed (len: %d)! net error: %s",
-                               piece + RTP_HEADER_SIZE + 1, netstrerror);
-                net_kill_strerror(netstrerror);
-            }
+            error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
+                    rdata, piece + RTP_HEADER_SIZE + 1);
+            rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
 
             sent += piece;
             header.offset_lower = sent;
@@ -856,16 +846,29 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
-                                                   piece + RTP_HEADER_SIZE + 1)) {
-                char *netstrerror = net_new_strerror(net_error());
-                LOGGER_WARNING(session->m->log, "RTP send failed (len: %d)! net error: %s",
-                               piece + RTP_HEADER_SIZE + 1, netstrerror);
-                net_kill_strerror(netstrerror);
-            }
+            error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
+                    piece + RTP_HEADER_SIZE + 1);
+            rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
         }
     }
 
     ++session->sequnum;
     return 0;
+}
+
+/**
+ * Log the neterror error if any.
+ *
+ * @param error the error from rtp_send_custom_lossy_packet.
+ * @param session The A/V session to send the data for.
+ * @param length The package length to be shown in the log.
+ */
+void rtp_report_error_maybe(Tox_Err_Friend_Custom_Packet error, RTPSession *session, uint16_t rdata_size){
+	if (TOX_ERR_FRIEND_CUSTOM_PACKET_OK != error) {
+		char *netstrerror = net_new_strerror(net_error());
+		const char *toxerror = tox_err_friend_custom_packet_to_string(error);
+		LOGGER_WARNING(session->m->log, "RTP send failed (len: %u)! tox error: %s net error: %s",
+					   rdata_size, toxerror, netstrerror);
+		net_kill_strerror(netstrerror);
+	}
 }
