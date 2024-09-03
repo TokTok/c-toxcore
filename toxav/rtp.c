@@ -831,7 +831,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
             error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
-                    rdata, piece + RTP_HEADER_SIZE + 1);
+                                                 rdata, piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
 
             sent += piece;
@@ -847,7 +847,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
             error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
-                    piece + RTP_HEADER_SIZE + 1);
+                                                 piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
         }
     }
@@ -861,14 +861,15 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
  *
  * @param error the error from rtp_send_custom_lossy_packet.
  * @param session The A/V session to send the data for.
- * @param length The package length to be shown in the log.
+ * @param rdata_size The package length to be shown in the log.
  */
-void rtp_report_error_maybe(Tox_Err_Friend_Custom_Packet error, RTPSession *session, uint16_t rdata_size){
-	if (TOX_ERR_FRIEND_CUSTOM_PACKET_OK != error) {
-		char *netstrerror = net_new_strerror(net_error());
-		const char *toxerror = tox_err_friend_custom_packet_to_string(error);
-		LOGGER_WARNING(session->m->log, "RTP send failed (len: %u)! tox error: %s net error: %s",
-					   rdata_size, toxerror, netstrerror);
-		net_kill_strerror(netstrerror);
-	}
+void rtp_report_error_maybe(Tox_Err_Friend_Custom_Packet error, RTPSession *session, uint16_t rdata_size)
+{
+    if (TOX_ERR_FRIEND_CUSTOM_PACKET_OK != error) {
+        char *netstrerror = net_new_strerror(net_error());
+        const char *toxerror = tox_err_friend_custom_packet_to_string(error);
+        LOGGER_WARNING(session->m->log, "RTP send failed (len: %u)! tox error: %s net error: %s",
+                       rdata_size, toxerror, netstrerror);
+        net_kill_strerror(netstrerror);
+    }
 }
