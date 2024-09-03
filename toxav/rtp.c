@@ -830,7 +830,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
             const Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
-                                                 rdata, piece + RTP_HEADER_SIZE + 1);
+                    rdata, piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
 
             sent += piece;
@@ -846,7 +846,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
             const Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
-                                                 piece + RTP_HEADER_SIZE + 1);
+                    piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
         }
     }
