@@ -815,7 +815,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         rtp_header_pack(rdata + 1, &header);
         memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
 
-        Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size);
+        const Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size);
         rtp_report_error_maybe(error, session, rdata_size);
     } else {
         /*
@@ -829,7 +829,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
+            const Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
                                                  rdata, piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
 
@@ -845,7 +845,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
+            const Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
                                                  piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
         }
