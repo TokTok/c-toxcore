@@ -807,7 +807,6 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type
 
-    Tox_Err_Friend_Custom_Packet error;
     if (MAX_CRYPTO_DATA_SIZE > (length + RTP_HEADER_SIZE + 1)) {
         /*
          * The length is lesser than the maximum allowed length (including header)
@@ -816,7 +815,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         rtp_header_pack(rdata + 1, &header);
         memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
 
-        error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size);
+        Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size);
         rtp_report_error_maybe(error, session, rdata_size);
     } else {
         /*
@@ -830,7 +829,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
+            Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number,
                                                  rdata, piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
 
@@ -846,7 +845,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
-            error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
+            Tox_Err_Friend_Custom_Packet error = rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata,
                                                  piece + RTP_HEADER_SIZE + 1);
             rtp_report_error_maybe(error, session, piece + RTP_HEADER_SIZE + 1);
         }
