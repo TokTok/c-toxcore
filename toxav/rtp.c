@@ -804,13 +804,8 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
     if (is_keyframe) {
         header.flags |= RTP_KEY_FRAME;
     }
-    const uint16_t rdata_size = length_safe + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE? MAX_CRYPTO_DATA_SIZE : length_safe + RTP_HEADER_SIZE + 1;
+    const uint16_t rdata_size = length_safe + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE ? MAX_CRYPTO_DATA_SIZE : length_safe + RTP_HEADER_SIZE + 1;
     VLA(uint8_t, rdata, rdata_size);
-    const uint16_t rdata_allocated = sizeof(rdata) / sizeof(uint8_t);
-    if (rdata_allocated < rdata_size){
-        LOGGER_ERROR(log, "Unable to allocate %d bytes, only %d bytes were allocated.", rdata_size, rdata_allocated);
-        return -1;
-    }
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type
 
