@@ -804,19 +804,23 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
     if (is_keyframe) {
         header.flags |= RTP_KEY_FRAME;
     }
-
-    const uint16_t rdata_size = length + RTP_HEADER_SIZE + 1;
+    const uint16_t rdata_size = length_safe + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE? MAX_CRYPTO_DATA_SIZE : length_safe + RTP_HEADER_SIZE + 1;
     VLA(uint8_t, rdata, rdata_size);
+    const uint16_t rdata_allocated = sizeof(rdata) / sizeof(uint8_t);
+    if (rdata_allocated < rdata_size){
+        LOGGER_ERROR(log, "Unable to allocate %d bytes, only %d bytes were allocated.", rdata_size, rdata_allocated);
+        return -1;
+    }
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type
 
-    if (MAX_CRYPTO_DATA_SIZE > (length + RTP_HEADER_SIZE + 1)) {
+    if (MAX_CRYPTO_DATA_SIZE > (length_safe + RTP_HEADER_SIZE + 1)) {
         /*
          * The length is lesser than the maximum allowed length (including header)
          * Send the packet in single piece.
          */
         rtp_header_pack(rdata + 1, &header);
-        memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length);
+        memcpy(rdata + 1 + RTP_HEADER_SIZE, data, length_safe);
 
         if (-1 == rtp_send_custom_lossy_packet(session->tox, session->friend_number, rdata, rdata_size)) {
             char *netstrerror = net_new_strerror(net_error());
@@ -832,7 +836,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         uint32_t sent = 0;
         uint16_t piece = MAX_CRYPTO_DATA_SIZE - (RTP_HEADER_SIZE + 1);
 
-        while ((length - sent) + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE) {
+        while ((length_safe - sent) + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE) {
             rtp_header_pack(rdata + 1, &header);
             memcpy(rdata + 1 + RTP_HEADER_SIZE, data + sent, piece);
 
@@ -850,7 +854,7 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
         }
 
         /* Send remaining */
-        piece = length - sent;
+        piece = length_safe - sent;
 
         if (piece != 0) {
             rtp_header_pack(rdata + 1, &header);
