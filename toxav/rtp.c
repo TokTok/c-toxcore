@@ -792,8 +792,8 @@ int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
 
     uint16_t length_safe = (uint16_t)length;
 
-    if (length > UINT16_MAX) {
-        length_safe = UINT16_MAX;
+    if (length > UINT16_MAX - RTP_HEADER_SIZE - 1) {
+        length_safe = UINT16_MAX - RTP_HEADER_SIZE - 1;
     }
 
     header.data_length_lower = length_safe;
