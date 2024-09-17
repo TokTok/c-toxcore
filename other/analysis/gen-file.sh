@@ -15,7 +15,7 @@ CPPFLAGS+=("-Itoxav")
 CPPFLAGS+=("-Itoxencryptsave")
 CPPFLAGS+=("-Ithird_party/cmp")
 
-LDFLAGS=("-lopus" "-lsodium" "-lvpx" "-lpthread" "-lconfig" "-lgmock" "-lgtest")
+LDFLAGS=("-lopus" "-lsodium" "-lvpx" "-lpthread" "-lconfig" "-lgmock" "-lgtest" "-lev")
 LDFLAGS+=("-fuse-ld=gold")
 LDFLAGS+=("-Wl,--detect-odr-violations")
 LDFLAGS+=("-Wl,--warn-common")

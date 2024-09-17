@@ -303,6 +303,7 @@ cc_library(
     name = "network",
     srcs = ["network.c"],
     hdrs = ["network.h"],
+    defines = ["HAVE_LIBEV"],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
@@ -319,6 +320,7 @@ cc_library(
         ":mem",
         ":mono_time",
         ":util",
+        "@ev",
         "@libsodium",
         "@psocket",
         "@pthread",
