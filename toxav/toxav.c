@@ -239,7 +239,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     init_decode_time_stats(&av->video_stats);
     av->msi->av = av;
 
-    // save Tox object into toxcore
+    // save ToxAV object into toxcore
     tox_set_av_object(av->tox, av);
 
     msi_callback_invite(av->msi, callback_invite);
