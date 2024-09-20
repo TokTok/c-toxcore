@@ -28,7 +28,7 @@ static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uin
 
 
 
-ACSession *ac_new(Mono_Time *mono_time, const Logger *log, Tox *tox, ToxAV *av, uint32_t friend_number,
+ACSession *ac_new(Mono_Time *mono_time, const Logger *log, ToxAV *av, uint32_t friend_number,
                   toxav_audio_receive_frame_cb *cb, void *cb_data)
 {
     ACSession *ac = (ACSession *)calloc(1, sizeof(ACSession));

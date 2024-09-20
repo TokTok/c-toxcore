@@ -19,7 +19,6 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/tox_private.h"
-#include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
 
 /**
@@ -676,10 +675,8 @@ size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header)
 
 static uint32_t rtp_random_u32(void)
 {
-    uint32_t randnum;
     // HINT: uses libsodium function
-    randombytes((uint8_t *)&randnum, sizeof(randnum));
-    return randnum;
+    return randombytes_random();
 }
 
 RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,

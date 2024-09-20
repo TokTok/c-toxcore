@@ -21,11 +21,6 @@
 #include "ring_buffer.h"
 #include "rtp.h"
 
-#ifndef TOX_DEFINED
-#define TOX_DEFINED
-typedef struct Tox Tox;
-#endif /* TOX_DEFINED */
-
 typedef struct VCSession {
     /* encoding */
     vpx_codec_ctx_t encoder[1];
