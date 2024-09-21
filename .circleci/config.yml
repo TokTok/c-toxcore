@@ -67,6 +67,7 @@ jobs:
             clang
             cmake
             git
+            libbenchmark-dev
             libconfig-dev
             libgmock-dev
             libgtest-dev

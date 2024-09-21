@@ -24,6 +24,7 @@
 #include "onion.h"
 #include "shared_key_cache.h"
 #include "timed_auth.h"
+#include "util.h"
 
 #define PING_ID_TIMEOUT ONION_ANNOUNCE_TIMEOUT
 
@@ -281,23 +282,17 @@ static int in_entries(const Onion_Announce *onion_a, const uint8_t *public_key)
     return -1;
 }
 
-typedef struct Cmp_Data {
+typedef struct Onion_Announce_Entry_Cmp {
+    const Memory *mem;
     const Mono_Time *mono_time;
-    const uint8_t *base_public_key;
-    Onion_Announce_Entry entry;
-} Cmp_Data;
+    const uint8_t *comp_public_key;
+} Onion_Announce_Entry_Cmp;
 
 non_null()
-static int cmp_entry(const void *a, const void *b)
+static int onion_announce_entry_cmp(const Onion_Announce_Entry_Cmp *cmp, const Onion_Announce_Entry *entry1, const Onion_Announce_Entry *entry2)
 {
-    const Cmp_Data *cmp1 = (const Cmp_Data *)a;
-    const Cmp_Data *cmp2 = (const Cmp_Data *)b;
-    const Onion_Announce_Entry entry1 = cmp1->entry;
-    const Onion_Announce_Entry entry2 = cmp2->entry;
-    const uint8_t *cmp_public_key = cmp1->base_public_key;
-
-    const bool t1 = mono_time_is_timeout(cmp1->mono_time, entry1.announce_time, ONION_ANNOUNCE_TIMEOUT);
-    const bool t2 = mono_time_is_timeout(cmp1->mono_time, entry2.announce_time, ONION_ANNOUNCE_TIMEOUT);
+    const bool t1 = mono_time_is_timeout(cmp->mono_time, entry1->announce_time, ONION_ANNOUNCE_TIMEOUT);
+    const bool t2 = mono_time_is_timeout(cmp->mono_time, entry2->announce_time, ONION_ANNOUNCE_TIMEOUT);
 
     if (t1 && t2) {
         return 0;
@@ -311,7 +306,7 @@ static int cmp_entry(const void *a, const void *b)
         return 1;
     }
 
-    const int closest = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
+    const int closest = id_closest(cmp->comp_public_key, entry1->public_key, entry2->public_key);
 
     if (closest == 1) {
         return 1;
@@ -325,31 +320,80 @@ static int cmp_entry(const void *a, const void *b)
 }
 
 non_null()
+static bool onion_announce_entry_less_handler(const void *object, const void *a, const void *b)
+{
+    const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
+    const Onion_Announce_Entry *entry1 = (const Onion_Announce_Entry *)a;
+    const Onion_Announce_Entry *entry2 = (const Onion_Announce_Entry *)b;
+
+    return onion_announce_entry_cmp(cmp, entry1, entry2) < 0;
+}
+
+non_null()
+static const void *onion_announce_entry_get_handler(const void *arr, uint32_t index)
+{
+    const Onion_Announce_Entry *entries = (const Onion_Announce_Entry *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void onion_announce_entry_set_handler(void *arr, uint32_t index, const void *val)
+{
+    Onion_Announce_Entry *entries = (Onion_Announce_Entry *)arr;
+    const Onion_Announce_Entry *entry = (const Onion_Announce_Entry *)val;
+    entries[index] = *entry;
+}
+
+non_null()
+static void *onion_announce_entry_subarr_handler(void *arr, uint32_t index, uint32_t size)
+{
+    Onion_Announce_Entry *entries = (Onion_Announce_Entry *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void *onion_announce_entry_alloc_handler(const void *object, uint32_t size)
+{
+    const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
+    Onion_Announce_Entry *tmp = (Onion_Announce_Entry *)mem_valloc(cmp->mem, size, sizeof(Onion_Announce_Entry));
+
+    if (tmp == nullptr) {
+        return nullptr;
+    }
+
+    return tmp;
+}
+
+non_null()
+static void onion_announce_entry_delete_handler(const void *object, void *arr, uint32_t size)
+{
+    const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
+    mem_delete(cmp->mem, arr);
+}
+
+static const Sort_Funcs onion_announce_entry_cmp_funcs = {
+    onion_announce_entry_less_handler,
+    onion_announce_entry_get_handler,
+    onion_announce_entry_set_handler,
+    onion_announce_entry_subarr_handler,
+    onion_announce_entry_alloc_handler,
+    onion_announce_entry_delete_handler,
+};
+
+non_null()
 static void sort_onion_announce_list(const Memory *mem, const Mono_Time *mono_time,
                                      Onion_Announce_Entry *list, unsigned int length,
                                      const uint8_t *comp_public_key)
 {
-    // Pass comp_public_key to qsort with each Client_data entry, so the
+    // Pass comp_public_key to sort with each Onion_Announce_Entry entry, so the
     // comparison function can use it as the base of comparison.
-    Cmp_Data *cmp_list = (Cmp_Data *)mem_valloc(mem, length, sizeof(Cmp_Data));
+    const Onion_Announce_Entry_Cmp cmp = {
+        mem,
+        mono_time,
+        comp_public_key,
+    };
 
-    if (cmp_list == nullptr) {
-        return;
-    }
-
-    for (uint32_t i = 0; i < length; ++i) {
-        cmp_list[i].mono_time = mono_time;
-        cmp_list[i].base_public_key = comp_public_key;
-        cmp_list[i].entry = list[i];
-    }
-
-    qsort(cmp_list, length, sizeof(Cmp_Data), cmp_entry);
-
-    for (uint32_t i = 0; i < length; ++i) {
-        list[i] = cmp_list[i].entry;
-    }
-
-    mem_delete(mem, cmp_list);
+    merge_sort(list, length, &cmp, &onion_announce_entry_cmp_funcs);
 }
 
 /** @brief add entry to entries list

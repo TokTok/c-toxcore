@@ -694,23 +694,17 @@ static int client_send_announce_request(Onion_Client *onion_c, uint32_t num, con
     return send_onion_packet_tcp_udp(onion_c, &path, dest, request, len);
 }
 
-typedef struct Onion_Client_Cmp_Data {
+typedef struct Onion_Node_Cmp {
+    const Memory *mem;
     const Mono_Time *mono_time;
-    const uint8_t *base_public_key;
-    Onion_Node entry;
-} Onion_Client_Cmp_Data;
+    const uint8_t *comp_public_key;
+} Onion_Node_Cmp;
 
 non_null()
-static int onion_client_cmp_entry(const void *a, const void *b)
+static int onion_node_cmp(const Onion_Node_Cmp *cmp, const Onion_Node *entry1, const Onion_Node *entry2)
 {
-    const Onion_Client_Cmp_Data *cmp1 = (const Onion_Client_Cmp_Data *)a;
-    const Onion_Client_Cmp_Data *cmp2 = (const Onion_Client_Cmp_Data *)b;
-    const Onion_Node entry1 = cmp1->entry;
-    const Onion_Node entry2 = cmp2->entry;
-    const uint8_t *cmp_public_key = cmp1->base_public_key;
-
-    const bool t1 = onion_node_timed_out(&entry1, cmp1->mono_time);
-    const bool t2 = onion_node_timed_out(&entry2, cmp2->mono_time);
+    const bool t1 = onion_node_timed_out(entry1, cmp->mono_time);
+    const bool t2 = onion_node_timed_out(entry2, cmp->mono_time);
 
     if (t1 && t2) {
         return 0;
@@ -724,7 +718,7 @@ static int onion_client_cmp_entry(const void *a, const void *b)
         return 1;
     }
 
-    const int closest = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
+    const int closest = id_closest(cmp->comp_public_key, entry1->public_key, entry2->public_key);
 
     if (closest == 1) {
         return 1;
@@ -738,30 +732,79 @@ static int onion_client_cmp_entry(const void *a, const void *b)
 }
 
 non_null()
+static bool onion_node_less_handler(const void *object, const void *a, const void *b)
+{
+    const Onion_Node_Cmp *cmp = (const Onion_Node_Cmp *)object;
+    const Onion_Node *entry1 = (const Onion_Node *)a;
+    const Onion_Node *entry2 = (const Onion_Node *)b;
+
+    return onion_node_cmp(cmp, entry1, entry2) < 0;
+}
+
+non_null()
+static const void *onion_node_get_handler(const void *arr, uint32_t index)
+{
+    const Onion_Node *entries = (const Onion_Node *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void onion_node_set_handler(void *arr, uint32_t index, const void *val)
+{
+    Onion_Node *entries = (Onion_Node *)arr;
+    const Onion_Node *entry = (const Onion_Node *)val;
+    entries[index] = *entry;
+}
+
+non_null()
+static void *onion_node_subarr_handler(void *arr, uint32_t index, uint32_t size)
+{
+    Onion_Node *entries = (Onion_Node *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void *onion_node_alloc_handler(const void *object, uint32_t size)
+{
+    const Onion_Node_Cmp *cmp = (const Onion_Node_Cmp *)object;
+    Onion_Node *tmp = (Onion_Node *)mem_valloc(cmp->mem, size, sizeof(Onion_Node));
+
+    if (tmp == nullptr) {
+        return nullptr;
+    }
+
+    return tmp;
+}
+
+non_null()
+static void onion_node_delete_handler(const void *object, void *arr, uint32_t size)
+{
+    const Onion_Node_Cmp *cmp = (const Onion_Node_Cmp *)object;
+    mem_delete(cmp->mem, arr);
+}
+
+static const Sort_Funcs onion_node_cmp_funcs = {
+    onion_node_less_handler,
+    onion_node_get_handler,
+    onion_node_set_handler,
+    onion_node_subarr_handler,
+    onion_node_alloc_handler,
+    onion_node_delete_handler,
+};
+
+non_null()
 static void sort_onion_node_list(const Memory *mem, const Mono_Time *mono_time,
                                  Onion_Node *list, unsigned int length, const uint8_t *comp_public_key)
 {
-    // Pass comp_public_key to qsort with each Client_data entry, so the
+    // Pass comp_public_key to sort with each Onion_Node entry, so the
     // comparison function can use it as the base of comparison.
-    Onion_Client_Cmp_Data *cmp_list = (Onion_Client_Cmp_Data *)mem_valloc(mem, length, sizeof(Onion_Client_Cmp_Data));
+    const Onion_Node_Cmp cmp = {
+        mem,
+        mono_time,
+        comp_public_key,
+    };
 
-    if (cmp_list == nullptr) {
-        return;
-    }
-
-    for (uint32_t i = 0; i < length; ++i) {
-        cmp_list[i].mono_time = mono_time;
-        cmp_list[i].base_public_key = comp_public_key;
-        cmp_list[i].entry = list[i];
-    }
-
-    qsort(cmp_list, length, sizeof(Onion_Client_Cmp_Data), onion_client_cmp_entry);
-
-    for (uint32_t i = 0; i < length; ++i) {
-        list[i] = cmp_list[i].entry;
-    }
-
-    mem_delete(mem, cmp_list);
+    merge_sort(list, length, &cmp, &onion_node_cmp_funcs);
 }
 
 non_null()

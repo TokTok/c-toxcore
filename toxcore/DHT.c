@@ -25,6 +25,7 @@
 #include "ping_array.h"
 #include "shared_key_cache.h"
 #include "state.h"
+#include "util.h"
 
 /** The timeout after which a node is discarded completely. */
 #define KILL_NODE_TIMEOUT (BAD_NODE_TIMEOUT + PING_INTERVAL)
@@ -755,49 +756,6 @@ int get_close_nodes(
                is_lan, want_announce);
 }
 
-typedef struct DHT_Cmp_Data {
-    uint64_t cur_time;
-    const uint8_t *base_public_key;
-    Client_data entry;
-} DHT_Cmp_Data;
-
-non_null()
-static int dht_cmp_entry(const void *a, const void *b)
-{
-    const DHT_Cmp_Data *cmp1 = (const DHT_Cmp_Data *)a;
-    const DHT_Cmp_Data *cmp2 = (const DHT_Cmp_Data *)b;
-    const Client_data entry1 = cmp1->entry;
-    const Client_data entry2 = cmp2->entry;
-    const uint8_t *cmp_public_key = cmp1->base_public_key;
-
-    const bool t1 = assoc_timeout(cmp1->cur_time, &entry1.assoc4) && assoc_timeout(cmp1->cur_time, &entry1.assoc6);
-    const bool t2 = assoc_timeout(cmp2->cur_time, &entry2.assoc4) && assoc_timeout(cmp2->cur_time, &entry2.assoc6);
-
-    if (t1 && t2) {
-        return 0;
-    }
-
-    if (t1) {
-        return -1;
-    }
-
-    if (t2) {
-        return 1;
-    }
-
-    const int closest = id_closest(cmp_public_key, entry1.public_key, entry2.public_key);
-
-    if (closest == 1) {
-        return 1;
-    }
-
-    if (closest == 2) {
-        return -1;
-    }
-
-    return 0;
-}
-
 #ifdef CHECK_ANNOUNCE_NODE
 non_null()
 static void set_announce_node_in_list(Client_data *list, uint32_t list_len, const uint8_t *public_key)
@@ -914,31 +872,117 @@ static bool store_node_ok(const Client_data *client, uint64_t cur_time, const ui
            || id_closest(comp_public_key, client->public_key, public_key) == 2;
 }
 
+typedef struct Client_data_Cmp {
+    const Memory *mem;
+    uint64_t cur_time;
+    const uint8_t *comp_public_key;
+} Client_data_Cmp;
+
+non_null()
+static int client_data_cmp(const Client_data_Cmp *cmp, const Client_data *entry1, const Client_data *entry2)
+{
+    const bool t1 = assoc_timeout(cmp->cur_time, &entry1->assoc4) && assoc_timeout(cmp->cur_time, &entry1->assoc6);
+    const bool t2 = assoc_timeout(cmp->cur_time, &entry2->assoc4) && assoc_timeout(cmp->cur_time, &entry2->assoc6);
+
+    if (t1 && t2) {
+        return 0;
+    }
+
+    if (t1) {
+        return -1;
+    }
+
+    if (t2) {
+        return 1;
+    }
+
+    const int closest = id_closest(cmp->comp_public_key, entry1->public_key, entry2->public_key);
+
+    if (closest == 1) {
+        return 1;
+    }
+
+    if (closest == 2) {
+        return -1;
+    }
+
+    return 0;
+}
+
+non_null()
+static bool client_data_less_handler(const void *object, const void *a, const void *b)
+{
+    const Client_data_Cmp *cmp = (const Client_data_Cmp *)object;
+    const Client_data *entry1 = (const Client_data *)a;
+    const Client_data *entry2 = (const Client_data *)b;
+
+    return client_data_cmp(cmp, entry1, entry2) < 0;
+}
+
+non_null()
+static const void *client_data_get_handler(const void *arr, uint32_t index)
+{
+    const Client_data *entries = (const Client_data *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void client_data_set_handler(void *arr, uint32_t index, const void *val)
+{
+    Client_data *entries = (Client_data *)arr;
+    const Client_data *entry = (const Client_data *)val;
+    entries[index] = *entry;
+}
+
+non_null()
+static void *client_data_subarr_handler(void *arr, uint32_t index, uint32_t size)
+{
+    Client_data *entries = (Client_data *)arr;
+    return &entries[index];
+}
+
+non_null()
+static void *client_data_alloc_handler(const void *object, uint32_t size)
+{
+    const Client_data_Cmp *cmp = (const Client_data_Cmp *)object;
+    Client_data *tmp = (Client_data *)mem_valloc(cmp->mem, size, sizeof(Client_data));
+
+    if (tmp == nullptr) {
+        return nullptr;
+    }
+
+    return tmp;
+}
+
+non_null()
+static void client_data_delete_handler(const void *object, void *arr, uint32_t size)
+{
+    const Client_data_Cmp *cmp = (const Client_data_Cmp *)object;
+    mem_delete(cmp->mem, arr);
+}
+
+static const Sort_Funcs client_data_cmp_funcs = {
+    client_data_less_handler,
+    client_data_get_handler,
+    client_data_set_handler,
+    client_data_subarr_handler,
+    client_data_alloc_handler,
+    client_data_delete_handler,
+};
+
 non_null()
 static void sort_client_list(const Memory *mem, Client_data *list, uint64_t cur_time, unsigned int length,
                              const uint8_t *comp_public_key)
 {
-    // Pass comp_public_key to qsort with each Client_data entry, so the
+    // Pass comp_public_key to merge_sort with each Client_data entry, so the
     // comparison function can use it as the base of comparison.
-    DHT_Cmp_Data *cmp_list = (DHT_Cmp_Data *)mem_valloc(mem, length, sizeof(DHT_Cmp_Data));
+    const Client_data_Cmp cmp = {
+        mem,
+        cur_time,
+        comp_public_key,
+    };
 
-    if (cmp_list == nullptr) {
-        return;
-    }
-
-    for (uint32_t i = 0; i < length; ++i) {
-        cmp_list[i].cur_time = cur_time;
-        cmp_list[i].base_public_key = comp_public_key;
-        cmp_list[i].entry = list[i];
-    }
-
-    qsort(cmp_list, length, sizeof(DHT_Cmp_Data), dht_cmp_entry);
-
-    for (uint32_t i = 0; i < length; ++i) {
-        list[i] = cmp_list[i].entry;
-    }
-
-    mem_delete(mem, cmp_list);
+    merge_sort(list, length, &cmp, &client_data_cmp_funcs);
 }
 
 non_null()
