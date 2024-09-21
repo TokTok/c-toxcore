@@ -199,6 +199,14 @@ int rtp_stop_receiving(RTPSession *session);
  */
 int rtp_send_data(RTPSession *session, const uint8_t *data, uint32_t length,
                   bool is_keyframe, const Logger *log);
+/**
+ * Log the neterror error if any.
+ *
+ * @param error the error from rtp_send_custom_lossy_packet.
+ * @param session The A/V session to send the data for.
+ * @param rdata_size The package length to be shown in the log.
+ */
+void rtp_report_error_maybe(Tox_Err_Friend_Custom_Packet error, RTPSession *session, uint16_t rdata_size);
 
 #ifdef __cplusplus
 } /* extern "C" */
