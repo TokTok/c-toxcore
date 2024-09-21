@@ -720,7 +720,7 @@ Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_tim
         return nullptr;
     }
 
-    Onion *onion = (Onion *)mem_alloc(mem, sizeof(Onion));
+    Onion *owner onion = (Onion *owner)mem_alloc(mem, sizeof(Onion));
 
     if (onion == nullptr) {
         return nullptr;
@@ -759,7 +759,7 @@ Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_tim
     return onion;
 }
 
-void kill_onion(Onion *onion)
+void kill_onion(Onion *owner onion)
 {
     if (onion == nullptr) {
         return;

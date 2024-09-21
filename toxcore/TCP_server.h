@@ -40,9 +40,10 @@ size_t tcp_server_listen_count(const TCP_Server *tcp_server);
 
 /** Create new TCP server instance. */
 non_null(1, 2, 3, 4, 7, 8) nullable(9, 10)
-TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
-                           bool ipv6_enabled, uint16_t num_sockets, const uint16_t *ports,
-                           const uint8_t *secret_key, Onion *onion, Forwarding *forwarding);
+TCP_Server *owner new_tcp_server(
+    const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
+    bool ipv6_enabled, uint16_t num_sockets, const uint16_t *ports,
+    const uint8_t *secret_key, Onion *onion, Forwarding *forwarding);
 
 /** Run the TCP_server */
 non_null()
@@ -50,6 +51,6 @@ void do_tcp_server(TCP_Server *tcp_server, const Mono_Time *mono_time);
 
 /** Kill the TCP server */
 nullable(1)
-void kill_tcp_server(TCP_Server *tcp_server);
+void kill_tcp_server(TCP_Server *owner tcp_server);
 
 #endif /* C_TOXCORE_TOXCORE_TCP_SERVER_H */

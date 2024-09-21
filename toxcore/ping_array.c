@@ -17,7 +17,7 @@
 #include "mono_time.h"
 
 typedef struct Ping_Array_Entry {
-    uint8_t *data;
+    uint8_t *owner data;
     uint32_t length;
     uint64_t ping_time;
     uint64_t ping_id;
@@ -25,7 +25,7 @@ typedef struct Ping_Array_Entry {
 
 struct Ping_Array {
     const Memory *mem;
-    Ping_Array_Entry *entries;
+    Ping_Array_Entry *owner entries;
 
     uint32_t last_deleted; /* number representing the next entry to be deleted. */
     uint32_t last_added;   /* number representing the last entry to be added. */
@@ -44,13 +44,13 @@ Ping_Array *ping_array_new(const Memory *mem, uint32_t size, uint32_t timeout)
         return nullptr;
     }
 
-    Ping_Array *const empty_array = (Ping_Array *)mem_alloc(mem, sizeof(Ping_Array));
+    Ping_Array *const owner empty_array = (Ping_Array *owner)mem_alloc(mem, sizeof(Ping_Array));
 
     if (empty_array == nullptr) {
         return nullptr;
     }
 
-    Ping_Array_Entry *entries = (Ping_Array_Entry *)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
+    Ping_Array_Entry *owner entries = (Ping_Array_Entry *owner)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
 
     if (entries == nullptr) {
         mem_delete(mem, empty_array);
@@ -74,7 +74,7 @@ static void clear_entry(Ping_Array *array, uint32_t index)
     array->entries[index] = empty;
 }
 
-void ping_array_kill(Ping_Array *array)
+void ping_array_kill(Ping_Array *owner array)
 {
     if (array == nullptr) {
         return;
@@ -117,7 +117,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
         clear_entry(array, index);
     }
 
-    uint8_t *entry_data = (uint8_t *)mem_balloc(array->mem, length);
+    uint8_t *owner entry_data = (uint8_t *owner)mem_balloc(array->mem, length);
 
     if (entry_data == nullptr) {
         array->entries[index].data = nullptr;
