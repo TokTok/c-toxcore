@@ -138,9 +138,20 @@ static void parse_tcp_relay_ports_config(config_t *cfg, uint16_t **tcp_relay_por
     }
 }
 
+// A wrapper function that actually takes a bool argument
+static int tox_config_lookup_bool(const config_t *config, const char *path, bool *bool_value)
+{
+    int int_value = 0;
+    if (config_lookup_bool(config, path, &int_value) == CONFIG_FALSE) {
+        return CONFIG_FALSE;
+    }
+    *bool_value = int_value != 0;
+    return CONFIG_TRUE;
+}
+
 bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **keys_file_path, int *port,
-                        int *enable_ipv6, int *enable_ipv4_fallback, int *enable_lan_discovery, int *enable_tcp_relay,
-                        uint16_t **tcp_relay_ports, int *tcp_relay_port_count, int *enable_motd, char **motd)
+                        bool *enable_ipv6, bool *enable_ipv4_fallback, bool *enable_lan_discovery, bool *enable_tcp_relay,
+                        uint16_t **tcp_relay_ports, int *tcp_relay_port_count, bool *enable_motd, char **motd)
 {
     config_t cfg;
 
@@ -207,14 +218,14 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     memcpy(*keys_file_path, tmp_keys_file, keys_file_path_len);
 
     // Get IPv6 option
-    if (config_lookup_bool(&cfg, NAME_ENABLE_IPV6, enable_ipv6) == CONFIG_FALSE) {
+    if (tox_config_lookup_bool(&cfg, NAME_ENABLE_IPV6, enable_ipv6) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_ENABLE_IPV6);
         log_write(LOG_LEVEL_WARNING, "Using default '%s': %s\n", NAME_ENABLE_IPV6, DEFAULT_ENABLE_IPV6 ? "true" : "false");
         *enable_ipv6 = DEFAULT_ENABLE_IPV6;
     }
 
     // Get IPv4 fallback option
-    if (config_lookup_bool(&cfg, NAME_ENABLE_IPV4_FALLBACK, enable_ipv4_fallback) == CONFIG_FALSE) {
+    if (tox_config_lookup_bool(&cfg, NAME_ENABLE_IPV4_FALLBACK, enable_ipv4_fallback) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_ENABLE_IPV4_FALLBACK);
         log_write(LOG_LEVEL_WARNING, "Using default '%s': %s\n", NAME_ENABLE_IPV4_FALLBACK,
                   DEFAULT_ENABLE_IPV4_FALLBACK ? "true" : "false");
@@ -222,7 +233,7 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     }
 
     // Get LAN discovery option
-    if (config_lookup_bool(&cfg, NAME_ENABLE_LAN_DISCOVERY, enable_lan_discovery) == CONFIG_FALSE) {
+    if (tox_config_lookup_bool(&cfg, NAME_ENABLE_LAN_DISCOVERY, enable_lan_discovery) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_ENABLE_LAN_DISCOVERY);
         log_write(LOG_LEVEL_WARNING, "Using default '%s': %s\n", NAME_ENABLE_LAN_DISCOVERY,
                   DEFAULT_ENABLE_LAN_DISCOVERY ? "true" : "false");
@@ -230,28 +241,28 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     }
 
     // Get TCP relay option
-    if (config_lookup_bool(&cfg, NAME_ENABLE_TCP_RELAY, enable_tcp_relay) == CONFIG_FALSE) {
+    if (tox_config_lookup_bool(&cfg, NAME_ENABLE_TCP_RELAY, enable_tcp_relay) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_ENABLE_TCP_RELAY);
         log_write(LOG_LEVEL_WARNING, "Using default '%s': %s\n", NAME_ENABLE_TCP_RELAY,
                   DEFAULT_ENABLE_TCP_RELAY ? "true" : "false");
         *enable_tcp_relay = DEFAULT_ENABLE_TCP_RELAY;
     }
 
-    if (*enable_tcp_relay != 0) {
+    if (*enable_tcp_relay) {
         parse_tcp_relay_ports_config(&cfg, tcp_relay_ports, tcp_relay_port_count);
     } else {
         *tcp_relay_port_count = 0;
     }
 
     // Get MOTD option
-    if (config_lookup_bool(&cfg, NAME_ENABLE_MOTD, enable_motd) == CONFIG_FALSE) {
+    if (tox_config_lookup_bool(&cfg, NAME_ENABLE_MOTD, enable_motd) == CONFIG_FALSE) {
         log_write(LOG_LEVEL_WARNING, "No '%s' setting in configuration file.\n", NAME_ENABLE_MOTD);
         log_write(LOG_LEVEL_WARNING, "Using default '%s': %s\n", NAME_ENABLE_MOTD,
                   DEFAULT_ENABLE_MOTD ? "true" : "false");
         *enable_motd = DEFAULT_ENABLE_MOTD;
     }
 
-    if (*enable_motd != 0) {
+    if (*enable_motd) {
         // Get MOTD
         const char *tmp_motd;
 
@@ -273,14 +284,14 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_PID_FILE_PATH,        *pid_file_path);
     log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_KEYS_FILE_PATH,       *keys_file_path);
     log_write(LOG_LEVEL_INFO, "'%s': %d\n", NAME_PORT,                 *port);
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6,          *enable_ipv6          != 0 ? "true" : "false");
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV4_FALLBACK, *enable_ipv4_fallback != 0 ? "true" : "false");
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_LAN_DISCOVERY, *enable_lan_discovery != 0 ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV6,          *enable_ipv6          ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_IPV4_FALLBACK, *enable_ipv4_fallback ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_LAN_DISCOVERY, *enable_lan_discovery ? "true" : "false");
 
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY,     *enable_tcp_relay     != 0 ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_TCP_RELAY,     *enable_tcp_relay     ? "true" : "false");
 
     // Show info about tcp ports only if tcp relay is enabled
-    if (*enable_tcp_relay != 0) {
+    if (*enable_tcp_relay) {
         if (*tcp_relay_port_count == 0) {
             log_write(LOG_LEVEL_ERROR, "No TCP ports could be read.\n");
         } else {
@@ -292,9 +303,9 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
         }
     }
 
-    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD,          *enable_motd          != 0 ? "true" : "false");
+    log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_ENABLE_MOTD,          *enable_motd          ? "true" : "false");
 
-    if (*enable_motd != 0) {
+    if (*enable_motd) {
         log_write(LOG_LEVEL_INFO, "'%s': %s\n", NAME_MOTD, *motd);
     }
 
