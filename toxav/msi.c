@@ -20,11 +20,6 @@
 
 #define MSI_MAXMSG_SIZE 256
 
-#ifndef TOXAV_DEFINED
-#define TOXAV_DEFINED
-typedef struct ToxAV ToxAV;
-#endif /* TOXAV_DEFINED */
-
 /**
  * Protocol:
  *
@@ -175,7 +170,7 @@ int msi_kill(const Logger *log, Tox *tox, MSISession *session)
 }
 
 /*
- * return true if friend was offline and the call was canceled
+ * return true if friend is offline and the call was canceled.
  */
 bool check_peer_offline_status(const Logger *log, const Tox *tox, MSISession *session, uint32_t friend_number)
 {
