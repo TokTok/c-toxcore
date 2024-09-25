@@ -202,7 +202,7 @@ static int handle_test_4(void *object, const IP_Port *source, const uint8_t *pac
  * Use Onion_Path path to send data of length to dest.
  * Maximum length of data is ONION_MAX_DATA_SIZE.
  */
-static void send_onion_packet(const Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
+static void send_onion_packet(Networking_Core *net, const Random *rng, const Onion_Path *path, const IP_Port *dest, const uint8_t *data, uint16_t length)
 {
     uint8_t packet[ONION_MAX_PACKET_SIZE];
     const int len = create_onion_packet(rng, packet, sizeof(packet), path, dest, data, length);
