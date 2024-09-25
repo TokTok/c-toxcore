@@ -168,29 +168,33 @@ static void test_av_three_calls(void)
     Time_Data time_data;
     pthread_mutex_init(&time_data.lock, nullptr);
     {
+        Tox_Options *opts = tox_options_new(nullptr);
+        ck_assert(opts != nullptr);
+        tox_options_set_experimental_thread_safety(opts, true);
         Tox_Err_New error;
 
-        bootstrap = tox_new_log(nullptr, &error, &index[0]);
+        bootstrap = tox_new_log(opts, &error, &index[0]);
         ck_assert(error == TOX_ERR_NEW_OK);
 
         time_data.clock = current_time_monotonic(bootstrap->mono_time);
         set_current_time_callback(bootstrap, &time_data);
 
-        alice = tox_new_log(nullptr, &error, &index[1]);
+        alice = tox_new_log(opts, &error, &index[1]);
         ck_assert(error == TOX_ERR_NEW_OK);
         set_current_time_callback(alice, &time_data);
 
-        bobs[0] = tox_new_log(nullptr, &error, &index[2]);
+        bobs[0] = tox_new_log(opts, &error, &index[2]);
         ck_assert(error == TOX_ERR_NEW_OK);
         set_current_time_callback(bobs[0], &time_data);
 
-        bobs[1] = tox_new_log(nullptr, &error, &index[3]);
+        bobs[1] = tox_new_log(opts, &error, &index[3]);
         ck_assert(error == TOX_ERR_NEW_OK);
         set_current_time_callback(bobs[1], &time_data);
 
-        bobs[2] = tox_new_log(nullptr, &error, &index[4]);
+        bobs[2] = tox_new_log(opts, &error, &index[4]);
         ck_assert(error == TOX_ERR_NEW_OK);
         set_current_time_callback(bobs[2], &time_data);
+        tox_options_free(opts);
     }
 
     printf("Created 5 instances of Tox\n");
