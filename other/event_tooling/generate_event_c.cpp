@@ -444,7 +444,10 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    Tox_Event event;\n";
     f << "    event.type = TOX_EVENT_" << str_toupper(event_name) << ";\n";
     f << "    event.data." << event_name_l << " = " << event_name_l << ";\n\n";
-    f << "    tox_events_add(events, &event);\n";
+    f << "    if (!tox_events_add(events, &event)) {\n";
+    f << "        tox_event_" << event_name_l << "_free(" << event_name_l << ", mem);\n";
+    f << "        return nullptr;\n";
+    f << "    }\n";
     f << "    return " << event_name_l << ";\n}\n\n";
 
     // unpack

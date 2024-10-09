@@ -130,7 +130,10 @@ static Tox_Event_Friend_Read_Receipt *tox_events_add_friend_read_receipt(Tox_Eve
     event.type = TOX_EVENT_FRIEND_READ_RECEIPT;
     event.data.friend_read_receipt = friend_read_receipt;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_read_receipt_free(friend_read_receipt, mem);
+        return nullptr;
+    }
     return friend_read_receipt;
 }
 

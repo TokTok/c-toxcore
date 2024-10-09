@@ -164,7 +164,10 @@ static Tox_Event_Group_Moderation *tox_events_add_group_moderation(Tox_Events *e
     event.type = TOX_EVENT_GROUP_MODERATION;
     event.data.group_moderation = group_moderation;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_moderation_free(group_moderation, mem);
+        return nullptr;
+    }
     return group_moderation;
 }
 

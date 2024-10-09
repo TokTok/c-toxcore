@@ -132,7 +132,10 @@ static Tox_Event_Group_Join_Fail *tox_events_add_group_join_fail(Tox_Events *eve
     event.type = TOX_EVENT_GROUP_JOIN_FAIL;
     event.data.group_join_fail = group_join_fail;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_join_fail_free(group_join_fail, mem);
+        return nullptr;
+    }
     return group_join_fail;
 }
 

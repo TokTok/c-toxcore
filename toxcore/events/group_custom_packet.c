@@ -175,7 +175,10 @@ static Tox_Event_Group_Custom_Packet *tox_events_add_group_custom_packet(Tox_Eve
     event.type = TOX_EVENT_GROUP_CUSTOM_PACKET;
     event.data.group_custom_packet = group_custom_packet;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_custom_packet_free(group_custom_packet, mem);
+        return nullptr;
+    }
     return group_custom_packet;
 }
 

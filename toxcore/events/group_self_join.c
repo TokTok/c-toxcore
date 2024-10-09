@@ -109,7 +109,10 @@ static Tox_Event_Group_Self_Join *tox_events_add_group_self_join(Tox_Events *eve
     event.type = TOX_EVENT_GROUP_SELF_JOIN;
     event.data.group_self_join = group_self_join;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_self_join_free(group_self_join, mem);
+        return nullptr;
+    }
     return group_self_join;
 }
 

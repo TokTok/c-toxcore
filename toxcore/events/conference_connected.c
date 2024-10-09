@@ -109,7 +109,10 @@ static Tox_Event_Conference_Connected *tox_events_add_conference_connected(Tox_E
     event.type = TOX_EVENT_CONFERENCE_CONNECTED;
     event.data.conference_connected = conference_connected;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_connected_free(conference_connected, mem);
+        return nullptr;
+    }
     return conference_connected;
 }
 

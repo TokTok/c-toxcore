@@ -159,7 +159,10 @@ static Tox_Event_Friend_Status_Message *tox_events_add_friend_status_message(Tox
     event.type = TOX_EVENT_FRIEND_STATUS_MESSAGE;
     event.data.friend_status_message = friend_status_message;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_status_message_free(friend_status_message, mem);
+        return nullptr;
+    }
     return friend_status_message;
 }
 

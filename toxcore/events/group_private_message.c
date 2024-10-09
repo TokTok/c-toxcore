@@ -209,7 +209,10 @@ static Tox_Event_Group_Private_Message *tox_events_add_group_private_message(Tox
     event.type = TOX_EVENT_GROUP_PRIVATE_MESSAGE;
     event.data.group_private_message = group_private_message;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_private_message_free(group_private_message, mem);
+        return nullptr;
+    }
     return group_private_message;
 }
 

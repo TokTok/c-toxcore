@@ -111,7 +111,10 @@ static Tox_Event_Self_Connection_Status *tox_events_add_self_connection_status(T
     event.type = TOX_EVENT_SELF_CONNECTION_STATUS;
     event.data.self_connection_status = self_connection_status;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_self_connection_status_free(self_connection_status, mem);
+        return nullptr;
+    }
     return self_connection_status;
 }
 

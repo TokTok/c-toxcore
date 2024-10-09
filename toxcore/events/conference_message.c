@@ -193,7 +193,10 @@ static Tox_Event_Conference_Message *tox_events_add_conference_message(Tox_Event
     event.type = TOX_EVENT_CONFERENCE_MESSAGE;
     event.data.conference_message = conference_message;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_message_free(conference_message, mem);
+        return nullptr;
+    }
     return conference_message;
 }
 

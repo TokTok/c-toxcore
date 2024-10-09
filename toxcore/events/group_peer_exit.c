@@ -237,7 +237,10 @@ static Tox_Event_Group_Peer_Exit *tox_events_add_group_peer_exit(Tox_Events *eve
     event.type = TOX_EVENT_GROUP_PEER_EXIT;
     event.data.group_peer_exit = group_peer_exit;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_peer_exit_free(group_peer_exit, mem);
+        return nullptr;
+    }
     return group_peer_exit;
 }
 

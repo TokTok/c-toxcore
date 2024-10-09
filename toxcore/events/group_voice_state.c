@@ -132,7 +132,10 @@ static Tox_Event_Group_Voice_State *tox_events_add_group_voice_state(Tox_Events 
     event.type = TOX_EVENT_GROUP_VOICE_STATE;
     event.data.group_voice_state = group_voice_state;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_voice_state_free(group_voice_state, mem);
+        return nullptr;
+    }
     return group_voice_state;
 }
 

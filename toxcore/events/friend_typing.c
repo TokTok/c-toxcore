@@ -130,7 +130,10 @@ static Tox_Event_Friend_Typing *tox_events_add_friend_typing(Tox_Events *events,
     event.type = TOX_EVENT_FRIEND_TYPING;
     event.data.friend_typing = friend_typing;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_typing_free(friend_typing, mem);
+        return nullptr;
+    }
     return friend_typing;
 }
 

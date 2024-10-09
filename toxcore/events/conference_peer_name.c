@@ -175,7 +175,10 @@ static Tox_Event_Conference_Peer_Name *tox_events_add_conference_peer_name(Tox_E
     event.type = TOX_EVENT_CONFERENCE_PEER_NAME;
     event.data.conference_peer_name = conference_peer_name;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_peer_name_free(conference_peer_name, mem);
+        return nullptr;
+    }
     return conference_peer_name;
 }
 

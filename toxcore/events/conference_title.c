@@ -175,7 +175,10 @@ static Tox_Event_Conference_Title *tox_events_add_conference_title(Tox_Events *e
     event.type = TOX_EVENT_CONFERENCE_TITLE;
     event.data.conference_title = conference_title;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_title_free(conference_title, mem);
+        return nullptr;
+    }
     return conference_title;
 }
 

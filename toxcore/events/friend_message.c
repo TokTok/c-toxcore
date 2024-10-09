@@ -177,7 +177,10 @@ static Tox_Event_Friend_Message *tox_events_add_friend_message(Tox_Events *event
     event.type = TOX_EVENT_FRIEND_MESSAGE;
     event.data.friend_message = friend_message;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_message_free(friend_message, mem);
+        return nullptr;
+    }
     return friend_message;
 }
 

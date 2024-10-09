@@ -159,7 +159,10 @@ static Tox_Event_Friend_Lossless_Packet *tox_events_add_friend_lossless_packet(T
     event.type = TOX_EVENT_FRIEND_LOSSLESS_PACKET;
     event.data.friend_lossless_packet = friend_lossless_packet;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_lossless_packet_free(friend_lossless_packet, mem);
+        return nullptr;
+    }
     return friend_lossless_packet;
 }
 

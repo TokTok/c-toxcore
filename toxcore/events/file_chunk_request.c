@@ -162,7 +162,10 @@ static Tox_Event_File_Chunk_Request *tox_events_add_file_chunk_request(Tox_Event
     event.type = TOX_EVENT_FILE_CHUNK_REQUEST;
     event.data.file_chunk_request = file_chunk_request;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_file_chunk_request_free(file_chunk_request, mem);
+        return nullptr;
+    }
     return file_chunk_request;
 }
 

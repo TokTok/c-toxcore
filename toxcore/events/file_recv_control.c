@@ -148,7 +148,10 @@ static Tox_Event_File_Recv_Control *tox_events_add_file_recv_control(Tox_Events 
     event.type = TOX_EVENT_FILE_RECV_CONTROL;
     event.data.file_recv_control = file_recv_control;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_file_recv_control_free(file_recv_control, mem);
+        return nullptr;
+    }
     return file_recv_control;
 }
 

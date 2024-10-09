@@ -209,7 +209,10 @@ static Tox_Event_Group_Message *tox_events_add_group_message(Tox_Events *events,
     event.type = TOX_EVENT_GROUP_MESSAGE;
     event.data.group_message = group_message;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_message_free(group_message, mem);
+        return nullptr;
+    }
     return group_message;
 }
 

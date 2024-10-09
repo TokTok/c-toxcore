@@ -203,7 +203,10 @@ static Tox_Event_Group_Invite *tox_events_add_group_invite(Tox_Events *events, c
     event.type = TOX_EVENT_GROUP_INVITE;
     event.data.group_invite = group_invite;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_invite_free(group_invite, mem);
+        return nullptr;
+    }
     return group_invite;
 }
 

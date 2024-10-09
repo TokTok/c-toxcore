@@ -159,7 +159,10 @@ static Tox_Event_Group_Password *tox_events_add_group_password(Tox_Events *event
     event.type = TOX_EVENT_GROUP_PASSWORD;
     event.data.group_password = group_password;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_password_free(group_password, mem);
+        return nullptr;
+    }
     return group_password;
 }
 

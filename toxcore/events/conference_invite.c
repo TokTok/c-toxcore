@@ -177,7 +177,10 @@ static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events 
     event.type = TOX_EVENT_CONFERENCE_INVITE;
     event.data.conference_invite = conference_invite;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_invite_free(conference_invite, mem);
+        return nullptr;
+    }
     return conference_invite;
 }
 

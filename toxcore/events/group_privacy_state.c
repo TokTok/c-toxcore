@@ -132,7 +132,10 @@ static Tox_Event_Group_Privacy_State *tox_events_add_group_privacy_state(Tox_Eve
     event.type = TOX_EVENT_GROUP_PRIVACY_STATE;
     event.data.group_privacy_state = group_privacy_state;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_privacy_state_free(group_privacy_state, mem);
+        return nullptr;
+    }
     return group_privacy_state;
 }
 

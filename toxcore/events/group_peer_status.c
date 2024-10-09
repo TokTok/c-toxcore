@@ -148,7 +148,10 @@ static Tox_Event_Group_Peer_Status *tox_events_add_group_peer_status(Tox_Events 
     event.type = TOX_EVENT_GROUP_PEER_STATUS;
     event.data.group_peer_status = group_peer_status;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_peer_status_free(group_peer_status, mem);
+        return nullptr;
+    }
     return group_peer_status;
 }
 

@@ -132,7 +132,10 @@ static Tox_Event_Group_Topic_Lock *tox_events_add_group_topic_lock(Tox_Events *e
     event.type = TOX_EVENT_GROUP_TOPIC_LOCK;
     event.data.group_topic_lock = group_topic_lock;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_topic_lock_free(group_topic_lock, mem);
+        return nullptr;
+    }
     return group_topic_lock;
 }
 

@@ -130,7 +130,10 @@ static Tox_Event_Group_Peer_Join *tox_events_add_group_peer_join(Tox_Events *eve
     event.type = TOX_EVENT_GROUP_PEER_JOIN;
     event.data.group_peer_join = group_peer_join;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_peer_join_free(group_peer_join, mem);
+        return nullptr;
+    }
     return group_peer_join;
 }
 

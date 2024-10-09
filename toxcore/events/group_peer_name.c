@@ -175,7 +175,10 @@ static Tox_Event_Group_Peer_Name *tox_events_add_group_peer_name(Tox_Events *eve
     event.type = TOX_EVENT_GROUP_PEER_NAME;
     event.data.group_peer_name = group_peer_name;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_peer_name_free(group_peer_name, mem);
+        return nullptr;
+    }
     return group_peer_name;
 }
 

@@ -109,7 +109,10 @@ static Tox_Event_Conference_Peer_List_Changed *tox_events_add_conference_peer_li
     event.type = TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED;
     event.data.conference_peer_list_changed = conference_peer_list_changed;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_conference_peer_list_changed_free(conference_peer_list_changed, mem);
+        return nullptr;
+    }
     return conference_peer_list_changed;
 }
 

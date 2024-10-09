@@ -132,7 +132,10 @@ static Tox_Event_Friend_Connection_Status *tox_events_add_friend_connection_stat
     event.type = TOX_EVENT_FRIEND_CONNECTION_STATUS;
     event.data.friend_connection_status = friend_connection_status;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_connection_status_free(friend_connection_status, mem);
+        return nullptr;
+    }
     return friend_connection_status;
 }
 

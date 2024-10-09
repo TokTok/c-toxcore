@@ -175,7 +175,10 @@ static Tox_Event_Group_Topic *tox_events_add_group_topic(Tox_Events *events, con
     event.type = TOX_EVENT_GROUP_TOPIC;
     event.data.group_topic = group_topic;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_group_topic_free(group_topic, mem);
+        return nullptr;
+    }
     return group_topic;
 }
 

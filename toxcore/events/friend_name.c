@@ -159,7 +159,10 @@ static Tox_Event_Friend_Name *tox_events_add_friend_name(Tox_Events *events, con
     event.type = TOX_EVENT_FRIEND_NAME;
     event.data.friend_name = friend_name;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_name_free(friend_name, mem);
+        return nullptr;
+    }
     return friend_name;
 }
 

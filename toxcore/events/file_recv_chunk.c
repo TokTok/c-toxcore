@@ -191,7 +191,10 @@ static Tox_Event_File_Recv_Chunk *tox_events_add_file_recv_chunk(Tox_Events *eve
     event.type = TOX_EVENT_FILE_RECV_CHUNK;
     event.data.file_recv_chunk = file_recv_chunk;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_file_recv_chunk_free(file_recv_chunk, mem);
+        return nullptr;
+    }
     return file_recv_chunk;
 }
 

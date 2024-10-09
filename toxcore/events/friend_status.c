@@ -132,7 +132,10 @@ static Tox_Event_Friend_Status *tox_events_add_friend_status(Tox_Events *events,
     event.type = TOX_EVENT_FRIEND_STATUS;
     event.data.friend_status = friend_status;
 
-    tox_events_add(events, &event);
+    if (!tox_events_add(events, &event)) {
+        tox_event_friend_status_free(friend_status, mem);
+        return nullptr;
+    }
     return friend_status;
 }
 
