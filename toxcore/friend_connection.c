@@ -1032,6 +1032,11 @@ void kill_friend_connections(Friend_Connections *fr_c)
         kill_friend_connection(fr_c, i);
     }
 
+    // there might be allocated NONE connections
+    if (fr_c->conns != nullptr) {
+        free(fr_c->conns);
+    }
+
     lan_discovery_kill(fr_c->broadcast);
     free(fr_c);
 }
