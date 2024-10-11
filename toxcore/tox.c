@@ -1142,7 +1142,7 @@ static int32_t resolve_bootstrap_node(Tox *tox, const char *host, uint16_t port,
         return -1;
     }
 
-    const int32_t count = net_getipport(tox->sys.mem, host, root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
+    const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, host, root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
 
     if (count < 1) {
         LOGGER_DEBUG(tox->m->log, "could not resolve bootstrap node '%s'", host);
