@@ -592,6 +592,108 @@ static int sys_setsockopt(void *obj, Socket sock, int level, int optname, const 
     return setsockopt(net_socket_to_native(sock), level, optname, (const char *)optval, optlen);
 }
 
+// sets and fills an array of addrs for address
+// returns the number of entries in addrs
+non_null()
+static int sys_getaddrinfo(void *obj, const char *address, int family, int sock_type, Network_Addr **addrs)
+{
+    assert(addrs != nullptr);
+    *addrs = nullptr;
+
+    struct addrinfo hints = {0};
+    hints.ai_family   = family;
+
+
+    // different platforms favour a different field
+    // hints.ai_socktype = SOCK_DGRAM; // type of socket Tox uses.
+    hints.ai_socktype = sock_type;
+    // hints.ai_protocol = protocol;
+
+    struct addrinfo *infos = nullptr;
+
+    const int rc = getaddrinfo(address, nullptr, &hints, &infos);
+
+    // Lookup failed.
+    if (rc != 0) {
+        // TODO(Green-Sky): log error
+        return 0;
+    }
+
+    const size_t max_count = min_u64(SIZE_MAX, INT32_MAX) / sizeof(Network_Addr);
+
+    // we count number of "valid" results
+    int result = 0;
+    for (struct addrinfo *walker = infos; walker != nullptr && result < max_count; walker = walker->ai_next) {
+        if (walker->ai_family == family || family == AF_UNSPEC) {
+            ++result;
+        }
+
+        // do we need to check socktype/protocol?
+    }
+
+    assert(max_count >= result);
+
+    // HACK: use default memory allocator
+    const Memory* mem = os_memory();
+
+    *addrs = (Network_Addr *)mem_valloc(mem, result, sizeof(Network_Addr));
+    if (*addrs == nullptr) {
+        freeaddrinfo(infos);
+        return 0;
+    }
+
+    // now we fill in
+    int i = 0;
+    for (struct addrinfo *walker = infos; walker != nullptr; walker = walker->ai_next) {
+        if (walker->ai_family == family || family == AF_UNSPEC) {
+            (*addrs)[i].size = sizeof(struct sockaddr_storage);
+            (*addrs)[i].addr.ss_family = walker->ai_family;
+
+            // according to spec, storage is supposed to be large enough (and source shows they are)
+            // storage is 128 bytes
+            assert(walker->ai_addrlen <= (*addrs)[i].size);
+
+            memcpy(&(*addrs)[i].addr, walker->ai_addr, walker->ai_addrlen);
+            (*addrs)[i].size = walker->ai_addrlen;
+
+            i++;
+        }
+    }
+
+    assert(i == result);
+
+    freeaddrinfo(infos);
+
+    // number of entries in addrs
+    return result;
+}
+
+non_null()
+static int sys_getaddrinfo_dummy(void *obj, const char *address, int family, int protocol, Network_Addr **addrs)
+{
+    return 0;
+}
+
+non_null()
+static int sys_freeaddrinfo(void *obj, Network_Addr *addrs)
+{
+    if (addrs == nullptr) {
+        return 0;
+    }
+
+    // HACK: use default memory allocator
+    const Memory* mem = os_memory();
+    mem_delete(mem, addrs);
+
+    return 0;
+}
+
+non_null()
+static int sys_freeaddrinfo_dummy(void *obj, Network_Addr *addrs)
+{
+    return 0;
+}
+
 static const Network_Funcs os_network_funcs = {
     sys_close,
     sys_accept,
@@ -607,8 +709,10 @@ static const Network_Funcs os_network_funcs = {
     sys_socket_nonblock,
     sys_getsockopt,
     sys_setsockopt,
+    sys_getaddrinfo,
+    sys_freeaddrinfo
 };
-static const Network os_network_obj = {&os_network_funcs};
+static const Network os_network_obj = {&os_network_funcs, nullptr};
 
 const Network *os_network(void)
 {
@@ -625,6 +729,44 @@ const Network *os_network(void)
     }
 #endif /* OS_WIN32 */
     return &os_network_obj;
+}
+
+static const Network_Funcs os_network_no_dns_funcs = {
+    sys_close,
+    sys_accept,
+    sys_bind,
+    sys_listen,
+    sys_connect,
+    sys_recvbuf,
+    sys_recv,
+    sys_recvfrom,
+    sys_send,
+    sys_sendto,
+    sys_socket,
+    sys_socket_nonblock,
+    sys_getsockopt,
+    sys_setsockopt,
+    sys_getaddrinfo_dummy,
+    sys_freeaddrinfo_dummy
+};
+
+static const Network os_network_no_dns_obj = {&os_network_no_dns_funcs, nullptr};
+
+const Network *os_network_no_dns(void)
+{
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    if ((true)) {
+        return nullptr;
+    }
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+#ifdef OS_WIN32
+    WSADATA wsaData;
+
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR) {
+        return nullptr;
+    }
+#endif /* OS_WIN32 */
+    return &os_network_no_dns_obj;
 }
 
 #if 0
@@ -1840,18 +1982,15 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
     const Family tox_family = to->family;
     const int family = make_family(tox_family);
 
-    struct addrinfo hints = {0};
-    hints.ai_family   = family;
-    hints.ai_socktype = SOCK_DGRAM; // type of socket Tox uses.
+    Network_Addr* addrs = nullptr;
+    const int rc = ns->funcs->getaddrinfo(ns->obj, address, family, 0, &addrs);
 
-    struct addrinfo *server = nullptr;
-
-    const int rc = getaddrinfo(address, nullptr, &hints, &server);
-
-    // Lookup failed.
-    if (rc != 0) {
+    // Lookup failed / empty.
+    if (rc <= 0) {
         return 0;
     }
+
+    assert(addrs != nullptr);
 
     IP ip4;
     ip_init(&ip4, false); // ipv6enabled = false
@@ -1861,16 +2000,16 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
     int result = 0;
     bool done = false;
 
-    for (struct addrinfo *walker = server; walker != nullptr && !done; walker = walker->ai_next) {
-        switch (walker->ai_family) {
+    for (int i = 0; i < rc && !done; i++) {
+        switch (addrs[i].addr.ss_family) {
             case AF_INET: {
-                if (walker->ai_family == family) { /* AF_INET requested, done */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)walker->ai_addr;
+                if (addrs[i].addr.ss_family == family) { /* AF_INET requested, done */
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
                     get_ip4(&to->ip.v4, &addr->sin_addr);
                     result = TOX_ADDR_RESOLVE_INET;
                     done = true;
                 } else if ((result & TOX_ADDR_RESOLVE_INET) == 0) { /* AF_UNSPEC requested, store away */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)walker->ai_addr;
+                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
                     get_ip4(&ip4.ip.v4, &addr->sin_addr);
                     result |= TOX_ADDR_RESOLVE_INET;
                 }
@@ -1879,16 +2018,16 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
             }
 
             case AF_INET6: {
-                if (walker->ai_family == family) { /* AF_INET6 requested, done */
-                    if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
+                if (addrs[i].addr.ss_family == family) { /* AF_INET6 requested, done */
+                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
                         get_ip6(&to->ip.v6, &addr->sin6_addr);
                         result = TOX_ADDR_RESOLVE_INET6;
                         done = true;
                     }
                 } else if ((result & TOX_ADDR_RESOLVE_INET6) == 0) { /* AF_UNSPEC requested, store away */
-                    if (walker->ai_addrlen == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)walker->ai_addr;
+                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
                         get_ip6(&ip6.ip.v6, &addr->sin6_addr);
                         result |= TOX_ADDR_RESOLVE_INET6;
                     }
@@ -1913,7 +2052,7 @@ static int addr_resolve(const Network *ns, const char *address, IP *to, IP *extr
         }
     }
 
-    freeaddrinfo(server);
+    ns->funcs->freeaddrinfo(ns->obj, addrs);
     return result;
 }
 
@@ -1980,7 +2119,7 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
     return true;
 }
 
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type)
+int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, int tox_type)
 {
     assert(node != nullptr);
 
@@ -2016,25 +2155,29 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
-    // It's not an IP address, so now we try doing a DNS lookup.
-    struct addrinfo *infos;
-    const int ret = getaddrinfo(node, nullptr, nullptr, &infos);
+    int type = make_socktype(tox_type);
+    // ugly
+    if (tox_type == -1) {
+        type = 0;
+    }
 
-    if (ret != 0) {
+    // It's not an IP address, so now we try doing a DNS lookup.
+    Network_Addr* addrs = nullptr;
+    const int rc = ns->funcs->getaddrinfo(ns->obj, node, AF_UNSPEC, type, &addrs);
+
+    // Lookup failed / empty.
+    if (rc <= 0) {
         return -1;
     }
 
+    assert(addrs != nullptr);
+
     // Used to avoid calloc parameter overflow
     const size_t max_count = min_u64(SIZE_MAX, INT32_MAX) / sizeof(IP_Port);
-    const int type = make_socktype(tox_type);
     size_t count = 0;
 
-    for (struct addrinfo *cur = infos; count < max_count && cur != nullptr; cur = cur->ai_next) {
-        if (cur->ai_socktype != 0 && type > 0 && cur->ai_socktype != type) {
-            continue;
-        }
-
-        if (cur->ai_family != AF_INET && cur->ai_family != AF_INET6) {
+    for (int i = 0; i < rc && count < max_count; i++) {
+        if (addrs[i].addr.ss_family != AF_INET && addrs[i].addr.ss_family != AF_INET6) {
             continue;
         }
 
@@ -2044,40 +2187,36 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
     assert(count <= max_count);
 
     if (count == 0) {
-        freeaddrinfo(infos);
+        ns->funcs->freeaddrinfo(ns->obj, addrs);
         return 0;
     }
 
     IP_Port *ip_port = (IP_Port *)mem_valloc(mem, count, sizeof(IP_Port));
 
     if (ip_port == nullptr) {
-        freeaddrinfo(infos);
+        ns->funcs->freeaddrinfo(ns->obj, addrs);
         *res = nullptr;
         return -1;
     }
 
     *res = ip_port;
 
-    for (struct addrinfo *cur = infos; cur != nullptr; cur = cur->ai_next) {
-        if (cur->ai_socktype != 0 && type > 0 && cur->ai_socktype != type) {
-            continue;
-        }
-
-        if (cur->ai_family == AF_INET) {
-            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)cur->ai_addr;
+    for (int i = 0; i < rc && count < max_count; i++) {
+        if (addrs[i].addr.ss_family == AF_INET) {
+            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
             ip_port->ip.ip.v4.uint32 = addr->sin_addr.s_addr;
-        } else if (cur->ai_family == AF_INET6) {
-            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)cur->ai_addr;
+        } else if (addrs[i].addr.ss_family == AF_INET6) {
+            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)&addrs[i].addr;
             memcpy(ip_port->ip.ip.v6.uint8, addr->sin6_addr.s6_addr, sizeof(IP6));
         } else {
             continue;
         }
 
-        const Family *const family = make_tox_family(cur->ai_family);
+        const Family *const family = make_tox_family(addrs[i].addr.ss_family);
         assert(family != nullptr);
 
         if (family == nullptr) {
-            freeaddrinfo(infos);
+            ns->funcs->freeaddrinfo(ns->obj, addrs);
             return -1;
         }
 
@@ -2086,7 +2225,7 @@ int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int to
         ++ip_port;
     }
 
-    freeaddrinfo(infos);
+    ns->funcs->freeaddrinfo(ns->obj, addrs);
 
     return count;
 }
