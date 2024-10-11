@@ -75,9 +75,9 @@ int Test_Network::setsockopt(
 {
     return net->funcs->setsockopt(net->obj, sock, level, optname, optval, optlen);
 }
-int Test_Network::getaddrinfo(void *obj, int family, Network_Addr **addrs)
+int Test_Network::getaddrinfo(void *obj, const char *address, int family, int protocol, Network_Addr **addrs)
 {
-    return net->funcs->getaddrinfo(net->obj, family, addrs);
+    return net->funcs->getaddrinfo(net->obj, address, family, protocol, addrs);
 }
 int Test_Network::freeaddrinfo(void *obj, Network_Addr *addrs)
 {
