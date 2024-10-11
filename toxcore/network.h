@@ -48,7 +48,7 @@ typedef Socket net_socket_cb(void *obj, int domain, int type, int proto);
 typedef int net_socket_nonblock_cb(void *obj, Socket sock, bool nonblock);
 typedef int net_getsockopt_cb(void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen);
 typedef int net_setsockopt_cb(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen);
-typedef int net_getaddrinfo_cb(void *obj, int family, Network_Addr **addrs);
+typedef int net_getaddrinfo_cb(void *obj, const char *address, int family, Network_Addr **addrs);
 typedef int net_freeaddrinfo_cb(void *obj, Network_Addr *addrs);
 
 /** @brief Functions wrapping POSIX network functions.
@@ -80,6 +80,7 @@ typedef struct Network {
 } Network;
 
 const Network *os_network(void);
+const Network *os_network_no_dns(void);
 
 typedef struct Family {
     uint8_t value;
@@ -517,7 +518,7 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
  * @retval -1 on error.
  */
 non_null()
-int32_t net_getipport(const Memory *mem, const char *node, IP_Port **res, int tox_type);
+int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, int tox_type);
 
 /** Deallocates memory allocated by net_getipport */
 non_null(1) nullable(2)
