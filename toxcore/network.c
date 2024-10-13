@@ -86,6 +86,7 @@
 #include "ccompat.h"
 #include "logger.h"
 #include "mem.h"
+#include "net_obj.h"
 #include "util.h"
 
 // Disable MSG_NOSIGNAL on systems not supporting it, e.g. Windows, FreeBSD
@@ -479,11 +480,6 @@ bool sock_valid(Socket sock)
     const Socket invalid_socket = net_invalid_socket();
     return sock.value != invalid_socket.value;
 }
-
-struct Network_Addr {
-    struct sockaddr_storage addr;
-    size_t size;
-};
 
 non_null()
 static int sys_close(void *obj, Socket sock)

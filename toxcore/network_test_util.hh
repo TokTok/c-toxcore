@@ -5,6 +5,7 @@
 
 #include "crypto_core.h"
 #include "network.h"
+#include "net_obj.h"
 #include "test_util.hh"
 
 struct Network_Class {

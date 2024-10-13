@@ -17,14 +17,9 @@
 
 #include "../../toxcore/crypto_core.h"
 #include "../../toxcore/network.h"
+#include "../../toxcore/net_obj.h"
 #include "../../toxcore/tox_private.h"
 #include "func_conversion.hh"
-
-// TODO(iphydf): Put this somewhere shared.
-struct Network_Addr {
-    struct sockaddr_storage addr;
-    size_t size;
-};
 
 System::System(std::unique_ptr<Tox_System> in_sys, std::unique_ptr<Memory> in_mem,
     std::unique_ptr<Network> in_ns, std::unique_ptr<Random> in_rng)
