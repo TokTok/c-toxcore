@@ -514,6 +514,12 @@ static int sys_listen(void *obj, Socket sock, int backlog)
 }
 
 non_null()
+static int sys_connect(void *obj, Socket sock, const Network_Addr *addr)
+{
+    return connect(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
+}
+
+non_null()
 static int sys_recvbuf(void *obj, Socket sock)
 {
 #ifdef OS_WIN32
@@ -591,6 +597,7 @@ static const Network_Funcs os_network_funcs = {
     sys_accept,
     sys_bind,
     sys_listen,
+    sys_connect,
     sys_recvbuf,
     sys_recv,
     sys_recvfrom,
@@ -1921,22 +1928,21 @@ bool addr_resolve_or_parse_ip(const Network *ns, const char *address, IP *to, IP
     return true;
 }
 
-bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port)
 {
-    struct sockaddr_storage addr = {0};
-    size_t addrsize;
+    Network_Addr addr = {{0}};
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
-        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr.addr;
 
-        addrsize = sizeof(struct sockaddr_in);
+        addr.size = sizeof(struct sockaddr_in);
         addr4->sin_family = AF_INET;
         fill_addr4(&ip_port->ip.ip.v4, &addr4->sin_addr);
         addr4->sin_port = ip_port->port;
     } else if (net_family_is_ipv6(ip_port->ip.family)) {
-        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr;
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr.addr;
 
-        addrsize = sizeof(struct sockaddr_in6);
+        addr.size = sizeof(struct sockaddr_in6);
         addr6->sin6_family = AF_INET6;
         fill_addr6(&ip_port->ip.ip.v6, &addr6->sin6_addr);
         addr6->sin6_port = ip_port->port;
@@ -1958,7 +1964,7 @@ bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Por
                  net_socket_to_native(sock), net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
     errno = 0;
 
-    if (connect(net_socket_to_native(sock), (struct sockaddr *)&addr, addrsize) == -1) {
+    if (ns->funcs->connect(ns->obj, sock, &addr) == -1) {
         const int error = net_error();
 
         // Non-blocking socket: "Operation in progress" means it's connecting.
