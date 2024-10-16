@@ -74,7 +74,7 @@ static void test_basic(void)
     for (uint8_t i = 0; i < NUM_PORTS; i++) {
         sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
         localhost.port = net_htons(ports[i]);
-        bool ret = net_connect(mem, logger, sock, &localhost);
+        bool ret = net_connect(ns, mem, logger, sock, &localhost);
         ck_assert_msg(ret, "Failed to connect to created TCP relay server on port %d (%d).", ports[i], errno);
 
         // Leave open one connection for the next test.
@@ -213,7 +213,7 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     localhost.ip = get_loopback();
     localhost.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
 
-    bool ok = net_connect(mem, logger, sock, &localhost);
+    bool ok = net_connect(ns, mem, logger, sock, &localhost);
     ck_assert_msg(ok, "Failed to connect to the test TCP relay server.");
 
     uint8_t f_secret_key[CRYPTO_SECRET_KEY_SIZE];
