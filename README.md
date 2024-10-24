@@ -37,6 +37,10 @@ some of the subjects we are teaching here are:<br><br>
 - [x] Video in NGC Groups (see: https://github.com/zoff99/c-toxcore/blob/zoff99/zoxcore_local_fork/docs/ngc_video_v2.md)
 - [x] Audio in NGC Groups (see: https://github.com/zoff99/c-toxcore/blob/zoff99/zoxcore_local_fork/docs/ngc_audio.md)
 
+<br>
 Any use of this project's code by GitHub Copilot, past or present, is done
 without our permission.  We do not consent to GitHub's use of this project's
 code in Copilot.
+<br>
+No part of this work may be used or reproduced in any manner for the purpose of training artificial intelligence technologies or systems.
+
