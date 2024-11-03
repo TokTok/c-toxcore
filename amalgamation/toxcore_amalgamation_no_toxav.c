@@ -14290,12 +14290,6 @@ typedef void m_conference_invite_cb(Messenger *m, uint32_t friend_number, const 
                                     void *user_data);
 typedef void m_group_invite_cb(const Messenger *m, uint32_t friendnumber, const uint8_t *data, size_t length,
                                const uint8_t *group_name, size_t group_name_length, void *userdata);
-typedef int m_lossy_rtp_packet_cb(Messenger *m, uint32_t friendnumber, const uint8_t *data, uint16_t len, void *object);
-
-typedef struct RTP_Packet_Handler {
-    m_lossy_rtp_packet_cb *function;
-    void *object;
-} RTP_Packet_Handler;
 
 typedef struct Friend {
     uint8_t real_pk[CRYPTO_PUBLIC_KEY_SIZE];
