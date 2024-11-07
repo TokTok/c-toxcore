@@ -162,7 +162,7 @@ static bool tox_events_unpack_handler(void *obj, Bin_Unpack *bu)
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
-    Tox_Events *events = (Tox_Events *)mem_alloc(sys->mem, sizeof(Tox_Events));
+    Tox_Events *owner events = (Tox_Events *owner)mem_alloc(sys->mem, sizeof(Tox_Events));
 
     if (events == nullptr) {
         return nullptr;
@@ -193,8 +193,8 @@ bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Even
         return false;
     }
 
-    uint8_t *a_bytes = (uint8_t *)mem_balloc(sys->mem, a_size);
-    uint8_t *b_bytes = (uint8_t *)mem_balloc(sys->mem, b_size);
+    uint8_t *owner a_bytes = (uint8_t *owner)mem_balloc(sys->mem, a_size);
+    uint8_t *owner b_bytes = (uint8_t *owner)mem_balloc(sys->mem, b_size);
 
     if (a_bytes == nullptr || b_bytes == nullptr) {
         mem_delete(sys->mem, b_bytes);

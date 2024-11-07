@@ -124,7 +124,7 @@ struct Onion_Client {
     DHT     *dht;
     Net_Crypto *c;
     Networking_Core *net;
-    Onion_Friend    *friends_list;
+    Onion_Friend    *owner friends_list;
     uint16_t       num_friends;
 
     Onion_Node clients_announce_list[MAX_ONION_CLIENTS_ANNOUNCE];
@@ -743,7 +743,7 @@ static void sort_onion_node_list(const Memory *mem, const Mono_Time *mono_time,
 {
     // Pass comp_public_key to qsort with each Client_data entry, so the
     // comparison function can use it as the base of comparison.
-    Onion_Client_Cmp_Data *cmp_list = (Onion_Client_Cmp_Data *)mem_valloc(mem, length, sizeof(Onion_Client_Cmp_Data));
+    Onion_Client_Cmp_Data *owner cmp_list = (Onion_Client_Cmp_Data *owner)mem_valloc(mem, length, sizeof(Onion_Client_Cmp_Data));
 
     if (cmp_list == nullptr) {
         return;
@@ -1509,7 +1509,7 @@ static int realloc_onion_friends(Onion_Client *onion_c, uint32_t num)
         return 0;
     }
 
-    Onion_Friend *newonion_friends = (Onion_Friend *)mem_vrealloc(onion_c->mem, onion_c->friends_list, num, sizeof(Onion_Friend));
+    Onion_Friend *owner newonion_friends = (Onion_Friend *owner)mem_vrealloc(onion_c->mem, onion_c->friends_list, num, sizeof(Onion_Friend));
 
     if (newonion_friends == nullptr) {
         return -1;
@@ -2176,7 +2176,7 @@ Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Ra
         return nullptr;
     }
 
-    Onion_Client *onion_c = (Onion_Client *)mem_alloc(mem, sizeof(Onion_Client));
+    Onion_Client *owner onion_c = (Onion_Client *owner)mem_alloc(mem, sizeof(Onion_Client));
 
     if (onion_c == nullptr) {
         return nullptr;
@@ -2208,7 +2208,7 @@ Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Ra
     return onion_c;
 }
 
-void kill_onion_client(Onion_Client *onion_c)
+void kill_onion_client(Onion_Client *owner onion_c)
 {
     if (onion_c == nullptr) {
         return;

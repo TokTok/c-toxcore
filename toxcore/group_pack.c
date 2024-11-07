@@ -180,7 +180,7 @@ static bool load_unpack_mod_list(GC_Chat *chat, Bin_Unpack *bu)
         chat->moderation.num_mods = MOD_MAX_NUM_MODERATORS;
     }
 
-    uint8_t *packed_mod_list = (uint8_t *)malloc(chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE);
+    uint8_t *owner packed_mod_list = (uint8_t *owner)malloc(chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE);
 
     if (packed_mod_list == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for packed mod list");
@@ -299,7 +299,7 @@ static bool load_unpack_saved_peers(GC_Chat *chat, Bin_Unpack *bu)
         return true;
     }
 
-    uint8_t *saved_peers = (uint8_t *)malloc(saved_peers_size * GC_SAVED_PEER_SIZE);
+    uint8_t *owner saved_peers = (uint8_t *owner)malloc(saved_peers_size * GC_SAVED_PEER_SIZE);
 
     if (saved_peers == nullptr) {
         LOGGER_ERROR(chat->log, "Failed to allocate memory for saved peer list");
@@ -390,7 +390,7 @@ static void save_pack_mod_list(const GC_Chat *chat, Bin_Pack *bp)
         return;
     }
 
-    uint8_t *packed_mod_list = (uint8_t *)malloc(num_mods * MOD_LIST_ENTRY_SIZE);
+    uint8_t *owner packed_mod_list = (uint8_t *owner)malloc(num_mods * MOD_LIST_ENTRY_SIZE);
 
     // we can still recover without the mod list
     if (packed_mod_list == nullptr) {
@@ -445,7 +445,7 @@ static void save_pack_saved_peers(const GC_Chat *chat, Bin_Pack *bp)
 {
     bin_pack_array(bp, 2);
 
-    uint8_t *saved_peers = (uint8_t *)malloc(GC_MAX_SAVED_PEERS * GC_SAVED_PEER_SIZE);
+    uint8_t *owner saved_peers = (uint8_t *owner)malloc(GC_MAX_SAVED_PEERS * GC_SAVED_PEER_SIZE);
 
     // we can still recover without the saved peers list
     if (saved_peers == nullptr) {

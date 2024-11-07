@@ -72,10 +72,10 @@ struct Friend_Connections {
     const Logger *logger;
     Net_Crypto *net_crypto;
     DHT *dht;
-    Broadcast_Info *broadcast;
+    Broadcast_Info *owner broadcast;
     Onion_Client *onion_c;
 
-    Friend_Conn *conns;
+    Friend_Conn *owner conns;
     uint32_t num_cons;
 
     fr_request_cb *fr_request_callback;
@@ -131,7 +131,8 @@ static bool realloc_friendconns(Friend_Connections *fr_c, uint32_t num)
         return true;
     }
 
-    Friend_Conn *newgroup_cons = (Friend_Conn *)realloc(fr_c->conns, num * sizeof(Friend_Conn));
+    Friend_Conn *owner newgroup_cons =
+        (Friend_Conn *owner)realloc(fr_c->conns, num * sizeof(Friend_Conn));
 
     if (newgroup_cons == nullptr) {
         return false;
@@ -915,7 +916,7 @@ Friend_Connections *new_friend_connections(
         return nullptr;
     }
 
-    Friend_Connections *const temp = (Friend_Connections *)calloc(1, sizeof(Friend_Connections));
+    Friend_Connections *const owner temp = (Friend_Connections *owner)calloc(1, sizeof(Friend_Connections));
 
     if (temp == nullptr) {
         return nullptr;
@@ -1022,7 +1023,7 @@ void do_friend_connections(Friend_Connections *fr_c, void *userdata)
 }
 
 /** Free everything related with friend_connections. */
-void kill_friend_connections(Friend_Connections *fr_c)
+void kill_friend_connections(Friend_Connections *owner fr_c)
 {
     if (fr_c == nullptr) {
         return;

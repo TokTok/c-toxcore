@@ -32,13 +32,13 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
  * Discovers broadcast devices and IP addresses.
  */
 non_null()
-Broadcast_Info *lan_discovery_init(const Network *ns);
+Broadcast_Info *owner lan_discovery_init(const Network *ns);
 
 /**
  * Free all resources associated with the broadcast info.
  */
 nullable(1)
-void lan_discovery_kill(Broadcast_Info *broadcast);
+void lan_discovery_kill(Broadcast_Info *owner broadcast);
 
 /**
  * Is IP a local ip or not.

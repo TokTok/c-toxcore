@@ -164,12 +164,12 @@ void friendreq_init(Friend_Requests *fr, Friend_Connections *fr_c)
     set_friend_request_callback(fr_c, &friendreq_handlepacket, fr);
 }
 
-Friend_Requests *friendreq_new(void)
+Friend_Requests *owner friendreq_new(void)
 {
-    return (Friend_Requests *)calloc(1, sizeof(Friend_Requests));
+    return (Friend_Requests *owner)calloc(1, sizeof(Friend_Requests));
 }
 
-void friendreq_kill(Friend_Requests *fr)
+void friendreq_kill(Friend_Requests *owner fr)
 {
     free(fr);
 }
