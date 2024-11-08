@@ -2520,7 +2520,7 @@ static int handle_send_peers(Group_Chats *g_c, uint32_t groupnumber, const uint8
 
 non_null(1, 3) nullable(6)
 static void handle_direct_packet(Group_Chats *g_c, uint32_t groupnumber, const uint8_t *data, uint16_t length,
-                                 int connection_index, void *userdata)
+                                 uint32_t connection_index, void *userdata)
 {
     if (length == 0) {
         return;
@@ -2832,7 +2832,7 @@ static bool check_message_info(uint32_t message_number, uint8_t message_id, Grou
 
 non_null(1, 3) nullable(6)
 static void handle_message_packet_group(Group_Chats *g_c, uint32_t groupnumber, const uint8_t *data, uint16_t length,
-                                        int connection_index, void *userdata)
+                                        uint32_t connection_index, void *userdata)
 {
     if (length < sizeof(uint16_t) + sizeof(uint32_t) + 1) {
         return;

@@ -231,8 +231,8 @@ bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t plaintext[], si
     ciphertext += crypto_box_NONCEBYTES;
 
     /* now encrypt */
-    if (encrypt_data_symmetric(key->key, nonce, plaintext, plaintext_len, ciphertext)
-            != plaintext_len + crypto_box_MACBYTES) {
+    const int32_t encrypted_len = encrypt_data_symmetric(key->key, nonce, plaintext, plaintext_len, ciphertext);
+    if (encrypted_len < 0 || (size_t)encrypted_len != plaintext_len + crypto_box_MACBYTES) {
         SET_ERROR_PARAMETER(error, TOX_ERR_ENCRYPTION_FAILED);
         return false;
     }
@@ -316,8 +316,8 @@ bool tox_pass_key_decrypt(const Tox_Pass_Key *key, const uint8_t ciphertext[], s
     ciphertext += crypto_box_NONCEBYTES;
 
     /* decrypt the ciphertext */
-    if (decrypt_data_symmetric(key->key, nonce, ciphertext, decrypt_length + crypto_box_MACBYTES, plaintext)
-            != decrypt_length) {
+    const int32_t decrypted_len = decrypt_data_symmetric(key->key, nonce, ciphertext, decrypt_length + crypto_box_MACBYTES, plaintext);
+    if (decrypted_len < 0 || (size_t)decrypted_len != decrypt_length) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DECRYPTION_FAILED);
         return false;
     }

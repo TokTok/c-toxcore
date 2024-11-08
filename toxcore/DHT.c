@@ -380,12 +380,12 @@ int dht_create_packet(const Memory *mem, const Random *rng,
 
     const int encrypted_length = encrypt_data_symmetric(shared_key, nonce, plain, plain_length, encrypted);
 
-    if (encrypted_length == -1) {
+    if (encrypted_length < 0) {
         mem_delete(mem, encrypted);
         return -1;
     }
 
-    if (length < 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + encrypted_length) {
+    if (length < 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + (size_t)encrypted_length) {
         mem_delete(mem, encrypted);
         return -1;
     }
@@ -1347,15 +1347,15 @@ static int sendnodes_ipv6(const DHT *dht, const IP_Port *ip_port, const uint8_t 
     plain[0] = num_nodes;
     memcpy(plain + 1 + nodes_length, sendback_data, length);
 
-    const uint32_t crypto_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE;
-    const uint32_t data_size = 1 + nodes_length + length + crypto_size;
+    const uint16_t crypto_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE;
+    const uint16_t data_size = 1 + nodes_length + length + crypto_size;
     VLA(uint8_t, data, data_size);
 
     const int len = dht_create_packet(dht->mem, dht->rng,
                                       dht->self_public_key, shared_encryption_key, NET_PACKET_SEND_NODES_IPV6,
                                       plain, 1 + nodes_length + length, data, data_size);
 
-    if (len != data_size) {
+    if (len < 0 || (uint16_t)len != data_size) {
         return -1;
     }
 

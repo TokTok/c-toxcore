@@ -21,7 +21,7 @@ static void handle_conference_invite(
     const uint8_t *cookie = tox_event_conference_invite_get_cookie(event);
     const size_t length = tox_event_conference_invite_get_cookie_length(event);
 
-    if (friend_number != -1) {
+    if (friend_number != UINT32_MAX) {
         Tox_Err_Conference_Join err;
         state->conference = tox_conference_join(autotox->tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,

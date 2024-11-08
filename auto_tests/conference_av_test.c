@@ -420,7 +420,7 @@ static void test_groupav(AutoTox *autotoxes)
         tox_events_callback_conference_connected(autotoxes[i].dispatch, handle_conference_connected);
     }
 
-    ck_assert_msg(toxav_add_av_groupchat(autotoxes[0].tox, audio_callback, &autotoxes[0]) != UINT32_MAX,
+    ck_assert_msg(toxav_add_av_groupchat(autotoxes[0].tox, audio_callback, &autotoxes[0]) != -1,
                   "failed to create group");
     printf("tox #%u: inviting its first friend\n", autotoxes[0].index);
     ck_assert_msg(tox_conference_invite(autotoxes[0].tox, 0, 0, nullptr) != 0, "failed to invite friend");

@@ -28,7 +28,7 @@ static void handle_conference_invite(
 
     ck_assert_msg(!state->joined, "invitation callback generated for already joined conference");
 
-    if (friend_number != -1) {
+    if (friend_number != UINT32_MAX) {
         Tox_Err_Conference_Join err;
         state->conference = tox_conference_join(autotox->tox, friend_number, cookie, length, &err);
         ck_assert_msg(err == TOX_ERR_CONFERENCE_JOIN_OK,

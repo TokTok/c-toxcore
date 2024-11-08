@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         printf("Failed to set status. Error number: %d\n", err);
     }
 
-    for (unsigned int i = 2; i < argc; i++) { //start at 2 because that is where the tox ids are
+    for (int i = 2; i < argc; i++) { //start at 2 because that is where the tox ids are
         uint8_t *address = hex_string_to_bin(argv[i]);
         Tox_Err_Friend_Add friend_err;
         tox_friend_add(tox, address, (const uint8_t *)GENERATED_REQUEST_MESSAGE, strlen(GENERATED_REQUEST_MESSAGE),
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
         free(address);
 
         if (friend_err != TOX_ERR_FRIEND_ADD_OK) {
-            printf("Failed to add friend number %u. Error number: %d\n", i - 1, friend_err);
+            printf("Failed to add friend number %d. Error number: %d\n", i - 1, friend_err);
         }
     }
 
