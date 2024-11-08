@@ -27,7 +27,6 @@ run() {
     -Wno-missing-noreturn \
     -Wno-old-style-cast \
     -Wno-padded \
-    -Wno-sign-compare \
     -Wno-switch-default \
     -Wno-tautological-pointer-compare \
     -Wno-unreachable-code-return \

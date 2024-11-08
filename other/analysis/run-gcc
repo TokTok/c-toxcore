@@ -23,7 +23,6 @@ run() {
     -Wno-missing-field-initializers \
     -Wno-nonnull-compare \
     -Wno-padded \
-    -Wno-sign-compare \
     -Wno-sign-conversion \
     -Wno-switch-default \
     -Wno-unused-parameter \

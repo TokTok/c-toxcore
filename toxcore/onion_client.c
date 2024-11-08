@@ -955,7 +955,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
     }
 
     uint8_t plain[1 + ONION_PING_ID_SIZE + ONION_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
-    const int plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
+    const uint32_t plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
     int len;
     const uint16_t nonce_start = 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
     const uint16_t ciphertext_start = nonce_start + CRYPTO_NONCE_SIZE;

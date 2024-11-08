@@ -8353,7 +8353,7 @@ bool gc_group_is_valid(const GC_Chat *chat)
 /** Return true if `group_number` designates an active group in session `c`. */
 static bool group_number_valid(const GC_Session *c, int group_number)
 {
-    if (group_number < 0 || group_number >= c->chats_index) {
+    if (group_number < 0 || (uint32_t)group_number >= c->chats_index) {
         return false;
     }
 
