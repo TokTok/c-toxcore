@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 #endif
             crypto_box_keypair(public_key, secret_key);
 
-            for (int i = 0; i <= crypto_box_PUBLICKEYBYTES - len; ++i) {
+            for (uint32_t i = 0; i <= crypto_box_PUBLICKEYBYTES - len; ++i) {
                 if (memcmp(public_key + i, desired_bin, len) == 0) {
                     found = 1;
                     break;

@@ -618,7 +618,7 @@ int main(int argc, char *argv[])
             break;
 
         default:
-            log_write(LOG_LEVEL_INFO, "Received (%d) signal. Exiting.\n", caught_signal);
+            log_write(LOG_LEVEL_INFO, "Received (%ld) signal. Exiting.\n", (long)caught_signal);
     }
 
     lan_discovery_kill(broadcast);

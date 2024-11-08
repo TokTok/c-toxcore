@@ -36,9 +36,6 @@ add_flag -Wno-padded
 # This warns on things like _XOPEN_SOURCE, which we currently need (we
 # probably won't need these in the future).
 add_flag -Wno-reserved-id-macro
-# TODO(iphydf): Clean these up. They are likely not bugs, but still
-# potential issues and probably confusing.
-add_flag -Wno-sign-compare
 # We don't want to have default cases, we want to explicitly define all cases
 add_flag -Wno-switch-default
 # __attribute__((nonnull)) causes this warning on defensive null checks.

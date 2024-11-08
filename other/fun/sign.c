@@ -35,7 +35,7 @@ static int load_file(const char *filename, unsigned char **result)
     fseek(f, 0, SEEK_SET);
     *result = (unsigned char *)malloc(size + 1);
 
-    if (size != fread(*result, sizeof(char), size, f)) {
+    if ((size_t)size != fread(*result, sizeof(char), size, f)) {
         free(*result);
         fclose(f);
         return -2; // -2 means file reading fail
@@ -55,13 +55,13 @@ int main(int argc, char *argv[])
         crypto_sign_ed25519_keypair(pk, sk);
         printf("Public key:\n");
 
-        for (int i = 0; i < crypto_sign_ed25519_PUBLICKEYBYTES; ++i) {
+        for (uint32_t i = 0; i < crypto_sign_ed25519_PUBLICKEYBYTES; ++i) {
             printf("%02X", pk[i]);
         }
 
         printf("\nSecret key:\n");
 
-        for (int i = 0; i < crypto_sign_ed25519_SECRETKEYBYTES; ++i) {
+        for (uint32_t i = 0; i < crypto_sign_ed25519_SECRETKEYBYTES; ++i) {
             printf("%02X", sk[i]);
         }
 

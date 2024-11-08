@@ -47,8 +47,7 @@ add_flag -Wunused-value
 
 # struct Foo foo = {0}; is a common idiom.
 add_flag -Wno-missing-field-initializers
-# TODO(iphydf): Clean these up. They are likely not bugs, but still
-# potential issues and probably confusing.
+# Checked by clang, but gcc is warning when it's not necessary.
 add_flag -Wno-sign-compare
 # File transfer code has this.
 add_flag -Wno-type-limits
