@@ -155,9 +155,7 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
                        const uint8_t *target_public_key, Tox_Err_Dht_Get_Nodes *error);
 
 /**
- * This function returns the ratio of close dht nodes that are known to support
- * announce/store. This function returns the number of DHT nodes in the
- * closelist.
+ * This function returns the number of DHT nodes in the closelist.
  *
  * @return number
  */
