@@ -13,11 +13,11 @@
 #include <stdint.h>
 
 #include "DHT.h"
-#include "attributes.h"
 #include "crypto_core.h"
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_attributes.h"
 
 typedef struct Ping Ping;
 

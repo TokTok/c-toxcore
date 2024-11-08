@@ -6,6 +6,8 @@
 #include <vector>
 
 #include "crypto_core.h"
+#include "os_random.h"
+#include "tox_log.h"
 #include "tox_private.h"
 
 namespace {

@@ -17,11 +17,12 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/tox_impl.h"
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/network.h"
 #include "../toxcore/tox.h"
+#include "../toxcore/tox_impl.h"
 #include "../toxcore/tox_private.h"
-#include "../toxcore/tox_struct.h"
 #include "../toxcore/util.h"
 
 // TODO(zoff99): don't hardcode this, let the application choose it
@@ -227,7 +228,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     rtp_allow_receiving(av->tox);
     bwc_allow_receiving(av->tox);
 
-    av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
+    av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr);
 
     if (av->msi == nullptr) {
         pthread_mutex_destroy(av->mutex);

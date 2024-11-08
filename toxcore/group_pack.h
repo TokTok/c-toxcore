@@ -12,10 +12,10 @@
 
 #include <stdbool.h>
 
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "group_common.h"
+#include "tox_attributes.h"
 
 /**
  * Packs group data from `chat` into `mp` in binary format. Parallel to the

@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../attributes.h"
 #include "../bin_pack.h"
 #include "../bin_unpack.h"
 #include "../ccompat.h"
 #include "../mem.h"
 #include "../tox.h"
+#include "../tox_attributes.h"
 #include "../tox_events.h"
 
 /*****************************************************

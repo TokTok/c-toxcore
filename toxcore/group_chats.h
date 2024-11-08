@@ -14,7 +14,6 @@
 #include <stdint.h>
 
 #include "TCP_connection.h"
-#include "attributes.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
 #include "crypto_core.h"
@@ -22,7 +21,9 @@
 #include "group_common.h"
 #include "group_connection.h"
 #include "logger.h"
+#include "mem.h"
 #include "network.h"
+#include "tox_attributes.h"
 
 #define GC_PING_TIMEOUT 12
 #define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
@@ -141,9 +142,10 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  * Return -2 if malloc fails.
  * Return -3 if encryption fails.
  */
-non_null(1, 2, 3, 4, 5) nullable(7)
+non_null(1, 2, 3, 4, 5, 6) nullable(8)
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Memory *mem, const Random *rng,
+    const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, Net_Packet_Type net_packet_type);
 

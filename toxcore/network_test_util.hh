@@ -5,13 +5,15 @@
 
 #include "crypto_core.h"
 #include "network.h"
+#include "os_network.h"
 #include "test_util.hh"
+#include "tox_network_impl.h"
 
 struct Network_Class {
-    static Network_Funcs const vtable;
-    Network const self;
+    static Tox_Network_Funcs const vtable;
+    Tox_Network const self;
 
-    operator Network const *() const { return &self; }
+    operator Tox_Network const *() const { return &self; }
 
     Network_Class(Network_Class const &) = default;
     Network_Class()
@@ -20,21 +22,21 @@ struct Network_Class {
     }
 
     virtual ~Network_Class();
-    virtual net_close_cb close = 0;
-    virtual net_accept_cb accept = 0;
-    virtual net_bind_cb bind = 0;
-    virtual net_listen_cb listen = 0;
-    virtual net_recvbuf_cb recvbuf = 0;
-    virtual net_recv_cb recv = 0;
-    virtual net_recvfrom_cb recvfrom = 0;
-    virtual net_send_cb send = 0;
-    virtual net_sendto_cb sendto = 0;
-    virtual net_socket_cb socket = 0;
-    virtual net_socket_nonblock_cb socket_nonblock = 0;
-    virtual net_getsockopt_cb getsockopt = 0;
-    virtual net_setsockopt_cb setsockopt = 0;
-    virtual net_getaddrinfo_cb getaddrinfo = 0;
-    virtual net_freeaddrinfo_cb freeaddrinfo = 0;
+    virtual tox_network_close_cb close = 0;
+    virtual tox_network_accept_cb accept = 0;
+    virtual tox_network_bind_cb bind = 0;
+    virtual tox_network_listen_cb listen = 0;
+    virtual tox_network_recvbuf_cb recvbuf = 0;
+    virtual tox_network_recv_cb recv = 0;
+    virtual tox_network_recvfrom_cb recvfrom = 0;
+    virtual tox_network_send_cb send = 0;
+    virtual tox_network_sendto_cb sendto = 0;
+    virtual tox_network_socket_cb socket = 0;
+    virtual tox_network_socket_nonblock_cb socket_nonblock = 0;
+    virtual tox_network_getsockopt_cb getsockopt = 0;
+    virtual tox_network_setsockopt_cb setsockopt = 0;
+    virtual tox_network_getaddrinfo_cb getaddrinfo = 0;
+    virtual tox_network_freeaddrinfo_cb freeaddrinfo = 0;
 };
 
 /**
@@ -42,7 +44,7 @@ struct Network_Class {
  * subclassed to override individual (or all) functions.
  */
 class Test_Network : public Network_Class {
-    const Network *net = REQUIRE_NOT_NULL(os_network());
+    const Tox_Network *net = REQUIRE_NOT_NULL(os_network());
 
     int close(void *obj, Socket sock) override;
     Socket accept(void *obj, Socket sock) override;
