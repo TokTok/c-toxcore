@@ -865,7 +865,7 @@ bool cmp_write_pfix(cmp_ctx_t *ctx, uint8_t c) {
 }
 
 bool cmp_write_nfix(cmp_ctx_t *ctx, int8_t c) {
-  if (c >= -32 && c <= -1)
+  if (c >= -0x20 && c <= -1)
     return write_fixed_value(ctx, (uint8_t)c);
 
   ctx->error = CMP_ERROR_INPUT_VALUE_TOO_LARGE;
@@ -875,7 +875,7 @@ bool cmp_write_nfix(cmp_ctx_t *ctx, int8_t c) {
 bool cmp_write_sfix(cmp_ctx_t *ctx, int8_t c) {
   if (c >= 0)
     return cmp_write_pfix(ctx, (uint8_t)c);
-  if (c >= -32 && c <= -1)
+  if (c >= -0x20 && c <= -1)
     return cmp_write_nfix(ctx, c);
 
   ctx->error = CMP_ERROR_INPUT_VALUE_TOO_LARGE;
