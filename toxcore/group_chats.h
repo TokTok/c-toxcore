@@ -119,7 +119,7 @@ GC_Connection *get_gc_connection(const GC_Chat *chat, int peer_number);
 
 /** @brief Returns the jenkins hash of a 32 byte public encryption key. */
 non_null()
-uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
+uint32_t gc_get_pk_jenkins_hash(const Public_Key *public_key);
 
 /** @brief Check if peer with the public encryption key is in peer list.
  *
@@ -129,7 +129,7 @@ uint32_t gc_get_pk_jenkins_hash(const uint8_t *public_key);
  * If `confirmed` is true the peer number will only be returned if the peer is confirmed.
  */
 non_null()
-int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key, bool confirmed);
+int get_peer_number_of_enc_pk(const GC_Chat *chat, const Public_Key *public_enc_key, bool confirmed);
 
 /** @brief Encrypts `data` of size `length` using the peer's shared key and a new nonce.
  *
@@ -143,7 +143,7 @@ int get_peer_number_of_enc_pk(const GC_Chat *chat, const uint8_t *public_enc_key
  */
 non_null(1, 2, 3, 4, 5) nullable(7)
 int group_packet_wrap(
-    const Logger *log, const Random *rng, const uint8_t *self_pk, const uint8_t *shared_key, uint8_t *packet,
+    const Logger *log, const Random *rng, const Public_Key *self_pk, const uint8_t *shared_key, uint8_t *packet,
     uint16_t packet_size, const uint8_t *data, uint16_t length, uint64_t message_id,
     uint8_t gp_packet_type, Net_Packet_Type net_packet_type);
 
