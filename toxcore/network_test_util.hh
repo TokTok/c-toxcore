@@ -24,6 +24,7 @@ struct Network_Class {
     virtual net_accept_cb accept = 0;
     virtual net_bind_cb bind = 0;
     virtual net_listen_cb listen = 0;
+    virtual net_connect_cb connect = 0;
     virtual net_recvbuf_cb recvbuf = 0;
     virtual net_recv_cb recv = 0;
     virtual net_recvfrom_cb recvfrom = 0;
@@ -48,6 +49,7 @@ class Test_Network : public Network_Class {
     Socket accept(void *obj, Socket sock) override;
     int bind(void *obj, Socket sock, const Network_Addr *addr) override;
     int listen(void *obj, Socket sock, int backlog) override;
+    int connect(void *obj, Socket sock, const Network_Addr *addr) override;
     int recvbuf(void *obj, Socket sock) override;
     int recv(void *obj, Socket sock, uint8_t *buf, size_t len) override;
     int recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) override;

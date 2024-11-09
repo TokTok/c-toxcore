@@ -111,6 +111,7 @@ static constexpr Network_Funcs fuzz_network_funcs = {
     /* .accept = */ ![](Fuzz_System *self, Socket sock) { return Socket{1337}; },
     /* .bind = */ ![](Fuzz_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .listen = */ ![](Fuzz_System *self, Socket sock, int backlog) { return 0; },
+    /* .connect = */ ![](Fuzz_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .recvbuf = */
     ![](Fuzz_System *self, Socket sock) {
         assert(sock.value == 42 || sock.value == 1337);
@@ -225,6 +226,7 @@ static constexpr Network_Funcs null_network_funcs = {
     /* .accept = */ ![](Null_System *self, Socket sock) { return Socket{1337}; },
     /* .bind = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .listen = */ ![](Null_System *self, Socket sock, int backlog) { return 0; },
+    /* .connect = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .recvbuf = */ ![](Null_System *self, Socket sock) { return 0; },
     /* .recv = */
     ![](Null_System *self, Socket sock, uint8_t *buf, size_t len) {
@@ -341,6 +343,7 @@ static constexpr Network_Funcs record_network_funcs = {
         return 0;
     },
     /* .listen = */ ![](Record_System *self, Socket sock, int backlog) { return 0; },
+    /* .connect = */ ![](Record_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .recvbuf = */ ![](Record_System *self, Socket sock) { return 0; },
     /* .recv = */
     ![](Record_System *self, Socket sock, uint8_t *buf, size_t len) {

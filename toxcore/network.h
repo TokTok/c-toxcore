@@ -39,6 +39,7 @@ typedef int net_close_cb(void *obj, Socket sock);
 typedef Socket net_accept_cb(void *obj, Socket sock);
 typedef int net_bind_cb(void *obj, Socket sock, const Network_Addr *addr);
 typedef int net_listen_cb(void *obj, Socket sock, int backlog);
+typedef int net_connect_cb(void *obj, Socket sock, const Network_Addr *addr);
 typedef int net_recvbuf_cb(void *obj, Socket sock);
 typedef int net_recv_cb(void *obj, Socket sock, uint8_t *buf, size_t len);
 typedef int net_recvfrom_cb(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr);
@@ -61,6 +62,7 @@ typedef struct Network_Funcs {
     net_accept_cb *accept;
     net_bind_cb *bind;
     net_listen_cb *listen;
+    net_connect_cb *connect;
     net_recvbuf_cb *recvbuf;
     net_recv_cb *recv;
     net_recvfrom_cb *recvfrom;
@@ -501,7 +503,7 @@ void networking_poll(const Networking_Core *net, void *userdata);
  * Return false on failure.
  */
 non_null()
-bool net_connect(const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port);
+bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port);
 
 /** @brief High-level getaddrinfo implementation.
  *
