@@ -130,7 +130,7 @@ int create_onion_packet_tcp(const Random *rng, uint8_t *packet, uint16_t max_pac
  * return 0 on success.
  */
 non_null()
-int send_onion_response(const Logger *log, const Networking_Core *net,
+int send_onion_response(const Logger *log, Networking_Core *net,
                         const IP_Port *dest, const uint8_t *data, uint16_t length,
                         const uint8_t *ret);
 
