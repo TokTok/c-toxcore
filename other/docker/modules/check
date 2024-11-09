@@ -50,6 +50,10 @@ module "//c-toxcore/third_party:cmp" {
 module "//c-toxcore/toxencryptsave:defines" {
   header "toxencryptsave/defines.h"
 }
+module "@benchmark" {
+  textual header "/usr/include/benchmark/benchmark.h"
+  use std
+}
 module "@com_google_googletest//:gtest" {
   textual header "/usr/include/gmock/gmock.h"
   textual header "/usr/include/gtest/gtest.h"
@@ -83,9 +87,9 @@ class Context:
         pass
 
     def bzl_exports_files(
-            self,
-            srcs: list[str],
-            visibility: Optional[list[str]] = None,
+        self,
+        srcs: list[str],
+        visibility: Optional[list[str]] = None,
     ) -> None:
         pass
 
@@ -110,7 +114,7 @@ class Context:
             hdrs,
         }
 
-    def bzl_cc_test(
+    def bzl_cc_binary(
             self,
             name: str,
             srcs: Iterable[str] = tuple(),
@@ -161,7 +165,8 @@ def main() -> None:
                     "load": ctx.bzl_load,
                     "exports_files": ctx.bzl_exports_files,
                     "cc_library": ctx.bzl_cc_library,
-                    "cc_test": ctx.bzl_cc_test,
+                    "cc_binary": ctx.bzl_cc_binary,
+                    "cc_test": ctx.bzl_cc_binary,
                     "cc_fuzz_test": ctx.bzl_cc_fuzz_test,
                     "select": ctx.bzl_select,
                     "glob": ctx.bzl_glob,
