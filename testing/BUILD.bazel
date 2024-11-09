@@ -1,6 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 CIMPLE_FILES = [
+    "//c-toxcore:legacy_headers",
     "//c-toxcore/toxav:cimple_files",
     "//c-toxcore/toxcore:cimple_files",
     "//c-toxcore/toxencryptsave:cimple_files",
