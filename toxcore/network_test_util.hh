@@ -84,7 +84,6 @@ public:
 };
 
 bool operator==(Family a, Family b);
-
 bool operator==(IP4 a, IP4 b);
 bool operator==(IP6 a, IP6 b);
 bool operator==(IP const &a, IP const &b);
