@@ -160,6 +160,7 @@ jobs:
           prepare:
             PAGER=cat ASSUME_ALWAYS_YES=YES pkg install
               cmake
+              gdb
               git
               gmake
               googletest
@@ -177,10 +178,25 @@ jobs:
               -DMUST_BUILD_TOXAV=ON \
               -DNON_HERMETIC_TESTS=ON \
               -DTEST_TIMEOUT_SECONDS=50 \
+              -DCMAKE_TEST_LAUNCHER="gdb;--batch;--return-child-result;-ex;set pagination off;-ex;run;-ex;thread apply all bt;--args" \
               -DUSE_IPV6=OFF \
               -DAUTOTEST=ON
             cmake --build . --target install
-            ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
+            #ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
+            ctest -V -R TCP --repeat until-fail:24
 
   mypy:
     runs-on: ubuntu-latest
