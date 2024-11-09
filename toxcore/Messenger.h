@@ -86,6 +86,8 @@ typedef struct Messenger_Options {
 
     Messenger_State_Plugin *state_plugins;
     uint8_t state_plugins_length;
+
+    bool dns_enabled;
 } Messenger_Options;
 
 struct Receipts {

@@ -390,6 +390,9 @@ bool bootstrap_from_config(const char *cfg_file_path, DHT *dht, bool enable_ipv6
         bool address_resolved;
         uint8_t *bs_public_key_bin;
 
+        // TODO(iphydf): Maybe disable it and only use IP addresses?
+        const bool dns_enabled = true;
+
         node = config_setting_get_elem(node_list, 0);
 
         if (node == nullptr) {
@@ -429,7 +432,7 @@ bool bootstrap_from_config(const char *cfg_file_path, DHT *dht, bool enable_ipv6
         }
 
         bs_public_key_bin = bootstrap_hex_string_to_bin(bs_public_key);
-        address_resolved = dht_bootstrap_from_address(dht, bs_address, enable_ipv6, net_htons(bs_port),
+        address_resolved = dht_bootstrap_from_address(dht, bs_address, enable_ipv6, dns_enabled, net_htons(bs_port),
                            bs_public_key_bin);
         free(bs_public_key_bin);
 

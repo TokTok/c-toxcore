@@ -1840,7 +1840,7 @@ bool dht_bootstrap(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key)
     return dht_getnodes(dht, ip_port, public_key, dht->self_public_key);
 }
 
-bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
+bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled, bool dns_enabled,
                                 uint16_t port, const uint8_t *public_key)
 {
     IP_Port ip_port_v64;
@@ -1855,7 +1855,7 @@ bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
         ip_extra = &ip_port_v4.ip;
     }
 
-    if (addr_resolve_or_parse_ip(dht->ns, address, &ip_port_v64.ip, ip_extra)) {
+    if (addr_resolve_or_parse_ip(dht->ns, address, &ip_port_v64.ip, ip_extra, dns_enabled)) {
         ip_port_v64.port = port;
         dht_bootstrap(dht, &ip_port_v64, public_key);
 
