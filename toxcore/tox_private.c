@@ -124,7 +124,7 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
 
     IP_Port *root;
 
-    const int32_t count = net_getipport(tox->sys.mem, ip, &root, TOX_SOCK_DGRAM);
+    const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, ip, &root, TOX_SOCK_DGRAM);
 
     if (count < 1) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_BAD_IP);

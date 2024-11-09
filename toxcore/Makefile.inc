@@ -62,6 +62,7 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/mem.c \
                         ../toxcore/mono_time.h \
                         ../toxcore/mono_time.c \
+                        ../toxcore/net_obj.h \
                         ../toxcore/network.h \
                         ../toxcore/network.c \
                         ../toxcore/crypto_core.h \

@@ -107,12 +107,12 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value)
  * @retval false on failure
  */
 non_null()
-static bool connect_sock_to(const Logger *logger, const Memory *mem, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
+static bool connect_sock_to(const Network *ns, const Logger *logger, const Memory *mem, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
 {
     if (proxy_info->proxy_type != TCP_PROXY_NONE) {
-        return net_connect(mem, logger, sock, &proxy_info->ip_port);
+        return net_connect(ns, mem, logger, sock, &proxy_info->ip_port);
     } else {
-        return net_connect(mem, logger, sock, ip_port);
+        return net_connect(ns, mem, logger, sock, ip_port);
     }
 }
 
@@ -617,7 +617,7 @@ TCP_Client_Connection *new_tcp_connection(
         return nullptr;
     }
 
-    if (!(set_socket_nonblock(ns, sock) && connect_sock_to(logger, mem, sock, ip_port, proxy_info))) {
+    if (!(set_socket_nonblock(ns, sock) && connect_sock_to(ns, logger, mem, sock, ip_port, proxy_info))) {
         kill_sock(ns, sock);
         return nullptr;
     }
