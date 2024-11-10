@@ -1,5 +1,35 @@
 
 
+## v0.2.20
+
+### Merged PRs:
+
+- [#2788](https://github.com/TokTok/c-toxcore/pull/2788) fix: Add missing free in dht_get_nodes_response event.
+- [#2786](https://github.com/TokTok/c-toxcore/pull/2786) cleanup: Fix all `-Wsign-compare` warnings.
+- [#2785](https://github.com/TokTok/c-toxcore/pull/2785) fix: wrong comment for closelist
+- [#2784](https://github.com/TokTok/c-toxcore/pull/2784) chore: lower cirrus ci timeout drastically
+- [#2783](https://github.com/TokTok/c-toxcore/pull/2783) fix: Return an error instead of crashing on nullptr args in NGC.
+- [#2782](https://github.com/TokTok/c-toxcore/pull/2782) fix(toxav): pass video bit rate as kbit
+- [#2780](https://github.com/TokTok/c-toxcore/pull/2780) chore: Add release-drafter github action.
+- [#2779](https://github.com/TokTok/c-toxcore/pull/2779) chore: Use toktok's cmp instead of upstream.
+- [#2778](https://github.com/TokTok/c-toxcore/pull/2778) cleanup: Sort apk/apt install commands in Dockerfiles.
+- [#2777](https://github.com/TokTok/c-toxcore/pull/2777) chore: Upgrade to FreeBSD 14.1 in cirrus build.
+- [#2772](https://github.com/TokTok/c-toxcore/pull/2772) fix: friend_connections leak on allocation failure.
+- [#2771](https://github.com/TokTok/c-toxcore/pull/2771) fix: events leak that can occur if allocation fails
+- [#2769](https://github.com/TokTok/c-toxcore/pull/2769) chore(ci): new minimum for all android versions is 21
+- [#2768](https://github.com/TokTok/c-toxcore/pull/2768) fix: toxav rtp temp buffer allocation size was too large
+- [#2762](https://github.com/TokTok/c-toxcore/pull/2762) chore(cmake): set options changes as cache and with force
+- [#2761](https://github.com/TokTok/c-toxcore/pull/2761) chore: Fix CI
+- [#2757](https://github.com/TokTok/c-toxcore/pull/2757) fix: Use Opus in the CBR mode
+- [#2755](https://github.com/TokTok/c-toxcore/pull/2755) chore: Fix Circle CI build failing
+- [#2754](https://github.com/TokTok/c-toxcore/pull/2754) docs(toxav):  fix docs of toxav.h
+- [#2751](https://github.com/TokTok/c-toxcore/pull/2751) chore(deps): bump golang.org/x/net from 0.17.0 to 0.23.0 in /other/bootstrap_daemon/websocket/websockify
+- [#2747](https://github.com/TokTok/c-toxcore/pull/2747) fix: Memory leak in the bootstrap daemon
+- [#2745](https://github.com/TokTok/c-toxcore/pull/2745) chore: Fix GitHub actions deprecation warnings
+- [#2717](https://github.com/TokTok/c-toxcore/pull/2717) cleanup: Remove useless if clause
+- [#2692](https://github.com/TokTok/c-toxcore/pull/2692) refactor: Make tox-bootstrapd use bool instead of int
+- [#2651](https://github.com/TokTok/c-toxcore/pull/2651) refactor: Make ToxAV independent of toxcore internals.
+
 ## v0.2.19
 
 ### Merged PRs:
@@ -30,6 +60,7 @@
 - [#2697](https://github.com/TokTok/c-toxcore/pull/2697) test: Build toxcore on NetBSD (VM).
 - [#2696](https://github.com/TokTok/c-toxcore/pull/2696) fix: save_compatibility_test failing on big-endian systems
 - [#2695](https://github.com/TokTok/c-toxcore/pull/2695) fix: Don't serve files from websockify.
+- [#2691](https://github.com/TokTok/c-toxcore/pull/2691) chore: Release 0.2.19
 - [#2689](https://github.com/TokTok/c-toxcore/pull/2689) fix: Correctly pass extended public keys to group moderation code.
 - [#2686](https://github.com/TokTok/c-toxcore/pull/2686) chore: Compile libsodium reference implementation with compcert.
 - [#2685](https://github.com/TokTok/c-toxcore/pull/2685) cleanup: correct a few nullable annotations
@@ -252,6 +283,7 @@
 - [#2739](https://github.com/TokTok/c-toxcore/issues/2739) Tox_Options.operating_system is not clear about it being an experimental option
 - [#2734](https://github.com/TokTok/c-toxcore/issues/2734) error compiling on fedora
 - [#2649](https://github.com/TokTok/c-toxcore/issues/2649) create_extended_keypair should use Random and be made deterministic for fuzzing
+- [#2462](https://github.com/TokTok/c-toxcore/issues/2462) Fix code scanning alert - Uncontrolled data used in path expression
 - [#2358](https://github.com/TokTok/c-toxcore/issues/2358) resolve_bootstrap_node assert hit
 - [#2352](https://github.com/TokTok/c-toxcore/issues/2352) SEGV after infinite loop retrying proxy_socks5_read_connection_response
 - [#2335](https://github.com/TokTok/c-toxcore/issues/2335) ipv6 disabled on kernel cmdline disrupts Tox = most tests fail
