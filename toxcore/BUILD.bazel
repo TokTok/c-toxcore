@@ -4,6 +4,7 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 exports_files(
     srcs = [
         "tox.h",
+        "tox_log_level.h",
         "tox_private.h",
     ],
     visibility = ["//c-toxcore:__subpackages__"],
@@ -977,6 +978,13 @@ cc_library(
         ":state",
         ":util",
     ],
+)
+
+cc_library(
+    name = "tox_log_level",
+    srcs = ["tox_log_level.c"],
+    hdrs = ["tox_log_level.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
 )
 
 cc_library(
