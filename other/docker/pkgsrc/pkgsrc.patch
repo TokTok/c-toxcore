@@ -14,10 +14,11 @@ diff --git a/chat/toxcore/PLIST b/chat/toxcore/PLIST
 index f0a5e4f04..4122b0867 100644
 --- a/chat/toxcore/PLIST
 +++ b/chat/toxcore/PLIST
-@@ -4,11 +4,10 @@ bin/tox-bootstrapd
+@@ -4,11 +4,11 @@ bin/tox-bootstrapd
  include/tox/tox.h
 -include/tox/tox_dispatch.h
 -include/tox/tox_events.h
++include/tox/tox_log_level.h
 +include/tox/tox_options.h
  include/tox/toxav.h
  include/tox/toxencryptsave.h

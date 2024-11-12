@@ -10,6 +10,7 @@ genrule(
         "//c-toxcore/toxcore:tox.h",
         "//c-toxcore/toxcore:tox_dispatch.h",
         "//c-toxcore/toxcore:tox_events.h",
+        "//c-toxcore/toxcore:tox_log_level.h",
         "//c-toxcore/toxcore:tox_options.h",
         "//c-toxcore/toxcore:tox_private.h",
         "//c-toxcore/toxencryptsave:toxencryptsave.h",
@@ -19,6 +20,7 @@ genrule(
         "tox/tox.h",
         "tox/tox_dispatch.h",
         "tox/tox_events.h",
+        "tox/tox_log_level.h",
         "tox/tox_options.h",
         "tox/tox_private.h",
         "tox/toxencryptsave.h",
@@ -28,6 +30,7 @@ genrule(
         cp $(location //c-toxcore/toxcore:tox.h) $(GENDIR)/c-toxcore/tox/tox.h
         cp $(location //c-toxcore/toxcore:tox_dispatch.h) $(GENDIR)/c-toxcore/tox/tox_dispatch.h
         cp $(location //c-toxcore/toxcore:tox_events.h) $(GENDIR)/c-toxcore/tox/tox_events.h
+        cp $(location //c-toxcore/toxcore:tox_log_level.h) $(GENDIR)/c-toxcore/tox/tox_log_level.h
         cp $(location //c-toxcore/toxcore:tox_options.h) $(GENDIR)/c-toxcore/tox/tox_options.h
         cp $(location //c-toxcore/toxcore:tox_private.h) $(GENDIR)/c-toxcore/tox/tox_private.h
         cp $(location //c-toxcore/toxencryptsave:toxencryptsave.h) $(GENDIR)/c-toxcore/tox/toxencryptsave.h

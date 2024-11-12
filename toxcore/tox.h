@@ -5361,7 +5361,6 @@ typedef Tox_User_Status TOX_USER_STATUS;
 typedef Tox_Message_Type TOX_MESSAGE_TYPE;
 typedef Tox_Proxy_Type TOX_PROXY_TYPE;
 typedef Tox_Savedata_Type TOX_SAVEDATA_TYPE;
-typedef Tox_Log_Level TOX_LOG_LEVEL;
 typedef Tox_Connection TOX_CONNECTION;
 typedef Tox_File_Control TOX_FILE_CONTROL;
 typedef Tox_Conference_Type TOX_CONFERENCE_TYPE;

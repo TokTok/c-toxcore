@@ -6,6 +6,7 @@ exports_files(
         "tox.h",
         "tox_dispatch.h",
         "tox_events.h",
+        "tox_log_level.h",
         "tox_options.h",
         "tox_private.h",
     ],
@@ -1079,7 +1080,17 @@ cc_library(
     hdrs = ["tox_options.h"],
     copts = ["-UTOX_HIDE_DEPRECATED"],
     visibility = ["//c-toxcore:__subpackages__"],
-    deps = [":ccompat"],
+    deps = [
+        ":ccompat",
+        ":tox_log_level",
+    ],
+)
+
+cc_library(
+    name = "tox_log_level",
+    srcs = ["tox_log_level.c"],
+    hdrs = ["tox_log_level.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
 )
 
 cc_library(
@@ -1114,6 +1125,7 @@ cc_library(
         ":network",
         ":onion_client",
         ":state",
+        ":tox_log_level",
         ":tox_options",
         ":util",
         "//c-toxcore/toxencryptsave:defines",
@@ -1128,6 +1140,7 @@ cc_test(
     deps = [
         ":crypto_core",
         ":tox",
+        ":tox_log_level",
         ":tox_options",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",

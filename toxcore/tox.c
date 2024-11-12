@@ -32,6 +32,7 @@
 #include "network.h"
 #include "onion_client.h"
 #include "state.h"
+#include "tox_log_level.h"
 #include "tox_options.h"
 #include "tox_private.h"
 #include "tox_struct.h" // IWYU pragma: keep

@@ -10,6 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "tox_log_level.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -63,38 +65,6 @@ typedef enum Tox_Savedata_Type {
 } Tox_Savedata_Type;
 
 const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
-
-/**
- * @brief Severity level of log messages.
- */
-typedef enum Tox_Log_Level {
-    /**
-     * Very detailed traces including all network activity.
-     */
-    TOX_LOG_LEVEL_TRACE,
-
-    /**
-     * Debug messages such as which port we bind to.
-     */
-    TOX_LOG_LEVEL_DEBUG,
-
-    /**
-     * Informational log messages such as video call status changes.
-     */
-    TOX_LOG_LEVEL_INFO,
-
-    /**
-     * Warnings about internal inconsistency or logic errors.
-     */
-    TOX_LOG_LEVEL_WARNING,
-
-    /**
-     * Severe unexpected errors caused by external or internal inconsistency.
-     */
-    TOX_LOG_LEVEL_ERROR,
-} Tox_Log_Level;
-
-const char *tox_log_level_to_string(Tox_Log_Level value);
 
 /**
  * @brief This event is triggered when Tox logs an internal message.
