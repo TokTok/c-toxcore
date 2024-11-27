@@ -116,7 +116,7 @@ TEST(AddToList, OverridesKeysWithCloserKeys)
 
     std::array<Node_format, 4> nodes{};
 
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {{{NET_FAMILY_UNSPEC}}};
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[0].data(), &ip_port, self_pk.data()));
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[1].data(), &ip_port, self_pk.data()));
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[2].data(), &ip_port, self_pk.data()));
@@ -355,7 +355,7 @@ TEST(AnnounceNodes, SetAndTest)
     PublicKey pk2(to_array(pk_data));
     ASSERT_NE(pk2, pk1);
 
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {{{NET_FAMILY_UNSPEC}}};
     ip_port.ip.family = net_family_ipv4();
 
     set_announce_node(dht.get(), pk1.data());
