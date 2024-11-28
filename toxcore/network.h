@@ -483,7 +483,7 @@ typedef struct Packet {
  * Function to send a network packet to a given IP/port.
  */
 non_null()
-int send_packet(Networking_Core *net, const IP_Port *ip_port, Packet packet);
+int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet);
 
 /**
  * Function to send packet(data) of length length to ip_port.
@@ -491,7 +491,7 @@ int send_packet(Networking_Core *net, const IP_Port *ip_port, Packet packet);
  * @deprecated Use send_packet instead.
  */
 non_null()
-int sendpacket(Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length);
+int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t *data, uint16_t length);
 
 /** Function to call when packet beginning with byte is received. */
 non_null(1) nullable(3, 4)
@@ -499,7 +499,7 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
 
 /** Call this several times a second. */
 non_null(1) nullable(2)
-void networking_poll(Networking_Core *net, void *userdata);
+void networking_poll(const Networking_Core *net, void *userdata);
 
 /** @brief Connect a socket to the address specified by the ip_port.
  *

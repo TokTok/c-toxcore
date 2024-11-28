@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2023 The TokTok team.
+ * Copyright © 2023-2024 The TokTok team.
  */
 
 /**
@@ -11,9 +11,26 @@
 #include <stdint.h>
 
 #include "attributes.h"
+#include "logger.h"
+#include "mem.h"
+
 #include "ccompat.h"
 
 #define NETPROF_TCP_DATA_PACKET_ID 0x10
+
+typedef struct Net_Profile {
+    uint64_t packets_recv[NET_PROF_MAX_PACKET_IDS];
+    uint64_t packets_sent[NET_PROF_MAX_PACKET_IDS];
+
+    uint64_t total_packets_recv;
+    uint64_t total_packets_sent;
+
+    uint64_t bytes_recv[NET_PROF_MAX_PACKET_IDS];
+    uint64_t bytes_sent[NET_PROF_MAX_PACKET_IDS];
+
+    uint64_t total_bytes_recv;
+    uint64_t total_bytes_sent;
+} Net_Profile;
 
 /** Returns the number of sent or received packets for all ID's between `start_id` and `end_id`. */
 nullable(1)
@@ -118,4 +135,23 @@ uint64_t netprof_get_bytes_total(const Net_Profile *profile, Packet_Direction di
     }
 
     return dir == PACKET_DIRECTION_SEND ? profile->total_bytes_sent : profile->total_bytes_recv;
+}
+
+Net_Profile *netprof_new(const Logger *log, const Memory *mem)
+{
+    Net_Profile *np = (Net_Profile *)mem_alloc(mem, sizeof(Net_Profile));
+
+    if (np == nullptr) {
+        LOGGER_ERROR(log, "failed to allocate memory for net profiler");
+        return nullptr;
+    }
+
+    return np;
+}
+
+void netprof_kill(const Memory *mem, Net_Profile *net_profile)
+{
+    if (net_profile != nullptr) {
+        mem_delete(mem, net_profile);
+    }
 }

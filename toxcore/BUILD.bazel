@@ -353,6 +353,8 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":logger",
+        ":mem",
     ],
 )
 

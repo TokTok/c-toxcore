@@ -94,7 +94,7 @@ struct TCP_Server {
     BS_List accepted_key_list;
 
     /* Network profile for all TCP server packets. */
-    Net_Profile net_profile;
+    Net_Profile *net_profile;
 };
 
 static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,
@@ -240,7 +240,7 @@ static int add_accepted(TCP_Server *tcp_server, const Mono_Time *mono_time, TCP_
     tcp_server->accepted_connection_array[index].identifier = ++tcp_server->counter;
     tcp_server->accepted_connection_array[index].last_pinged = mono_time_get(mono_time);
     tcp_server->accepted_connection_array[index].ping_id = 0;
-    tcp_server->accepted_connection_array[index].con.net_profile = &tcp_server->net_profile;
+    tcp_server->accepted_connection_array[index].con.net_profile = tcp_server->net_profile;
 
     return index;
 }
@@ -975,6 +975,14 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
         return nullptr;
     }
 
+    Net_Profile *np = netprof_new(logger, mem);
+
+    if (np == nullptr) {
+        mem_delete(mem, temp);
+        return nullptr;
+    }
+
+    temp->net_profile = np;
     temp->logger = logger;
     temp->mem = mem;
     temp->ns = ns;
@@ -984,6 +992,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
 
     if (socks_listening == nullptr) {
         LOGGER_ERROR(logger, "socket allocation failed");
+        netprof_kill(mem, temp->net_profile);
         mem_delete(mem, temp);
         return nullptr;
     }
@@ -995,6 +1004,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
 
     if (temp->efd == -1) {
         LOGGER_ERROR(logger, "epoll initialisation failed");
+        netprof_kill(mem, temp->net_profile);
         mem_delete(mem, socks_listening);
         mem_delete(mem, temp);
         return nullptr;
@@ -1028,6 +1038,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     }
 
     if (temp->num_listening_socks == 0) {
+        netprof_kill(mem, temp->net_profile);
         mem_delete(mem, temp->socks_listening);
         mem_delete(mem, temp);
         return nullptr;
@@ -1428,6 +1439,7 @@ void kill_tcp_server(TCP_Server *tcp_server)
 
     crypto_memzero(tcp_server->secret_key, sizeof(tcp_server->secret_key));
 
+    netprof_kill(tcp_server->mem, tcp_server->net_profile);
     mem_delete(tcp_server->mem, tcp_server->socks_listening);
     mem_delete(tcp_server->mem, tcp_server);
 }
@@ -1438,5 +1450,5 @@ const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server)
         return nullptr;
     }
 
-    return &tcp_server->net_profile;
+    return tcp_server->net_profile;
 }

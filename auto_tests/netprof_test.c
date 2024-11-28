@@ -31,22 +31,22 @@ static void test_netprof(AutoTox *autotoxes)
 
     const Tox *tox1 = autotoxes[0].tox;
 
-    const unsigned long long UDP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
+    const uint64_t UDP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
             TOX_NETPROF_DIRECTION_SENT);
-    const unsigned long long UDP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
+    const uint64_t UDP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
             TOX_NETPROF_DIRECTION_RECV);
-    const unsigned long long TCP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
+    const uint64_t TCP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
             TOX_NETPROF_DIRECTION_SENT);
-    const unsigned long long TCP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
+    const uint64_t TCP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
             TOX_NETPROF_DIRECTION_RECV);
 
-    const unsigned long long UDP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
+    const uint64_t UDP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
             TOX_NETPROF_DIRECTION_SENT);
-    const unsigned long long UDP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
+    const uint64_t UDP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
             TOX_NETPROF_DIRECTION_RECV);
-    const unsigned long long TCP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
+    const uint64_t TCP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
             TOX_NETPROF_DIRECTION_SENT);
-    const unsigned long long TCP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
+    const uint64_t TCP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
             TOX_NETPROF_DIRECTION_RECV);
 
     ck_assert(UDP_count_recv1 > 0 && UDP_count_sent1 > 0);
@@ -57,10 +57,10 @@ static void test_netprof(AutoTox *autotoxes)
     (void)TCP_bytes_recv1;
     (void)TCP_count_recv1;
 
-    unsigned long long total_sent_count = 0;
-    unsigned long long total_recv_count = 0;
-    unsigned long long total_sent_bytes = 0;
-    unsigned long long total_recv_bytes = 0;
+    uint64_t total_sent_count = 0;
+    uint64_t total_recv_count = 0;
+    uint64_t total_sent_bytes = 0;
+    uint64_t total_recv_bytes = 0;
 
     // tox1 makes sure the sum value of all packet ID's is equal to the totals
     for (size_t i = 0; i < 256; ++i) {
@@ -89,20 +89,20 @@ static void test_netprof(AutoTox *autotoxes)
                             TOX_NETPROF_DIRECTION_RECV);
     }
 
-    const unsigned long long total_packets = total_sent_count + total_recv_count;
+    const uint64_t total_packets = total_sent_count + total_recv_count;
     ck_assert_msg(total_packets == UDP_count_sent1 + UDP_count_recv1,
-                  "%llu does not match %llu\n", total_packets, UDP_count_sent1 + UDP_count_recv1);
+                  "%lu does not match %lu\n", total_packets, UDP_count_sent1 + UDP_count_recv1);
 
-    ck_assert_msg(total_sent_count == UDP_count_sent1, "%llu does not match %llu\n", total_sent_count, UDP_count_sent1);
-    ck_assert_msg(total_recv_count == UDP_count_recv1, "%llu does not match %llu\n", total_recv_count, UDP_count_recv1);
+    ck_assert_msg(total_sent_count == UDP_count_sent1, "%lu does not match %lu\n", total_sent_count, UDP_count_sent1);
+    ck_assert_msg(total_recv_count == UDP_count_recv1, "%lu does not match %lu\n", total_recv_count, UDP_count_recv1);
 
 
-    const unsigned long long total_bytes = total_sent_bytes + total_recv_bytes;
+    const uint64_t total_bytes = total_sent_bytes + total_recv_bytes;
     ck_assert_msg(total_bytes == UDP_bytes_sent1 + UDP_bytes_recv1,
-                  "%llu does not match %llu\n", total_bytes, UDP_bytes_sent1 + UDP_bytes_recv1);
+                  "%lu does not match %lu\n", total_bytes, UDP_bytes_sent1 + UDP_bytes_recv1);
 
-    ck_assert_msg(total_sent_bytes == UDP_bytes_sent1, "%llu does not match %llu\n", total_sent_bytes, UDP_bytes_sent1);
-    ck_assert_msg(total_recv_bytes == UDP_bytes_recv1, "%llu does not match %llu\n", total_recv_bytes, UDP_bytes_recv1);
+    ck_assert_msg(total_sent_bytes == UDP_bytes_sent1, "%lu does not match %lu\n", total_sent_bytes, UDP_bytes_sent1);
+    ck_assert_msg(total_recv_bytes == UDP_bytes_recv1, "%lu does not match %lu\n", total_recv_bytes, UDP_bytes_recv1);
 }
 
 int main(void)
