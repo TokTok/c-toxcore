@@ -2,6 +2,7 @@
  * TODO(JFreegman): test TCP packets as well
  */
 
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -32,22 +33,22 @@ static void test_netprof(AutoTox *autotoxes)
     const Tox *tox1 = autotoxes[0].tox;
 
     const uint64_t UDP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
-            TOX_NETPROF_DIRECTION_SENT);
+                                     TOX_NETPROF_DIRECTION_SENT);
     const uint64_t UDP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
-            TOX_NETPROF_DIRECTION_RECV);
+                                     TOX_NETPROF_DIRECTION_RECV);
     const uint64_t TCP_count_sent1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
-            TOX_NETPROF_DIRECTION_SENT);
+                                     TOX_NETPROF_DIRECTION_SENT);
     const uint64_t TCP_count_recv1 = tox_netprof_get_packet_total_count(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
-            TOX_NETPROF_DIRECTION_RECV);
+                                     TOX_NETPROF_DIRECTION_RECV);
 
     const uint64_t UDP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
-            TOX_NETPROF_DIRECTION_SENT);
+                                     TOX_NETPROF_DIRECTION_SENT);
     const uint64_t UDP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_UDP,
-            TOX_NETPROF_DIRECTION_RECV);
+                                     TOX_NETPROF_DIRECTION_RECV);
     const uint64_t TCP_bytes_sent1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
-            TOX_NETPROF_DIRECTION_SENT);
+                                     TOX_NETPROF_DIRECTION_SENT);
     const uint64_t TCP_bytes_recv1 = tox_netprof_get_packet_total_bytes(tox1, TOX_NETPROF_PACKET_TYPE_TCP,
-            TOX_NETPROF_DIRECTION_RECV);
+                                     TOX_NETPROF_DIRECTION_RECV);
 
     ck_assert(UDP_count_recv1 > 0 && UDP_count_sent1 > 0);
     ck_assert(UDP_bytes_recv1 > 0 && UDP_bytes_sent1 > 0);
@@ -91,18 +92,18 @@ static void test_netprof(AutoTox *autotoxes)
 
     const uint64_t total_packets = total_sent_count + total_recv_count;
     ck_assert_msg(total_packets == UDP_count_sent1 + UDP_count_recv1,
-                  "%lu does not match %lu\n", total_packets, UDP_count_sent1 + UDP_count_recv1);
+                  "%" PRIu64 "does not match %" PRIu64 "\n", total_packets, UDP_count_sent1 + UDP_count_recv1);
 
-    ck_assert_msg(total_sent_count == UDP_count_sent1, "%lu does not match %lu\n", total_sent_count, UDP_count_sent1);
-    ck_assert_msg(total_recv_count == UDP_count_recv1, "%lu does not match %lu\n", total_recv_count, UDP_count_recv1);
+    ck_assert_msg(total_sent_count == UDP_count_sent1, "%" PRIu64 " does not match %" PRIu64 "\n", total_sent_count, UDP_count_sent1);
+    ck_assert_msg(total_recv_count == UDP_count_recv1, "%" PRIu64 " does not match %" PRIu64"\n", total_recv_count, UDP_count_recv1);
 
 
     const uint64_t total_bytes = total_sent_bytes + total_recv_bytes;
     ck_assert_msg(total_bytes == UDP_bytes_sent1 + UDP_bytes_recv1,
-                  "%lu does not match %lu\n", total_bytes, UDP_bytes_sent1 + UDP_bytes_recv1);
+                  "%" PRIu64 "does not match %" PRIu64 "\n", total_bytes, UDP_bytes_sent1 + UDP_bytes_recv1);
 
-    ck_assert_msg(total_sent_bytes == UDP_bytes_sent1, "%lu does not match %lu\n", total_sent_bytes, UDP_bytes_sent1);
-    ck_assert_msg(total_recv_bytes == UDP_bytes_recv1, "%lu does not match %lu\n", total_recv_bytes, UDP_bytes_recv1);
+    ck_assert_msg(total_sent_bytes == UDP_bytes_sent1, "%" PRIu64 " does not match %" PRIu64 "\n", total_sent_bytes, UDP_bytes_sent1);
+    ck_assert_msg(total_recv_bytes == UDP_bytes_recv1, "%" PRIu64 " does not match %" PRIu64 "\n", total_recv_bytes, UDP_bytes_recv1);
 }
 
 int main(void)

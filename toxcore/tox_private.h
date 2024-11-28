@@ -345,6 +345,8 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO       = 0xf0,
 } Tox_Netprof_Packet_Id;
 
+const char *tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value);
+
 /**
  * Specifies the packet type for a given query.
  */
@@ -370,6 +372,8 @@ typedef enum Tox_Netprof_Packet_Type {
     TOX_NETPROF_PACKET_TYPE_UDP,
 } Tox_Netprof_Packet_Type;
 
+const char *tox_netprof_packet_type_to_string(Tox_Netprof_Packet_Type value);
+
 /**
  * Specifies the packet direction for a given query.
  */
@@ -384,6 +388,8 @@ typedef enum Tox_Netprof_Direction {
      */
     TOX_NETPROF_DIRECTION_RECV,
 } Tox_Netprof_Direction;
+
+const char *tox_netprof_direction_to_string(Tox_Netprof_Direction value);
 
 /**
  * Return the number of packets sent or received for a specific packet ID.
