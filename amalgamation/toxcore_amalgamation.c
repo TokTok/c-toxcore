@@ -81759,7 +81759,7 @@ int vc_reconfigure_encoder_h264(Logger *log, VCSession *vc, uint32_t bit_rate,
                 vc->h264_encoder2->bit_rate = bit_rate;
                 vc->h264_enc_bitrate = bit_rate;
 
-                LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:1:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
+                // LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:1:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
 
                 av_opt_set_int(vc->h264_encoder2->priv_data, "b", bit_rate, 0);
                 av_opt_set_int(vc->h264_encoder2->priv_data, "bitrate", bit_rate, 0);
@@ -81846,7 +81846,7 @@ int vc_reconfigure_encoder_h264(Logger *log, VCSession *vc, uint32_t bit_rate,
                     // param.rc.i_bitrate = (bit_rate / 1000) * VIDEO_BITRATE_FACTOR_H264;
                     vc->h264_enc_bitrate = bit_rate;
 
-                    LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:2:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
+                    // LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:2:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
 
 
                     param.rc.b_stat_read = 0;
@@ -82709,6 +82709,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     x265_param *param = x265_param_alloc();
     if (x265_param_default_preset(param, "ultrafast", "zerolatency") != 0) {
         // LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
+        printf("vc_init_encoder_h265: H265 encoder:x265_param_default_preset error\n");
         // goto fail;
     }
 
@@ -82742,9 +82743,12 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // https://x265.readthedocs.io/en/master/cli.html#quality-rate-control-and-rate-distortion-options
     // Specify the target bitrate in kbps. Default is 0 (CRF)
 
-    x265_param_parse(param, "bitrate", "250");
+    char bitrate_str[20];
+    memset(bitrate_str, 0, 20);
+    snprintf(bitrate_str, sizeof(bitrate_str), "%d", (int)bit_rate);
+    x265_param_parse(param, "bitrate", bitrate_str);
     // LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
-    printf("XXXXXX: vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
+    printf("vc_init_encoder_h265:bit_rate = %d\n", (int)bit_rate);
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
@@ -82777,7 +82781,9 @@ VCSession *vc_new_h265(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
 {
 #ifdef HAVE_H265_ENCODER
     // ENCODER -------
+    LOGGER_API_INFO(av->tox, "H265 encoder init");
     vc_init_encoder_h265(log, vc, (VIDEO_BITRATE_INITIAL_VALUE_H264 * 1000), 1920, 1080);
+    LOGGER_API_INFO(av->tox, "H265 encoder ready");
     // ENCODER -------
 #endif
 
