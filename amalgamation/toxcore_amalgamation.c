@@ -82708,7 +82708,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     x265_param *param = x265_param_alloc();
     if (x265_param_default_preset(param, "ultrafast", "zerolatency") != 0) {
-        LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
+        // LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
         // goto fail;
     }
 
@@ -82743,7 +82743,8 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // Specify the target bitrate in kbps. Default is 0 (CRF)
 
     x265_param_parse(param, "bitrate", "250");
-    LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
+    // LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
+    printf("XXXXXX: vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
