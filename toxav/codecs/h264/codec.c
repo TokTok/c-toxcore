@@ -1936,7 +1936,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     x265_param *param = x265_param_alloc();
     if (x265_param_default_preset(param, "ultrafast", "zerolatency") != 0) {
-        //LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
+        LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
         // goto fail;
     }
 
