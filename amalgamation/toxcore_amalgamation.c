@@ -81329,6 +81329,8 @@ VCSession *vc_new_h264(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
 
         vc->h264_enc_bitrate = VIDEO_BITRATE_INITIAL_VALUE_H264 * 1000;
 
+        LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h264:vc->h264_enc_bitrate = %d", (int)vc->h264_enc_bitrate);
+
         param.rc.b_stat_read = 0;
         param.rc.b_stat_write = 0;
 
@@ -81757,6 +81759,8 @@ int vc_reconfigure_encoder_h264(Logger *log, VCSession *vc, uint32_t bit_rate,
                 vc->h264_encoder2->bit_rate = bit_rate;
                 vc->h264_enc_bitrate = bit_rate;
 
+                LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:1:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
+
                 av_opt_set_int(vc->h264_encoder2->priv_data, "b", bit_rate, 0);
                 av_opt_set_int(vc->h264_encoder2->priv_data, "bitrate", bit_rate, 0);
                 // av_opt_set_int(vc->h264_encoder2->priv_data, "minrate", bit_rate, 0);
@@ -81841,6 +81845,9 @@ int vc_reconfigure_encoder_h264(Logger *log, VCSession *vc, uint32_t bit_rate,
 
                     // param.rc.i_bitrate = (bit_rate / 1000) * VIDEO_BITRATE_FACTOR_H264;
                     vc->h264_enc_bitrate = bit_rate;
+
+                    LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h264:2:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
+
 
                     param.rc.b_stat_read = 0;
                     param.rc.b_stat_write = 0;
@@ -82726,7 +82733,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // x265_param_parse(param, "input-res", "1920x1080");
     x265_param_parse(param, "input-csp", "i420");
 
-    x265_param_parse(param, "rd", "1");
+    // x265_param_parse(param, "rd", "1");
     x265_param_parse(param, "intra-refresh", "1");
 
     vc->h264_enc_bitrate = bit_rate / 1000;
@@ -82734,7 +82741,9 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     // https://x265.readthedocs.io/en/master/cli.html#quality-rate-control-and-rate-distortion-options
     // Specify the target bitrate in kbps. Default is 0 (CRF)
+
     x265_param_parse(param, "bitrate", "250");
+    LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h265:bit_rate = %d", (int)bit_rate);
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
@@ -82878,6 +82887,7 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
             (vc->h264_enc_bitrate != bit_rate))
     {
         // HINT: just bitrate has changed
+        LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h265:1:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
     }
     else
     {
@@ -82885,6 +82895,7 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
         vc_kill_encoder_h265(vc);
         vc->h265_enc_height = height;
         vc->h265_enc_width = width;
+        LOGGER_API_WARNING(vc->av->tox, "vc_reconfigure_encoder_h265:2:bit_rate = %d vc->h264_enc_bitrate = %d", (int)bit_rate, (int)vc->h264_enc_bitrate);
         vc_init_encoder_h265(log, vc, bit_rate, width, height);
     }
 
