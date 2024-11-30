@@ -82734,10 +82734,10 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     // https://x265.readthedocs.io/en/master/cli.html#quality-rate-control-and-rate-distortion-options
     // Specify the target bitrate in kbps. Default is 0 (CRF)
-    x265_param_parse(param, "bitrate", "150");
+    x265_param_parse(param, "bitrate", "250");
 
     // Range of values: an integer from 0 to 51
-    x265_param_parse(param, "qp", "50");
+    // x265_param_parse(param, "qp", "50");
 
     vc->h265_in_pic = x265_picture_alloc();
     x265_picture_init(param, vc->h265_in_pic);
