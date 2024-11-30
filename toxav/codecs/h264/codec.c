@@ -1945,7 +1945,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     param->sourceWidth = vc->h265_enc_width;
     param->sourceHeight = vc->h265_enc_height;
-    param->fpsNum = 30;
+    param->fpsNum = 20;
     param->fpsDenom = 1;
     param->internalCsp = X265_CSP_I420;
     param->bframes = 0;
@@ -1955,14 +1955,24 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     param->bIntraRefresh = 1;
 
 
-    // x265_param_parse(param, "fps", "30");
+    // x265_param_parse(param, "fps", "20");
     x265_param_parse(param, "repeat-headers", "1");
     x265_param_parse(param, "annexb", "1");
     // x265_param_parse(param, "input-res", "1920x1080");
     x265_param_parse(param, "input-csp", "i420");
 
+    x265_param_parse(param, "rd", "0");
+    x265_param_parse(param, "intra-refresh", "1");
+
     vc->h264_enc_bitrate = bit_rate / 1000;
     //******// param->bitrate = 
+
+    // https://x265.readthedocs.io/en/master/cli.html#quality-rate-control-and-rate-distortion-options
+    // Specify the target bitrate in kbps. Default is 0 (CRF)
+    x265_param_parse(param, "bitrate", "150");
+
+    // Range of values: an integer from 0 to 51
+    x265_param_parse(param, "qp", "50");
 
     vc->h265_in_pic = x265_picture_alloc();
     x265_picture_init(param, vc->h265_in_pic);
@@ -2036,10 +2046,10 @@ VCSession *vc_new_h265(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
             av_opt_set_int(vc->h265_decoder->priv_data, "delay", 0, AV_OPT_SEARCH_CHILDREN);
 
             vc->h265_decoder->time_base = (AVRational) {
-                1, 30
+                1, 20
             };
             vc->h265_decoder->framerate = (AVRational) {
-                30, 1
+                20, 1
             };
 
             if (avcodec_open2(vc->h265_decoder, codec, NULL) < 0) {
