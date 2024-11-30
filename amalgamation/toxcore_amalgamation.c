@@ -82748,7 +82748,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     memset(bitrate_str, 0, 20);
     snprintf(bitrate_str, sizeof(bitrate_str), "%d", (int)(bit_rate / 1000));
     x265_param_parse(param, "bitrate", bitrate_str);
-    printf("vc_init_encoder_h265:bit_rate = %d\n", (int)bit_rate);
+    printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
@@ -82901,10 +82901,11 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
         char bitrate_str[20];
         memset(bitrate_str, 0, 20);
         snprintf(bitrate_str, sizeof(bitrate_str), "%d", (int)(bit_rate / 1000));
-        x265_param_parse(param, "bitrate", bitrate_str);
+        // x265_param_parse(param, "bitrate", bitrate_str);
+        x265_param_parse(param, "bitrate", "500");
 
         int res = x265_encoder_reconfig(vc->h265_encoder, param);
-        printf("x265_encoder_reconfig:res=%d\n", (int)res);
+        printf("x265_encoder_reconfig:res=%d bitrate=%d\n", (int)res, (int)(bit_rate / 1000));
         x265_param_free(param);
     }
     else
