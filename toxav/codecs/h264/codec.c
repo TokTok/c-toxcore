@@ -564,7 +564,7 @@ VCSession *vc_new_h264(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
 
         vc->h264_enc_bitrate = VIDEO_BITRATE_INITIAL_VALUE_H264 * 1000;
 
-        LOGGER_API_WARNING(vc->av->tox, "vc_init_encoder_h264:vc->h264_enc_bitrate = %d", (int)vc->h264_enc_bitrate);
+        LOGGER_API_WARNING(av->tox, "vc_init_encoder_h264:vc->h264_enc_bitrate = %d", (int)vc->h264_enc_bitrate);
 
         param.rc.b_stat_read = 0;
         param.rc.b_stat_write = 0;
