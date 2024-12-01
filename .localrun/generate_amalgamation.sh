@@ -205,8 +205,8 @@ ls -hal amalgamation/toxcore_amalgamation.c
 ls -hal amalgamation/toxcore_amalgamation_no_toxav.c
 #
 #
-gcc -O3 -fPIC amalgamation/toxcore_amalgamation.c \
-    $(pkg-config --cflags --libs libsodium opus vpx libavcodec libavutil x264) -pthread \
+gcc -O3 -fPIC -DHAVE_H265_ENCODER amalgamation/toxcore_amalgamation.c \
+    $(pkg-config --cflags --libs libsodium opus vpx libavcodec libavutil x264 x265) -pthread \
     -c -o amalgamation/libtoxcore.o
 #
 ls -hal amalgamation/libtoxcore.o
