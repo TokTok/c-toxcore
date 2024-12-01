@@ -1973,7 +1973,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     x265_param_parse(param, "intra-refresh", "1");
 
     // x265_param_parse(param, "frame-threads", "2");
-    // x265_param_parse(param, "pools", "2");
+    x265_param_parse(param, "pools", "3");
 
 
     x265_param_parse(param, "log-level", "debug");
