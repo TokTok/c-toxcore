@@ -1970,7 +1970,6 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     x265_param_parse(param, "input-csp", "i420");
 
     // x265_param_parse(param, "rd", "1");
-    //**//x265_param_parse(param, "intra-refresh", "1");
     // x265_param_parse(param, "pools", "3");
 
     // logLevelNames = "none", "error", "warning", "info", "debug", "full"
@@ -1988,7 +1987,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
     //**// param->rc.vbvBufferSize = ((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264;
     //**// param->rc.vbvMaxBitrate = (int)(bit_rate / 1000) * 1;
-    //**// x265_param_parse(param, "strict-cbr", "1");
+    x265_param_parse(param, "strict-cbr", "1");
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
