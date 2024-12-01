@@ -1971,14 +1971,13 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
 
     // x265_param_parse(param, "rd", "1");
     x265_param_parse(param, "intra-refresh", "1");
-
-    // x265_param_parse(param, "frame-threads", "2");
     // x265_param_parse(param, "pools", "3");
 
+    // logLevelNames = "none", "error", "warning", "info", "debug", "full"
+    // default is "info"
+    // x265_param_parse(param, "log-level", "debug");
 
-    x265_param_parse(param, "log-level", "debug");
-
-    printf("vc_init_encoder_h265:vc->h264_enc_bitrate = %d\n", (int)vc->h264_enc_bitrate);
+    // printf("vc_init_encoder_h265:vc->h264_enc_bitrate = %d\n", (int)vc->h264_enc_bitrate);
     vc->h264_enc_bitrate = bit_rate;
     //******// param->bitrate = 
 
@@ -1986,7 +1985,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // Specify the target bitrate in kbps. Default is 0 (CRF)
 
     param->rc.bitrate = (int)(bit_rate / 1000);
-    printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
+    // printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
     param->rc.vbvBufferSize = ((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264;
     param->rc.vbvMaxBitrate = (int)(bit_rate / 1000) * 1;
     x265_param_parse(param, "strict-cbr", "1");
@@ -2140,13 +2139,13 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
         x265_encoder_parameters(vc->h265_encoder, param);
 
         param->rc.bitrate = (int)(bit_rate / 1000);
-        printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
+        // printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
         param->rc.vbvBufferSize = ((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264;
         param->rc.vbvMaxBitrate = (int)(bit_rate / 1000) * 1;
         // x265_param_parse(param, "strict-cbr", "1");
 
         int res = x265_encoder_reconfig(vc->h265_encoder, param);
-        printf("x265_encoder_reconfig:res=%d bitrate=%d\n", (int)res, (int)(bit_rate / 1000));
+        // printf("x265_encoder_reconfig:res=%d bitrate=%d\n", (int)res, (int)(bit_rate / 1000));
         x265_param_free(param);
     }
     else
