@@ -82748,11 +82748,11 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // https://x265.readthedocs.io/en/master/cli.html#quality-rate-control-and-rate-distortion-options
     // Specify the target bitrate in kbps. Default is 0 (CRF)
 
-    param->rc.bitrate = (int)(bit_rate / 1000);
     // printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
-    //**// param->rc.vbvBufferSize = ((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264;
-    //**// param->rc.vbvMaxBitrate = (int)(bit_rate / 1000) * 1;
-    x265_param_parse(param, "strict-cbr", "1");
+    param->rc.bitrate = (int)(bit_rate / 1000);
+    param->rc.vbvBufferSize = 50 + (((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264);
+    param->rc.vbvMaxBitrate = 50 + ((int)(bit_rate / 1000) * 1);
+    param->rc.bStrictCbr = 1;
 
     // Range of values: an integer from 0 to 51
     // x265_param_parse(param, "qp", "50");
@@ -82903,9 +82903,8 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
         x265_encoder_parameters(vc->h265_encoder, param);
 
         param->rc.bitrate = (int)(bit_rate / 1000);
-        // printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
-        //**// param->rc.vbvBufferSize = ((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264;
-        //**// param->rc.vbvMaxBitrate = (int)(bit_rate / 1000) * 1;
+        param->rc.vbvBufferSize = 50 + (((int)(bit_rate / 1000)) * VIDEO_BUF_FACTOR_H264);
+        param->rc.vbvMaxBitrate = 50 + ((int)(bit_rate / 1000) * 1);
 
         int res = x265_encoder_reconfig(vc->h265_encoder, param);
         // printf("x265_encoder_reconfig:res=%d bitrate=%d\n", (int)res, (int)(bit_rate / 1000));
