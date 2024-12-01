@@ -82707,7 +82707,7 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // LOGGER_API_WARNING(vc->av->tox, "H265 encoder init");
 
     x265_param *param = x265_param_alloc();
-    if (x265_param_default_preset(param, "ultrafast", "zerolatency") != 0) {
+    if (x265_param_default_preset(param, "superfast", "fastdecode") != 0) {
         // LOGGER_API_WARNING(vc->av->tox, "H265 encoder:x265_param_default_preset error");
         printf("vc_init_encoder_h265: H265 encoder:x265_param_default_preset error\n");
         // goto fail;
@@ -82737,6 +82737,8 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     // x265_param_parse(param, "rd", "1");
     x265_param_parse(param, "intra-refresh", "1");
 
+    x265_param_parse(param, "frame-threads", "3");
+
     printf("vc_init_encoder_h265:vc->h264_enc_bitrate = %d\n", (int)vc->h264_enc_bitrate);
     vc->h264_enc_bitrate = bit_rate;
     //******// param->bitrate = 
@@ -82747,7 +82749,9 @@ static void vc_init_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
     char bitrate_str[20];
     memset(bitrate_str, 0, 20);
     snprintf(bitrate_str, sizeof(bitrate_str), "%d", (int)(bit_rate / 1000));
-    x265_param_parse(param, "bitrate", bitrate_str);
+    // x265_param_parse(param, "bitrate", bitrate_str);
+    x265_param_parse(param, "bitrate", "800");
+    param->rc.bitrate = 800;
     printf("vc_init_encoder_h265:bit_rate = %d\n", (int)(bit_rate / 1000));
 
     // Range of values: an integer from 0 to 51
@@ -82902,7 +82906,8 @@ int vc_reconfigure_encoder_h265(Logger *log, VCSession *vc, uint32_t bit_rate,
         memset(bitrate_str, 0, 20);
         snprintf(bitrate_str, sizeof(bitrate_str), "%d", (int)(bit_rate / 1000));
         // x265_param_parse(param, "bitrate", bitrate_str);
-        x265_param_parse(param, "bitrate", "500");
+        x265_param_parse(param, "bitrate", "800");
+        param->rc.bitrate = 800;
 
         int res = x265_encoder_reconfig(vc->h265_encoder, param);
         printf("x265_encoder_reconfig:res=%d bitrate=%d\n", (int)res, (int)(bit_rate / 1000));
