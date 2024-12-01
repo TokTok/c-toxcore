@@ -2,7 +2,7 @@
  * compile a simple tox program with toxcore amalgamation (on a linux system):
  *
  * with ToxAV:
- * gcc -O3 -fPIC amalgamation_test.c -DTEST_WITH_TOXAV $(pkg-config --cflags --libs libsodium opus vpx libavcodec libavutil x264) -pthread -o amalgamation_test_av
+ * gcc -O3 -fPIC amalgamation_test.c -DHAVE_H265_ENCODER -DTEST_WITH_TOXAV $(pkg-config --cflags --libs libsodium opus vpx libavcodec libavutil x264 x265) -pthread -o amalgamation_test_av
  *
  * without ToxAV:
  * gcc -O3 -fPIC amalgamation_test.c $(pkg-config --cflags --libs libsodium) -pthread -o amalgamation_test
