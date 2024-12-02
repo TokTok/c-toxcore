@@ -13,6 +13,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "network.h"
+#include "tox_network.h"
 
 void wipe_priority_list(const Memory *mem, TCP_Priority_List *p)
 {

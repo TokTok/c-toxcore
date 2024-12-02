@@ -9,8 +9,6 @@
 #ifndef C_TOXCORE_TOXCORE_NET_CRYPTO_H
 #define C_TOXCORE_TOXCORE_NET_CRYPTO_H
 
-#include <pthread.h>
-
 #include "DHT.h"
 #include "LAN_discovery.h"
 #include "TCP_client.h"
@@ -282,7 +280,7 @@ int cryptpacket_received(const Net_Crypto *c, int crypt_connection_id, uint32_t 
  * The first byte of data must be in the PACKET_ID_RANGE_LOSSY.
  */
 non_null()
-int send_lossy_cryptpacket(Net_Crypto *c, int crypt_connection_id, const uint8_t *data, uint16_t length);
+int send_lossy_cryptpacket(const Net_Crypto *c, int crypt_connection_id, const uint8_t *data, uint16_t length);
 
 /** @brief Add a tcp relay, associating it to a crypt_connection_id.
  *

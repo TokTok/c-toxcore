@@ -21,6 +21,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "network.h"
+#include "tox_network.h"
 #include "util.h"
 
 typedef struct TCP_Client_Conn {

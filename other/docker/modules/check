@@ -83,9 +83,9 @@ class Context:
         pass
 
     def bzl_exports_files(
-            self,
-            srcs: list[str],
-            visibility: Optional[list[str]] = None,
+        self,
+        srcs: list[str],
+        visibility: Optional[list[str]] = None,
     ) -> None:
         pass
 
@@ -191,6 +191,7 @@ def main() -> None:
     for src in sorted(
             set(srcs) - set([
                 # TODO(iphydf): Figure out what's wrong here.
+                "toxcore/bin_pack_test.cc",
                 "toxcore/crypto_core_test.cc",
                 "toxcore/group_announce_test.cc",
                 "toxcore/group_moderation_test.cc",

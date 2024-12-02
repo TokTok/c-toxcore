@@ -16,8 +16,10 @@
 #include "mem.h"
 #include "tox.h"
 #include "tox_event.h"
+#include "tox_impl.h"
 #include "tox_private.h"
-#include "tox_struct.h"
+#include "tox_system.h"
+#include "tox_system_impl.h"
 
 /*****************************************************
  *
@@ -173,7 +175,7 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     };
     events->mem = sys->mem;
 
-    if (!bin_unpack_obj(tox_events_unpack_handler, events, bytes, bytes_size)) {
+    if (!bin_unpack_obj(tox_events_unpack_handler, events, bytes, bytes_size, sys->mem)) {
         tox_events_free(events);
         return nullptr;
     }

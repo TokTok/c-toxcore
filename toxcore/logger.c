@@ -8,12 +8,14 @@
  */
 #include "logger.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>  // IWYU pragma: keep
 #include <string.h>
 
 #include "ccompat.h"
+#include "mem.h"
 #include "mem.h"
 
 struct Logger {
@@ -52,6 +54,7 @@ void logger_kill(Logger *log)
 
 void logger_callback_log(Logger *log, logger_cb *function, void *context, void *userdata)
 {
+    assert(log != nullptr);
     log->callback = function;
     log->context  = context;
     log->userdata = userdata;
