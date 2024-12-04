@@ -81,6 +81,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #include "attributes.h"
 #include "bin_pack.h"
 #include "ccompat.h"
@@ -1003,6 +1007,13 @@ typedef struct Packet_Handler {
     void *object;
 } Packet_Handler;
 
+#ifdef HAVE_LIBEV
+typedef struct Networking_Socket_Listener {
+    ev_io listener;
+    struct ev_loop *dispatcher;
+} Networking_Socket_Listener;
+#endif
+
 struct Networking_Core {
     const Logger *log;
     const Memory *mem;
@@ -1013,6 +1024,9 @@ struct Networking_Core {
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
+#ifdef HAVE_LIBEV
+    Networking_Socket_Listener sock_listener;
+#endif
 };
 
 Family net_family(const Networking_Core *net)
@@ -1024,6 +1038,41 @@ uint16_t net_port(const Networking_Core *net)
 {
     return net->port;
 }
+
+Socket net_sock(const Networking_Core *net)
+{
+    return net->sock;
+}
+
+#ifdef HAVE_LIBEV
+non_null()
+static bool net_ev_is_active(Networking_Core *net)
+{
+    return ev_is_active(&net->sock_listener.listener) || ev_is_pending(&net->sock_listener.listener);
+}
+
+void net_ev_listen(Networking_Core *net, struct ev_loop *dispatcher, net_ev_listen_cb *callback, void *data)
+{
+    if (net_ev_is_active(net)) {
+        return;
+    }
+
+    net->sock_listener.dispatcher = dispatcher;
+    net->sock_listener.listener.data = data;
+
+    ev_io_init(&net->sock_listener.listener, callback, net->sock.sock, EV_READ);
+    ev_io_start(dispatcher, &net->sock_listener.listener);
+}
+
+void net_ev_stop(Networking_Core *net)
+{
+    if (!net_ev_is_active(net)) {
+        return;
+    }
+
+    ev_io_stop(net->sock_listener.dispatcher, &net->sock_listener.listener);
+}
+#endif
 
 /* Basic network functions:
  */
@@ -1484,6 +1533,10 @@ void kill_networking(Networking_Core *net)
         /* Socket is initialized, so we close it. */
         kill_sock(net->ns, net->sock);
     }
+
+#ifdef HAVE_LIBEV
+    net_ev_stop(net);
+#endif
 
     mem_delete(net->mem, net);
 }
