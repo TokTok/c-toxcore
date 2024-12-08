@@ -82850,7 +82850,6 @@ VCSession *vc_new_h265(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
 
             if (avcodec_open2(vc->h265_decoder, codec, NULL) < 0) {
                 LOGGER_API_WARNING(av->tox, "could not open codec H265 on decoder");
-                assert(!"could not open codec H265 on decoder");
             }
 
 #pragma GCC diagnostic push
