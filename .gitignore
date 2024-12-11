@@ -77,6 +77,9 @@ build/
 # VScode
 .vscode/
 
+# Tests via Zoff
+.localrun/
+
 # Netbeans
 nbproject
 
