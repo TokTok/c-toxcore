@@ -309,6 +309,8 @@ set(toxcore_SOURCES
   toxcore/mono_time.h
   toxcore/net_crypto.c
   toxcore/net_crypto.h
+  toxcore/net_profile.c
+  toxcore/net_profile.h
   toxcore/network.c
   toxcore/network.h
   toxcore/onion_announce.c
