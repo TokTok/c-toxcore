@@ -122,6 +122,9 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 #elif !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && (defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__))
 
 non_null()
+static bool ip4_is_local(const IP4 *ip4);
+
+non_null()
 static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)calloc(1, sizeof(Broadcast_Info));
@@ -162,7 +165,8 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
     const int n = ifc.ifc_len / sizeof(struct ifreq);
 
     for (int i = 0; i < n; ++i) {
-        /* there are interfaces with are incapable of broadcast */
+        /* there are interfaces with are incapable of broadcast
+        on Linux, `lo` has no broadcast address, but this function returns >=0 */
         if (ioctl(net_socket_to_native(sock), SIOCGIFBRDADDR, &i_faces[i]) < 0) {
             continue;
         }
@@ -172,7 +176,7 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
             continue;
         }
 
-        const struct sockaddr_in *sock4 = (const struct sockaddr_in *)(void *)&i_faces[i].ifr_broadaddr;
+        const struct sockaddr_in *broadaddr4 = (const struct sockaddr_in *)(void *)&i_faces[i].ifr_broadaddr;
 
         if (broadcast->count >= MAX_INTERFACES) {
             break;
@@ -180,10 +184,27 @@ static Broadcast_Info *fetch_broadcast_info(const Network *ns)
 
         IP *ip = &broadcast->ips[broadcast->count];
         ip->family = net_family_ipv4();
-        ip->ip.v4.uint32 = sock4->sin_addr.s_addr;
+        ip->ip.v4.uint32 = broadaddr4->sin_addr.s_addr;
 
+        // if no broadcast address
         if (ip->ip.v4.uint32 == 0) {
-            continue;
+            if (ioctl(net_socket_to_native(sock), SIOCGIFADDR, &i_faces[i]) < 0) {
+                continue;
+            }
+
+            const struct sockaddr_in *addr4 = (const struct sockaddr_in *)(void *)&i_faces[i].ifr_addr;
+
+
+            IP4 ip4_staging;
+            ip4_staging.uint32 = addr4->sin_addr.s_addr;
+
+            if (ip4_is_local(&ip4_staging)) {
+                // this is 127.x.x.x
+                ip->ip.v4.uint32 = ip4_staging.uint32;
+            } else {
+                // give up.
+                continue;
+            }
         }
 
         ++broadcast->count;
