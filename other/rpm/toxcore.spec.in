@@ -105,6 +105,9 @@ getent passwd tox-bootstrapd >/dev/null || \
 %files devel
 %defattr(-, root, root)
 %{_includedir}/tox/
+%{_includedir}/toxav/
+%{_includedir}/toxcore/
+%{_includedir}/toxencryptsave/
 %{_libdir}/pkgconfig/toxcore.pc
 
 %files static
