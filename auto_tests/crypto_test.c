@@ -6,6 +6,8 @@
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/net_crypto.h"
 #include "check_compat.h"
+//TODO: necessary to print bytes
+// #include "../other/fun/create_common.h"
 
 static void rand_bytes(const Random *rng, uint8_t *b, size_t blen)
 {
@@ -371,6 +373,609 @@ static void test_memzero(void)
     }
 }
 
+//TODO: Remove if Blake2b?
+// /* Noise_IK_25519_ChaChaPoly_SHA512 test vectors from here: https://github.com/rweather/noise-c/blob/cfe25410979a87391bb9ac8d4d4bef64e9f268c6/tests/vector/noise-c-basic.txt */
+// /* "init_prologue": "50726f6c6f677565313233" (same as `resp_prologue`) */
+// static const uint8_t prologue[11] = {
+//     0x50, 0x72, 0x6f, 0x6c, 0x6f, 0x67, 0x75, 0x65, 
+//     0x31, 0x32, 0x33
+// };
+
+// /* Initiator static private key 
+//  "init_static": "e61ef9919cde45dd5f82166404bd08e38bceb5dfdfded0a34c8df7ed542214d1" */
+// static const uint8_t init_static[CRYPTO_SECRET_KEY_SIZE] = {
+//     0xe6, 0x1e, 0xf9, 0x91, 0x9c, 0xde, 0x45, 0xdd, 
+//     0x5f, 0x82, 0x16, 0x64, 0x04, 0xbd, 0x08, 0xe3, 
+//     0x8b, 0xce, 0xb5, 0xdf, 0xdf, 0xde, 0xd0, 0xa3, 
+//     0x4c, 0x8d, 0xf7, 0xed, 0x54, 0x22, 0x14, 0xd1
+// };
+
+// /* Initiator ephemeral private key 
+//  "init_ephemeral": "893e28b9dc6ca8d611ab664754b8ceb7bac5117349a4439a6b0569da977c464a" */
+// static const uint8_t init_ephemeral[CRYPTO_SECRET_KEY_SIZE] = {
+//     0x89, 0x3e, 0x28, 0xb9, 0xdc, 0x6c, 0xa8, 0xd6, 
+//     0x11, 0xab, 0x66, 0x47, 0x54, 0xb8, 0xce, 0xb7, 
+//     0xba, 0xc5, 0x11, 0x73, 0x49, 0xa4, 0x43, 0x9a, 
+//     0x6b, 0x05, 0x69, 0xda, 0x97, 0x7c, 0x46, 0x4a
+// };
+
+// /* Responder static public key
+//  "init_remote_static": "31e0303fd6418d2f8c0e78b91f22e8caed0fbe48656dcf4767e4834f701b8f62" */
+// static const uint8_t init_remote_static[CRYPTO_PUBLIC_KEY_SIZE] = {
+//     0x31, 0xe0, 0x30, 0x3f, 0xd6, 0x41, 0x8d, 0x2f, 
+//     0x8c, 0x0e, 0x78, 0xb9, 0x1f, 0x22, 0xe8, 0xca, 
+//     0xed, 0x0f, 0xbe, 0x48, 0x65, 0x6d, 0xcf, 0x47, 
+//     0x67, 0xe4, 0x83, 0x4f, 0x70, 0x1b, 0x8f, 0x62
+// };
+
+// /* Responder static private key
+//  "resp_static": "4a3acbfdb163dec651dfa3194dece676d437029c62a408b4c5ea9114246e4893" */
+// static const uint8_t resp_static[CRYPTO_SECRET_KEY_SIZE] = {
+//     0x4a, 0x3a, 0xcb, 0xfd, 0xb1, 0x63, 0xde, 0xc6,
+//     0x51, 0xdf, 0xa3, 0x19, 0x4d, 0xec, 0xe6, 0x76,
+//     0xd4, 0x37, 0x02, 0x9c, 0x62, 0xa4, 0x08, 0xb4,
+//     0xc5, 0xea, 0x91, 0x14, 0x24, 0x6e, 0x48, 0x93
+// };
+
+// /* Responder ephermal private key
+//  "resp_ephemeral": "bbdb4cdbd309f1a1f2e1456967fe288cadd6f712d65dc7b7793d5e63da6b375b" */
+// static const uint8_t resp_ephemeral[CRYPTO_SECRET_KEY_SIZE] = {
+//     0xbb, 0xdb, 0x4c, 0xdb, 0xd3, 0x09, 0xf1, 0xa1,
+//     0xf2, 0xe1, 0x45, 0x69, 0x67, 0xfe, 0x28, 0x8c,
+//     0xad, 0xd6, 0xf7, 0x12, 0xd6, 0x5d, 0xc7, 0xb7,
+//     0x79, 0x3d, 0x5e, 0x63, 0xda, 0x6b, 0x37, 0x5b
+// };
+
+// /* Payload for initiator handshake message 
+//   "payload": "4c756477696720766f6e204d69736573" */
+// static const uint8_t init_payload_hs[16] = {
+//     0x4c, 0x75, 0x64, 0x77, 0x69, 0x67, 0x20, 0x76, 
+//     0x6f,0x6e, 0x20, 0x4d, 0x69, 0x73, 0x65, 0x73
+// };
+// /* "ciphertext": is actually three values for initiator handshake message: 
+//  Initiator ephemeral public key in plaintext: ca35def5ae56cec33dc2036731ab14896bc4c75dbb07a61f879f8e3afa4c7944 
+//  Encrypted static public key (of initiator): 7a2281c0f1aee0c48c41333a1abbb349ee4bf12e09f8c4fd66635aabbb7dad345826d359e4bd6ebee659f5c6cb3d2d4e 
+//  Encrypted payload: d12f7c7ffc9fe5513818d9cf9b8778d1502f90649c42ab4a1e3df7199a3d6a13 */
+// static const uint8_t init_ephemeral_public[CRYPTO_PUBLIC_KEY_SIZE] = {
+//     0xca, 0x35, 0xde, 0xf5, 0xae, 0x56, 0xce, 0xc3, 
+//     0x3d, 0xc2, 0x03, 0x67, 0x31, 0xab, 0x14, 0x89, 
+//     0x6b, 0xc4, 0xc7, 0x5d, 0xbb, 0x07, 0xa6, 0x1f, 
+//     0x87, 0x9f, 0x8e, 0x3a, 0xfa, 0x4c, 0x79, 0x44
+// };
+// static const uint8_t init_encrypted_static_public[CRYPTO_PUBLIC_KEY_SIZE+CRYPTO_MAC_SIZE] = {
+//     0x7a, 0x22, 0x81, 0xc0, 0xf1, 0xae, 0xe0, 0xc4, 
+//     0x8c, 0x41, 0x33, 0x3a, 0x1a, 0xbb, 0xb3, 0x49, 
+//     0xee, 0x4b, 0xf1, 0x2e, 0x09, 0xf8, 0xc4, 0xfd, 
+//     0x66, 0x63, 0x5a, 0xab, 0xbb, 0x7d, 0xad, 0x34, 
+//     0x58, 0x26, 0xd3, 0x59, 0xe4, 0xbd, 0x6e, 0xbe, 
+//     0xe6, 0x59, 0xf5, 0xc6, 0xcb, 0x3d, 0x2d, 0x4e
+// };
+// static const uint8_t init_payload_hs_encrypted[sizeof(init_payload_hs)+CRYPTO_MAC_SIZE] = {
+//     0xd1, 0x2f, 0x7c, 0x7f, 0xfc, 0x9f, 0xe5, 0x51, 
+//     0x38, 0x18, 0xd9, 0xcf, 0x9b, 0x87, 0x78, 0xd1, 
+//     0x50, 0x2f, 0x90, 0x64, 0x9c, 0x42, 0xab, 0x4a, 
+//     0x1e, 0x3d, 0xf7, 0x19, 0x9a, 0x3d, 0x6a, 0x13
+// };
+
+// /* Payload for responder handshake message 
+//  "payload": "4d757272617920526f746862617264", */
+// static const uint8_t resp_payload_hs[15] = {
+//     0x4d, 0x75, 0x72, 0x72, 0x61, 0x79, 0x20, 0x52, 
+//     0x6f, 0x74, 0x68, 0x62, 0x61, 0x72, 0x64
+// };
+// /* "ciphertext": is actually two values for responder handshake message: 
+//  Responder ephemeral public key in plaintext: 95ebc60d2b1fa672c1f46a8aa265ef51bfe38e7ccb39ec5be34069f144808843 
+//  Encrypted payload: f58050451a0edd2a40bb8b0f6b51ea63e1f1f429f1afd583e5d6e53f44da1e */
+// static const uint8_t resp_ephemeral_public[CRYPTO_PUBLIC_KEY_SIZE] = {
+//     0x95, 0xeb, 0xc6, 0x0d, 0x2b, 0x1f, 0xa6, 0x72, 
+//     0xc1, 0xf4, 0x6a, 0x8a, 0xa2, 0x65, 0xef, 0x51, 
+//     0xbf, 0xe3, 0x8e, 0x7c, 0xcb, 0x39, 0xec, 0x5b, 
+//     0xe3, 0x40, 0x69, 0xf1, 0x44, 0x80, 0x88, 0x43
+// };
+// static const uint8_t resp_payload_hs_encrypted[sizeof(resp_payload_hs)+CRYPTO_MAC_SIZE] = {
+//     0xf5, 0x80, 0x50, 0x45, 0x1a, 0x0e, 0xdd, 0x2a, 
+//     0x40, 0xbb, 0x8b, 0x0f, 0x6b, 0x51, 0xea, 0x63, 
+//     0xe1, 0xf1, 0xf4, 0x29, 0xf1, 0xaf, 0xd5, 0x83, 
+//     0xe5, 0xd6, 0xe5, 0x3f, 0x44, 0xda, 0x1e
+// };
+
+// /* Payload for initiator transport message 1 
+//  "payload": "462e20412e20486179656b" */
+// static const uint8_t init_payload_transport1[11] = {
+//     0x46, 0x2e, 0x20, 0x41, 0x2e, 0x20, 0x48, 0x61, 
+//     0x79, 
+//     0x65, 0x6b
+// };
+// /* Payload ciphertext for initiator transport message 1 
+//  "ciphertext": "cae0b6af5460d026e80e22c27572a92048176872538f91a056a8df" */
+// static const uint8_t init_payload_transport1_encrypted[sizeof(init_payload_transport1)+CRYPTO_MAC_SIZE] = {
+//     0xca, 0xe0, 0xb6, 0xaf, 0x54, 0x60, 0xd0, 0x26, 
+//     0xe8, 0x0e, 0x22, 0xc2, 0x75, 0x72, 0xa9, 0x20, 
+//     0x48, 0x17, 0x68, 0x72, 0x53, 0x8f, 0x91, 0xa0, 
+//     0x56, 0xa8, 0xdf
+// };
+
+// /* Payload for responder transport message 1 
+//  "payload": "4361726c204d656e676572" */
+// static const uint8_t resp_payload_transport1[11] = {
+//     0x43, 0x61, 0x72, 0x6c, 0x20, 0x4d, 0x65, 0x6e, 
+//     0x67, 0x65, 0x72
+// };
+// /* Payload ciphertext for responder transport message 1 
+//  "ciphertext": "ab1440d2b5892c638a11a7fa6412beaea5cee62342147f02d75a68" */
+// static const uint8_t resp_payload_transport1_encrypted[sizeof(resp_payload_transport1)+CRYPTO_MAC_SIZE] = {
+//     0xab, 0x14 , 0x40 , 0xd2, 0xb5, 0x89, 0x2c, 0x63, 
+//     0x8a, 0x11, 0xa7, 0xfa, 0x64, 0x12, 0xbe, 0xae, 
+//     0xa5, 0xce, 0xe6, 0x23, 0x42, 0x14, 0x7f, 0x02, 
+//     0xd7, 0x5a, 0x68
+// };
+
+// /* Final handshake hash value (MUST be the same for both initiator and responder)
+//  "handshake_hash": "48d8b650f042c4767cf1f3c26b22ccdd4bc8cff341166603109954eab8a9bd20915d284b6b618a325e93a8e949a23f4b62ba3094aad0b640c14cbd4f14ccd1e1" */
+// static const uint8_t handshake_hash[CRYPTO_SHA512_SIZE] = {
+//     0x48 ,0xd8, 0xb6, 0x50, 0xf0, 0x42, 0xc4, 0x76, 
+//     0x7c, 0xf1, 0xf3, 0xc2, 0x6b, 0x22, 0xcc, 0xdd, 
+//     0x4b, 0xc8, 0xcf, 0xf3, 0x41, 0x16, 0x66, 0x03, 
+//     0x10, 0x99, 0x54, 0xea, 0xb8, 0xa9, 0xbd, 0x20, 
+//     0x91, 0x5d, 0x28, 0x4b, 0x6b, 0x61, 0x8a, 0x32, 
+//     0x5e, 0x93, 0xa8, 0xe9, 0x49, 0xa2, 0x3f, 0x4b, 
+//     0x62, 0xba, 0x30, 0x94, 0xaa, 0xd0, 0xb6, 0x40, 
+//     0xc1, 0x4c, 0xbd, 0x4f, 0x14, 0xcc, 0xd1, 0xe1
+// };
+
+/* TODO: Currently unused */
+// // 4a 65 61 6e 2d 42 61 70 74 69 73 74 65 20 53 61 79
+// static const uint8_t init_payload_transport2[17] = {
+//     0x4a, 0x65, 0x61, 0x6e, 0x2d, 0x42, 0x61, 0x70, 0x74, 0x69, 0x73, 
+//     0x74, 0x65, 0x20, 0x53, 0x61, 0x79
+// };
+
+// // 45 75 67 65 6e 20 42 f6 68 6d 20 76 6f 6e 20 42 61 77 65 72 6b
+// static const uint8_t payload_transport_responder2[21] = {
+//     0x45, 0x75, 0x67, 0x65, 0x6e, 0x20, 0x42, 0xf6, 0x68, 0x6d, 0x20, 
+//     0x76, 0x6f, 0x6e, 0x20, 0x42, 0x61, 0x77, 0x65, 0x72, 0x6b
+// };
+
+/* Noise_IK_25519_ChaChaPoly_BLAKE2b test vectors from here: https://github.com/rweather/noise-c/blob/cfe25410979a87391bb9ac8d4d4bef64e9f268c6/tests/vector/noise-c-basic.txt */
+/* "init_prologue": "50726f6c6f677565313233" (same as `resp_prologue`) */
+static const uint8_t prologue[11] = {
+    0x50, 0x72, 0x6f, 0x6c, 0x6f, 0x67, 0x75, 0x65, 
+    0x31, 0x32, 0x33
+};
+
+/* Initiator static private key 
+ "init_static": "e61ef9919cde45dd5f82166404bd08e38bceb5dfdfded0a34c8df7ed542214d1" */
+static const uint8_t init_static[CRYPTO_SECRET_KEY_SIZE] = {
+    0xe6, 0x1e, 0xf9, 0x91, 0x9c, 0xde, 0x45, 0xdd, 
+    0x5f, 0x82, 0x16, 0x64, 0x04, 0xbd, 0x08, 0xe3, 
+    0x8b, 0xce, 0xb5, 0xdf, 0xdf, 0xde, 0xd0, 0xa3, 
+    0x4c, 0x8d, 0xf7, 0xed, 0x54, 0x22, 0x14, 0xd1
+};
+
+/* Initiator ephemeral private key 
+ "init_ephemeral": "893e28b9dc6ca8d611ab664754b8ceb7bac5117349a4439a6b0569da977c464a" */
+static const uint8_t init_ephemeral[CRYPTO_SECRET_KEY_SIZE] = {
+    0x89, 0x3e, 0x28, 0xb9, 0xdc, 0x6c, 0xa8, 0xd6, 
+    0x11, 0xab, 0x66, 0x47, 0x54, 0xb8, 0xce, 0xb7, 
+    0xba, 0xc5, 0x11, 0x73, 0x49, 0xa4, 0x43, 0x9a, 
+    0x6b, 0x05, 0x69, 0xda, 0x97, 0x7c, 0x46, 0x4a
+};
+
+/* Responder static public key
+ "init_remote_static": "31e0303fd6418d2f8c0e78b91f22e8caed0fbe48656dcf4767e4834f701b8f62" */
+static const uint8_t init_remote_static[CRYPTO_PUBLIC_KEY_SIZE] = {
+    0x31, 0xe0, 0x30, 0x3f, 0xd6, 0x41, 0x8d, 0x2f, 
+    0x8c, 0x0e, 0x78, 0xb9, 0x1f, 0x22, 0xe8, 0xca, 
+    0xed, 0x0f, 0xbe, 0x48, 0x65, 0x6d, 0xcf, 0x47, 
+    0x67, 0xe4, 0x83, 0x4f, 0x70, 0x1b, 0x8f, 0x62
+};
+
+/* Responder static private key
+ "resp_static": "4a3acbfdb163dec651dfa3194dece676d437029c62a408b4c5ea9114246e4893" */
+static const uint8_t resp_static[CRYPTO_SECRET_KEY_SIZE] = {
+    0x4a, 0x3a, 0xcb, 0xfd, 0xb1, 0x63, 0xde, 0xc6,
+    0x51, 0xdf, 0xa3, 0x19, 0x4d, 0xec, 0xe6, 0x76,
+    0xd4, 0x37, 0x02, 0x9c, 0x62, 0xa4, 0x08, 0xb4,
+    0xc5, 0xea, 0x91, 0x14, 0x24, 0x6e, 0x48, 0x93
+};
+
+/* Responder ephermal private key
+ "resp_ephemeral": "bbdb4cdbd309f1a1f2e1456967fe288cadd6f712d65dc7b7793d5e63da6b375b" */
+static const uint8_t resp_ephemeral[CRYPTO_SECRET_KEY_SIZE] = {
+    0xbb, 0xdb, 0x4c, 0xdb, 0xd3, 0x09, 0xf1, 0xa1,
+    0xf2, 0xe1, 0x45, 0x69, 0x67, 0xfe, 0x28, 0x8c,
+    0xad, 0xd6, 0xf7, 0x12, 0xd6, 0x5d, 0xc7, 0xb7,
+    0x79, 0x3d, 0x5e, 0x63, 0xda, 0x6b, 0x37, 0x5b
+};
+
+/* Payload for initiator handshake message 
+  "payload": "4c756477696720766f6e204d69736573" */
+static const uint8_t init_payload_hs[16] = {
+    0x4c, 0x75, 0x64, 0x77, 0x69, 0x67, 0x20, 0x76, 
+    0x6f,0x6e, 0x20, 0x4d, 0x69, 0x73, 0x65, 0x73
+};
+/* "ciphertext": is actually three values for initiator handshake message:  
+ Initiator ephemeral public key in plaintext: ca35def5ae56cec33dc2036731ab14896bc4c75dbb07a61f879f8e3afa4c7944 
+ Encrypted static public key (of initiator): ba83a447b38c83e327ad936929812f624884847b7831e95e197b2f797088efdd232fe541af156ec6d0657602902a8c3e 
+ Encrypted payload: e64e470f4b6fcd9298ce0b56fe20f86e60d9d933ec6e103ffb09e6001d6abb64*/
+static const uint8_t init_ephemeral_public[CRYPTO_PUBLIC_KEY_SIZE] = {
+    0xca, 0x35, 0xde, 0xf5, 0xae, 0x56, 0xce, 0xc3, 
+    0x3d, 0xc2, 0x03, 0x67, 0x31, 0xab, 0x14, 0x89, 
+    0x6b, 0xc4, 0xc7, 0x5d, 0xbb, 0x07, 0xa6, 0x1f, 
+    0x87, 0x9f, 0x8e, 0x3a, 0xfa, 0x4c, 0x79, 0x44
+};
+static const uint8_t init_encrypted_static_public[CRYPTO_PUBLIC_KEY_SIZE+CRYPTO_MAC_SIZE] = {
+    0xba, 0x83, 0xa4, 0x47, 0xb3, 0x8c, 0x83, 0xe3, 
+    0x27, 0xad, 0x93, 0x69, 0x29, 0x81, 0x2f, 0x62, 
+    0x48, 0x84, 0x84, 0x7b, 0x78, 0x31, 0xe9, 0x5e, 
+    0x19, 0x7b, 0x2f, 0x79, 0x70, 0x88, 0xef, 0xdd, 
+    0x23, 0x2f, 0xe5, 0x41, 0xaf, 0x15, 0x6e, 0xc6, 
+    0xd0, 0x65, 0x76, 0x02, 0x90, 0x2a, 0x8c, 0x3e
+};
+static const uint8_t init_payload_hs_encrypted[sizeof(init_payload_hs)+CRYPTO_MAC_SIZE] = {
+    0xe6, 0x4e, 0x47, 0x0f, 0x4b, 0x6f, 0xcd, 0x92, 
+    0x98, 0xce, 0x0b, 0x56, 0xfe, 0x20, 0xf8, 0x6e, 
+    0x60, 0xd9, 0xd9, 0x33, 0xec, 0x6e, 0x10, 0x3f, 
+    0xfb, 0x09, 0xe6, 0x00, 0x1d, 0x6a, 0xbb, 0x64
+};
+
+/* Payload for responder handshake message 
+ "payload": "4d757272617920526f746862617264", */
+static const uint8_t resp_payload_hs[15] = {
+    0x4d, 0x75, 0x72, 0x72, 0x61, 0x79, 0x20, 0x52, 
+    0x6f, 0x74, 0x68, 0x62, 0x61, 0x72, 0x64
+};
+/* "ciphertext": is actually two values for responder handshake message: 
+ Responder ephemeral public key in plaintext:
+ 95ebc60d2b1fa672c1f46a8aa265ef51bfe38e7ccb39ec5be34069f144808843 
+ Encrypted payload: 
+ 9f069b267a06b3de3ecb1043bcb09807c6cd101f3826192a65f11ef3fe4317 */
+static const uint8_t resp_ephemeral_public[CRYPTO_PUBLIC_KEY_SIZE] = {
+    0x95, 0xeb, 0xc6, 0x0d, 0x2b, 0x1f, 0xa6, 0x72, 
+    0xc1, 0xf4, 0x6a, 0x8a, 0xa2, 0x65, 0xef, 0x51, 
+    0xbf, 0xe3, 0x8e, 0x7c, 0xcb, 0x39, 0xec, 0x5b, 
+    0xe3, 0x40, 0x69, 0xf1, 0x44, 0x80, 0x88, 0x43
+};
+static const uint8_t resp_payload_hs_encrypted[sizeof(resp_payload_hs)+CRYPTO_MAC_SIZE] = {
+    0x9f, 0x06, 0x9b, 0x26, 0x7a, 0x06, 0xb3, 0xde, 
+    0x3e, 0xcb, 0x10, 0x43, 0xbc, 0xb0, 0x98, 0x07, 
+    0xc6, 0xcd, 0x10, 0x1f, 0x38, 0x26, 0x19, 0x2a, 
+    0x65, 0xf1, 0x1e, 0xf3, 0xfe, 0x43, 0x17
+};
+
+/* Payload for initiator transport message 1 
+ "payload": "462e20412e20486179656b" */
+static const uint8_t init_payload_transport1[11] = {
+    0x46, 0x2e, 0x20, 0x41, 0x2e, 0x20, 0x48, 0x61, 
+    0x79, 0x65, 0x6b
+};
+/* Payload ciphertext for initiator transport message 1 
+ "ciphertext": "cd54383060e7a28434cca27fb1cc524cfbabeb18181589df219d07" */
+static const uint8_t init_payload_transport1_encrypted[sizeof(init_payload_transport1)+CRYPTO_MAC_SIZE] = {
+    0xcd, 0x54, 0x38, 0x30, 0x60, 0xe7, 0xa2, 0x84,
+    0x34, 0xcc, 0xa2, 0x7f, 0xb1, 0xcc, 0x52, 0x4c, 
+    0xfb, 0xab, 0xeb, 0x18, 0x18, 0x15, 0x89, 0xdf, 
+    0x21, 0x9d, 0x07
+};
+
+/* Payload for responder transport message 1 
+ "payload": "4361726c204d656e676572" */
+static const uint8_t resp_payload_transport1[11] = {
+    0x43, 0x61, 0x72, 0x6c, 0x20, 0x4d, 0x65, 0x6e, 
+    0x67, 0x65, 0x72
+};
+/* Payload ciphertext for responder transport message 1 
+ "ciphertext": "a856d3bf0246bfc476c655009cd1ed677b8dcc5b349ae8ef2a05f2" */
+static const uint8_t resp_payload_transport1_encrypted[sizeof(resp_payload_transport1)+CRYPTO_MAC_SIZE] = {
+    0xa8, 0x56, 0xd3, 0xbf, 0x02, 0x46, 0xbf, 0xc4, 
+    0x76, 0xc6, 0x55, 0x00, 0x9c, 0xd1, 0xed, 0x67, 
+    0x7b, 0x8d, 0xcc, 0x5b, 0x34, 0x9a, 0xe8, 0xef, 
+    0x2a, 0x05, 0xf2
+};
+
+/* Final handshake hash value (MUST be the same for both initiator and responder)
+ "handshake_hash": "00e51d2aac81a9b8ebe441d6af3e1c8efc0f030cc608332edcb42588ff6a0ce26415ddc106e95277a5e6d54132f1e5245976b89caf96d262f1fe5a7f0c55c078" */
+static const uint8_t handshake_hash[CRYPTO_SHA512_SIZE] = {
+    0x00, 0xe5, 0x1d, 0x2a, 0xac, 0x81, 0xa9, 0xb8, 
+    0xeb, 0xe4, 0x41, 0xd6, 0xaf, 0x3e, 0x1c, 0x8e, 
+    0xfc, 0x0f, 0x03, 0x0c, 0xc6, 0x08, 0x33, 0x2e, 
+    0xdc, 0xb4, 0x25, 0x88, 0xff, 0x6a, 0x0c, 0xe2, 
+    0x64, 0x15, 0xdd, 0xc1, 0x06, 0xe9, 0x52, 0x77, 
+    0xa5, 0xe6, 0xd5, 0x41, 0x32, 0xf1, 0xe5, 0x24, 
+    0x59, 0x76, 0xb8, 0x9c, 0xaf, 0x96, 0xd2, 0x62, 
+    0xf1, 0xfe, 0x5a, 0x7f, 0x0c, 0x55, 0xc0, 0x78
+};
+
+//TODO: "payload": "4a65616e2d426170746973746520536179",
+//TODO: "ciphertext": "49063084b2c51f098337cb8a13739ac848f907e67cfb2cc8a8b60586467aa02fc7"
+
+//TODO: "payload": "457567656e2042f6686d20766f6e2042617765726b",
+//TODO: "ciphertext": "8b9709d23b47e4639df7678d7a21741eba4ef1e9c60383001c7435549c20f9d56f30e935d3"
+
+static void test_noiseik(void) 
+{ 
+    /* INITIATOR: Create handshake packet for responder */
+    Noise_Handshake *noise_handshake_initiator = (Noise_Handshake *) calloc(1, sizeof(Noise_Handshake));
+
+    /* Troubleshooting info, intermediary values */
+    // bin2hex_toupper(h_print, sizeof(h_print), noise_handshake->hash, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->hash: %s\n", h_print);
+    // bin2hex_toupper(ck_print, sizeof(ck_print), noise_handshake->chaining_key, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->chaining_key: %s\n", ck_print);
+
+    noise_handshake_init(noise_handshake_initiator, init_static, init_remote_static, true, prologue, sizeof(prologue));
+
+    /* Troubleshooting info, intermediary values */
+    // bin2hex_toupper(h_print, sizeof(h_print), noise_handshake->hash, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->hash: %s\n", h_print);
+    // bin2hex_toupper(ck_print, sizeof(ck_print), noise_handshake->chaining_key, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->chaining_key: %s\n", ck_print);
+
+    memcpy(noise_handshake_initiator->ephemeral_private, init_ephemeral, CRYPTO_SECRET_KEY_SIZE);
+    crypto_derive_public_key(noise_handshake_initiator->ephemeral_public, init_ephemeral);
+
+    ck_assert_msg(memcmp(noise_handshake_initiator->ephemeral_public, init_ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE) == 0, "initiator ephemeral public keys differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ephemeral_public_print[CRYPTO_PUBLIC_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(ephemeral_public_print, sizeof(ephemeral_public_print), noise_handshake_initiator->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+    // printf("ephemeral_public_print: %s\n", ephemeral_public_print);
+
+    uint8_t resp_static_pub[CRYPTO_PUBLIC_KEY_SIZE];
+    crypto_derive_public_key(resp_static_pub, resp_static);
+    ck_assert_msg(memcmp(resp_static_pub, init_remote_static, CRYPTO_PUBLIC_KEY_SIZE) == 0, "responder static public keys differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char resp_static_print[CRYPTO_PUBLIC_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(resp_static_print, sizeof(resp_static_print), resp_static_pub, CRYPTO_PUBLIC_KEY_SIZE);
+    // printf("resp_static_pub: %s\n", resp_static_print);
+
+    /* e */
+    noise_mix_hash(noise_handshake_initiator->hash, noise_handshake_initiator->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+
+    /* Troubleshooting info, intermediary values */
+    // char log_hash1[CRYPTO_SHA512_SIZE*2+1];
+    // bytes2string(log_hash1, sizeof(log_hash1), noise_handshake->hash, CRYPTO_SHA512_SIZE, c->log);
+    // LOGGER_DEBUG(c->log, "hash1 INITIATOR: %s", log_hash1);
+
+    /* es */
+    uint8_t noise_handshake_temp_key[CRYPTO_SHARED_KEY_SIZE];
+    noise_mix_key(noise_handshake_initiator->chaining_key, noise_handshake_temp_key, noise_handshake_initiator->ephemeral_private, noise_handshake_initiator->remote_static);
+
+    /* Troubleshooting info, intermediary values */
+    // bin2hex_toupper(ck_print, sizeof(ck_print), noise_handshake->chaining_key, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->chaining_key (after es): %s\n", ck_print);
+    // bin2hex_toupper(key_print, sizeof(key_print), noise_handshake_temp_key, CRYPTO_SHARED_KEY_SIZE);
+    // printf("noise_handshake_temp_key (after es): %s\n", key_print);
+
+    /* s */
+    //TODO: remove; not necessary to due change to ChaCha20-Poly1305 instead of XChaCha20-Poly1305
+    /*Nonce provided as parameter is the base nonce! -> This adds nonce for static pub key encryption to packet (XChaCha20-Poly1305) */
+    // random_nonce(c->rng, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE);
+    // noise_encrypt_and_hash(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, noise_handshake->static_public, CRYPTO_PUBLIC_KEY_SIZE, noise_handshake_temp_key,
+                        //    noise_handshake->hash, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE);
+
+    /* Nonce for static pub key encryption is _always_ 0 in case of ChaCha20-Poly1305 */
+    uint8_t ciphertext1[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE];
+    noise_encrypt_and_hash(ciphertext1, noise_handshake_initiator->static_public, CRYPTO_PUBLIC_KEY_SIZE, noise_handshake_temp_key,
+                            noise_handshake_initiator->hash);
+
+    /* Troubleshooting info, intermediary values */
+    // char ciphertext1_print[sizeof(ciphertext1) * 2 + 1];
+    // bin2hex_toupper(ciphertext1_print, sizeof(ciphertext1_print), ciphertext1, sizeof(ciphertext1));
+    // printf("Initiator: HS ciphertext static pub key: %s\n", ciphertext1_print);
+
+    ck_assert_msg(memcmp(ciphertext1, init_encrypted_static_public, CRYPTO_PUBLIC_KEY_SIZE+CRYPTO_MAC_SIZE) == 0, "initiator encrypted static public keys differ");
+
+
+    //TODO: remove from production code
+    // char log_hash2[CRYPTO_SHA512_SIZE*2+1];
+    // bytes2string(log_hash2, sizeof(log_hash2), noise_handshake->hash, CRYPTO_SHA512_SIZE, c->log);
+    // LOGGER_DEBUG(c->log, "hash2 INITIATOR: %s", log_hash2);
+    // char log_ephemeral[CRYPTO_PUBLIC_KEY_SIZE * 2 + 1];
+    // bytes2string(log_ephemeral, sizeof(log_ephemeral), noise_handshake->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // LOGGER_DEBUG(c->log, "ephemeral public: %s", log_ephemeral);
+
+    /* ss */
+    noise_mix_key(noise_handshake_initiator->chaining_key, noise_handshake_temp_key, 
+        noise_handshake_initiator->static_private, noise_handshake_initiator->remote_static);
+
+    /* Noise Handshake Payload */
+    // uint8_t handshake_payload_plain[15];
+    uint8_t ciphertext2[sizeof(init_payload_hs) + CRYPTO_MAC_SIZE];
+
+    //TODO: remove; not necessary to due change to ChaCha20-Poly1305 instead of XChaCha20-Poly1305
+    /* Add Handshake payload nonce */
+    // random_nonce(c->rng, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE);
+    // noise_encrypt_and_hash(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE,
+    //                        handshake_payload_plain, sizeof(handshake_payload_plain), noise_handshake_temp_key,
+    //                        noise_handshake->hash, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE);
+
+    /* Nonce for payload encryption is _always_ 0 in case of ChaCha20-Poly1305 */
+    noise_encrypt_and_hash(ciphertext2,
+                            init_payload_hs, sizeof(init_payload_hs), noise_handshake_temp_key,
+                            noise_handshake_initiator->hash);
+
+    ck_assert_msg(memcmp(ciphertext2, init_payload_hs_encrypted, sizeof(init_payload_hs_encrypted)) == 0, "initiator encrypted handshake payloads differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ciphertext2_print[sizeof(ciphertext2) * 2 + 1];
+    // bin2hex_toupper(ciphertext2_print, sizeof(ciphertext2_print), ciphertext2, sizeof(ciphertext2));
+    // printf("Initiator: HS ciphertext payload: %s\n", ciphertext2_print);
+
+    // INITIATOR: END Create handshake packet for responder
+
+    /* RESPONDER: Consume handshake packet from initiator */
+    Noise_Handshake *noise_handshake_responder = (Noise_Handshake *) calloc(1, sizeof(Noise_Handshake));
+
+    /* Troubleshooting info, intermediary values */
+    // bin2hex_toupper(h_print, sizeof(h_print), noise_handshake->hash, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->hash: %s\n", h_print);
+    // bin2hex_toupper(ck_print, sizeof(ck_print), noise_handshake->chaining_key, CRYPTO_SHA512_SIZE);
+    // printf("noise_handshake->chaining_key: %s\n", ck_print);
+
+    
+    uint8_t init_static_pub[CRYPTO_PUBLIC_KEY_SIZE];
+    crypto_derive_public_key(init_static_pub, init_static);
+
+    /* Troubleshooting info, intermediary values */    
+    // char init_static_print[CRYPTO_PUBLIC_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(init_static_print, sizeof(init_static_print), init_static_pub, CRYPTO_PUBLIC_KEY_SIZE);
+    // printf("init_static_pub: %s\n", init_static_print);
+
+    noise_handshake_init(noise_handshake_responder, resp_static, nullptr, false, prologue, sizeof(prologue));
+
+    /* e */
+    memcpy(noise_handshake_responder->remote_ephemeral, noise_handshake_initiator->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+    noise_mix_hash(noise_handshake_responder->hash, noise_handshake_initiator->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+
+    /* es */
+    uint8_t noise_handshake_temp_key_resp[CRYPTO_SHARED_KEY_SIZE];
+    noise_mix_key(noise_handshake_responder->chaining_key, noise_handshake_temp_key_resp, 
+        noise_handshake_responder->static_private, noise_handshake_responder->remote_ephemeral);
+
+    /* s */ 
+    noise_decrypt_and_hash(noise_handshake_responder->remote_static, ciphertext1, CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE,
+                                       noise_handshake_temp_key_resp, noise_handshake_responder->hash);
+
+    /* ss */
+    noise_mix_key(noise_handshake_responder->chaining_key, noise_handshake_temp_key_resp, noise_handshake_responder->static_private, 
+        noise_handshake_responder->remote_static);
+
+    /* Payload decryption */
+    uint8_t handshake_payload_plain_initiator[sizeof(init_payload_hs)];
+    noise_decrypt_and_hash(handshake_payload_plain_initiator, ciphertext2,
+                                       sizeof(ciphertext2), noise_handshake_temp_key_resp,
+                                       noise_handshake_responder->hash);
+
+    /* RESPONDER: Create handshake packet for initiator */
+
+    /* set ephemeral private+public */
+    memcpy(noise_handshake_responder->ephemeral_private, resp_ephemeral, CRYPTO_SECRET_KEY_SIZE);
+    crypto_derive_public_key(noise_handshake_responder->ephemeral_public, resp_ephemeral);
+
+    ck_assert_msg(memcmp(noise_handshake_responder->ephemeral_public, resp_ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE) == 0, "responder ephemeral public keys differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ephemeral_public_print_responder[CRYPTO_PUBLIC_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(ephemeral_public_print_responder, sizeof(ephemeral_public_print_responder), noise_handshake_responder->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+    // printf("Responder ephemeral public: %s\n", ephemeral_public_print_responder);
+
+    /* e */
+    noise_mix_hash(noise_handshake_responder->hash, noise_handshake_responder->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+
+    /* ee */
+    uint8_t noise_handshake_temp_key_resp2[CRYPTO_SHARED_KEY_SIZE];
+    noise_mix_key(noise_handshake_responder->chaining_key, noise_handshake_temp_key_resp2, noise_handshake_responder->ephemeral_private, 
+        noise_handshake_responder->remote_ephemeral);
+
+    /* se */
+    noise_mix_key(noise_handshake_responder->chaining_key, noise_handshake_temp_key_resp2, noise_handshake_responder->ephemeral_private, 
+        noise_handshake_responder->remote_static);
+
+    
+    /* Nonce for payload encryption is _always_ 0 in case of ChaCha20-Poly1305 */
+    uint8_t ciphertext3_hs_responder[sizeof(resp_payload_hs) + CRYPTO_MAC_SIZE];
+    noise_encrypt_and_hash(ciphertext3_hs_responder,
+                            resp_payload_hs, sizeof(resp_payload_hs), noise_handshake_temp_key_resp2,
+                            noise_handshake_responder->hash);
+
+    ck_assert_msg(memcmp(ciphertext3_hs_responder, resp_payload_hs_encrypted, sizeof(resp_payload_hs_encrypted)) == 0, "responder encrypted handshake payloads differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ciphertext3_print[sizeof(ciphertext3_hs_responder) * 2 + 1];
+    // bin2hex_toupper(ciphertext3_print, sizeof(ciphertext3_print), ciphertext3_hs_responder, sizeof(ciphertext3_hs_responder));
+    // printf("Responder: HS ciphertext payload: %s\n", ciphertext3_print);
+
+    /* RESPONDER: END create handshake packet for initiator */
+
+    /* INITIATOR: Consume handshake packet from responder */
+    memcpy(noise_handshake_initiator->remote_ephemeral, noise_handshake_responder->ephemeral_public, CRYPTO_PUBLIC_KEY_SIZE);
+    noise_mix_hash(noise_handshake_initiator->hash, noise_handshake_initiator->remote_ephemeral, CRYPTO_PUBLIC_KEY_SIZE);
+
+    /* ee */
+    uint8_t noise_handshake_temp_key_init[CRYPTO_SHARED_KEY_SIZE];
+    noise_mix_key(noise_handshake_initiator->chaining_key, noise_handshake_temp_key_init, noise_handshake_initiator->ephemeral_private, 
+        noise_handshake_initiator->remote_ephemeral);
+
+    /* se */
+    noise_mix_key(noise_handshake_initiator->chaining_key, noise_handshake_temp_key_init, noise_handshake_initiator->static_private, 
+        noise_handshake_initiator->remote_ephemeral);
+
+    uint8_t handshake_payload_plain_responder[sizeof(resp_payload_hs)];
+    if(noise_decrypt_and_hash(handshake_payload_plain_responder, ciphertext3_hs_responder,
+                                    sizeof(ciphertext3_hs_responder), noise_handshake_temp_key_init,
+                                    noise_handshake_initiator->hash) != sizeof(resp_payload_hs)) {
+                                    printf("Initiator: HS decryption failed\n");
+    }
+
+    /* INITIATOR Noise Split(), nonces already set in crypto connection */
+    uint8_t initiator_send_key[CRYPTO_SHARED_KEY_SIZE];
+    uint8_t initiator_recv_key[CRYPTO_SHARED_KEY_SIZE];
+    crypto_hkdf(initiator_send_key, CRYPTO_SHARED_KEY_SIZE, initiator_recv_key, CRYPTO_SHARED_KEY_SIZE, nullptr, 0, 
+        noise_handshake_initiator->chaining_key);
+
+    ck_assert_msg(memcmp(noise_handshake_initiator->hash, handshake_hash, CRYPTO_SHA512_SIZE) == 0, "initiator handshake hash differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char handshake_hash_initiator_print[sizeof(noise_handshake_initiator->hash) * 2 + 1];
+    // bin2hex_toupper(handshake_hash_initiator_print, sizeof(handshake_hash_initiator_print), noise_handshake_initiator->hash, sizeof(noise_handshake_initiator->hash));
+    // printf("Initiator: final handshake hash: %s\n", handshake_hash_initiator_print);
+
+    /* Troubleshooting info, intermediary values */
+    // char initiator_send_key_print[CRYPTO_SHARED_KEY_SIZE * 2 + 1];
+    // char initiator_recv_key_print[CRYPTO_SHARED_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(initiator_send_key_print, sizeof(initiator_send_key_print), initiator_send_key, CRYPTO_SHARED_KEY_SIZE);
+    // printf("initiator_send_key_print: %s\n", initiator_send_key_print);
+    // bin2hex_toupper(initiator_recv_key_print, sizeof(initiator_recv_key_print), initiator_recv_key, CRYPTO_SHARED_KEY_SIZE);
+    // printf("initiator_recv_key_print: %s\n", initiator_recv_key_print);
+
+    uint8_t ciphertext4_transport1_initiator[sizeof(init_payload_transport1) + CRYPTO_MAC_SIZE];
+    uint8_t nonce_chacha20_ietf[CRYPTO_NOISEIK_NONCE_SIZE] = {0};
+    encrypt_data_symmetric_aead(initiator_send_key, nonce_chacha20_ietf, init_payload_transport1, sizeof(init_payload_transport1), ciphertext4_transport1_initiator, nullptr, 0);
+    
+    ck_assert_msg(memcmp(ciphertext4_transport1_initiator, init_payload_transport1_encrypted, sizeof(init_payload_transport1_encrypted)) == 0, "initiator transport1 ciphertext differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ciphertext4_transport1_initiator_print[sizeof(ciphertext4_transport1_initiator) * 2 + 1];
+    // bin2hex_toupper(ciphertext4_transport1_initiator_print, sizeof(ciphertext4_transport1_initiator_print), ciphertext4_transport1_initiator, sizeof(ciphertext4_transport1_initiator));
+    // printf("Initiator: Transport1 ciphertext: (length: %d) %s\n", length, ciphertext4_transport1_initiator_print);
+
+    /* RESPONDER Noise Split(): vice-verse keys in comparison to initiator */
+    uint8_t responder_send_key[CRYPTO_SHARED_KEY_SIZE];
+    uint8_t responder_recv_key[CRYPTO_SHARED_KEY_SIZE];
+    crypto_hkdf(responder_recv_key, CRYPTO_SYMMETRIC_KEY_SIZE, responder_send_key, CRYPTO_SYMMETRIC_KEY_SIZE, nullptr, 0, noise_handshake_responder->chaining_key);
+
+    ck_assert_msg(memcmp(noise_handshake_responder->hash, handshake_hash, CRYPTO_SHA512_SIZE) == 0, "responder handshake hash differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char handshake_hash_responder_print[sizeof(noise_handshake_responder->hash) * 2 + 1];
+    // bin2hex_toupper(handshake_hash_responder_print, sizeof(handshake_hash_responder_print), noise_handshake_responder->hash, sizeof(noise_handshake_responder->hash));
+    // printf("Responder: final handshake hash: %s\n", handshake_hash_responder_print);
+
+    /* Troubleshooting info, intermediary values */
+    // char responder_send_key_print[CRYPTO_SHARED_KEY_SIZE * 2 + 1];
+    // char responder_recv_key_print[CRYPTO_SHARED_KEY_SIZE * 2 + 1];
+    // bin2hex_toupper(responder_send_key_print, sizeof(responder_send_key_print), responder_send_key, CRYPTO_SHARED_KEY_SIZE);
+    // printf("responder_send_key_print: %s\n", responder_send_key_print);
+    // bin2hex_toupper(responder_recv_key_print, sizeof(responder_recv_key_print), responder_recv_key, CRYPTO_SHARED_KEY_SIZE);
+    // printf("responder_recv_key_print: %s\n", responder_recv_key_print);
+
+    uint8_t ciphertext5_transport1_responder[sizeof(resp_payload_transport1) + CRYPTO_MAC_SIZE];
+    encrypt_data_symmetric_aead(responder_send_key, nonce_chacha20_ietf, 
+        resp_payload_transport1, sizeof(resp_payload_transport1), ciphertext5_transport1_responder, nullptr, 0);
+
+    ck_assert_msg(memcmp(ciphertext5_transport1_responder, resp_payload_transport1_encrypted, sizeof(resp_payload_transport1_encrypted)) == 0, "responder transport1 ciphertext differ");
+
+    /* Troubleshooting info, intermediary values */
+    // char ciphertext5_transport1_responder_print[sizeof(ciphertext5_transport1_responder) * 2 + 1];
+    // bin2hex_toupper(ciphertext5_transport1_responder_print, sizeof(ciphertext5_transport1_responder_print), ciphertext5_transport1_responder, sizeof(ciphertext5_transport1_responder));
+    // printf("Responder: Transport1 ciphertext: (length: %d) %s\n", length_ciphertext5_transport1_responder, ciphertext5_transport1_responder_print);
+
+    free(noise_handshake_initiator);
+    free(noise_handshake_responder);
+}
+
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
@@ -383,6 +988,7 @@ int main(void)
     test_very_large_data();
     test_increment_nonce();
     test_memzero();
+    test_noiseik();
 
     return 0;
 }
