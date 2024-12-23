@@ -7798,10 +7798,6 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
         return ret != 0 ? -6 : ret;
     }
 
-    if (getfriend_id(c->messenger, chat_id) != -1) {
-        return -2;
-    }
-
     const int group_number = create_new_group(c, nick, nick_length, false, GI_PUBLIC);
 
     if (group_number == -1) {
