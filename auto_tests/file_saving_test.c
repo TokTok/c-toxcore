@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "../toxcore/ccompat.h"
+#include "../toxcore/tox.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -75,7 +77,8 @@ static void load_data_decrypted(void)
 
     uint8_t *cipher = (uint8_t *)malloc(size);
     ck_assert(cipher != nullptr);
-    uint8_t *clear = (uint8_t *)malloc(size - TOX_PASS_ENCRYPTION_EXTRA_LENGTH);
+    const size_t clear_size = size - TOX_PASS_ENCRYPTION_EXTRA_LENGTH;
+    uint8_t *clear = (uint8_t *)malloc(clear_size);
     ck_assert(clear != nullptr);
     size_t read_value = fread(cipher, sizeof(*cipher), size, f);
     printf("Read read_value = %u of %u\n", (unsigned)read_value, (unsigned)size);
@@ -88,9 +91,10 @@ static void load_data_decrypted(void)
     struct Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
 
+    tox_options_set_experimental_owned_data(options, true);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-
-    tox_options_set_savedata_data(options, clear, size);
+    ck_assert(tox_options_set_savedata_data(options, clear, clear_size));
+    free(clear);
 
     Tox_Err_New err;
 
@@ -107,7 +111,6 @@ static void load_data_decrypted(void)
                   "name returned by tox_self_get_name does not match expected result");
 
     tox_kill(t);
-    free(clear);
     free(cipher);
     free(readname);
     fclose(f);

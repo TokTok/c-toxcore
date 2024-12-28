@@ -574,7 +574,7 @@ struct Tox_Options {
      * TOX_PROXY_TYPE_NONE.
      *
      * The data pointed at by this member is owned by the user, so must
-     * outlive the options object.
+     * outlive the options object (unless experimental_owned_data is set).
      */
     const char *proxy_host;
 
@@ -629,10 +629,10 @@ struct Tox_Options {
     Tox_Savedata_Type savedata_type;
 
     /**
-     * The savedata.
+     * The savedata (either a Tox save or a secret key) to load from.
      *
-     * The data pointed at by this member is owned by the user, so must outlive
-     * the options object.
+     * The data pointed at by this member is owned by the user, so must
+     * outlive the options object (unless experimental_owned_data is set).
      */
     const uint8_t *savedata_data;
 
@@ -694,6 +694,34 @@ struct Tox_Options {
      * Default: false. May become true in the future (0.3.0).
      */
     bool experimental_disable_dns;
+
+    /**
+     * @brief Whether the savedata data is owned by the Tox_Options object.
+     *
+     * If true, the setters for savedata and proxy_host try to copy the string.
+     * If that fails, the value is not copied and the member is set to the
+     * user-provided pointer. In that case, the user must not free the string
+     * until the Tox_Options object is freed. Client code can check whether
+     * allocation succeeded by checking the returned bool. If
+     * experimental_owned_data is false, it will always return true. If set to
+     * true, the return value will be false on allocation failure.
+     *
+     * If set to true, this must be set before any other member that allocates
+     * memory is set.
+     */
+    bool experimental_owned_data;
+
+    /**
+     * @brief Owned pointer to the savedata data.
+     * @private
+     */
+    uint8_t *owned_savedata_data;
+
+    /**
+     * @brief Owned pointer to the proxy host.
+     * @private
+     */
+    char *owned_proxy_host;
 };
 #endif /* TOX_HIDE_DEPRECATED */
 
@@ -719,7 +747,7 @@ void tox_options_set_proxy_type(Tox_Options *options, Tox_Proxy_Type proxy_type)
 
 const char *tox_options_get_proxy_host(const Tox_Options *options);
 
-void tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
+bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
 
 uint16_t tox_options_get_proxy_port(const Tox_Options *options);
 
@@ -747,7 +775,7 @@ void tox_options_set_savedata_type(Tox_Options *options, Tox_Savedata_Type saved
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options);
 
-void tox_options_set_savedata_data(Tox_Options *options, const uint8_t savedata_data[], size_t length);
+bool tox_options_set_savedata_data(Tox_Options *options, const uint8_t savedata_data[], size_t length);
 
 size_t tox_options_get_savedata_length(const Tox_Options *options);
 
@@ -760,6 +788,10 @@ void tox_options_set_log_callback(Tox_Options *options, tox_log_cb *log_callback
 void *tox_options_get_log_user_data(const Tox_Options *options);
 
 void tox_options_set_log_user_data(Tox_Options *options, void *log_user_data);
+
+bool tox_options_get_experimental_owned_data(const Tox_Options *options);
+
+void tox_options_set_experimental_owned_data(Tox_Options *options, bool experimental_owned_data);
 
 bool tox_options_get_experimental_thread_safety(const Tox_Options *options);
 
