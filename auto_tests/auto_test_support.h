@@ -60,7 +60,7 @@ void print_debug_log(Tox *m, Tox_Log_Level level, const char *file, uint32_t lin
                      const char *message, void *user_data);
 
 // Use this function when setting the log callback on a Logger object
-void print_debug_logger(void *context, Logger_Level level, const char *file, int line,
+void print_debug_logger(void *context, Logger_Level level, const char *file, uint32_t line,
                         const char *func, const char *message, void *userdata);
 
 Tox *tox_new_log(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data);

@@ -200,10 +200,10 @@ static LOG_LEVEL logger_level_to_log_level(Logger_Level level)
     }
 }
 
-static void toxcore_logger_callback(void *context, Logger_Level level, const char *file, int line,
+static void toxcore_logger_callback(void *context, Logger_Level level, const char *file, uint32_t line,
                                     const char *func, const char *message, void *userdata)
 {
-    log_write(logger_level_to_log_level(level), "%s:%d(%s) %s\n", file, line, func, message);
+    log_write(logger_level_to_log_level(level), "%s:%u(%s) %s\n", file, line, func, message);
 }
 
 static volatile sig_atomic_t caught_signal = 0;
