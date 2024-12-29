@@ -7,6 +7,8 @@
 
 #include "../testing/fuzzing/fuzz_support.hh"
 #include "../testing/fuzzing/fuzz_tox.hh"
+#include "os_memory.h"
+#include "os_network.h"
 
 namespace {
 

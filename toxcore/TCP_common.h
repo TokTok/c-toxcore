@@ -11,6 +11,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "network.h"
+#include "tox_network.h"
 
 typedef struct TCP_Priority_List TCP_Priority_List;
 struct TCP_Priority_List {

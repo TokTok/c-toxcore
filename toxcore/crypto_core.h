@@ -17,6 +17,7 @@
 
 #include "attributes.h"
 #include "mem.h"
+#include "tox_random.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,44 +78,6 @@ extern "C" {
  * @brief The number of bytes in a SHA512 hash.
  */
 #define CRYPTO_SHA512_SIZE             64
-
-/** @brief Fill a byte array with random bytes.
- *
- * This is the key generator callback and as such must be a cryptographically
- * secure pseudo-random number generator (CSPRNG). The security of Tox heavily
- * depends on the security of this RNG.
- */
-typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
-
-/** @brief Generate a random integer between 0 and @p upper_bound.
- *
- * Should produce a uniform random distribution, but Tox security does not
- * depend on this being correct. In principle, it could even be a non-CSPRNG.
- */
-typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
-
-/** @brief Virtual function table for Random. */
-typedef struct Random_Funcs {
-    crypto_random_bytes_cb *random_bytes;
-    crypto_random_uniform_cb *random_uniform;
-} Random_Funcs;
-
-/** @brief Random number generator object.
- *
- * Can be used by test code and fuzzers to make toxcore behave in specific
- * well-defined (non-random) ways. Production code ought to use libsodium's
- * CSPRNG and use `os_random` below.
- */
-typedef struct Random {
-    const Random_Funcs *funcs;
-    void *obj;
-} Random;
-
-/** @brief System random number generator.
- *
- * Uses libsodium's CSPRNG (on Linux, `/dev/urandom`).
- */
-const Random *os_random(void);
 
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
@@ -237,6 +200,11 @@ bool crypto_sha512_eq(const uint8_t cksum1[CRYPTO_SHA512_SIZE], const uint8_t ck
  */
 non_null()
 bool crypto_sha256_eq(const uint8_t cksum1[CRYPTO_SHA256_SIZE], const uint8_t cksum2[CRYPTO_SHA256_SIZE]);
+
+/**
+ * @brief Shorter internal name for the RNG type.
+ */
+typedef Tox_Random Random;
 
 /**
  * @brief Return a random 8 bit integer.

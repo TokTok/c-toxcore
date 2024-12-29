@@ -248,7 +248,7 @@ static bool is_groupnumber_valid(const Group_Chats *g_c, uint32_t groupnumber)
 
 /** @brief Set the size of the groupchat list to num.
  *
- * @retval false if realloc fails.
+ * @retval false if mem_vrealloc fails.
  * @retval true if it succeeds.
  */
 non_null()
@@ -702,7 +702,7 @@ static bool delete_frozen(const Memory *mem, Group_c *g, uint32_t frozen_index)
  * @return peer index if peer is in the conference.
  * @retval -1 otherwise, and on error.
  */
-non_null(1) nullable(4)
+non_null(1, 5) nullable(4)
 static int note_peer_active(Group_Chats *g_c, uint32_t groupnumber, uint16_t peer_number, void *userdata)
 {
     Group_c *g = get_group_c(g_c, groupnumber);
@@ -1067,7 +1067,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
         return false;
     }
 
-    Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->m->mem, g->frozen, g->numfrozen + 1, sizeof(Group_Peer));
+    Group_Peer *temp = (Group_Peer *)mem_vrealloc(g_c->mem, g->frozen, g->numfrozen + 1, sizeof(Group_Peer));
 
     if (temp == nullptr) {
         return false;
@@ -1085,7 +1085,7 @@ static bool freeze_peer(Group_Chats *g_c, uint32_t groupnumber, int peer_index, 
 
     ++g->numfrozen;
 
-    delete_old_frozen(g, g_c->m->mem);
+    delete_old_frozen(g, g_c->mem);
 
     return true;
 }
@@ -1572,7 +1572,7 @@ int group_set_max_frozen(const Group_Chats *g_c, uint32_t groupnumber, uint32_t 
     }
 
     g->maxfrozen = maxfrozen;
-    delete_old_frozen(g, g_c->m->mem);
+    delete_old_frozen(g, g_c->mem);
     return 0;
 }
 
@@ -3805,19 +3805,19 @@ bool conferences_load_state_section(Group_Chats *g_c, const uint8_t *data, uint3
 }
 
 /** Create new groupchat instance. */
-Group_Chats *new_groupchats(const Mono_Time *mono_time, Messenger *m)
+Group_Chats *new_groupchats(const Mono_Time *mono_time, const Memory *mem, Messenger *m)
 {
     if (m == nullptr) {
         return nullptr;
     }
 
-    Group_Chats *temp = (Group_Chats *)mem_alloc(m->mem, sizeof(Group_Chats));
+    Group_Chats *temp = (Group_Chats *)mem_alloc(mem, sizeof(Group_Chats));
 
     if (temp == nullptr) {
         return nullptr;
     }
 
-    temp->mem = m->mem;
+    temp->mem = mem;
     temp->mono_time = mono_time;
     temp->m = m;
     temp->fr_c = m->fr_c;

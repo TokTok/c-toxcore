@@ -9,6 +9,7 @@
 
 #include "attributes.h"
 #include "logger.h"
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {

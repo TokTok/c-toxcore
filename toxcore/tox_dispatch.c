@@ -8,7 +8,7 @@
 
 #include "attributes.h"
 #include "ccompat.h"
-#include "events/events_alloc.h" // IWYU pragma: keep
+#include "events/events_alloc.h"  // IWYU pragma: keep
 #include "tox.h"
 #include "tox_event.h"
 #include "tox_events.h"
