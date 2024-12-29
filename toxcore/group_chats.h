@@ -650,7 +650,7 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state, const uint8_t
  *
  * Return group_number on success.
  * Return -1 if the group object fails to initialize.
- * Return -2 if chat_id is NULL or a group with chat_id already exists in the chats array.
+ * Return -2 if chat_id is NULL.
  * Return -3 if nick is too long.
  * Return -4 if nick is empty or nick length is zero.
  * Return -5 if there is an error setting the group password.
