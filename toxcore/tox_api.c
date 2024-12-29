@@ -1722,3 +1722,120 @@ const char *tox_group_mod_event_to_string(Tox_Group_Mod_Event value)
 
     return "<invalid Tox_Group_Mod_Event>";
 }
+const char *tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value)
+{
+    switch (value) {
+        case TOX_NETPROF_PACKET_ID_ZERO:
+            return "TOX_NETPROF_PACKET_ID_ZERO";
+        case TOX_NETPROF_PACKET_ID_ONE:
+            return "TOX_NETPROF_PACKET_ID_ONE";
+        case TOX_NETPROF_PACKET_ID_TWO:
+            return "TOX_NETPROF_PACKET_ID_TWO";
+        case TOX_NETPROF_PACKET_ID_TCP_DISCONNECT:
+            return "TOX_NETPROF_PACKET_ID_TCP_DISCONNECT";
+        case TOX_NETPROF_PACKET_ID_FOUR:
+            return "TOX_NETPROF_PACKET_ID_FOUR";
+        case TOX_NETPROF_PACKET_ID_TCP_PONG:
+            return "TOX_NETPROF_PACKET_ID_TCP_PONG";
+        case TOX_NETPROF_PACKET_ID_TCP_OOB_SEND:
+            return "TOX_NETPROF_PACKET_ID_TCP_OOB_SEND";
+        case TOX_NETPROF_PACKET_ID_TCP_OOB_RECV:
+            return "TOX_NETPROF_PACKET_ID_TCP_OOB_RECV";
+        case TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST";
+        case TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_TCP_DATA:
+            return "TOX_NETPROF_PACKET_ID_TCP_DATA";
+        case TOX_NETPROF_PACKET_ID_COOKIE_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_COOKIE_REQUEST";
+        case TOX_NETPROF_PACKET_ID_COOKIE_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_COOKIE_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_CRYPTO_HS:
+            return "TOX_NETPROF_PACKET_ID_CRYPTO_HS";
+        case TOX_NETPROF_PACKET_ID_CRYPTO_DATA:
+            return "TOX_NETPROF_PACKET_ID_CRYPTO_DATA";
+        case TOX_NETPROF_PACKET_ID_CRYPTO:
+            return "TOX_NETPROF_PACKET_ID_CRYPTO";
+        case TOX_NETPROF_PACKET_ID_LAN_DISCOVERY:
+            return "TOX_NETPROF_PACKET_ID_LAN_DISCOVERY";
+        case TOX_NETPROF_PACKET_ID_GC_HANDSHAKE:
+            return "TOX_NETPROF_PACKET_ID_GC_HANDSHAKE";
+        case TOX_NETPROF_PACKET_ID_GC_LOSSLESS:
+            return "TOX_NETPROF_PACKET_ID_GC_LOSSLESS";
+        case TOX_NETPROF_PACKET_ID_GC_LOSSY:
+            return "TOX_NETPROF_PACKET_ID_GC_LOSSY";
+        case TOX_NETPROF_PACKET_ID_ONION_SEND_INITIAL:
+            return "TOX_NETPROF_PACKET_ID_ONION_SEND_INITIAL";
+        case TOX_NETPROF_PACKET_ID_ONION_SEND_1:
+            return "TOX_NETPROF_PACKET_ID_ONION_SEND_1";
+        case TOX_NETPROF_PACKET_ID_ONION_SEND_2:
+            return "TOX_NETPROF_PACKET_ID_ONION_SEND_2";
+        case TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST_OLD:
+            return "TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST_OLD";
+        case TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE_OLD:
+            return "TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE_OLD";
+        case TOX_NETPROF_PACKET_ID_ONION_DATA_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_ONION_DATA_REQUEST";
+        case TOX_NETPROF_PACKET_ID_ONION_DATA_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_ONION_DATA_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_ANNOUNCE_REQUEST";
+        case TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_ANNOUNCE_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_ONION_RECV_3:
+            return "TOX_NETPROF_PACKET_ID_ONION_RECV_3";
+        case TOX_NETPROF_PACKET_ID_ONION_RECV_2:
+            return "TOX_NETPROF_PACKET_ID_ONION_RECV_2";
+        case TOX_NETPROF_PACKET_ID_ONION_RECV_1:
+            return "TOX_NETPROF_PACKET_ID_ONION_RECV_1";
+        case TOX_NETPROF_PACKET_ID_FORWARD_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_FORWARD_REQUEST";
+        case TOX_NETPROF_PACKET_ID_FORWARDING:
+            return "TOX_NETPROF_PACKET_ID_FORWARDING";
+        case TOX_NETPROF_PACKET_ID_FORWARD_REPLY:
+            return "TOX_NETPROF_PACKET_ID_FORWARD_REPLY";
+        case TOX_NETPROF_PACKET_ID_DATA_SEARCH_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_DATA_SEARCH_REQUEST";
+        case TOX_NETPROF_PACKET_ID_DATA_SEARCH_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_DATA_SEARCH_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_REQUEST";
+        case TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_DATA_RETRIEVE_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_REQUEST";
+        case TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_RESPONSE:
+            return "TOX_NETPROF_PACKET_ID_STORE_ANNOUNCE_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO:
+            return "TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO";
+    }
+
+    return "<invalid Tox_Netprof_Packet_Id>";
+}
+const char *tox_netprof_packet_type_to_string(Tox_Netprof_Packet_Type value)
+{
+    switch (value) {
+        case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT:
+            return "TOX_NETPROF_PACKET_TYPE_TCP_CLIENT";
+        case TOX_NETPROF_PACKET_TYPE_TCP_SERVER:
+            return "TOX_NETPROF_PACKET_TYPE_TCP_SERVER";
+        case TOX_NETPROF_PACKET_TYPE_TCP:
+            return "TOX_NETPROF_PACKET_TYPE_TCP";
+        case TOX_NETPROF_PACKET_TYPE_UDP:
+            return "TOX_NETPROF_PACKET_TYPE_UDP";
+    }
+
+    return "<invalid Tox_Netprof_Packet_Type>";
+}
+const char *tox_netprof_direction_to_string(Tox_Netprof_Direction value)
+{
+    switch (value) {
+        case TOX_NETPROF_DIRECTION_SENT:
+            return "TOX_NETPROF_DIRECTION_SENT";
+        case TOX_NETPROF_DIRECTION_RECV:
+            return "TOX_NETPROF_DIRECTION_RECV";
+    }
+
+    return "<invalid Tox_Netprof_Direction>";
+}
