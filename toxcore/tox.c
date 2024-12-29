@@ -10,6 +10,7 @@
 #define _XOPEN_SOURCE 600
 #endif /* _XOPEN_SOURCE */
 
+#undef TOX_HIDE_DEPRECATED
 #include "tox.h"
 
 #include <assert.h>
@@ -33,7 +34,7 @@
 #include "onion_client.h"
 #include "state.h"
 #include "tox_private.h"
-#include "tox_struct.h"
+#include "tox_struct.h" // IWYU pragma: keep
 #include "util.h"
 
 #include "../toxencryptsave/defines.h"

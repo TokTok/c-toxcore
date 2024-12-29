@@ -87,6 +87,13 @@
  * If any other thread calls tox_self_set_name while this thread is allocating
  * memory, the length may have become invalid, and the call to
  * tox_self_get_name may cause undefined behaviour.
+ *
+ * @section deprecations
+ *
+ * Some functions and types are deprecated. We recommend compiling with
+ * `-DTOX_HIDE_DEPRECATED` to hide them. They will be removed in the next major
+ * version of Tox (and since we're in major version 0, that means the next
+ * minor version).
  */
 #ifndef C_TOXCORE_TOXCORE_TOX_H
 #define C_TOXCORE_TOXCORE_TOX_H
@@ -512,6 +519,7 @@ typedef void tox_log_cb(Tox *tox, Tox_Log_Level level, const char *file, uint32_
  *   private) in v0.3.0.
  */
 typedef struct Tox_Options Tox_Options;
+#ifndef TOX_HIDE_DEPRECATED
 struct Tox_Options {
 
     /**
@@ -687,6 +695,7 @@ struct Tox_Options {
      */
     bool experimental_disable_dns;
 };
+#endif /* TOX_HIDE_DEPRECATED */
 
 bool tox_options_get_ipv6_enabled(const Tox_Options *options);
 
@@ -3165,6 +3174,7 @@ const char *tox_err_conference_by_id_to_string(Tox_Err_Conference_By_Id value);
 Tox_Conference_Number tox_conference_by_id(
     const Tox *tox, const uint8_t id[TOX_CONFERENCE_ID_SIZE], Tox_Err_Conference_By_Id *error);
 
+#ifndef TOX_HIDE_DEPRECATED
 /**
  * @brief Get the conference unique ID.
  *
@@ -3179,6 +3189,7 @@ Tox_Conference_Number tox_conference_by_id(
  */
 bool tox_conference_get_uid(
     const Tox *tox, Tox_Conference_Number conference_number, uint8_t uid[TOX_CONFERENCE_UID_SIZE]);
+#endif /* TOX_HIDE_DEPRECATED */
 
 typedef enum Tox_Err_Conference_By_Uid {
 
@@ -3201,6 +3212,7 @@ typedef enum Tox_Err_Conference_By_Uid {
 
 const char *tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_Uid value);
 
+#ifndef TOX_HIDE_DEPRECATED
 /**
  * @brief Return the conference number associated with the specified uid.
  *
@@ -3213,6 +3225,7 @@ const char *tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_Uid value)
  */
 Tox_Conference_Number tox_conference_by_uid(
     const Tox *tox, const uint8_t uid[TOX_CONFERENCE_UID_SIZE], Tox_Err_Conference_By_Uid *error);
+#endif /* TOX_HIDE_DEPRECATED */
 
 /** @} */
 
@@ -3820,6 +3833,7 @@ typedef enum Tox_Err_Group_Reconnect {
 
 const char *tox_err_group_reconnect_to_string(Tox_Err_Group_Reconnect value);
 
+#ifndef TOX_HIDE_DEPRECATED
 /**
  * Reconnects to a group.
  *
@@ -3834,6 +3848,7 @@ const char *tox_err_group_reconnect_to_string(Tox_Err_Group_Reconnect value);
  * @deprecated Use `tox_group_join` instead.
  */
 bool tox_group_reconnect(Tox *tox, Tox_Group_Number group_number, Tox_Err_Group_Reconnect *error);
+#endif /* TOX_HIDE_DEPRECATED */
 
 typedef enum Tox_Err_Group_Leave {
 
@@ -5747,6 +5762,7 @@ void tox_callback_group_moderation(Tox *tox, tox_group_moderation_cb *callback);
 //!TOKSTYLE-
 #ifndef DOXYGEN_IGNORE
 
+#ifndef TOX_HIDE_DEPRECATED
 typedef Tox_Err_Options_New TOX_ERR_OPTIONS_NEW;
 typedef Tox_Err_New TOX_ERR_NEW;
 typedef Tox_Err_Bootstrap TOX_ERR_BOOTSTRAP;
@@ -5786,6 +5802,7 @@ typedef Tox_Connection TOX_CONNECTION;
 typedef Tox_File_Control TOX_FILE_CONTROL;
 typedef Tox_Conference_Type TOX_CONFERENCE_TYPE;
 typedef enum Tox_File_Kind TOX_FILE_KIND;
+#endif /* TOX_HIDE_DEPRECATED */
 
 #endif
 //!TOKSTYLE+

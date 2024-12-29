@@ -71,22 +71,22 @@ static uint8_t *read_save(const char *save_path, size_t *length)
 
 static void test_save_compatibility(const char *save_path)
 {
-    struct Tox_Options options = {0};
-    tox_options_default(&options);
+    Tox_Options *options = tox_options_new(nullptr);
+    ck_assert(options != nullptr);
 
     size_t size = 0;
     uint8_t *save_data = read_save(save_path, &size);
     ck_assert_msg(save_data != nullptr, "error while reading save file '%s'", save_path);
 
-    options.savedata_data = save_data;
-    options.savedata_length = size;
-    options.savedata_type = TOX_SAVEDATA_TYPE_TOX_SAVE;
+    tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
+    tox_options_set_savedata_data(options, save_data, size);
 
     size_t index = 0;
     Tox_Err_New err;
-    Tox *tox = tox_new_log(&options, &err, &index);
+    Tox *tox = tox_new_log(options, &err, &index);
     ck_assert_msg(tox, "failed to create tox, error number: %d", err);
 
+    tox_options_free(options);
     free(save_data);
 
     const size_t name_size = tox_self_get_name_size(tox);

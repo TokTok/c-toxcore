@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2016-2021 The TokTok team.
  */
+#undef TOX_HIDE_DEPRECATED
 #include "tox.h"
 
 #include <stdlib.h>
