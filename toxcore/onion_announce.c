@@ -24,6 +24,7 @@
 #include "shared_key_cache.h"
 #include "sort.h"
 #include "timed_auth.h"
+#include "util.h"
 
 #define PING_ID_TIMEOUT ONION_ANNOUNCE_TIMEOUT
 
@@ -506,10 +507,11 @@ static int handle_announce_request_common(
         return 1;
     }
 
-    const uint16_t ping_id_data_len = CRYPTO_PUBLIC_KEY_SIZE + sizeof(*source);
-    uint8_t ping_id_data[CRYPTO_PUBLIC_KEY_SIZE + sizeof(*source)];
+    const uint16_t ping_id_data_len = CRYPTO_PUBLIC_KEY_SIZE + SIZE_IPPORT;
+    uint8_t ping_id_data[CRYPTO_PUBLIC_KEY_SIZE + SIZE_IPPORT];
     memcpy(ping_id_data, packet_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(ping_id_data + CRYPTO_PUBLIC_KEY_SIZE, source, sizeof(*source));
+    const int packed_len = pack_ip_port(onion_a->log, &ping_id_data[CRYPTO_PUBLIC_KEY_SIZE], SIZE_IPPORT, source);
+    memzero(&ping_id_data[CRYPTO_PUBLIC_KEY_SIZE + packed_len], SIZE_IPPORT - packed_len);
 
     const uint8_t *data_public_key = plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
 
@@ -553,7 +555,7 @@ static int handle_announce_request_common(
     int nodes_length = 0;
 
     if (num_nodes != 0) {
-        nodes_length = pack_nodes(onion_a->log, response + nodes_offset, sizeof(nodes_list), nodes_list,
+        nodes_length = pack_nodes(onion_a->log, &response[nodes_offset], num_nodes * PACKED_NODE_SIZE_IP6, nodes_list,
                                   (uint16_t)num_nodes);
 
         if (nodes_length <= 0) {
