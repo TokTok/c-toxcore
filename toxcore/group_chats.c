@@ -5331,7 +5331,7 @@ static int handle_gc_message_ack(const GC_Chat *chat, GC_Connection *gconn, cons
     const Group_Message_Ack_Type type = (Group_Message_Ack_Type) data[0];
 
     if (type == GR_ACK_RECV) {
-        if (!gcc_handle_ack(chat->log, gconn, message_id)) {
+        if (!gcc_handle_ack(chat->log, chat->mem, gconn, message_id)) {
             return -2;
         }
 
@@ -6208,8 +6208,7 @@ static bool handle_gc_lossless_packet(const GC_Session *c, GC_Chat *chat, const 
         return false;
     }
 
-    const int lossless_ret = gcc_handle_received_message(chat->log, chat->mono_time, gconn, data, (uint16_t) len,
-                             packet_type, message_id, direct_conn);
+    const int lossless_ret = gcc_handle_received_message(chat->log, chat->mem, chat->mono_time, gconn, data, (uint16_t) len, packet_type, message_id, direct_conn);
 
     if (packet_type == GP_INVITE_REQUEST && !gconn->handshaked) {  // Both peers sent request at same time
         free(data);
@@ -6721,7 +6720,7 @@ static bool peer_delete(const GC_Session *c, GC_Chat *chat, uint32_t peer_number
     assert(nick_length <= MAX_GC_NICK_SIZE);
     memcpy(nick, peer->nick, nick_length);
 
-    gcc_peer_cleanup(&peer->gconn);
+    gcc_peer_cleanup(chat->mem, &peer->gconn);
 
     --chat->numpeers;
 
