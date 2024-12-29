@@ -117,7 +117,7 @@ static const char *strlevel(Logger_Level level)
     }
 }
 
-static void print_log(void *context, Logger_Level level, const char *file, int line,
+static void print_log(void *context, Logger_Level level, const char *file, uint32_t line,
                       const char *func, const char *message, void *userdata)
 {
     fprintf(stderr, "[%s] %s:%d(%s) %s\n", strlevel(level), file, line, func, message);

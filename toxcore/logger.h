@@ -33,7 +33,7 @@ typedef enum Logger_Level {
 
 typedef struct Logger Logger;
 
-typedef void logger_cb(void *context, Logger_Level level, const char *file, int line,
+typedef void logger_cb(void *context, Logger_Level level, const char *file, uint32_t line,
                        const char *func, const char *message, void *userdata);
 
 /**
@@ -66,7 +66,7 @@ void logger_callback_log(Logger *log, logger_cb *function, void *context, void *
  */
 non_null(3, 5, 6) nullable(1) GNU_PRINTF(6, 7)
 void logger_write(
-    const Logger *log, Logger_Level level, const char *file, int line, const char *func,
+    const Logger *log, Logger_Level level, const char *file, uint32_t line, const char *func,
     const char *format, ...);
 
 /* @brief Terminate the program with a signal. */
