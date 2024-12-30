@@ -3,7 +3,8 @@
  */
 #include "tox.h"
 
-#include <stdlib.h>
+#include <stdlib.h> // free, malloc
+#include <string.h> // memcpy, strlen
 
 #include "ccompat.h"
 #include "tox_private.h"
@@ -164,9 +165,34 @@ const char *tox_options_get_proxy_host(const Tox_Options *options)
 {
     return options->proxy_host;
 }
-void tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host)
+bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host)
 {
-    options->proxy_host = proxy_host;
+    if (!options->experimental_owned_data) {
+        options->proxy_host = proxy_host;
+        return true;
+    }
+
+    if (options->owned_proxy_host != nullptr) {
+        free(options->owned_proxy_host);
+        options->owned_proxy_host = nullptr;
+    }
+    if (proxy_host == nullptr) {
+        options->proxy_host = nullptr;
+        return false;
+    }
+
+    const size_t proxy_host_length = strlen(proxy_host) + 1;
+    char *owned_ptr = (char *)malloc(proxy_host_length);
+    if (owned_ptr != nullptr) {
+        memcpy(owned_ptr, proxy_host, proxy_host_length);
+        options->proxy_host = owned_ptr;
+        options->owned_proxy_host = owned_ptr;
+    } else {
+        options->proxy_host = proxy_host;
+        options->owned_proxy_host = nullptr;
+    }
+
+    return true;
 }
 uint16_t tox_options_get_proxy_port(const Tox_Options *options)
 {
@@ -282,21 +308,61 @@ void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experim
 {
     options->experimental_disable_dns = experimental_disable_dns;
 }
+bool tox_options_get_experimental_owned_data(const Tox_Options *options)
+{
+    return options->experimental_owned_data;
+}
+void tox_options_set_experimental_owned_data(
+    Tox_Options *options, bool experimental_owned_data)
+{
+    options->experimental_owned_data = experimental_owned_data;
+}
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
     return options->savedata_data;
 }
 
-void tox_options_set_savedata_data(Tox_Options *options, const uint8_t *savedata_data, size_t length)
+bool tox_options_set_savedata_data(Tox_Options *options, const uint8_t *savedata_data, size_t length)
 {
-    options->savedata_data = savedata_data;
+    if (!options->experimental_owned_data) {
+        options->savedata_data = savedata_data;
+        options->savedata_length = length;
+        return true;
+    }
+
+    if (options->owned_savedata_data != nullptr) {
+        free(options->owned_savedata_data);
+        options->owned_savedata_data = nullptr;
+    }
+    if (savedata_data == nullptr) {
+        options->savedata_data = nullptr;
+        options->savedata_length = 0;
+        return false;
+    }
+
+    uint8_t *owned_ptr = (uint8_t *)malloc(length);
+    if (owned_ptr != nullptr) {
+        memcpy(owned_ptr, savedata_data, length);
+        options->savedata_data = owned_ptr;
+        options->owned_savedata_data = owned_ptr;
+    } else {
+        options->savedata_data = savedata_data;
+        options->owned_savedata_data = nullptr;
+    }
     options->savedata_length = length;
+
+    return true;
 }
 
 void tox_options_default(Tox_Options *options)
 {
     if (options != nullptr) {
+        // Free any owned data.
+        tox_options_set_proxy_host(options, nullptr);
+        tox_options_set_savedata_data(options, nullptr, 0);
+
+        // Set the rest to default values.
         const Tox_Options default_options = {false};
         *options = default_options;
         tox_options_set_ipv6_enabled(options, true);
@@ -308,6 +374,7 @@ void tox_options_default(Tox_Options *options)
         tox_options_set_experimental_thread_safety(options, false);
         tox_options_set_experimental_groups_persistence(options, false);
         tox_options_set_experimental_disable_dns(options, false);
+        tox_options_set_experimental_owned_data(options, false);
     }
 }
 
@@ -327,7 +394,12 @@ Tox_Options *tox_options_new(Tox_Err_Options_New *error)
 
 void tox_options_free(Tox_Options *options)
 {
-    free(options);
+    if (options != nullptr) {
+        // Free any owned data.
+        tox_options_set_proxy_host(options, nullptr);
+        tox_options_set_savedata_data(options, nullptr, 0);
+        free(options);
+    }
 }
 
 const char *tox_user_status_to_string(Tox_User_Status value)
