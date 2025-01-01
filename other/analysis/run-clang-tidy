@@ -79,6 +79,9 @@ CHECKS="$CHECKS,-clang-diagnostic-tautological-pointer-compare"
 # [unreadVariable]
 CHECKS="$CHECKS,-cppcoreguidelines-init-variables"
 
+# Used by libev.
+CHECKS="$CHECKS,-hicpp-no-assembler"
+
 # Short variable names are used quite a lot, and we don't consider them a
 # readability issue.
 CHECKS="$CHECKS,-readability-identifier-length"
