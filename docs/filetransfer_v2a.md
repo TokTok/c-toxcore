@@ -3,6 +3,7 @@
 
 ## how do filetransfers in tox work
 
+```
 sender --->                                   | ---> receiver
 -------------------------------------------------------------------
 tox_file_send()                               |
@@ -16,6 +17,7 @@ tox_file_send()                               |
                                               |          [OK] --> all good from here on
                                               |        
 
+```
 
 ## toxcore changes for ftv2a
 
@@ -23,6 +25,7 @@ we need to tell the sender that the receiver has actually received
 the "file send request" and has fully processed it.
 
 
+```
 sender --->                                             | ---> receiver
 -------------------------------------------------------------------
 tox_file_send()                                         |
@@ -36,6 +39,7 @@ tox_file_send()                                         |
 network[PACKET_ID_FILE_CONTROL:FILECONTROL_SEND_ACK] <- | <-       network[PACKET_ID_FILE_CONTROL:FILECONTROL_SEND_ACK]
                                                         |            [OK] --> all good from here on
                                                         |        
+```
 
 
 
