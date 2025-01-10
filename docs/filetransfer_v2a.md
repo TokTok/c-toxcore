@@ -21,8 +21,8 @@ tox_file_send()                               |
 
 ## toxcore changes for ftv2a
 
-with filetransfers it can happen that the sender starts a filetransfer and the receiver accepts it, but
-one of both parties now suddenly went offline. so the sender will not start the filetransfer.
+with filetransfers it can happen that the sender starts a filetransfer and the receiver gets the request, but
+then the receiver suddenly goes offline. now the sender will wait forever for an accept or cancel.
 
 we need to tell the sender that the receiver has actually received
 the "file send request" and has fully processed it.
