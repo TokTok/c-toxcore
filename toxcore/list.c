@@ -12,11 +12,11 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "attributes.h"
 #include "ccompat.h"
+#include "mem.h"
 
 /**
  * Basically, the elements in the list are placed in order so that they can be searched for easily
@@ -115,7 +115,7 @@ static bool resize(BS_List *list, uint32_t new_size)
         return true;
     }
 
-    uint8_t *data = (uint8_t *)realloc(list->data, list->element_size * new_size);
+    uint8_t *data = (uint8_t *)mem_vrealloc(list->mem, list->data, list->element_size, new_size);
 
     if (data == nullptr) {
         return false;
@@ -123,7 +123,7 @@ static bool resize(BS_List *list, uint32_t new_size)
 
     list->data = data;
 
-    int *ids = (int *)realloc(list->ids, new_size * sizeof(int));
+    int *ids = (int *)mem_vrealloc(list->mem, list->ids, new_size, sizeof(int));
 
     if (ids == nullptr) {
         return false;
@@ -134,8 +134,10 @@ static bool resize(BS_List *list, uint32_t new_size)
     return true;
 }
 
-int bs_list_init(BS_List *list, uint32_t element_size, uint32_t initial_capacity, bs_list_cmp_cb *cmp_callback)
+int bs_list_init(BS_List *list, const Memory *mem, uint32_t element_size, uint32_t initial_capacity, bs_list_cmp_cb *cmp_callback)
 {
+    list->mem = mem;
+
     // set initial values
     list->n = 0;
     list->element_size = element_size;
@@ -162,10 +164,10 @@ void bs_list_free(BS_List *list)
     }
 
     // free both arrays
-    free(list->data);
+    mem_delete(list->mem, list->data);
     list->data = nullptr;
 
-    free(list->ids);
+    mem_delete(list->mem, list->ids);
     list->ids = nullptr;
 }
 

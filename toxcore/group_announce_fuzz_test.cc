@@ -60,7 +60,8 @@ void TestDoGca(Fuzz_Data &input)
             mem, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock),
         [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
     assert(mono_time != nullptr);
-    std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(new_gca_list(), kill_gca);
+    std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(
+        new_gca_list(mem), kill_gca);
     assert(gca != nullptr);
 
     while (!input.empty()) {
@@ -72,7 +73,7 @@ void TestDoGca(Fuzz_Data &input)
             CONSUME_OR_RETURN(const uint8_t *data, input, length);
             GC_Public_Announce public_announce;
             if (gca_unpack_public_announce(logger.get(), data, length, &public_announce) != -1) {
-                gca_add_announce(mono_time.get(), gca.get(), &public_announce);
+                gca_add_announce(mem, mono_time.get(), gca.get(), &public_announce);
             }
             break;
         }

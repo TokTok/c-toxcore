@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Forwarding *forwarding = new_forwarding(logger, rng, mono_time, dht);
+    Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht);
 
     if (forwarding == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    GC_Announces_List *group_announce = new_gca_list();
+    GC_Announces_List *group_announce = new_gca_list(mem);
 
     if (group_announce == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize group announces. Exiting.\n");
@@ -563,7 +563,7 @@ int main(int argc, char *argv[])
     Broadcast_Info *broadcast = nullptr;
 
     if (enable_lan_discovery) {
-        broadcast = lan_discovery_init(ns);
+        broadcast = lan_discovery_init(mem, ns);
         log_write(LOG_LEVEL_INFO, "Initialized LAN discovery successfully.\n");
     }
 

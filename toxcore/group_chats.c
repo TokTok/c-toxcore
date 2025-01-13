@@ -4116,7 +4116,7 @@ int gc_founder_set_password(GC_Chat *chat, const uint8_t *password, uint16_t pas
     }
 
     const uint16_t oldlen = chat->shared_state.password_length;
-    uint8_t *oldpasswd = memdup(chat->shared_state.password, oldlen);
+    uint8_t *oldpasswd = memdup(chat->mem, chat->shared_state.password, oldlen);
 
     if (oldpasswd == nullptr && oldlen > 0) {
         return -4;

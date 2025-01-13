@@ -6,7 +6,6 @@
 #include "crypto_core.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <sodium.h>

@@ -5,7 +5,6 @@
 #include "forwarding.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -13,12 +12,14 @@
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "network.h"
 #include "timed_auth.h"
 
 struct Forwarding {
     const Logger *log;
+    const Memory *mem;
     const Random *rng;
     DHT *dht;
     const Mono_Time *mono_time;
@@ -357,19 +358,20 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *new_forwarding(const Logger *log, const Random *rng, const Mono_Time *mono_time, DHT *dht)
+Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;
     }
 
-    Forwarding *forwarding = (Forwarding *)calloc(1, sizeof(Forwarding));
+    Forwarding *forwarding = (Forwarding *)mem_alloc(mem, sizeof(Forwarding));
 
     if (forwarding == nullptr) {
         return nullptr;
     }
 
     forwarding->log = log;
+    forwarding->mem = mem;
     forwarding->rng = rng;
     forwarding->mono_time = mono_time;
     forwarding->dht = dht;
@@ -396,5 +398,5 @@ void kill_forwarding(Forwarding *forwarding)
 
     crypto_memzero(forwarding->hmac_key, CRYPTO_HMAC_KEY_SIZE);
 
-    free(forwarding);
+    mem_delete(forwarding->mem, forwarding);
 }

@@ -9,7 +9,6 @@
 #include "announce.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -239,9 +238,9 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
     if (length > 0) {
         assert(data != nullptr);
 
-        free(entry->data);
+        mem_delete(announce->mem, entry->data);
 
-        uint8_t *entry_data = (uint8_t *)malloc(length);
+        uint8_t *entry_data = (uint8_t *)mem_balloc(announce->mem, length);
 
         if (entry_data == nullptr) {
             entry->data = nullptr;  // TODO(iphydf): Is this necessary?
@@ -651,7 +650,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
         return nullptr;
     }
 
-    Announcements *announce = (Announcements *)calloc(1, sizeof(Announcements));
+    Announcements *announce = (Announcements *)mem_alloc(mem, sizeof(Announcements));
 
     if (announce == nullptr) {
         return nullptr;
@@ -669,7 +668,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     new_hmac_key(announce->rng, announce->hmac_key);
     announce->shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (announce->shared_keys == nullptr) {
-        free(announce);
+        mem_delete(announce->mem, announce);
         return nullptr;
     }
 
@@ -700,8 +699,8 @@ void kill_announcements(Announcements *announce)
     shared_key_cache_free(announce->shared_keys);
 
     for (uint32_t i = 0; i < ANNOUNCE_BUCKETS * ANNOUNCE_BUCKET_SIZE; ++i) {
-        free(announce->entries[i].data);
+        mem_delete(announce->mem, announce->entries[i].data);
     }
 
-    free(announce);
+    mem_delete(announce->mem, announce);
 }

@@ -6,11 +6,8 @@
 #define C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H
 
 #include "../attributes.h"
-#include "../bin_pack.h"
-#include "../bin_unpack.h"
 #include "../mem.h"
 #include "../tox.h"
-#include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_private.h"
 

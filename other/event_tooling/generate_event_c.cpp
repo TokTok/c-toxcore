@@ -178,6 +178,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 #include "../ccompat.h"
 #include "../mem.h"
 #include "../tox.h"
+#include "../tox_event.h"
 #include "../tox_events.h")";
     if (need_tox_unpack_h) {
         f << R"(
@@ -843,4 +844,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-

@@ -8,17 +8,21 @@
  */
 #include "friend_requests.h"
 
-#include <stdlib.h>
 #include <string.h>
 
 #include "attributes.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "friend_connection.h"
+#include "mem.h"
 #include "network.h"
 #include "onion.h"
 #include "onion_announce.h"
 #include "onion_client.h"
+
+static_assert(ONION_CLIENT_MAX_DATA_SIZE <= MAX_DATA_REQUEST_SIZE, "ONION_CLIENT_MAX_DATA_SIZE is too big");
+static_assert(MAX_DATA_REQUEST_SIZE <= ONION_MAX_DATA_SIZE, "MAX_DATA_REQUEST_SIZE is too big");
+static_assert(SIZE_IPPORT <= ONION_SEND_BASE, "IP_Port does not fit in the onion packet");
 
 /**
  * NOTE: The following is just a temporary fix for the multiple friend requests received at the same time problem.
@@ -32,6 +36,8 @@ struct Received_Requests {
 };
 
 struct Friend_Requests {
+    const Memory *mem;
+
     uint32_t nospam;
     fr_friend_request_cb *handle_friendrequest;
     uint8_t handle_friendrequest_isset;
@@ -164,12 +170,24 @@ void friendreq_init(Friend_Requests *fr, Friend_Connections *fr_c)
     set_friend_request_callback(fr_c, &friendreq_handlepacket, fr);
 }
 
-Friend_Requests *friendreq_new(void)
+Friend_Requests *friendreq_new(const Memory *mem)
 {
-    return (Friend_Requests *)calloc(1, sizeof(Friend_Requests));
+    Friend_Requests *fr = (Friend_Requests *)mem_alloc(mem, sizeof(Friend_Requests));
+
+    if (fr == nullptr) {
+        return nullptr;
+    }
+
+    fr->mem = mem;
+
+    return fr;
 }
 
 void friendreq_kill(Friend_Requests *fr)
 {
-    free(fr);
+    if (fr == nullptr) {
+        return;
+    }
+
+    mem_delete(fr->mem, fr);
 }

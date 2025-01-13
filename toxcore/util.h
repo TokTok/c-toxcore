@@ -46,7 +46,7 @@ non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t 
  *
  * @return nullptr on allocation failure or if the input data was nullptr or data_size was 0.
  */
-nullable(1) uint8_t *memdup(const uint8_t *data, size_t data_size);
+non_null(1) nullable(2) uint8_t *memdup(const Memory *mem, const uint8_t *data, size_t data_size);
 
 /**
  * @brief Set all bytes in `data` to 0.
@@ -79,7 +79,12 @@ uint16_t min_u16(uint16_t a, uint16_t b);
 uint32_t min_u32(uint32_t a, uint32_t b);
 uint64_t min_u64(uint64_t a, uint64_t b);
 
-// Comparison function: return -1 if a<b, 0 if a==b, 1 if a>b.
+/**
+ * Comparison function:
+ * @retval -1 if `a < b`
+ * @retval 0 if `a == b`
+ * @retval 1 if `a > b`
+ */
 int cmp_uint(uint64_t a, uint64_t b);
 
 /** @brief Returns a 32-bit hash of key of size len */

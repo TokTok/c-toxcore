@@ -270,6 +270,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
     ],
 )
 
@@ -279,6 +280,7 @@ cc_test(
     srcs = ["list_test.cc"],
     deps = [
         ":list",
+        ":mem",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -452,6 +454,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":crypto_core",
+        ":mem",
         ":network",
         ":util",
         "@psocket",
@@ -577,6 +580,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":logger",
+        ":mem",
         ":mono_time",
         ":network",
         ":timed_auth",
@@ -787,6 +791,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":logger",
+        ":mem",
         ":mono_time",
         ":network",
         ":util",
@@ -888,6 +893,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":logger",
+        ":mem",
         ":mono_time",
         ":net_crypto",
         ":network",
@@ -912,6 +918,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":friend_connection",
+        ":mem",
         ":network",
         ":onion",
         ":onion_announce",

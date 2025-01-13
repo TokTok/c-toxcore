@@ -8,7 +8,6 @@
 
 #include "crypto_core_test_util.hh"
 #include "mem_test_util.hh"
-#include "util.h"
 
 namespace {
 

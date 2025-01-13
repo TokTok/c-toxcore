@@ -27,7 +27,7 @@ protected:
         mono_time_set_current_time_callback(
             mono_time_, [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
             &clock_);
-        gca_ = new_gca_list();
+        gca_ = new_gca_list(mem_);
         ASSERT_NE(gca_, nullptr);
     }
 
@@ -54,10 +54,10 @@ TEST_F(Announces, CanBeCreatedAndDeleted)
 {
     GC_Public_Announce ann{};
     ann.chat_public_key[0] = 0x88;
-    ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann), nullptr);
+    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann), nullptr);
 #ifndef _DEBUG
-    ASSERT_EQ(gca_add_announce(mono_time_, gca_, nullptr), nullptr);
-    ASSERT_EQ(gca_add_announce(mono_time_, nullptr, &ann), nullptr);
+    ASSERT_EQ(gca_add_announce(mem_, mono_time_, gca_, nullptr), nullptr);
+    ASSERT_EQ(gca_add_announce(mem_, mono_time_, nullptr, &ann), nullptr);
 #endif
 }
 
@@ -67,7 +67,7 @@ TEST_F(Announces, AnnouncesCanTimeOut)
     ASSERT_EQ(gca_->root_announces, nullptr);
     GC_Public_Announce ann{};
     ann.chat_public_key[0] = 0xae;
-    ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann), nullptr);
+    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann), nullptr);
     ASSERT_NE(gca_->root_announces, nullptr);
     ASSERT_EQ(gca_->root_announces->chat_id[0], 0xae);
 
@@ -95,9 +95,9 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
     ann2.chat_public_key[0] = 0x92;
     ann2.base_announce.peer_public_key[0] = 0x7c;
 
-    ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann1), nullptr);
-    ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann2), nullptr);
-    ASSERT_NE(gca_add_announce(mono_time_, gca_, &ann2), nullptr);
+    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann1), nullptr);
+    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann2), nullptr);
+    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann2), nullptr);
 
     uint8_t empty_pk[ENC_PUBLIC_KEY_SIZE] = {0};
 

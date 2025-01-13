@@ -572,7 +572,7 @@ static int handle_announce_request_common(
 
     const int extra_size = pack_extra_data_callback == nullptr ? 0
                            : pack_extra_data_callback(onion_a->extra_data_object,
-                                   onion_a->log, onion_a->mono_time, num_nodes,
+                                   onion_a->log, onion_a->mem, onion_a->mono_time, num_nodes,
                                    plain + ONION_MINIMAL_SIZE, length - ANNOUNCE_REQUEST_MIN_SIZE_RECV,
                                    response, response_size, offset);
 

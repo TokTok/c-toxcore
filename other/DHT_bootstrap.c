@@ -159,8 +159,8 @@ int main(int argc, char *argv[])
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     DHT *dht = new_dht(logger, mem, rng, ns, mono_time, new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr), true, true);
     Onion *onion = new_onion(logger, mem, mono_time, rng, dht);
-    Forwarding *forwarding = new_forwarding(logger, rng, mono_time, dht);
-    GC_Announces_List *gc_announces_list = new_gca_list();
+    Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht);
+    GC_Announces_List *gc_announces_list = new_gca_list(mem);
     Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
     bool is_waiting_for_dht_connection = true;
 
     uint64_t last_lan_discovery = 0;
-    const Broadcast_Info *broadcast = lan_discovery_init(ns);
+    const Broadcast_Info *broadcast = lan_discovery_init(mem, ns);
 
     while (true) {
         mono_time_update(mono_time);

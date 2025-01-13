@@ -16,6 +16,7 @@
 #include "attributes.h"
 #include "crypto_core.h"
 #include "logger.h"
+#include "mem.h"
 #include "mono_time.h"
 #include "network.h"
 
@@ -79,6 +80,8 @@ struct GC_Announces {
 
 /* A list of all announces. */
 struct GC_Announces_List {
+    const Memory *mem;
+
     GC_Announces *root_announces;
     uint64_t last_timeout_check;
 };
@@ -87,7 +90,8 @@ struct GC_Announces_List {
  *
  * The caller is responsible for freeing the memory with `kill_gca`.
  */
-GC_Announces_List *new_gca_list(void);
+non_null()
+GC_Announces_List *new_gca_list(const Memory *mem);
 
 /** @brief Frees all dynamically allocated memory associated with `announces_list`. */
 nullable(1)
@@ -135,7 +139,7 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
  * @retval null on failure.
  */
 non_null()
-GC_Peer_Announce *gca_add_announce(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list,
+GC_Peer_Announce *gca_add_announce(const Memory *mem, const Mono_Time *mono_time, GC_Announces_List *gc_announces_list,
                                    const GC_Public_Announce *public_announce);
 
 /** @brief Packs an announce into a data buffer.
