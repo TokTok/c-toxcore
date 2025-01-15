@@ -66,6 +66,16 @@ struct Tox {
     tox_group_join_fail_cb *group_join_fail_callback;
     tox_group_moderation_cb *group_moderation_callback;
 
+    tox_loop_begin_cb *loop_begin_callback;
+    tox_loop_end_cb *loop_end_callback;
+
+#ifdef HAVE_LIBEV
+    struct ev_loop *dispatcher;
+    ev_async stop_loop;
+#else
+    bool loop_run;
+#endif
+
     void *toxav_object; // workaround to store a ToxAV object (setter and getter functions are available)
 };
 

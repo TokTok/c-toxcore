@@ -61,6 +61,7 @@ jobs:
             git
             libbenchmark-dev
             libconfig-dev
+            libev-dev
             libgmock-dev
             libgtest-dev
             libopus-dev
@@ -80,6 +81,8 @@ jobs:
       - run: other/analysis/check_logger_levels
       - run: other/analysis/run-clang
       - run: other/analysis/run-gcc
+      - run: other/analysis/run-cppcheck
+      - run: other/analysis/run-clang-analyze
 
   clang-analyze:
     working_directory: ~/work
