@@ -3171,7 +3171,7 @@ static bool handle_groups_load(void *obj, Bin_Unpack *bu)
 non_null()
 static State_Load_Status groups_load(Messenger *m, const uint8_t *data, uint32_t length)
 {
-    if (!bin_unpack_obj(handle_groups_load, m, data, length)) {
+    if (!bin_unpack_obj(m->mem, handle_groups_load, m, data, length)) {
         LOGGER_ERROR(m->log, "msgpack failed to unpack groupchats array");
         return STATE_LOAD_STATUS_ERROR;
     }

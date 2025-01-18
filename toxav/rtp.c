@@ -678,7 +678,7 @@ static uint32_t rtp_random_u32(void)
     return randombytes_random();
 }
 
-RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
+RTPSession *rtp_new(const Logger *log, const Memory *mem, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb)
 {
     assert(mcb != nullptr);
@@ -704,6 +704,8 @@ RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav,
 
     session->ssrc = payload_type == RTP_TYPE_VIDEO ? 0 : rtp_random_u32(); // Zoff: what is this??
     session->payload_type = payload_type;
+    session->log = log;
+    session->mem = mem;
     session->tox = tox;
     session->toxav = toxav;
     session->friend_number = friendnumber;
@@ -773,18 +775,18 @@ void rtp_stop_receiving(Tox *tox)
  * @param error the error from rtp_send_custom_lossy_packet.
  * @param rdata_size The package length to be shown in the log.
  */
-static void rtp_report_error_maybe(const Logger *log, Tox_Err_Friend_Custom_Packet error, uint16_t rdata_size)
+static void rtp_report_error_maybe(const Logger *log, const Memory *mem, Tox_Err_Friend_Custom_Packet error, uint16_t rdata_size)
 {
     if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-        char *netstrerror = net_new_strerror(net_error());
+        char *netstrerror = net_new_strerror(mem, net_error());
         const char *toxerror = tox_err_friend_custom_packet_to_string(error);
         LOGGER_WARNING(log, "RTP send failed (len: %u)! tox error: %s net error: %s",
                        rdata_size, toxerror, netstrerror);
-        net_kill_strerror(netstrerror);
+        net_kill_strerror(mem, netstrerror);
     }
 }
 
-static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, const struct RTPHeader *header,
+static void rtp_send_piece(const Logger *log, const Memory *mem, Tox *tox, uint32_t friend_number, const struct RTPHeader *header,
                            const uint8_t *data, uint8_t *rdata, uint16_t length)
 {
     rtp_header_pack(rdata + 1, header);
@@ -795,7 +797,7 @@ static void rtp_send_piece(const Logger *log, Tox *tox, uint32_t friend_number, 
     Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossy_packet(tox, friend_number, rdata, rdata_size, &error);
 
-    rtp_report_error_maybe(log, error, rdata_size);
+    rtp_report_error_maybe(log, mem, error, rdata_size);
 }
 
 static struct RTPHeader rtp_default_header(const RTPSession *session, uint32_t length, bool is_keyframe)
@@ -868,7 +870,7 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
          * Send the packet in single piece.
          */
         assert(length < UINT16_MAX);
-        rtp_send_piece(log, session->tox, session->friend_number, &header, data, rdata, length);
+        rtp_send_piece(log, session->mem, session->tox, session->friend_number, &header, data, rdata, length);
     } else {
         /*
          * The length is greater than the maximum allowed length (including header)
@@ -878,7 +880,7 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
         uint16_t piece = MAX_CRYPTO_DATA_SIZE - (RTP_HEADER_SIZE + 1);
 
         while ((length - sent) + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE) {
-            rtp_send_piece(log, session->tox, session->friend_number, &header, data + sent, rdata, piece);
+            rtp_send_piece(log, session->mem, session->tox, session->friend_number, &header, data + sent, rdata, piece);
 
             sent += piece;
             header.offset_lower = sent;
@@ -889,7 +891,7 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
         piece = length - sent;
 
         if (piece != 0) {
-            rtp_send_piece(log, session->tox, session->friend_number, &header, data + sent, rdata, piece);
+            rtp_send_piece(log, session->mem, session->tox, session->friend_number, &header, data + sent, rdata, piece);
         }
     }
 

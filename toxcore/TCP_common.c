@@ -35,7 +35,7 @@ int send_pending_data_nonpriority(const Logger *logger, TCP_Connection *con)
     }
 
     const uint16_t left = con->last_packet_length - con->last_packet_sent;
-    const int len = net_send(con->ns, logger, con->sock, con->last_packet + con->last_packet_sent, left, &con->ip_port,
+    const int len = net_send(con->ns, con->mem, logger, con->sock, con->last_packet + con->last_packet_sent, left, &con->ip_port,
                              con->net_profile);
 
     if (len <= 0) {
@@ -67,7 +67,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
 
     while (p != nullptr) {
         const uint16_t left = p->size - p->sent;
-        const int len = net_send(con->ns, logger, con->sock, p->data + p->sent, left, &con->ip_port, con->net_profile);
+        const int len = net_send(con->ns, con->mem, logger, con->sock, p->data + p->sent, left, &con->ip_port, con->net_profile);
 
         if (len != left) {
             if (len > 0) {
@@ -165,7 +165,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
     }
 
     if (priority) {
-        len = sendpriority ? net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port,
+        len = sendpriority ? net_send(con->ns, con->mem, logger, con->sock, packet, packet_size, &con->ip_port,
                                       con->net_profile) : 0;
 
         if (len <= 0) {
@@ -181,7 +181,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
         return add_priority(con, packet, packet_size, len) ? 1 : 0;
     }
 
-    len = net_send(con->ns, logger, con->sock, packet, packet_size, &con->ip_port, con->net_profile);
+    len = net_send(con->ns, con->mem, logger, con->sock, packet, packet_size, &con->ip_port, con->net_profile);
 
     if (len <= 0) {
         return 0;
@@ -218,7 +218,7 @@ int read_tcp_packet(
         return -1;
     }
 
-    const int len = net_recv(ns, logger, sock, data, length, ip_port);
+    const int len = net_recv(ns, mem, logger, sock, data, length, ip_port);
 
     if (len != length) {
         LOGGER_ERROR(logger, "FAIL recv packet");
@@ -242,7 +242,7 @@ static uint16_t read_tcp_length(const Logger *logger, const Memory *mem, const N
 
     if (count >= sizeof(uint16_t)) {
         uint8_t length_buf[sizeof(uint16_t)];
-        const int len = net_recv(ns, logger, sock, length_buf, sizeof(length_buf), ip_port);
+        const int len = net_recv(ns, mem, logger, sock, length_buf, sizeof(length_buf), ip_port);
 
         if (len != sizeof(uint16_t)) {
             LOGGER_ERROR(logger, "FAIL recv packet");

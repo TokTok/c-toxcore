@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include "attributes.h"
+#include "mem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,7 +47,7 @@ typedef bool bin_unpack_cb(void *obj, Bin_Unpack *bu);
  * @retval false if an error occurred (e.g. buffer overrun).
  */
 non_null()
-bool bin_unpack_obj(bin_unpack_cb *callback, void *obj, const uint8_t *buf, uint32_t buf_size);
+bool bin_unpack_obj(const Memory *mem, bin_unpack_cb *callback, void *obj, const uint8_t *buf, uint32_t buf_size);
 
 /** @brief Start unpacking a MessagePack array.
  *

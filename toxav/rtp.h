@@ -162,6 +162,7 @@ typedef struct RTPSession {
     struct RTPWorkBufferList *work_buffer_list;
     uint8_t  first_packets_counter; /* dismiss first few lost video packets */
     const Logger *log;
+    const Memory *mem;
     Tox *tox;
     ToxAV *toxav;
     uint32_t friend_number;
@@ -192,7 +193,7 @@ size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
  */
 size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header);
 
-RTPSession *rtp_new(const Logger *log, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
+RTPSession *rtp_new(const Logger *log, const Memory *mem, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
                     BWController *bwc, void *cs, rtp_m_cb *mcb);
 void rtp_kill(const Logger *log, RTPSession *session);
 void rtp_allow_receiving_mark(RTPSession *session);

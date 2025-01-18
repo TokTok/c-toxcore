@@ -236,15 +236,32 @@ Socket net_invalid_socket(void);
 
 /**
  * Calls send(sockfd, buf, len, MSG_NOSIGNAL).
+ *
+ * @param ns System network object.
+ * @param mem Memory object, only used for logging.
+ * @param log Logger object.
+ * @param sock Socket to send data to.
+ * @param buf Data to send.
+ * @param len Length of data.
+ * @param ip_port IP and port to send data to.
+ * @param net_profile Network profile to record the packet.
  */
-non_null(1, 2, 4, 6) nullable(7)
-int net_send(const Network *ns, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
+non_null(1, 2, 3, 5, 7) nullable(8)
+int net_send(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port,
              Net_Profile *net_profile);
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
+ *
+ * @param ns System network object.
+ * @param mem Memory object, only used for logging.
+ * @param log Logger object.
+ * @param sock Socket to receive data from.
+ * @param buf Buffer to store received data.
+ * @param len Length of buffer.
+ * @param ip_port IP and port of the sender.
  */
 non_null()
-int net_recv(const Network *ns, const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port);
+int net_recv(const Network *ns, const Memory *mem, const Logger *log, Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port);
 /**
  * Calls listen(sockfd, backlog).
  */
@@ -594,14 +611,15 @@ int net_error(void);
  * return pointer to a NULL-terminated string describing the error code on
  * success. The returned string must be freed using `net_kill_strerror()`.
  */
-char *net_new_strerror(int error);
+non_null()
+char *net_new_strerror(const Memory *mem, int error);
 
 /** @brief Frees the string returned by `net_new_strerror()`.
  * It's valid to pass NULL as the argument, the function does nothing in this
  * case.
  */
-nullable(1)
-void net_kill_strerror(char *strerror);
+non_null(1) nullable(2)
+void net_kill_strerror(const Memory *mem, char *strerror);
 
 /** @brief Initialize networking.
  * Bind to ip and port.

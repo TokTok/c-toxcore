@@ -173,7 +173,7 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     };
     events->mem = sys->mem;
 
-    if (!bin_unpack_obj(tox_events_unpack_handler, events, bytes, bytes_size)) {
+    if (!bin_unpack_obj(sys->mem, tox_events_unpack_handler, events, bytes, bytes_size)) {
         tox_events_free(events);
         return nullptr;
     }

@@ -5,14 +5,16 @@
 #include "bin_unpack.h"
 
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "../third_party/cmp/cmp.h"
 #include "attributes.h"
 #include "ccompat.h"
+#include "mem.h"
 
 struct Bin_Unpack {
+    const Memory *mem;
+
     const uint8_t *bytes;
     uint32_t bytes_size;
     cmp_ctx_t ctx;
@@ -54,17 +56,18 @@ static size_t null_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 }
 
 non_null()
-static void bin_unpack_init(Bin_Unpack *bu, const uint8_t *buf, uint32_t buf_size)
+static void bin_unpack_init(Bin_Unpack *bu, const Memory *mem, const uint8_t *buf, uint32_t buf_size)
 {
+    bu->mem = mem;
     bu->bytes = buf;
     bu->bytes_size = buf_size;
     cmp_init(&bu->ctx, bu, buf_reader, buf_skipper, null_writer);
 }
 
-bool bin_unpack_obj(bin_unpack_cb *callback, void *obj, const uint8_t *buf, uint32_t buf_size)
+bool bin_unpack_obj(const Memory *mem, bin_unpack_cb *callback, void *obj, const uint8_t *buf, uint32_t buf_size)
 {
     Bin_Unpack bu;
-    bin_unpack_init(&bu, buf, buf_size);
+    bin_unpack_init(&bu, mem, buf, buf_size);
     return callback(obj, &bu);
 }
 
@@ -120,10 +123,10 @@ bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_pt
         // There aren't as many bytes as this bin claims to want to allocate.
         return false;
     }
-    uint8_t *const data = (uint8_t *)malloc(bin_size);
+    uint8_t *const data = (uint8_t *)mem_balloc(bu->mem, bin_size);
 
     if (!bin_unpack_bin_b(bu, data, bin_size)) {
-        free(data);
+        mem_delete(bu->mem, data);
         return false;
     }
 

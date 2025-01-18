@@ -87,6 +87,7 @@ typedef struct DecodeTimeStats {
 } DecodeTimeStats;
 
 struct ToxAV {
+    const Memory *mem;
     Logger *log;
     Tox *tox;
     MSISession *msi;
@@ -219,6 +220,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
         goto RETURN;
     }
 
+    av->mem = tox->sys.mem;
     av->log = tox->m->log;
     av->tox = tox;
     av->msi = msi_new(av->log, av->tox);
@@ -994,9 +996,9 @@ static Toxav_Err_Send_Frame send_frames(const ToxAV *av, ToxAVCall *call)
                             is_keyframe);
 
         if (res < 0) {
-            char *netstrerror = net_new_strerror(net_error());
+            char *netstrerror = net_new_strerror(av->mem, net_error());
             LOGGER_WARNING(av->log, "Could not send video frame: %s", netstrerror);
-            net_kill_strerror(netstrerror);
+            net_kill_strerror(av->mem, netstrerror);
             return TOXAV_ERR_SEND_FRAME_RTP_FAILED;
         }
     }
@@ -1507,7 +1509,7 @@ static bool call_prepare_transmission(ToxAVCall *call)
             goto FAILURE;
         }
 
-        call->audio_rtp = rtp_new(av->log, RTP_TYPE_AUDIO, av->tox, av, call->friend_number, call->bwc,
+        call->audio_rtp = rtp_new(av->log, av->mem, RTP_TYPE_AUDIO, av->tox, av, call->friend_number, call->bwc,
                                   call->audio, ac_queue_message);
 
         if (call->audio_rtp == nullptr) {
@@ -1523,7 +1525,7 @@ static bool call_prepare_transmission(ToxAVCall *call)
             goto FAILURE;
         }
 
-        call->video_rtp = rtp_new(av->log, RTP_TYPE_VIDEO, av->tox, av, call->friend_number, call->bwc,
+        call->video_rtp = rtp_new(av->log, av->mem, RTP_TYPE_VIDEO, av->tox, av, call->friend_number, call->bwc,
                                   call->video, vc_queue_message);
 
         if (call->video_rtp == nullptr) {

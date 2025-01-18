@@ -192,6 +192,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
         "//c-toxcore/third_party:cmp",
     ],
 )
@@ -204,6 +205,7 @@ cc_test(
         ":bin_pack",
         ":bin_unpack",
         ":logger",
+        ":mem",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
