@@ -149,11 +149,12 @@ int main(void)
 
     size_t save_size = tox_get_savedata_size(tox1);
     uint8_t *savedata = (uint8_t *)malloc(save_size);
+    ck_assert(savedata != nullptr);
     tox_get_savedata(tox1, savedata);
 
     struct Tox_Options *const options = tox_options_new(nullptr);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, savedata, save_size);
+    ck_assert(tox_options_set_savedata(options, savedata, save_size));
 
     Tox *const tox_to_compare = tox_new_log(options, nullptr, nullptr);
 

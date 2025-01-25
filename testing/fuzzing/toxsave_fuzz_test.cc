@@ -21,7 +21,10 @@ void TestSaveDataLoading(Fuzz_Data &input)
     CONSUME_OR_RETURN(const uint8_t *savedata, input, savedata_size);
 
     // pass test data to Tox
-    tox_options_set_savedata_data(tox_options, savedata, savedata_size);
+    if (!tox_options_set_savedata(tox_options, savedata, savedata_size)) {
+        tox_options_free(tox_options);
+        return;
+    }
     tox_options_set_savedata_type(tox_options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     Tox_Options_Testing tox_options_testing;
