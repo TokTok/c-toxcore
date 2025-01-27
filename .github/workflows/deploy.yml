@@ -159,6 +159,68 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: "toxcore-nightly-macos-${{ matrix.arch }}.tar.gz,toxcore-nightly-macos-${{ matrix.arch }}.tar.gz.sha256"
 
+  build-ios:
+    name: iOS
+    needs: [update-nightly-tag]
+    strategy:
+      matrix:
+        arch: [arm64]
+    runs-on: 'macos-14'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build tools
+        run: brew install coreutils ninja yasm
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: prefix
+          key: ${{ github.job }}-${{ matrix.arch }}-deps
+      - name: Run build
+        run: other/deploy/ios.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: toxcore-ios-${{ matrix.arch }}
+          path: toxcore-ios-${{ matrix.arch }}
+      - name: Get tag name for release file name
+        if: contains(github.ref, 'refs/tags/v')
+        id: get_version
+        run: |
+          VERSION="$(echo "$GITHUB_REF" | cut -d / -f 3)"
+          echo "release_tarball=toxcore-$VERSION-ios-${{ matrix.arch }}.tar.gz" >>$GITHUB_OUTPUT
+      - name: Create tarball for release upload
+        if: contains(github.ref, 'refs/tags/v')
+        run: |
+          tar zcf "${{ steps.get_version.outputs.release_tarball }}" toxcore-ios-${{ matrix.arch }}
+          sha256sum "${{ steps.get_version.outputs.release_tarball }}" > "${{ steps.get_version.outputs.release_tarball }}.sha256"
+      - name: Upload to versioned release
+        if: contains(github.ref, 'refs/tags/v')
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          draft: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "${{ steps.get_version.outputs.release_tarball }},${{ steps.get_version.outputs.release_tarball }}.sha256"
+      - name: Create tarball for nightly upload
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          tar zcf toxcore-nightly-ios-${{ matrix.arch }}.tar.gz toxcore-ios-${{ matrix.arch }}
+          sha256sum toxcore-nightly-ios-${{ matrix.arch }}.tar.gz > toxcore-nightly-ios-${{ matrix.arch }}.tar.gz.sha256
+      - name: Upload to nightly release
+        uses: ncipollo/release-action@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        with:
+          allowUpdates: true
+          tag: nightly
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          prerelease: true
+          replacesArtifacts: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "toxcore-nightly-ios-${{ matrix.arch }}.tar.gz,toxcore-nightly-ios-${{ matrix.arch }}.tar.gz.sha256"
+
   build-android:
     name: Android
     needs: [update-nightly-tag]
