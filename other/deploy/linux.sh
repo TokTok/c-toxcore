@@ -15,7 +15,7 @@ cmake \
   -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$PWD/toxcore-linux-$ARCH" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_STATIC=OFF \
+  -DENABLE_STATIC=ON \
   -DENABLE_SHARED=ON \
   -DMUST_BUILD_TOXAV=ON \
   -DDHT_BOOTSTRAP=OFF \
@@ -24,5 +24,4 @@ cmake \
   -DMIN_LOGGER_LEVEL=TRACE \
   -DEXPERIMENTAL_API=ON
 
-cmake --build _build
-cmake --install _build
+"$SCRIPT_DIR/build.sh" "toxcore-linux-$ARCH"
