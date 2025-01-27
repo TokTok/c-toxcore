@@ -109,7 +109,7 @@ jobs:
         with:
           submodules: recursive
       - name: Install build tools
-        run: brew install coreutils ninja yasm
+        run: brew install binutils coreutils ninja yasm
       - name: Cache dependencies
         uses: actions/cache@v4
         with:
@@ -171,7 +171,7 @@ jobs:
         with:
           submodules: recursive
       - name: Install build tools
-        run: brew install coreutils ninja yasm
+        run: brew install binutils coreutils ninja yasm
       - name: Cache dependencies
         uses: actions/cache@v4
         with:

@@ -23,7 +23,7 @@ cmake \
   -G Ninja \
   -DCMAKE_INSTALL_PREFIX="$PWD/toxcore-ios-$ARCH" \
   -DCMAKE_BUILD_TYPE=Release \
-  -DENABLE_STATIC=OFF \
+  -DENABLE_STATIC=ON \
   -DENABLE_SHARED=ON \
   -DMUST_BUILD_TOXAV=ON \
   -DDHT_BOOTSTRAP=OFF \
@@ -38,5 +38,4 @@ cmake \
   -DCMAKE_OSX_SYSROOT="$(xcrun --sdk "$XC_SDK" --show-sdk-path)" \
   -DCMAKE_OSX_ARCHITECTURES="$ARCH"
 
-cmake --build _build
-cmake --install _build
+"$SCRIPT_DIR/build.sh" "toxcore-ios-$ARCH"
