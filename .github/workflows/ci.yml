@@ -60,17 +60,6 @@ jobs:
       - name: Build, test, and upload coverage
         run: other/docker/coverage/run
 
-  build-android:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - run: .github/scripts/cmake-android armeabi-v7a
-      - run: .github/scripts/cmake-android arm64-v8a
-      - run: .github/scripts/cmake-android x86
-      - run: .github/scripts/cmake-android x86_64
-
   build-macos:
     runs-on: macos-latest
     steps:
