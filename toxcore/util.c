@@ -104,6 +104,27 @@ void memzero(uint8_t *data, size_t data_size)
     memset(data, 0, data_size);
 }
 
+/**
+ * @brief Strips a prefix from a string.
+ *
+ * @param prefix The prefix to strip.
+ * @param str The string to strip the prefix from.
+ *
+ * @return A pointer to the first character after the prefix in `str`, or the
+ *   original `str` if the prefix is not found.
+ */
+const char *strip_prefix(const char *prefix, const char *str)
+{
+    const char *p = str;
+
+    while (*prefix != '\0' && *prefix == *p) {
+        ++prefix;
+        ++p;
+    }
+
+    return *prefix == '\0' ? p : str;
+}
+
 int16_t max_s16(int16_t a, int16_t b)
 {
     return a > b ? a : b;

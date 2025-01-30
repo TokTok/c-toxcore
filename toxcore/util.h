@@ -58,6 +58,17 @@ non_null(1) nullable(2) uint8_t *memdup(const Memory *mem, const uint8_t *data, 
  */
 nullable(1) void memzero(uint8_t *data, size_t data_size);
 
+/**
+ * @brief Strips a prefix from a string.
+ *
+ * @param prefix The prefix to strip.
+ * @param str The string to strip the prefix from.
+ *
+ * @return A pointer to the first character after the prefix in `str`, or the
+ *   original `str` if the prefix is not found.
+ */
+non_null() const char *strip_prefix(const char *prefix, const char *str);
+
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of
 // conversion to the caller. Use these instead of inline comparisons or MIN/MAX
