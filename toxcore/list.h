@@ -30,8 +30,8 @@ typedef struct BS_List {
     uint32_t n; // number of elements
     uint32_t capacity; // number of elements memory is allocated for
     uint32_t element_size; // size of the elements
-    uint8_t *data; // array of elements
-    int *ids; // array of element ids
+    uint8_t *owner data; // array of elements
+    int *owner ids; // array of element ids
     bs_list_cmp_cb *cmp_callback;
 } BS_List;
 

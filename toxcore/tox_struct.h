@@ -19,10 +19,10 @@ extern "C" {
 #endif
 
 struct Tox {
-    Messenger *m;
+    Messenger *owner m;
     Mono_Time *mono_time;
     Tox_System sys;
-    pthread_mutex_t *mutex;
+    pthread_mutex_t *owner mutex;
 
     tox_log_cb *log_callback;
     tox_self_connection_status_cb *self_connection_status_callback;

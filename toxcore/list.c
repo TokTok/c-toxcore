@@ -115,7 +115,7 @@ static bool resize(BS_List *list, uint32_t new_size)
         return true;
     }
 
-    uint8_t *data = (uint8_t *)mem_brealloc(list->mem, list->data, new_size * list->element_size);
+    uint8_t *owner data = (uint8_t *owner)mem_brealloc(list->mem, list->data, new_size * list->element_size);
 
     if (data == nullptr) {
         return false;
@@ -123,7 +123,7 @@ static bool resize(BS_List *list, uint32_t new_size)
 
     list->data = data;
 
-    int *ids = (int *)mem_vrealloc(list->mem, list->ids, new_size, sizeof(int));
+    int *owner ids = (int *owner)mem_vrealloc(list->mem, list->ids, new_size, sizeof(int));
 
     if (ids == nullptr) {
         return false;

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
  * Copyright © 2022-2025 The TokTok team.
  */
-
+#pragma safety enable
 #include "bin_unpack.h"
 
 #include <assert.h>
@@ -56,7 +56,7 @@ static size_t null_writer(cmp_ctx_t *ctx, const void *data, size_t count)
 }
 
 non_null()
-static void bin_unpack_init(Bin_Unpack *bu, const Memory *mem, const uint8_t *buf, uint32_t buf_size)
+static void bin_unpack_init(_Out Bin_Unpack *bu, const Memory *mem, const uint8_t *buf, uint32_t buf_size)
 {
     bu->mem = mem;
     bu->bytes = buf;
@@ -76,7 +76,7 @@ bool bin_unpack_array(Bin_Unpack *bu, uint32_t *size)
     return cmp_read_array(&bu->ctx, size) && *size <= bu->bytes_size;
 }
 
-bool bin_unpack_array_fixed(Bin_Unpack *bu, uint32_t required_size, uint32_t *actual_size)
+bool bin_unpack_array_fixed(Bin_Unpack *bu, uint32_t required_size, _Out uint32_t *_Opt actual_size)
 {
     uint32_t size = 0;
     const bool success = cmp_read_array(&bu->ctx, &size) && size == required_size;
@@ -86,27 +86,27 @@ bool bin_unpack_array_fixed(Bin_Unpack *bu, uint32_t required_size, uint32_t *ac
     return success;
 }
 
-bool bin_unpack_bool(Bin_Unpack *bu, bool *val)
+bool bin_unpack_bool(Bin_Unpack *bu, _Out bool *val)
 {
     return cmp_read_bool(&bu->ctx, val);
 }
 
-bool bin_unpack_u08(Bin_Unpack *bu, uint8_t *val)
+bool bin_unpack_u08(Bin_Unpack *bu, _Out uint8_t *val)
 {
     return cmp_read_uchar(&bu->ctx, val);
 }
 
-bool bin_unpack_u16(Bin_Unpack *bu, uint16_t *val)
+bool bin_unpack_u16(Bin_Unpack *bu, _Out uint16_t *val)
 {
     return cmp_read_ushort(&bu->ctx, val);
 }
 
-bool bin_unpack_u32(Bin_Unpack *bu, uint32_t *val)
+bool bin_unpack_u32(Bin_Unpack *bu, _Out uint32_t *val)
 {
     return cmp_read_uint(&bu->ctx, val);
 }
 
-bool bin_unpack_u64(Bin_Unpack *bu, uint64_t *val)
+bool bin_unpack_u64(Bin_Unpack *bu, _Out uint64_t *val)
 {
     return cmp_read_ulong(&bu->ctx, val);
 }
@@ -116,21 +116,27 @@ bool bin_unpack_nil(Bin_Unpack *bu)
     return cmp_read_nil(&bu->ctx);
 }
 
-bool bin_unpack_bin(Bin_Unpack *bu, uint8_t **data_ptr, uint32_t *data_length_ptr)
+bool bin_unpack_bin(Bin_Unpack *bu, _Out uint8_t *_Opt _Owner *data_ptr, _Out uint32_t *data_length_ptr)
 {
     uint32_t bin_size;
     if (!bin_unpack_bin_size(bu, &bin_size) || bin_size > bu->bytes_size) {
         // There aren't as many bytes as this bin claims to want to allocate.
+        *data_ptr = nullptr;
+        *data_length_ptr = 0;
         return false;
     }
     uint8_t *const data = (uint8_t *)mem_balloc(bu->mem, bin_size);
 
     if (data == nullptr) {
+        *data_ptr = nullptr;
+        *data_length_ptr = 0;
         return false;
     }
 
     if (!bin_unpack_bin_b(bu, data, bin_size)) {
         mem_delete(bu->mem, data);
+        *data_ptr = nullptr;
+        *data_length_ptr = 0;
         return false;
     }
 
@@ -161,7 +167,7 @@ bool bin_unpack_bin_fixed(Bin_Unpack *bu, uint8_t *data, uint32_t data_length)
     return bin_unpack_bin_b(bu, data, bin_size);
 }
 
-bool bin_unpack_bin_size(Bin_Unpack *bu, uint32_t *size)
+bool bin_unpack_bin_size(Bin_Unpack *bu, _Out uint32_t *size)
 {
     return cmp_read_bin_size(&bu->ctx, size);
 }

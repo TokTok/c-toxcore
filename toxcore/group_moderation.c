@@ -51,7 +51,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length
         return 0;
     }
 
-    uint8_t **tmp_list = (uint8_t **)mem_valloc(moderation->mem, num_mods, sizeof(uint8_t *));
+    uint8_t **owner tmp_list = (uint8_t **owner)mem_valloc(moderation->mem, num_mods, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return -1;
@@ -60,7 +60,7 @@ int mod_list_unpack(Moderation *moderation, const uint8_t *data, uint16_t length
     uint16_t unpacked_len = 0;
 
     for (uint16_t i = 0; i < num_mods; ++i) {
-        uint8_t *entry = (uint8_t *)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
+        uint8_t *owner entry = (uint8_t *owner)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
 
         if (entry == nullptr) {
             free_uint8_t_pointer_array(moderation->mem, tmp_list, i);
@@ -102,7 +102,7 @@ bool mod_list_make_hash(const Moderation *moderation, uint8_t *hash)
 
     assert(data_buf_size > 0);
 
-    uint8_t *data = (uint8_t *)mem_balloc(moderation->mem, data_buf_size);
+    uint8_t *owner data = (uint8_t *owner)mem_balloc(moderation->mem, data_buf_size);
 
     if (data == nullptr) {
         return false;
@@ -169,7 +169,7 @@ bool mod_list_remove_index(Moderation *moderation, uint16_t index)
     mem_delete(moderation->mem, moderation->mod_list[moderation->num_mods]);
     moderation->mod_list[moderation->num_mods] = nullptr;
 
-    uint8_t **tmp_list = (uint8_t **)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods, sizeof(uint8_t *));
+    uint8_t **owner tmp_list = (uint8_t **owner)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return false;
@@ -203,7 +203,7 @@ bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
         return false;
     }
 
-    uint8_t **tmp_list = (uint8_t **)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods + 1, sizeof(uint8_t *));
+    uint8_t **owner tmp_list = (uint8_t **owner)mem_vrealloc(moderation->mem, moderation->mod_list, moderation->num_mods + 1, sizeof(uint8_t *));
 
     if (tmp_list == nullptr) {
         return false;
@@ -211,7 +211,7 @@ bool mod_list_add_entry(Moderation *moderation, const uint8_t *mod_data)
 
     moderation->mod_list = tmp_list;
 
-    uint8_t *entry = (uint8_t *)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
+    uint8_t *owner entry = (uint8_t *owner)mem_balloc(moderation->mem, MOD_LIST_ENTRY_SIZE);
 
     if (entry == nullptr) {
         return false;
@@ -422,7 +422,7 @@ static bool sanctions_list_make_hash(const Memory *mem, const Mod_Sanction *sanc
         return false;
     }
 
-    uint8_t *data = (uint8_t *)mem_balloc(mem, data_buf_size);
+    uint8_t *owner data = (uint8_t *owner)mem_balloc(mem, data_buf_size);
 
     if (data == nullptr) {
         return false;
@@ -588,7 +588,7 @@ bool sanctions_list_check_integrity(const Moderation *moderation, const Mod_Sanc
  * @retval false if sanctions credentials validation fails.
  */
 non_null(1, 2) nullable(3)
-static bool sanctions_apply_new(Moderation *moderation, Mod_Sanction *new_sanctions,
+static bool sanctions_apply_new(Moderation *moderation, Mod_Sanction *owner new_sanctions,
                                 const Mod_Sanction_Creds *new_creds,
                                 uint16_t num_sanctions)
 {
@@ -612,9 +612,9 @@ static bool sanctions_apply_new(Moderation *moderation, Mod_Sanction *new_sancti
  * memory returned by this function.
  */
 non_null()
-static Mod_Sanction *sanctions_list_copy(const Memory *mem, const Mod_Sanction *sanctions, uint16_t num_sanctions)
+static Mod_Sanction *owner sanctions_list_copy(const Memory *mem, const Mod_Sanction *sanctions, uint16_t num_sanctions)
 {
-    Mod_Sanction *copy = (Mod_Sanction *)mem_valloc(mem, num_sanctions, sizeof(Mod_Sanction));
+    Mod_Sanction *owner copy = (Mod_Sanction *owner)mem_valloc(mem, num_sanctions, sizeof(Mod_Sanction));
 
     if (copy == nullptr) {
         return nullptr;
@@ -655,7 +655,7 @@ static bool sanctions_list_remove_index(Moderation *moderation, uint16_t index, 
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
+    Mod_Sanction *owner sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
 
     if (sanctions_copy == nullptr) {
         return false;
@@ -665,7 +665,7 @@ static bool sanctions_list_remove_index(Moderation *moderation, uint16_t index, 
         sanctions_copy[index] = sanctions_copy[new_num];
     }
 
-    Mod_Sanction *new_list = (Mod_Sanction *)mem_vrealloc(moderation->mem, sanctions_copy, new_num, sizeof(Mod_Sanction));
+    Mod_Sanction *owner new_list = (Mod_Sanction *owner)mem_vrealloc(moderation->mem, sanctions_copy, new_num, sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
         mem_delete(moderation->mem, sanctions_copy);
@@ -750,7 +750,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    Mod_Sanction *sanctions_copy = nullptr;
+    Mod_Sanction *owner sanctions_copy = nullptr;
 
     if (moderation->num_sanctions > 0) {
         sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
@@ -761,7 +761,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
     }
 
     const uint16_t index = moderation->num_sanctions;
-    Mod_Sanction *new_list = (Mod_Sanction *)mem_vrealloc(moderation->mem, sanctions_copy, index + 1, sizeof(Mod_Sanction));
+    Mod_Sanction *owner new_list = (Mod_Sanction *owner)mem_vrealloc(moderation->mem, sanctions_copy, index + 1, sizeof(Mod_Sanction));
 
     if (new_list == nullptr) {
         mem_delete(moderation->mem, sanctions_copy);

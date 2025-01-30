@@ -592,7 +592,7 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 }
 
 /** Create new TCP connection to ip_port/public_key */
-TCP_Client_Connection *new_tcp_connection(
+TCP_Client_Connection *owner new_tcp_connection(
     const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
     const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
     const TCP_Proxy_Info *proxy_info, Net_Profile *net_profile)
@@ -647,7 +647,7 @@ TCP_Client_Connection *new_tcp_connection(
         return nullptr;
     }
 
-    TCP_Client_Connection *temp = (TCP_Client_Connection *)mem_alloc(mem, sizeof(TCP_Client_Connection));
+    TCP_Client_Connection *owner temp = (TCP_Client_Connection *owner)mem_alloc(mem, sizeof(TCP_Client_Connection));
 
     if (temp == nullptr) {
         LOGGER_ERROR(logger, "Failed to allocate memory for TCP_Client_Connection");
@@ -1044,7 +1044,7 @@ void do_tcp_connection(const Logger *logger, const Mono_Time *mono_time,
 }
 
 /** Kill the TCP connection */
-void kill_tcp_connection(TCP_Client_Connection *tcp_connection)
+void kill_tcp_connection(TCP_Client_Connection *owner tcp_connection)
 {
     if (tcp_connection == nullptr) {
         return;

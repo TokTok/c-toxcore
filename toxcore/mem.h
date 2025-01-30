@@ -9,6 +9,7 @@
 #ifndef C_TOXCORE_TOXCORE_MEM_H
 #define C_TOXCORE_TOXCORE_MEM_H
 
+#include <stdbool.h>
 #include <stdint.h>     // uint*_t
 
 #include "attributes.h"
@@ -17,10 +18,10 @@
 extern "C" {
 #endif
 
-typedef void *mem_malloc_cb(void *obj, uint32_t size);
-typedef void *mem_calloc_cb(void *obj, uint32_t nmemb, uint32_t size);
-typedef void *mem_realloc_cb(void *obj, void *ptr, uint32_t size);
-typedef void mem_free_cb(void *obj, void *ptr);
+typedef void *owner mem_malloc_cb(void *obj, uint32_t size);
+typedef void *owner mem_calloc_cb(void *obj, uint32_t nmemb, uint32_t size);
+typedef void *owner mem_realloc_cb(void *obj, void *ptr, uint32_t size);
+typedef void mem_free_cb(void *obj, void *owner ptr);
 
 /** @brief Functions wrapping standard C memory allocation functions. */
 typedef struct Memory_Funcs {
@@ -43,7 +44,7 @@ const Memory *os_memory(void);
  * The array will not be initialised. Supported built-in types are
  * `uint8_t`, `int8_t`, and `int16_t`.
  */
-non_null() void *mem_balloc(const Memory *mem, uint32_t size);
+non_null() void *owner mem_balloc(const Memory *mem, uint32_t size);
 
 /**
  * @brief Resize an array of a given size for built-in types.
@@ -58,14 +59,14 @@ non_null(1) nullable(2) void *mem_brealloc(const Memory *mem, void *ptr, uint32_
  *
  * Always use as `(T *)mem_alloc(mem, sizeof(T))`.
  */
-non_null() void *mem_alloc(const Memory *mem, uint32_t size);
+non_null() void *owner mem_alloc(const Memory *mem, uint32_t size);
 
 /**
  * @brief Allocate a vector (array) of objects.
  *
  * Always use as `(T *)mem_valloc(mem, N, sizeof(T))`.
  */
-non_null() void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size);
+non_null() void *owner mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size);
 
 /**
  * @brief Resize an object vector.
@@ -82,10 +83,29 @@ non_null() void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size);
  * case where the multiplication would overflow. If such an overflow occurs,
  * `mem_vrealloc()` returns `nullptr`.
  */
-non_null(1) nullable(2) void *mem_vrealloc(const Memory *mem, void *ptr, uint32_t nmemb, uint32_t size);
+non_null(1) nullable(2) void *owner mem_vrealloc(const Memory *mem, void *ptr, uint32_t nmemb, uint32_t size);
+
+/**
+ * @brief Resize an object vector.
+ *
+ * Changes the size of (and possibly moves) the memory block pointed to by
+ * @p ptr to be large enough for an array of @p nmemb elements, each of which
+ * is @p size bytes. It is similar to the call
+ *
+ * @code
+ * ptr = realloc(ptr, nmemb * size);
+ * @endcode
+ *
+ * However, unlike that `realloc()` call, `mem_vresize()` fails safely in the
+ * case where the multiplication would overflow. If such an overflow occurs,
+ * `mem_vresize()` returns `ptr`. Also, if allocation fails in any way
+ * (overflow or out-of-memory), the original pointer is returned and `*ok` is
+ * set to `false`. On success, `*ok` is set to `true`.
+ */
+non_null(1, 5) nullable(2) void *owner mem_vresize(const Memory *mem, void *owner ptr, uint32_t nmemb, uint32_t size, bool *ok);
 
 /** @brief Free an array, object, or object vector. */
-non_null(1) nullable(2) void mem_delete(const Memory *mem, void *ptr);
+non_null(1) nullable(2) void mem_delete(const Memory *mem, void *owner ptr);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -23,8 +23,9 @@ uint8_t announce_response_of_request_type(uint8_t request_type);
 typedef struct Announcements Announcements;
 
 non_null()
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
-                                 Forwarding *forwarding);
+Announcements *owner new_announcements(
+    const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
+    Forwarding *forwarding);
 
 /**
  * @brief If data is stored, run `on_retrieve_callback` on it.
@@ -39,7 +40,7 @@ non_null()
 void announce_set_synch_offset(Announcements *announce, int32_t synch_offset);
 
 nullable(1)
-void kill_announcements(Announcements *announce);
+void kill_announcements(Announcements *owner announce);
 
 /* The declarations below are not public, they are exposed only for tests. */
 

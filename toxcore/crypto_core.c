@@ -89,9 +89,9 @@ const uint8_t *get_chat_id(const Extended_Public_Key *key)
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
 non_null()
-static uint8_t *crypto_malloc(const Memory *mem, size_t bytes)
+static uint8_t *owner crypto_malloc(const Memory *mem, size_t bytes)
 {
-    uint8_t *ptr = (uint8_t *)mem_balloc(mem, bytes);
+    uint8_t *owner ptr = (uint8_t *owner)mem_balloc(mem, bytes);
 
     if (ptr != nullptr) {
         crypto_memlock(ptr, bytes);
@@ -101,7 +101,7 @@ static uint8_t *crypto_malloc(const Memory *mem, size_t bytes)
 }
 
 non_null(1) nullable(2)
-static void crypto_free(const Memory *mem, uint8_t *ptr, size_t bytes)
+static void crypto_free(const Memory *mem, uint8_t *owner ptr, size_t bytes)
 {
     if (ptr != nullptr) {
         crypto_memzero(ptr, bytes);
@@ -260,8 +260,8 @@ int32_t encrypt_data_symmetric(const Memory *mem,
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_MACBYTES + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(mem, size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
+    uint8_t *owner temp_plain = crypto_malloc(mem, size_temp_plain);
+    uint8_t *owner temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
         crypto_free(mem, temp_plain, size_temp_plain);
@@ -313,8 +313,8 @@ int32_t decrypt_data_symmetric(const Memory *mem,
     const size_t size_temp_plain = length + crypto_box_ZEROBYTES;
     const size_t size_temp_encrypted = length + crypto_box_BOXZEROBYTES;
 
-    uint8_t *temp_plain = crypto_malloc(mem, size_temp_plain);
-    uint8_t *temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
+    uint8_t *owner temp_plain = crypto_malloc(mem, size_temp_plain);
+    uint8_t *owner temp_encrypted = crypto_malloc(mem, size_temp_encrypted);
 
     if (temp_plain == nullptr || temp_encrypted == nullptr) {
         crypto_free(mem, temp_plain, size_temp_plain);

@@ -84,12 +84,12 @@ typedef struct Moderation {
     const       Memory *mem;
     const       Logger *log;
 
-    Mod_Sanction *sanctions;
+    Mod_Sanction *owner sanctions;
     uint16_t    num_sanctions;
 
     Mod_Sanction_Creds sanctions_creds;
 
-    uint8_t     **mod_list;  // array of public signature keys of all the mods
+    uint8_t     *owner *owner mod_list;  // array of public signature keys of all the mods
     uint16_t    num_mods;
 
     // copies from parent/sibling chat/shared state objects

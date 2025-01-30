@@ -51,7 +51,7 @@ uint8_t announce_response_of_request_type(uint8_t request_type)
 typedef struct Announce_Entry {
     uint64_t store_until;
     uint8_t data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t *data;
+    uint8_t *owner data;
     uint32_t length;
 } Announce_Entry;
 
@@ -240,7 +240,7 @@ bool announce_store_data(Announcements *announce, const uint8_t *data_public_key
 
         mem_delete(announce->mem, entry->data);
 
-        uint8_t *entry_data = (uint8_t *)mem_balloc(announce->mem, length);
+        uint8_t *owner entry_data = (uint8_t *owner)mem_balloc(announce->mem, length);
 
         if (entry_data == nullptr) {
             entry->data = nullptr;  // TODO(iphydf): Is this necessary?
@@ -643,14 +643,15 @@ static int handle_dht_announce_request(
     return sendpacket(announce->net, source, reply, len) == len ? 0 : -1;
 }
 
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
-                                 Forwarding *forwarding)
+Announcements *owner new_announcements(
+    const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
+    Forwarding *forwarding)
 {
     if (log == nullptr || mono_time == nullptr || forwarding == nullptr) {
         return nullptr;
     }
 
-    Announcements *announce = (Announcements *)mem_alloc(mem, sizeof(Announcements));
+    Announcements *owner announce = (Announcements *owner)mem_alloc(mem, sizeof(Announcements));
 
     if (announce == nullptr) {
         return nullptr;
@@ -683,7 +684,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     return announce;
 }
 
-void kill_announcements(Announcements *announce)
+void kill_announcements(Announcements *owner announce)
 {
     if (announce == nullptr) {
         return;

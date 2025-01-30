@@ -46,7 +46,7 @@ non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t 
  *
  * @return nullptr on allocation failure or if the input data was nullptr or data_size was 0.
  */
-non_null(1) nullable(2) uint8_t *memdup(const Memory *mem, const uint8_t *data, size_t data_size);
+non_null(1) nullable(2) uint8_t *owner memdup(const Memory *mem, const uint8_t *data, size_t data_size);
 
 /**
  * @brief Set all bytes in `data` to 0.

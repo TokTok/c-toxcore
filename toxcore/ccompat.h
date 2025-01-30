@@ -23,7 +23,10 @@
 // "function") is used. Note the semantic difference: alloca'd memory does not
 // get freed at the end of the declaration's scope. Do not use VLA() in loops or
 // you may run out of stack space.
-#if !defined(DISABLE_VLA) && !defined(_MSC_VER) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#ifdef __STDC_OWNERSHIP__
+// HACK: some large array to silence cake until it supports VLAs.
+#define ALLOC_VLA(type, name, size) type name[2048]
+#elif !defined(DISABLE_VLA) && !defined(_MSC_VER) && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 // C99 VLAs.
 #define ALLOC_VLA(type, name, size) type name[size]
 #else
