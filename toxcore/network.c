@@ -741,6 +741,302 @@ static int net_getsockopt(const Network *ns, Socket sock, int level, int optname
 }
 
 non_null()
+static bool net_packet_type_from_int(uint8_t value, Net_Packet_Type *out_enum)
+{
+    // Clang compiles these to jump tables. Not amazing, but not too terrible.
+    // It's necessary because the enum values are not contiguous and casting
+    // the int directly to the enum is UB.
+    switch (value) {
+        case NET_PACKET_PING_REQUEST: {
+            *out_enum = NET_PACKET_PING_REQUEST;
+            return true;
+        }
+        case NET_PACKET_PING_RESPONSE: {
+            *out_enum = NET_PACKET_PING_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_GET_NODES: {
+            *out_enum = NET_PACKET_GET_NODES;
+            return true;
+        }
+        case NET_PACKET_SEND_NODES_IPV6: {
+            *out_enum = NET_PACKET_SEND_NODES_IPV6;
+            return true;
+        }
+        case NET_PACKET_COOKIE_REQUEST: {
+            *out_enum = NET_PACKET_COOKIE_REQUEST;
+            return true;
+        }
+        case NET_PACKET_COOKIE_RESPONSE: {
+            *out_enum = NET_PACKET_COOKIE_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_CRYPTO_HS: {
+            *out_enum = NET_PACKET_CRYPTO_HS;
+            return true;
+        }
+        case NET_PACKET_CRYPTO_DATA: {
+            *out_enum = NET_PACKET_CRYPTO_DATA;
+            return true;
+        }
+        case NET_PACKET_CRYPTO: {
+            *out_enum = NET_PACKET_CRYPTO;
+            return true;
+        }
+        case NET_PACKET_LAN_DISCOVERY: {
+            *out_enum = NET_PACKET_LAN_DISCOVERY;
+            return true;
+        }
+        case NET_PACKET_GC_HANDSHAKE: {
+            *out_enum = NET_PACKET_GC_HANDSHAKE;
+            return true;
+        }
+        case NET_PACKET_GC_LOSSLESS: {
+            *out_enum = NET_PACKET_GC_LOSSLESS;
+            return true;
+        }
+        case NET_PACKET_GC_LOSSY: {
+            *out_enum = NET_PACKET_GC_LOSSY;
+            return true;
+        }
+        case NET_PACKET_ONION_SEND_INITIAL: {
+            *out_enum = NET_PACKET_ONION_SEND_INITIAL;
+            return true;
+        }
+        case NET_PACKET_ONION_SEND_1: {
+            *out_enum = NET_PACKET_ONION_SEND_1;
+            return true;
+        }
+        case NET_PACKET_ONION_SEND_2: {
+            *out_enum = NET_PACKET_ONION_SEND_2;
+            return true;
+        }
+        case NET_PACKET_ANNOUNCE_REQUEST_OLD: {
+            *out_enum = NET_PACKET_ANNOUNCE_REQUEST_OLD;
+            return true;
+        }
+        case NET_PACKET_ANNOUNCE_RESPONSE_OLD: {
+            *out_enum = NET_PACKET_ANNOUNCE_RESPONSE_OLD;
+            return true;
+        }
+        case NET_PACKET_ONION_DATA_REQUEST: {
+            *out_enum = NET_PACKET_ONION_DATA_REQUEST;
+            return true;
+        }
+        case NET_PACKET_ONION_DATA_RESPONSE: {
+            *out_enum = NET_PACKET_ONION_DATA_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_ANNOUNCE_REQUEST: {
+            *out_enum = NET_PACKET_ANNOUNCE_REQUEST;
+            return true;
+        }
+        case NET_PACKET_ANNOUNCE_RESPONSE: {
+            *out_enum = NET_PACKET_ANNOUNCE_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_ONION_RECV_3: {
+            *out_enum = NET_PACKET_ONION_RECV_3;
+            return true;
+        }
+        case NET_PACKET_ONION_RECV_2: {
+            *out_enum = NET_PACKET_ONION_RECV_2;
+            return true;
+        }
+        case NET_PACKET_ONION_RECV_1: {
+            *out_enum = NET_PACKET_ONION_RECV_1;
+            return true;
+        }
+        case NET_PACKET_FORWARD_REQUEST: {
+            *out_enum = NET_PACKET_FORWARD_REQUEST;
+            return true;
+        }
+        case NET_PACKET_FORWARDING: {
+            *out_enum = NET_PACKET_FORWARDING;
+            return true;
+        }
+        case NET_PACKET_FORWARD_REPLY: {
+            *out_enum = NET_PACKET_FORWARD_REPLY;
+            return true;
+        }
+        case NET_PACKET_DATA_SEARCH_REQUEST: {
+            *out_enum = NET_PACKET_DATA_SEARCH_REQUEST;
+            return true;
+        }
+        case NET_PACKET_DATA_SEARCH_RESPONSE: {
+            *out_enum = NET_PACKET_DATA_SEARCH_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_DATA_RETRIEVE_REQUEST: {
+            *out_enum = NET_PACKET_DATA_RETRIEVE_REQUEST;
+            return true;
+        }
+        case NET_PACKET_DATA_RETRIEVE_RESPONSE: {
+            *out_enum = NET_PACKET_DATA_RETRIEVE_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_STORE_ANNOUNCE_REQUEST: {
+            *out_enum = NET_PACKET_STORE_ANNOUNCE_REQUEST;
+            return true;
+        }
+        case NET_PACKET_STORE_ANNOUNCE_RESPONSE: {
+            *out_enum = NET_PACKET_STORE_ANNOUNCE_RESPONSE;
+            return true;
+        }
+        case NET_PACKET_BOOTSTRAP_INFO: {
+            *out_enum = NET_PACKET_BOOTSTRAP_INFO;
+            return true;
+        }
+        case NET_PACKET_MAX: {
+            *out_enum = NET_PACKET_MAX;
+            return true;
+        }
+        default: {
+            *out_enum = NET_PACKET_PING_REQUEST;
+            return false;
+        }
+    }
+}
+
+static const char *net_packet_type_to_string(Net_Packet_Type type)
+{
+    switch (type) {
+        case NET_PACKET_PING_REQUEST:
+            return "NET_PACKET_PING_REQUEST";
+
+        case NET_PACKET_PING_RESPONSE:
+            return "NET_PACKET_PING_RESPONSE";
+
+        case NET_PACKET_GET_NODES:
+            return "NET_PACKET_GET_NODES";
+
+        case NET_PACKET_SEND_NODES_IPV6:
+            return "NET_PACKET_SEND_NODES_IPV6";
+
+        case NET_PACKET_COOKIE_REQUEST:
+            return "NET_PACKET_COOKIE_REQUEST";
+
+        case NET_PACKET_COOKIE_RESPONSE:
+            return "NET_PACKET_COOKIE_RESPONSE";
+
+        case NET_PACKET_CRYPTO_HS:
+            return "NET_PACKET_CRYPTO_HS";
+
+        case NET_PACKET_CRYPTO_DATA:
+            return "NET_PACKET_CRYPTO_DATA";
+
+        case NET_PACKET_CRYPTO:
+            return "NET_PACKET_CRYPTO";
+
+        case NET_PACKET_LAN_DISCOVERY:
+            return "NET_PACKET_LAN_DISCOVERY";
+
+        case NET_PACKET_GC_HANDSHAKE:
+            return "NET_PACKET_GC_HANDSHAKE";
+
+        case NET_PACKET_GC_LOSSLESS:
+            return "NET_PACKET_GC_LOSSLESS";
+
+        case NET_PACKET_GC_LOSSY:
+            return "NET_PACKET_GC_LOSSY";
+
+        case NET_PACKET_ONION_SEND_INITIAL:
+            return "NET_PACKET_ONION_SEND_INITIAL";
+
+        case NET_PACKET_ONION_SEND_1:
+            return "NET_PACKET_ONION_SEND_1";
+
+        case NET_PACKET_ONION_SEND_2:
+            return "NET_PACKET_ONION_SEND_2";
+
+        case NET_PACKET_ANNOUNCE_REQUEST_OLD:
+            return "NET_PACKET_ANNOUNCE_REQUEST_OLD";
+
+        case NET_PACKET_ANNOUNCE_RESPONSE_OLD:
+            return "NET_PACKET_ANNOUNCE_RESPONSE_OLD";
+
+        case NET_PACKET_ONION_DATA_REQUEST:
+            return "NET_PACKET_ONION_DATA_REQUEST";
+
+        case NET_PACKET_ONION_DATA_RESPONSE:
+            return "NET_PACKET_ONION_DATA_RESPONSE";
+
+        case NET_PACKET_ANNOUNCE_REQUEST:
+            return "NET_PACKET_ANNOUNCE_REQUEST";
+
+        case NET_PACKET_ANNOUNCE_RESPONSE:
+            return "NET_PACKET_ANNOUNCE_RESPONSE";
+
+        case NET_PACKET_ONION_RECV_3:
+            return "NET_PACKET_ONION_RECV_3";
+
+        case NET_PACKET_ONION_RECV_2:
+            return "NET_PACKET_ONION_RECV_2";
+
+        case NET_PACKET_ONION_RECV_1:
+            return "NET_PACKET_ONION_RECV_1";
+
+        case NET_PACKET_FORWARD_REQUEST:
+            return "NET_PACKET_FORWARD_REQUEST";
+
+        case NET_PACKET_FORWARDING:
+            return "NET_PACKET_FORWARDING";
+
+        case NET_PACKET_FORWARD_REPLY:
+            return "NET_PACKET_FORWARD_REPLY";
+
+        case NET_PACKET_DATA_SEARCH_REQUEST:
+            return "NET_PACKET_DATA_SEARCH_REQUEST";
+
+        case NET_PACKET_DATA_SEARCH_RESPONSE:
+            return "NET_PACKET_DATA_SEARCH_RESPONSE";
+
+        case NET_PACKET_DATA_RETRIEVE_REQUEST:
+            return "NET_PACKET_DATA_RETRIEVE_REQUEST";
+
+        case NET_PACKET_DATA_RETRIEVE_RESPONSE:
+            return "NET_PACKET_DATA_RETRIEVE_RESPONSE";
+
+        case NET_PACKET_STORE_ANNOUNCE_REQUEST:
+            return "NET_PACKET_STORE_ANNOUNCE_REQUEST";
+
+        case NET_PACKET_STORE_ANNOUNCE_RESPONSE:
+            return "NET_PACKET_STORE_ANNOUNCE_RESPONSE";
+
+        case NET_PACKET_BOOTSTRAP_INFO:
+            return "NET_PACKET_BOOTSTRAP_INFO";
+
+        case NET_PACKET_MAX:
+            return "NET_PACKET_MAX";
+    }
+
+    return "<invalid Net_Packet_Type>";
+}
+
+typedef enum Net_Direction {
+    NET_DIRECTION_TCP_INCOMING,
+    NET_DIRECTION_TCP_OUTGOING,
+    NET_DIRECTION_UDP_INCOMING,
+    NET_DIRECTION_UDP_OUTGOING,
+} Net_Direction;
+
+static const char *net_direction_str(Net_Direction direction)
+{
+    switch (direction) {
+        case NET_DIRECTION_TCP_INCOMING:
+            return "=>T";
+        case NET_DIRECTION_TCP_OUTGOING:
+            return "T=>";
+        case NET_DIRECTION_UDP_INCOMING:
+            return "=>U";
+        case NET_DIRECTION_UDP_OUTGOING:
+            return "O=>";
+    }
+
+    return "???";
+}
+
+non_null()
 static uint32_t data_0(uint16_t buflen, const uint8_t *buffer)
 {
     uint32_t data = 0;
@@ -763,148 +1059,55 @@ static uint32_t data_1(uint16_t buflen, const uint8_t *buffer)
     return data;
 }
 
-static const char *net_packet_type_name(Net_Packet_Type type)
-{
-    switch (type) {
-        case NET_PACKET_PING_REQUEST:
-            return "PING_REQUEST";
-
-        case NET_PACKET_PING_RESPONSE:
-            return "PING_RESPONSE";
-
-        case NET_PACKET_GET_NODES:
-            return "GET_NODES";
-
-        case NET_PACKET_SEND_NODES_IPV6:
-            return "SEND_NODES_IPV6";
-
-        case NET_PACKET_COOKIE_REQUEST:
-            return "COOKIE_REQUEST";
-
-        case NET_PACKET_COOKIE_RESPONSE:
-            return "COOKIE_RESPONSE";
-
-        case NET_PACKET_CRYPTO_HS:
-            return "CRYPTO_HS";
-
-        case NET_PACKET_CRYPTO_DATA:
-            return "CRYPTO_DATA";
-
-        case NET_PACKET_CRYPTO:
-            return "CRYPTO";
-
-        case NET_PACKET_GC_HANDSHAKE:
-            return "GC_HANDSHAKE";
-
-        case NET_PACKET_GC_LOSSLESS:
-            return "GC_LOSSLESS";
-
-        case NET_PACKET_GC_LOSSY:
-            return "GC_LOSSY";
-
-        case NET_PACKET_LAN_DISCOVERY:
-            return "LAN_DISCOVERY";
-
-        case NET_PACKET_ONION_SEND_INITIAL:
-            return "ONION_SEND_INITIAL";
-
-        case NET_PACKET_ONION_SEND_1:
-            return "ONION_SEND_1";
-
-        case NET_PACKET_ONION_SEND_2:
-            return "ONION_SEND_2";
-
-        case NET_PACKET_ANNOUNCE_REQUEST_OLD:
-            return "ANNOUNCE_REQUEST_OLD";
-
-        case NET_PACKET_ANNOUNCE_RESPONSE_OLD:
-            return "ANNOUNCE_RESPONSE_OLD";
-
-        case NET_PACKET_ONION_DATA_REQUEST:
-            return "ONION_DATA_REQUEST";
-
-        case NET_PACKET_ONION_DATA_RESPONSE:
-            return "ONION_DATA_RESPONSE";
-
-        case NET_PACKET_ANNOUNCE_REQUEST:
-            return "ANNOUNCE_REQUEST";
-
-        case NET_PACKET_ANNOUNCE_RESPONSE:
-            return "ANNOUNCE_RESPONSE";
-
-        case NET_PACKET_ONION_RECV_3:
-            return "ONION_RECV_3";
-
-        case NET_PACKET_ONION_RECV_2:
-            return "ONION_RECV_2";
-
-        case NET_PACKET_ONION_RECV_1:
-            return "ONION_RECV_1";
-
-        case NET_PACKET_FORWARD_REQUEST:
-            return "FORWARD_REQUEST";
-
-        case NET_PACKET_FORWARDING:
-            return "FORWARDING";
-
-        case NET_PACKET_FORWARD_REPLY:
-            return "FORWARD_REPLY";
-
-        case NET_PACKET_DATA_SEARCH_REQUEST:
-            return "DATA_SEARCH_REQUEST";
-
-        case NET_PACKET_DATA_SEARCH_RESPONSE:
-            return "DATA_SEARCH_RESPONSE";
-
-        case NET_PACKET_DATA_RETRIEVE_REQUEST:
-            return "DATA_RETRIEVE_REQUEST";
-
-        case NET_PACKET_DATA_RETRIEVE_RESPONSE:
-            return "DATA_RETRIEVE_RESPONSE";
-
-        case NET_PACKET_STORE_ANNOUNCE_REQUEST:
-            return "STORE_ANNOUNCE_REQUEST";
-
-        case NET_PACKET_STORE_ANNOUNCE_RESPONSE:
-            return "STORE_ANNOUNCE_RESPONSE";
-
-        case BOOTSTRAP_INFO_PACKET_ID:
-            return "BOOTSTRAP_INFO";
-
-        case NET_PACKET_MAX:
-            return "MAX";
-    }
-
-    return "<unknown>";
-}
-
 non_null()
-static void loglogdata(const Logger *log, const char *message, const uint8_t *buffer,
-                       uint16_t buflen, const IP_Port *ip_port, long res)
+static void loglogdata(const Logger *log, Net_Direction direction, const uint8_t *buffer,
+                       uint16_t buflen, const IP_Port *ip_port, int res)
 {
-    if (res < 0) { /* Windows doesn't necessarily know `%zu` */
-        Ip_Ntoa ip_str;
+    assert(buflen >= 1);
+    const char *message = net_direction_str(direction);
+
+    const uint8_t first_byte = buffer[0];
+    const uint8_t last_byte = buffer[buflen - 1];
+    Net_Packet_Type packet_type;
+    if (!net_packet_type_from_int(first_byte, &packet_type)) {
+        // Pick something invalid.
+        packet_type = NET_PACKET_MAX;
+    }
+    const char *packet_type_name = strip_prefix("NET_PACKET_", net_packet_type_to_string(packet_type));
+
+    Ip_Ntoa ip_str;
+    net_ip_ntoa(&ip_port->ip, &ip_str);
+
+    const uint16_t port = net_ntohs(ip_port->port);
+
+    // These cases all look *very* similar, but it seems not worth actually
+    // unifying them, so we've made them look as similar as possible.
+    if (res < 0) {
         const int error = net_error();
-        Net_Strerror error_str;
+        Net_Strerror error_buf;
+        const char *error_str = net_strerror(error, &error_buf);
+        const char res_char = 'E';
+        const uint16_t sent_count = min_u16(buflen, 999);
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
-                     buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
-                     min_u16(buflen, 999), 'E',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error,
-                     net_strerror(error, &error_str), data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+                     first_byte, packet_type_name, message, sent_count, res_char,
+                     ip_str.buf, port, error, error_str, data_0(buflen, buffer), data_1(buflen, buffer), last_byte);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
-        Ip_Ntoa ip_str;
+        const int error = 0;
+        const char *error_str = "OK";
+        const char res_char = (size_t)res < buflen ? '<' : '=';
+        const uint16_t sent_count = min_u16(res, 999);
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
-                     buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
-                     min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+                     first_byte, packet_type_name, message, sent_count, res_char,
+                     ip_str.buf, port, error, error_str, data_0(buflen, buffer), data_1(buflen, buffer), last_byte);
     } else { /* empty or overwrite */
-        Ip_Ntoa ip_str;
-        LOGGER_TRACE(log, "[%02x = %-21s] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
-                     buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
-                     res, res == 0 ? '!' : '>', buflen,
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+        const int error = 0;
+        const char *error_str = "OK";
+        const char res_char = res == 0 ? '!' : '>';
+        assert(res <= UINT16_MAX);
+        const uint16_t sent_count = (uint16_t)res;
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %u%c%u %s:%u (%u: %s) | %08x%08x...%02x",
+                     first_byte, packet_type_name, message, sent_count, res_char, buflen,
+                     ip_str.buf, port, error, error_str, data_0(buflen, buffer), data_1(buflen, buffer), last_byte);
     }
 }
 
@@ -917,7 +1120,7 @@ int net_send(const Network *ns, const Logger *log,
         netprof_record_packet(net_profile, buf[0], res, PACKET_DIRECTION_SEND);
     }
 
-    loglogdata(log, "T=>", buf, len, ip_port, res);
+    loglogdata(log, NET_DIRECTION_TCP_OUTGOING, buf, len, ip_port, res);
     return res;
 }
 
@@ -933,7 +1136,7 @@ int net_recv(const Network *ns, const Logger *log,
              Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port)
 {
     const int res = ns->funcs->recv(ns->obj, sock, buf, len);
-    loglogdata(log, "=>T", buf, len, ip_port, res);
+    loglogdata(log, NET_DIRECTION_TCP_INCOMING, buf, len, ip_port, res);
     return res;
 }
 
@@ -1037,8 +1240,10 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
-int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packet)
+int send_packet(const Networking_Core *net, const IP_Port *ip_port, const Packet packet)
 {
+    assert(packet.data != nullptr);
+
     IP_Port ipp_copy = *ip_port;
 
     if (net_family_is_unspec(ip_port->ip.family)) {
@@ -1103,12 +1308,12 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         return -1;
     }
 
-    const long res = net_sendto(net->ns, net->sock, packet.data, packet.length, &addr, &ipp_copy);
-    loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
+    const int res = net_sendto(net->ns, net->sock, packet.data, packet.length, &addr, &ipp_copy);
+    loglogdata(net->log, NET_DIRECTION_UDP_OUTGOING, packet.data, packet.length, ip_port, res);
 
     assert(res <= INT_MAX);
 
-    if (res == packet.length && packet.data != nullptr) {
+    if (res == packet.length) {
         netprof_record_packet(net->udp_net_profile, packet.data[0], packet.length, PACKET_DIRECTION_SEND);
     }
 
@@ -1188,7 +1393,7 @@ static int receivepacket(const Network *ns, const Logger *log, Socket sock, IP_P
         return -1;
     }
 
-    loglogdata(log, "=>O", data, MAX_UDP_PACKET_SIZE, ip_port, *length);
+    loglogdata(log, NET_DIRECTION_UDP_INCOMING, data, MAX_UDP_PACKET_SIZE, ip_port, *length);
 
     return 0;
 }
@@ -2365,7 +2570,7 @@ int net_error(void)
 char *net_strerror(int error, Net_Strerror *buf)
 {
     FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr,
-                   error, 0, buf->data, NET_STRERROR_SIZE, nullptr);
+                   error, 0, buf->data, sizeof(buf->data), nullptr);
     return buf->data;
 }
 #else
@@ -2398,9 +2603,9 @@ char *net_strerror(int error, Net_Strerror *buf)
 {
     errno = 0;
 
-    const char *retstr = net_strerror_r(error, buf->data, NET_STRERROR_SIZE);
+    const char *retstr = net_strerror_r(error, buf->data, sizeof(buf->data));
     const size_t retstr_len = strlen(retstr);
-    assert(retstr_len < NET_STRERROR_SIZE);
+    assert(retstr_len < sizeof(buf->data));
     buf->size = (uint16_t)retstr_len;
 
     return buf->data;
