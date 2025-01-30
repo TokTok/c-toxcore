@@ -15,6 +15,12 @@
 
 #define INVALID_BACKEND ((LOG_BACKEND)-1u)
 static LOG_BACKEND current_backend = INVALID_BACKEND;
+static bool log_toxcore_trace = false;
+
+void log_enable_trace(bool enable)
+{
+    log_toxcore_trace = enable;
+}
 
 bool log_open(LOG_BACKEND backend)
 {
@@ -58,10 +64,15 @@ bool log_close(void)
     return true;
 }
 
-bool log_write(LOG_LEVEL level, const char *format, ...)
+bool log_write(LOG_LEVEL level, const char *category, const char *file, int line, const char *format, ...)
 {
     if (current_backend == INVALID_BACKEND) {
         return false;
+    }
+
+    if (level == LOG_LEVEL_TRACE && !log_toxcore_trace) {
+        // By default, no trace logging.
+        return true;
     }
 
     va_list args;
@@ -69,11 +80,11 @@ bool log_write(LOG_LEVEL level, const char *format, ...)
 
     switch (current_backend) {
         case LOG_BACKEND_STDOUT:
-            log_backend_stdout_write(level, format, args);
+            log_backend_stdout_write(level, category, file, line, format, args);
             break;
 
         case LOG_BACKEND_SYSLOG:
-            log_backend_syslog_write(level, format, args);
+            log_backend_syslog_write(level, category, file, line, format, args);
             break;
     }
 
