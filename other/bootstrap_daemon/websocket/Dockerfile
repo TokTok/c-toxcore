@@ -1,6 +1,6 @@
 # Stage 1 - Compile websockify.
 FROM toxchat/bootstrap-node:latest AS tox
-FROM golang:1.17-alpine AS websockify
+FROM golang:1.23-alpine3.21 AS websockify
 
 COPY websockify /work/websockify
 RUN cd /work/websockify && go mod download github.com/gorilla/websocket && go install
@@ -24,6 +24,8 @@ USER tox
 # Use this to generate a keys file:
 #RUN /usr/local/bin/tox-bootstrapd --config /etc/tox-bootstrapd.conf --log-backend stdout \
 # && sleep 1
+
+COPY tox-bootstrapd.conf /etc/
 
 WORKDIR /web
 CMD ["/entrypoint.sh"]

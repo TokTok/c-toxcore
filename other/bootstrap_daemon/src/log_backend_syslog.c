@@ -33,6 +33,9 @@ void log_backend_syslog_close(void)
 static int log_backend_syslog_level(LOG_LEVEL level)
 {
     switch (level) {
+        case LOG_LEVEL_TRACE:
+            return LOG_DEBUG;
+
         case LOG_LEVEL_INFO:
             return LOG_INFO;
 
@@ -46,7 +49,7 @@ static int log_backend_syslog_level(LOG_LEVEL level)
     return LOG_INFO;
 }
 
-void log_backend_syslog_write(LOG_LEVEL level, const char *format, va_list args)
+void log_backend_syslog_write(LOG_LEVEL level, const char *category, const char *file, int line, const char *format, va_list args)
 {
     va_list args2;
 

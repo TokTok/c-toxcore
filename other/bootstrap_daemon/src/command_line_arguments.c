@@ -9,7 +9,7 @@
  */
 #include "command_line_arguments.h"
 
-#include "global.h"
+#include "global.h" // IWYU pragma: keep
 #include "log.h"
 
 #include "../../../toxcore/ccompat.h"
@@ -26,7 +26,7 @@ static void print_help(void)
     // 2 space indent
     // Make sure all lines fit into 80 columns
     // Make sure options are listed in alphabetical order
-    log_write(LOG_LEVEL_INFO,
+    LOG_WRITE(LOG_LEVEL_INFO,
               "Usage: tox-bootstrapd [OPTION]... --config=FILE_PATH\n"
               "\n"
               "Options:\n"
@@ -43,6 +43,7 @@ static void print_help(void)
               "                                  Default option when no --log-backend is\n"
               "                                  specified.\n"
               "                           stdout Writes log messages to stdout/stderr.\n"
+              "  --trace                Enable verbose network trace logging in toxcore.\n"
               "  --version              Print version information.\n");
 }
 
@@ -51,7 +52,7 @@ Cli_Status handle_command_line_arguments(
     bool *run_in_foreground)
 {
     if (argc < 2) {
-        log_write(LOG_LEVEL_ERROR, "Error: No arguments provided.\n\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Error: No arguments provided.\n\n");
         print_help();
         return CLI_STATUS_ERROR;
     }
@@ -64,6 +65,7 @@ Cli_Status handle_command_line_arguments(
         {"help",        no_argument,       nullptr, 'h'},
         {"log-backend", required_argument, nullptr, 'l'}, // optional, defaults to syslog
         {"version",     no_argument,       nullptr, 'v'},
+        {"trace",       no_argument,       nullptr, 't'},
         {nullptr,       0,                 nullptr,  0 }
     };
 
@@ -99,7 +101,7 @@ Cli_Status handle_command_line_arguments(
                     *log_backend = LOG_BACKEND_STDOUT;
                     log_backend_set = true;
                 } else {
-                    log_write(LOG_LEVEL_ERROR, "Error: Invalid BACKEND value for --log-backend option passed: %s\n\n", optarg);
+                    LOG_WRITE(LOG_LEVEL_ERROR, "Error: Invalid BACKEND value for --log-backend option passed: %s\n\n", optarg);
                     print_help();
                     return CLI_STATUS_ERROR;
                 }
@@ -107,16 +109,21 @@ Cli_Status handle_command_line_arguments(
                 break;
 
             case 'v':
-                log_write(LOG_LEVEL_INFO, "Version: %lu\n", DAEMON_VERSION_NUMBER);
+                LOG_WRITE(LOG_LEVEL_INFO, "Version: %lu\n", DAEMON_VERSION_NUMBER);
                 return CLI_STATUS_DONE;
 
+            case 't':
+                LOG_WRITE(LOG_LEVEL_INFO, "Enabling trace logging in toxcore.\n");
+                log_enable_trace(true);
+                break;
+
             case '?':
-                log_write(LOG_LEVEL_ERROR, "Error: Unrecognized option %s\n\n", argv[optind - 1]);
+                LOG_WRITE(LOG_LEVEL_ERROR, "Error: Unrecognized option %s\n\n", argv[optind - 1]);
                 print_help();
                 return CLI_STATUS_ERROR;
 
             case ':':
-                log_write(LOG_LEVEL_ERROR, "Error: No argument provided for option %s\n\n", argv[optind - 1]);
+                LOG_WRITE(LOG_LEVEL_ERROR, "Error: No argument provided for option %s\n\n", argv[optind - 1]);
                 print_help();
                 return CLI_STATUS_ERROR;
         }
@@ -127,7 +134,7 @@ Cli_Status handle_command_line_arguments(
     }
 
     if (!cfg_file_path_set) {
-        log_write(LOG_LEVEL_ERROR, "Error: The required --config option wasn't specified\n\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Error: The required --config option wasn't specified\n\n");
         print_help();
         return CLI_STATUS_ERROR;
     }
