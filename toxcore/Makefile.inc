@@ -100,6 +100,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/mono_time.h \
                         ../toxcore/net_crypto.c \
                         ../toxcore/net_crypto.h \
+                        ../toxcore/net_log.c \
+                        ../toxcore/net_log.h \
                         ../toxcore/net_profile.c \
                         ../toxcore/net_profile.h \
                         ../toxcore/network.c \
