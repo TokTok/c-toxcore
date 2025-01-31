@@ -368,8 +368,14 @@ cc_library(
 
 cc_library(
     name = "network",
-    srcs = ["network.c"],
-    hdrs = ["network.h"],
+    srcs = [
+        "net_log.c",
+        "network.c",
+    ],
+    hdrs = [
+        "net_log.h",
+        "network.h",
+    ],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
