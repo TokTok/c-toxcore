@@ -238,7 +238,7 @@ set(toxcore_SOURCES
   toxcore/events/conference_peer_list_changed.c
   toxcore/events/conference_peer_name.c
   toxcore/events/conference_title.c
-  toxcore/events/dht_get_nodes_response.c
+  toxcore/events/dht_nodes_response.c
   toxcore/events/events_alloc.c
   toxcore/events/events_alloc.h
   toxcore/events/file_chunk_request.c

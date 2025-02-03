@@ -44,7 +44,7 @@ struct Tox {
     tox_conference_title_cb *conference_title_callback;
     tox_conference_peer_name_cb *conference_peer_name_callback;
     tox_conference_peer_list_changed_cb *conference_peer_list_changed_callback;
-    tox_dht_get_nodes_response_cb *dht_get_nodes_response_callback;
+    tox_dht_nodes_response_cb *dht_nodes_response_callback;
     tox_friend_lossy_packet_cb *friend_lossy_packet_callback_per_pktid[UINT8_MAX + 1];
     tox_friend_lossless_packet_cb *friend_lossless_packet_callback_per_pktid[UINT8_MAX + 1];
     tox_group_peer_name_cb *group_peer_name_callback;

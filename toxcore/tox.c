@@ -362,19 +362,19 @@ static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conf
     }
 }
 
-static dht_get_nodes_response_cb tox_dht_get_nodes_response_handler;
+static dht_nodes_response_cb tox_dht_nodes_response_handler;
 non_null(1, 2) nullable(3)
-static void tox_dht_get_nodes_response_handler(const DHT *dht, const Node_format *node, void *user_data)
+static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *node, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
 
-    if (tox_data->tox->dht_get_nodes_response_callback == nullptr) {
+    if (tox_data->tox->dht_nodes_response_callback == nullptr) {
         return;
     }
 
     Ip_Ntoa ip_str;
     tox_unlock(tox_data->tox);
-    tox_data->tox->dht_get_nodes_response_callback(
+    tox_data->tox->dht_nodes_response_callback(
         tox_data->tox, node->public_key, net_ip_ntoa(&node->ip_port.ip, &ip_str), net_ntohs(node->ip_port.port),
         tox_data->user_data);
     tox_lock(tox_data->tox);
@@ -988,7 +988,7 @@ static Tox *tox_new_system(const struct Tox_Options *options, Tox_Err_New *error
     callback_file_reqchunk(tox->m, tox_file_chunk_request_handler);
     callback_file_sendrequest(tox->m, tox_file_recv_handler);
     callback_file_data(tox->m, tox_file_recv_chunk_handler);
-    dht_callback_get_nodes_response(tox->m->dht, tox_dht_get_nodes_response_handler);
+    dht_callback_nodes_response(tox->m->dht, tox_dht_nodes_response_handler);
     g_callback_group_invite(tox->m->conferences_object, tox_conference_invite_handler);
     g_callback_group_connected(tox->m->conferences_object, tox_conference_connected_handler);
     g_callback_group_message(tox->m->conferences_object, tox_conference_message_handler);

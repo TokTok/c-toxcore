@@ -1264,7 +1264,7 @@ static int handle_dhtpk_announce(void *object, const uint8_t *source_pubkey, con
             const Family family = nodes[i].ip_port.ip.family;
 
             if (net_family_is_ipv4(family) || net_family_is_ipv6(family)) {
-                dht_getnodes(onion_c->dht, &nodes[i].ip_port, nodes[i].public_key, onion_c->friends_list[friend_num].dht_public_key);
+                dht_send_nodes_request(onion_c->dht, &nodes[i].ip_port, nodes[i].public_key, onion_c->friends_list[friend_num].dht_public_key);
             } else if (net_family_is_tcp_ipv4(family) || net_family_is_tcp_ipv6(family)) {
                 if (onion_c->friends_list[friend_num].tcp_relay_node_callback != nullptr) {
                     void *obj = onion_c->friends_list[friend_num].tcp_relay_node_callback_object;

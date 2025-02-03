@@ -113,8 +113,8 @@ Family net_family_tox_tcp_ipv6(void);
 typedef enum Net_Packet_Type {
     NET_PACKET_PING_REQUEST         = 0x00, /* Ping request packet ID. */
     NET_PACKET_PING_RESPONSE        = 0x01, /* Ping response packet ID. */
-    NET_PACKET_GET_NODES            = 0x02, /* Get nodes request packet ID. */
-    NET_PACKET_SEND_NODES_IPV6      = 0x04, /* Send nodes response packet ID for other addresses. */
+    NET_PACKET_NODES_REQUEST        = 0x02, /* Nodes request packet ID. */
+    NET_PACKET_NODES_RESPONSE_IPV6  = 0x04, /* Nodes response packet ID for other addresses. */
     NET_PACKET_COOKIE_REQUEST       = 0x18, /* Cookie request packet */
     NET_PACKET_COOKIE_RESPONSE      = 0x19, /* Cookie response packet */
     NET_PACKET_CRYPTO_HS            = 0x1a, /* Crypto handshake packet */

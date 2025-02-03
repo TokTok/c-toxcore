@@ -136,8 +136,8 @@ typedef void tox_events_group_join_fail_cb(
     const Tox_Event_Group_Join_Fail *event, void *user_data);
 typedef void tox_events_group_moderation_cb(
     const Tox_Event_Group_Moderation *event, void *user_data);
-typedef void tox_events_dht_get_nodes_response_cb(
-    const Tox_Event_Dht_Get_Nodes_Response *event, void *user_data);
+typedef void tox_events_dht_nodes_response_cb(
+    const Tox_Event_Dht_Nodes_Response *event, void *user_data);
 
 void tox_events_callback_conference_connected(
     Tox_Dispatch *dispatch, tox_events_conference_connected_cb *callback);
@@ -217,8 +217,8 @@ void tox_events_callback_group_join_fail(
     Tox_Dispatch *dispatch, tox_events_group_join_fail_cb *callback);
 void tox_events_callback_group_moderation(
     Tox_Dispatch *dispatch, tox_events_group_moderation_cb *callback);
-void tox_events_callback_dht_get_nodes_response(
-    Tox_Dispatch *dispatch, tox_events_dht_get_nodes_response_cb *callback);
+void tox_events_callback_dht_nodes_response(
+    Tox_Dispatch *dispatch, tox_events_dht_nodes_response_cb *callback);
 
 #ifdef __cplusplus
 } /* extern "C" */

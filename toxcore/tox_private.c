@@ -93,33 +93,33 @@ void *tox_get_av_object(const Tox *tox)
     return object;
 }
 
-void tox_callback_dht_get_nodes_response(Tox *tox, tox_dht_get_nodes_response_cb *callback)
+void tox_callback_dht_nodes_response(Tox *tox, tox_dht_nodes_response_cb *callback)
 {
     assert(tox != nullptr);
-    tox->dht_get_nodes_response_callback = callback;
+    tox->dht_nodes_response_callback = callback;
 }
 
-bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
-                       const uint8_t *target_public_key, Tox_Err_Dht_Get_Nodes *error)
+bool tox_dht_nodes_request(const Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
+                           const uint8_t *target_public_key, Tox_Err_Dht_Nodes_Request *error)
 {
     assert(tox != nullptr);
 
     tox_lock(tox);
 
     if (tox->m->options.udp_disabled) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_UDP_DISABLED);
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_UDP_DISABLED);
         tox_unlock(tox);
         return false;
     }
 
     if (public_key == nullptr || ip == nullptr || target_public_key == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_NULL);
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_NULL);
         tox_unlock(tox);
         return false;
     }
 
     if (port == 0) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_BAD_PORT);
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_BAD_PORT);
         tox_unlock(tox);
         return false;
     }
@@ -129,7 +129,7 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, ip, &root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
 
     if (count < 1) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_BAD_IP);
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_BAD_IP);
         net_freeipport(tox->sys.mem, root);
         tox_unlock(tox);
         return false;
@@ -140,7 +140,7 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     for (int32_t i = 0; i < count; ++i) {
         root[i].port = net_htons(port);
 
-        if (dht_getnodes(tox->m->dht, &root[i], public_key, target_public_key)) {
+        if (dht_send_nodes_request(tox->m->dht, &root[i], public_key, target_public_key)) {
             success = true;
         }
     }
@@ -150,11 +150,11 @@ bool tox_dht_get_nodes(const Tox *tox, const uint8_t *public_key, const char *ip
     net_freeipport(tox->sys.mem, root);
 
     if (!success) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_FAIL);
+        SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_FAIL);
         return false;
     }
 
-    SET_ERROR_PARAMETER(error, TOX_ERR_DHT_GET_NODES_OK);
+    SET_ERROR_PARAMETER(error, TOX_ERR_DHT_NODES_REQUEST_OK);
 
     return true;
 }

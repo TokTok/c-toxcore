@@ -1,6 +1,6 @@
 /**
  * This autotest creates a small local DHT and makes sure that each peer can crawl
- * the entire DHT using the DHT getnodes api functions.
+ * the entire DHT using the DHT nodes request/response api functions.
  */
 
 #include <stdio.h>
@@ -72,16 +72,16 @@ static bool all_nodes_crawled(const AutoTox *autotoxes, uint32_t num_toxes, uint
     return true;
 }
 
-static void getnodes_response_cb(const Tox_Event_Dht_Get_Nodes_Response *event, void *user_data)
+static void nodes_response_cb(const Tox_Event_Dht_Nodes_Response *event, void *user_data)
 {
     ck_assert(user_data != nullptr);
 
     AutoTox *autotox = (AutoTox *)user_data;
     State *state = (State *)autotox->state;
 
-    const uint8_t *public_key = tox_event_dht_get_nodes_response_get_public_key(event);
-    const char *ip = (const char *)tox_event_dht_get_nodes_response_get_ip(event);
-    const uint16_t port = tox_event_dht_get_nodes_response_get_port(event);
+    const uint8_t *public_key = tox_event_dht_nodes_response_get_public_key(event);
+    const char *ip = (const char *)tox_event_dht_nodes_response_get_ip(event);
+    const uint16_t port = tox_event_dht_nodes_response_get_port(event);
 
     if (node_crawled(state->nodes, state->num_nodes, public_key)) {
         return;
@@ -101,11 +101,11 @@ static void getnodes_response_cb(const Tox_Event_Dht_Get_Nodes_Response *event, 
 
     // ask new node to give us their close nodes to every public key
     for (size_t i = 0; i < NUM_TOXES; ++i) {
-        tox_dht_get_nodes(autotox->tox, public_key, ip, port, state->public_key_list[i], nullptr);
+        tox_dht_nodes_request(autotox->tox, public_key, ip, port, state->public_key_list[i], nullptr);
     }
 }
 
-static void test_dht_getnodes(AutoTox *autotoxes)
+static void test_dht_nodes_request(AutoTox *autotoxes)
 {
     ck_assert(NUM_TOXES >= 2);
 
@@ -125,7 +125,7 @@ static void test_dht_getnodes(AutoTox *autotoxes)
         ck_assert(public_key_list[i] != nullptr);
 
         tox_self_get_dht_id(autotoxes[i].tox, public_key_list[i]);
-        tox_events_callback_dht_get_nodes_response(autotoxes[i].dispatch, getnodes_response_cb);
+        tox_events_callback_dht_nodes_response(autotoxes[i].dispatch, nodes_response_cb);
 
         printf("Peer %zu dht closenode count total/announce-capable: %d/%d\n",
                i,
@@ -153,7 +153,7 @@ int main(void)
     Run_Auto_Options options = default_run_auto_options();
     options.graph = GRAPH_LINEAR;
 
-    run_auto_test(nullptr, NUM_TOXES, test_dht_getnodes, sizeof(State), &options);
+    run_auto_test(nullptr, NUM_TOXES, test_dht_nodes_request, sizeof(State), &options);
 
     return 0;
 }

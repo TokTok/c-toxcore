@@ -772,11 +772,11 @@ static const char *net_packet_type_name(Net_Packet_Type type)
         case NET_PACKET_PING_RESPONSE:
             return "PING_RESPONSE";
 
-        case NET_PACKET_GET_NODES:
-            return "GET_NODES";
+        case NET_PACKET_NODES_REQUEST:
+            return "NODES_REQUEST";
 
-        case NET_PACKET_SEND_NODES_IPV6:
-            return "SEND_NODES_IPV6";
+        case NET_PACKET_NODES_RESPONSE_IPV6:
+            return "NODES_RESPONSE_IPV6";
 
         case NET_PACKET_COOKIE_REQUEST:
             return "COOKIE_REQUEST";
@@ -1049,7 +1049,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
 
     if (net_family_is_unspec(net->family)) { /* Socket not initialized */
         // TODO(iphydf): Make this an error. Currently, the onion client calls
-        // this via DHT getnodes.
+        // this via DHT nodes requests.
         LOGGER_WARNING(net->log, "attempted to send message of length %u on uninitialised socket", packet.length);
         return -1;
     }
