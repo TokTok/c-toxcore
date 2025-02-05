@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "DHT.h"
+#include "Messenger.h"
 #include "TCP_server.h"
 #include "ccompat.h"
 #include "crypto_core.h"

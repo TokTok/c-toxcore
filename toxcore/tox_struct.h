@@ -8,7 +8,6 @@
 
 #include <pthread.h>
 
-#include "Messenger.h"
 #include "mono_time.h"
 #include "tox.h"
 #include "tox_options.h" // tox_log_cb
@@ -19,7 +18,7 @@ extern "C" {
 #endif
 
 struct Tox {
-    Messenger *m;
+    struct Messenger *m;
     Mono_Time *mono_time;
     Tox_System sys;
     pthread_mutex_t *mutex;

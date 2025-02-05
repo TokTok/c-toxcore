@@ -93,8 +93,9 @@ uint32_t tox_dht_node_public_key_size(void);
  * @param ip The node's IP address, represented as a NUL-terminated C string.
  * @param port The node's port.
  */
-typedef void tox_dht_nodes_response_cb(Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
-                                       void *user_data);
+typedef void tox_dht_nodes_response_cb(
+    Tox *tox, const uint8_t *public_key, const char *ip, uint32_t ip_length,
+    uint16_t port, void *user_data);
 
 /**
  * Set the callback for the `dht_nodes_response` event. Pass NULL to unset.

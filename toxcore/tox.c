@@ -373,9 +373,11 @@ static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *no
     }
 
     Ip_Ntoa ip_str;
+    net_ip_ntoa(&node->ip_port.ip, &ip_str);
+
     tox_unlock(tox_data->tox);
     tox_data->tox->dht_nodes_response_callback(
-        tox_data->tox, node->public_key, net_ip_ntoa(&node->ip_port.ip, &ip_str), net_ntohs(node->ip_port.port),
+        tox_data->tox, node->public_key, ip_str.buf, ip_str.length, net_ntohs(node->ip_port.port),
         tox_data->user_data);
     tox_lock(tox_data->tox);
 }

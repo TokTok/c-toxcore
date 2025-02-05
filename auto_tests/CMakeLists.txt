@@ -48,7 +48,7 @@ auto_test(conference_simple)
 auto_test(conference_two)
 auto_test(crypto)
 #auto_test(dht)  # Doesn't work with UNITY_BUILD.
-auto_test(dht_getnodes_api)
+auto_test(dht_nodes_response_api)
 auto_test(encryptsave)
 auto_test(file_saving)
 auto_test(file_streaming)

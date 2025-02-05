@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_private.h"

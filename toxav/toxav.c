@@ -13,6 +13,7 @@
 #include "rtp.h"
 #include "toxav_hacks.h"
 
+#include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
