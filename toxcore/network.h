@@ -41,7 +41,7 @@ typedef Socket net_accept_cb(void *obj, Socket sock);
 typedef int net_bind_cb(void *obj, Socket sock, const Network_Addr *addr);
 typedef int net_listen_cb(void *obj, Socket sock, int backlog);
 typedef int net_connect_cb(void *obj, Socket sock, const Network_Addr *addr);
-typedef int net_recvbuf_cb(void *obj, Socket sock);
+typedef int net_recvbuf_cb(void *obj, Socket sock, uint16_t length);
 typedef int net_recv_cb(void *obj, Socket sock, uint8_t *buf, size_t len);
 typedef int net_recvfrom_cb(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr);
 typedef int net_send_cb(void *obj, Socket sock, const uint8_t *buf, size_t len);
@@ -272,11 +272,15 @@ non_null()
 Socket net_accept(const Network *ns, Socket sock);
 
 /**
- * return the size of data in the tcp recv buffer.
- * return 0 on failure.
+ * @param ns System network interface.
+ * @param sock Socket to check the recv buffer on.
+ * @param length Length hint: how much does the caller expect to find?
+ *   This does nothing except in fuzzing mode where it helps guide packet sizes.
+ *
+ * @return the size of data in the tcp recv buffer or 0 on failure.
  */
 non_null()
-uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock);
+uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock, uint16_t length);
 
 /** Convert values between host and network byte order. */
 uint32_t net_htonl(uint32_t hostlong);

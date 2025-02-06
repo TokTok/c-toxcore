@@ -58,14 +58,14 @@ static int recv_common(Fuzz_Data &input, uint8_t *buf, size_t buf_len)
     if (fuzz_len == 0xffff) {
         errno = EWOULDBLOCK;
         if (Fuzz_Data::FUZZ_DEBUG) {
-            std::printf("recvfrom: no data for tox1\n");
+            std::fprintf(stderr, "recvfrom: no data for tox1 (errno=%d)\n", errno);
         }
         return -1;
     }
 
     if (Fuzz_Data::FUZZ_DEBUG) {
-        std::printf(
-            "recvfrom: %zu (%02x, %02x) for tox1\n", fuzz_len, input.data()[-2], input.data()[-1]);
+        std::fprintf(
+            stderr, "recvfrom: %zu (%02x, %02x) for tox1\n", fuzz_len, input.data()[-2], input.data()[-1]);
     }
     const size_t res = std::min(buf_len, std::min(fuzz_len, input.size()));
 
@@ -120,10 +120,14 @@ static constexpr Network_Funcs fuzz_network_funcs = {
     /* .listen = */ ![](Fuzz_System *self, Socket sock, int backlog) { return 0; },
     /* .connect = */ ![](Fuzz_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .recvbuf = */
-    ![](Fuzz_System *self, Socket sock) {
+    ![](Fuzz_System *self, Socket sock, uint16_t length) {
         assert(sock.value == 42 || sock.value == 1337);
-        const size_t count = random_u16(self->rng.get());
-        return static_cast<int>(std::min(count, self->data.size()));
+        const size_t count = std::max(length, random_u16(self->rng.get()));
+        const int bufsize = static_cast<int>(std::min(count, self->data.size()));
+        if (Fuzz_Data::FUZZ_DEBUG) {
+            std::printf("recvbuf: %d (length=%u, count=%zu, data->size=%zu)\n", bufsize, length, count, self->data.size());
+        }
+        return bufsize;
     },
     /* .recv = */
     ![](Fuzz_System *self, Socket sock, uint8_t *buf, size_t len) {
@@ -261,7 +265,7 @@ static constexpr Network_Funcs null_network_funcs = {
     /* .bind = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
     /* .listen = */ ![](Null_System *self, Socket sock, int backlog) { return 0; },
     /* .connect = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
-    /* .recvbuf = */ ![](Null_System *self, Socket sock) { return 0; },
+    /* .recvbuf = */ ![](Null_System *self, Socket sock, uint16_t length) { return 0; },
     /* .recv = */
     ![](Null_System *self, Socket sock, uint8_t *buf, size_t len) {
         // Always fail.
@@ -378,7 +382,7 @@ static constexpr Network_Funcs record_network_funcs = {
     },
     /* .listen = */ ![](Record_System *self, Socket sock, int backlog) { return 0; },
     /* .connect = */ ![](Record_System *self, Socket sock, const Network_Addr *addr) { return 0; },
-    /* .recvbuf = */ ![](Record_System *self, Socket sock) { return 0; },
+    /* .recvbuf = */ ![](Record_System *self, Socket sock, uint32_t length) { return 0; },
     /* .recv = */
     ![](Record_System *self, Socket sock, uint8_t *buf, size_t len) {
         // Always fail.

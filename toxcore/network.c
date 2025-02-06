@@ -523,7 +523,7 @@ static int sys_connect(void *obj, Socket sock, const Network_Addr *addr)
 }
 
 non_null()
-static int sys_recvbuf(void *obj, Socket sock)
+static int sys_recvbuf(void *obj, Socket sock, uint16_t length)
 {
 #ifdef OS_WIN32
     u_long count = 0;
@@ -933,7 +933,9 @@ int net_recv(const Network *ns, const Logger *log,
              Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port)
 {
     const int res = ns->funcs->recv(ns->obj, sock, buf, len);
+    fprintf(stderr, "net_recv1: %d %d\n", res, errno);
     loglogdata(log, "=>T", buf, len, ip_port, res);
+    fprintf(stderr, "net_recv2: %d %d\n", res, errno);
     return res;
 }
 
@@ -2256,9 +2258,9 @@ Socket net_socket(const Network *ns, Family domain, int type, int protocol)
     return ns->funcs->socket(ns->obj, platform_domain, platform_type, platform_prot);
 }
 
-uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock)
+uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock, uint16_t length)
 {
-    const int count = ns->funcs->recvbuf(ns->obj, sock);
+    const int count = ns->funcs->recvbuf(ns->obj, sock, length);
     return (uint16_t)max_s32(0, min_s32(count, UINT16_MAX));
 }
 

@@ -688,6 +688,19 @@ cc_library(
     ],
 )
 
+cc_fuzz_test(
+    name = "TCP_server_fuzz_test",
+    size = "small",
+    testonly = True,
+    srcs = ["TCP_server_fuzz_test.cc"],
+    # corpus = ["//tools/toktok-fuzzer/corpus:TCP_server_fuzz_test"],
+    deps = [
+        ":TCP_server",
+        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/fuzzing:fuzz_tox",
+    ],
+)
+
 cc_library(
     name = "TCP_client",
     srcs = ["TCP_client.c"],
@@ -779,7 +792,6 @@ cc_fuzz_test(
     deps = [
         ":DHT",
         ":TCP_client",
-        ":mem_test_util",
         ":net_crypto",
         ":network",
         "//c-toxcore/testing/fuzzing:fuzz_support",
