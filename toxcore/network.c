@@ -506,7 +506,7 @@ static int sys_connect(void *_Nonnull obj, Socket sock, const Network_Addr *_Non
     return connect(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
 }
 
-static int sys_recvbuf(void *_Nonnull obj, Socket sock)
+static int sys_recvbuf(void *_Nonnull obj, Socket sock, uint16_t length)
 {
 #ifdef OS_WIN32
     u_long count = 0;
@@ -2050,9 +2050,9 @@ Socket net_socket(const Network *ns, Family domain, int type, int protocol)
     return ns->funcs->socket(ns->obj, platform_domain, platform_type, platform_prot);
 }
 
-uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock)
+uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock, uint16_t length)
 {
-    const int count = ns->funcs->recvbuf(ns->obj, sock);
+    const int count = ns->funcs->recvbuf(ns->obj, sock, length);
     return (uint16_t)max_s32(0, min_s32(count, UINT16_MAX));
 }
 

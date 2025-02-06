@@ -31,6 +31,8 @@ typedef enum Logger_Level {
     LOGGER_LEVEL_ERROR,
 } Logger_Level;
 
+const char *logger_level_to_string(Logger_Level level);
+
 typedef struct Logger Logger;
 
 typedef void logger_cb(void *_Nullable context, Logger_Level level, const char *_Nonnull file, uint32_t line,

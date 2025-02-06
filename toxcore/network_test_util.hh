@@ -51,7 +51,7 @@ class Test_Network : public Network_Class {
     int bind(void *obj, Socket sock, const Network_Addr *addr) override;
     int listen(void *obj, Socket sock, int backlog) override;
     int connect(void *obj, Socket sock, const Network_Addr *addr) override;
-    int recvbuf(void *obj, Socket sock) override;
+    int recvbuf(void *obj, Socket sock, uint16_t length) override;
     int recv(void *obj, Socket sock, uint8_t *buf, size_t len) override;
     int recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) override;
     int send(void *obj, Socket sock, const uint8_t *buf, size_t len) override;

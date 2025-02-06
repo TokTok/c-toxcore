@@ -40,7 +40,7 @@ int Test_Network::connect(void *obj, Socket sock, const Network_Addr *addr)
 {
     return net->funcs->connect(net->obj, sock, addr);
 }
-int Test_Network::recvbuf(void *obj, Socket sock) { return net->funcs->recvbuf(net->obj, sock); }
+int Test_Network::recvbuf(void *obj, Socket sock, uint16_t length) { return net->funcs->recvbuf(net->obj, sock, length); }
 int Test_Network::recv(void *obj, Socket sock, uint8_t *buf, size_t len)
 {
     return net->funcs->recv(net->obj, sock, buf, len);
