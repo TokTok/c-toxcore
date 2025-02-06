@@ -319,6 +319,10 @@ set(toxcore_SOURCES
   toxcore/onion_client.c
   toxcore/onion_client.h
   toxcore/onion.h
+  toxcore/os_memory.c
+  toxcore/os_memory.h
+  toxcore/os_random.c
+  toxcore/os_random.h
   toxcore/ping_array.c
   toxcore/ping_array.h
   toxcore/ping.c
@@ -340,6 +344,7 @@ set(toxcore_SOURCES
   toxcore/timed_auth.c
   toxcore/timed_auth.h
   toxcore/tox_api.c
+  toxcore/tox_attributes.h
   toxcore/tox.c
   toxcore/tox.h
   toxcore/tox_dispatch.c
@@ -350,12 +355,18 @@ set(toxcore_SOURCES
   toxcore/tox_events.h
   toxcore/tox_log_level.c
   toxcore/tox_log_level.h
+  toxcore/tox_memory.c
+  toxcore/tox_memory.h
+  toxcore/tox_memory_impl.h
   toxcore/tox_options.c
   toxcore/tox_options.h
   toxcore/tox_private.c
   toxcore/tox_private.h
   toxcore/tox_pack.c
   toxcore/tox_pack.h
+  toxcore/tox_random.c
+  toxcore/tox_random.h
+  toxcore/tox_random_impl.h
   toxcore/tox_unpack.c
   toxcore/tox_unpack.h
   toxcore/util.c
@@ -379,7 +390,8 @@ if(EXPERIMENTAL_API)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
     ${toxcore_SOURCE_DIR}/toxcore/tox_dispatch.h^tox
     ${toxcore_SOURCE_DIR}/toxcore/tox_events.h^tox
-    ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox)
+    ${toxcore_SOURCE_DIR}/toxcore/tox_private.h^tox
+    ${toxcore_SOURCE_DIR}/toxcore/tox_random.h^tox)
 endif()
 
 ################################################################################

@@ -40,11 +40,70 @@ cc_library(
 )
 
 cc_library(
+    name = "tox_attributes",
+    hdrs = ["tox_attributes.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+)
+
+cc_library(
     name = "ccompat",
     srcs = ["ccompat.c"],
     hdrs = ["ccompat.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [":attributes"],
+)
+
+cc_library(
+    name = "tox_memory",
+    srcs = ["tox_memory.c"],
+    hdrs = [
+        "tox_memory.h",
+        "tox_memory_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+    ],
+)
+
+cc_library(
+    name = "os_memory",
+    srcs = ["os_memory.c"],
+    hdrs = ["os_memory.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "tox_random",
+    srcs = ["tox_random.c"],
+    hdrs = [
+        "tox_random.h",
+        "tox_random_impl.h",
+    ],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":tox_attributes",
+        ":tox_memory",
+    ],
+)
+
+cc_library(
+    name = "os_random",
+    srcs = ["os_random.c"],
+    hdrs = ["os_random.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":tox_random",
+        "@libsodium",
+    ],
 )
 
 cc_library(
@@ -55,6 +114,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":tox_memory",
     ],
 )
 
@@ -65,7 +125,9 @@ cc_library(
     hdrs = ["mem_test_util.hh"],
     deps = [
         ":mem",
+        ":os_memory",
         ":test_util",
+        ":tox_memory",
     ],
 )
 
@@ -75,6 +137,7 @@ cc_test(
     srcs = ["mem_test.cc"],
     deps = [
         ":mem",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -208,6 +271,7 @@ cc_test(
         ":bin_unpack",
         ":logger",
         ":mem",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -222,6 +286,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":mem",
+        ":tox_random",
         ":util",
         "@libsodium",
     ],
@@ -249,6 +314,7 @@ cc_library(
     deps = [
         ":crypto_core",
         ":test_util",
+        ":tox_random",
     ],
 )
 
@@ -285,6 +351,7 @@ cc_test(
     deps = [
         ":list",
         ":mem",
+        ":os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -1141,6 +1208,8 @@ cc_library(
         ":net_profile",
         ":network",
         ":onion_client",
+        ":os_memory",
+        ":os_random",
         ":state",
         ":tox_log_level",
         ":tox_options",
@@ -1156,6 +1225,7 @@ cc_test(
     srcs = ["tox_test.cc"],
     deps = [
         ":crypto_core",
+        ":os_random",
         ":tox",
         ":tox_log_level",
         ":tox_options",

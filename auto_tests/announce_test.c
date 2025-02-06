@@ -2,12 +2,10 @@
 #include <string.h>
 
 #include "../toxcore/announce.h"
-#include "../toxcore/tox.h"
-#include "../testing/misc_tools.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
-#include "../toxcore/net_crypto.h"
-#include "../toxcore/util.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 

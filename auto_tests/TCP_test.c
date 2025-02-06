@@ -9,6 +9,8 @@
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/network.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "auto_test_support.h"
 
 #define NUM_PORTS 3

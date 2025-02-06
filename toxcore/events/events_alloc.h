@@ -6,7 +6,6 @@
 #define C_TOXCORE_TOXCORE_EVENTS_EVENTS_ALLOC_H
 
 #include "../attributes.h"
-#include "../mem.h"
 #include "../tox.h"
 #include "../tox_events.h"
 #include "../tox_private.h"
@@ -15,17 +14,19 @@
 extern "C" {
 #endif
 
+struct Tox_Memory;
+
 struct Tox_Events {
     Tox_Event *events;
     uint32_t events_size;
     uint32_t events_capacity;
 
-    const Memory *mem;
+    const struct Tox_Memory *mem;
 };
 
 typedef struct Tox_Events_State {
     Tox_Err_Events_Iterate error;
-    const Memory *mem;
+    const struct Tox_Memory *mem;
     Tox_Events *events;
 } Tox_Events_State;
 

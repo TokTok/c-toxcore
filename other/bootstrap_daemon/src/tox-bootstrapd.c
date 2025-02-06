@@ -36,11 +36,12 @@
 #include "../../../toxcore/group_announce.h"
 #include "../../../toxcore/group_onion_announce.h"
 #include "../../../toxcore/logger.h"
-#include "../../../toxcore/mem.h"
 #include "../../../toxcore/mono_time.h"
 #include "../../../toxcore/network.h"
 #include "../../../toxcore/onion.h"
 #include "../../../toxcore/onion_announce.h"
+#include "../../../toxcore/os_memory.h"
+#include "../../../toxcore/os_random.h"
 
 // misc
 #include "../../bootstrap_node_packets.h"
@@ -283,8 +284,8 @@ int main(int argc, char *argv[])
     IP ip;
     ip_init(&ip, enable_ipv6);
 
-    const Memory *mem = os_memory();
-    const Random *rng = os_random();
+    const Tox_Memory *mem = os_memory();
+    const Tox_Random *rng = os_random();
     const Network *ns = os_network();
 
     Logger *logger = logger_new(mem);

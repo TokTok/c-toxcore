@@ -11,6 +11,7 @@ brew install \
   libconfig \
   libsodium \
   libvpx \
+  ninja \
   opus
 
 . ".github/scripts/flags-clang.sh"
@@ -25,7 +26,7 @@ add_flag -Werror
 # compilers we use is fine.
 add_c_flag -Wno-c11-extensions
 
-cmake -B_build -H. \
+cmake -GNinja -B_build -H. \
   -DCMAKE_C_FLAGS="$C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
   -DCMAKE_EXE_LINKER_FLAGS="$LD_FLAGS" \
@@ -38,8 +39,7 @@ cmake -B_build -H. \
   -DUSE_IPV6=OFF \
   -DAUTOTEST=ON
 
-cd _build # pushd
-make "-j$NPROC" -k install
-ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 ||
-  ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
-cd - # popd
+cmake --build _build
+cmake --install _build
+ctest --test-dir _build -j50 --output-on-failure --rerun-failed --repeat until-pass:6 ||
+  ctest --test-dir _build -j50 --output-on-failure --rerun-failed --repeat until-pass:6

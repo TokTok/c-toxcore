@@ -6,13 +6,12 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/friend_connection.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
-#include "../toxcore/util.h"
 #include "check_compat.h"
 
 #define TOX_COUNT 2

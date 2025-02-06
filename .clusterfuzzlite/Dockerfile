@@ -6,6 +6,7 @@ FROM gcr.io/oss-fuzz-base/base-builder:latest
 RUN apt-get update \
  && apt-get -y install --no-install-suggests --no-install-recommends \
  cmake \
+ ninja-build \
  pkg-config \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*

@@ -6,7 +6,8 @@
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
 #include "../toxcore/onion_client.h"
-#include "../toxcore/util.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
