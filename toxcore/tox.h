@@ -102,6 +102,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "tox_log_level.h"  // IWYU pragma: export
 #include "tox_options.h"  // IWYU pragma: export
 
 #ifdef __cplusplus
@@ -474,7 +475,7 @@ const char *tox_err_new_to_string(Tox_Err_New value);
  *
  * @return A new Tox instance pointer on success or NULL on failure.
  */
-Tox *tox_new(const Tox_Options *options, Tox_Err_New *error);
+Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error);
 
 /**
  * @brief Releases all resources associated with the Tox instance and

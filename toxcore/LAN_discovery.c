@@ -41,6 +41,7 @@
 #include "crypto_core.h"
 #include "mem.h"
 #include "network.h"
+#include "tox_network.h"
 
 #define MAX_INTERFACES 16
 

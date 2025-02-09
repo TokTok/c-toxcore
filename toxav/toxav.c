@@ -20,8 +20,8 @@
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/network.h"
 #include "../toxcore/tox.h"
+#include "../toxcore/tox_impl.h" // IWYU pragma: keep
 #include "../toxcore/tox_private.h"
-#include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
 
 // TODO(zoff99): don't hardcode this, let the application choose it
@@ -39,11 +39,6 @@
 
 // iteration interval that is used when no call is active
 #define IDLE_ITERATION_INTERVAL_MS 200
-
-#ifndef TOXAV_CALL_DEFINED
-#define TOXAV_CALL_DEFINED
-typedef struct ToxAVCall ToxAVCall;
-#endif /* TOXAV_CALL_DEFINED */
 
 struct ToxAVCall {
     ToxAV *av;
@@ -88,7 +83,7 @@ typedef struct DecodeTimeStats {
 } DecodeTimeStats;
 
 struct ToxAV {
-    const Memory *mem;
+    const struct Tox_Memory *mem;
     Logger *log;
     Tox *tox;
     MSISession *msi;
@@ -229,7 +224,7 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     rtp_allow_receiving(av->tox);
     bwc_allow_receiving(av->tox);
 
-    av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
+    av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr);
 
     if (av->msi == nullptr) {
         pthread_mutex_destroy(av->mutex);

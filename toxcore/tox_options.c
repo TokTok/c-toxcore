@@ -198,6 +198,14 @@ void tox_options_set_experimental_owned_data(
 {
     options->experimental_owned_data = experimental_owned_data;
 }
+const struct Tox_System *tox_options_get_operating_system(const struct Tox_Options *options)
+{
+    return options->operating_system;
+}
+void tox_options_set_operating_system(struct Tox_Options *options, const struct Tox_System *operating_system)
+{
+    options->operating_system = operating_system;
+}
 
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
@@ -282,4 +290,47 @@ void tox_options_free(Tox_Options *options)
         tox_options_set_savedata_data(options, nullptr, 0);
         free(options);
     }
+}
+
+const char *tox_proxy_type_to_string(Tox_Proxy_Type value)
+{
+    switch (value) {
+        case TOX_PROXY_TYPE_NONE:
+            return "TOX_PROXY_TYPE_NONE";
+
+        case TOX_PROXY_TYPE_HTTP:
+            return "TOX_PROXY_TYPE_HTTP";
+
+        case TOX_PROXY_TYPE_SOCKS5:
+            return "TOX_PROXY_TYPE_SOCKS5";
+    }
+
+    return "<invalid Tox_Proxy_Type>";
+}
+const char *tox_savedata_type_to_string(Tox_Savedata_Type value)
+{
+    switch (value) {
+        case TOX_SAVEDATA_TYPE_NONE:
+            return "TOX_SAVEDATA_TYPE_NONE";
+
+        case TOX_SAVEDATA_TYPE_TOX_SAVE:
+            return "TOX_SAVEDATA_TYPE_TOX_SAVE";
+
+        case TOX_SAVEDATA_TYPE_SECRET_KEY:
+            return "TOX_SAVEDATA_TYPE_SECRET_KEY";
+    }
+
+    return "<invalid Tox_Savedata_Type>";
+}
+const char *tox_err_options_new_to_string(Tox_Err_Options_New value)
+{
+    switch (value) {
+        case TOX_ERR_OPTIONS_NEW_OK:
+            return "TOX_ERR_OPTIONS_NEW_OK";
+
+        case TOX_ERR_OPTIONS_NEW_MALLOC:
+            return "TOX_ERR_OPTIONS_NEW_MALLOC";
+    }
+
+    return "<invalid Tox_Err_Options_New>";
 }

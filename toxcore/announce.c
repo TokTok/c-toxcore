@@ -552,11 +552,12 @@ static int create_reply_plain(Announcements *announce,
     }
 }
 
-non_null(1, 2, 5, 7) nullable(3)
+non_null(1, 2, 5, 7, 9) nullable(3)
 static int create_reply(Announcements *announce, const IP_Port *source,
                         const uint8_t *sendback, uint16_t sendback_length,
                         const uint8_t *data, uint16_t length,
-                        uint8_t *reply, uint16_t reply_max_length)
+                        uint8_t *reply, uint16_t reply_max_length,
+                        const Memory *mem)
 {
     const int plain_len = (int)length - (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_MAC_SIZE);
 
@@ -616,7 +617,8 @@ static void forwarded_request_callback(void *object, const IP_Port *forwarder,
 
     const int len = create_reply(announce, forwarder,
                                  sendback, sendback_length,
-                                 data, length, reply, sizeof(reply));
+                                 data, length, reply, sizeof(reply),
+                                 announce->mem);
 
     if (len == -1) {
         return;
@@ -633,8 +635,8 @@ static int handle_dht_announce_request(
 
     uint8_t reply[MAX_FORWARD_DATA_SIZE];
 
-    const int len
-        = create_reply(announce, source, nullptr, 0, packet, length, reply, sizeof(reply));
+    const int len = create_reply(
+                        announce, source, nullptr, 0, packet, length, reply, sizeof(reply), announce->mem);
 
     if (len == -1) {
         return -1;
@@ -668,7 +670,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     new_hmac_key(announce->rng, announce->hmac_key);
     announce->shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (announce->shared_keys == nullptr) {
-        mem_delete(announce->mem, announce);
+        mem_delete(mem, announce);
         return nullptr;
     }
 

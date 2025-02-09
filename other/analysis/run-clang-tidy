@@ -79,6 +79,15 @@ CHECKS="$CHECKS,-clang-diagnostic-tautological-pointer-compare"
 # [unreadVariable]
 CHECKS="$CHECKS,-cppcoreguidelines-init-variables"
 
+# False positive on initialising one global using a pointer to another.
+# E.g.:
+#   int a;
+#   int *p = &a;
+# The warning says:
+#   initializing non-local variable with non-const expression depending on
+#   uninitialized non-local variable
+CHECKS="$CHECKS,-cppcoreguidelines-interfaces-global-init"
+
 # Short variable names are used quite a lot, and we don't consider them a
 # readability issue.
 CHECKS="$CHECKS,-readability-identifier-length"

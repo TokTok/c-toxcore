@@ -17,7 +17,8 @@
 #include "tox.h"
 #include "tox_event.h"
 #include "tox_private.h"
-#include "tox_struct.h" // IWYU pragma: keep
+#include "tox_system.h"
+#include "tox_system_impl.h" // IWYU pragma: keep
 
 /*****************************************************
  *

@@ -3,7 +3,7 @@ lib_LTLIBRARIES += libtoxencryptsave.la
 libtoxencryptsave_la_include_HEADERS = \
                         ../toxencryptsave/toxencryptsave.h
 
-libtoxencryptsave_la_includedir = $(includedir)/tox
+libtoxencryptsave_la_includedir = $(includedir)/tox/toxencryptsave
 
 libtoxencryptsave_la_SOURCES = ../toxencryptsave/toxencryptsave.h \
                         ../toxencryptsave/toxencryptsave.c \

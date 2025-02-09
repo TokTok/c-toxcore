@@ -10,13 +10,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "tox_log_level.h"
+#include "tox_log_level.h"  // IWYU pragma: export
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct Tox;
+struct Tox_System;
 
 /** @{
  * @name Startup options
@@ -310,6 +311,14 @@ struct Tox_Options {
      * @private
      */
     char *owned_proxy_host;
+
+    /**
+     * @brief The operating system functions used by Tox.
+     *
+     * Low level operating system functionality such as send/recv, random
+     * number generation, and memory allocation.
+     */
+    const struct Tox_System *operating_system;
 };
 #endif /* TOX_HIDE_DEPRECATED */
 
@@ -396,6 +405,10 @@ void tox_options_set_experimental_groups_persistence(
 bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
 
 void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experimental_disable_dns);
+
+const struct Tox_System *tox_options_get_operating_system(const struct Tox_Options *options);
+
+void tox_options_set_operating_system(struct Tox_Options *options, const struct Tox_System *operating_system);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.

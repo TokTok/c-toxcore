@@ -8,7 +8,9 @@
 #include "../toxcore/TCP_server.h"
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/network.h"
+#include "../toxcore/os_random.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_memory.h"
 #include "auto_test_support.h"
 
 #define NUM_PORTS 3
@@ -52,7 +54,7 @@ static void test_basic(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Logger *logger = logger_new(mem);
     logger_callback_log(logger, print_debug_logger, nullptr, nullptr);
 
@@ -319,7 +321,7 @@ static void test_some(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -518,7 +520,7 @@ static void test_client(void)
     ck_assert(mem != nullptr);
 
     Logger *logger = logger_new(mem);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -655,7 +657,7 @@ static void test_client_invalid(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Logger *logger = logger_new(mem);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -734,7 +736,7 @@ static void test_tcp_connection(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Logger *logger = logger_new(mem);
 
     tcp_data_callback_called = 0;
@@ -849,7 +851,7 @@ static void test_tcp_connection2(void)
     const Memory *mem = os_memory();
     ck_assert(mem != nullptr);
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     Logger *logger = logger_new(mem);
 
     tcp_oobdata_callback_called = 0;

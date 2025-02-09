@@ -30,7 +30,6 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
-#include "../../toxcore/tox_private.h"
 #include "fuzz_support.hh"
 
 namespace {
@@ -177,7 +176,7 @@ void dump(std::vector<uint8_t> recording, const char *filename)
 
 void RecordBootstrap(const char *init, const char *bootstrap)
 {
-    auto global = std::make_unique<Record_System::Global>();
+    Record_System::Global global;
 
     Tox_Options *opts = tox_options_new(nullptr);
     assert(opts != nullptr);
@@ -193,16 +192,13 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         });
 
     Tox_Err_New error_new;
-    Tox_Err_New_Testing error_new_testing;
-    Tox_Options_Testing tox_options_testing;
 
-    auto sys1 = std::make_unique<Record_System>(*global, 4, "tox1");  // fair dice roll
-    tox_options_set_log_user_data(opts, sys1.get());
-    tox_options_testing.operating_system = sys1->sys.get();
-    Tox *tox1 = tox_new_testing(opts, &error_new, &tox_options_testing, &error_new_testing);
+    Record_System sys1(global, 4, "tox1");  // fair dice roll
+    tox_options_set_log_user_data(opts, &sys1);
+    tox_options_set_operating_system(opts, sys1.sys.get());
+    Tox *tox1 = tox_new(opts, &error_new);
     assert(tox1 != nullptr);
     assert(error_new == TOX_ERR_NEW_OK);
-    assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
     std::array<uint8_t, TOX_ADDRESS_SIZE> address1;
     tox_self_get_address(tox1, address1.data());
     std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk1;
@@ -210,13 +206,12 @@ void RecordBootstrap(const char *init, const char *bootstrap)
     std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key1;
     tox_self_get_dht_id(tox1, dht_key1.data());
 
-    auto sys2 = std::make_unique<Record_System>(*global, 5, "tox2");  // unfair dice roll
-    tox_options_set_log_user_data(opts, sys2.get());
-    tox_options_testing.operating_system = sys2->sys.get();
-    Tox *tox2 = tox_new_testing(opts, &error_new, &tox_options_testing, &error_new_testing);
+    Record_System sys2(global, 5, "tox2");  // unfair dice roll
+    tox_options_set_log_user_data(opts, &sys2);
+    tox_options_set_operating_system(opts, sys2.sys.get());
+    Tox *tox2 = tox_new(opts, &error_new);
     assert(tox2 != nullptr);
     assert(error_new == TOX_ERR_NEW_OK);
-    assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
     std::array<uint8_t, TOX_ADDRESS_SIZE> address2;
     tox_self_get_address(tox2, address2.data());
     std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk2;
@@ -250,26 +245,26 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         Tox_Events *events;
 
         events = tox_events_iterate(tox1, true, &error_iterate);
-        assert(tox_events_equal(sys1->sys.get(), events, events));
+        assert(tox_events_equal(sys1.sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, &state1);
         tox_events_free(events);
 
         events = tox_events_iterate(tox2, true, &error_iterate);
-        assert(tox_events_equal(sys2->sys.get(), events, events));
+        assert(tox_events_equal(sys2.sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, &state2);
         tox_events_free(events);
 
         // Move the clock forward a decent amount so all the time-based checks
         // trigger more quickly.
-        sys1->clock += clock_increment;
-        sys2->clock += clock_increment;
+        sys1.clock += clock_increment;
+        sys2.clock += clock_increment;
 
         if (Fuzz_Data::FUZZ_DEBUG) {
             printf("tox1: rng: %d (for clock)\n", clock_increment);
             printf("tox2: rng: %d (for clock)\n", clock_increment);
         }
-        sys1->push(clock_increment);
-        sys2->push(clock_increment);
+        sys1.push(clock_increment);
+        sys2.push(clock_increment);
     };
 
     while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE
@@ -300,7 +295,7 @@ void RecordBootstrap(const char *init, const char *bootstrap)
 
     std::printf("tox clients connected\n");
 
-    dump(sys1->take_recording(), init);
+    dump(sys1.take_recording(), init);
 
     while (state1.done < MESSAGE_COUNT && state2.done < MESSAGE_COUNT) {
         if (Fuzz_Data::FUZZ_DEBUG) {
@@ -318,7 +313,7 @@ void RecordBootstrap(const char *init, const char *bootstrap)
     tox_kill(tox2);
     tox_kill(tox1);
 
-    dump(sys1->recording(), bootstrap);
+    dump(sys1.recording(), bootstrap);
 }
 
 }

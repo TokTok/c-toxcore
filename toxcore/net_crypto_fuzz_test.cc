@@ -50,9 +50,7 @@ void TestNetCrypto(Fuzz_Data &input)
     }
 
     const std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
-        mono_time_new(
-            sys.mem.get(), [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
-            &sys.clock),
+        mono_time_new(sys.mem.get(), sys.tm.get()),
         [mem = sys.mem.get()](Mono_Time *ptr) { mono_time_free(mem, ptr); });
     if (mono_time == nullptr) {
         return;

@@ -11,7 +11,7 @@
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <stdlib.h>  // IWYU pragma: keep
 #include <string.h>
 
 #include "ccompat.h"

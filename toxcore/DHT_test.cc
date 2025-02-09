@@ -12,6 +12,7 @@
 #include "crypto_core.h"
 #include "crypto_core_test_util.hh"
 #include "logger.h"
+#include "mem.h"
 #include "mem_test_util.hh"
 #include "mono_time.h"
 #include "network.h"
@@ -337,7 +338,7 @@ TEST(AnnounceNodes, SetAndTest)
 
     Logger *log = logger_new(mem);
     ASSERT_NE(log, nullptr);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ASSERT_NE(mono_time, nullptr);
     Ptr<Networking_Core> net(new_networking_no_udp(log, mem, ns));
     ASSERT_NE(net, nullptr);

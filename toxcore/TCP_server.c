@@ -30,6 +30,7 @@
 #include "net_profile.h"
 #include "network.h"
 #include "onion.h"
+#include "tox_network.h"
 
 #ifdef TCP_SERVER_USE_EPOLL
 #define TCP_SOCKET_LISTENING 0
@@ -939,7 +940,7 @@ static Socket new_listening_tcp_socket(const Logger *logger, const Memory *mem, 
         ok = set_socket_reuseaddr(ns, sock);
     }
 
-    ok = ok && bind_to_port(ns, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
+    ok = ok && bind_to_port(ns, mem, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
 
     if (!ok) {
         Net_Strerror error_str;

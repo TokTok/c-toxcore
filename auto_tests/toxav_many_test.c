@@ -5,19 +5,16 @@
 #include <sys/types.h>
 #include <time.h>
 
-#if !defined(_WIN32) && !defined(__WIN32__) && !defined(WIN32)
 #include <pthread.h>
-#endif
 
 #include <vpx/vpx_image.h>
 
 #include "../testing/misc_tools.h"
 #include "../toxav/toxav.h"
-#include "../toxcore/crypto_core.h"
-#include "../toxcore/logger.h"
+#include "../toxcore/os_memory.h"
 #include "../toxcore/tox.h"
-#include "../toxcore/tox_struct.h"
-#include "../toxcore/util.h"
+#include "../toxcore/tox_impl.h"  // IWYU pragma: keep
+#include "../toxcore/tox_time_impl.h"  // IWYU pragma: keep
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -143,6 +140,10 @@ static uint64_t get_state_clock_callback(void *user_data)
     return clock;
 }
 
+static const Tox_Time_Funcs mock_time_funcs = {
+    get_state_clock_callback,
+};
+
 static void increment_clock(Time_Data *time_data, uint64_t count)
 {
     pthread_mutex_lock(&time_data->lock);
@@ -150,10 +151,10 @@ static void increment_clock(Time_Data *time_data, uint64_t count)
     pthread_mutex_unlock(&time_data->lock);
 }
 
-static void set_current_time_callback(Tox *tox, Time_Data *time_data)
+static void set_current_time_callback(Tox *tox, const Tox_Time *tm)
 {
     Mono_Time *mono_time = tox->mono_time;
-    mono_time_set_current_time_callback(mono_time, get_state_clock_callback, time_data);
+    mono_time_set_current_time_callback(mono_time, tm);
 }
 
 static void test_av_three_calls(void)
@@ -167,6 +168,10 @@ static void test_av_three_calls(void)
 
     Time_Data time_data;
     pthread_mutex_init(&time_data.lock, nullptr);
+
+    const Memory *mem = os_memory();
+    Tox_Time *tm = tox_time_new(&mock_time_funcs, &time_data, mem);
+
     {
         Tox_Options *opts = tox_options_new(nullptr);
         ck_assert(opts != nullptr);
@@ -177,23 +182,23 @@ static void test_av_three_calls(void)
         ck_assert(error == TOX_ERR_NEW_OK);
 
         time_data.clock = current_time_monotonic(bootstrap->mono_time);
-        set_current_time_callback(bootstrap, &time_data);
+        set_current_time_callback(bootstrap, tm);
 
         alice = tox_new_log(opts, &error, &index[1]);
         ck_assert(error == TOX_ERR_NEW_OK);
-        set_current_time_callback(alice, &time_data);
+        set_current_time_callback(alice, tm);
 
         bobs[0] = tox_new_log(opts, &error, &index[2]);
         ck_assert(error == TOX_ERR_NEW_OK);
-        set_current_time_callback(bobs[0], &time_data);
+        set_current_time_callback(bobs[0], tm);
 
         bobs[1] = tox_new_log(opts, &error, &index[3]);
         ck_assert(error == TOX_ERR_NEW_OK);
-        set_current_time_callback(bobs[1], &time_data);
+        set_current_time_callback(bobs[1], tm);
 
         bobs[2] = tox_new_log(opts, &error, &index[4]);
         ck_assert(error == TOX_ERR_NEW_OK);
-        set_current_time_callback(bobs[2], &time_data);
+        set_current_time_callback(bobs[2], tm);
         tox_options_free(opts);
     }
 
@@ -368,6 +373,8 @@ static void test_av_three_calls(void)
     tox_kill(bobs[0]);
     tox_kill(alice);
     tox_kill(bootstrap);
+
+    tox_time_free(tm);
 
     pthread_mutex_destroy(&time_data.lock);
 

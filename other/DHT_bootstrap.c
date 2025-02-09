@@ -26,6 +26,9 @@
 #include "../toxcore/network.h"
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 
 #define TCP_RELAY_ENABLED
@@ -154,7 +157,7 @@ int main(int argc, char *argv[])
         logger_callback_log(logger, print_log, nullptr, nullptr);
     }
 
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     const uint16_t start_port = PORT;
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     DHT *dht = new_dht(logger, mem, rng, ns, mono_time, new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr), true, true);

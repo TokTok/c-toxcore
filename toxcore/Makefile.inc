@@ -2,12 +2,36 @@ lib_LTLIBRARIES += libtoxcore.la
 
 libtoxcore_la_include_HEADERS = \
                         ../toxcore/tox.h \
-                        ../toxcore/tox_options.h
+                        ../toxcore/tox_attributes.h \
+                        ../toxcore/tox_dispatch.h \
+                        ../toxcore/tox_events.h \
+                        ../toxcore/tox_log.h \
+                        ../toxcore/tox_memory.h \
+                        ../toxcore/tox_network.h \
+                        ../toxcore/tox_options.h \
+                        ../toxcore/tox_system.h \
+                        ../toxcore/tox_system_impl.h \
+                        ../toxcore/tox_time.h
 
-libtoxcore_la_includedir = $(includedir)/tox
+libtoxcore_la_includedir = $(includedir)/tox/toxcore
 
 libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../third_party/cmp/cmp.h \
+                        ../toxcore/announce.c \
+                        ../toxcore/announce.h \
+                        ../toxcore/attributes.h \
+                        ../toxcore/bin_pack.c \
+                        ../toxcore/bin_pack.h \
+                        ../toxcore/bin_unpack.c \
+                        ../toxcore/bin_unpack.h \
+                        ../toxcore/ccompat.c \
+                        ../toxcore/ccompat.h \
+                        ../toxcore/crypto_core.c \
+                        ../toxcore/crypto_core.h \
+                        ../toxcore/crypto_core_pack.c \
+                        ../toxcore/crypto_core_pack.h \
+                        ../toxcore/DHT.c \
+                        ../toxcore/DHT.h \
                         ../toxcore/events/conference_connected.c \
                         ../toxcore/events/conference_invite.c \
                         ../toxcore/events/conference_message.c \
@@ -31,7 +55,6 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/friend_status.c \
                         ../toxcore/events/friend_status_message.c \
                         ../toxcore/events/friend_typing.c \
-                        ../toxcore/events/self_connection_status.c \
                         ../toxcore/events/group_custom_packet.c \
                         ../toxcore/events/group_custom_private_packet.c \
                         ../toxcore/events/group_invite.c \
@@ -50,21 +73,7 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/group_topic.c \
                         ../toxcore/events/group_topic_lock.c \
                         ../toxcore/events/group_voice_state.c \
-                        ../toxcore/announce.c \
-                        ../toxcore/announce.h \
-                        ../toxcore/attributes.h \
-                        ../toxcore/bin_pack.c \
-                        ../toxcore/bin_pack.h \
-                        ../toxcore/bin_unpack.c \
-                        ../toxcore/bin_unpack.h \
-                        ../toxcore/ccompat.c \
-                        ../toxcore/ccompat.h \
-                        ../toxcore/crypto_core_pack.c \
-                        ../toxcore/crypto_core_pack.h \
-                        ../toxcore/crypto_core.c \
-                        ../toxcore/crypto_core.h \
-                        ../toxcore/DHT.c \
-                        ../toxcore/DHT.h \
+                        ../toxcore/events/self_connection_status.c \
                         ../toxcore/forwarding.c \
                         ../toxcore/forwarding.h \
                         ../toxcore/friend_connection.c \
@@ -73,19 +82,19 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/friend_requests.h \
                         ../toxcore/group_announce.c \
                         ../toxcore/group_announce.h \
+                        ../toxcore/group.c \
                         ../toxcore/group_chats.c \
                         ../toxcore/group_chats.h \
                         ../toxcore/group_common.h \
                         ../toxcore/group_connection.c \
                         ../toxcore/group_connection.h \
+                        ../toxcore/group.h \
                         ../toxcore/group_moderation.c \
                         ../toxcore/group_moderation.h \
                         ../toxcore/group_onion_announce.c \
                         ../toxcore/group_onion_announce.h \
                         ../toxcore/group_pack.c \
                         ../toxcore/group_pack.h \
-                        ../toxcore/group.c \
-                        ../toxcore/group.h \
                         ../toxcore/LAN_discovery.c \
                         ../toxcore/LAN_discovery.h \
                         ../toxcore/list.c \
@@ -106,18 +115,31 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/network.h \
                         ../toxcore/onion_announce.c \
                         ../toxcore/onion_announce.h \
+                        ../toxcore/onion.c \
                         ../toxcore/onion_client.c \
                         ../toxcore/onion_client.h \
-                        ../toxcore/onion.c \
                         ../toxcore/onion.h \
+                        ../toxcore/os_log.c \
+                        ../toxcore/os_log.h \
+                        ../toxcore/os_memory.c \
+                        ../toxcore/os_memory.h \
+                        ../toxcore/os_network.c \
+                        ../toxcore/os_network.h \
+                        ../toxcore/os_network_impl.h \
+                        ../toxcore/os_random.c \
+                        ../toxcore/os_random.h \
+                        ../toxcore/os_system.c \
+                        ../toxcore/os_system.h \
+                        ../toxcore/os_time.c \
+                        ../toxcore/os_time.h \
                         ../toxcore/ping_array.c \
                         ../toxcore/ping_array.h \
                         ../toxcore/ping.c \
                         ../toxcore/ping.h \
                         ../toxcore/shared_key_cache.c \
                         ../toxcore/shared_key_cache.h \
-                        ../toxcore/sort.c \
                         ../toxcore/sort.h \
+                        ../toxcore/sort.c \
                         ../toxcore/state.c \
                         ../toxcore/state.h \
                         ../toxcore/TCP_client.c \
@@ -131,25 +153,44 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/timed_auth.c \
                         ../toxcore/timed_auth.h \
                         ../toxcore/tox_api.c \
+                        ../toxcore/tox_attributes.h \
+                        ../toxcore/tox.c \
                         ../toxcore/tox_dispatch.c \
                         ../toxcore/tox_dispatch.h \
                         ../toxcore/tox_event.c \
                         ../toxcore/tox_event.h \
                         ../toxcore/tox_events.c \
                         ../toxcore/tox_events.h \
+                        ../toxcore/tox.h \
+                        ../toxcore/tox_impl.h \
+                        ../toxcore/tox_log.c \
+                        ../toxcore/tox_log.h \
+                        ../toxcore/tox_log_impl.h \
                         ../toxcore/tox_log_level.c \
                         ../toxcore/tox_log_level.h \
+                        ../toxcore/tox_memory.c \
+                        ../toxcore/tox_memory.h \
+                        ../toxcore/tox_memory_impl.h \
+                        ../toxcore/tox_network.c \
+                        ../toxcore/tox_network.h \
+                        ../toxcore/tox_network_impl.h \
                         ../toxcore/tox_options.c \
                         ../toxcore/tox_options.h \
                         ../toxcore/tox_pack.c \
                         ../toxcore/tox_pack.h \
                         ../toxcore/tox_private.c \
                         ../toxcore/tox_private.h \
-                        ../toxcore/tox_struct.h \
+                        ../toxcore/tox_random.c \
+                        ../toxcore/tox_random.h \
+                        ../toxcore/tox_random_impl.h \
+                        ../toxcore/tox_system.c \
+                        ../toxcore/tox_system.h \
+                        ../toxcore/tox_system_impl.h \
+                        ../toxcore/tox_time.c \
+                        ../toxcore/tox_time.h \
+                        ../toxcore/tox_time_impl.h \
                         ../toxcore/tox_unpack.c \
                         ../toxcore/tox_unpack.h \
-                        ../toxcore/tox.c \
-                        ../toxcore/tox.h \
                         ../toxcore/util.c \
                         ../toxcore/util.h
 
