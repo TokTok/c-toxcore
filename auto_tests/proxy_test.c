@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "auto_test_support.h"
 
@@ -16,18 +17,20 @@ static void *proxy_routine(void *arg)
     return nullptr;
 }
 
-static bool try_bootstrap(Tox *tox1, Tox *tox2, Tox *tox3, Tox *tox4)
+static bool try_bootstrap(Tox *tox1, Tox *tox2, Tox *tox3, Tox *tox4, Tox *tox5)
 {
     for (uint32_t i = 0; i < 400; ++i) {
         if (tox_self_get_connection_status(tox1) != TOX_CONNECTION_NONE &&
                 tox_self_get_connection_status(tox2) != TOX_CONNECTION_NONE &&
                 tox_self_get_connection_status(tox3) != TOX_CONNECTION_NONE &&
-                tox_self_get_connection_status(tox4) != TOX_CONNECTION_NONE) {
-            printf("%d %d %d %d\n",
+                tox_self_get_connection_status(tox4) != TOX_CONNECTION_NONE &&
+                tox_self_get_connection_status(tox5) != TOX_CONNECTION_NONE) {
+            printf("%d %d %d %d %d\n",
                    tox_self_get_connection_status(tox1),
                    tox_self_get_connection_status(tox2),
                    tox_self_get_connection_status(tox3),
-                   tox_self_get_connection_status(tox4));
+                   tox_self_get_connection_status(tox4),
+                   tox_self_get_connection_status(tox5));
             return true;
         }
 
@@ -35,13 +38,15 @@ static bool try_bootstrap(Tox *tox1, Tox *tox2, Tox *tox3, Tox *tox4)
         tox_iterate(tox2, nullptr);
         tox_iterate(tox3, nullptr);
         tox_iterate(tox4, nullptr);
+        tox_iterate(tox5, nullptr);
 
         if (i % 10 == 0) {
-            printf("%d %d %d %d\n",
+            printf("%d %d %d %d %d\n",
                    tox_self_get_connection_status(tox1),
                    tox_self_get_connection_status(tox2),
                    tox_self_get_connection_status(tox3),
-                   tox_self_get_connection_status(tox4));
+                   tox_self_get_connection_status(tox4),
+                   tox_self_get_connection_status(tox5));
         }
 
         c_sleep(tox_iteration_interval(tox1));
@@ -60,8 +65,8 @@ int main(int argc, char **argv)
         c_sleep(100);
     }
 
-    const uint16_t tcp_port = 8082;
-    uint32_t index[] = { 1, 2, 3, 4 };
+    const uint16_t tcp_port = 8083;
+    uint32_t index[] = { 1, 2, 3, 4, 5 };
 
     struct Tox_Options *tox_options = tox_options_new(nullptr);
     ck_assert(tox_options != nullptr);
@@ -69,6 +74,7 @@ int main(int argc, char **argv)
     // tox1 is a TCP server and has UDP enabled.
     tox_options_set_udp_enabled(tox_options, true);
     tox_options_set_tcp_port(tox_options, tcp_port);
+    tox_options_set_local_discovery_enabled(tox_options, false);
 
     Tox *tox1 = tox_new_log(tox_options, nullptr, &index[0]);
     ck_assert(tox1 != nullptr);
@@ -80,8 +86,10 @@ int main(int argc, char **argv)
     ck_assert(dht_port != 0);
 
     // tox2 is a regular DHT node bootstrapping against tox1.
+    tox_options_default(tox_options);
     tox_options_set_udp_enabled(tox_options, true);
     tox_options_set_tcp_port(tox_options, 0);
+    tox_options_set_local_discovery_enabled(tox_options, false);
 
     Tox *tox2 = tox_new_log(tox_options, nullptr, &index[1]);
     ck_assert(tox2 != nullptr);
@@ -90,36 +98,57 @@ int main(int argc, char **argv)
     ck_assert(tox_bootstrap(tox2, "127.0.0.1", dht_port, dht_pk, nullptr));
 
     // tox3 has UDP disabled and connects to tox1 via an HTTP proxy
+    tox_options_default(tox_options);
     tox_options_set_udp_enabled(tox_options, false);
     tox_options_set_proxy_host(tox_options, "127.0.0.1");
     tox_options_set_proxy_port(tox_options, 8080);
     tox_options_set_proxy_type(tox_options, TOX_PROXY_TYPE_HTTP);
+    tox_options_set_local_discovery_enabled(tox_options, false);
 
     Tox *tox3 = tox_new_log(tox_options, nullptr, &index[2]);
     ck_assert(tox3 != nullptr);
 
-    // tox4 has UDP disabled and connects to tox1 via a SOCKS5 proxy
+    // tox4 has UDP disabled and connects to tox1 via a SOCKS5 proxy with no auth
+    tox_options_default(tox_options);
     tox_options_set_udp_enabled(tox_options, false);
     tox_options_set_proxy_host(tox_options, "127.0.0.1");
     tox_options_set_proxy_port(tox_options, 8081);
     tox_options_set_proxy_type(tox_options, TOX_PROXY_TYPE_SOCKS5);
+    tox_options_set_local_discovery_enabled(tox_options, false);
 
     Tox *tox4 = tox_new_log(tox_options, nullptr, &index[3]);
     ck_assert(tox4 != nullptr);
 
-    // tox3 and tox4 bootstrap against tox1 and add it as a TCP relay
+    // tox5 has UDP disabled and connects to tox1 via a SOCKS5 proxy with username/password auth
+    tox_options_default(tox_options);
+    tox_options_set_udp_enabled(tox_options, false);
+    tox_options_set_proxy_host(tox_options, "127.0.0.1");
+    tox_options_set_proxy_port(tox_options, 8082);
+    tox_options_set_proxy_type(tox_options, TOX_PROXY_TYPE_SOCKS5);
+    tox_options_set_proxy_socks5_username(tox_options, (const uint8_t *) "nurupo", strlen("nurupo"));
+    tox_options_set_proxy_socks5_password(tox_options, (const uint8_t *) "hunter2", strlen("hunter2"));
+    tox_options_set_local_discovery_enabled(tox_options, false);
+
+    Tox *tox5 = tox_new_log(tox_options, nullptr, &index[4]);
+    ck_assert(tox5 != nullptr);
+
+    // tox3, tox4 and tox5 bootstrap against tox1 and add it as a TCP relay
     ck_assert(tox_bootstrap(tox3, "127.0.0.1", dht_port, dht_pk, nullptr));
     ck_assert(tox_add_tcp_relay(tox3, "127.0.0.1", tcp_port, dht_pk, nullptr));
 
     ck_assert(tox_bootstrap(tox4, "127.0.0.1", dht_port, dht_pk, nullptr));
     ck_assert(tox_add_tcp_relay(tox4, "127.0.0.1", tcp_port, dht_pk, nullptr));
 
+    ck_assert(tox_bootstrap(tox5, "127.0.0.1", dht_port, dht_pk, nullptr));
+    ck_assert(tox_add_tcp_relay(tox5, "127.0.0.1", tcp_port, dht_pk, nullptr));
+
     int ret = 1;
-    if (try_bootstrap(tox1, tox2, tox3, tox4)) {
+    if (try_bootstrap(tox1, tox2, tox3, tox4, tox5)) {
         ret = 0;
     }
 
     tox_options_free(tox_options);
+    tox_kill(tox5);
     tox_kill(tox4);
     tox_kill(tox3);
     tox_kill(tox2);
