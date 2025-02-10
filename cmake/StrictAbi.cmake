@@ -12,15 +12,25 @@
 find_program(SHELL NAMES sh dash bash zsh fish)
 
 macro(make_version_script)
-  if(STRICT_ABI AND SHELL AND ENABLE_SHARED)
+  if(STRICT_ABI AND SHELL)
     _make_version_script(${ARGN})
+
+    if(ENABLE_SHARED)
+      if(APPLE)
+        set_target_properties(${target}_shared PROPERTIES
+          LINK_FLAGS -Wl,-exported_symbols_list,${${target}_VERSION_SCRIPT})
+      else()
+        set_target_properties(${target}_shared PROPERTIES
+          LINK_FLAGS -Wl,--version-script,${${target}_VERSION_SCRIPT})
+      endif()
+    endif()
   endif()
 endmacro()
 
 function(_make_version_script target)
   set(${target}_VERSION_SCRIPT "${CMAKE_BINARY_DIR}/${target}.ld")
 
-  if(NOT APPLE)
+  if(NOT APPLE AND NOT EMSCRIPTEN)
     file(WRITE ${${target}_VERSION_SCRIPT}
       "{ global:\n")
   endif()
@@ -40,28 +50,20 @@ function(_make_version_script target)
     string(REPLACE "\n" ";" sublib_SYMS ${sublib_SYMS})
 
     foreach(sym ${sublib_SYMS})
-      if(APPLE)
+      if(APPLE OR EMSCRIPTEN)
         file(APPEND ${${target}_VERSION_SCRIPT} "_")
       endif()
       file(APPEND ${${target}_VERSION_SCRIPT} "${sym}")
-      if(NOT APPLE)
+      if(NOT APPLE AND NOT EMSCRIPTEN)
         file(APPEND ${${target}_VERSION_SCRIPT} ";")
       endif()
       file(APPEND ${${target}_VERSION_SCRIPT} "\n")
     endforeach(sym)
   endforeach(sublib)
 
-  if(NOT APPLE)
+  if(NOT APPLE AND NOT EMSCRIPTEN)
     file(APPEND ${${target}_VERSION_SCRIPT}
       "local: *; };\n")
-  endif()
-
-  if(APPLE)
-    set_target_properties(${target}_shared PROPERTIES
-      LINK_FLAGS -Wl,-exported_symbols_list,${${target}_VERSION_SCRIPT})
-  else()
-    set_target_properties(${target}_shared PROPERTIES
-      LINK_FLAGS -Wl,--version-script,${${target}_VERSION_SCRIPT})
   endif()
 endfunction()
 

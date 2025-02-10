@@ -592,7 +592,11 @@ static int sys_getsockopt(void *obj, Socket sock, int level, int optname, void *
 non_null()
 static int sys_setsockopt(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen)
 {
+#ifdef EMSCRIPTEN
+    return 0;
+#else
     return setsockopt(net_socket_to_native(sock), level, optname, (const char *)optval, optlen);
+#endif /* EMSCRIPTEN */
 }
 
 // sets and fills an array of addrs for address
