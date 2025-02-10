@@ -83,6 +83,14 @@ uint32_t tox_max_hostname_length(void)
 {
     return TOX_MAX_HOSTNAME_LENGTH;
 }
+uint32_t tox_max_proxy_socks5_username_length(void)
+{
+    return TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH;
+}
+uint32_t tox_max_proxy_socks5_password_length(void)
+{
+    return TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH;
+}
 uint32_t tox_group_max_topic_length(void)
 {
     return TOX_GROUP_MAX_TOPIC_LENGTH;
@@ -233,6 +241,12 @@ const char *_Nonnull tox_err_new_to_string(Tox_Err_New value)
 
         case TOX_ERR_NEW_LOAD_BAD_FORMAT:
             return "TOX_ERR_NEW_LOAD_BAD_FORMAT";
+
+        case TOX_ERR_NEW_PROXY_SOCKS5_BAD_USERNAME_LENGTH:
+            return "TOX_ERR_NEW_PROXY_SOCKS5_BAD_USERNAME_LENGTH";
+
+        case TOX_ERR_NEW_PROXY_SOCKS5_BAD_PASSWORD_LENGTH:
+            return "TOX_ERR_NEW_PROXY_SOCKS5_BAD_PASSWORD_LENGTH";
     }
 
     return "<invalid Tox_Err_New>";
