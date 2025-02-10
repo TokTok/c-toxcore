@@ -3474,10 +3474,26 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->mem = mem;
     m->rng = rng;
     m->ns = ns;
+    // copy options by value
+    m->options = *options;
+    // deep copy of arrays/strings
+    // Messenger_Options is owned by the caller and the caller will free these, so we need to make our own copy
+    m->options.proxy_info.socks5_username = memdup(m->mem, options->proxy_info.socks5_username, options->proxy_info.socks5_username_length);
+    m->options.proxy_info.socks5_password = memdup(m->mem, options->proxy_info.socks5_password, options->proxy_info.socks5_password_length);
+    if ((options->proxy_info.socks5_username != nullptr && m->options.proxy_info.socks5_username == nullptr)
+        || (options->proxy_info.socks5_password != nullptr && m->options.proxy_info.socks5_password == nullptr)) {
+        LOGGER_WARNING(m->log, "failed to copy SOCKS5 proxy username or password");
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
+        mem_delete(mem, m);
+        return nullptr;
+    }
 
     m->fr = friendreq_new(mem);
 
     if (m->fr == nullptr) {
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3486,26 +3502,28 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
 
     if (m->log == nullptr) {
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
 
-    logger_callback_log(m->log, options->log_callback, options->log_context, options->log_user_data);
+    logger_callback_log(m->log, m->options.log_callback, m->options.log_context, m->options.log_user_data);
 
     unsigned int net_err = 0;
 
-    if (!options->udp_disabled && options->proxy_info.proxy_type != TCP_PROXY_NONE) {
+    if (!m->options.udp_disabled && m->options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         // We don't currently support UDP over proxy.
         LOGGER_INFO(m->log, "UDP enabled and proxy set: disabling UDP");
-        options->udp_disabled = true;
+        m->options.udp_disabled = true;
     }
 
-    if (options->udp_disabled) {
+    if (m->options.udp_disabled) {
         m->net = new_networking_no_udp(m->log, m->mem, m->ns);
     } else {
         IP ip;
-        ip_init(&ip, options->ipv6enabled);
-        m->net = new_networking_ex(m->log, m->mem, m->ns, &ip, options->port_range[0], options->port_range[1], &net_err);
+        ip_init(&ip, m->options.ipv6enabled);
+        m->net = new_networking_ex(m->log, m->mem, m->ns, &ip, m->options.port_range[0], m->options.port_range[1], &net_err);
     }
 
     if (m->net == nullptr) {
@@ -3517,21 +3535,25 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         }
 
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
 
-    m->dht = new_dht(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
+    m->dht = new_dht(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->options.hole_punching_enabled, m->options.local_discovery_enabled);
 
     if (m->dht == nullptr) {
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info);
+    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &m->options.proxy_info);
 
     if (m->net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
@@ -3540,6 +3562,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3554,11 +3578,13 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
 
-    if (options->dht_announcements_enabled) {
+    if (m->options.dht_announcements_enabled) {
         m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
         if (m->forwarding != nullptr) {
             m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
@@ -3574,10 +3600,10 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
     m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
     if (m->onion_c != nullptr) {
-        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, m->options.local_discovery_enabled);
     }
 
-    if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
+    if ((m->options.dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
             m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
         LOGGER_WARNING(m->log, "onion initialisation failed");
 
@@ -3593,6 +3619,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3616,13 +3644,15 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
 
-    if (options->tcp_server_port != 0) {
-        m->tcp_server = new_tcp_server(m->log, m->mem, m->rng, m->ns, options->ipv6enabled, 1,
-                                       &options->tcp_server_port, dht_get_self_secret_key(m->dht),
+    if (m->options.tcp_server_port != 0) {
+        m->tcp_server = new_tcp_server(m->log, m->mem, m->rng, m->ns, m->options.ipv6enabled, 1,
+                                       &m->options.tcp_server_port, dht_get_self_secret_key(m->dht),
                                        m->onion, m->forwarding);
 
         if (m->tcp_server == nullptr) {
@@ -3641,6 +3671,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
             kill_networking(m->net);
             friendreq_kill(m->fr);
             logger_kill(m->log);
+            mem_delete(mem, m->options.proxy_info.socks5_username);
+            mem_delete(mem, m->options.proxy_info.socks5_password);
             mem_delete(mem, m);
 
             if (error != nullptr) {
@@ -3651,7 +3683,6 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         }
     }
 
-    m->options = *options;
     friendreq_init(m->fr, m->fr_c);
     set_nospam(m->fr, random_u32(m->rng));
     set_filter_function(m->fr, &friend_already_added, m);
@@ -3704,6 +3735,8 @@ void kill_messenger(Messenger *m)
 
     mem_delete(m->mem, m->options.state_plugins);
     logger_kill(m->log);
+    mem_delete(m->mem, m->options.proxy_info.socks5_username);
+    mem_delete(m->mem, m->options.proxy_info.socks5_password);
     mem_delete(m->mem, m);
 }
 

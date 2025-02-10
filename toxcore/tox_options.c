@@ -42,38 +42,43 @@ void tox_options_set_proxy_type(Tox_Options *options, Tox_Proxy_Type proxy_type)
 {
     options->proxy_type = proxy_type;
 }
+static bool options_set_string_experimental_owned_data(bool experimental_owned_data, const char **options_str, char **options_owned_str, const char *user_str)
+{
+    if (!experimental_owned_data) {
+        *options_str = user_str;
+        return true;
+    }
+
+    if (*options_owned_str != nullptr) {
+        free(*options_owned_str);
+        *options_owned_str = nullptr;
+    }
+    if (user_str == nullptr) {
+        *options_str = nullptr;
+        return true;
+    }
+
+    const size_t user_str_length = strlen(user_str) + 1;
+    char *owned_ptr = (char *)malloc(user_str_length);
+    if (owned_ptr == nullptr) {
+        *options_str = user_str;
+        *options_owned_str = nullptr;
+        return false;
+    }
+
+    memcpy(owned_ptr, user_str, user_str_length);
+    *options_str = owned_ptr;
+    *options_owned_str = owned_ptr;
+    return true;
+}
+
 const char *tox_options_get_proxy_host(const Tox_Options *options)
 {
     return options->proxy_host;
 }
 bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host)
 {
-    if (!options->experimental_owned_data) {
-        options->proxy_host = proxy_host;
-        return true;
-    }
-
-    if (options->owned_proxy_host != nullptr) {
-        free(options->owned_proxy_host);
-        options->owned_proxy_host = nullptr;
-    }
-    if (proxy_host == nullptr) {
-        options->proxy_host = nullptr;
-        return true;
-    }
-
-    const size_t proxy_host_length = strlen(proxy_host) + 1;
-    char *owned_ptr = (char *)malloc(proxy_host_length);
-    if (owned_ptr == nullptr) {
-        options->proxy_host = proxy_host;
-        options->owned_proxy_host = nullptr;
-        return false;
-    }
-
-    memcpy(owned_ptr, proxy_host, proxy_host_length);
-    options->proxy_host = owned_ptr;
-    options->owned_proxy_host = owned_ptr;
-    return true;
+    return options_set_string_experimental_owned_data(options->experimental_owned_data, &options->proxy_host, &options->owned_proxy_host, proxy_host);
 }
 uint16_t tox_options_get_proxy_port(const Tox_Options *options)
 {
@@ -82,6 +87,14 @@ uint16_t tox_options_get_proxy_port(const Tox_Options *options)
 void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port)
 {
     options->proxy_port = proxy_port;
+}
+size_t tox_options_get_proxy_socks5_username_length(const Tox_Options *options)
+{
+    return options->internal_do_not_set_directly_proxy_socks5_username_length;
+}
+size_t tox_options_get_proxy_socks5_password_length(const Tox_Options *options)
+{
+    return options->internal_do_not_set_directly_proxy_socks5_password_length;
 }
 uint16_t tox_options_get_start_port(const Tox_Options *options)
 {
@@ -199,6 +212,89 @@ void tox_options_set_experimental_owned_data(
     options->experimental_owned_data = experimental_owned_data;
 }
 
+static bool options_set_array_experimental_owned_data(bool experimental_owned_data, const uint8_t **options_data, size_t *options_length, uint8_t **options_owned_data, const uint8_t *user_data, size_t user_length)
+{
+    if (!experimental_owned_data) {
+        *options_data = user_data;
+        *options_length = user_length;
+        return true;
+    }
+
+    if (*options_owned_data != nullptr) {
+        free(*options_owned_data);
+        *options_owned_data = nullptr;
+    }
+
+    if (user_data == nullptr) {
+        *options_data = nullptr;
+        *options_length = 0;
+        return true;
+    }
+
+    uint8_t *owned_ptr = (uint8_t *)malloc(user_length);
+    if (owned_ptr == nullptr) {
+        *options_data = user_data;
+        *options_length = user_length;
+        *options_owned_data = nullptr;
+        return false;
+    }
+
+    memcpy(owned_ptr, user_data, user_length);
+    *options_data = owned_ptr;
+    *options_length = user_length;
+    *options_owned_data = owned_ptr;
+    return true;
+}
+
+static bool options_set_array(uint8_t **options_data, size_t *options_length, const uint8_t *user_data, size_t user_length)
+{
+    if (*options_data != nullptr) {
+        free(*options_data);
+    }
+
+    if (user_data == nullptr || user_length == 0) {
+        *options_data = nullptr;
+        *options_length = 0;
+        return true;
+    }
+
+    uint8_t *owned_ptr = (uint8_t *)malloc(user_length);
+    if (owned_ptr == nullptr) {
+        *options_data = nullptr;
+        *options_length = 0;
+        return false;
+    }
+
+    memcpy(owned_ptr, user_data, user_length);
+    *options_data = owned_ptr;
+    *options_length = user_length;
+    return true;
+}
+
+uint8_t *tox_options_get_proxy_socks5_username(const Tox_Options *options)
+{
+    return options->internal_do_not_set_directly_proxy_socks5_username;
+}
+
+bool tox_options_set_proxy_socks5_username(Tox_Options *options, const uint8_t username[], size_t length)
+{
+    return options_set_array(&options->internal_do_not_set_directly_proxy_socks5_username,
+                             &options->internal_do_not_set_directly_proxy_socks5_username_length,
+                             username, length);
+}
+
+uint8_t *tox_options_get_proxy_socks5_password(const Tox_Options *options)
+{
+    return options->internal_do_not_set_directly_proxy_socks5_password;
+}
+
+bool tox_options_set_proxy_socks5_password(Tox_Options *options, const uint8_t password[], size_t length)
+{
+    return options_set_array(&options->internal_do_not_set_directly_proxy_socks5_password,
+                             &options->internal_do_not_set_directly_proxy_socks5_password_length,
+                             password, length);
+}
+
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
     return options->savedata_data;
@@ -206,35 +302,10 @@ const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 
 bool tox_options_set_savedata_data(Tox_Options *options, const uint8_t *savedata_data, size_t length)
 {
-    if (!options->experimental_owned_data) {
-        options->savedata_data = savedata_data;
-        options->savedata_length = length;
-        return true;
-    }
-
-    if (options->owned_savedata_data != nullptr) {
-        free(options->owned_savedata_data);
-        options->owned_savedata_data = nullptr;
-    }
-    if (savedata_data == nullptr) {
-        options->savedata_data = nullptr;
-        options->savedata_length = 0;
-        return true;
-    }
-
-    uint8_t *owned_ptr = (uint8_t *)malloc(length);
-    if (owned_ptr == nullptr) {
-        options->savedata_data = savedata_data;
-        options->savedata_length = length;
-        options->owned_savedata_data = nullptr;
-        return false;
-    }
-
-    memcpy(owned_ptr, savedata_data, length);
-    options->savedata_data = owned_ptr;
-    options->savedata_length = length;
-    options->owned_savedata_data = owned_ptr;
-    return true;
+    return options_set_array_experimental_owned_data(options->experimental_owned_data,
+                                                     &options->savedata_data, &options->savedata_length,
+                                                     &options->owned_savedata_data,
+                                                     savedata_data, length);
 }
 
 void tox_options_default(Tox_Options *options)
@@ -242,6 +313,8 @@ void tox_options_default(Tox_Options *options)
     if (options != nullptr) {
         // Free any owned data.
         tox_options_set_proxy_host(options, nullptr);
+        tox_options_set_proxy_socks5_username(options, nullptr, 0);
+        tox_options_set_proxy_socks5_password(options, nullptr, 0);
         tox_options_set_savedata_data(options, nullptr, 0);
 
         // Set the rest to default values.
@@ -279,6 +352,8 @@ void tox_options_free(Tox_Options *options)
     if (options != nullptr) {
         // Free any owned data.
         tox_options_set_proxy_host(options, nullptr);
+        tox_options_set_proxy_socks5_username(options, nullptr, 0);
+        tox_options_set_proxy_socks5_password(options, nullptr, 0);
         tox_options_set_savedata_data(options, nullptr, 0);
         free(options);
     }
