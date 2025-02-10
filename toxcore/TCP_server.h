@@ -19,6 +19,10 @@
 #include "network.h"
 #include "onion.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_INCOMING_CONNECTIONS 256
 
 #define TCP_MAX_BACKLOG MAX_INCOMING_CONNECTIONS
@@ -59,5 +63,9 @@ void kill_tcp_server(TCP_Server *tcp_server);
  */
 nullable(1)
 const Net_Profile *tcp_server_get_net_profile(const TCP_Server *tcp_server);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_TCP_SERVER_H */
