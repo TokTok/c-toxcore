@@ -83,7 +83,8 @@ void logger_write(const Logger *log, Logger_Level level, const char *file, uint3
 #endif /* WIN32 */
 
     // Format message
-    char msg[1024];
+    // TODO(goldroom): changed from 1024 to 4096
+    char msg[4096];
     va_list args;
     va_start(args, format);
     vsnprintf(msg, sizeof(msg), format, args);

@@ -130,11 +130,23 @@ non_null() DHT *nc_get_dht(const Net_Crypto *c);
 
 typedef struct New_Connection {
     IP_Port source;
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
-    uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
-    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
-    uint8_t peersessionpublic_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
-    uint8_t *cookie;
+    // Necessary for non-Noise handshake
+    uint8_t peer_id_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
+    uint8_t peer_dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
+    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce to decrypt received packets. */
+    uint8_t peer_ephemeral_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
+    // Necessary for Noise
+    // TODO(goldroom): refactor to not use struct
+    Noise_Handshake noise_handshake_data;
+    Noise_Handshake *noise_handshake;
+    // TODO(goldroom): if no struct necessary
+    // uint8_t noise_hash[CRYPTO_SHA512_SIZE];
+    // uint8_t noise_chaining_key[CRYPTO_SHA512_SIZE];
+    // uint8_t niose_send_key[CRYPTO_SHARED_KEY_SIZE];
+    // uint8_t noise_recv_key[CRYPTO_SHARED_KEY_SIZE];
+    // bool initiator;
+
+    uint8_t *peer_cookie;
     uint8_t cookie_length;
 } New_Connection;
 
@@ -406,7 +418,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk);
  */
 non_null()
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info);
+                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info, bool noise_compatibility_enabled);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 non_null()
@@ -418,6 +430,10 @@ void do_net_crypto(Net_Crypto *c, void *userdata);
 
 nullable(1)
 void kill_net_crypto(Net_Crypto *c);
+
+// TODO(goldroom): necessary?
+//static void handshake_zero(struct noise_handshake *handshake);
+
 
 /**
  * Returns a pointer to the net profile object for the TCP client associated with `c`.

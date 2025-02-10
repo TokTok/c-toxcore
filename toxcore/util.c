@@ -13,6 +13,7 @@
 
 #include "util.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "ccompat.h"
@@ -179,4 +180,18 @@ uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len)
     hash ^= hash >> 11;
     hash += (uint32_t)((uint64_t)hash << 15);
     return hash;
+}
+
+/** generic function to print bytes as String; based on id_to_string() from Messenger.c */
+void bytes_to_string(const uint8_t *bytes, size_t bytes_length, char *str, size_t str_length)
+{
+    if (str_length < (bytes_length * 2 + 1)) {
+        snprintf(str, str_length, "Bad buf length");
+    }
+
+    for (uint32_t i = 0; i < bytes_length; ++i) {
+        snprintf(&str[i * 2], str_length - i * 2, "%02X", bytes[i]);
+    }
+
+    str[bytes_length * 2] = '\0';
 }

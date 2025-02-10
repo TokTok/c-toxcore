@@ -569,7 +569,7 @@ non_null()
 static int handle_new_connections(void *object, const New_Connection *n_c)
 {
     Friend_Connections *const fr_c = (Friend_Connections *)object;
-    const int friendcon_id = getfriend_conn_id_pk(fr_c, n_c->public_key);
+    const int friendcon_id = getfriend_conn_id_pk(fr_c, n_c->peer_id_public_key);
     Friend_Conn *const friend_con = get_conn(fr_c, friendcon_id);
 
     if (friend_con == nullptr) {
@@ -598,8 +598,8 @@ static int handle_new_connections(void *object, const New_Connection *n_c)
         friend_con->dht_ip_port_lastrecv = mono_time_get(fr_c->mono_time);
     }
 
-    if (!pk_equal(friend_con->dht_temp_pk, n_c->dht_public_key)) {
-        change_dht_pk(fr_c, friendcon_id, n_c->dht_public_key);
+    if (!pk_equal(friend_con->dht_temp_pk, n_c->peer_dht_public_key)) {
+        change_dht_pk(fr_c, friendcon_id, n_c->peer_dht_public_key);
     }
 
     nc_dht_pk_callback(fr_c->net_crypto, id, &dht_pk_callback, fr_c, friendcon_id);
