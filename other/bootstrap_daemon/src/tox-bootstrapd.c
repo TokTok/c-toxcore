@@ -116,7 +116,7 @@ static void print_public_key(const uint8_t *public_key)
         index += snprintf(buffer + index, sizeof(buffer) - index, "%02X", public_key[i]);
     }
 
-    log_write(LOG_LEVEL_INFO, "Public Key: %s\n", buffer);
+    LOG_WRITE(LOG_LEVEL_INFO, "Public Key: %s\n", buffer);
 }
 
 // Demonizes the process, appending PID to the PID file and closing file descriptors based on log backend
@@ -128,7 +128,7 @@ static Cli_Status daemonize(LOG_BACKEND log_backend, char *pid_file_path)
     FILE *pid_file = fopen(pid_file_path, "r");
 
     if (pid_file != nullptr) {
-        log_write(LOG_LEVEL_WARNING, "Another instance of the daemon is already running, PID file %s exists.\n", pid_file_path);
+        LOG_WRITE(LOG_LEVEL_WARNING, "Another instance of the daemon is already running, PID file %s exists.\n", pid_file_path);
         fclose(pid_file);
     }
 
@@ -136,7 +136,7 @@ static Cli_Status daemonize(LOG_BACKEND log_backend, char *pid_file_path)
     pid_file = fopen(pid_file_path, "a+");
 
     if (pid_file == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't open the PID file for writing: %s. Exiting.\n", pid_file_path);
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't open the PID file for writing: %s. Exiting.\n", pid_file_path);
         return CLI_STATUS_ERROR;
     }
 
@@ -146,26 +146,26 @@ static Cli_Status daemonize(LOG_BACKEND log_backend, char *pid_file_path)
     if (pid > 0) {
         fprintf(pid_file, "%d", pid);
         fclose(pid_file);
-        log_write(LOG_LEVEL_INFO, "Forked successfully: PID: %d.\n", pid);
+        LOG_WRITE(LOG_LEVEL_INFO, "Forked successfully: PID: %d.\n", pid);
         return CLI_STATUS_DONE;
     } else {
         fclose(pid_file);
     }
 
     if (pid < 0) {
-        log_write(LOG_LEVEL_ERROR, "Forking failed. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Forking failed. Exiting.\n");
         return CLI_STATUS_ERROR;
     }
 
     // Create a new SID for the child process
     if (setsid() < 0) {
-        log_write(LOG_LEVEL_ERROR, "SID creation failure. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "SID creation failure. Exiting.\n");
         return CLI_STATUS_ERROR;
     }
 
     // Change the current working directory
     if ((chdir("/")) < 0) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't change working directory to '/'. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't change working directory to '/'. Exiting.\n");
         return CLI_STATUS_ERROR;
     }
 
@@ -185,6 +185,8 @@ static LOG_LEVEL logger_level_to_log_level(Logger_Level level)
 {
     switch (level) {
         case LOGGER_LEVEL_TRACE:
+            return LOG_LEVEL_TRACE;
+
         case LOGGER_LEVEL_DEBUG:
         case LOGGER_LEVEL_INFO:
             return LOG_LEVEL_INFO;
@@ -203,7 +205,11 @@ static LOG_LEVEL logger_level_to_log_level(Logger_Level level)
 static void toxcore_logger_callback(void *context, Logger_Level level, const char *file, uint32_t line,
                                     const char *func, const char *message, void *userdata)
 {
-    log_write(logger_level_to_log_level(level), "%s:%u(%s) %s\n", file, line, func, message);
+    const char *category = "tox.core";
+    if (level == LOGGER_LEVEL_TRACE) {
+        category = "tox.trace";
+    }
+    log_write(logger_level_to_log_level(level), category, file, line, "%s\n", message);
 }
 
 static volatile sig_atomic_t caught_signal = 0;
@@ -235,7 +241,7 @@ int main(int argc, char *argv[])
 
     log_open(log_backend);
 
-    log_write(LOG_LEVEL_INFO, "Running \"%s\" version %lu.\n", DAEMON_NAME, DAEMON_VERSION_NUMBER);
+    LOG_WRITE(LOG_LEVEL_INFO, "Running \"%s\" version %lu.\n", DAEMON_NAME, DAEMON_VERSION_NUMBER);
 
     char *pid_file_path = nullptr;
     char *keys_file_path = nullptr;
@@ -251,14 +257,14 @@ int main(int argc, char *argv[])
 
     if (get_general_config(cfg_file_path, &pid_file_path, &keys_file_path, &start_port, &enable_ipv6, &enable_ipv4_fallback,
                            &enable_lan_discovery, &enable_tcp_relay, &tcp_relay_ports, &tcp_relay_port_count, &enable_motd, &motd)) {
-        log_write(LOG_LEVEL_INFO, "General config read successfully\n");
+        LOG_WRITE(LOG_LEVEL_INFO, "General config read successfully\n");
     } else {
-        log_write(LOG_LEVEL_ERROR, "Couldn't read config file: %s. Exiting.\n", cfg_file_path);
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't read config file: %s. Exiting.\n", cfg_file_path);
         return 1;
     }
 
     if (start_port < MIN_ALLOWED_PORT || start_port > MAX_ALLOWED_PORT) {
-        log_write(LOG_LEVEL_ERROR, "Invalid port: %d, should be in [%d, %d]. Exiting.\n", start_port, MIN_ALLOWED_PORT,
+        LOG_WRITE(LOG_LEVEL_ERROR, "Invalid port: %d, should be in [%d, %d]. Exiting.\n", start_port, MIN_ALLOWED_PORT,
                   MAX_ALLOWED_PORT);
         free(motd);
         free(tcp_relay_ports);
@@ -289,22 +295,20 @@ int main(int argc, char *argv[])
 
     Logger *logger = logger_new(mem);
 
-    if (MIN_LOGGER_LEVEL <= LOGGER_LEVEL_DEBUG) {
-        logger_callback_log(logger, toxcore_logger_callback, nullptr, nullptr);
-    }
+    logger_callback_log(logger, toxcore_logger_callback, nullptr, nullptr);
 
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
 
     if (net == nullptr) {
         if (enable_ipv6 && enable_ipv4_fallback) {
-            log_write(LOG_LEVEL_WARNING, "Couldn't initialize IPv6 networking. Falling back to using IPv4.\n");
+            LOG_WRITE(LOG_LEVEL_WARNING, "Couldn't initialize IPv6 networking. Falling back to using IPv4.\n");
             enable_ipv6 = false;
             ip_init(&ip, enable_ipv6);
             net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
 
             if (net == nullptr) {
-                log_write(LOG_LEVEL_ERROR, "Couldn't fallback to IPv4. Exiting.\n");
+                LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't fallback to IPv4. Exiting.\n");
                 logger_kill(logger);
                 free(motd);
                 free(tcp_relay_ports);
@@ -312,7 +316,7 @@ int main(int argc, char *argv[])
                 return 1;
             }
         } else {
-            log_write(LOG_LEVEL_ERROR, "Couldn't initialize networking. Exiting.\n");
+            LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize networking. Exiting.\n");
             logger_kill(logger);
             free(motd);
             free(tcp_relay_ports);
@@ -324,7 +328,7 @@ int main(int argc, char *argv[])
     Mono_Time *const mono_time = mono_time_new(mem, nullptr, nullptr);
 
     if (mono_time == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize monotonic timer. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize monotonic timer. Exiting.\n");
         kill_networking(net);
         logger_kill(logger);
         free(motd);
@@ -338,7 +342,7 @@ int main(int argc, char *argv[])
     DHT *const dht = new_dht(logger, mem, rng, ns, mono_time, net, true, enable_lan_discovery);
 
     if (dht == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox DHT instance. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox DHT instance. Exiting.\n");
         mono_time_free(mem, mono_time);
         kill_networking(net);
         logger_kill(logger);
@@ -351,7 +355,7 @@ int main(int argc, char *argv[])
     Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht);
 
     if (forwarding == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
         kill_dht(dht);
         mono_time_free(mem, mono_time);
         kill_networking(net);
@@ -365,7 +369,7 @@ int main(int argc, char *argv[])
     Announcements *announce = new_announcements(logger, mem, rng, mono_time, forwarding);
 
     if (announce == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize DHT announcements. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize DHT announcements. Exiting.\n");
         kill_forwarding(forwarding);
         kill_dht(dht);
         mono_time_free(mem, mono_time);
@@ -380,7 +384,7 @@ int main(int argc, char *argv[])
     GC_Announces_List *group_announce = new_gca_list(mem);
 
     if (group_announce == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize group announces. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize group announces. Exiting.\n");
         kill_announcements(announce);
         kill_forwarding(forwarding);
         kill_dht(dht);
@@ -396,7 +400,7 @@ int main(int argc, char *argv[])
     Onion *onion = new_onion(logger, mem, mono_time, rng, dht);
 
     if (onion == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
         kill_gca(group_announce);
         kill_announcements(announce);
         kill_forwarding(forwarding);
@@ -413,7 +417,7 @@ int main(int argc, char *argv[])
     Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht);
 
     if (onion_a == nullptr) {
-        log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
         kill_gca(group_announce);
         kill_onion(onion);
         kill_announcements(announce);
@@ -432,10 +436,10 @@ int main(int argc, char *argv[])
 
     if (enable_motd) {
         if (bootstrap_set_callbacks(dht_get_net(dht), DAEMON_VERSION_NUMBER, (uint8_t *)motd, strlen(motd) + 1) == 0) {
-            log_write(LOG_LEVEL_INFO, "Set MOTD successfully.\n");
+            LOG_WRITE(LOG_LEVEL_INFO, "Set MOTD successfully.\n");
             free(motd);
         } else {
-            log_write(LOG_LEVEL_ERROR, "Couldn't set MOTD: %s. Exiting.\n", motd);
+            LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't set MOTD: %s. Exiting.\n", motd);
             kill_onion_announce(onion_a);
             kill_gca(group_announce);
             kill_onion(onion);
@@ -453,10 +457,10 @@ int main(int argc, char *argv[])
     }
 
     if (manage_keys(dht, keys_file_path)) {
-        log_write(LOG_LEVEL_INFO, "Keys are managed successfully.\n");
+        LOG_WRITE(LOG_LEVEL_INFO, "Keys are managed successfully.\n");
         free(keys_file_path);
     } else {
-        log_write(LOG_LEVEL_ERROR, "Couldn't read/write: %s. Exiting.\n", keys_file_path);
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't read/write: %s. Exiting.\n", keys_file_path);
         kill_onion_announce(onion_a);
         kill_gca(group_announce);
         kill_onion(onion);
@@ -475,7 +479,7 @@ int main(int argc, char *argv[])
 
     if (enable_tcp_relay) {
         if (tcp_relay_port_count == 0) {
-            log_write(LOG_LEVEL_ERROR, "No TCP relay ports read. Exiting.\n");
+            LOG_WRITE(LOG_LEVEL_ERROR, "No TCP relay ports read. Exiting.\n");
             kill_onion_announce(onion_a);
             kill_gca(group_announce);
             kill_announcements(announce);
@@ -496,7 +500,7 @@ int main(int argc, char *argv[])
         free(tcp_relay_ports);
 
         if (tcp_server != nullptr) {
-            log_write(LOG_LEVEL_INFO, "Initialized Tox TCP server successfully.\n");
+            LOG_WRITE(LOG_LEVEL_INFO, "Initialized Tox TCP server successfully.\n");
 
             struct rlimit limit;
 
@@ -515,14 +519,14 @@ int main(int argc, char *argv[])
             }
 
             if (getrlimit(RLIMIT_NOFILE, &limit) == 0 && limit.rlim_cur < rlim_min) {
-                log_write(LOG_LEVEL_WARNING,
+                LOG_WRITE(LOG_LEVEL_WARNING,
                           "Current limit on the number of files this process can open (%ju) is rather low for the proper functioning of the TCP server. "
                           "Consider raising the limit to at least %ju or the recommended %ju. "
                           "Continuing using the current limit (%ju).\n",
                           (uintmax_t)limit.rlim_cur, (uintmax_t)rlim_min, (uintmax_t)rlim_suggested, (uintmax_t)limit.rlim_cur);
             }
         } else {
-            log_write(LOG_LEVEL_ERROR, "Couldn't initialize Tox TCP server. Exiting.\n");
+            LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox TCP server. Exiting.\n");
             kill_onion_announce(onion_a);
             kill_gca(group_announce);
             kill_onion(onion);
@@ -537,9 +541,9 @@ int main(int argc, char *argv[])
     }
 
     if (bootstrap_from_config(cfg_file_path, dht, enable_ipv6)) {
-        log_write(LOG_LEVEL_INFO, "List of bootstrap nodes read successfully.\n");
+        LOG_WRITE(LOG_LEVEL_INFO, "List of bootstrap nodes read successfully.\n");
     } else {
-        log_write(LOG_LEVEL_ERROR, "Couldn't read list of bootstrap nodes in %s. Exiting.\n", cfg_file_path);
+        LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't read list of bootstrap nodes in %s. Exiting.\n", cfg_file_path);
         kill_tcp_server(tcp_server);
         kill_onion_announce(onion_a);
         kill_gca(group_announce);
@@ -564,7 +568,7 @@ int main(int argc, char *argv[])
 
     if (enable_lan_discovery) {
         broadcast = lan_discovery_init(mem, ns);
-        log_write(LOG_LEVEL_INFO, "Initialized LAN discovery successfully.\n");
+        LOG_WRITE(LOG_LEVEL_INFO, "Initialized LAN discovery successfully.\n");
     }
 
     struct sigaction sa;
@@ -578,11 +582,11 @@ int main(int argc, char *argv[])
     sigfillset(&sa.sa_mask);
 
     if (sigaction(SIGINT, &sa, nullptr) != 0) {
-        log_write(LOG_LEVEL_WARNING, "Couldn't set signal handler for SIGINT. Continuing without the signal handler set.\n");
+        LOG_WRITE(LOG_LEVEL_WARNING, "Couldn't set signal handler for SIGINT. Continuing without the signal handler set.\n");
     }
 
     if (sigaction(SIGTERM, &sa, nullptr) != 0) {
-        log_write(LOG_LEVEL_WARNING, "Couldn't set signal handler for SIGTERM. Continuing without the signal handler set.\n");
+        LOG_WRITE(LOG_LEVEL_WARNING, "Couldn't set signal handler for SIGTERM. Continuing without the signal handler set.\n");
     }
 
     while (caught_signal == 0) {
@@ -604,7 +608,7 @@ int main(int argc, char *argv[])
         networking_poll(dht_get_net(dht), nullptr);
 
         if (waiting_for_dht_connection && dht_isconnected(dht)) {
-            log_write(LOG_LEVEL_INFO, "Connected to another bootstrap node successfully.\n");
+            LOG_WRITE(LOG_LEVEL_INFO, "Connected to another bootstrap node successfully.\n");
             waiting_for_dht_connection = false;
         }
 
@@ -613,15 +617,15 @@ int main(int argc, char *argv[])
 
     switch (caught_signal) {
         case SIGINT:
-            log_write(LOG_LEVEL_INFO, "Received SIGINT (%d) signal. Exiting.\n", SIGINT);
+            LOG_WRITE(LOG_LEVEL_INFO, "Received SIGINT (%d) signal. Exiting.\n", SIGINT);
             break;
 
         case SIGTERM:
-            log_write(LOG_LEVEL_INFO, "Received SIGTERM (%d) signal. Exiting.\n", SIGTERM);
+            LOG_WRITE(LOG_LEVEL_INFO, "Received SIGTERM (%d) signal. Exiting.\n", SIGTERM);
             break;
 
         default:
-            log_write(LOG_LEVEL_INFO, "Received (%ld) signal. Exiting.\n", (long)caught_signal);
+            LOG_WRITE(LOG_LEVEL_INFO, "Received (%ld) signal. Exiting.\n", (long)caught_signal);
     }
 
     lan_discovery_kill(broadcast);
