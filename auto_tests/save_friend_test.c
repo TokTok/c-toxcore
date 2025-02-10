@@ -8,6 +8,7 @@
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/crypto_core.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 #include "auto_test_support.h"
 #include "check_compat.h"

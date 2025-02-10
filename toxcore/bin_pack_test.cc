@@ -7,6 +7,7 @@
 #include "bin_unpack.h"
 #include "logger.h"
 #include "mem.h"
+#include "os_memory.h"
 
 namespace {
 

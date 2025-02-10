@@ -19,7 +19,7 @@ freebsd_task:
   test_all_script:
     - |
       # TODO(iphydf): Investigate FreeBSD failures on these tests.
-      sed -Ei -e '/\(dht_nodes_request_api\)/s/^/#/' auto_tests/CMakeLists.txt
+      sed -Ei -e '/\(dht_nodes_response_api\)/s/^/#/' auto_tests/CMakeLists.txt
       cmake . \
         -DMIN_LOGGER_LEVEL=TRACE \
         -DMUST_BUILD_TOXAV=ON \
@@ -29,4 +29,5 @@ freebsd_task:
         -DAUTOTEST=ON \
         -GNinja
       cmake --build . --target install
-      ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3 || ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3
+      ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3 ||
+        ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6

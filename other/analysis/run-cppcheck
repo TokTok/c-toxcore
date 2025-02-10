@@ -20,6 +20,8 @@ CPPCHECK+=("--suppress=knownConditionTrueFalse")
 CPPCHECK+=("--suppress=missingIncludeSystem")
 # TODO(iphydf): Maybe fix?
 CPPCHECK+=("--suppress=signConversion")
+# We have suppressions in the code for the misra extension.
+CPPCHECK+=("--suppress=unmatchedSuppression")
 
 # We use this for VLAs.
 CPPCHECK_CXX+=("--suppress=allocaCalled")

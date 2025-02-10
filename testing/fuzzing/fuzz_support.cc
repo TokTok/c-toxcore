@@ -24,7 +24,9 @@
 
 #include "../../toxcore/crypto_core.h"
 #include "../../toxcore/network.h"
+#include "../../toxcore/tox_memory_impl.h"
 #include "../../toxcore/tox_private.h"
+#include "../../toxcore/tox_random_impl.h"
 #include "func_conversion.hh"
 
 // TODO(iphydf): Put this somewhere shared.
@@ -33,8 +35,8 @@ struct Network_Addr {
     size_t size;
 };
 
-System::System(std::unique_ptr<Tox_System> in_sys, std::unique_ptr<Memory> in_mem,
-    std::unique_ptr<Network> in_ns, std::unique_ptr<Random> in_rng)
+System::System(std::unique_ptr<Tox_System> in_sys, std::unique_ptr<Tox_Memory> in_mem,
+    std::unique_ptr<Network> in_ns, std::unique_ptr<Tox_Random> in_rng)
     : sys(std::move(in_sys))
     , mem(std::move(in_mem))
     , ns(std::move(in_ns))
@@ -94,22 +96,17 @@ static void *alloc_common(const char *func, std::size_t size, Fuzz_Data &data, A
     return report_alloc("tox1", func, size, Func(args...));
 }
 
-static constexpr Memory_Funcs fuzz_memory_funcs = {
+static constexpr Tox_Memory_Funcs fuzz_memory_funcs = {
     /* .malloc = */
     ![](Fuzz_System *self, uint32_t size) {
         return alloc_common<decltype(std::malloc), std::malloc>("malloc", size, self->data, size);
-    },
-    /* .calloc = */
-    ![](Fuzz_System *self, uint32_t nmemb, uint32_t size) {
-        return alloc_common<decltype(std::calloc), std::calloc>(
-            "calloc", nmemb * size, self->data, nmemb, size);
     },
     /* .realloc = */
     ![](Fuzz_System *self, void *ptr, uint32_t size) {
         return alloc_common<decltype(std::realloc), std::realloc>(
             "realloc", size, self->data, ptr, size);
     },
-    /* .free = */
+    /* .dealloc = */
     ![](Fuzz_System *self, void *ptr) { std::free(ptr); },
 };
 
@@ -172,8 +169,8 @@ static constexpr Network_Funcs fuzz_network_funcs = {
     },
 };
 
-static constexpr Random_Funcs fuzz_random_funcs = {
-    /* .random_bytes = */
+static constexpr Tox_Random_Funcs fuzz_random_funcs = {
+    /* .bytes_callback = */
     ![](Fuzz_System *self, uint8_t *bytes, size_t length) {
         // Initialize the buffer with zeros in case there's no randomness left.
         std::fill_n(bytes, length, 0);
@@ -216,11 +213,11 @@ static constexpr Random_Funcs fuzz_random_funcs = {
             }
         }
     },
-    /* .random_uniform = */
+    /* .uniform_callback = */
     ![](Fuzz_System *self, uint32_t upper_bound) {
         uint32_t randnum = 0;
         if (upper_bound > 0) {
-            self->rng->funcs->random_bytes(
+            self->rng->funcs->bytes_callback(
                 self, reinterpret_cast<uint8_t *>(&randnum), sizeof(randnum));
             randnum %= upper_bound;
         }
@@ -231,9 +228,9 @@ static constexpr Random_Funcs fuzz_random_funcs = {
 Fuzz_System::Fuzz_System(Fuzz_Data &input)
     : System{
         std::make_unique<Tox_System>(),
-        std::make_unique<Memory>(Memory{&fuzz_memory_funcs, this}),
+        std::make_unique<Tox_Memory>(Tox_Memory{&fuzz_memory_funcs, this}),
         std::make_unique<Network>(Network{&fuzz_network_funcs, this}),
-        std::make_unique<Random>(Random{&fuzz_random_funcs, this}),
+        std::make_unique<Tox_Random>(Tox_Random{&fuzz_random_funcs, this}),
     }
     , data(input)
 {
@@ -244,14 +241,12 @@ Fuzz_System::Fuzz_System(Fuzz_Data &input)
     sys->rng = rng.get();
 }
 
-static constexpr Memory_Funcs null_memory_funcs = {
+static constexpr Tox_Memory_Funcs null_memory_funcs = {
     /* .malloc = */
     ![](Null_System *self, uint32_t size) { return std::malloc(size); },
-    /* .calloc = */
-    ![](Null_System *self, uint32_t nmemb, uint32_t size) { return std::calloc(nmemb, size); },
     /* .realloc = */
     ![](Null_System *self, void *ptr, uint32_t size) { return std::realloc(ptr, size); },
-    /* .free = */
+    /* .dealloc = */
     ![](Null_System *self, void *ptr) { std::free(ptr); },
 };
 
@@ -304,14 +299,14 @@ static uint64_t simple_rng(uint64_t &seed)
     return seed;
 }
 
-static constexpr Random_Funcs null_random_funcs = {
-    /* .random_bytes = */
+static constexpr Tox_Random_Funcs null_random_funcs = {
+    /* .bytes_callback = */
     ![](Null_System *self, uint8_t *bytes, size_t length) {
         for (size_t i = 0; i < length; ++i) {
             bytes[i] = simple_rng(self->seed) & 0xff;
         }
     },
-    /* .random_uniform = */
+    /* .uniform_callback = */
     ![](Null_System *self, uint32_t upper_bound) {
         return static_cast<uint32_t>(simple_rng(self->seed)) % upper_bound;
     },
@@ -320,9 +315,9 @@ static constexpr Random_Funcs null_random_funcs = {
 Null_System::Null_System()
     : System{
         std::make_unique<Tox_System>(),
-        std::make_unique<Memory>(Memory{&null_memory_funcs, this}),
+        std::make_unique<Tox_Memory>(Tox_Memory{&null_memory_funcs, this}),
         std::make_unique<Network>(Network{&null_network_funcs, this}),
-        std::make_unique<Random>(Random{&null_random_funcs, this}),
+        std::make_unique<Tox_Random>(Tox_Random{&null_random_funcs, this}),
     }
 {
     sys->mono_time_callback = [](void *self) { return static_cast<Null_System *>(self)->clock; };
@@ -342,23 +337,18 @@ static uint16_t get_port(const Network_Addr *addr)
     }
 }
 
-static constexpr Memory_Funcs record_memory_funcs = {
+static constexpr Tox_Memory_Funcs record_memory_funcs = {
     /* .malloc = */
     ![](Record_System *self, uint32_t size) {
         self->push(true);
         return report_alloc(self->name_, "malloc", size, std::malloc(size));
-    },
-    /* .calloc = */
-    ![](Record_System *self, uint32_t nmemb, uint32_t size) {
-        self->push(true);
-        return report_alloc(self->name_, "calloc", nmemb * size, std::calloc(nmemb, size));
     },
     /* .realloc = */
     ![](Record_System *self, void *ptr, uint32_t size) {
         self->push(true);
         return report_alloc(self->name_, "realloc", size, std::realloc(ptr, size));
     },
-    /* .free = */
+    /* .dealloc = */
     ![](Record_System *self, void *ptr) { std::free(ptr); },
 };
 
@@ -448,8 +438,8 @@ static constexpr Network_Funcs record_network_funcs = {
          size_t optlen) { return 0; },
 };
 
-static constexpr Random_Funcs record_random_funcs = {
-    /* .random_bytes = */
+static constexpr Tox_Random_Funcs record_random_funcs = {
+    /* .bytes_callback = */
     ![](Record_System *self, uint8_t *bytes, size_t length) {
         for (size_t i = 0; i < length; ++i) {
             bytes[i] = simple_rng(self->seed_) & 0xff;
@@ -460,14 +450,14 @@ static constexpr Random_Funcs record_random_funcs = {
                 "%s: rng: %02x..%02x[%zu]\n", self->name_, bytes[0], bytes[length - 1], length);
         }
     },
-    /* .random_uniform = */
-    fuzz_random_funcs.random_uniform,
+    /* .uniform_callback = */
+    fuzz_random_funcs.uniform_callback,
 };
 
 Record_System::Record_System(Global &global, uint64_t seed, const char *name)
     : System{
         std::make_unique<Tox_System>(),
-        std::make_unique<Memory>(Memory{&record_memory_funcs, this}),
+        std::make_unique<Tox_Memory>(Tox_Memory{&record_memory_funcs, this}),
         std::make_unique<Network>(Network{&record_network_funcs, this}),
         std::make_unique<Random>(Random{&record_random_funcs, this}),
     }

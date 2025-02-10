@@ -13,6 +13,10 @@
 #include "check_compat.h"
 
 #define NUM_TOXES 30
+// Maximum number of iterations to wait for all nodes to be crawled. 5 should
+// be enough. We pick 10 in case things are slow. This makes the test take
+// less time in case it completely fails, so we can retry it.
+#define MAX_ITERATIONS 10
 
 typedef struct Dht_Node {
     uint8_t  public_key[TOX_DHT_NODE_PUBLIC_KEY_SIZE];
@@ -132,9 +136,15 @@ static void test_dht_nodes_request(AutoTox *autotoxes)
                tox_dht_get_num_closelist_announce_capable(autotoxes[i].tox));
     }
 
-    while (!all_nodes_crawled(autotoxes, NUM_TOXES, public_key_list)) {
+    bool success = false;
+    for (size_t i = 0; i < MAX_ITERATIONS; ++i) {
+        if (all_nodes_crawled(autotoxes, NUM_TOXES, public_key_list)) {
+            success = true;
+            break;
+        }
         iterate_all_wait(autotoxes, NUM_TOXES, ITERATION_INTERVAL);
     }
+    ck_assert_msg(success, "Failed to crawl all nodes within %d iterations", MAX_ITERATIONS);
 
     for (size_t i = 0; i < NUM_TOXES; ++i) {
         State *state = (State *)autotoxes[i].state;

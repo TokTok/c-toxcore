@@ -26,6 +26,8 @@
 #include "../toxcore/network.h"
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
 
 #define TCP_RELAY_ENABLED

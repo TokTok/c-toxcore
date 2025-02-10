@@ -121,7 +121,7 @@ jobs:
 
           run: |
             # TODO(iphydf): Investigate NetBSD failures on these tests.
-            sed -Ei -e '/\((TCP|dht_nodes_request_api)\)/s/^/#/' auto_tests/CMakeLists.txt
+            sed -Ei -e '/\((TCP|dht_nodes_response_api)\)/s/^/#/' auto_tests/CMakeLists.txt
             cmake . \
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \
@@ -160,7 +160,7 @@ jobs:
 
           run: |
             # TODO(iphydf): Investigate FreeBSD failures on these tests.
-            sed -Ei -e '/\(dht_nodes_request_api\)/s/^/#/' auto_tests/CMakeLists.txt
+            sed -Ei -e '/\(dht_nodes_response_api\)/s/^/#/' auto_tests/CMakeLists.txt
             cmake . \
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \
