@@ -3770,11 +3770,6 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
 void new_keys(Net_Crypto *c)
 {
     crypto_new_keypair(c->rng, c->self_id_public_key, c->self_id_secret_key);
-    // TODO(goldroom): remove before merge?
-    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
-    bytes2string(log_id_public, sizeof(log_id_public), c->self_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
-    // TODO(goldroom): remove print of static id public key before merge?
-    LOGGER_DEBUG(c->log, "self_id_public_key: %s", log_id_public);
 }
 
 /** @brief Save the public and private keys to the keys array.
@@ -3836,6 +3831,11 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
 
     new_keys(temp);
     new_symmetric_key(rng, temp->cookie_symmetric_key);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), temp->self_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, temp->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(temp->log, "self_id_public_key: %s", log_id_public);
 
     temp->current_sleep_time = CRYPTO_SEND_PACKET_INTERVAL;
 
