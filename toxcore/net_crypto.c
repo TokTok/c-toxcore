@@ -333,7 +333,7 @@ non_null()
 static int create_cookie_response(const Net_Crypto *c, uint8_t *packet, const uint8_t *request_plain,
                                   const uint8_t *shared_key, const uint8_t *dht_public_key)
 {
-    LOGGER_DEBUG(c->log, "Packet: %d/NET_PACKET_COOKIE_REQUEST", NET_PACKET_COOKIE_REQUEST);
+    LOGGER_DEBUG(c->log, "Packet: %d/NET_PACKET_COOKIE_RESPONSE", NET_PACKET_COOKIE_RESPONSE);
     uint8_t cookie_plain[COOKIE_DATA_LENGTH];
     memcpy(cookie_plain, request_plain, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(cookie_plain + CRYPTO_PUBLIC_KEY_SIZE, dht_public_key, CRYPTO_PUBLIC_KEY_SIZE);
@@ -2131,16 +2131,16 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
 
     if (conn->noise_handshake != nullptr) {
         // TODO(goldroom): removing CRYPTO_CONN_NOT_CONFIRMED breaks auto_reconnect_test in bazel-asan
-        // if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING
-        //     && conn->status != CRYPTO_CONN_HANDSHAKE_SENT) {
-        //     LOGGER_DEBUG(c->log, "NoiseIK: already handled handshake packet");
-        //     return -1;
-        // }
         if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING
-            && conn->status != CRYPTO_CONN_HANDSHAKE_SENT
-            && conn->status != CRYPTO_CONN_NOT_CONFIRMED) {
+            && conn->status != CRYPTO_CONN_HANDSHAKE_SENT) {
+            LOGGER_DEBUG(c->log, "NoiseIK: already handled handshake packet");
             return -1;
-            }
+        }
+        // if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING
+        //     && conn->status != CRYPTO_CONN_HANDSHAKE_SENT
+        //     && conn->status != CRYPTO_CONN_NOT_CONFIRMED) {
+        //     return -1;
+        //     }
     } else {
         if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING
             && conn->status != CRYPTO_CONN_HANDSHAKE_SENT
@@ -2576,6 +2576,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
         }
 
         /* Noise: create and set ephemeral private+public */
+        // TODO(goldroom): can this be moved to accept_crypto_connection()?
         crypto_new_keypair(c->rng, n_c.noise_handshake->ephemeral_public, n_c.noise_handshake->ephemeral_private);
 
         LOGGER_DEBUG(c->log, "Noise RESPONDER: After Handshake init");
