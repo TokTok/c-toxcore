@@ -3713,15 +3713,15 @@ int crypto_kill(Net_Crypto *c, int crypt_connection_id)
 {
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
-    // TODO(goldroom): remove before merge?
-    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
-    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
-    // TODO(goldroom): remove print of static id public key before merge?
-    LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
-
     int ret = -1;
 
     if (conn != nullptr) {
+        // TODO(goldroom): remove before merge?
+        char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+        bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+        // TODO(goldroom): remove print of static id public key before merge?
+        LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
+
         // TODO(goldroom): Add CRYPTO_CONN_NOT_CONFIRMED for broken Noise handshakes? => removed connection_kill() for now from handle_packet_crypto_hs()
         if (conn->status == CRYPTO_CONN_ESTABLISHED) {
             send_kill_packet(c, crypt_connection_id);
