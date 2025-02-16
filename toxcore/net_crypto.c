@@ -244,7 +244,7 @@ non_null()
 static int create_cookie_request(const Net_Crypto *c, uint8_t *packet, const uint8_t *dht_public_key,
                                  uint64_t number, uint8_t *shared_key)
 {
-    LOGGER_DEBUG(c->log, "ENTERING");
+    LOGGER_DEBUG(c->log, "Packet: %d/NET_PACKET_COOKIE_REQUEST", NET_PACKET_COOKIE_REQUEST);
     
     // TODO(goldroom): adapt for new Noise-cookie mechanism _only_ or different cookie mechanism? E.g. as in WireGuard?
     uint8_t plain[COOKIE_REQUEST_PLAIN_LENGTH];
@@ -333,7 +333,7 @@ non_null()
 static int create_cookie_response(const Net_Crypto *c, uint8_t *packet, const uint8_t *request_plain,
                                   const uint8_t *shared_key, const uint8_t *dht_public_key)
 {
-    LOGGER_DEBUG(c->log, "ENTERING");
+    LOGGER_DEBUG(c->log, "Packet: %d/NET_PACKET_COOKIE_REQUEST", NET_PACKET_COOKIE_REQUEST);
     uint8_t cookie_plain[COOKIE_DATA_LENGTH];
     memcpy(cookie_plain, request_plain, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(cookie_plain + CRYPTO_PUBLIC_KEY_SIZE, dht_public_key, CRYPTO_PUBLIC_KEY_SIZE);
@@ -1896,9 +1896,14 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
     const int len = handle_data_packet(c, crypt_connection_id, data, packet, length);
 
     if (len <= (int)(sizeof(uint32_t) * 2)) {
-        LOGGER_DEBUG(c->log, "decryption failure/crypt_connection_id: %d/conn->status: %d", crypt_connection_id, conn->status);
-        // TODO(goldroom): unwanted side effects?
-        connection_kill(c, crypt_connection_id, userdata);
+        // TODO(goldroom): remove before merge?
+        char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+        bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+        // TODO(goldroom): remove print of static id public key before merge?
+        LOGGER_DEBUG(c->log, "decryption failure/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s", crypt_connection_id, conn->status, conn->peer_id_public_key);
+        // TODO(goldroom): unwanted side effects? => yes, happens in practice => but why?
+        // TODO(goldroom): Enables DoS attacks?
+        // connection_kill(c, crypt_connection_id, userdata);
         return -1;
     }
 
@@ -1945,7 +1950,11 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
         clear_temp_packet(c, crypt_connection_id);
         conn->status = CRYPTO_CONN_ESTABLISHED;
 
-        LOGGER_DEBUG(c->log, "CRYPTO_CONN_ESTABLISHED crypt_connection_id: %d/conn->status: %d", crypt_connection_id, conn->status);
+        // TODO(goldroom): remove before merge?
+        char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+        bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+        // TODO(goldroom): remove print of static id public key before merge?
+        LOGGER_DEBUG(c->log, "CRYPTO_CONN_ESTABLISHED/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s", crypt_connection_id, conn->status, log_id_public);
 
         /* Noise: noise_handshake not necessary anymore => memzero and free */
         if (conn->noise_handshake != nullptr) {
@@ -1957,7 +1966,8 @@ static int handle_data_packet_core(Net_Crypto *c, int crypt_connection_id, const
         /* also crypto_memzero() non-Noise values from crypto connection */ 
         crypto_memzero(conn->ephemeral_secret_key, CRYPTO_SECRET_KEY_SIZE);
         crypto_memzero(conn->ephemeral_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        crypto_memzero(conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+        // TODO(goldroom): no memzero for testing purposes, memzero for merge?
+        // crypto_memzero(conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE);
         crypto_memzero(conn->peer_ephemeral_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
         if (conn->connection_status_callback != nullptr) {
@@ -2051,8 +2061,12 @@ static int handle_packet_cookie_response(const Net_Crypto *c, int crypt_connecti
         return -1;
     }
 
-    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d",
-                 packet[0], length, crypt_connection_id, conn->status);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s",
+                 packet[0], length, crypt_connection_id, conn->status, log_id_public);
 
     if (conn->status != CRYPTO_CONN_COOKIE_REQUESTING) {
         return -1;
@@ -2108,8 +2122,12 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
         return -1;
     }
 
-    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d",
-                 packet[0], length, crypt_connection_id, conn->status);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s",
+                 packet[0], length, crypt_connection_id, conn->status, log_id_public);
 
     if (conn->noise_handshake != nullptr) {
         // TODO(goldroom): removing CRYPTO_CONN_NOT_CONFIRMED breaks auto_reconnect_test in bazel-asan
@@ -2219,7 +2237,7 @@ static int handle_packet_crypto_hs(Net_Crypto *c, int crypt_connection_id, const
                 /* cannot change to INITIATOR here, connection broken */
                 // TODO(goldroom): if status CRYPTO_CONN_NOT_CONFIRMED is handled this does happen (which is necessary for auto_reconnect_test)
                 LOGGER_DEBUG(c->log, "RESPONDER: NOISE_HANDSHAKE_PACKET_LENGTH_RESPONDER");
-                connection_kill(c, crypt_connection_id, userdata); // TODO(goldroom): leave here?
+                // connection_kill(c, crypt_connection_id, userdata); // TODO(goldroom): leave here? leads to weird behavior in real-world tests
                 return -1;
             }
         }
@@ -2278,8 +2296,12 @@ static int handle_packet_crypto_data(Net_Crypto *c, int crypt_connection_id, con
         return -1;
     }
 
-    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d",
-                 packet[0], length, crypt_connection_id, conn->status);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s",
+                 packet[0], length, crypt_connection_id, conn->status, log_id_public);
 
 
     if (conn->status != CRYPTO_CONN_NOT_CONFIRMED && conn->status != CRYPTO_CONN_ESTABLISHED) {
@@ -2387,6 +2409,8 @@ static int create_crypto_connection(Net_Crypto *c)
 
         // TODO(Green-Sky): This enum is likely unneeded and the same as FREE.
         c->crypto_connections[id].status = CRYPTO_CONN_NO_CONNECTION;
+
+        LOGGER_DEBUG(c->log, "crypt_connection_id: %d", id);
     }
 
     return id;
@@ -2540,6 +2564,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
 
 
     /* Backwards comptability: Differention between non-Noise and Noise-based handshake based on received HS packet length */ 
+    // TODO(goldroom): In tests this also happens for Noise INITIATOR => how to handle this case?
     if (length != HANDSHAKE_PACKET_LENGTH) {
         // TODO(goldroom): adapt static allocation?
         n_c.noise_handshake = &n_c.noise_handshake_data;    
@@ -2587,7 +2612,11 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
     /* happens NoiseIK handshake (e.g. auto_tox_many_test) */
     // TODO(goldroom): why is this called twice in row via tcp_oob_callback()?
     if (crypt_connection_id != -1) {
-        LOGGER_DEBUG(c->log, "RESPONDER: CRYPTO CONN EXISTING -> crypt_connection_id: %d", crypt_connection_id);
+        // TODO(goldroom): remove before merge?
+        char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+        bytes2string(log_id_public, sizeof(log_id_public), n_c.peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+        // TODO(goldroom): remove print of static id public key before merge?
+        LOGGER_DEBUG(c->log, "RESPONDER: CRYPTO CONN EXISTING -> crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
         Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
         if (conn == nullptr) {
@@ -2616,7 +2645,7 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
             /* RESPONDER Noise Split(): vice-verse keys in comparison to initiator */
             crypto_hkdf(conn->recv_key, CRYPTO_SYMMETRIC_KEY_SIZE, conn->send_key, CRYPTO_SYMMETRIC_KEY_SIZE, nullptr, 0, conn->noise_handshake->chaining_key);
 
-            LOGGER_DEBUG(c->log, "Noise RESPONDER crypt_connection_id: %d/conn->status: %d", crypt_connection_id, conn->status);
+            LOGGER_DEBUG(c->log, "Noise RESPONDER crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s", crypt_connection_id, conn->status, log_id_public);
 
             crypto_memzero(n_c.noise_handshake, sizeof(Noise_Handshake));
             n_c.noise_handshake = nullptr;
@@ -2684,7 +2713,7 @@ int accept_crypto_connection(Net_Crypto *c, const New_Connection *n_c)
 
     const int crypt_connection_id = create_crypto_connection(c);
 
-    LOGGER_DEBUG(c->log, "RESPONDER: AFTER create_crypto_connection() => crypt_connection_id: %d", crypt_connection_id);
+    LOGGER_DEBUG(c->log, "crypt_connection_id: %d", crypt_connection_id);
 
     if (crypt_connection_id == -1) {
         LOGGER_ERROR(c->log, "Could not create new crypto connection");
@@ -2709,7 +2738,7 @@ int accept_crypto_connection(Net_Crypto *c, const New_Connection *n_c)
 
     char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
     bytes2string(log_id_public, sizeof(log_id_public), n_c->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
-    LOGGER_DEBUG(c->log, "peer_id_public_key: %s", log_id_public);
+    LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
 
     /* NoiseIK: only happening for RESPONDER */ 
     if (n_c->noise_handshake != nullptr) {
@@ -2717,6 +2746,8 @@ int accept_crypto_connection(Net_Crypto *c, const New_Connection *n_c)
             conn->noise_handshake_enabled = true;
             LOGGER_DEBUG(c->log, "Responder: Noise WriteMessage");
             memcpy(conn->noise_handshake, n_c->noise_handshake, sizeof(Noise_Handshake));
+            // TODO(goldroom): not necessary for Noise, added for debugging/testing purposes
+            memcpy(conn->peer_id_public_key, n_c->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
             /* TODO(goldroom): NOT possible here, need content afterwards! */ 
             // crypto_memzero(n_c->noise_handshake, sizeof(struct noise_handshake));
@@ -2817,7 +2848,7 @@ int new_crypto_connection(Net_Crypto *c, const uint8_t *real_public_key, const u
     // TODO(goldroom): remove before merge
     char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
     bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
-    LOGGER_DEBUG(c->log, "peer_id_public_key: %s", log_id_public);
+    LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
 
 
     /* Base nonces are a counter in transport phase after NoiseIK handshake */
@@ -2909,8 +2940,12 @@ static int tcp_data_callback(void *object, int crypt_connection_id, const uint8_
         return -1;
     }
 
-    LOGGER_DEBUG(c->log, "Packet ID: %d/length: %d/crypt_connection_id: %d/conn->status: %d", 
-        packet[0], length, crypt_connection_id, conn->status);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d/conn->status: %d/peer_id_public_key: %s", 
+        packet[0], length, crypt_connection_id, conn->status, log_id_public);
 
     if (packet[0] == NET_PACKET_COOKIE_REQUEST) {
         return tcp_handle_cookie_request(c, conn->connection_number_tcp, packet, length);
@@ -3167,11 +3202,15 @@ int nc_dht_pk_callback(const Net_Crypto *c, int crypt_connection_id, dht_pk_cb *
 {
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
-    LOGGER_DEBUG(c->log, ">");
-
     if (conn == nullptr) {
         return -1;
     }
+
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
 
     conn->dht_pk_callback = function;
     conn->dht_pk_callback_object = object;
@@ -3212,7 +3251,7 @@ static int udp_handle_packet(void *object, const IP_Port *source, const uint8_t 
 
     const int crypt_connection_id = crypto_id_ip_port(c, source);
 
-    LOGGER_DEBUG(c->log, "Packet ID: %d/length: %d/crypt_connection_id: %d", packet[0], length, crypt_connection_id);
+    LOGGER_DEBUG(c->log, "Packet: %d/length: %d/crypt_connection_id: %d", packet[0], length, crypt_connection_id);
 
     /* No crypto connection yet = RESPONDER case */
     if (crypt_connection_id == -1) {
@@ -3675,11 +3714,16 @@ int crypto_kill(Net_Crypto *c, int crypt_connection_id)
 {
     Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
-    LOGGER_DEBUG(c->log, "crypt_connection_id: %d", crypt_connection_id);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), conn->peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
 
     int ret = -1;
 
     if (conn != nullptr) {
+        // TODO(goldroom): Add CRYPTO_CONN_NOT_CONFIRMED for broken Noise handshakes? => removed connection_kill() for now from handle_packet_crypto_hs()
         if (conn->status == CRYPTO_CONN_ESTABLISHED) {
             send_kill_packet(c, crypt_connection_id);
         }
@@ -3726,8 +3770,12 @@ bool crypto_connection_status(const Net_Crypto *c, int crypt_connection_id, bool
 
 void new_keys(Net_Crypto *c)
 {
-    LOGGER_DEBUG(c->log, ">");
     crypto_new_keypair(c->rng, c->self_id_public_key, c->self_id_secret_key);
+    // TODO(goldroom): remove before merge?
+    char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
+    bytes2string(log_id_public, sizeof(log_id_public), c->self_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
+    // TODO(goldroom): remove print of static id public key before merge?
+    LOGGER_DEBUG(c->log, "self_id_public_key: %s", log_id_public);
 }
 
 /** @brief Save the public and private keys to the keys array.

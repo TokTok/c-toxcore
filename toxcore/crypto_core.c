@@ -886,6 +886,8 @@ int noise_decrypt_and_hash(uint8_t *plaintext, const uint8_t *ciphertext,
                                           ciphertext, encrypted_length, plaintext,
                                           hash, CRYPTO_NOISE_BLAKE2B_HASH_SIZE);
 
+    // TODO(goldroom): add condition for plaintext_length? (if decrypt failed mix_hash is unnecessary)
+    // TODO(goldroom): or instead fix all cases that lead to decrypt failed
     noise_mix_hash(hash, ciphertext, encrypted_length);
 
     return plaintext_length;
