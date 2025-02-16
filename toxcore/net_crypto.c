@@ -2613,7 +2613,6 @@ static int handle_new_connection_handshake(Net_Crypto *c, const IP_Port *source,
     // TODO(goldroom): why is this called twice in row via tcp_oob_callback()?
     if (crypt_connection_id != -1) {
         // TODO(goldroom): remove before merge?
-        char log_id_public[CRYPTO_PUBLIC_KEY_SIZE*2+1];
         bytes2string(log_id_public, sizeof(log_id_public), n_c.peer_id_public_key, CRYPTO_PUBLIC_KEY_SIZE, c->log);
         // TODO(goldroom): remove print of static id public key before merge?
         LOGGER_DEBUG(c->log, "RESPONDER: CRYPTO CONN EXISTING -> crypt_connection_id: %d/peer_id_public_key: %s", crypt_connection_id, log_id_public);
