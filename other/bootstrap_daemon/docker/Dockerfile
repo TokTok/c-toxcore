@@ -1,6 +1,6 @@
 ###########################################################
 # Builder image: we compile the code here (static build)
-FROM alpine:3.19.0 AS build
+FROM alpine:3.21.0 AS build
 
 RUN ["apk", "--no-cache", "add",\
  "clang",\
@@ -26,33 +26,32 @@ COPY other/bootstrap_node_packets.[ch] other/
 COPY other/DHT_bootstrap.c other/
 COPY other/pkgconfig other/pkgconfig
 COPY other/rpm other/rpm
-COPY testing/misc_tools.[ch] testing/
+COPY testing testing
 COPY toxcore toxcore
 COPY toxencryptsave toxencryptsave
 COPY third_party third_party
 COPY CMakeLists.txt so.version ./
 COPY other/bootstrap_daemon/CMakeLists.txt other/bootstrap_daemon/CMakeLists.txt
-COPY testing/CMakeLists.txt testing/CMakeLists.txt
 
 RUN CC=clang cmake -B_build -H. \
-      -GNinja \
-      -DCMAKE_C_FLAGS="-DTCP_SERVER_USE_EPOLL -fsanitize=alignment,return,returns-nonnull-attribute,vla-bound,unreachable,float-cast-overflow,null -fsanitize-trap=all -fstack-protector-all" \
-      -DCMAKE_UNITY_BUILD=ON \
-      -DCMAKE_BUILD_TYPE=Release \
-      -DFULLY_STATIC=ON \
-      -DMIN_LOGGER_LEVEL=DEBUG \
-      -DBUILD_TOXAV=OFF \
-      -DBOOTSTRAP_DAEMON=ON && \
-    cmake --build _build --target install
+  -GNinja \
+  -DCMAKE_C_FLAGS="-DTCP_SERVER_USE_EPOLL -fsanitize=alignment,return,returns-nonnull-attribute,vla-bound,unreachable,float-cast-overflow,null -fsanitize-trap=all -fstack-protector-all" \
+  -DCMAKE_UNITY_BUILD=ON \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DFULLY_STATIC=ON \
+  -DMIN_LOGGER_LEVEL=TRACE \
+  -DBUILD_TOXAV=OFF \
+  -DBOOTSTRAP_DAEMON=ON \
+  && cmake --build _build --target install
 
 # Verify checksum from dev-built binary, so we can be sure Docker Hub doesn't
 # mess with your binaries.
 COPY other/bootstrap_daemon/docker/tox-bootstrapd.sha256 other/bootstrap_daemon/docker/
 ARG CHECK=sha256sum
-RUN SHA256="$("$CHECK" /usr/local/bin/tox-bootstrapd)" && \
-    ("$CHECK" -c other/bootstrap_daemon/docker/tox-bootstrapd.sha256 || \
-    (echo "::error file=other/bootstrap_daemon/docker/tox-bootstrapd.sha256,line=1::$SHA256" && \
-     false))
+RUN SHA256="$("$CHECK" /usr/local/bin/tox-bootstrapd)" \
+ && ("$CHECK" -c other/bootstrap_daemon/docker/tox-bootstrapd.sha256 || \
+    (echo "::error file=other/bootstrap_daemon/docker/tox-bootstrapd.sha256,line=1::$SHA256" \
+     && false))
 
 # Remove all the example bootstrap nodes from the config file.
 COPY other/bootstrap_daemon/tox-bootstrapd.conf other/bootstrap_daemon/
@@ -69,12 +68,14 @@ FROM debian:bookworm-slim
 
 COPY --from=build /usr/local/bin/tox-bootstrapd /usr/local/bin/
 COPY --from=build /src/c-toxcore/other/bootstrap_daemon/tox-bootstrapd.conf /etc/tox-bootstrapd.conf
-RUN useradd --home-dir /var/lib/tox-bootstrapd --create-home \
-      --system --shell /sbin/nologin \
-      --comment "Account to run the Tox DHT bootstrap daemon" \
-      --user-group tox-bootstrapd && \
-    chmod 644 /etc/tox-bootstrapd.conf && \
-    chmod 700 /var/lib/tox-bootstrapd
+RUN useradd \
+  --home-dir /var/lib/tox-bootstrapd \
+  --create-home \
+  --system --shell /sbin/nologin \
+  --comment "Account to run the Tox DHT bootstrap daemon" \
+  --user-group tox-bootstrapd \
+ && chmod 644 /etc/tox-bootstrapd.conf \
+ && chmod 700 /var/lib/tox-bootstrapd
 
 WORKDIR /var/lib/tox-bootstrapd
 
