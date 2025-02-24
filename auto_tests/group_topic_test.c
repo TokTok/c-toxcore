@@ -5,14 +5,13 @@
 
 #include <string.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <stdint.h>
 
 #include "auto_test_support.h"
 #include "check_compat.h"
 
+#include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
-#include "../toxcore/group_chats.h"
 
 #define NUM_GROUP_TOXES 3
 

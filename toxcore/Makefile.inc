@@ -110,6 +110,10 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion.c \
                         ../toxcore/onion.h \
+                        ../toxcore/os_memory.c \
+                        ../toxcore/os_memory.h \
+                        ../toxcore/os_random.c \
+                        ../toxcore/os_random.h \
                         ../toxcore/ping_array.c \
                         ../toxcore/ping_array.h \
                         ../toxcore/ping.c \
@@ -131,6 +135,7 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/timed_auth.c \
                         ../toxcore/timed_auth.h \
                         ../toxcore/tox_api.c \
+                        ../toxcore/tox_attributes.h \
                         ../toxcore/tox_dispatch.c \
                         ../toxcore/tox_dispatch.h \
                         ../toxcore/tox_event.c \
@@ -139,12 +144,18 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/tox_events.h \
                         ../toxcore/tox_log_level.c \
                         ../toxcore/tox_log_level.h \
+                        ../toxcore/tox_memory.c \
+                        ../toxcore/tox_memory.h \
+                        ../toxcore/tox_memory_impl.h \
                         ../toxcore/tox_options.c \
                         ../toxcore/tox_options.h \
                         ../toxcore/tox_pack.c \
                         ../toxcore/tox_pack.h \
                         ../toxcore/tox_private.c \
                         ../toxcore/tox_private.h \
+                        ../toxcore/tox_random.c \
+                        ../toxcore/tox_random.h \
+                        ../toxcore/tox_random_impl.h \
                         ../toxcore/tox_struct.h \
                         ../toxcore/tox_unpack.c \
                         ../toxcore/tox_unpack.h \
