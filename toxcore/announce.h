@@ -7,12 +7,14 @@
 
 #include <stdint.h>
 
+#include "DHT.h"
 #include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "network.h"
 
 #define MAX_ANNOUNCEMENT_SIZE 512
 
@@ -24,7 +26,7 @@ typedef struct Announcements Announcements;
 
 non_null()
 Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
-                                 Forwarding *forwarding);
+                                 Forwarding *forwarding, DHT *dht, Networking_Core *net);
 
 /**
  * @brief If data is stored, run `on_retrieve_callback` on it.

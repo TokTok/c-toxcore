@@ -21,7 +21,6 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_announce.h"
-#include "ping_array.h"
 
 #define MAX_ONION_CLIENTS 8
 #define MAX_ONION_CLIENTS_ANNOUNCE 12 // Number of nodes to announce ourselves to.
@@ -65,11 +64,6 @@
 #define ONION_DATA_DHTPK CRYPTO_PACKET_DHTPK
 
 typedef struct Onion_Client Onion_Client;
-
-non_null()
-DHT *onion_get_dht(const Onion_Client *onion_c);
-non_null()
-Net_Crypto *onion_get_net_crypto(const Onion_Client *onion_c);
 
 /** @brief Add a node to the path_nodes bootstrap array.
  *
@@ -217,7 +211,8 @@ non_null()
 void do_onion_client(Onion_Client *onion_c);
 
 non_null()
-Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c);
+Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c,
+                               DHT *dht, Networking_Core *net);
 
 nullable(1)
 void kill_onion_client(Onion_Client *onion_c);

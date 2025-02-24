@@ -30,9 +30,6 @@ extern "C" {
 
 typedef struct Forwarding Forwarding;
 
-non_null()
-DHT *forwarding_get_dht(const Forwarding *forwarding);
-
 /**
  * @brief Send data to forwarder for forwarding via chain of dht nodes.
  * Destination is last key in the chain.
@@ -117,7 +114,8 @@ non_null(1) nullable(2, 3)
 void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *function, void *object);
 
 non_null()
-Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht);
+Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
+                           Networking_Core *net);
 
 nullable(1)
 void kill_forwarding(Forwarding *forwarding);

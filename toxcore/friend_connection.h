@@ -162,7 +162,8 @@ void set_friend_request_callback(Friend_Connections *fr_c, fr_request_cb *fr_req
 non_null()
 Friend_Connections *new_friend_connections(
     const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Network *ns,
-    Onion_Client *onion_c, bool local_discovery_enabled);
+    Onion_Client *onion_c, DHT *dht, Net_Crypto *net_crypto, Networking_Core *net,
+    bool local_discovery_enabled);
 
 /** main friend_connections loop. */
 non_null()

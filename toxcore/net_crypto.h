@@ -126,7 +126,6 @@ typedef struct Net_Crypto Net_Crypto;
 non_null() const uint8_t *nc_get_self_public_key(const Net_Crypto *c);
 non_null() const uint8_t *nc_get_self_secret_key(const Net_Crypto *c);
 non_null() TCP_Connections *nc_get_tcp_c(const Net_Crypto *c);
-non_null() DHT *nc_get_dht(const Net_Crypto *c);
 
 typedef struct New_Connection {
     IP_Port source;
@@ -406,7 +405,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk);
  */
 non_null()
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info);
+                           Mono_Time *mono_time, Networking_Core *net, DHT *dht, const TCP_Proxy_Info *proxy_info);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 non_null()

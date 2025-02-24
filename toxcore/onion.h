@@ -152,7 +152,7 @@ non_null(1) nullable(2, 3)
 void set_callback_handle_recv_1(Onion *onion, onion_recv_1_cb *function, void *object);
 
 non_null()
-Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht);
+Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht, Networking_Core *net);
 
 nullable(1)
 void kill_onion(Onion *onion);
