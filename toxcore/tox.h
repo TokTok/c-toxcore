@@ -337,6 +337,24 @@ uint32_t tox_max_filename_length(void);
 
 uint32_t tox_max_hostname_length(void);
 
+/**
+ * Maximum length of a SOCKS5 proxy username in bytes.
+ *
+ * @deprecated The macro will be removed in 0.3.0. Use the function instead.
+ */
+#define TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH 255
+
+uint32_t tox_max_proxy_socks5_username_length(void);
+
+/**
+ * Maximum length of a SOCKS5 proxy password in bytes.
+ *
+ * @deprecated The macro will be removed in 0.3.0. Use the function instead.
+ */
+#define TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH 255
+
+uint32_t tox_max_proxy_socks5_password_length(void);
+
 /** @} */
 
 /** @{
@@ -456,6 +474,16 @@ typedef enum Tox_Err_New {
      * causes this error.
      */
     TOX_ERR_NEW_LOAD_BAD_FORMAT,
+
+    /**
+     * The proxy_socks5_username_length is zero or too long.
+     */
+    TOX_ERR_NEW_PROXY_SOCKS5_BAD_USERNAME_LENGTH,
+
+    /**
+     * The proxy_socks5_password_length is zero or too long.
+     */
+    TOX_ERR_NEW_PROXY_SOCKS5_BAD_PASSWORD_LENGTH,
 
 } Tox_Err_New;
 
