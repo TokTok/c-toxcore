@@ -1596,7 +1596,7 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
  * Returns NULL on failure.
  */
 TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
-                                     Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info)
+                                     Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
     assert(logger != nullptr);
     assert(mem != nullptr);
@@ -1614,14 +1614,7 @@ TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, co
         return nullptr;
     }
 
-    Net_Profile *np = netprof_new(logger, mem);
-
-    if (np == nullptr) {
-        mem_delete(mem, temp);
-        return nullptr;
-    }
-
-    temp->net_profile = np;
+    temp->net_profile = tcp_np;
     temp->logger = logger;
     temp->mem = mem;
     temp->rng = rng;
@@ -1736,17 +1729,8 @@ void kill_tcp_connections(TCP_Connections *tcp_c)
 
     crypto_memzero(tcp_c->self_secret_key, sizeof(tcp_c->self_secret_key));
 
-    netprof_kill(tcp_c->mem, tcp_c->net_profile);
     mem_delete(tcp_c->mem, tcp_c->tcp_connections);
     mem_delete(tcp_c->mem, tcp_c->connections);
     mem_delete(tcp_c->mem, tcp_c);
 }
 
-const Net_Profile *tcp_connection_get_client_net_profile(const TCP_Connections *tcp_c)
-{
-    if (tcp_c == nullptr) {
-        return nullptr;
-    }
-
-    return tcp_c->net_profile;
-}
