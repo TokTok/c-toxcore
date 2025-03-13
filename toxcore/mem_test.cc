@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "os_memory.h"
+
 namespace {
 
 TEST(Mem, AllocLarge)

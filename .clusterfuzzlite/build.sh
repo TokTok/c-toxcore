@@ -18,12 +18,18 @@ cd "$WORK"
 ls /usr/local/lib/
 
 # Debug build for asserts
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER="$CC" \
+cmake -GNinja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_C_COMPILER="$CC" \
   -DCMAKE_CXX_COMPILER="$CXX" \
   -DCMAKE_C_FLAGS="$CFLAGS" \
   -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-  -DBUILD_TOXAV=OFF -DENABLE_SHARED=NO -DBUILD_FUZZ_TESTS=ON \
-  -DDHT_BOOTSTRAP=OFF -DBOOTSTRAP_DAEMON=OFF "$SRC"/c-toxcore
+  -DBUILD_TOXAV=OFF \
+  -DENABLE_SHARED=OFF \
+  -DBUILD_FUZZ_TESTS=ON \
+  -DDHT_BOOTSTRAP=OFF \
+  -DBOOTSTRAP_DAEMON=OFF \
+  "$SRC"/c-toxcore
 
 for TARGET in "${FUZZ_TARGETS[@]}"; do
   # build fuzzer target
