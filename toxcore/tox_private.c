@@ -246,7 +246,9 @@ uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_c_count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_group_count = gc_tcp_connections_get_packet_id_count(tox->m->group_handler, id, dir);
+            count = tcp_c_count + tcp_group_count;
             break;
         }
 
@@ -258,7 +260,8 @@ uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type
         case TOX_NETPROF_PACKET_TYPE_TCP: {
             const uint64_t tcp_c_count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
             const uint64_t tcp_s_count = netprof_get_packet_count_id(tcp_s_profile, id, dir);
-            count = tcp_c_count + tcp_s_count;
+            const uint64_t tcp_group_count = gc_tcp_connections_get_packet_id_count(tox->m->group_handler, id, dir);
+            count = tcp_c_count + tcp_s_count + tcp_group_count;
             break;
         }
 
@@ -295,7 +298,9 @@ uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_T
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            count = netprof_get_packet_count_total(tcp_c_profile, dir);
+            const uint64_t tcp_c_count = netprof_get_packet_count_total(tcp_c_profile, dir);
+            const uint64_t tcp_group_count = gc_tcp_connections_get_packet_total_count(tox->m->group_handler, dir);
+            count = tcp_c_count + tcp_group_count;
             break;
         }
 
@@ -307,7 +312,8 @@ uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_T
         case TOX_NETPROF_PACKET_TYPE_TCP: {
             const uint64_t tcp_c_count = netprof_get_packet_count_total(tcp_c_profile, dir);
             const uint64_t tcp_s_count = netprof_get_packet_count_total(tcp_s_profile, dir);
-            count = tcp_c_count + tcp_s_count;
+            const uint64_t tcp_group_count = gc_tcp_connections_get_packet_total_count(tox->m->group_handler, dir);
+            count = tcp_c_count + tcp_s_count + tcp_group_count;
             break;
         }
 
@@ -344,7 +350,9 @@ uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_c_bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
+            const uint64_t tcp_group_bytes = gc_tcp_connections_get_packet_id_bytes(tox->m->group_handler, id, dir);
+            bytes = tcp_c_bytes + tcp_group_bytes;
             break;
         }
 
@@ -356,7 +364,8 @@ uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type
         case TOX_NETPROF_PACKET_TYPE_TCP: {
             const uint64_t tcp_c_bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
             const uint64_t tcp_s_bytes = netprof_get_bytes_id(tcp_s_profile, id, dir);
-            bytes = tcp_c_bytes + tcp_s_bytes;
+            const uint64_t tcp_group_bytes = gc_tcp_connections_get_packet_id_bytes(tox->m->group_handler, id, dir);
+            bytes = tcp_c_bytes + tcp_s_bytes + tcp_group_bytes;
             break;
         }
 
@@ -393,7 +402,9 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            bytes = netprof_get_bytes_total(tcp_c_profile, dir);
+            const uint64_t tcp_c_bytes = netprof_get_bytes_total(tcp_c_profile, dir);
+            const uint64_t tcp_group_bytes = gc_tcp_connections_get_packet_total_bytes(tox->m->group_handler, dir);
+            bytes = tcp_c_bytes + tcp_group_bytes;
             break;
         }
 
@@ -405,7 +416,8 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
         case TOX_NETPROF_PACKET_TYPE_TCP: {
             const uint64_t tcp_c_bytes = netprof_get_bytes_total(tcp_c_profile, dir);
             const uint64_t tcp_s_bytes = netprof_get_bytes_total(tcp_s_profile, dir);
-            bytes = tcp_c_bytes + tcp_s_bytes;
+            const uint64_t tcp_group_bytes = gc_tcp_connections_get_packet_total_bytes(tox->m->group_handler, dir);
+            bytes = tcp_c_bytes + tcp_s_bytes + tcp_group_bytes;
             break;
         }
 

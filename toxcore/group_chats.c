@@ -32,6 +32,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
+#include "net_profile.h"
 #include "network.h"
 #include "onion_announce.h"
 #include "onion_client.h"
@@ -8589,4 +8590,84 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
     }
 
     return added_peers;
+}
+
+uint64_t gc_tcp_connections_get_packet_id_count(const GC_Session *c, uint8_t id, Packet_Direction direction)
+{
+    uint64_t count = 0;
+
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
+        GC_Chat *chat = &c->chats[i];
+
+        const GC_Conn_State state = chat->connection_state;
+
+        if (state == CS_NONE) {
+            continue;
+        }
+
+        const Net_Profile *tcp_profile = tcp_connection_get_client_net_profile(chat->tcp_conn);
+        count += netprof_get_packet_count_id(tcp_profile, id, direction);
+    }
+
+    return count;
+}
+
+uint64_t gc_tcp_connections_get_packet_total_count(const GC_Session *c, Packet_Direction direction)
+{
+    uint64_t count = 0;
+
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
+        GC_Chat *chat = &c->chats[i];
+
+        const GC_Conn_State state = chat->connection_state;
+
+        if (state == CS_NONE) {
+            continue;
+        }
+
+        const Net_Profile *tcp_profile = tcp_connection_get_client_net_profile(chat->tcp_conn);
+        count += netprof_get_packet_count_total(tcp_profile, direction);
+    }
+
+    return count;
+}
+
+uint64_t gc_tcp_connections_get_packet_id_bytes(const GC_Session *c, uint8_t id, Packet_Direction direction)
+{
+    uint64_t bytes = 0;
+
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
+        GC_Chat *chat = &c->chats[i];
+
+        const GC_Conn_State state = chat->connection_state;
+
+        if (state == CS_NONE) {
+            continue;
+        }
+
+        const Net_Profile *tcp_profile = tcp_connection_get_client_net_profile(chat->tcp_conn);
+        bytes += netprof_get_bytes_id(tcp_profile, id, direction);
+    }
+
+    return bytes;
+}
+
+uint64_t gc_tcp_connections_get_packet_total_bytes(const GC_Session *c, Packet_Direction direction)
+{
+    uint64_t bytes = 0;
+
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
+        GC_Chat *chat = &c->chats[i];
+
+        const GC_Conn_State state = chat->connection_state;
+
+        if (state == CS_NONE) {
+            continue;
+        }
+
+        const Net_Profile *tcp_profile = tcp_connection_get_client_net_profile(chat->tcp_conn);
+        bytes += netprof_get_bytes_total(tcp_profile, direction);
+    }
+
+    return bytes;
 }

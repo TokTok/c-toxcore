@@ -807,4 +807,14 @@ GC_Chat *gc_get_group_by_public_key(const GC_Session *c, const uint8_t *public_k
 non_null()
 int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uint8_t gc_announces_count);
 
+/** @brief Returns total packet or byte counts for all active group chats. */
+non_null()
+uint64_t gc_tcp_connections_get_packet_id_count(const GC_Session *c, uint8_t id, Packet_Direction direction);
+non_null()
+uint64_t gc_tcp_connections_get_packet_total_count(const GC_Session *c, Packet_Direction direction);
+non_null()
+uint64_t gc_tcp_connections_get_packet_id_bytes(const GC_Session *c, uint8_t id, Packet_Direction direction);
+non_null()
+uint64_t gc_tcp_connections_get_packet_total_bytes(const GC_Session *c, Packet_Direction direction);
+
 #endif /* C_TOXCORE_TOXCORE_GROUP_CHATS_H */
