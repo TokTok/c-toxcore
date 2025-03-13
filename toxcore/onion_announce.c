@@ -701,7 +701,8 @@ static int handle_data_request(void *object, const IP_Port *source, const uint8_
     return 0;
 }
 
-Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht)
+Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
+                                   Networking_Core *net)
 {
     if (dht == nullptr) {
         return nullptr;
@@ -718,7 +719,7 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
     onion_a->mem = mem;
     onion_a->mono_time = mono_time;
     onion_a->dht = dht;
-    onion_a->net = dht_get_net(dht);
+    onion_a->net = net;
     onion_a->extra_data_max_size = 0;
     onion_a->extra_data_callback = nullptr;
     onion_a->extra_data_object = nullptr;

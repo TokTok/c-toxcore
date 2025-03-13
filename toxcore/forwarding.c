@@ -37,11 +37,6 @@ struct Forwarding {
     void *forwarded_response_callback_object;
 };
 
-DHT *forwarding_get_dht(const Forwarding *forwarding)
-{
-    return forwarding->dht;
-}
-
 #define SENDBACK_TIMEOUT 3600
 
 bool send_forward_request(const Networking_Core *net, const IP_Port *forwarder,
@@ -358,7 +353,8 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht)
+Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
+                           Networking_Core *net)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;
@@ -375,7 +371,7 @@ Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *r
     forwarding->rng = rng;
     forwarding->mono_time = mono_time;
     forwarding->dht = dht;
-    forwarding->net = dht_get_net(dht);
+    forwarding->net = net;
 
     networking_registerhandler(forwarding->net, NET_PACKET_FORWARD_REQUEST, &handle_forward_request, forwarding);
     networking_registerhandler(forwarding->net, NET_PACKET_FORWARD_REPLY, &handle_forward_reply, forwarding);
