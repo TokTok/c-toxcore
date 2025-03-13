@@ -471,12 +471,26 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
+    Net_Profile *tcp_np = netprof_new(on->log, mem);
+
+    if (!tcp_np) {
+        kill_onion_announce(on->onion_a);
+        kill_onion(on->onion);
+        kill_dht(dht);
+        kill_networking(net);
+        mono_time_free(mem, on->mono_time);
+        logger_kill(on->log);
+        free(on);
+        return nullptr;
+    }
+
     TCP_Proxy_Info inf = {{{{0}}}};
-    on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, new_net_crypto(on->log, mem, rng, ns, on->mono_time, dht, &inf));
+    on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, new_net_crypto(on->log, mem, rng, ns, on->mono_time, dht, &inf, tcp_np));
 
     if (!on->onion_c) {
         kill_onion_announce(on->onion_a);
         kill_onion(on->onion);
+        netprof_kill(mem, tcp_np);
         kill_dht(dht);
         kill_networking(net);
         mono_time_free(mem, on->mono_time);
@@ -502,9 +516,11 @@ static void kill_onions(const Memory *mem, Onions *on)
     Networking_Core *net = dht_get_net(on->onion->dht);
     DHT *dht = on->onion->dht;
     Net_Crypto *c = onion_get_net_crypto(on->onion_c);
+    Net_Profile *tcp_np = nc_get_tcp_client_net_profile(c);
     kill_onion_client(on->onion_c);
     kill_onion_announce(on->onion_a);
     kill_onion(on->onion);
+    netprof_kill(mem, tcp_np);
     kill_net_crypto(c);
     kill_dht(dht);
     kill_networking(net);

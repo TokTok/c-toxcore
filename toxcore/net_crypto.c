@@ -137,6 +137,7 @@ struct Net_Crypto {
     const Random *rng;
     Mono_Time *mono_time;
     const Network *ns;
+    Net_Profile *tcp_np;
 
     DHT *dht;
     TCP_Connections *tcp_c;
@@ -2988,7 +2989,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info)
+                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
     if (dht == nullptr) {
         return nullptr;
@@ -3005,8 +3006,9 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->rng = rng;
     temp->mono_time = mono_time;
     temp->ns = ns;
+    temp->tcp_np = tcp_np;
 
-    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info);
+    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
 
     if (temp->tcp_c == nullptr) {
         mem_delete(mem, temp);
@@ -3099,17 +3101,11 @@ void kill_net_crypto(Net_Crypto *c)
     mem_delete(mem, c);
 }
 
-const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c)
+Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c)
 {
     if (c == nullptr) {
         return nullptr;
     }
 
-    const TCP_Connections *tcp_c = nc_get_tcp_c(c);
-
-    if (tcp_c == nullptr) {
-        return nullptr;
-    }
-
-    return tcp_connection_get_client_net_profile(tcp_c);
+    return c->tcp_np;
 }

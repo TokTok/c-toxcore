@@ -404,9 +404,9 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk);
 /** @brief Create new instance of Net_Crypto.
  * Sets all the global connection variables to their default values.
  */
-non_null()
+non_null(1, 2, 3, 4, 5, 6, 7) nullable(8)
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info);
+                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 non_null()
@@ -424,7 +424,7 @@ void kill_net_crypto(Net_Crypto *c);
  * Returns null if `c` is null or the TCP_Connections associated with `c` is null.
  */
 non_null()
-const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
+Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
 
 #ifdef __cplusplus
 } /* extern "C" */
