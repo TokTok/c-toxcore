@@ -175,6 +175,64 @@ struct Tox_Options {
     uint16_t proxy_port;
 
     /**
+     * @brief SOCKS5 proxy username.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * This member must be set using the corresponding function, it must not be
+     * set directly. The function always makes a copy of the provided data,
+     * regardless if experimental_owned_data is set or not, so it doesn't have
+     * to outlive the options object.
+     *
+     * @private
+     */
+    uint8_t *internal_do_not_set_directly_proxy_socks5_username;
+
+    /**
+     * @brief Length of the SOCKS5 proxy username.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_USERNAME_LENGTH.
+     *
+     * This member must be set using the corresponding function, it must not be
+     * set directly.
+     *
+     * @private
+     */
+    size_t internal_do_not_set_directly_proxy_socks5_username_length;
+
+    /**
+     * @brief SOCKS5 proxy password.
+     *
+     * If set to NULL, the username/password authentication is disabled.
+     *
+     * This member is ignored (it can be NULL) if proxy_type is not
+     * TOX_PROXY_TYPE_SOCKS5.
+     *
+     * This member must be set using the corresponding function, it must not be
+     * set directly. The function always makes a copy of the provided data,
+     * regardless if experimental_owned_data is set or not, so it doesn't have
+     * to outlive the options object.
+     *
+     * @private
+     */
+    uint8_t *internal_do_not_set_directly_proxy_socks5_password;
+
+    /**
+     * @brief Length of the SOCKS5 proxy password.
+     *
+     * Must be at most TOX_MAX_PROXY_SOCKS5_PASSWORD_LENGTH.
+     *
+     * This member must be set using the corresponding function, it must not be
+     * set directly.
+     *
+     * @private
+     */
+    size_t internal_do_not_set_directly_proxy_socks5_password_length;
+
+    /**
      * The start port of the inclusive port range to attempt to use.
      *
      * If both start_port and end_port are 0, the default port range will be
@@ -341,6 +399,18 @@ bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
 uint16_t tox_options_get_proxy_port(const Tox_Options *options);
 
 void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port);
+
+uint8_t *tox_options_get_proxy_socks5_username(const Tox_Options *options);
+
+bool tox_options_set_proxy_socks5_username(Tox_Options *options, const uint8_t username[], size_t length);
+
+size_t tox_options_get_proxy_socks5_username_length(const Tox_Options *options);
+
+uint8_t *tox_options_get_proxy_socks5_password(const Tox_Options *options);
+
+bool tox_options_set_proxy_socks5_password(Tox_Options *options, const uint8_t password[], size_t length);
+
+size_t tox_options_get_proxy_socks5_password_length(const Tox_Options *options);
 
 uint16_t tox_options_get_start_port(const Tox_Options *options);
 
