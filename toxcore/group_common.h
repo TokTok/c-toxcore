@@ -20,6 +20,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net_profile.h"
 #include "network.h"
 
 #define MAX_GC_PART_MESSAGE_SIZE 128
@@ -377,6 +378,7 @@ typedef void gc_rejected_cb(const Messenger *m, uint32_t group_number, unsigned 
 typedef struct GC_Session {
     Messenger                 *messenger;
     GC_Chat                   *chats;
+    Net_Profile               *tcp_np;
     struct GC_Announces_List  *announces_list;
 
     uint32_t     chats_index;

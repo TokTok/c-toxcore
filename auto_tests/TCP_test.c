@@ -8,6 +8,7 @@
 #include "../toxcore/TCP_server.h"
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/net_profile.h"
 #include "../toxcore/network.h"
 #include "auto_test_support.h"
 
@@ -737,6 +738,9 @@ static void test_tcp_connection(void)
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     Logger *logger = logger_new(mem);
 
+    Net_Profile *tcp_np = netprof_new(logger, mem);
+    ck_assert(tcp_np != nullptr);
+
     tcp_data_callback_called = 0;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -747,12 +751,12 @@ static void test_tcp_connection(void)
     TCP_Proxy_Info proxy_info;
     proxy_info.proxy_type = TCP_PROXY_NONE;
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info);
+    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
     ck_assert_msg(tc_1 != nullptr, "Failed to create TCP connections");
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
 
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info);
+    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
     ck_assert_msg(tc_2 != nullptr, "Failed to create TCP connections");
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
 
@@ -811,6 +815,8 @@ static void test_tcp_connection(void)
     ck_assert_msg(send_packet_tcp_connection(tc_1, 0, (const uint8_t *)"Gentoo", 6) == -1, "could send packet.");
     ck_assert_msg(kill_tcp_connection_to(tc_2, 0) == 0, "could not kill connection to\n");
 
+    netprof_kill(mem, tcp_np);
+
     kill_tcp_server(tcp_s);
     kill_tcp_connections(tc_1);
     kill_tcp_connections(tc_2);
@@ -852,6 +858,9 @@ static void test_tcp_connection2(void)
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     Logger *logger = logger_new(mem);
 
+    Net_Profile *tcp_np = netprof_new(logger, mem);
+    ck_assert(tcp_np != nullptr);
+
     tcp_oobdata_callback_called = 0;
     tcp_data_callback_called = 0;
 
@@ -864,12 +873,12 @@ static void test_tcp_connection2(void)
     TCP_Proxy_Info proxy_info;
     proxy_info.proxy_type = TCP_PROXY_NONE;
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info);
+    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
     ck_assert_msg(tc_1 != nullptr, "Failed to create TCP connections");
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
 
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info);
+    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
     ck_assert_msg(tc_2 != nullptr, "Failed to create TCP connections");
     ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
 
@@ -920,6 +929,8 @@ static void test_tcp_connection2(void)
 
     ck_assert_msg(tcp_data_callback_called, "could not recv packet.");
     ck_assert_msg(kill_tcp_connection_to(tc_1, 0) == 0, "could not kill connection to\n");
+
+    netprof_kill(mem, tcp_np);
 
     kill_tcp_server(tcp_s);
     kill_tcp_connections(tc_1);

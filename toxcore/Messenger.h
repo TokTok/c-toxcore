@@ -25,6 +25,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
+#include "net_profile.h"
 #include "network.h"
 #include "onion.h"
 #include "onion_announce.h"
@@ -248,6 +249,7 @@ struct Messenger {
 
     Networking_Core *net;
     Net_Crypto *net_crypto;
+    Net_Profile *tcp_np;
     DHT *dht;
 
     Forwarding *forwarding;
