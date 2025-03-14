@@ -1058,6 +1058,7 @@ cc_library(
         ":mem",
         ":mono_time",
         ":net_crypto",
+        ":net_profile",
         ":network",
         ":onion",
         ":onion_announce",

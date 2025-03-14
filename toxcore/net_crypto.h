@@ -406,7 +406,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk);
  */
 non_null()
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info);
+                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 non_null()
@@ -418,13 +418,6 @@ void do_net_crypto(Net_Crypto *c, void *userdata);
 
 nullable(1)
 void kill_net_crypto(Net_Crypto *c);
-
-/**
- * Returns a pointer to the net profile object for the TCP client associated with `c`.
- * Returns null if `c` is null or the TCP_Connections associated with `c` is null.
- */
-non_null()
-const Net_Profile *nc_get_tcp_client_net_profile(const Net_Crypto *c);
 
 #ifdef __cplusplus
 } /* extern "C" */

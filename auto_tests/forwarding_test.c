@@ -96,6 +96,7 @@ typedef struct Forwarding_Subtox {
     Logger *log;
     Mono_Time *mono_time;
     Networking_Core *net;
+    Net_Profile *tcp_np;
     DHT *dht;
     Net_Crypto *c;
     Forwarding *forwarding;
@@ -126,8 +127,11 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
 
     subtox->dht = new_dht(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, true, true);
 
+    subtox->tcp_np = netprof_new(subtox->log, mem);
+    ck_assert(subtox->tcp_np != nullptr);
+
     const TCP_Proxy_Info inf = {{{{0}}}};
-    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->dht, &inf);
+    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->dht, &inf, subtox->tcp_np);
 
     subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht);
     ck_assert(subtox->forwarding != nullptr);
@@ -143,6 +147,7 @@ static void kill_forwarding_subtox(const Memory *mem, Forwarding_Subtox *subtox)
     kill_announcements(subtox->announce);
     kill_forwarding(subtox->forwarding);
     kill_net_crypto(subtox->c);
+    netprof_kill(mem, subtox->tcp_np);
     kill_dht(subtox->dht);
     kill_networking(subtox->net);
     mono_time_free(mem, subtox->mono_time);

@@ -10,6 +10,7 @@
 #include "../testing/fuzzing/fuzz_tox.hh"
 #include "DHT.h"
 #include "TCP_client.h"
+#include "net_profile.h"
 #include "network.h"
 
 namespace {
@@ -65,10 +66,17 @@ void TestNetCrypto(Fuzz_Data &input)
         return;
     }
 
+    Net_Profile *tcp_np = netprof_new(logger.get(), sys.mem.get());
+
+    if (tcp_np == nullptr) {
+        return;
+    }
+
     const TCP_Proxy_Info proxy_info = {0};
 
-    const Ptr<Net_Crypto> net_crypto(new_net_crypto(logger.get(), sys.mem.get(), sys.rng.get(),
-                                         sys.ns.get(), mono_time.get(), dht.get(), &proxy_info),
+    const Ptr<Net_Crypto> net_crypto(
+        new_net_crypto(logger.get(), sys.mem.get(), sys.rng.get(), sys.ns.get(), mono_time.get(),
+            dht.get(), &proxy_info, tcp_np),
         kill_net_crypto);
     if (net_crypto == nullptr) {
         return;
@@ -81,6 +89,8 @@ void TestNetCrypto(Fuzz_Data &input)
         // "Sleep"
         sys.clock += System::BOOTSTRAP_ITERATION_INTERVAL;
     }
+
+    netprof_kill(sys.mem.get(), tcp_np);
 }
 
 }  // namespace

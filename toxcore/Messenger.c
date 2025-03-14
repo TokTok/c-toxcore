@@ -34,6 +34,7 @@
 #include "mem.h"
 #include "mono_time.h"
 #include "net_crypto.h"
+#include "net_profile.h"
 #include "network.h"
 #include "onion.h"
 #include "onion_announce.h"
@@ -3531,11 +3532,24 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info);
+    m->tcp_np = netprof_new(m->log, mem);
+
+    if (m->tcp_np == nullptr) {
+        LOGGER_WARNING(m->log, "TCP netprof initialisation failed");
+        kill_dht(m->dht);
+        kill_networking(m->net);
+        friendreq_kill(m->fr);
+        logger_kill(m->log);
+        mem_delete(mem, m);
+        return nullptr;
+    }
+
+    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info, m->tcp_np);
 
     if (m->net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
 
+        netprof_kill(mem, m->tcp_np);
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
@@ -3550,6 +3564,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         LOGGER_WARNING(m->log, "DHT group chats initialisation failed");
 
         kill_net_crypto(m->net_crypto);
+        netprof_kill(mem, m->tcp_np);
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
@@ -3589,6 +3604,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_announcements(m->announce);
         kill_forwarding(m->forwarding);
         kill_net_crypto(m->net_crypto);
+        netprof_kill(mem, m->tcp_np);
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
@@ -3612,6 +3628,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         kill_announcements(m->announce);
         kill_forwarding(m->forwarding);
         kill_net_crypto(m->net_crypto);
+        netprof_kill(mem, m->tcp_np);
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
@@ -3637,6 +3654,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
             kill_announcements(m->announce);
             kill_forwarding(m->forwarding);
             kill_net_crypto(m->net_crypto);
+            netprof_kill(mem, m->tcp_np);
             kill_dht(m->dht);
             kill_networking(m->net);
             friendreq_kill(m->fr);
@@ -3692,6 +3710,7 @@ void kill_messenger(Messenger *m)
     kill_announcements(m->announce);
     kill_forwarding(m->forwarding);
     kill_net_crypto(m->net_crypto);
+    netprof_kill(m->mem, m->tcp_np);
     kill_dht(m->dht);
     kill_networking(m->net);
 
