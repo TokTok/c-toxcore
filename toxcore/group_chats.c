@@ -1626,7 +1626,7 @@ int group_packet_wrap(
  * Returns true on success.
  */
 non_null()
-static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+static bool send_lossy_group_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
                                     uint16_t length, uint8_t packet_type)
 {
     assert(length <= MAX_GC_CUSTOM_LOSSY_PACKET_SIZE);
@@ -2236,7 +2236,7 @@ static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, 
  * Return true on success.
  */
 non_null()
-static bool send_gc_invite_response_reject(const GC_Chat *chat, const GC_Connection *gconn, uint8_t type)
+static bool send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gconn, uint8_t type)
 {
     if (type >= GJ_INVALID) {
         type = GJ_INVITE_FAILED;
@@ -2353,7 +2353,7 @@ static bool send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *d
     uint32_t confirmed_peers = 0;
 
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = get_gc_connection(chat, i);
+        GC_Connection *gconn = get_gc_connection(chat, i);
 
         assert(gconn != nullptr);
 
@@ -7072,7 +7072,7 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
  * Return true on success.
  */
 non_null()
-static bool ping_peer(const GC_Chat *chat, const GC_Connection *gconn)
+static bool ping_peer(const GC_Chat *chat, GC_Connection *gconn)
 {
     const uint16_t buf_size = GC_PING_PACKET_MIN_DATA_SIZE + sizeof(IP_Port);
     uint8_t *data = (uint8_t *)mem_balloc(chat->mem, buf_size);
