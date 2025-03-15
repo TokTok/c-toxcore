@@ -135,6 +135,10 @@ void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 non_null()
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
 
+/** @brief Return true if we can try a direct connection with `gconn` again. */
+non_null()
+bool gcc_conn_should_try_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+
 /** @brief Return true if a direct UDP connection is possible with `gconn`. */
 non_null()
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn);
@@ -146,7 +150,7 @@ bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn
  * Return true on success.
  */
 non_null()
-bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
+bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *packet, uint16_t length);
 
 /** @brief Sends a lossless packet to `gconn` comprised of `data` of size `length`.
  *
@@ -184,7 +188,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
  * Return -2 if the packet fails to send.
  */
 non_null(1, 2) nullable(3)
-int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type);
 
 /** @brief Called when a peer leaves the group. */
