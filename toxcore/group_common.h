@@ -115,6 +115,7 @@ typedef struct GC_Connection {
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
     uint16_t    tcp_relay_share_index;
     uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
+    uint64_t    last_sent_direct_try_time;   /* the last time we tried sending a direct UDP packet */
     uint64_t    last_sent_ip_time;  /* the last time we sent our ip info to this peer in a ping packet */
 
     Node_format connected_tcp_relays[MAX_FRIEND_TCP_CONNECTIONS];
