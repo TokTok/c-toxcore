@@ -13,6 +13,10 @@
 #include <sys/ioctl.h>
 #endif /* !WIN32 */
 
+#if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && defined(TCP_SERVER_USE_EPOLL)
+#undef TCP_SERVER_USE_EPOLL
+#endif
+
 #ifdef TCP_SERVER_USE_EPOLL
 #include <sys/epoll.h>
 #include <unistd.h>

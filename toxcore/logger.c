@@ -17,6 +17,24 @@
 #include "ccompat.h"
 #include "mem.h"
 
+const char *logger_level_to_string(Logger_Level level)
+{
+    switch (level) {
+    case LOGGER_LEVEL_TRACE:
+        return "LOGGER_LEVEL_TRACE";
+    case LOGGER_LEVEL_DEBUG:
+        return "LOGGER_LEVEL_DEBUG";
+    case LOGGER_LEVEL_INFO:
+        return "LOGGER_LEVEL_INFO";
+    case LOGGER_LEVEL_WARNING:
+        return "LOGGER_LEVEL_WARNING";
+    case LOGGER_LEVEL_ERROR:
+        return "LOGGER_LEVEL_ERROR";
+    }
+
+    return "<invalid Logger_Level>";
+}
+
 struct Logger {
     const Memory *mem;
 
