@@ -91,9 +91,8 @@ static void load_data_decrypted(void)
     struct Tox_Options *options = tox_options_new(nullptr);
     ck_assert(options != nullptr);
 
-    tox_options_set_experimental_owned_data(options, true);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    ck_assert(tox_options_set_savedata_data(options, clear, clear_size));
+    ck_assert(tox_options_set_savedata(options, clear, clear_size));
     free(clear);
 
     Tox_Err_New err;
