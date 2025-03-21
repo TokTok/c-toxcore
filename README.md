@@ -6,7 +6,6 @@
 
 #### by some random twist of fate you stumbled into the Department of Science of Tox-University
 
-[![CircleCI](https://circleci.com/gh/zoff99/c-toxcore/tree/zoff99%2Fzoxcore_local_fork.png?style=badge)](https://circleci.com/gh/zoff99/c-toxcore/tree/zoff99%2Fzoxcore_local_fork)
 [![Android CI](https://github.com/zoff99/c-toxcore/workflows/github_build/badge.svg)](https://github.com/zoff99/c-toxcore/actions?query=workflow%3A%22github_build%22)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
