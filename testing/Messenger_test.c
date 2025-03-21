@@ -35,6 +35,8 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "misc_tools.h"
 
 static void print_message(Messenger *m, uint32_t friendnumber, unsigned int type, const uint8_t *string, size_t length,

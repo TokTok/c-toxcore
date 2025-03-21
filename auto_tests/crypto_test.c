@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../testing/misc_tools.h"
 #include "../toxcore/crypto_core.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_random.h"
 #include "check_compat.h"
 
 static void rand_bytes(const Random *rng, uint8_t *b, size_t blen)
