@@ -1304,14 +1304,11 @@ static bool audio_bit_rate_invalid(uint32_t bit_rate)
 
 static bool video_bit_rate_invalid(uint32_t bit_rate)
 {
-    /* https://www.webmproject.org/docs/webm-sdk/structvpx__codec__enc__cfg.html shows the following:
-     * unsigned int rc_target_bitrate
-     * the range of uint varies from platform to platform
-     * though, uint32_t should be large enough to store bitrates,
-     * we may want to prevent from passing overflowed bitrates to libvpx
-     * more in detail, it's the case where bit_rate is larger than uint, but smaller than uint32_t
+    /* Cap the target rate to 1000 Mbps to avoid some integer overflows in
+     * target bandwidth calculations.
+     * https://github.com/webmproject/libvpx/blob/027bbee30a0103b99d86327b48d29567fed11688/vp8/vp8_cx_iface.c#L350-L352
      */
-    return bit_rate > UINT32_MAX;
+    return bit_rate > 1000000;
 }
 
 static bool invoke_call_state_callback(ToxAV *av, uint32_t friend_number, uint32_t state)
