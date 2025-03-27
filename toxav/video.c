@@ -16,27 +16,6 @@
 #include "../toxcore/mono_time.h"
 
 /**
- * Soft deadline the decoder should attempt to meet, in "us" (microseconds).
- * Set to zero for unlimited.
- *
- * By convention, the value 1 is used to mean "return as fast as possible."
- */
-// TODO(zoff99): don't hardcode this, let the application choose it
-#define WANTED_MAX_DECODER_FPS 40
-
-/**
- * VPX_DL_REALTIME       (1)
- * deadline parameter analogous to VPx REALTIME mode.
- *
- * VPX_DL_GOOD_QUALITY   (1000000)
- * deadline parameter analogous to VPx GOOD QUALITY mode.
- *
- * VPX_DL_BEST_QUALITY   (0)
- * deadline parameter analogous to VPx BEST QUALITY mode.
- */
-#define MAX_DECODE_TIME_US (1000000 / WANTED_MAX_DECODER_FPS) // to allow x fps
-
-/**
  * Codec control function to set encoder internal speed settings. Changes in
  * this value influences, among others, the encoder's selection of motion
  * estimation methods. Values greater than 0 will increase encoder speed at the
@@ -320,7 +299,7 @@ void vc_iterate(VCSession *vc)
 
     LOGGER_DEBUG(vc->log, "vc_iterate: rb_read p->len=%d p->header.xe=%d", (int)full_data_len, p->header.xe);
     LOGGER_DEBUG(vc->log, "vc_iterate: rb_read rb size=%d", (int)log_rb_size);
-    const vpx_codec_err_t rc = vpx_codec_decode(vc->decoder, p->data, full_data_len, nullptr, MAX_DECODE_TIME_US);
+    const vpx_codec_err_t rc = vpx_codec_decode(vc->decoder, p->data, full_data_len, nullptr, 0);
     free(p);
 
     if (rc != VPX_CODEC_OK) {
