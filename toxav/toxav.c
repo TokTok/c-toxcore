@@ -38,7 +38,7 @@
  */
 
 // iteration interval that is used when no call is active
-#define IDLE_ITERATION_INTERVAL_MS 200
+#define IDLE_ITERATION_INTERVAL_MS 1000
 
 #ifndef TOXAV_CALL_DEFINED
 #define TOXAV_CALL_DEFINED

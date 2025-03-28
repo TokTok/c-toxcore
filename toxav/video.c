@@ -350,7 +350,7 @@ int vc_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *ms
 
     /* This function is called with complete messages
      * they have already been assembled.
-     * this function gets called from handle_rtp_packet() and handle_rtp_packet_v3()
+     * this function gets called from handle_rtp_packet()
      */
     if (vc == nullptr || msg == nullptr) {
         free(msg);
