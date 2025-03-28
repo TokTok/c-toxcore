@@ -495,17 +495,26 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
 {
     vpx_image_t img;
 
-    if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
-        LOGGER_ERROR(vc->log, "Could not allocate image for frame");
-        return -1;
-    }
+    // TODO(Green-Sky): figure out stride_align
+    // TODO(Green-Sky): check memory alignment?
+    if (vpx_img_wrap(&img, VPX_IMG_FMT_I420, width, height, 0, (uint8_t *)y) != nullptr) {
+        // vpx_img_wrap assumes contigues memory, so we fix that
+        img.planes[VPX_PLANE_U] = (uint8_t *)u;
+        img.planes[VPX_PLANE_V] = (uint8_t *)v;
+    } else {
+        // call to wrap failed, falling back to copy
+        if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
+            LOGGER_ERROR(vc->log, "Could not allocate image for frame");
+            return -1;
+        }
 
-    /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-     * http://fourcc.org/yuv.php#IYUV
-     */
-    memcpy(img.planes[VPX_PLANE_Y], y, (size_t)width * height);
-    memcpy(img.planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
-    memcpy(img.planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
+        /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
+         * http://fourcc.org/yuv.php#IYUV
+         */
+        memcpy(img.planes[VPX_PLANE_Y], y, (size_t)width * height);
+        memcpy(img.planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
+        memcpy(img.planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
+    }
 
     int vpx_flags = 0;
 
