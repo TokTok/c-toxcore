@@ -74,8 +74,8 @@ const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
  * least extend between registering and unregistering it or tox_kill.
  *
  * Other toxcore modules such as toxav may concurrently call this callback at
- * any time. Thus, user code must make sure it is equipped to handle concurrent
- * execution, e.g. by employing appropriate mutex locking.
+ * any time. Thus, user code must make sure it is equipped to handle
+ * concurrent execution, e.g. by employing appropriate mutex locking.
  *
  * When using the experimental_thread_safety option, no Tox API functions can
  * be called from within the log callback.
@@ -87,9 +87,9 @@ const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
  * @param message The log message.
  * @param user_data The user data pointer passed to tox_new in options.
  */
-typedef void tox_log_cb(struct Tox *tox, Tox_Log_Level level, const char *file,
-                        uint32_t line, const char *func, const char *message,
-                        void *user_data);
+typedef void tox_log_cb(struct Tox *tox, Tox_Log_Level level,
+                        const char *file, uint32_t line, const char *func,
+                        const char *message, void *user_data);
 
 /**
  * @brief This struct contains all the startup options for Tox.
@@ -123,19 +123,20 @@ struct Tox_Options {
     /**
      * Enable the use of UDP communication when available.
      *
-     * Setting this to false will force Tox to use TCP only. Communications will
-     * need to be relayed through a TCP relay node, potentially slowing them
-     * down.
+     * Setting this to false will force Tox to use TCP only. Communications
+     * will need to be relayed through a TCP relay node, potentially slowing
+     * them down.
      *
-     * If a proxy is enabled, UDP will be disabled if either the Tox library or
-     * the proxy don't support proxying UDP messages.
+     * If a proxy is enabled, UDP will be disabled if either the Tox library
+     * or the proxy don't support proxying UDP messages.
      */
     bool udp_enabled;
 
     /**
      * Enable local network peer discovery.
      *
-     * Disabling this will cause Tox to not look for peers on the local network.
+     * Disabling this will cause Tox to not look for peers on the local
+     * network.
      */
     bool local_discovery_enabled;
 
@@ -154,9 +155,10 @@ struct Tox_Options {
     /**
      * The IP address or DNS name of the proxy to be used.
      *
-     * If used, this must be non-NULL and be a valid DNS name. The name must not
-     * exceed TOX_MAX_HOSTNAME_LENGTH characters, and be in a NUL-terminated C
-     * string format (TOX_MAX_HOSTNAME_LENGTH includes the NUL byte).
+     * If used, this must be non-NULL and be a valid DNS name. The name must
+     * not exceed TOX_MAX_HOSTNAME_LENGTH characters, and be in a
+     * NUL-terminated C string format (TOX_MAX_HOSTNAME_LENGTH includes the
+     * NUL byte).
      *
      * This member is ignored (it can be NULL) if proxy_type is
      * TOX_PROXY_TYPE_NONE.
@@ -241,9 +243,9 @@ struct Tox_Options {
 
     /**
      * These options are experimental, so avoid writing code that depends on
-     * them. Options marked "experimental" may change their behaviour or go away
-     * entirely in the future, or may be renamed to something non-experimental
-     * if they become part of the supported API.
+     * them. Options marked "experimental" may change their behaviour or go
+     * away entirely in the future, or may be renamed to something
+     * non-experimental if they become part of the supported API.
      */
     /**
      * Make public API functions thread-safe using a per-instance lock.
@@ -254,8 +256,8 @@ struct Tox_Options {
 
     /**
      * Enable saving DHT-based group chats to Tox save data (via
-     * `tox_get_savedata`). This format will change in the future, so don't rely
-     * on it.
+     * `tox_get_savedata`). This format will change in the future, so don't
+     * rely on it.
      *
      * As an alternative, clients can save the group chat ID in client-owned
      * savedata. Then, when the client starts, it can use `tox_group_join`
@@ -286,11 +288,11 @@ struct Tox_Options {
     /**
      * @brief Whether the savedata data is owned by the Tox_Options object.
      *
-     * If true, the setters for savedata and proxy_host try to copy the string.
-     * If that fails, the value is not copied and the member is set to the
-     * user-provided pointer. In that case, the user must not free the string
-     * until the Tox_Options object is freed. Client code can check whether
-     * allocation succeeded by checking the returned bool. If
+     * If true, the setters for savedata and proxy_host try to copy the
+     * string. If that fails, the value is not copied and the member is set to
+     * the user-provided pointer. In that case, the user must not free the
+     * string until the Tox_Options object is freed. Client code can check
+     * whether allocation succeeded by checking the returned bool. If
      * experimental_owned_data is false, it will always return true. If set to
      * true, the return value will be false on allocation failure.
      *
@@ -362,14 +364,49 @@ Tox_Savedata_Type tox_options_get_savedata_type(const Tox_Options *options);
 
 void tox_options_set_savedata_type(Tox_Options *options, Tox_Savedata_Type savedata_type);
 
+// TODO(iphydf): Uncomment after migration.
+// #ifndef TOX_HIDE_DEPRECATED
+/**
+ * @deprecated Use tox_options_get_savedata instead.
+ */
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options);
 
+/**
+ * @deprecated Use tox_options_get_savedata_size instead.
+ */
+size_t tox_options_get_savedata_length(const Tox_Options *options);
+
+/**
+ * @brief Set the savedata data and length.
+ *
+ * If experimental_owned_data is false, the savedata_data pointer must remain
+ * valid until the Tox_Options object is freed. If experimental_owned_data is
+ * true, the savedata_data pointer is copied and the user is free to free the
+ * original pointer, but ONLY IF the function returns true. If the function
+ * returns false, the savedata_data pointer is not copied and the user must not
+ * free the original pointer until the Tox_Options object is freed.
+ *
+ * @deprecated Use tox_options_set_savedata instead.
+ */
 bool tox_options_set_savedata_data(
     Tox_Options *options, const uint8_t savedata_data[], size_t length);
 
-size_t tox_options_get_savedata_length(const Tox_Options *options);
-
+/**
+ * @deprecated Use tox_options_set_savedata instead.
+ */
 void tox_options_set_savedata_length(Tox_Options *options, size_t savedata_length);
+// #endif /* TOX_HIDE_DEPRECATED */
+
+void tox_options_get_savedata(const Tox_Options *options, uint8_t savedata[]);
+
+size_t tox_options_get_savedata_size(const Tox_Options *options);
+
+/** @brief Set the savedata data and length.
+ *
+ * Copies the savedata data and length into the options object. On allocation
+ * failure, returns false and does not set the savedata data and length.
+ */
+bool tox_options_set_savedata(Tox_Options *options, const uint8_t savedata[], size_t savedata_size);
 
 tox_log_cb *tox_options_get_log_callback(const Tox_Options *options);
 
@@ -425,14 +462,15 @@ typedef enum Tox_Err_Options_New {
 const char *tox_err_options_new_to_string(Tox_Err_Options_New value);
 
 /**
- * @brief Allocates a new Tox_Options object and initialises it with the default
- *   options.
+ * @brief Allocates a new Tox_Options object and initialises it with the
+ *   default options.
  *
  * This function can be used to preserve long term ABI compatibility by
- * giving the responsibility of allocation and deallocation to the Tox library.
+ * giving the responsibility of allocation and deallocation to the Tox
+ * library.
  *
- * Objects returned from this function must be freed using the tox_options_free
- * function.
+ * Objects returned from this function must be freed using the
+ * tox_options_free function.
  *
  * @return A new Tox_Options object with default options or NULL on failure.
  */

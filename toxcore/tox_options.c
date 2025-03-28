@@ -123,14 +123,6 @@ void tox_options_set_savedata_type(Tox_Options *options, Tox_Savedata_Type saved
 {
     options->savedata_type = savedata_type;
 }
-size_t tox_options_get_savedata_length(const Tox_Options *options)
-{
-    return options->savedata_length;
-}
-void tox_options_set_savedata_length(Tox_Options *options, size_t savedata_length)
-{
-    options->savedata_length = savedata_length;
-}
 tox_log_cb *tox_options_get_log_callback(const Tox_Options *options)
 {
     return options->log_callback;
@@ -199,12 +191,47 @@ void tox_options_set_experimental_owned_data(
     options->experimental_owned_data = experimental_owned_data;
 }
 
-const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
+void tox_options_get_savedata(const Tox_Options *options, uint8_t *savedata)
 {
-    return options->savedata_data;
+    memcpy(savedata, options->savedata_data, options->savedata_length);
 }
 
-bool tox_options_set_savedata_data(Tox_Options *options, const uint8_t *savedata_data, size_t length)
+size_t tox_options_get_savedata_size(const Tox_Options *options)
+{
+    return options->savedata_length;
+}
+
+bool tox_options_set_savedata(Tox_Options *options, const uint8_t *savedata, size_t savedata_size)
+{
+    if (options->owned_savedata_data != nullptr) {
+        free(options->owned_savedata_data);
+        options->savedata_data = nullptr;
+        options->savedata_length = 0;
+        options->owned_savedata_data = nullptr;
+    }
+
+    if (savedata == nullptr) {
+        options->savedata_data = nullptr;
+        options->savedata_length = 0;
+        options->owned_savedata_data = nullptr;
+        return true;
+    }
+
+    uint8_t *owned_ptr = (uint8_t *)malloc(savedata_size);
+    if (owned_ptr == nullptr) {
+        return false;
+    }
+
+    memcpy(owned_ptr, savedata, savedata_size);
+    options->savedata_data = owned_ptr;
+    options->savedata_length = savedata_size;
+    options->owned_savedata_data = owned_ptr;
+    return true;
+}
+
+// Deprecated functions.
+bool tox_options_set_savedata_data(
+    Tox_Options *options, const uint8_t savedata_data[], size_t length)
 {
     if (!options->experimental_owned_data) {
         options->savedata_data = savedata_data;
@@ -212,29 +239,26 @@ bool tox_options_set_savedata_data(Tox_Options *options, const uint8_t *savedata
         return true;
     }
 
-    if (options->owned_savedata_data != nullptr) {
-        free(options->owned_savedata_data);
-        options->owned_savedata_data = nullptr;
-    }
-    if (savedata_data == nullptr) {
-        options->savedata_data = nullptr;
-        options->savedata_length = 0;
-        return true;
-    }
-
-    uint8_t *owned_ptr = (uint8_t *)malloc(length);
-    if (owned_ptr == nullptr) {
+    if (!tox_options_set_savedata(options, savedata_data, length)) {
         options->savedata_data = savedata_data;
         options->savedata_length = length;
         options->owned_savedata_data = nullptr;
         return false;
     }
 
-    memcpy(owned_ptr, savedata_data, length);
-    options->savedata_data = owned_ptr;
-    options->savedata_length = length;
-    options->owned_savedata_data = owned_ptr;
     return true;
+}
+void tox_options_set_savedata_length(Tox_Options *options, size_t savedata_length)
+{
+    options->savedata_length = savedata_length;
+}
+const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
+{
+    return options->savedata_data;
+}
+size_t tox_options_get_savedata_length(const Tox_Options *options)
+{
+    return tox_options_get_savedata_size(options);
 }
 
 void tox_options_default(Tox_Options *options)
@@ -242,7 +266,7 @@ void tox_options_default(Tox_Options *options)
     if (options != nullptr) {
         // Free any owned data.
         tox_options_set_proxy_host(options, nullptr);
-        tox_options_set_savedata_data(options, nullptr, 0);
+        tox_options_set_savedata(options, nullptr, 0);
 
         // Set the rest to default values.
         const Tox_Options default_options = {false};
@@ -279,7 +303,7 @@ void tox_options_free(Tox_Options *options)
     if (options != nullptr) {
         // Free any owned data.
         tox_options_set_proxy_host(options, nullptr);
-        tox_options_set_savedata_data(options, nullptr, 0);
+        tox_options_set_savedata(options, nullptr, 0);
         free(options);
     }
 }
