@@ -1055,6 +1055,7 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
         goto RETURN;
     }
 
+    // we start with I-frames (full frames) and then switch to normal mode later
     if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
@@ -1069,15 +1070,18 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
         ++call->video_rtp->ssrc;
     }
 
-    // we start with I-frames (full frames) and then switch to normal mode later
-
     {   /* Encode */
         vpx_image_t img;
         img.w = 0;
         img.h = 0;
         img.d_w = 0;
         img.d_h = 0;
-        vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0);
+        if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
+            pthread_mutex_unlock(call->mutex_video);
+            LOGGER_ERROR(av->log, "Could not allocate image for frame");
+            rc = TOXAV_ERR_SEND_FRAME_INVALID;
+            goto RETURN;
+        }
 
         /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
          * http://fourcc.org/yuv.php#IYUV
