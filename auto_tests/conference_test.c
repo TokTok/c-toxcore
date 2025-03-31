@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 
 #include "check_compat.h"

@@ -187,9 +187,9 @@ void fuzz_select_target(const uint8_t *data, std::size_t size)
     return Fuzz_Target_Selector<Args...>::select(selector, input);
 }
 
-struct Memory;
+struct Tox_Memory;
 struct Network;
-struct Random;
+struct Tox_Random;
 
 struct System {
     /** @brief Deterministic system clock for this instance.
@@ -205,12 +205,12 @@ struct System {
     uint64_t clock = 1000000000;
 
     std::unique_ptr<Tox_System> sys;
-    std::unique_ptr<Memory> mem;
+    std::unique_ptr<Tox_Memory> mem;
     std::unique_ptr<Network> ns;
-    std::unique_ptr<Random> rng;
+    std::unique_ptr<Tox_Random> rng;
 
-    System(std::unique_ptr<Tox_System> sys, std::unique_ptr<Memory> mem,
-        std::unique_ptr<Network> ns, std::unique_ptr<Random> rng);
+    System(std::unique_ptr<Tox_System> sys, std::unique_ptr<Tox_Memory> mem,
+        std::unique_ptr<Network> ns, std::unique_ptr<Tox_Random> rng);
     System(System &&);
 
     // Not inline because sizeof of the above 2 structs is not known everywhere.

@@ -13,6 +13,7 @@
 #include "attributes.h"
 #include "ccompat.h"
 #include "mem.h"
+#include "tox_random.h"
 #include "util.h"
 
 static_assert(CRYPTO_PUBLIC_KEY_SIZE == crypto_box_PUBLICKEYBYTES,
@@ -206,7 +207,7 @@ uint64_t random_u64(const Random *rng)
 
 uint32_t random_range_u32(const Random *rng, uint32_t upper_bound)
 {
-    return rng->funcs->random_uniform(rng->obj, upper_bound);
+    return tox_random_uniform(rng, upper_bound);
 }
 
 bool crypto_signature_create(uint8_t signature[CRYPTO_SIGNATURE_SIZE],
@@ -495,41 +496,7 @@ void crypto_sha512(uint8_t hash[CRYPTO_SHA512_SIZE], const uint8_t *data, size_t
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
-non_null()
-static void sys_random_bytes(void *obj, uint8_t *bytes, size_t length)
-{
-    randombytes(bytes, length);
-}
-
-non_null()
-static uint32_t sys_random_uniform(void *obj, uint32_t upper_bound)
-{
-    return randombytes_uniform(upper_bound);
-}
-
-static const Random_Funcs os_random_funcs = {
-    sys_random_bytes,
-    sys_random_uniform,
-};
-
-static const Random os_random_obj = {&os_random_funcs};
-
-const Random *os_random(void)
-{
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    if ((true)) {
-        return nullptr;
-    }
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-    // It is safe to call this function more than once and from different
-    // threads -- subsequent calls won't have any effects.
-    if (sodium_init() == -1) {
-        return nullptr;
-    }
-    return &os_random_obj;
-}
-
 void random_bytes(const Random *rng, uint8_t *bytes, size_t length)
 {
-    rng->funcs->random_bytes(rng->obj, bytes, length);
+    tox_random_bytes(rng, bytes, length);
 }

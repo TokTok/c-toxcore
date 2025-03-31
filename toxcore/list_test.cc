@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "mem.h"
+#include "os_memory.h"
 
 namespace {
 
