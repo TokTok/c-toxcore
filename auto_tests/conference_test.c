@@ -248,7 +248,7 @@ static void run_conference_tests(AutoTox *autotoxes)
             struct Tox_Options *const options = tox_options_new(nullptr);
             ck_assert(options != nullptr);
             tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-            tox_options_set_savedata_data(options, save[i], save_size[i]);
+            ck_assert(tox_options_set_savedata(options, save[i], save_size[i]));
             autotoxes[i].tox = tox_new_log(options, nullptr, &autotoxes[i].index);
             ck_assert(autotoxes[i].tox != nullptr);
             tox_options_free(options);

@@ -9,8 +9,7 @@
 #include "../testing/misc_tools.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/tox.h"
-#include "../toxcore/tox_struct.h"
-#include "../toxcore/util.h"
+#include "../toxcore/tox_struct.h" // IWYU pragma: keep
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -88,7 +87,7 @@ static void reload_tox(Tox **tox, struct Tox_Options *const in_opts, void *user_
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
-    tox_options_set_savedata_data(options, buffer + extra, save_size1);
+    ck_assert(tox_options_set_savedata(options, buffer + extra, save_size1));
 
     *tox = tox_new_log(options, nullptr, user_data);
 
