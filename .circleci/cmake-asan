@@ -10,7 +10,7 @@ add_flag -fdiagnostics-color=always
 add_flag -fno-omit-frame-pointer
 add_flag -fsanitize=address
 add_flag -Wno-error=declaration-after-statement
-# add_flag -Wno-error=unused-but-set-variable
+add_flag -Wno-error=unused-but-set-variable
 add_flag -Wno-error=documentation
 
 add_flag -Wno-error=missing-variable-declarations
