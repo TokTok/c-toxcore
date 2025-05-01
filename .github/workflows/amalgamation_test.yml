@@ -32,7 +32,7 @@ jobs:
           libavfilter-dev \
           libx264-dev \
           libx265-dev \
-          libasan4
+          libasan6
 
       - name: compile test without ToxAV
         run: |
