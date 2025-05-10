@@ -56192,7 +56192,7 @@ int read_packet_TCP_secure_connection(
         return -1;
     }
 
-    VLA(uint8_t, data_encrypted, *next_packet_length);
+    VLA(uint8_t, data_encrypted, (int)(*next_packet_length));
     const int len_packet = read_TCP_packet(logger, ns, sock, data_encrypted, *next_packet_length, ip_port);
 
     if (len_packet == -1) {
@@ -60831,6 +60831,7 @@ Tox_Connection tox_self_get_connection_status(const Tox *tox)
     }
 
     LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+    return TOX_CONNECTION_NONE;
 }
 
 
