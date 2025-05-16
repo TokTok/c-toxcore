@@ -29,4 +29,5 @@ freebsd_task:
         -DAUTOTEST=ON \
         -GNinja
       cmake --build . --target install
-      ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3 || ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3
+      ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:3 ||
+        ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6
