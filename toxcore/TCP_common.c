@@ -207,21 +207,25 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
 int read_tcp_packet(
     const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    const uint16_t count = net_socket_data_recv_buffer(ns, sock, length);
 
-    if (count < length) {
-        if (count != 0) {
-            // Only log when there are some bytes available, as empty buffer
-            // is a very common case and this spams our logs.
-            LOGGER_TRACE(logger, "recv buffer has %d bytes, but requested %d bytes", count, length);
-        }
+    if (count == 0) {
+        // This is a very common case. Don't log here to avoid spamming the logs.
         return -1;
     }
+
+    if (count < length) {
+        LOGGER_TRACE(logger, "recv buffer has %d bytes, but requested %d bytes", count, length);
+        return -1;
+    }
+
+    LOGGER_INFO(logger, "recv buffer has %d bytes", count);
 
     const int len = net_recv(ns, logger, sock, data, length, ip_port);
 
     if (len != length) {
-        LOGGER_ERROR(logger, "FAIL recv packet");
+        Net_Strerror error_str;
+        LOGGER_ERROR(logger, "FAIL recv packet: %d != %d (%s)", len, length, net_strerror(net_error(), &error_str));
         return -1;
     }
 
@@ -238,7 +242,7 @@ int read_tcp_packet(
 non_null()
 static uint16_t read_tcp_length(const Logger *logger, const Network *ns, Socket sock, const IP_Port *ip_port)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    const uint16_t count = net_socket_data_recv_buffer(ns, sock, sizeof(uint16_t));
 
     if (count >= sizeof(uint16_t)) {
         uint8_t length_buf[sizeof(uint16_t)];
