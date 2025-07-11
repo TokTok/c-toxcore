@@ -43,7 +43,7 @@ const Memory *os_memory(void);
  * The array will not be initialised. Supported built-in types are
  * `uint8_t`, `int8_t`, and `int16_t`.
  */
-non_null() void *mem_balloc(const Memory *mem, uint32_t size);
+void *mem_balloc(non_null() const Memory *mem, uint32_t size);
 
 /**
  * @brief Resize an array of a given size for built-in types.
@@ -51,21 +51,21 @@ non_null() void *mem_balloc(const Memory *mem, uint32_t size);
  * If used for a type other than byte-sized types, `size` needs to be manually
  * multiplied by the element size.
  */
-non_null(1) nullable(2) void *mem_brealloc(const Memory *mem, void *ptr, uint32_t size);
+void *mem_brealloc(non_null() const Memory *mem, nullable() void *ptr, uint32_t size);
 
 /**
  * @brief Allocate a single object.
  *
  * Always use as `(T *)mem_alloc(mem, sizeof(T))`.
  */
-non_null() void *mem_alloc(const Memory *mem, uint32_t size);
+void *mem_alloc(non_null() const Memory *mem, uint32_t size);
 
 /**
  * @brief Allocate a vector (array) of objects.
  *
  * Always use as `(T *)mem_valloc(mem, N, sizeof(T))`.
  */
-non_null() void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size);
+void *mem_valloc(non_null() const Memory *mem, uint32_t nmemb, uint32_t size);
 
 /**
  * @brief Resize an object vector.
@@ -82,10 +82,10 @@ non_null() void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size);
  * case where the multiplication would overflow. If such an overflow occurs,
  * `mem_vrealloc()` returns `nullptr`.
  */
-non_null(1) nullable(2) void *mem_vrealloc(const Memory *mem, void *ptr, uint32_t nmemb, uint32_t size);
+void *mem_vrealloc(non_null() const Memory *mem, nullable() void *ptr, uint32_t nmemb, uint32_t size);
 
 /** @brief Free an array, object, or object vector. */
-non_null(1) nullable(2) void mem_delete(const Memory *mem, void *ptr);
+void mem_delete(non_null() const Memory *mem, nullable() void *ptr);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -25,9 +25,7 @@ struct Tox_Event_Group_Self_Join {
     uint32_t group_number;
 };
 
-non_null()
-static void tox_event_group_self_join_set_group_number(Tox_Event_Group_Self_Join *group_self_join,
-        uint32_t group_number)
+static void tox_event_group_self_join_set_group_number(non_null() Tox_Event_Group_Self_Join *group_self_join, uint32_t group_number)
 {
     assert(group_self_join != nullptr);
     group_self_join->group_number = group_number;
@@ -38,15 +36,13 @@ uint32_t tox_event_group_self_join_get_group_number(const Tox_Event_Group_Self_J
     return group_self_join->group_number;
 }
 
-non_null()
-static void tox_event_group_self_join_construct(Tox_Event_Group_Self_Join *group_self_join)
+static void tox_event_group_self_join_construct(non_null() Tox_Event_Group_Self_Join *group_self_join)
 {
     *group_self_join = (Tox_Event_Group_Self_Join) {
         0
     };
 }
-non_null()
-static void tox_event_group_self_join_destruct(Tox_Event_Group_Self_Join *group_self_join, const Memory *mem)
+static void tox_event_group_self_join_destruct(non_null() Tox_Event_Group_Self_Join *group_self_join, non_null() const Memory *mem)
 {
     return;
 }
@@ -57,9 +53,7 @@ bool tox_event_group_self_join_pack(
     return bin_pack_u32(bp, event->group_number);
 }
 
-non_null()
-static bool tox_event_group_self_join_unpack_into(
-    Tox_Event_Group_Self_Join *event, Bin_Unpack *bu)
+static bool tox_event_group_self_join_unpack_into(non_null() Tox_Event_Group_Self_Join *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     return bin_unpack_u32(bu, &event->group_number);
@@ -97,8 +91,7 @@ void tox_event_group_self_join_free(Tox_Event_Group_Self_Join *group_self_join, 
     mem_delete(mem, group_self_join);
 }
 
-non_null()
-static Tox_Event_Group_Self_Join *tox_events_add_group_self_join(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Self_Join *tox_events_add_group_self_join(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Self_Join *const group_self_join = tox_event_group_self_join_new(mem);
 
@@ -131,8 +124,7 @@ bool tox_event_group_self_join_unpack(
     return tox_event_group_self_join_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Self_Join *tox_event_group_self_join_alloc(void *user_data)
+static Tox_Event_Group_Self_Join *tox_event_group_self_join_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

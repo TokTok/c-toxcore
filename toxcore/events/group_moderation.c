@@ -30,9 +30,7 @@ struct Tox_Event_Group_Moderation {
     Tox_Group_Mod_Event mod_type;
 };
 
-non_null()
-static void tox_event_group_moderation_set_group_number(Tox_Event_Group_Moderation *group_moderation,
-        uint32_t group_number)
+static void tox_event_group_moderation_set_group_number(non_null() Tox_Event_Group_Moderation *group_moderation, uint32_t group_number)
 {
     assert(group_moderation != nullptr);
     group_moderation->group_number = group_number;
@@ -43,9 +41,7 @@ uint32_t tox_event_group_moderation_get_group_number(const Tox_Event_Group_Moder
     return group_moderation->group_number;
 }
 
-non_null()
-static void tox_event_group_moderation_set_source_peer_id(Tox_Event_Group_Moderation *group_moderation,
-        uint32_t source_peer_id)
+static void tox_event_group_moderation_set_source_peer_id(non_null() Tox_Event_Group_Moderation *group_moderation, uint32_t source_peer_id)
 {
     assert(group_moderation != nullptr);
     group_moderation->source_peer_id = source_peer_id;
@@ -56,9 +52,7 @@ uint32_t tox_event_group_moderation_get_source_peer_id(const Tox_Event_Group_Mod
     return group_moderation->source_peer_id;
 }
 
-non_null()
-static void tox_event_group_moderation_set_target_peer_id(Tox_Event_Group_Moderation *group_moderation,
-        uint32_t target_peer_id)
+static void tox_event_group_moderation_set_target_peer_id(non_null() Tox_Event_Group_Moderation *group_moderation, uint32_t target_peer_id)
 {
     assert(group_moderation != nullptr);
     group_moderation->target_peer_id = target_peer_id;
@@ -69,9 +63,7 @@ uint32_t tox_event_group_moderation_get_target_peer_id(const Tox_Event_Group_Mod
     return group_moderation->target_peer_id;
 }
 
-non_null()
-static void tox_event_group_moderation_set_mod_type(Tox_Event_Group_Moderation *group_moderation,
-        Tox_Group_Mod_Event mod_type)
+static void tox_event_group_moderation_set_mod_type(non_null() Tox_Event_Group_Moderation *group_moderation, Tox_Group_Mod_Event mod_type)
 {
     assert(group_moderation != nullptr);
     group_moderation->mod_type = mod_type;
@@ -82,15 +74,13 @@ Tox_Group_Mod_Event tox_event_group_moderation_get_mod_type(const Tox_Event_Grou
     return group_moderation->mod_type;
 }
 
-non_null()
-static void tox_event_group_moderation_construct(Tox_Event_Group_Moderation *group_moderation)
+static void tox_event_group_moderation_construct(non_null() Tox_Event_Group_Moderation *group_moderation)
 {
     *group_moderation = (Tox_Event_Group_Moderation) {
         0
     };
 }
-non_null()
-static void tox_event_group_moderation_destruct(Tox_Event_Group_Moderation *group_moderation, const Memory *mem)
+static void tox_event_group_moderation_destruct(non_null() Tox_Event_Group_Moderation *group_moderation, non_null() const Memory *mem)
 {
     return;
 }
@@ -105,9 +95,7 @@ bool tox_event_group_moderation_pack(
            && tox_group_mod_event_pack(event->mod_type, bp);
 }
 
-non_null()
-static bool tox_event_group_moderation_unpack_into(
-    Tox_Event_Group_Moderation *event, Bin_Unpack *bu)
+static bool tox_event_group_moderation_unpack_into(non_null() Tox_Event_Group_Moderation *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
@@ -152,8 +140,7 @@ void tox_event_group_moderation_free(Tox_Event_Group_Moderation *group_moderatio
     mem_delete(mem, group_moderation);
 }
 
-non_null()
-static Tox_Event_Group_Moderation *tox_events_add_group_moderation(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Moderation *tox_events_add_group_moderation(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Moderation *const group_moderation = tox_event_group_moderation_new(mem);
 
@@ -186,8 +173,7 @@ bool tox_event_group_moderation_unpack(
     return tox_event_group_moderation_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Moderation *tox_event_group_moderation_alloc(void *user_data)
+static Tox_Event_Group_Moderation *tox_event_group_moderation_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

@@ -25,11 +25,9 @@ extern "C" {
 bool is_power_of_2(uint64_t x);
 
 /** @brief Frees all pointers in a uint8_t pointer array, as well as the array itself. */
-non_null(1) nullable(2)
-void free_uint8_t_pointer_array(const Memory *mem, uint8_t **ary, size_t n_items);
-
+void free_uint8_t_pointer_array(non_null() const Memory *mem, nullable() uint8_t **ary, size_t n_items);
 /** Returns -1 if failed or 0 if success */
-non_null() int create_recursive_mutex(pthread_mutex_t *mutex);
+int create_recursive_mutex(non_null() pthread_mutex_t *mutex);
 
 /**
  * @brief Checks whether two buffers are the same length and contents.
@@ -39,14 +37,14 @@ non_null() int create_recursive_mutex(pthread_mutex_t *mutex);
  * @retval true if sizes and contents are equal.
  * @retval false otherwise.
  */
-non_null() bool memeq(const uint8_t *a, size_t a_size, const uint8_t *b, size_t b_size);
+bool memeq(non_null() const uint8_t *a, size_t a_size, non_null() const uint8_t *b, size_t b_size);
 
 /**
  * @brief Copies a byte array of a given size into a newly allocated one.
  *
  * @return nullptr on allocation failure or if the input data was nullptr or data_size was 0.
  */
-non_null(1) nullable(2) uint8_t *memdup(const Memory *mem, const uint8_t *data, size_t data_size);
+uint8_t *memdup(non_null() const Memory *mem, nullable() const uint8_t *data, size_t data_size);
 
 /**
  * @brief Set all bytes in `data` to 0.
@@ -56,7 +54,7 @@ non_null(1) nullable(2) uint8_t *memdup(const Memory *mem, const uint8_t *data, 
  * message buffers, public keys, encrypted data, etc. It is not ok for buffers
  * containing key material (secret keys, shared keys).
  */
-nullable(1) void memzero(uint8_t *data, size_t data_size);
+void memzero(nullable() uint8_t *data, size_t data_size);
 
 // Safe min/max functions with specific types. This forces the conversion to the
 // desired type before the comparison expression, giving the choice of
@@ -88,8 +86,7 @@ uint64_t min_u64(uint64_t a, uint64_t b);
 int cmp_uint(uint64_t a, uint64_t b);
 
 /** @brief Returns a 32-bit hash of key of size len */
-non_null()
-uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len);
+uint32_t jenkins_one_at_a_time_hash(non_null() const uint8_t *key, size_t len);
 
 /** @brief Computes a checksum of a byte array.
  *
@@ -98,8 +95,7 @@ uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len);
  *
  * @retval The resulting checksum.
  */
-non_null()
-uint16_t data_checksum(const uint8_t *data, uint32_t length);
+uint16_t data_checksum(non_null() const uint8_t *data, uint32_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */

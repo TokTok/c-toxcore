@@ -72,7 +72,7 @@ jobs:
   build-windows-msvc:
     strategy:
       matrix:
-        version: [2019, 2022]
+        version: [2022, 2025]
     runs-on: windows-${{ matrix.version }}
     env:
       VCPKG_ROOT: "C:/vcpkg"

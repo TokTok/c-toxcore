@@ -30,8 +30,7 @@ struct Shared_Key_Cache {
     uint8_t keys_per_slot;
 };
 
-non_null()
-static bool shared_key_is_empty(const Logger *log, const Shared_Key *k)
+static bool shared_key_is_empty(non_null() const Logger *log, non_null() const Shared_Key *k)
 {
     LOGGER_ASSERT(log, k != nullptr, "shared key must not be NULL");
     /*
@@ -41,8 +40,7 @@ static bool shared_key_is_empty(const Logger *log, const Shared_Key *k)
     return k->time_last_requested == 0;
 }
 
-non_null()
-static void shared_key_set_empty(const Logger *log, Shared_Key *k)
+static void shared_key_set_empty(non_null() const Logger *log, non_null() Shared_Key *k)
 {
     crypto_memzero(k, sizeof(Shared_Key));
     LOGGER_ASSERT(log, shared_key_is_empty(log, k), "shared key must be empty after clearing it");

@@ -97,8 +97,7 @@ int send_pending_data(const Logger *logger, TCP_Connection *con)
  * @retval false on failure (only if mem_alloc fails)
  * @retval true on success
  */
-non_null()
-static bool add_priority(TCP_Connection *con, const uint8_t *packet, uint16_t size, uint16_t sent)
+static bool add_priority(non_null() TCP_Connection *con, non_null() const uint8_t *packet, uint16_t size, uint16_t sent)
 {
     TCP_Priority_List *p = con->priority_queue_end;
     TCP_Priority_List *new_list = (TCP_Priority_List *)mem_alloc(con->mem, sizeof(TCP_Priority_List));
@@ -235,8 +234,7 @@ int read_tcp_packet(
  * return 0 if nothing has been read from socket.
  * return -1 on failure.
  */
-non_null()
-static uint16_t read_tcp_length(const Logger *logger, const Network *ns, Socket sock, const IP_Port *ip_port)
+static uint16_t read_tcp_length(non_null() const Logger *logger, non_null() const Network *ns, Socket sock, non_null() const IP_Port *ip_port)
 {
     const uint16_t count = net_socket_data_recv_buffer(ns, sock);
 

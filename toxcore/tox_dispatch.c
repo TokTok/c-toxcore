@@ -285,8 +285,7 @@ void tox_events_callback_dht_nodes_response(
     dispatch->dht_nodes_response_callback = callback;
 }
 
-non_null(1, 2) nullable(3)
-static void tox_dispatch_invoke_event(const Tox_Dispatch *dispatch, const Tox_Event *event, void *user_data)
+static void tox_dispatch_invoke_event(non_null() const Tox_Dispatch *dispatch, non_null() const Tox_Event *event, nullable() void *user_data)
 {
     switch (event->type) {
         case TOX_EVENT_CONFERENCE_CONNECTED: {

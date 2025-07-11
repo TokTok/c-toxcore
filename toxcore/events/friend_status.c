@@ -28,9 +28,7 @@ struct Tox_Event_Friend_Status {
     Tox_User_Status status;
 };
 
-non_null()
-static void tox_event_friend_status_set_friend_number(Tox_Event_Friend_Status *friend_status,
-        uint32_t friend_number)
+static void tox_event_friend_status_set_friend_number(non_null() Tox_Event_Friend_Status *friend_status, uint32_t friend_number)
 {
     assert(friend_status != nullptr);
     friend_status->friend_number = friend_number;
@@ -41,9 +39,7 @@ uint32_t tox_event_friend_status_get_friend_number(const Tox_Event_Friend_Status
     return friend_status->friend_number;
 }
 
-non_null()
-static void tox_event_friend_status_set_status(Tox_Event_Friend_Status *friend_status,
-        Tox_User_Status status)
+static void tox_event_friend_status_set_status(non_null() Tox_Event_Friend_Status *friend_status, Tox_User_Status status)
 {
     assert(friend_status != nullptr);
     friend_status->status = status;
@@ -54,15 +50,13 @@ Tox_User_Status tox_event_friend_status_get_status(const Tox_Event_Friend_Status
     return friend_status->status;
 }
 
-non_null()
-static void tox_event_friend_status_construct(Tox_Event_Friend_Status *friend_status)
+static void tox_event_friend_status_construct(non_null() Tox_Event_Friend_Status *friend_status)
 {
     *friend_status = (Tox_Event_Friend_Status) {
         0
     };
 }
-non_null()
-static void tox_event_friend_status_destruct(Tox_Event_Friend_Status *friend_status, const Memory *mem)
+static void tox_event_friend_status_destruct(non_null() Tox_Event_Friend_Status *friend_status, non_null() const Memory *mem)
 {
     return;
 }
@@ -75,9 +69,7 @@ bool tox_event_friend_status_pack(
            && tox_user_status_pack(event->status, bp);
 }
 
-non_null()
-static bool tox_event_friend_status_unpack_into(
-    Tox_Event_Friend_Status *event, Bin_Unpack *bu)
+static bool tox_event_friend_status_unpack_into(non_null() Tox_Event_Friend_Status *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
@@ -120,8 +112,7 @@ void tox_event_friend_status_free(Tox_Event_Friend_Status *friend_status, const 
     mem_delete(mem, friend_status);
 }
 
-non_null()
-static Tox_Event_Friend_Status *tox_events_add_friend_status(Tox_Events *events, const Memory *mem)
+static Tox_Event_Friend_Status *tox_events_add_friend_status(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Friend_Status *const friend_status = tox_event_friend_status_new(mem);
 
@@ -154,8 +145,7 @@ bool tox_event_friend_status_unpack(
     return tox_event_friend_status_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Friend_Status *tox_event_friend_status_alloc(void *user_data)
+static Tox_Event_Friend_Status *tox_event_friend_status_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

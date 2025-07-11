@@ -57,8 +57,7 @@ static uint64_t timespec_to_u64(struct timespec clock_mono)
 }
 
 #ifdef OS_WIN32
-non_null()
-static uint64_t current_time_monotonic_default(void *user_data)
+static uint64_t current_time_monotonic_default(non_null() void *user_data)
 {
     LARGE_INTEGER freq;
     LARGE_INTEGER count;
@@ -79,8 +78,7 @@ static uint64_t current_time_monotonic_default(void *user_data)
 }
 #else
 #ifdef __APPLE__
-non_null()
-static uint64_t current_time_monotonic_default(void *user_data)
+static uint64_t current_time_monotonic_default(non_null() void *user_data)
 {
     struct timespec clock_mono;
     clock_serv_t muhclock;
@@ -95,8 +93,7 @@ static uint64_t current_time_monotonic_default(void *user_data)
     return timespec_to_u64(clock_mono);
 }
 #else // !__APPLE__
-non_null()
-static uint64_t current_time_monotonic_default(void *user_data)
+static uint64_t current_time_monotonic_default(non_null() void *user_data)
 {
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     // This assert should always fail. If it does, the fuzzing harness didn't

@@ -33,8 +33,7 @@ typedef struct Net_Profile {
 } Net_Profile;
 
 /** Returns the number of sent or received packets for all ID's between `start_id` and `end_id`. */
-nullable(1)
-static uint64_t netprof_get_packet_count_id_range(const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
+static uint64_t netprof_get_packet_count_id_range(nullable() const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
         Packet_Direction dir)
 {
     if (profile == nullptr) {
@@ -52,8 +51,7 @@ static uint64_t netprof_get_packet_count_id_range(const Net_Profile *profile, ui
 }
 
 /** Returns the number of sent or received bytes for all ID's between `start_id` and `end_id`. */
-nullable(1)
-static uint64_t netprof_get_bytes_id_range(const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
+static uint64_t netprof_get_bytes_id_range(nullable() const Net_Profile *profile, uint8_t start_id, uint8_t end_id,
         Packet_Direction dir)
 {
     if (profile == nullptr) {

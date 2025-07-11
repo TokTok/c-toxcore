@@ -10,8 +10,7 @@
 #include "bin_unpack.h"
 #include "tox.h"
 
-non_null()
-static bool tox_conference_type_from_int(uint32_t value, Tox_Conference_Type *out_enum)
+static bool tox_conference_type_from_int(uint32_t value, non_null() Tox_Conference_Type *out_enum)
 {
     switch (value) {
         case TOX_CONFERENCE_TYPE_TEXT: {
@@ -37,8 +36,7 @@ bool tox_conference_type_unpack(Tox_Conference_Type *val, Bin_Unpack *bu)
            && tox_conference_type_from_int(u32, val);
 }
 
-non_null()
-static bool tox_connection_from_int(uint32_t value, Tox_Connection *out_enum)
+static bool tox_connection_from_int(uint32_t value, non_null() Tox_Connection *out_enum)
 {
     switch (value) {
         case TOX_CONNECTION_NONE: {
@@ -70,8 +68,7 @@ bool tox_connection_unpack(Tox_Connection *val, Bin_Unpack *bu)
            && tox_connection_from_int(u32, val);
 }
 
-non_null()
-static bool tox_file_control_from_int(uint32_t value, Tox_File_Control *out_enum)
+static bool tox_file_control_from_int(uint32_t value, non_null() Tox_File_Control *out_enum)
 {
     switch (value) {
         case TOX_FILE_CONTROL_RESUME: {
@@ -103,8 +100,7 @@ bool tox_file_control_unpack(Tox_File_Control *val, Bin_Unpack *bu)
            && tox_file_control_from_int(u32, val);
 }
 
-non_null()
-static bool tox_message_type_from_int(uint32_t value, Tox_Message_Type *out_enum)
+static bool tox_message_type_from_int(uint32_t value, non_null() Tox_Message_Type *out_enum)
 {
     switch (value) {
         case TOX_MESSAGE_TYPE_NORMAL: {
@@ -131,8 +127,7 @@ bool tox_message_type_unpack(Tox_Message_Type *val, Bin_Unpack *bu)
            && tox_message_type_from_int(u32, val);
 }
 
-non_null()
-static bool tox_user_status_from_int(uint32_t value, Tox_User_Status *out_enum)
+static bool tox_user_status_from_int(uint32_t value, non_null() Tox_User_Status *out_enum)
 {
     switch (value) {
         case TOX_USER_STATUS_NONE: {
@@ -164,8 +159,7 @@ bool tox_user_status_unpack(Tox_User_Status *val, Bin_Unpack *bu)
            && tox_user_status_from_int(u32, val);
 }
 
-non_null()
-static bool tox_group_privacy_state_from_int(uint32_t value, Tox_Group_Privacy_State *out_enum)
+static bool tox_group_privacy_state_from_int(uint32_t value, non_null() Tox_Group_Privacy_State *out_enum)
 {
     switch (value) {
         case TOX_GROUP_PRIVACY_STATE_PUBLIC: {
@@ -188,8 +182,7 @@ bool tox_group_privacy_state_unpack(Tox_Group_Privacy_State *val, Bin_Unpack *bu
     return bin_unpack_u32(bu, &u32)
            && tox_group_privacy_state_from_int(u32, val);
 }
-non_null()
-static bool tox_group_voice_state_from_int(uint32_t value, Tox_Group_Voice_State *out_enum)
+static bool tox_group_voice_state_from_int(uint32_t value, non_null() Tox_Group_Voice_State *out_enum)
 {
     switch (value) {
         case TOX_GROUP_VOICE_STATE_ALL: {
@@ -217,8 +210,7 @@ bool tox_group_voice_state_unpack(Tox_Group_Voice_State *val, Bin_Unpack *bu)
            && tox_group_voice_state_from_int(u32, val);
 }
 
-non_null()
-static bool tox_group_topic_lock_from_int(uint32_t value, Tox_Group_Topic_Lock *out_enum)
+static bool tox_group_topic_lock_from_int(uint32_t value, non_null() Tox_Group_Topic_Lock *out_enum)
 {
     switch (value) {
         case TOX_GROUP_TOPIC_LOCK_ENABLED: {
@@ -242,8 +234,7 @@ bool tox_group_topic_lock_unpack(Tox_Group_Topic_Lock *val, Bin_Unpack *bu)
            && tox_group_topic_lock_from_int(u32, val);
 }
 
-non_null()
-static bool tox_group_join_fail_from_int(uint32_t value, Tox_Group_Join_Fail *out_enum)
+static bool tox_group_join_fail_from_int(uint32_t value, non_null() Tox_Group_Join_Fail *out_enum)
 {
     switch (value) {
         case TOX_GROUP_JOIN_FAIL_PEER_LIMIT: {
@@ -271,8 +262,7 @@ bool tox_group_join_fail_unpack(Tox_Group_Join_Fail *val, Bin_Unpack *bu)
            && tox_group_join_fail_from_int(u32, val);
 }
 
-non_null()
-static bool tox_group_mod_event_from_int(uint32_t value, Tox_Group_Mod_Event *out_enum)
+static bool tox_group_mod_event_from_int(uint32_t value, non_null() Tox_Group_Mod_Event *out_enum)
 {
     switch (value) {
         case TOX_GROUP_MOD_EVENT_KICK: {
@@ -304,8 +294,7 @@ bool tox_group_mod_event_unpack(Tox_Group_Mod_Event *val, Bin_Unpack *bu)
            && tox_group_mod_event_from_int(u32, val);
 }
 
-non_null()
-static bool tox_group_exit_type_from_int(uint32_t value, Tox_Group_Exit_Type *out_enum)
+static bool tox_group_exit_type_from_int(uint32_t value, non_null() Tox_Group_Exit_Type *out_enum)
 {
     switch (value) {
         case TOX_GROUP_EXIT_TYPE_QUIT: {

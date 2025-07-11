@@ -34,46 +34,33 @@ typedef enum Packet_Direction {
 /**
  * Records a sent or received packet of type `id` and size `length` to the given profile.
  */
-nullable(1)
-void netprof_record_packet(Net_Profile *profile, uint8_t id, size_t length, Packet_Direction dir);
-
+void netprof_record_packet(nullable() Net_Profile *profile, uint8_t id, size_t length, Packet_Direction dir);
 /**
  * Returns the number of sent or received packets of type `id` for the given profile.
  */
-nullable(1)
-uint64_t netprof_get_packet_count_id(const Net_Profile *profile, uint8_t id, Packet_Direction dir);
-
+uint64_t netprof_get_packet_count_id(nullable() const Net_Profile *profile, uint8_t id, Packet_Direction dir);
 /**
  * Returns the total number of sent or received packets for the given profile.
  */
-nullable(1)
-uint64_t netprof_get_packet_count_total(const Net_Profile *profile, Packet_Direction dir);
-
+uint64_t netprof_get_packet_count_total(nullable() const Net_Profile *profile, Packet_Direction dir);
 /**
  * Returns the number of bytes sent or received of packet type `id` for the given profile.
  */
-nullable(1)
-uint64_t netprof_get_bytes_id(const Net_Profile *profile, uint8_t id, Packet_Direction dir);
-
+uint64_t netprof_get_bytes_id(nullable() const Net_Profile *profile, uint8_t id, Packet_Direction dir);
 /**
  * Returns the total number of bytes sent or received for the given profile.
  */
-nullable(1)
-uint64_t netprof_get_bytes_total(const Net_Profile *profile, Packet_Direction dir);
-
+uint64_t netprof_get_bytes_total(nullable() const Net_Profile *profile, Packet_Direction dir);
 /**
  * Returns a new net_profile object. The caller is responsible for freeing the
  * returned memory via `netprof_kill`.
  */
-non_null()
-Net_Profile *netprof_new(const Logger *log, const Memory *mem);
+Net_Profile *netprof_new(non_null() const Logger *log, non_null() const Memory *mem);
 
 /**
  * Kills a net_profile object and frees all associated memory.
  */
-non_null(1) nullable(2)
-void netprof_kill(const Memory *mem, Net_Profile *net_profile);
-
+void netprof_kill(non_null() const Memory *mem, nullable() Net_Profile *net_profile);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

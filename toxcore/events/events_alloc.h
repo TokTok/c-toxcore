@@ -70,11 +70,9 @@ tox_group_self_join_cb tox_events_handle_group_self_join;
 tox_group_join_fail_cb tox_events_handle_group_join_fail;
 tox_group_moderation_cb tox_events_handle_group_moderation;
 
-non_null()
-Tox_Events_State *tox_events_alloc(void *user_data);
+Tox_Events_State *tox_events_alloc(non_null() void *user_data);
 
-non_null()
-bool tox_events_add(Tox_Events *events, const Tox_Event *event);
+bool tox_events_add(non_null() Tox_Events *events, non_null() const Tox_Event *event);
 
 #ifdef __cplusplus
 } /* extern "C" */

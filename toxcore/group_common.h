@@ -409,16 +409,13 @@ typedef struct GC_Session {
  * Return -1 on failure.
  * Return -2 if a peer with public_key is already in our peerlist.
  */
-non_null(1, 3) nullable(2)
-int peer_add(GC_Chat *chat, const IP_Port *ipp, const uint8_t *public_key);
-
+int peer_add(non_null() GC_Chat *chat, nullable() const IP_Port *ipp, non_null() const uint8_t *public_key);
 /** @brief Unpacks saved peers from `data` of size `length` into `chat`.
  *
  * Returns the number of unpacked peers on success.
  * Returns -1 on failure.
  */
-non_null()
-int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length);
+int unpack_gc_saved_peers(non_null() GC_Chat *chat, non_null() const uint8_t *data, uint16_t length);
 
 /** @brief Packs all valid entries from saved peerlist into `data`.
  *
@@ -428,7 +425,5 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length);
  * Return the number of packed saved peers on success.
  * Return -1 if buffer is too small.
  */
-non_null(1, 2) nullable(4)
-int pack_gc_saved_peers(const GC_Chat *chat, uint8_t *data, uint16_t length, uint16_t *processed);
-
+int pack_gc_saved_peers(non_null() const GC_Chat *chat, non_null() uint8_t *data, uint16_t length, nullable() uint16_t *processed);
 #endif /* C_TOXCORE_TOXCORE_GROUP_COMMON_H */

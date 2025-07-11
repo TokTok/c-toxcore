@@ -29,9 +29,7 @@ struct Tox_Event_Group_Peer_Status {
     Tox_User_Status status;
 };
 
-non_null()
-static void tox_event_group_peer_status_set_group_number(Tox_Event_Group_Peer_Status *group_peer_status,
-        uint32_t group_number)
+static void tox_event_group_peer_status_set_group_number(non_null() Tox_Event_Group_Peer_Status *group_peer_status, uint32_t group_number)
 {
     assert(group_peer_status != nullptr);
     group_peer_status->group_number = group_number;
@@ -42,9 +40,7 @@ uint32_t tox_event_group_peer_status_get_group_number(const Tox_Event_Group_Peer
     return group_peer_status->group_number;
 }
 
-non_null()
-static void tox_event_group_peer_status_set_peer_id(Tox_Event_Group_Peer_Status *group_peer_status,
-        uint32_t peer_id)
+static void tox_event_group_peer_status_set_peer_id(non_null() Tox_Event_Group_Peer_Status *group_peer_status, uint32_t peer_id)
 {
     assert(group_peer_status != nullptr);
     group_peer_status->peer_id = peer_id;
@@ -55,9 +51,7 @@ uint32_t tox_event_group_peer_status_get_peer_id(const Tox_Event_Group_Peer_Stat
     return group_peer_status->peer_id;
 }
 
-non_null()
-static void tox_event_group_peer_status_set_status(Tox_Event_Group_Peer_Status *group_peer_status,
-        Tox_User_Status status)
+static void tox_event_group_peer_status_set_status(non_null() Tox_Event_Group_Peer_Status *group_peer_status, Tox_User_Status status)
 {
     assert(group_peer_status != nullptr);
     group_peer_status->status = status;
@@ -68,15 +62,13 @@ Tox_User_Status tox_event_group_peer_status_get_status(const Tox_Event_Group_Pee
     return group_peer_status->status;
 }
 
-non_null()
-static void tox_event_group_peer_status_construct(Tox_Event_Group_Peer_Status *group_peer_status)
+static void tox_event_group_peer_status_construct(non_null() Tox_Event_Group_Peer_Status *group_peer_status)
 {
     *group_peer_status = (Tox_Event_Group_Peer_Status) {
         0
     };
 }
-non_null()
-static void tox_event_group_peer_status_destruct(Tox_Event_Group_Peer_Status *group_peer_status, const Memory *mem)
+static void tox_event_group_peer_status_destruct(non_null() Tox_Event_Group_Peer_Status *group_peer_status, non_null() const Memory *mem)
 {
     return;
 }
@@ -90,9 +82,7 @@ bool tox_event_group_peer_status_pack(
            && tox_user_status_pack(event->status, bp);
 }
 
-non_null()
-static bool tox_event_group_peer_status_unpack_into(
-    Tox_Event_Group_Peer_Status *event, Bin_Unpack *bu)
+static bool tox_event_group_peer_status_unpack_into(non_null() Tox_Event_Group_Peer_Status *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 3, nullptr)) {
@@ -136,8 +126,7 @@ void tox_event_group_peer_status_free(Tox_Event_Group_Peer_Status *group_peer_st
     mem_delete(mem, group_peer_status);
 }
 
-non_null()
-static Tox_Event_Group_Peer_Status *tox_events_add_group_peer_status(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Peer_Status *tox_events_add_group_peer_status(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Peer_Status *const group_peer_status = tox_event_group_peer_status_new(mem);
 
@@ -170,8 +159,7 @@ bool tox_event_group_peer_status_unpack(
     return tox_event_group_peer_status_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Peer_Status *tox_event_group_peer_status_alloc(void *user_data)
+static Tox_Event_Group_Peer_Status *tox_event_group_peer_status_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

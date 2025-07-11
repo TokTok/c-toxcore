@@ -28,9 +28,7 @@ struct Tox_Event_File_Chunk_Request {
     uint16_t length;
 };
 
-non_null()
-static void tox_event_file_chunk_request_set_friend_number(Tox_Event_File_Chunk_Request *file_chunk_request,
-        uint32_t friend_number)
+static void tox_event_file_chunk_request_set_friend_number(non_null() Tox_Event_File_Chunk_Request *file_chunk_request, uint32_t friend_number)
 {
     assert(file_chunk_request != nullptr);
     file_chunk_request->friend_number = friend_number;
@@ -41,9 +39,7 @@ uint32_t tox_event_file_chunk_request_get_friend_number(const Tox_Event_File_Chu
     return file_chunk_request->friend_number;
 }
 
-non_null()
-static void tox_event_file_chunk_request_set_file_number(Tox_Event_File_Chunk_Request *file_chunk_request,
-        uint32_t file_number)
+static void tox_event_file_chunk_request_set_file_number(non_null() Tox_Event_File_Chunk_Request *file_chunk_request, uint32_t file_number)
 {
     assert(file_chunk_request != nullptr);
     file_chunk_request->file_number = file_number;
@@ -54,9 +50,7 @@ uint32_t tox_event_file_chunk_request_get_file_number(const Tox_Event_File_Chunk
     return file_chunk_request->file_number;
 }
 
-non_null()
-static void tox_event_file_chunk_request_set_position(Tox_Event_File_Chunk_Request *file_chunk_request,
-        uint64_t position)
+static void tox_event_file_chunk_request_set_position(non_null() Tox_Event_File_Chunk_Request *file_chunk_request, uint64_t position)
 {
     assert(file_chunk_request != nullptr);
     file_chunk_request->position = position;
@@ -67,9 +61,7 @@ uint64_t tox_event_file_chunk_request_get_position(const Tox_Event_File_Chunk_Re
     return file_chunk_request->position;
 }
 
-non_null()
-static void tox_event_file_chunk_request_set_length(Tox_Event_File_Chunk_Request *file_chunk_request,
-        uint16_t length)
+static void tox_event_file_chunk_request_set_length(non_null() Tox_Event_File_Chunk_Request *file_chunk_request, uint16_t length)
 {
     assert(file_chunk_request != nullptr);
     file_chunk_request->length = length;
@@ -80,15 +72,13 @@ uint16_t tox_event_file_chunk_request_get_length(const Tox_Event_File_Chunk_Requ
     return file_chunk_request->length;
 }
 
-non_null()
-static void tox_event_file_chunk_request_construct(Tox_Event_File_Chunk_Request *file_chunk_request)
+static void tox_event_file_chunk_request_construct(non_null() Tox_Event_File_Chunk_Request *file_chunk_request)
 {
     *file_chunk_request = (Tox_Event_File_Chunk_Request) {
         0
     };
 }
-non_null()
-static void tox_event_file_chunk_request_destruct(Tox_Event_File_Chunk_Request *file_chunk_request, const Memory *mem)
+static void tox_event_file_chunk_request_destruct(non_null() Tox_Event_File_Chunk_Request *file_chunk_request, non_null() const Memory *mem)
 {
     return;
 }
@@ -103,9 +93,7 @@ bool tox_event_file_chunk_request_pack(
            && bin_pack_u16(bp, event->length);
 }
 
-non_null()
-static bool tox_event_file_chunk_request_unpack_into(
-    Tox_Event_File_Chunk_Request *event, Bin_Unpack *bu)
+static bool tox_event_file_chunk_request_unpack_into(non_null() Tox_Event_File_Chunk_Request *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
@@ -150,8 +138,7 @@ void tox_event_file_chunk_request_free(Tox_Event_File_Chunk_Request *file_chunk_
     mem_delete(mem, file_chunk_request);
 }
 
-non_null()
-static Tox_Event_File_Chunk_Request *tox_events_add_file_chunk_request(Tox_Events *events, const Memory *mem)
+static Tox_Event_File_Chunk_Request *tox_events_add_file_chunk_request(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_File_Chunk_Request *const file_chunk_request = tox_event_file_chunk_request_new(mem);
 
@@ -184,8 +171,7 @@ bool tox_event_file_chunk_request_unpack(
     return tox_event_file_chunk_request_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_File_Chunk_Request *tox_event_file_chunk_request_alloc(void *user_data)
+static Tox_Event_File_Chunk_Request *tox_event_file_chunk_request_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

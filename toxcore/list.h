@@ -43,36 +43,30 @@ typedef struct BS_List {
  * @retval 1 success
  * @retval 0 failure
  */
-non_null()
-int bs_list_init(BS_List *list, const Memory *mem, uint32_t element_size, uint32_t initial_capacity, bs_list_cmp_cb *cmp_callback);
+int bs_list_init(non_null() BS_List *list, non_null() const Memory *mem, uint32_t element_size, uint32_t initial_capacity, non_null() bs_list_cmp_cb *cmp_callback);
 
 /** Free a list initiated with list_init */
-nullable(1)
-void bs_list_free(BS_List *list);
-
+void bs_list_free(nullable() BS_List *list);
 /** @brief Retrieve the id of an element in the list
  *
  * @retval >=0 id associated with data
  * @retval -1 failure
  */
-non_null()
-int bs_list_find(const BS_List *list, const uint8_t *data);
+int bs_list_find(non_null() const BS_List *list, non_null() const uint8_t *data);
 
 /** @brief Add an element with associated id to the list
  *
  * @retval true  success
  * @retval false failure (data already in list)
  */
-non_null()
-bool bs_list_add(BS_List *list, const uint8_t *data, int id);
+bool bs_list_add(non_null() BS_List *list, non_null() const uint8_t *data, int id);
 
 /** @brief Remove element from the list
  *
  * @retval true  success
  * @retval false failure (element not found or id does not match)
  */
-non_null()
-bool bs_list_remove(BS_List *list, const uint8_t *data, int id);
+bool bs_list_remove(non_null() BS_List *list, non_null() const uint8_t *data, int id);
 
 #ifdef __cplusplus
 } /* extern "C" */

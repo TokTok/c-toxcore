@@ -28,19 +28,14 @@ typedef struct Shared_Key_Cache Shared_Key_Cache;
  * @param keys_per_slot There are 256 slots, this controls how many keys are stored per slot and the size of the cache.
  * @return nullptr on error.
  */
-non_null()
-Shared_Key_Cache *shared_key_cache_new(
-    const Logger *log, const Mono_Time *mono_time, const Memory *mem,
-    const uint8_t *self_secret_key,
-    uint64_t timeout, uint8_t keys_per_slot);
+Shared_Key_Cache *shared_key_cache_new(non_null() const Logger *log, non_null() const Mono_Time *mono_time, non_null() const Memory *mem, non_null() const uint8_t *self_secret_key, uint64_t timeout,
+                                       uint8_t keys_per_slot);
 
 /**
  * @brief Deletes the cache and frees all resources.
  * @param cache Cache to delete or nullptr.
  */
-nullable(1)
-void shared_key_cache_free(Shared_Key_Cache *cache);
-
+void shared_key_cache_free(nullable() Shared_Key_Cache *cache);
 /**
  * @brief Looks up a key from the cache or computes it if it didn't exist yet.
  * @param cache Cache to perform the lookup on.
@@ -49,7 +44,6 @@ void shared_key_cache_free(Shared_Key_Cache *cache);
  * @return The shared key of length CRYPTO_SHARED_KEY_SIZE, matching the public key and our secret key.
  * @return nullptr on error.
  */
-non_null()
-const uint8_t *shared_key_cache_lookup(Shared_Key_Cache *cache, const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]);
+const uint8_t *shared_key_cache_lookup(non_null() Shared_Key_Cache *cache, non_null() const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]);
 
 #endif /* C_TOXCORE_TOXCORE_SHARED_KEY_CACHE_H */

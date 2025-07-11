@@ -578,14 +578,12 @@ void tox_event_destruct(Tox_Event *event, const Memory *mem)
     event->data.value = nullptr;
 }
 
-non_null()
-static bool tox_event_type_pack(Tox_Event_Type type, Bin_Pack *bp)
+static bool tox_event_type_pack(Tox_Event_Type type, non_null() Bin_Pack *bp)
 {
     return bin_pack_u32(bp, (uint32_t)type);
 }
 
-non_null()
-static bool tox_event_data_pack(Tox_Event_Type type, const Tox_Event_Data *data, Bin_Pack *bp)
+static bool tox_event_data_pack(Tox_Event_Type type, non_null() const Tox_Event_Data *data, non_null() Bin_Pack *bp)
 {
     switch (type) {
         case TOX_EVENT_CONFERENCE_CONNECTED:
@@ -724,8 +722,7 @@ bool tox_event_pack(const Tox_Event *event, Bin_Pack *bp)
            && tox_event_data_pack(event->type, &event->data, bp);
 }
 
-non_null()
-static bool tox_event_type_from_int(uint32_t value, Tox_Event_Type *out_enum)
+static bool tox_event_type_from_int(uint32_t value, non_null() Tox_Event_Type *out_enum)
 {
     switch (value) {
         case TOX_EVENT_SELF_CONNECTION_STATUS: {
@@ -940,16 +937,14 @@ static bool tox_event_type_from_int(uint32_t value, Tox_Event_Type *out_enum)
     }
 }
 
-non_null()
-static bool tox_event_type_unpack(Tox_Event_Type *val, Bin_Unpack *bu)
+static bool tox_event_type_unpack(non_null() Tox_Event_Type *val, non_null() Bin_Unpack *bu)
 {
     uint32_t u32;
     return bin_unpack_u32(bu, &u32)
            && tox_event_type_from_int(u32, val);
 }
 
-non_null()
-static bool tox_event_data_unpack(Tox_Event_Type type, Tox_Event_Data *data, Bin_Unpack *bu, const Memory *mem)
+static bool tox_event_data_unpack(Tox_Event_Type type, non_null() Tox_Event_Data *data, non_null() Bin_Unpack *bu, non_null() const Memory *mem)
 {
     switch (type) {
         case TOX_EVENT_CONFERENCE_CONNECTED:

@@ -216,17 +216,6 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     // gen setters and getters
     for (const auto& t : event_types) {
         // setter
-        std::visit(
-            overloaded{
-                [&](const EventTypeTrivial& t) {
-                    f << "non_null()\n";
-                },
-                [&](const EventTypeByteRange& t) {
-                    f << "non_null(1) nullable(2)\n";
-                }
-            },
-            t
-        );
         f << "static " << (t.index() == 0 ? "void" : "bool") << " tox_event_" << event_name_l << "_set_";
         std::visit(
             overloaded{
@@ -239,15 +228,14 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             },
             t
         );
-        f << "(Tox_Event_" << event_name << " *" << event_name_l << ",\n";
-        f << "        ";
+        f << "(non_null() Tox_Event_" << event_name << " *" << event_name_l << ",";
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
-                    f << t.type << " " << t.name << ")\n";
+                    f << " " << t.type << " " << t.name << ")\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "const uint8_t *" << t.name_data << ", uint32_t " << t.name_length << ")\n";
+                    f << "\n        nullable() const uint8_t *" << t.name_data << ", uint32_t " << t.name_length << ")\n";
                 }
             },
             t
@@ -259,7 +247,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "    " << event_name_l << "->" << t.name << " = " << t.name << ";\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "\n    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n";
+                    f << "    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n";
                     f << "        free(" << event_name_l << "->" << t.name_data << ");\n";
                     f << "        " << event_name_l << "->" << t.name_data << " = nullptr;\n";
                     f << "        " << event_name_l << "->" << t.name_length << " = 0;\n";
@@ -308,16 +296,14 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
 
     // gen contruct
-    f << "non_null()\n";
-    f << "static void tox_event_" << event_name_l << "_construct(Tox_Event_" << event_name << " *" << event_name_l << ")\n{\n";
+    f << "static void tox_event_" << event_name_l << "_construct(non_null() Tox_Event_" << event_name << " *" << event_name_l << ")\n{\n";
     // TODO: initialize all members properly
     // TODO: check if _NONE is universal
     // str_toupper(
     f << "    *" << event_name_l << " = (Tox_Event_" << event_name << ") {\n        0\n    };\n}\n";
 
     // gen destruct
-    f << "non_null()\n";
-    f << "static void tox_event_" << event_name_l << "_destruct(Tox_Event_" << event_name << " *" << event_name_l << ", const Memory *mem)\n{\n";
+    f << "static void tox_event_" << event_name_l << "_destruct(non_null() Tox_Event_" << event_name << " *" << event_name_l << ", non_null() const Memory *mem)\n{\n";
     size_t data_count = 0;
     for (const auto& t : event_types) {
         std::visit(
@@ -375,9 +361,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << ";\n}\n\n";
 
     // unpack
-    f << "non_null()\n";
-    f << "static bool tox_event_" << event_name_l << "_unpack_into(\n";
-    f << "    Tox_Event_" << event_name << " *event, Bin_Unpack *bu)\n{\n";
+    f << "static bool tox_event_" << event_name_l << "_unpack_into(non_null() Tox_Event_" << event_name << " *event, non_null() Bin_Unpack *bu)\n{\n";
     f << "    assert(event != nullptr);\n";
     if (event_types.size() > 1) {
         f << "    if (!bin_unpack_array_fixed(bu, " << event_types.size() << ", nullptr)) {\n        return false;\n    }\n\n";
@@ -410,14 +394,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     }
     f << ";\n}\n";
 
-    f << R"(
-/*****************************************************
- *
- * :: new/free/add/get/size/unpack
- *
- *****************************************************/
-
-)";
+    f << "\n/*****************************************************\n *\n * :: new/free/add/get/size/unpack\n *\n *****************************************************/\n\n";
 
     f << "const Tox_Event_" << event_name << " *tox_event_get_" << event_name_l << "(const Tox_Event *event)\n{\n";
     f << "    return event->type == TOX_EVENT_" << str_toupper(event_name) << " ? event->data." << event_name_l << " : nullptr;\n}\n\n";
@@ -437,8 +414,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    mem_delete(mem, " << event_name_l << ");\n}\n\n";
 
     // add
-    f << "non_null()\n";
-    f << "static Tox_Event_" << event_name << " *tox_events_add_" << event_name_l << "(Tox_Events *events, const Memory *mem)\n{\n";
+    f << "static Tox_Event_" << event_name << " *tox_events_add_" << event_name_l << "(non_null() Tox_Events *events, non_null() const Memory *mem)\n{\n";
     f << "    Tox_Event_" << event_name << " *const " << event_name_l << " = tox_event_" << event_name_l << "_new(mem);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n";
     f << "        return nullptr;\n    }\n\n";
@@ -461,8 +437,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    return tox_event_" << event_name_l << "_unpack_into(*event, bu);\n}\n\n";
 
     // alloc
-    f << "non_null()\n";
-    f << "static Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_alloc(void *user_data)\n{\n";
+    f << "static Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_alloc(non_null() void *user_data)\n{\n";
     f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
     f << "    assert(state != nullptr);\n\n";
     f << "    if (state->events == nullptr) {\n        return nullptr;\n    }\n\n";

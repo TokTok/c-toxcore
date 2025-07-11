@@ -19,8 +19,7 @@
 /**
  * Removes `announces` from `gc_announces_list`.
  */
-non_null()
-static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces *announces)
+static void remove_announces(non_null() GC_Announces_List *gc_announces_list, non_null() GC_Announces *announces)
 {
     if (announces == nullptr || gc_announces_list == nullptr) {
         return;
@@ -43,8 +42,7 @@ static void remove_announces(GC_Announces_List *gc_announces_list, GC_Announces 
  * Returns the announce designated by `chat_id`.
  * Returns null if no announce is found.
  */
-non_null()
-static GC_Announces *get_announces_by_chat_id(const GC_Announces_List *gc_announces_list,  const uint8_t *chat_id)
+static GC_Announces *get_announces_by_chat_id(non_null() const GC_Announces_List *gc_announces_list, non_null() const uint8_t *chat_id)
 {
     GC_Announces *announces = gc_announces_list->root_announces;
 
@@ -167,8 +165,7 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
  * Returns the size of the unpacked data on success.
  * Returns -1 on failure.
  */
-non_null()
-static int gca_unpack_announce(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announce)
+static int gca_unpack_announce(non_null() const Logger *log, non_null() const uint8_t *data, uint16_t length, non_null() GC_Announce *announce)
 {
     if (length < ENC_PUBLIC_KEY_SIZE + 2) {
         LOGGER_ERROR(log, "Invalid announce length: %u", length);
@@ -341,11 +338,7 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
     return announces_count;
 }
 
-non_null()
-static GC_Announces *gca_new_announces(
-    const Memory *mem,
-    GC_Announces_List *gc_announces_list,
-    const GC_Public_Announce *public_announce)
+static GC_Announces *gca_new_announces(non_null() const Memory *mem, non_null() GC_Announces_List *gc_announces_list, non_null() const GC_Public_Announce *public_announce)
 {
     GC_Announces *announces = (GC_Announces *)mem_alloc(mem, sizeof(GC_Announces));
 

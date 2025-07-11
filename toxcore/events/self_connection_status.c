@@ -27,9 +27,7 @@ struct Tox_Event_Self_Connection_Status {
     Tox_Connection connection_status;
 };
 
-non_null()
-static void tox_event_self_connection_status_set_connection_status(Tox_Event_Self_Connection_Status *self_connection_status,
-        Tox_Connection connection_status)
+static void tox_event_self_connection_status_set_connection_status(non_null() Tox_Event_Self_Connection_Status *self_connection_status, Tox_Connection connection_status)
 {
     assert(self_connection_status != nullptr);
     self_connection_status->connection_status = connection_status;
@@ -40,15 +38,13 @@ Tox_Connection tox_event_self_connection_status_get_connection_status(const Tox_
     return self_connection_status->connection_status;
 }
 
-non_null()
-static void tox_event_self_connection_status_construct(Tox_Event_Self_Connection_Status *self_connection_status)
+static void tox_event_self_connection_status_construct(non_null() Tox_Event_Self_Connection_Status *self_connection_status)
 {
     *self_connection_status = (Tox_Event_Self_Connection_Status) {
         TOX_CONNECTION_NONE
     };
 }
-non_null()
-static void tox_event_self_connection_status_destruct(Tox_Event_Self_Connection_Status *self_connection_status, const Memory *mem)
+static void tox_event_self_connection_status_destruct(non_null() Tox_Event_Self_Connection_Status *self_connection_status, non_null() const Memory *mem)
 {
     return;
 }
@@ -59,9 +55,7 @@ bool tox_event_self_connection_status_pack(
     return tox_connection_pack(event->connection_status, bp);
 }
 
-non_null()
-static bool tox_event_self_connection_status_unpack_into(
-    Tox_Event_Self_Connection_Status *event, Bin_Unpack *bu)
+static bool tox_event_self_connection_status_unpack_into(non_null() Tox_Event_Self_Connection_Status *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     return tox_connection_unpack(&event->connection_status, bu);
@@ -99,8 +93,7 @@ void tox_event_self_connection_status_free(Tox_Event_Self_Connection_Status *sel
     mem_delete(mem, self_connection_status);
 }
 
-non_null()
-static Tox_Event_Self_Connection_Status *tox_events_add_self_connection_status(Tox_Events *events, const Memory *mem)
+static Tox_Event_Self_Connection_Status *tox_events_add_self_connection_status(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Self_Connection_Status *const self_connection_status = tox_event_self_connection_status_new(mem);
 
@@ -133,8 +126,7 @@ bool tox_event_self_connection_status_unpack(
     return tox_event_self_connection_status_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Self_Connection_Status *tox_event_self_connection_status_alloc(void *user_data)
+static Tox_Event_Self_Connection_Status *tox_event_self_connection_status_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

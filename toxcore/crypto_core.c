@@ -88,8 +88,7 @@ const uint8_t *get_chat_id(const Extended_Public_Key *key)
 }
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-non_null()
-static uint8_t *crypto_malloc(const Memory *mem, size_t bytes)
+static uint8_t *crypto_malloc(non_null() const Memory *mem, size_t bytes)
 {
     uint8_t *ptr = (uint8_t *)mem_balloc(mem, bytes);
 
@@ -100,8 +99,7 @@ static uint8_t *crypto_malloc(const Memory *mem, size_t bytes)
     return ptr;
 }
 
-non_null(1) nullable(2)
-static void crypto_free(const Memory *mem, uint8_t *ptr, size_t bytes)
+static void crypto_free(non_null() const Memory *mem, nullable() uint8_t *ptr, size_t bytes)
 {
     if (ptr != nullptr) {
         crypto_memzero(ptr, bytes);
@@ -495,14 +493,12 @@ void crypto_sha512(uint8_t hash[CRYPTO_SHA512_SIZE], const uint8_t *data, size_t
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
-non_null()
-static void sys_random_bytes(void *obj, uint8_t *bytes, size_t length)
+static void sys_random_bytes(non_null() void *obj, non_null() uint8_t *bytes, size_t length)
 {
     randombytes(bytes, length);
 }
 
-non_null()
-static uint32_t sys_random_uniform(void *obj, uint32_t upper_bound)
+static uint32_t sys_random_uniform(non_null() void *obj, uint32_t upper_bound)
 {
     return randombytes_uniform(upper_bound);
 }

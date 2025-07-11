@@ -84,16 +84,14 @@ typedef struct Onion_Path {
  * return -1 on failure.
  * return 0 on success.
  */
-non_null()
-int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes);
+int create_onion_path(non_null() const Random *rng, non_null() const DHT *dht, non_null() Onion_Path *new_path, non_null() const Node_format *nodes);
 
 /** @brief Dump nodes in onion path to nodes of length num_nodes.
  *
  * return -1 on failure.
  * return 0 on success.
  */
-non_null()
-int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_Path *path);
+int onion_path_to_nodes(non_null() Node_format *nodes, unsigned int num_nodes, non_null() const Onion_Path *path);
 
 /** @brief Create a onion packet.
  *
@@ -104,10 +102,8 @@ int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_
  * return -1 on failure.
  * return length of created packet on success.
  */
-non_null()
-int create_onion_packet(const Memory *mem, const Random *rng, uint8_t *packet, uint16_t max_packet_length,
-                        const Onion_Path *path, const IP_Port *dest,
-                        const uint8_t *data, uint16_t length);
+int create_onion_packet(non_null() const Memory *mem, non_null() const Random *rng, non_null() uint8_t *packet, uint16_t max_packet_length, non_null() const Onion_Path *path,
+                        non_null() const IP_Port *dest, non_null() const uint8_t *data, uint16_t length);
 
 /** @brief Create a onion packet to be sent over tcp.
  *
@@ -118,10 +114,8 @@ int create_onion_packet(const Memory *mem, const Random *rng, uint8_t *packet, u
  * return -1 on failure.
  * return length of created packet on success.
  */
-non_null()
-int create_onion_packet_tcp(const Memory *mem, const Random *rng, uint8_t *packet, uint16_t max_packet_length,
-                            const Onion_Path *path, const IP_Port *dest,
-                            const uint8_t *data, uint16_t length);
+int create_onion_packet_tcp(non_null() const Memory *mem, non_null() const Random *rng, non_null() uint8_t *packet, uint16_t max_packet_length, non_null() const Onion_Path *path,
+                            non_null() const IP_Port *dest, non_null() const uint8_t *data, uint16_t length);
 
 /** @brief Create and send a onion response sent initially to dest with.
  * Maximum length of data is ONION_RESPONSE_MAX_DATA_SIZE.
@@ -129,10 +123,8 @@ int create_onion_packet_tcp(const Memory *mem, const Random *rng, uint8_t *packe
  * return -1 on failure.
  * return 0 on success.
  */
-non_null()
-int send_onion_response(const Logger *log, const Networking_Core *net,
-                        const IP_Port *dest, const uint8_t *data, uint16_t length,
-                        const uint8_t *ret);
+int send_onion_response(non_null() const Logger *log, non_null() const Networking_Core *net, non_null() const IP_Port *dest, non_null() const uint8_t *data, uint16_t length,
+                        non_null() const uint8_t *ret);
 
 /** @brief Function to handle/send received decrypted versions of the packet created by create_onion_packet.
  *
@@ -144,17 +136,11 @@ int send_onion_response(const Logger *log, const Networking_Core *net,
  * Source family must be set to something else than TOX_AF_INET6 or TOX_AF_INET so that the callback gets called
  * when the response is received.
  */
-non_null()
-int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const IP_Port *source, const uint8_t *nonce);
+int onion_send_1(non_null() const Onion *onion, non_null() const uint8_t *plain, uint16_t len, non_null() const IP_Port *source, non_null() const uint8_t *nonce);
 
 /** Set the callback to be called when the dest ip_port doesn't have TOX_AF_INET6 or TOX_AF_INET as the family. */
-non_null(1) nullable(2, 3)
-void set_callback_handle_recv_1(Onion *onion, onion_recv_1_cb *function, void *object);
+void set_callback_handle_recv_1(non_null() Onion *onion, nullable() onion_recv_1_cb *function, nullable() void *object);
+Onion *new_onion(non_null() const Logger *log, non_null() const Memory *mem, non_null() const Mono_Time *mono_time, non_null() const Random *rng, non_null() DHT *dht);
 
-non_null()
-Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht);
-
-nullable(1)
-void kill_onion(Onion *onion);
-
+void kill_onion(nullable() Onion *onion);
 #endif /* C_TOXCORE_TOXCORE_ONION_H */

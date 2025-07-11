@@ -48,46 +48,37 @@ typedef struct Mono_Time Mono_Time;
 
 typedef uint64_t mono_time_current_time_cb(void *user_data);
 
-non_null(1) nullable(2, 3)
-Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_time_callback, void *user_data);
-
-non_null(1) nullable(2)
-void mono_time_free(const Memory *mem, Mono_Time *mono_time);
-
+Mono_Time *mono_time_new(non_null() const Memory *mem, nullable() mono_time_current_time_cb *current_time_callback, nullable() void *user_data);
+void mono_time_free(non_null() const Memory *mem, nullable() Mono_Time *mono_time);
 /**
  * Update mono_time; subsequent calls to mono_time_get or mono_time_is_timeout
  * will use the time at the call to mono_time_update.
  */
-non_null()
-void mono_time_update(Mono_Time *mono_time);
+void mono_time_update(non_null() Mono_Time *mono_time);
 
 /** @brief Return current monotonic time in milliseconds (ms).
  *
  * The starting point is UNIX epoch as measured by `time()` in `mono_time_new()`.
  */
-non_null()
-uint64_t mono_time_get_ms(const Mono_Time *mono_time);
+uint64_t mono_time_get_ms(non_null() const Mono_Time *mono_time);
 
 /** @brief Return a monotonically increasing time in seconds.
  *
  * The starting point is UNIX epoch as measured by `time()` in `mono_time_new()`.
  */
-non_null()
-uint64_t mono_time_get(const Mono_Time *mono_time);
+uint64_t mono_time_get(non_null() const Mono_Time *mono_time);
 
 /**
  * Return true iff timestamp is at least timeout seconds in the past.
  */
-non_null()
-bool mono_time_is_timeout(const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout);
+bool mono_time_is_timeout(non_null() const Mono_Time *mono_time, uint64_t timestamp, uint64_t timeout);
 
 /** @brief Return current monotonic time in milliseconds (ms).
  *
  * The starting point is unspecified and in particular is likely not comparable
  * to the return value of `mono_time_get_ms()`.
  */
-non_null()
-uint64_t current_time_monotonic(const Mono_Time *mono_time);
+uint64_t current_time_monotonic(non_null() const Mono_Time *mono_time);
 
 /**
  * Override implementation of `current_time_monotonic()` (for tests).
@@ -95,10 +86,8 @@ uint64_t current_time_monotonic(const Mono_Time *mono_time);
  * The caller is obligated to ensure that `current_time_monotonic()` continues
  * to increase monotonically.
  */
-non_null(1) nullable(2, 3)
-void mono_time_set_current_time_callback(Mono_Time *mono_time,
-        mono_time_current_time_cb *current_time_callback, void *user_data);
-
+void mono_time_set_current_time_callback(non_null() Mono_Time *mono_time,
+        nullable() mono_time_current_time_cb *current_time_callback, nullable() void *user_data);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

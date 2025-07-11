@@ -30,8 +30,7 @@ extern "C" {
 
 typedef struct Forwarding Forwarding;
 
-non_null()
-DHT *forwarding_get_dht(const Forwarding *forwarding);
+DHT *forwarding_get_dht(non_null() const Forwarding *forwarding);
 
 /**
  * @brief Send data to forwarder for forwarding via chain of dht nodes.
@@ -45,10 +44,8 @@ DHT *forwarding_get_dht(const Forwarding *forwarding);
  *
  * @return true on success, false otherwise.
  */
-non_null()
-bool send_forward_request(const Networking_Core *net, const IP_Port *forwarder,
-                          const uint8_t *chain_keys, uint16_t chain_length,
-                          const uint8_t *data, uint16_t data_length);
+bool send_forward_request(non_null() const Networking_Core *net, non_null() const IP_Port *forwarder, non_null() const uint8_t *chain_keys, uint16_t chain_length, non_null() const uint8_t *data,
+                          uint16_t data_length);
 
 /** Returns size of packet written by create_forward_chain_packet. */
 uint16_t forward_chain_packet_size(uint16_t chain_length, uint16_t data_length);
@@ -67,10 +64,7 @@ uint16_t forward_chain_packet_size(uint16_t chain_length, uint16_t data_length);
  *
  * @return true on success, false otherwise.
  */
-non_null()
-bool create_forward_chain_packet(const uint8_t *chain_keys, uint16_t chain_length,
-                                 const uint8_t *data, uint16_t data_length,
-                                 uint8_t *packet);
+bool create_forward_chain_packet(non_null() const uint8_t *chain_keys, uint16_t chain_length, non_null() const uint8_t *data, uint16_t data_length, non_null() uint8_t *packet);
 
 /**
  * @brief Send reply to forwarded packet via forwarder.
@@ -79,10 +73,8 @@ bool create_forward_chain_packet(const uint8_t *chain_keys, uint16_t chain_lengt
  *
  * @return true on success, false otherwise.
  */
-non_null()
-bool forward_reply(const Networking_Core *net, const IP_Port *forwarder,
-                   const uint8_t *sendback, uint16_t sendback_length,
-                   const uint8_t *data, uint16_t length);
+bool forward_reply(non_null() const Networking_Core *net, non_null() const IP_Port *forwarder, non_null() const uint8_t *sendback, uint16_t sendback_length, non_null() const uint8_t *data,
+                   uint16_t length);
 
 /**
  * @brief Set callback to handle a forwarded request.
@@ -92,20 +84,14 @@ bool forward_reply(const Networking_Core *net, const IP_Port *forwarder,
 typedef void forwarded_request_cb(void *object, const IP_Port *forwarder, const uint8_t *sendback,
                                   uint16_t sendback_length, const uint8_t *data,
                                   uint16_t length, void *userdata);
-non_null(1) nullable(2, 3)
-void set_callback_forwarded_request(Forwarding *forwarding, forwarded_request_cb *function, void *object);
-
+void set_callback_forwarded_request(non_null() Forwarding *forwarding, nullable() forwarded_request_cb *function, nullable() void *object);
 /** @brief Set callback to handle a forwarded response. */
 typedef void forwarded_response_cb(void *object, const uint8_t *data, uint16_t length, void *userdata);
-non_null(1) nullable(2, 3)
-void set_callback_forwarded_response(Forwarding *forwarding, forwarded_response_cb *function, void *object);
-
+void set_callback_forwarded_response(non_null() Forwarding *forwarding, nullable() forwarded_response_cb *function, nullable() void *object);
 /** @brief Send forwarding packet to dest with given sendback data and data. */
-non_null(1, 2, 5) nullable(3)
-bool send_forwarding(const Forwarding *forwarding, const IP_Port *dest,
-                     const uint8_t *sendback_data, uint16_t sendback_data_len,
-                     const uint8_t *data, uint16_t length);
-
+bool send_forwarding(non_null() const Forwarding *forwarding, non_null() const IP_Port *dest,
+                     nullable() const uint8_t *sendback_data, uint16_t sendback_data_len,
+                     non_null() const uint8_t *data, uint16_t length);
 typedef bool forward_reply_cb(void *object, const uint8_t *sendback_data, uint16_t sendback_data_len,
                               const uint8_t *data, uint16_t length);
 
@@ -113,15 +99,10 @@ typedef bool forward_reply_cb(void *object, const uint8_t *sendback_data, uint16
  * @brief Set callback to handle a forward reply with an otherwise unhandled
  * sendback.
  */
-non_null(1) nullable(2, 3)
-void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *function, void *object);
+void set_callback_forward_reply(non_null() Forwarding *forwarding, nullable() forward_reply_cb *function, nullable() void *object);
+Forwarding *new_forwarding(non_null() const Logger *log, non_null() const Memory *mem, non_null() const Random *rng, non_null() const Mono_Time *mono_time, non_null() DHT *dht);
 
-non_null()
-Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht);
-
-nullable(1)
-void kill_forwarding(Forwarding *forwarding);
-
+void kill_forwarding(nullable() Forwarding *forwarding);
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

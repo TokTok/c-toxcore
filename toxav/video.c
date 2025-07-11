@@ -234,7 +234,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, ToxAV *av, uint
     }
 
     /*
-     * VPX_CTRL_USE_TYPE(VP8E_SET_NOISE_SENSITIVITY,  unsigned int)
+     * VPX_CTRL_USE_TYPE(VP8E_SET_NOISE_SENSITIVITY, unsigned int)
      * control function to set noise sensitivity
      *   0: off, 1: OnYOnly, 2: OnYUV, 3: OnYUVAggressive, 4: Adaptive
      */

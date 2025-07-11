@@ -21,9 +21,7 @@ struct TCP_Priority_List {
     uint8_t *data;
 };
 
-non_null(1) nullable(2)
-void wipe_priority_list(const Memory *mem, TCP_Priority_List *p);
-
+void wipe_priority_list(non_null() const Memory *mem, nullable() TCP_Priority_List *p);
 #define NUM_RESERVED_PORTS 16
 #define NUM_CLIENT_CONNECTIONS (256 - NUM_RESERVED_PORTS)
 
@@ -77,45 +75,35 @@ typedef struct TCP_Connection {
  * @retval 0 if pending data was sent completely
  * @retval -1 if it wasn't
  */
-non_null()
-int send_pending_data_nonpriority(const Logger *logger, TCP_Connection *con);
+int send_pending_data_nonpriority(non_null() const Logger *logger, non_null() TCP_Connection *con);
 
 /**
  * @retval 0 if pending data was sent completely
  * @retval -1 if it wasn't
  */
-non_null()
-int send_pending_data(const Logger *logger, TCP_Connection *con);
+int send_pending_data(non_null() const Logger *logger, non_null() TCP_Connection *con);
 
 /**
  * @retval 1 on success.
  * @retval 0 if could not send packet.
  * @retval -1 on failure (connection must be killed).
  */
-non_null()
-int write_packet_tcp_secure_connection(
-    const Logger *logger, TCP_Connection *con, const uint8_t *data, uint16_t length,
-    bool priority);
+int write_packet_tcp_secure_connection(non_null() const Logger *logger, non_null() TCP_Connection *con, non_null() const uint8_t *data, uint16_t length, bool priority);
 
 /** @brief Read length bytes from socket.
  *
  * return length on success
  * return -1 on failure/no data in buffer.
  */
-non_null()
-int read_tcp_packet(
-    const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port);
+int read_tcp_packet(non_null() const Logger *logger, non_null() const Memory *mem, non_null() const Network *ns, Socket sock, non_null() uint8_t *data, uint16_t length,
+                    non_null() const IP_Port *ip_port);
 
 /**
  * @return length of received packet on success.
  * @retval 0 if could not read any packet.
  * @retval -1 on failure (connection must be killed).
  */
-non_null()
-int read_packet_tcp_secure_connection(
-    const Logger *logger, const Memory *mem, const Network *ns,
-    Socket sock, uint16_t *next_packet_length,
-    const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
-    uint16_t max_len, const IP_Port *ip_port);
+int read_packet_tcp_secure_connection(non_null() const Logger *logger, non_null() const Memory *mem, non_null() const Network *ns, Socket sock, non_null() uint16_t *next_packet_length,
+                                      non_null() const uint8_t *shared_key, non_null() uint8_t *recv_nonce, non_null() uint8_t *data, uint16_t max_len, non_null() const IP_Port *ip_port);
 
 #endif /* C_TOXCORE_TOXCORE_TCP_COMMON_H */

@@ -21,8 +21,7 @@
  * Packs group data from `chat` into `mp` in binary format. Parallel to the
  * `gc_load_unpack_group` function.
  */
-non_null()
-void gc_save_pack_group(const GC_Chat *chat, Bin_Pack *bp);
+void gc_save_pack_group(non_null() const GC_Chat *chat, non_null() Bin_Pack *bp);
 
 /**
  * Unpacks binary group data from `obj` into `chat`. Parallel to the `gc_save_pack_group`
@@ -30,12 +29,9 @@ void gc_save_pack_group(const GC_Chat *chat, Bin_Pack *bp);
  *
  * Return true if unpacking is successful.
  */
-non_null()
-bool gc_load_unpack_group(GC_Chat *chat, Bin_Unpack *bu);
+bool gc_load_unpack_group(non_null() GC_Chat *chat, non_null() Bin_Unpack *bu);
 
-non_null()
-bool group_privacy_state_from_int(uint8_t value, Group_Privacy_State *out_enum);
-non_null()
-bool group_voice_state_from_int(uint8_t value, Group_Voice_State *out_enum);
+bool group_privacy_state_from_int(uint8_t value, non_null() Group_Privacy_State *out_enum);
+bool group_voice_state_from_int(uint8_t value, non_null() Group_Voice_State *out_enum);
 
 #endif /* C_TOXCORE_TOXCORE_GROUP_PACK_H */

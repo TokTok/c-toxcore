@@ -107,8 +107,8 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *con, uint32_t value)
  * @retval true on success
  * @retval false on failure
  */
-non_null()
-static bool connect_sock_to(const Network *ns, const Logger *logger, const Memory *mem, Socket sock, const IP_Port *ip_port, const TCP_Proxy_Info *proxy_info)
+static bool connect_sock_to(non_null() const Network *ns, non_null() const Logger *logger, non_null() const Memory *mem, Socket sock, non_null() const IP_Port *ip_port,
+                            non_null() const TCP_Proxy_Info *proxy_info)
 {
     Net_Err_Connect err;
     if (proxy_info->proxy_type != TCP_PROXY_NONE) {
@@ -133,8 +133,7 @@ static bool connect_sock_to(const Network *ns, const Logger *logger, const Memor
  * @retval 1 on success.
  * @retval 0 on failure.
  */
-non_null()
-static int proxy_http_generate_connection_request(TCP_Client_Connection *tcp_conn)
+static int proxy_http_generate_connection_request(non_null() TCP_Client_Connection *tcp_conn)
 {
     const char one[] = "CONNECT ";
     const char two[] = " HTTP/1.1\nHost: ";
@@ -164,8 +163,7 @@ static int proxy_http_generate_connection_request(TCP_Client_Connection *tcp_con
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-non_null()
-static int proxy_http_read_connection_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
+static int proxy_http_read_connection_response(non_null() const Logger *logger, non_null() const TCP_Client_Connection *tcp_conn)
 {
     const char success[] = "200";
     uint8_t data[16]; // draining works the best if the length is a power of 2
@@ -214,8 +212,7 @@ enum Tcp_Socks5_Proxy_Hs {
     TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6          = 0x04,
 };
 
-non_null()
-static void proxy_socks5_generate_greetings(TCP_Client_Connection *tcp_conn)
+static void proxy_socks5_generate_greetings(non_null() TCP_Client_Connection *tcp_conn)
 {
     tcp_conn->con.last_packet[0] = TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5;
     tcp_conn->con.last_packet[1] = TCP_SOCKS5_PROXY_HS_AUTH_METHODS_SUPPORTED;
@@ -230,8 +227,7 @@ static void proxy_socks5_generate_greetings(TCP_Client_Connection *tcp_conn)
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-non_null()
-static int socks5_read_handshake_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
+static int socks5_read_handshake_response(non_null() const Logger *logger, non_null() const TCP_Client_Connection *tcp_conn)
 {
     uint8_t data[2];
     const TCP_Connection *con = &tcp_conn->con;
@@ -248,8 +244,7 @@ static int socks5_read_handshake_response(const Logger *logger, const TCP_Client
     return -1;
 }
 
-non_null()
-static void proxy_socks5_generate_connection_request(TCP_Client_Connection *tcp_conn)
+static void proxy_socks5_generate_connection_request(non_null() TCP_Client_Connection *tcp_conn)
 {
     tcp_conn->con.last_packet[0] = TCP_SOCKS5_PROXY_HS_VERSION_SOCKS5;
     tcp_conn->con.last_packet[1] = TCP_SOCKS5_PROXY_HS_COMM_ESTABLISH_REQUEST;
@@ -280,8 +275,7 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *tcp_
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-non_null()
-static int proxy_socks5_read_connection_response(const Logger *logger, const TCP_Client_Connection *tcp_conn)
+static int proxy_socks5_read_connection_response(non_null() const Logger *logger, non_null() const TCP_Client_Connection *tcp_conn)
 {
     if (net_family_is_ipv4(tcp_conn->ip_port.ip.family)) {
         uint8_t data[4 + sizeof(IP4) + sizeof(uint16_t)];
@@ -316,8 +310,7 @@ static int proxy_socks5_read_connection_response(const Logger *logger, const TCP
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-non_null()
-static int generate_handshake(TCP_Client_Connection *tcp_conn)
+static int generate_handshake(non_null() TCP_Client_Connection *tcp_conn)
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     crypto_new_keypair(tcp_conn->con.rng, plain, tcp_conn->temp_secret_key);
@@ -343,8 +336,7 @@ static int generate_handshake(TCP_Client_Connection *tcp_conn)
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-non_null()
-static int handle_handshake(TCP_Client_Connection *tcp_conn, const uint8_t *data)
+static int handle_handshake(non_null() TCP_Client_Connection *tcp_conn, non_null() const uint8_t *data)
 {
     uint8_t plain[CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE];
     const int len = decrypt_data_symmetric(tcp_conn->con.mem, tcp_conn->con.shared_key, data, data + CRYPTO_NONCE_SIZE,
@@ -385,8 +377,8 @@ void routing_status_handler(TCP_Client_Connection *con, tcp_routing_status_cb *s
     con->status_callback_object = object;
 }
 
-non_null() static int tcp_send_ping_response(const Logger *logger, TCP_Client_Connection *con);
-non_null() static int tcp_send_ping_request(const Logger *logger, TCP_Client_Connection *con);
+static int tcp_send_ping_response(non_null() const Logger *logger, non_null() TCP_Client_Connection *con);
+static int tcp_send_ping_request(non_null() const Logger *logger, non_null() TCP_Client_Connection *con);
 
 /**
  * @retval 1 on success.
@@ -472,8 +464,7 @@ void oob_data_handler(TCP_Client_Connection *con, tcp_oob_data_cb *oob_data_call
  * @retval 0 if could not send packet.
  * @retval -1 on failure (connection must be killed).
  */
-non_null()
-static int client_send_disconnect_notification(const Logger *logger, TCP_Client_Connection *con, uint8_t id)
+static int client_send_disconnect_notification(non_null() const Logger *logger, non_null() TCP_Client_Connection *con, uint8_t id)
 {
     uint8_t packet[1 + 1];
     packet[0] = TCP_PACKET_DISCONNECT_NOTIFICATION;
@@ -699,8 +690,7 @@ TCP_Client_Connection *new_tcp_connection(
     return temp;
 }
 
-non_null()
-static int handle_tcp_client_routing_response(TCP_Client_Connection *conn, const uint8_t *data, uint16_t length)
+static int handle_tcp_client_routing_response(non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length)
 {
     if (length != 1 + 1 + CRYPTO_PUBLIC_KEY_SIZE) {
         return -1;
@@ -727,8 +717,7 @@ static int handle_tcp_client_routing_response(TCP_Client_Connection *conn, const
     return 0;
 }
 
-non_null()
-static int handle_tcp_client_connection_notification(TCP_Client_Connection *conn, const uint8_t *data, uint16_t length)
+static int handle_tcp_client_connection_notification(non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length)
 {
     if (length != 1 + 1) {
         return -1;
@@ -754,8 +743,7 @@ static int handle_tcp_client_connection_notification(TCP_Client_Connection *conn
     return 0;
 }
 
-non_null()
-static int handle_tcp_client_disconnect_notification(TCP_Client_Connection *conn, const uint8_t *data, uint16_t length)
+static int handle_tcp_client_disconnect_notification(non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length)
 {
     if (length != 1 + 1) {
         return -1;
@@ -785,8 +773,7 @@ static int handle_tcp_client_disconnect_notification(TCP_Client_Connection *conn
     return 0;
 }
 
-non_null()
-static int handle_tcp_client_ping(const Logger *logger, TCP_Client_Connection *conn, const uint8_t *data, uint16_t length)
+static int handle_tcp_client_ping(non_null() const Logger *logger, non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length)
 {
     if (length != 1 + sizeof(uint64_t)) {
         return -1;
@@ -799,8 +786,7 @@ static int handle_tcp_client_ping(const Logger *logger, TCP_Client_Connection *c
     return 0;
 }
 
-non_null()
-static int handle_tcp_client_pong(TCP_Client_Connection *conn, const uint8_t *data, uint16_t length)
+static int handle_tcp_client_pong(non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length)
 {
     if (length != 1 + sizeof(uint64_t)) {
         return -1;
@@ -820,8 +806,7 @@ static int handle_tcp_client_pong(TCP_Client_Connection *conn, const uint8_t *da
     return -1;
 }
 
-non_null(1, 2) nullable(4)
-static int handle_tcp_client_oob_recv(TCP_Client_Connection *conn, const uint8_t *data, uint16_t length, void *userdata)
+static int handle_tcp_client_oob_recv(non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata)
 {
     if (length <= 1 + CRYPTO_PUBLIC_KEY_SIZE) {
         return -1;
@@ -839,9 +824,8 @@ static int handle_tcp_client_oob_recv(TCP_Client_Connection *conn, const uint8_t
  * @retval 0 on success
  * @retval -1 on failure
  */
-non_null(1, 2, 3) nullable(5)
-static int handle_tcp_client_packet(const Logger *logger, TCP_Client_Connection *conn, const uint8_t *data,
-                                    uint16_t length, void *userdata)
+static int handle_tcp_client_packet(non_null() const Logger *logger, non_null() TCP_Client_Connection *conn, non_null() const uint8_t *data,
+                                    uint16_t length, nullable() void *userdata)
 {
     if (length <= 1) {
         return -1;
@@ -899,8 +883,7 @@ static int handle_tcp_client_packet(const Logger *logger, TCP_Client_Connection 
     return 0;
 }
 
-non_null(1, 2) nullable(3)
-static bool tcp_process_packet(const Logger *logger, TCP_Client_Connection *conn, void *userdata)
+static bool tcp_process_packet(non_null() const Logger *logger, non_null() TCP_Client_Connection *conn, nullable() void *userdata)
 {
     uint8_t packet[MAX_PACKET_SIZE];
     const int len = read_packet_tcp_secure_connection(logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet),
@@ -923,9 +906,8 @@ static bool tcp_process_packet(const Logger *logger, TCP_Client_Connection *conn
     return true;
 }
 
-non_null(1, 2, 3) nullable(4)
-static int do_confirmed_tcp(const Logger *logger, TCP_Client_Connection *conn, const Mono_Time *mono_time,
-                            void *userdata)
+static int do_confirmed_tcp(non_null() const Logger *logger, non_null() TCP_Client_Connection *conn, non_null() const Mono_Time *mono_time,
+                            nullable() void *userdata)
 {
     send_pending_data(logger, &conn->con);
     tcp_send_ping_response(logger, conn);

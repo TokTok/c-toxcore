@@ -53,8 +53,7 @@ struct Broadcast_Info {
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
-non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(non_null() const Memory *mem, non_null() const Network *ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
@@ -124,11 +123,9 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
 
 #elif !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION) && (defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__))
 
-non_null()
-static bool ip4_is_local(const IP4 *ip4);
+static bool ip4_is_local(non_null() const IP4 *ip4);
 
-non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(non_null() const Memory *mem, non_null() const Network *ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
@@ -222,8 +219,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
 
 #else // TODO(irungentoo): Other platforms?
 
-non_null()
-static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns)
+static Broadcast_Info *fetch_broadcast_info(non_null() const Memory *mem, non_null() const Network *ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
@@ -243,9 +239,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *mem, const Network *ns
  * @retval true if sent to at least one broadcast target.
  * @retval false on failure to find any valid broadcast target.
  */
-non_null()
-static bool send_broadcasts(const Networking_Core *net, const Broadcast_Info *broadcast, uint16_t port,
-                            const uint8_t *data, uint16_t length)
+static bool send_broadcasts(non_null() const Networking_Core *net, non_null() const Broadcast_Info *broadcast, uint16_t port, non_null() const uint8_t *data, uint16_t length)
 {
     if (broadcast->count == 0) {
         return false;
@@ -288,8 +282,7 @@ static IP broadcast_ip(Family family_socket, Family family_broadcast)
     return ip;
 }
 
-non_null()
-static bool ip4_is_local(const IP4 *ip4)
+static bool ip4_is_local(non_null() const IP4 *ip4)
 {
     /* Loopback. */
     return ip4->uint8[0] == 127;
@@ -315,8 +308,7 @@ bool ip_is_local(const IP *ip)
     return ip->ip.v6.uint64[0] == 0 && ip->ip.v6.uint32[2] == 0 && ip->ip.v6.uint32[3] == net_htonl(1);
 }
 
-non_null()
-static bool ip4_is_lan(const IP4 *ip4)
+static bool ip4_is_lan(non_null() const IP4 *ip4)
 {
     /* 10.0.0.0 to 10.255.255.255 range. */
     if (ip4->uint8[0] == 10) {

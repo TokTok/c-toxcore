@@ -34,9 +34,7 @@ struct Tox_Event_Group_Private_Message {
     uint32_t message_id;
 };
 
-non_null()
-static void tox_event_group_private_message_set_group_number(Tox_Event_Group_Private_Message *group_private_message,
-        uint32_t group_number)
+static void tox_event_group_private_message_set_group_number(non_null() Tox_Event_Group_Private_Message *group_private_message, uint32_t group_number)
 {
     assert(group_private_message != nullptr);
     group_private_message->group_number = group_number;
@@ -47,9 +45,7 @@ uint32_t tox_event_group_private_message_get_group_number(const Tox_Event_Group_
     return group_private_message->group_number;
 }
 
-non_null()
-static void tox_event_group_private_message_set_peer_id(Tox_Event_Group_Private_Message *group_private_message,
-        uint32_t peer_id)
+static void tox_event_group_private_message_set_peer_id(non_null() Tox_Event_Group_Private_Message *group_private_message, uint32_t peer_id)
 {
     assert(group_private_message != nullptr);
     group_private_message->peer_id = peer_id;
@@ -60,9 +56,7 @@ uint32_t tox_event_group_private_message_get_peer_id(const Tox_Event_Group_Priva
     return group_private_message->peer_id;
 }
 
-non_null()
-static void tox_event_group_private_message_set_message_type(Tox_Event_Group_Private_Message *group_private_message,
-        Tox_Message_Type message_type)
+static void tox_event_group_private_message_set_message_type(non_null() Tox_Event_Group_Private_Message *group_private_message, Tox_Message_Type message_type)
 {
     assert(group_private_message != nullptr);
     group_private_message->message_type = message_type;
@@ -73,12 +67,10 @@ Tox_Message_Type tox_event_group_private_message_get_message_type(const Tox_Even
     return group_private_message->message_type;
 }
 
-non_null(1) nullable(2)
-static bool tox_event_group_private_message_set_message(Tox_Event_Group_Private_Message *group_private_message,
-        const uint8_t *message, uint32_t message_length)
+static bool tox_event_group_private_message_set_message(non_null() Tox_Event_Group_Private_Message *group_private_message,
+        nullable() const uint8_t *message, uint32_t message_length)
 {
     assert(group_private_message != nullptr);
-
     if (group_private_message->message != nullptr) {
         free(group_private_message->message);
         group_private_message->message = nullptr;
@@ -112,9 +104,7 @@ const uint8_t *tox_event_group_private_message_get_message(const Tox_Event_Group
     return group_private_message->message;
 }
 
-non_null()
-static void tox_event_group_private_message_set_message_id(Tox_Event_Group_Private_Message *group_private_message,
-        uint32_t message_id)
+static void tox_event_group_private_message_set_message_id(non_null() Tox_Event_Group_Private_Message *group_private_message, uint32_t message_id)
 {
     assert(group_private_message != nullptr);
     group_private_message->message_id = message_id;
@@ -125,15 +115,13 @@ uint32_t tox_event_group_private_message_get_message_id(const Tox_Event_Group_Pr
     return group_private_message->message_id;
 }
 
-non_null()
-static void tox_event_group_private_message_construct(Tox_Event_Group_Private_Message *group_private_message)
+static void tox_event_group_private_message_construct(non_null() Tox_Event_Group_Private_Message *group_private_message)
 {
     *group_private_message = (Tox_Event_Group_Private_Message) {
         0
     };
 }
-non_null()
-static void tox_event_group_private_message_destruct(Tox_Event_Group_Private_Message *group_private_message, const Memory *mem)
+static void tox_event_group_private_message_destruct(non_null() Tox_Event_Group_Private_Message *group_private_message, non_null() const Memory *mem)
 {
     free(group_private_message->message);
 }
@@ -149,9 +137,7 @@ bool tox_event_group_private_message_pack(
            && bin_pack_u32(bp, event->message_id);
 }
 
-non_null()
-static bool tox_event_group_private_message_unpack_into(
-    Tox_Event_Group_Private_Message *event, Bin_Unpack *bu)
+static bool tox_event_group_private_message_unpack_into(non_null() Tox_Event_Group_Private_Message *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 5, nullptr)) {
@@ -197,8 +183,7 @@ void tox_event_group_private_message_free(Tox_Event_Group_Private_Message *group
     mem_delete(mem, group_private_message);
 }
 
-non_null()
-static Tox_Event_Group_Private_Message *tox_events_add_group_private_message(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Private_Message *tox_events_add_group_private_message(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Private_Message *const group_private_message = tox_event_group_private_message_new(mem);
 
@@ -231,8 +216,7 @@ bool tox_event_group_private_message_unpack(
     return tox_event_group_private_message_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Private_Message *tox_event_group_private_message_alloc(void *user_data)
+static Tox_Event_Group_Private_Message *tox_event_group_private_message_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

@@ -20,8 +20,7 @@ struct Bin_Unpack {
     cmp_ctx_t ctx;
 };
 
-non_null()
-static bool buf_reader(cmp_ctx_t *ctx, void *data, size_t limit)
+static bool buf_reader(non_null() cmp_ctx_t *ctx, non_null() void *data, size_t limit)
 {
     uint8_t *bytes = (uint8_t *)data;
     Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
@@ -35,8 +34,7 @@ static bool buf_reader(cmp_ctx_t *ctx, void *data, size_t limit)
     return true;
 }
 
-non_null()
-static bool buf_skipper(cmp_ctx_t *ctx, size_t count)
+static bool buf_skipper(non_null() cmp_ctx_t *ctx, size_t count)
 {
     Bin_Unpack *reader = (Bin_Unpack *)ctx->buf;
     assert(reader != nullptr && reader->bytes != nullptr);
@@ -48,15 +46,13 @@ static bool buf_skipper(cmp_ctx_t *ctx, size_t count)
     return true;
 }
 
-non_null()
-static size_t null_writer(cmp_ctx_t *ctx, const void *data, size_t count)
+static size_t null_writer(non_null() cmp_ctx_t *ctx, non_null() const void *data, size_t count)
 {
     assert(count == 0);
     return 0;
 }
 
-non_null()
-static void bin_unpack_init(Bin_Unpack *bu, const Memory *mem, const uint8_t *buf, uint32_t buf_size)
+static void bin_unpack_init(non_null() Bin_Unpack *bu, non_null() const Memory *mem, non_null() const uint8_t *buf, uint32_t buf_size)
 {
     bu->mem = mem;
     bu->bytes = buf;

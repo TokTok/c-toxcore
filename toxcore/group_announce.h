@@ -90,13 +90,10 @@ struct GC_Announces_List {
  *
  * The caller is responsible for freeing the memory with `kill_gca`.
  */
-non_null()
-GC_Announces_List *new_gca_list(const Memory *mem);
+GC_Announces_List *new_gca_list(non_null() const Memory *mem);
 
 /** @brief Frees all dynamically allocated memory associated with `announces_list`. */
-nullable(1)
-void kill_gca(GC_Announces_List *announces_list);
-
+void kill_gca(nullable() GC_Announces_List *announces_list);
 /** @brief Iterates through the announces list and removes announces that are considered stale.
  *
  * @param gc_announces_list The list of announces to iterate.
@@ -104,16 +101,14 @@ void kill_gca(GC_Announces_List *announces_list);
  * This function should be called from the main loop, and will iterate the list a
  * maxmimum of once per second.
  */
-non_null()
-void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list);
+void do_gca(non_null() const Mono_Time *mono_time, non_null() GC_Announces_List *gc_announces_list);
 
 /** @brief Frees all dynamically allocated memory associated with an announces list entry.
  *
  * @param gc_announces_list The announces list we want to search through.
  * @param chat_id The chat ID that designates the entry we want to remove.
  */
-non_null()
-void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
+void cleanup_gca(non_null() GC_Announces_List *gc_announces_list, non_null() const uint8_t *chat_id);
 
 /** @brief Puts a set of announces from the announces list in supplied list.
  *
@@ -126,9 +121,8 @@ void cleanup_gca(GC_Announces_List *gc_announces_list, const uint8_t *chat_id);
  * @return the number of added nodes on success.
  * @retval -1 on failure.
  */
-non_null()
-int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
-                      const uint8_t *chat_id, const uint8_t *except_public_key);
+int gca_get_announces(non_null() const GC_Announces_List *gc_announces_list, non_null() GC_Announce *gc_announces, uint8_t max_nodes, non_null() const uint8_t *chat_id,
+                      non_null() const uint8_t *except_public_key);
 
 /** @brief Adds a public_announce to list of announces.
  *
@@ -138,9 +132,8 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
  * @return the peer announce on success.
  * @retval null on failure.
  */
-non_null()
-GC_Peer_Announce *gca_add_announce(const Memory *mem, const Mono_Time *mono_time, GC_Announces_List *gc_announces_list,
-                                   const GC_Public_Announce *public_announce);
+GC_Peer_Announce *gca_add_announce(non_null() const Memory *mem, non_null() const Mono_Time *mono_time, non_null() GC_Announces_List *gc_announces_list,
+                                   non_null() const GC_Public_Announce *public_announce);
 
 /** @brief Packs an announce into a data buffer.
  *
@@ -151,8 +144,7 @@ GC_Peer_Announce *gca_add_announce(const Memory *mem, const Mono_Time *mono_time
  * @return the size of the packed data on success.
  * @retval -1 on failure.
  */
-non_null()
-int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce);
+int gca_pack_announce(non_null() const Logger *log, non_null() uint8_t *data, uint16_t length, non_null() const GC_Announce *announce);
 
 /** @brief Returns the number of bytes needed for a buff in which to pack `count` announces. */
 uint16_t gca_pack_announces_list_size(uint16_t count);
@@ -169,10 +161,8 @@ uint16_t gca_pack_announces_list_size(uint16_t count);
  * @return the number of packed announces on success.
  * @retval -1 on failure.
  */
-non_null(1, 2, 4) nullable(6)
-int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
-                            uint8_t announces_count, size_t *processed);
-
+int gca_pack_announces_list(non_null() const Logger *log, non_null() uint8_t *data, uint16_t length, non_null() const GC_Announce *announces,
+                            uint8_t announces_count, nullable() size_t *processed);
 /** @brief Unpacks packed announces from a data buffer into a supplied list.
  *
  * @param data The data buffer to unpack from.
@@ -183,9 +173,7 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
  * @return the number of unpacked announces on success.
  * @retval -1 on failure.
  */
-non_null()
-int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
-                              uint8_t max_count);
+int gca_unpack_announces_list(non_null() const Logger *log, non_null() const uint8_t *data, uint16_t length, non_null() GC_Announce *announces, uint8_t max_count);
 
 /** @brief Packs a public announce into a data buffer.
  *
@@ -196,9 +184,7 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
  * @return the size of the packed data on success.
  * @retval -1 on failure.
  */
-non_null()
-int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
-                             const GC_Public_Announce *public_announce);
+int gca_pack_public_announce(non_null() const Logger *log, non_null() uint8_t *data, uint16_t length, non_null() const GC_Public_Announce *public_announce);
 
 /** @brief Unpacks a public announce from a data buffer into a supplied public announce.
  *
@@ -209,16 +195,13 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
  * @return the size of the unpacked data on success.
  * @retval -1 on failure.
  */
-non_null()
-int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
-                               GC_Public_Announce *public_announce);
+int gca_unpack_public_announce(non_null() const Logger *log, non_null() const uint8_t *data, uint16_t length, non_null() GC_Public_Announce *public_announce);
 
 /** @brief Returns true if the announce is valid.
  *
  * An announce is considered valid if there is at least one TCP relay, or the ip_port is set.
  */
-non_null()
-bool gca_is_valid_announce(const GC_Announce *announce);
+bool gca_is_valid_announce(non_null() const GC_Announce *announce);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -78,8 +78,7 @@ void set_filter_function(Friend_Requests *fr, filter_function_cb *function, void
 }
 
 /** Add to list of received friend requests. */
-non_null()
-static void addto_receivedlist(Friend_Requests *fr, const uint8_t *real_pk)
+static void addto_receivedlist(non_null() Friend_Requests *fr, non_null() const uint8_t *real_pk)
 {
     if (fr->received.requests_index >= MAX_RECEIVED_STORED) {
         fr->received.requests_index = 0;
@@ -94,8 +93,7 @@ static void addto_receivedlist(Friend_Requests *fr, const uint8_t *real_pk)
  * @retval false if it did not.
  * @retval true if it did.
  */
-non_null()
-static bool request_received(const Friend_Requests *fr, const uint8_t *real_pk)
+static bool request_received(non_null() const Friend_Requests *fr, non_null() const uint8_t *real_pk)
 {
     for (uint32_t i = 0; i < MAX_RECEIVED_STORED; ++i) {
         if (pk_equal(fr->received.requests[i], real_pk)) {
@@ -123,9 +121,7 @@ int remove_request_received(Friend_Requests *fr, const uint8_t *real_pk)
     return -1;
 }
 
-non_null()
-static int friendreq_handlepacket(void *object, const uint8_t *source_pubkey, const uint8_t *data, uint16_t length,
-                                  void *userdata)
+static int friendreq_handlepacket(non_null() void *object, non_null() const uint8_t *source_pubkey, non_null() const uint8_t *data, uint16_t length, non_null() void *userdata)
 {
     Friend_Requests *const fr = (Friend_Requests *)object;
 

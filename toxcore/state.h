@@ -55,32 +55,23 @@ typedef enum State_Load_Status {
 typedef State_Load_Status state_load_cb(void *outer, const uint8_t *data, uint32_t length, uint16_t type);
 
 /** state load/save */
-non_null()
-int state_load(const Logger *log, state_load_cb *state_load_callback, void *outer,
-               const uint8_t *data, uint32_t length, uint16_t cookie_inner);
+int state_load(non_null() const Logger *log, non_null() state_load_cb *state_load_callback, non_null() void *outer, non_null() const uint8_t *data, uint32_t length, uint16_t cookie_inner);
 
-non_null()
-uint8_t *state_write_section_header(uint8_t *data, uint16_t cookie_type, uint32_t len, uint32_t section_type);
+uint8_t *state_write_section_header(non_null() uint8_t *data, uint16_t cookie_type, uint32_t len, uint32_t section_type);
 
 // Utilities for state data serialisation.
 
 uint16_t lendian_to_host16(uint16_t lendian);
 uint16_t host_to_lendian16(uint16_t host);
 
-non_null()
-void host_to_lendian_bytes64(uint8_t *dest, uint64_t num);
-non_null()
-void lendian_bytes_to_host64(uint64_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes64(non_null() uint8_t *dest, uint64_t num);
+void lendian_bytes_to_host64(non_null() uint64_t *dest, non_null() const uint8_t *lendian);
 
-non_null()
-void host_to_lendian_bytes32(uint8_t *dest, uint32_t num);
-non_null()
-void lendian_bytes_to_host32(uint32_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes32(non_null() uint8_t *dest, uint32_t num);
+void lendian_bytes_to_host32(non_null() uint32_t *dest, non_null() const uint8_t *lendian);
 
-non_null()
-void host_to_lendian_bytes16(uint8_t *dest, uint16_t num);
-non_null()
-void lendian_bytes_to_host16(uint16_t *dest, const uint8_t *lendian);
+void host_to_lendian_bytes16(non_null() uint8_t *dest, uint16_t num);
+void lendian_bytes_to_host16(non_null() uint16_t *dest, non_null() const uint8_t *lendian);
 
 #ifdef __cplusplus
 } /* extern "C" */

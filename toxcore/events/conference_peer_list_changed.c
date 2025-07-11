@@ -25,9 +25,7 @@ struct Tox_Event_Conference_Peer_List_Changed {
     uint32_t conference_number;
 };
 
-non_null()
-static void tox_event_conference_peer_list_changed_set_conference_number(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed,
-        uint32_t conference_number)
+static void tox_event_conference_peer_list_changed_set_conference_number(non_null() Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed, uint32_t conference_number)
 {
     assert(conference_peer_list_changed != nullptr);
     conference_peer_list_changed->conference_number = conference_number;
@@ -38,15 +36,13 @@ uint32_t tox_event_conference_peer_list_changed_get_conference_number(const Tox_
     return conference_peer_list_changed->conference_number;
 }
 
-non_null()
-static void tox_event_conference_peer_list_changed_construct(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)
+static void tox_event_conference_peer_list_changed_construct(non_null() Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed)
 {
     *conference_peer_list_changed = (Tox_Event_Conference_Peer_List_Changed) {
         0
     };
 }
-non_null()
-static void tox_event_conference_peer_list_changed_destruct(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed, const Memory *mem)
+static void tox_event_conference_peer_list_changed_destruct(non_null() Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed, non_null() const Memory *mem)
 {
     return;
 }
@@ -57,9 +53,7 @@ bool tox_event_conference_peer_list_changed_pack(
     return bin_pack_u32(bp, event->conference_number);
 }
 
-non_null()
-static bool tox_event_conference_peer_list_changed_unpack_into(
-    Tox_Event_Conference_Peer_List_Changed *event, Bin_Unpack *bu)
+static bool tox_event_conference_peer_list_changed_unpack_into(non_null() Tox_Event_Conference_Peer_List_Changed *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     return bin_unpack_u32(bu, &event->conference_number);
@@ -97,8 +91,7 @@ void tox_event_conference_peer_list_changed_free(Tox_Event_Conference_Peer_List_
     mem_delete(mem, conference_peer_list_changed);
 }
 
-non_null()
-static Tox_Event_Conference_Peer_List_Changed *tox_events_add_conference_peer_list_changed(Tox_Events *events, const Memory *mem)
+static Tox_Event_Conference_Peer_List_Changed *tox_events_add_conference_peer_list_changed(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Conference_Peer_List_Changed *const conference_peer_list_changed = tox_event_conference_peer_list_changed_new(mem);
 
@@ -131,8 +124,7 @@ bool tox_event_conference_peer_list_changed_unpack(
     return tox_event_conference_peer_list_changed_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_changed_alloc(void *user_data)
+static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_changed_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

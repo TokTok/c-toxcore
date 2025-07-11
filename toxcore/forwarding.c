@@ -87,21 +87,18 @@ bool create_forward_chain_packet(const uint8_t *chain_keys, uint16_t chain_lengt
     return true;
 }
 
-non_null()
 static uint16_t forwarding_packet_length(uint16_t sendback_data_len, uint16_t data_length)
 {
     const uint16_t sendback_len = sendback_data_len == 0 ? 0 : TIMED_AUTH_SIZE + sendback_data_len;
     return 1 + 1 + sendback_len + data_length;
 }
 
-non_null(1, 4, 6) nullable(2)
-static bool create_forwarding_packet(const Forwarding *forwarding,
-                                     const uint8_t *sendback_data, uint16_t sendback_data_len,
-                                     const uint8_t *data, uint16_t length,
-                                     uint8_t *packet)
+static bool create_forwarding_packet(non_null() const Forwarding *forwarding,
+                                     nullable() const uint8_t *sendback_data, uint16_t sendback_data_len,
+                                     non_null() const uint8_t *data, uint16_t length,
+                                     non_null() uint8_t *packet)
 {
     packet[0] = NET_PACKET_FORWARDING;
-
     if (sendback_data_len == 0) {
         packet[1] = 0;
         memcpy(packet + 1 + 1, data, length);
@@ -143,10 +140,9 @@ bool send_forwarding(const Forwarding *forwarding, const IP_Port *dest,
 
 #define FORWARD_REQUEST_MIN_PACKET_SIZE (1 + CRYPTO_PUBLIC_KEY_SIZE)
 
-non_null(1) nullable(2, 4)
-static bool handle_forward_request_dht(const Forwarding *forwarding,
-                                       const uint8_t *sendback_data, uint16_t sendback_data_len,
-                                       const uint8_t *packet, uint16_t length)
+static bool handle_forward_request_dht(non_null() const Forwarding *forwarding,
+                                       nullable() const uint8_t *sendback_data, uint16_t sendback_data_len,
+                                       nullable() const uint8_t *packet, uint16_t length)
 {
     if (length < FORWARD_REQUEST_MIN_PACKET_SIZE) {
         return false;
@@ -170,12 +166,10 @@ static bool handle_forward_request_dht(const Forwarding *forwarding,
     return route_packet(forwarding->dht, public_key, forwarding_packet, len) == len;
 }
 
-non_null(1, 2) nullable(3, 5)
-static int handle_forward_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                                  void *userdata)
+static int handle_forward_request(non_null() void *object, non_null() const IP_Port *source, nullable() const uint8_t *packet, uint16_t length,
+                                  nullable() void *userdata)
 {
     const Forwarding *forwarding = (const Forwarding *)object;
-
     uint8_t sendback_data[1 + MAX_PACKED_IPPORT_SIZE];
     sendback_data[0] = SENDBACK_IPPORT;
 
@@ -191,12 +185,10 @@ static int handle_forward_request(void *object, const IP_Port *source, const uin
 #define MIN_NONEMPTY_SENDBACK_SIZE TIMED_AUTH_SIZE
 #define FORWARD_REPLY_MIN_PACKET_SIZE (1 + 1 + MIN_NONEMPTY_SENDBACK_SIZE)
 
-non_null(1, 2) nullable(3, 5)
-static int handle_forward_reply(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                                void *userdata)
+static int handle_forward_reply(non_null() void *object, non_null() const IP_Port *source, nullable() const uint8_t *packet, uint16_t length,
+                                nullable() void *userdata)
 {
     const Forwarding *forwarding = (const Forwarding *)object;
-
     if (length < FORWARD_REPLY_MIN_PACKET_SIZE) {
         return 1;
     }
@@ -265,12 +257,10 @@ static int handle_forward_reply(void *object, const IP_Port *source, const uint8
 
 #define FORWARDING_MIN_PACKET_SIZE (1 + 1)
 
-non_null(1, 2) nullable(3, 5)
-static int handle_forwarding(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                             void *userdata)
+static int handle_forwarding(non_null() void *object, non_null() const IP_Port *source, nullable() const uint8_t *packet, uint16_t length,
+                             nullable() void *userdata)
 {
     const Forwarding *forwarding = (const Forwarding *)object;
-
     if (length < FORWARDING_MIN_PACKET_SIZE) {
         return 1;
     }

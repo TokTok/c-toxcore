@@ -82,8 +82,7 @@ typedef struct Sort_Funcs {
  * @param[in] object Comparator object.
  * @param[in] funcs Callback struct for elements of type T.
  */
-non_null()
-bool merge_sort(void *arr, uint32_t arr_size, const void *object, const Sort_Funcs *funcs);
+bool merge_sort(non_null() void *arr, uint32_t arr_size, non_null() const void *object, non_null() const Sort_Funcs *funcs);
 
 /**
  * @brief Merge sort like above but with a pre-allocated buffer.
@@ -106,8 +105,7 @@ bool merge_sort(void *arr, uint32_t arr_size, const void *object, const Sort_Fun
  * @param[in] object Comparator object.
  * @param[in] funcs Callback struct for elements of type T.
  */
-non_null()
-void merge_sort_with_buf(void *arr, uint32_t arr_size, void *tmp, uint32_t tmp_size, const void *object, const Sort_Funcs *funcs);
+void merge_sort_with_buf(non_null() void *arr, uint32_t arr_size, non_null() void *tmp, uint32_t tmp_size, non_null() const void *object, non_null() const Sort_Funcs *funcs);
 
 #ifdef __cplusplus
 } /* extern "C" */

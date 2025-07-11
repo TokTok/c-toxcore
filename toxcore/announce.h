@@ -22,39 +22,29 @@ uint8_t announce_response_of_request_type(uint8_t request_type);
 
 typedef struct Announcements Announcements;
 
-non_null()
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
-                                 Forwarding *forwarding);
+Announcements *new_announcements(non_null() const Logger *log, non_null() const Memory *mem, non_null() const Random *rng, non_null() const Mono_Time *mono_time, non_null() Forwarding *forwarding);
 
 /**
  * @brief If data is stored, run `on_retrieve_callback` on it.
  *
  * @return true if data is stored, false otherwise.
  */
-non_null(1, 2) nullable(3, 4)
-bool announce_on_stored(const Announcements *announce, const uint8_t *data_public_key,
-                        announce_on_retrieve_cb *on_retrieve_callback, void *object);
+bool announce_on_stored(non_null() const Announcements *announce, non_null() const uint8_t *data_public_key,
+                        nullable() announce_on_retrieve_cb *on_retrieve_callback, nullable() void *object);
+void announce_set_synch_offset(non_null() Announcements *announce, int32_t synch_offset);
 
-non_null()
-void announce_set_synch_offset(Announcements *announce, int32_t synch_offset);
-
-nullable(1)
-void kill_announcements(Announcements *announce);
-
+void kill_announcements(nullable() Announcements *announce);
 /* The declarations below are not public, they are exposed only for tests. */
 
 /** @private
  * Return xor of first ANNOUNCE_BUCKET_PREFIX_LENGTH bits from one bit after
  * base and pk first differ
  */
-non_null()
-uint16_t announce_get_bucketnum(const uint8_t *base, const uint8_t *pk);
+uint16_t announce_get_bucketnum(non_null() const uint8_t *base, non_null() const uint8_t *pk);
 
 /** @private */
-non_null(1, 2) nullable(3)
-bool announce_store_data(Announcements *announce, const uint8_t *data_public_key,
-                         const uint8_t *data, uint32_t length, uint32_t timeout);
-
+bool announce_store_data(non_null() Announcements *announce, non_null() const uint8_t *data_public_key,
+                         nullable() const uint8_t *data, uint32_t length, uint32_t timeout);
 /** @private */
 #define MAX_MAX_ANNOUNCEMENT_TIMEOUT 900
 #define MIN_MAX_ANNOUNCEMENT_TIMEOUT 10

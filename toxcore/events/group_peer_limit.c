@@ -26,9 +26,7 @@ struct Tox_Event_Group_Peer_Limit {
     uint32_t peer_limit;
 };
 
-non_null()
-static void tox_event_group_peer_limit_set_group_number(Tox_Event_Group_Peer_Limit *group_peer_limit,
-        uint32_t group_number)
+static void tox_event_group_peer_limit_set_group_number(non_null() Tox_Event_Group_Peer_Limit *group_peer_limit, uint32_t group_number)
 {
     assert(group_peer_limit != nullptr);
     group_peer_limit->group_number = group_number;
@@ -39,9 +37,7 @@ uint32_t tox_event_group_peer_limit_get_group_number(const Tox_Event_Group_Peer_
     return group_peer_limit->group_number;
 }
 
-non_null()
-static void tox_event_group_peer_limit_set_peer_limit(Tox_Event_Group_Peer_Limit *group_peer_limit,
-        uint32_t peer_limit)
+static void tox_event_group_peer_limit_set_peer_limit(non_null() Tox_Event_Group_Peer_Limit *group_peer_limit, uint32_t peer_limit)
 {
     assert(group_peer_limit != nullptr);
     group_peer_limit->peer_limit = peer_limit;
@@ -52,15 +48,13 @@ uint32_t tox_event_group_peer_limit_get_peer_limit(const Tox_Event_Group_Peer_Li
     return group_peer_limit->peer_limit;
 }
 
-non_null()
-static void tox_event_group_peer_limit_construct(Tox_Event_Group_Peer_Limit *group_peer_limit)
+static void tox_event_group_peer_limit_construct(non_null() Tox_Event_Group_Peer_Limit *group_peer_limit)
 {
     *group_peer_limit = (Tox_Event_Group_Peer_Limit) {
         0
     };
 }
-non_null()
-static void tox_event_group_peer_limit_destruct(Tox_Event_Group_Peer_Limit *group_peer_limit, const Memory *mem)
+static void tox_event_group_peer_limit_destruct(non_null() Tox_Event_Group_Peer_Limit *group_peer_limit, non_null() const Memory *mem)
 {
     return;
 }
@@ -73,9 +67,7 @@ bool tox_event_group_peer_limit_pack(
            && bin_pack_u32(bp, event->peer_limit);
 }
 
-non_null()
-static bool tox_event_group_peer_limit_unpack_into(
-    Tox_Event_Group_Peer_Limit *event, Bin_Unpack *bu)
+static bool tox_event_group_peer_limit_unpack_into(non_null() Tox_Event_Group_Peer_Limit *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
@@ -118,8 +110,7 @@ void tox_event_group_peer_limit_free(Tox_Event_Group_Peer_Limit *group_peer_limi
     mem_delete(mem, group_peer_limit);
 }
 
-non_null()
-static Tox_Event_Group_Peer_Limit *tox_events_add_group_peer_limit(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Peer_Limit *tox_events_add_group_peer_limit(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Peer_Limit *const group_peer_limit = tox_event_group_peer_limit_new(mem);
 
@@ -152,8 +143,7 @@ bool tox_event_group_peer_limit_unpack(
     return tox_event_group_peer_limit_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_alloc(void *user_data)
+static Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

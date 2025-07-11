@@ -269,8 +269,7 @@ int send_data_request(
  * return -1 if no
  * return position in list if yes
  */
-non_null()
-static int in_entries(const Onion_Announce *onion_a, const uint8_t *public_key)
+static int in_entries(non_null() const Onion_Announce *onion_a, non_null() const uint8_t *public_key)
 {
     for (unsigned int i = 0; i < ONION_ANNOUNCE_MAX_ENTRIES; ++i) {
         if (!mono_time_is_timeout(onion_a->mono_time, onion_a->entries[i].announce_time, ONION_ANNOUNCE_TIMEOUT)
@@ -288,8 +287,7 @@ typedef struct Onion_Announce_Entry_Cmp {
     const uint8_t *comp_public_key;
 } Onion_Announce_Entry_Cmp;
 
-non_null()
-static int onion_announce_entry_cmp(const Onion_Announce_Entry_Cmp *cmp, const Onion_Announce_Entry *entry1, const Onion_Announce_Entry *entry2)
+static int onion_announce_entry_cmp(non_null() const Onion_Announce_Entry_Cmp *cmp, non_null() const Onion_Announce_Entry *entry1, non_null() const Onion_Announce_Entry *entry2)
 {
     const bool t1 = mono_time_is_timeout(cmp->mono_time, entry1->announce_time, ONION_ANNOUNCE_TIMEOUT);
     const bool t2 = mono_time_is_timeout(cmp->mono_time, entry2->announce_time, ONION_ANNOUNCE_TIMEOUT);
@@ -319,8 +317,7 @@ static int onion_announce_entry_cmp(const Onion_Announce_Entry_Cmp *cmp, const O
     return 0;
 }
 
-non_null()
-static bool onion_announce_entry_less_handler(const void *object, const void *a, const void *b)
+static bool onion_announce_entry_less_handler(non_null() const void *object, non_null() const void *a, non_null() const void *b)
 {
     const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
     const Onion_Announce_Entry *entry1 = (const Onion_Announce_Entry *)a;
@@ -329,30 +326,26 @@ static bool onion_announce_entry_less_handler(const void *object, const void *a,
     return onion_announce_entry_cmp(cmp, entry1, entry2) < 0;
 }
 
-non_null()
-static const void *onion_announce_entry_get_handler(const void *arr, uint32_t index)
+static const void *onion_announce_entry_get_handler(non_null() const void *arr, uint32_t index)
 {
     const Onion_Announce_Entry *entries = (const Onion_Announce_Entry *)arr;
     return &entries[index];
 }
 
-non_null()
-static void onion_announce_entry_set_handler(void *arr, uint32_t index, const void *val)
+static void onion_announce_entry_set_handler(non_null() void *arr, uint32_t index, non_null() const void *val)
 {
     Onion_Announce_Entry *entries = (Onion_Announce_Entry *)arr;
     const Onion_Announce_Entry *entry = (const Onion_Announce_Entry *)val;
     entries[index] = *entry;
 }
 
-non_null()
-static void *onion_announce_entry_subarr_handler(void *arr, uint32_t index, uint32_t size)
+static void *onion_announce_entry_subarr_handler(non_null() void *arr, uint32_t index, uint32_t size)
 {
     Onion_Announce_Entry *entries = (Onion_Announce_Entry *)arr;
     return &entries[index];
 }
 
-non_null()
-static void *onion_announce_entry_alloc_handler(const void *object, uint32_t size)
+static void *onion_announce_entry_alloc_handler(non_null() const void *object, uint32_t size)
 {
     const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
     Onion_Announce_Entry *tmp = (Onion_Announce_Entry *)mem_valloc(cmp->mem, size, sizeof(Onion_Announce_Entry));
@@ -364,8 +357,7 @@ static void *onion_announce_entry_alloc_handler(const void *object, uint32_t siz
     return tmp;
 }
 
-non_null()
-static void onion_announce_entry_delete_handler(const void *object, void *arr, uint32_t size)
+static void onion_announce_entry_delete_handler(non_null() const void *object, non_null() void *arr, uint32_t size)
 {
     const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
     mem_delete(cmp->mem, arr);
@@ -380,10 +372,8 @@ static const Sort_Funcs onion_announce_entry_cmp_funcs = {
     onion_announce_entry_delete_handler,
 };
 
-non_null()
-static void sort_onion_announce_list(const Memory *mem, const Mono_Time *mono_time,
-                                     Onion_Announce_Entry *list, unsigned int length,
-                                     const uint8_t *comp_public_key)
+static void sort_onion_announce_list(non_null() const Memory *mem, non_null() const Mono_Time *mono_time, non_null() Onion_Announce_Entry *list, unsigned int length,
+                                     non_null() const uint8_t *comp_public_key)
 {
     // Pass comp_public_key to sort with each Onion_Announce_Entry entry, so the
     // comparison function can use it as the base of comparison.
@@ -401,9 +391,8 @@ static void sort_onion_announce_list(const Memory *mem, const Mono_Time *mono_ti
  * return -1 if failure
  * return position if added
  */
-non_null()
-static int add_to_entries(Onion_Announce *onion_a, const IP_Port *ret_ip_port, const uint8_t *public_key,
-                          const uint8_t *data_public_key, const uint8_t *ret)
+static int add_to_entries(non_null() Onion_Announce *onion_a, non_null() const IP_Port *ret_ip_port, non_null() const uint8_t *public_key, non_null() const uint8_t *data_public_key,
+                          non_null() const uint8_t *ret)
 {
     int pos = in_entries(onion_a, public_key);
 
@@ -437,9 +426,8 @@ static int add_to_entries(Onion_Announce *onion_a, const IP_Port *ret_ip_port, c
     return in_entries(onion_a, public_key);
 }
 
-non_null()
-static void make_announce_payload_helper(const Onion_Announce *onion_a, const uint8_t *ping_id,
-        uint8_t *response, int index, const uint8_t *packet_public_key, const uint8_t *data_public_key)
+static void make_announce_payload_helper(non_null() const Onion_Announce *onion_a, non_null() const uint8_t *ping_id, non_null() uint8_t *response, int index,
+        non_null() const uint8_t *packet_public_key, non_null() const uint8_t *data_public_key)
 {
     if (index < 0) {
         response[0] = 0;
@@ -479,11 +467,10 @@ static void make_announce_payload_helper(const Onion_Announce *onion_a, const ui
  * @retval 1 on failure.
  * @retval 0 on success.
  */
-non_null(1, 2, 3) nullable(9)
 static int handle_announce_request_common(
-    Onion_Announce *onion_a, const IP_Port *source, const uint8_t *packet, uint16_t length,
+    non_null() Onion_Announce *onion_a, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length,
     uint8_t response_packet_id, uint16_t plain_size, bool want_node_count, uint16_t max_extra_size,
-    pack_extra_data_cb *pack_extra_data_callback)
+    nullable() pack_extra_data_cb *pack_extra_data_callback)
 {
     const uint8_t *packet_public_key = packet + 1 + CRYPTO_NONCE_SIZE;
     const uint8_t *shared_key = shared_key_cache_lookup(onion_a->shared_keys_recv, packet_public_key);
@@ -620,9 +607,7 @@ static int handle_announce_request_common(
     return 0;
 }
 
-non_null()
-static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *source, const uint8_t *packet,
-                                       uint16_t length)
+static int handle_gca_announce_request(non_null() Onion_Announce *onion_a, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length)
 {
     if (length > ANNOUNCE_REQUEST_MAX_SIZE_RECV || length <= ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
         return 1;
@@ -637,12 +622,10 @@ static int handle_gca_announce_request(Onion_Announce *onion_a, const IP_Port *s
                                           true, onion_a->extra_data_max_size, onion_a->extra_data_callback);
 }
 
-non_null(1, 2, 3) nullable(5)
-static int handle_announce_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                                   void *userdata)
+static int handle_announce_request(non_null() void *object, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length,
+                                   nullable() void *userdata)
 {
     Onion_Announce *onion_a = (Onion_Announce *)object;
-
     if (length != ANNOUNCE_REQUEST_MIN_SIZE_RECV) {
         return handle_gca_announce_request(onion_a, source, packet, length);
     }
@@ -653,12 +636,10 @@ static int handle_announce_request(void *object, const IP_Port *source, const ui
 }
 
 /* TODO(Jfreegman): DEPRECATE */
-non_null(1, 2, 3) nullable(5)
-static int handle_announce_request_old(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                                       void *userdata)
+static int handle_announce_request_old(non_null() void *object, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length,
+                                       nullable() void *userdata)
 {
     Onion_Announce *onion_a = (Onion_Announce *)object;
-
     if (length != ANNOUNCE_REQUEST_SIZE_RECV) {
         return 1;
     }
@@ -668,9 +649,7 @@ static int handle_announce_request_old(void *object, const IP_Port *source, cons
                                           false, 0, nullptr);
 }
 
-non_null()
-static int handle_data_request(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length,
-                               void *userdata)
+static int handle_data_request(non_null() void *object, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length, non_null() void *userdata)
 {
     const Onion_Announce *onion_a = (const Onion_Announce *)object;
 

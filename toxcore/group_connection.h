@@ -24,10 +24,8 @@
 #define GCC_MAX_TCP_SHARED_RELAYS 3
 
 /** Marks a peer for deletion. If gconn is null or already marked for deletion this function has no effect. */
-non_null(1, 2) nullable(4)
-void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,
-                           const uint8_t *part_message, uint16_t length);
-
+void gcc_mark_for_deletion(non_null() GC_Connection *gconn, non_null() TCP_Connections *tcp_conn, Group_Exit_Type type,
+                           nullable() const uint8_t *part_message, uint16_t length);
 /** @brief Decides if message need to be put in recv_array or immediately handled.
  *
  * Return 3 if message is in correct sequence and is a fragment packet.
@@ -36,11 +34,9 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
  * Return 0 if message is a duplicate.
  * Return -1 on failure
  */
-non_null(1, 2, 3, 4) nullable(5)
-int gcc_handle_received_message(const Logger *log, const Memory *mem, const Mono_Time *mono_time, GC_Connection *gconn,
-                                const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
+int gcc_handle_received_message(non_null() const Logger *log, non_null() const Memory *mem, non_null() const Mono_Time *mono_time, non_null() GC_Connection *gconn,
+                                nullable() const uint8_t *data, uint16_t length, uint8_t packet_type, uint64_t message_id,
                                 bool direct_conn);
-
 /** @brief Handles a packet fragment.
  *
  * If the fragment is incomplete, it gets stored in the recv
@@ -51,11 +47,9 @@ int gcc_handle_received_message(const Logger *log, const Memory *mem, const Mono
  * Return 0 if fragment is the end of a sequence and successfully handled.
  * Return -1 on failure.
  */
-non_null(1, 2, 4) nullable(5, 9)
-int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer_number, GC_Connection *gconn,
-                               const uint8_t *chunk, uint16_t length, uint8_t packet_type,  uint64_t message_id,
-                               void *userdata);
-
+int gcc_handle_packet_fragment(non_null() const GC_Session *c, non_null() GC_Chat *chat, uint32_t peer_number, non_null() GC_Connection *gconn,
+                               nullable() const uint8_t *chunk, uint16_t length, uint8_t packet_type, uint64_t message_id,
+                               nullable() void *userdata);
 /** @brief Return array index for message_id */
 uint16_t gcc_get_array_index(uint64_t message_id);
 
@@ -63,40 +57,33 @@ uint16_t gcc_get_array_index(uint64_t message_id);
  *
  * Return true on success.
  */
-non_null()
-bool gcc_handle_ack(const Logger *log, const Memory *mem, GC_Connection *gconn, uint64_t message_id);
+bool gcc_handle_ack(non_null() const Logger *log, non_null() const Memory *mem, non_null() GC_Connection *gconn, uint64_t message_id);
 
 /** @brief Sets the send_message_id and send_array_start for `gconn` to `id`.
  *
  * This should only be used to initialize a new lossless connection.
  */
-non_null()
-void gcc_set_send_message_id(GC_Connection *gconn, uint64_t id);
+void gcc_set_send_message_id(non_null() GC_Connection *gconn, uint64_t id);
 
 /** @brief Sets the received_message_id for `gconn` to `id`. */
-non_null()
-void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id);
+void gcc_set_recv_message_id(non_null() GC_Connection *gconn, uint64_t id);
 
 /**
  * @brief Returns true if the ip_port is set for gconn.
  */
-non_null()
-bool gcc_ip_port_is_set(const GC_Connection *gconn);
+bool gcc_ip_port_is_set(non_null() const GC_Connection *gconn);
 
 /**
  * @brief Sets the ip_port for gconn to ipp.
  *
  * If ipp is not set this function has no effect.
  */
-non_null(1) nullable(2)
-void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp);
-
+void gcc_set_ip_port(non_null() GC_Connection *gconn, nullable() const IP_Port *ipp);
 /** @brief Copies a random TCP relay node from gconn to tcp_node.
  *
  * Return true on success.
  */
-non_null()
-bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Connection *gconn);
+bool gcc_copy_tcp_relay(non_null() const Random *rng, non_null() Node_format *tcp_node, non_null() const GC_Connection *gconn);
 
 /** @brief Saves tcp_node to gconn's list of connected tcp relays.
  *
@@ -106,19 +93,15 @@ bool gcc_copy_tcp_relay(const Random *rng, Node_format *tcp_node, const GC_Conne
  * Return -1 on failure.
  * Return -2 if node is already in list.
  */
-non_null()
-int gcc_save_tcp_relay(const Random *rng, GC_Connection *gconn, const Node_format *tcp_node);
+int gcc_save_tcp_relay(non_null() const Random *rng, non_null() GC_Connection *gconn, non_null() const Node_format *tcp_node);
 
 /** @brief Checks for and handles messages that are in proper sequence in gconn's recv_array.
  * This should always be called after a new packet is successfully handled.
  */
-non_null(1, 2, 3) nullable(5)
-void gcc_check_recv_array(const GC_Session *c, GC_Chat *chat, GC_Connection *gconn, uint32_t peer_number,
-                          void *userdata);
-
+void gcc_check_recv_array(non_null() const GC_Session *c, non_null() GC_Chat *chat, non_null() GC_Connection *gconn, uint32_t peer_number,
+                          nullable() void *userdata);
 /** @brief Attempts to re-send lossless packets that have not yet received an ack. */
-non_null()
-void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn);
+void gcc_resend_packets(non_null() const GC_Chat *chat, non_null() GC_Connection *gconn);
 
 /**
  * Uses public encryption key `sender_pk` and the shared secret key associated with `gconn`
@@ -128,20 +111,16 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn);
  * Puts the result in the shared session key buffer for `gconn`, which must have room for
  * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
  */
-non_null()
-void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk);
+void gcc_make_session_shared_key(non_null() GC_Connection *gconn, non_null() const uint8_t *sender_pk);
 
 /** @brief Return true if we have a direct connection with `gconn`. */
-non_null()
-bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+bool gcc_conn_is_direct(non_null() const Mono_Time *mono_time, non_null() const GC_Connection *gconn);
 
 /** @brief Return true if we can try a direct connection with `gconn` again. */
-non_null()
-bool gcc_conn_should_try_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+bool gcc_conn_should_try_direct(non_null() const Mono_Time *mono_time, non_null() const GC_Connection *gconn);
 
 /** @brief Return true if a direct UDP connection is possible with `gconn`. */
-non_null()
-bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn);
+bool gcc_direct_conn_is_possible(non_null() const GC_Chat *chat, non_null() const GC_Connection *gconn);
 
 /** @brief Sends a packet to the peer associated with gconn.
  *
@@ -149,8 +128,7 @@ bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn
  *
  * Return true on success.
  */
-non_null()
-bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *packet, uint16_t length);
+bool gcc_send_packet(non_null() const GC_Chat *chat, non_null() GC_Connection *gconn, non_null() const uint8_t *packet, uint16_t length);
 
 /** @brief Sends a lossless packet to `gconn` comprised of `data` of size `length`.
  *
@@ -161,10 +139,8 @@ bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *p
  * Return -1 if the packet couldn't be added to the send array.
  * Return -2 if the packet failed to be wrapped or encrypted.
  */
-non_null(1, 2) nullable(3)
-int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data, uint16_t length,
+int gcc_send_lossless_packet(non_null() const GC_Chat *chat, non_null() GC_Connection *gconn, nullable() const uint8_t *data, uint16_t length,
                              uint8_t packet_type);
-
 /** @brief Splits a lossless packet up into fragments, wraps each fragment in a GP_FRAGMENT
  * header, encrypts them, and send them in succession.
  *
@@ -174,9 +150,7 @@ int gcc_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const ui
  *
  * Return true if all fragments are successfully added to the send array.
  */
-non_null()
-bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
-                                        uint16_t length, uint8_t packet_type);
+bool gcc_send_lossless_packet_fragments(non_null() const GC_Chat *chat, non_null() GC_Connection *gconn, non_null() const uint8_t *data, uint16_t length, uint8_t packet_type);
 
 /** @brief Encrypts `data` of `length` bytes, designated by `message_id`, using the shared key
  * associated with `gconn` and sends lossless packet over the wire.
@@ -187,16 +161,12 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
  * Return -1 if packet wrapping and encryption fails.
  * Return -2 if the packet fails to send.
  */
-non_null(1, 2) nullable(3)
-int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
+int gcc_encrypt_and_send_lossless_packet(non_null() const GC_Chat *chat, non_null() GC_Connection *gconn, nullable() const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type);
-
 /** @brief Called when a peer leaves the group. */
-non_null()
-void gcc_peer_cleanup(const Memory *mem, GC_Connection *gconn);
+void gcc_peer_cleanup(non_null() const Memory *mem, non_null() GC_Connection *gconn);
 
 /** @brief Called on group exit. */
-non_null()
-void gcc_cleanup(const GC_Chat *chat);
+void gcc_cleanup(non_null() const GC_Chat *chat);
 
 #endif /* C_TOXCORE_TOXCORE_GROUP_CONNECTION_H */

@@ -28,9 +28,7 @@ struct Tox_Event_Group_Join_Fail {
     Tox_Group_Join_Fail fail_type;
 };
 
-non_null()
-static void tox_event_group_join_fail_set_group_number(Tox_Event_Group_Join_Fail *group_join_fail,
-        uint32_t group_number)
+static void tox_event_group_join_fail_set_group_number(non_null() Tox_Event_Group_Join_Fail *group_join_fail, uint32_t group_number)
 {
     assert(group_join_fail != nullptr);
     group_join_fail->group_number = group_number;
@@ -41,9 +39,7 @@ uint32_t tox_event_group_join_fail_get_group_number(const Tox_Event_Group_Join_F
     return group_join_fail->group_number;
 }
 
-non_null()
-static void tox_event_group_join_fail_set_fail_type(Tox_Event_Group_Join_Fail *group_join_fail,
-        Tox_Group_Join_Fail fail_type)
+static void tox_event_group_join_fail_set_fail_type(non_null() Tox_Event_Group_Join_Fail *group_join_fail, Tox_Group_Join_Fail fail_type)
 {
     assert(group_join_fail != nullptr);
     group_join_fail->fail_type = fail_type;
@@ -54,15 +50,13 @@ Tox_Group_Join_Fail tox_event_group_join_fail_get_fail_type(const Tox_Event_Grou
     return group_join_fail->fail_type;
 }
 
-non_null()
-static void tox_event_group_join_fail_construct(Tox_Event_Group_Join_Fail *group_join_fail)
+static void tox_event_group_join_fail_construct(non_null() Tox_Event_Group_Join_Fail *group_join_fail)
 {
     *group_join_fail = (Tox_Event_Group_Join_Fail) {
         0
     };
 }
-non_null()
-static void tox_event_group_join_fail_destruct(Tox_Event_Group_Join_Fail *group_join_fail, const Memory *mem)
+static void tox_event_group_join_fail_destruct(non_null() Tox_Event_Group_Join_Fail *group_join_fail, non_null() const Memory *mem)
 {
     return;
 }
@@ -75,9 +69,7 @@ bool tox_event_group_join_fail_pack(
            && tox_group_join_fail_pack(event->fail_type, bp);
 }
 
-non_null()
-static bool tox_event_group_join_fail_unpack_into(
-    Tox_Event_Group_Join_Fail *event, Bin_Unpack *bu)
+static bool tox_event_group_join_fail_unpack_into(non_null() Tox_Event_Group_Join_Fail *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
@@ -120,8 +112,7 @@ void tox_event_group_join_fail_free(Tox_Event_Group_Join_Fail *group_join_fail, 
     mem_delete(mem, group_join_fail);
 }
 
-non_null()
-static Tox_Event_Group_Join_Fail *tox_events_add_group_join_fail(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Join_Fail *tox_events_add_group_join_fail(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Join_Fail *const group_join_fail = tox_event_group_join_fail_new(mem);
 
@@ -154,8 +145,7 @@ bool tox_event_group_join_fail_unpack(
     return tox_event_group_join_fail_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(void *user_data)
+static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);

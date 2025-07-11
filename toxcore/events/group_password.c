@@ -29,9 +29,7 @@ struct Tox_Event_Group_Password {
     uint32_t password_length;
 };
 
-non_null()
-static void tox_event_group_password_set_group_number(Tox_Event_Group_Password *group_password,
-        uint32_t group_number)
+static void tox_event_group_password_set_group_number(non_null() Tox_Event_Group_Password *group_password, uint32_t group_number)
 {
     assert(group_password != nullptr);
     group_password->group_number = group_number;
@@ -42,12 +40,10 @@ uint32_t tox_event_group_password_get_group_number(const Tox_Event_Group_Passwor
     return group_password->group_number;
 }
 
-non_null(1) nullable(2)
-static bool tox_event_group_password_set_password(Tox_Event_Group_Password *group_password,
-        const uint8_t *password, uint32_t password_length)
+static bool tox_event_group_password_set_password(non_null() Tox_Event_Group_Password *group_password,
+        nullable() const uint8_t *password, uint32_t password_length)
 {
     assert(group_password != nullptr);
-
     if (group_password->password != nullptr) {
         free(group_password->password);
         group_password->password = nullptr;
@@ -81,15 +77,13 @@ const uint8_t *tox_event_group_password_get_password(const Tox_Event_Group_Passw
     return group_password->password;
 }
 
-non_null()
-static void tox_event_group_password_construct(Tox_Event_Group_Password *group_password)
+static void tox_event_group_password_construct(non_null() Tox_Event_Group_Password *group_password)
 {
     *group_password = (Tox_Event_Group_Password) {
         0
     };
 }
-non_null()
-static void tox_event_group_password_destruct(Tox_Event_Group_Password *group_password, const Memory *mem)
+static void tox_event_group_password_destruct(non_null() Tox_Event_Group_Password *group_password, non_null() const Memory *mem)
 {
     free(group_password->password);
 }
@@ -102,9 +96,7 @@ bool tox_event_group_password_pack(
            && bin_pack_bin(bp, event->password, event->password_length);
 }
 
-non_null()
-static bool tox_event_group_password_unpack_into(
-    Tox_Event_Group_Password *event, Bin_Unpack *bu)
+static bool tox_event_group_password_unpack_into(non_null() Tox_Event_Group_Password *event, non_null() Bin_Unpack *bu)
 {
     assert(event != nullptr);
     if (!bin_unpack_array_fixed(bu, 2, nullptr)) {
@@ -147,8 +139,7 @@ void tox_event_group_password_free(Tox_Event_Group_Password *group_password, con
     mem_delete(mem, group_password);
 }
 
-non_null()
-static Tox_Event_Group_Password *tox_events_add_group_password(Tox_Events *events, const Memory *mem)
+static Tox_Event_Group_Password *tox_events_add_group_password(non_null() Tox_Events *events, non_null() const Memory *mem)
 {
     Tox_Event_Group_Password *const group_password = tox_event_group_password_new(mem);
 
@@ -181,8 +172,7 @@ bool tox_event_group_password_unpack(
     return tox_event_group_password_unpack_into(*event, bu);
 }
 
-non_null()
-static Tox_Event_Group_Password *tox_event_group_password_alloc(void *user_data)
+static Tox_Event_Group_Password *tox_event_group_password_alloc(non_null() void *user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     assert(state != nullptr);
