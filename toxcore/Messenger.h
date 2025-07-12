@@ -54,13 +54,13 @@ typedef struct Messenger Messenger;
 #endif /* MESSENGER_DEFINED */
 
 // Returns the size of the data
-typedef uint32_t m_state_size_cb(const Messenger *m);
+typedef uint32_t m_state_size_cb(non_null() const Messenger *m);
 
 // Returns the new pointer to data
-typedef uint8_t *m_state_save_cb(const Messenger *m, uint8_t *data);
+typedef uint8_t *m_state_save_cb(non_null() const Messenger *m, non_null() uint8_t *data);
 
 // Returns if there were any erros during loading
-typedef State_Load_Status m_state_load_cb(Messenger *m, const uint8_t *data, uint32_t length);
+typedef State_Load_Status m_state_load_cb(non_null() Messenger *m, non_null() const uint8_t *data, uint32_t length);
 
 typedef struct Messenger_State_Plugin {
     State_Type type;
@@ -177,36 +177,36 @@ typedef enum Filekind {
     FILEKIND_AVATAR,
 } Filekind;
 
-typedef void m_self_connection_status_cb(Messenger *m, Onion_Connection_Status connection_status, void *user_data);
-typedef void m_friend_status_cb(Messenger *m, uint32_t friend_number, unsigned int status, void *user_data);
-typedef void m_friend_connection_status_cb(Messenger *m, uint32_t friend_number, unsigned int connection_status,
-        void *user_data);
-typedef void m_friend_message_cb(Messenger *m, uint32_t friend_number, unsigned int message_type,
-                                 const uint8_t *message, size_t length, void *user_data);
-typedef void m_file_recv_control_cb(Messenger *m, uint32_t friend_number, uint32_t file_number, unsigned int control,
-                                    void *user_data);
-typedef void m_friend_request_cb(Messenger *m, const uint8_t *public_key, const uint8_t *message, size_t length,
-                                 void *user_data);
-typedef void m_friend_name_cb(Messenger *m, uint32_t friend_number, const uint8_t *name, size_t length,
-                              void *user_data);
-typedef void m_friend_status_message_cb(Messenger *m, uint32_t friend_number, const uint8_t *message, size_t length,
-                                        void *user_data);
-typedef void m_friend_typing_cb(Messenger *m, uint32_t friend_number, bool is_typing, void *user_data);
-typedef void m_friend_read_receipt_cb(Messenger *m, uint32_t friend_number, uint32_t message_id, void *user_data);
-typedef void m_file_recv_cb(Messenger *m, uint32_t friend_number, uint32_t file_number, uint32_t kind,
-                            uint64_t file_size, const uint8_t *filename, size_t filename_length, void *user_data);
-typedef void m_file_chunk_request_cb(Messenger *m, uint32_t friend_number, uint32_t file_number, uint64_t position,
-                                     size_t length, void *user_data);
-typedef void m_file_recv_chunk_cb(Messenger *m, uint32_t friend_number, uint32_t file_number, uint64_t position,
-                                  const uint8_t *data, size_t length, void *user_data);
-typedef void m_friend_lossy_packet_cb(Messenger *m, uint32_t friend_number, uint8_t packet_id, const uint8_t *data,
-                                      size_t length, void *user_data);
-typedef void m_friend_lossless_packet_cb(Messenger *m, uint32_t friend_number, uint8_t packet_id, const uint8_t *data,
-        size_t length, void *user_data);
-typedef void m_conference_invite_cb(Messenger *m, uint32_t friend_number, const uint8_t *cookie, uint16_t length,
-                                    void *user_data);
-typedef void m_group_invite_cb(const Messenger *m, uint32_t friend_number, const uint8_t *invite_data, size_t length,
-                               const uint8_t *group_name, size_t group_name_length, void *user_data);
+typedef void m_self_connection_status_cb(non_null() Messenger *m, Onion_Connection_Status connection_status, nullable() void *user_data);
+typedef void m_friend_status_cb(non_null() Messenger *m, uint32_t friend_number, unsigned int status, nullable() void *user_data);
+typedef void m_friend_connection_status_cb(non_null() Messenger *m, uint32_t friend_number, unsigned int connection_status,
+        nullable() void *user_data);
+typedef void m_friend_message_cb(non_null() Messenger *m, uint32_t friend_number, unsigned int message_type,
+                                 non_null() const uint8_t *message, size_t length, nullable() void *user_data);
+typedef void m_file_recv_control_cb(non_null() Messenger *m, uint32_t friend_number, uint32_t file_number, unsigned int control,
+                                    nullable() void *user_data);
+typedef void m_friend_request_cb(non_null() Messenger *m, non_null() const uint8_t *public_key, non_null() const uint8_t *message, size_t length,
+                                 nullable() void *user_data);
+typedef void m_friend_name_cb(non_null() Messenger *m, uint32_t friend_number, non_null() const uint8_t *name, size_t length,
+                              nullable() void *user_data);
+typedef void m_friend_status_message_cb(non_null() Messenger *m, uint32_t friend_number, non_null() const uint8_t *message, size_t length,
+                                        nullable() void *user_data);
+typedef void m_friend_typing_cb(non_null() Messenger *m, uint32_t friend_number, bool is_typing, nullable() void *user_data);
+typedef void m_friend_read_receipt_cb(non_null() Messenger *m, uint32_t friend_number, uint32_t message_id, nullable() void *user_data);
+typedef void m_file_recv_cb(non_null() Messenger *m, uint32_t friend_number, uint32_t file_number, uint32_t kind,
+                            uint64_t file_size, non_null() const uint8_t *filename, size_t filename_length, nullable() void *user_data);
+typedef void m_file_chunk_request_cb(non_null() Messenger *m, uint32_t friend_number, uint32_t file_number, uint64_t position,
+                                     size_t length, nullable() void *user_data);
+typedef void m_file_recv_chunk_cb(non_null() Messenger *m, uint32_t friend_number, uint32_t file_number, uint64_t position,
+                                  nullable() const uint8_t *data, size_t length, nullable() void *user_data);
+typedef void m_friend_lossy_packet_cb(non_null() Messenger *m, uint32_t friend_number, uint8_t packet_id, non_null() const uint8_t *data,
+                                      size_t length, nullable() void *user_data);
+typedef void m_friend_lossless_packet_cb(non_null() Messenger *m, uint32_t friend_number, uint8_t packet_id, non_null() const uint8_t *data,
+        size_t length, nullable() void *user_data);
+typedef void m_conference_invite_cb(non_null() Messenger *m, uint32_t friend_number, non_null() const uint8_t *cookie, uint16_t length,
+                                    nullable() void *user_data);
+typedef void m_group_invite_cb(non_null() const Messenger *m, uint32_t friend_number, non_null() const uint8_t *invite_data, size_t length,
+                               nullable() const uint8_t *group_name, size_t group_name_length, nullable() void *user_data);
 
 typedef struct Friend {
     uint8_t real_pk[CRYPTO_PUBLIC_KEY_SIZE];

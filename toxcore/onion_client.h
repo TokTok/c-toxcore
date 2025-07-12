@@ -129,7 +129,7 @@ int onion_set_friend_online(non_null() Onion_Client *onion_c, int friend_num, bo
  */
 int onion_getfriendip(non_null() const Onion_Client *onion_c, int friend_num, non_null() IP_Port *ip_port);
 
-typedef int recv_tcp_relay_cb(void *object, uint32_t number, const IP_Port *ip_port, const uint8_t *public_key);
+typedef int recv_tcp_relay_cb(non_null() void *object, uint32_t number, non_null() const IP_Port *ip_port, non_null() const uint8_t *public_key);
 
 /** @brief Set the function for this friend that will be callbacked with object and number
  * when that friend gives us one of the TCP relays they are connected to.
@@ -141,7 +141,7 @@ typedef int recv_tcp_relay_cb(void *object, uint32_t number, const IP_Port *ip_p
  */
 int recv_tcp_relay_handler(non_null() Onion_Client *onion_c, int friend_num, non_null() recv_tcp_relay_cb *callback, non_null() void *object, uint32_t number);
 
-typedef void onion_dht_pk_cb(void *object, int32_t number, const uint8_t *dht_public_key, void *userdata);
+typedef void onion_dht_pk_cb(non_null() void *object, int32_t number, non_null() const uint8_t *dht_public_key, nullable() void *userdata);
 
 /** @brief Set the function for this friend that will be callbacked with object and number
  * when that friend gives us their DHT temporary public key.
@@ -183,13 +183,13 @@ unsigned int onion_getfriend_dht_pubkey(non_null() const Onion_Client *onion_c, 
  */
 int send_onion_data(non_null() Onion_Client *onion_c, int friend_num, non_null() const uint8_t *data, uint16_t length);
 
-typedef int oniondata_handler_cb(void *object, const uint8_t *source_pubkey, const uint8_t *data,
-                                 uint16_t length, void *userdata);
+typedef int oniondata_handler_cb(nullable() void *object, non_null() const uint8_t *source_pubkey, non_null() const uint8_t *data,
+                                 uint16_t length, nullable() void *userdata);
 
 /** Function to call when onion data packet with contents beginning with byte is received. */
 void oniondata_registerhandler(non_null() Onion_Client *onion_c, uint8_t byte, nullable() oniondata_handler_cb *cb, nullable() void *object);
-typedef bool onion_group_announce_cb(Onion_Client *onion_c, uint32_t sendback_num, const uint8_t *data,
-                                     size_t data_length, void *user_data);
+typedef bool onion_group_announce_cb(non_null() Onion_Client *onion_c, uint32_t sendback_num, non_null() const uint8_t *data,
+                                     size_t data_length, nullable() void *user_data);
 
 /** Function to call when the onion gets a group announce response. */
 void onion_group_announce_register(non_null() Onion_Client *onion_c, nullable() onion_group_announce_cb *func, nullable() void *user_data);

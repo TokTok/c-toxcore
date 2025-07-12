@@ -63,7 +63,7 @@ void do_tcp_connection(non_null() const Logger *logger, non_null() const Mono_Ti
                        non_null() TCP_Client_Connection *tcp_connection, nullable() void *userdata);
 /** Kill the TCP connection */
 void kill_tcp_connection(nullable() TCP_Client_Connection *tcp_connection);
-typedef int tcp_onion_response_cb(void *object, const uint8_t *data, uint16_t length, void *userdata);
+typedef int tcp_onion_response_cb(non_null() void *object, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
 
 /**
  * @retval 1 on success.
@@ -76,8 +76,8 @@ void onion_response_handler(non_null() TCP_Client_Connection *con, non_null() tc
 int send_forward_request_tcp(non_null() const Logger *logger, non_null() TCP_Client_Connection *con, non_null() const IP_Port *dest, non_null() const uint8_t *data, uint16_t length);
 void forwarding_handler(non_null() TCP_Client_Connection *con, non_null() forwarded_response_cb *forwarded_response_callback, non_null() void *object);
 
-typedef int tcp_routing_response_cb(void *object, uint8_t connection_id, const uint8_t *public_key);
-typedef int tcp_routing_status_cb(void *object, uint32_t number, uint8_t connection_id, uint8_t status);
+typedef int tcp_routing_response_cb(non_null() void *object, uint8_t connection_id, non_null() const uint8_t *public_key);
+typedef int tcp_routing_status_cb(non_null() void *object, uint32_t number, uint8_t connection_id, uint8_t status);
 
 /**
  * @retval 1 on success.
@@ -104,8 +104,8 @@ int send_disconnect_request(non_null() const Logger *logger, non_null() TCP_Clie
  */
 int set_tcp_connection_number(non_null() TCP_Client_Connection *con, uint8_t con_id, uint32_t number);
 
-typedef int tcp_routing_data_cb(void *object, uint32_t number, uint8_t connection_id, const uint8_t *data,
-                                uint16_t length, void *userdata);
+typedef int tcp_routing_data_cb(non_null() void *object, uint32_t number, uint8_t connection_id, non_null() const uint8_t *data,
+                                uint16_t length, nullable() void *userdata);
 
 /**
  * @retval 1 on success.
@@ -115,8 +115,8 @@ typedef int tcp_routing_data_cb(void *object, uint32_t number, uint8_t connectio
 int send_data(non_null() const Logger *logger, non_null() TCP_Client_Connection *con, uint8_t con_id, non_null() const uint8_t *data, uint16_t length);
 void routing_data_handler(non_null() TCP_Client_Connection *con, non_null() tcp_routing_data_cb *data_callback, non_null() void *object);
 
-typedef int tcp_oob_data_cb(void *object, const uint8_t *public_key, const uint8_t *data, uint16_t length,
-                            void *userdata);
+typedef int tcp_oob_data_cb(non_null() void *object, non_null() const uint8_t *public_key, non_null() const uint8_t *data, uint16_t length,
+                            nullable() void *userdata);
 
 /**
  * @retval 1 on success.

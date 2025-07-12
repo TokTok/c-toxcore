@@ -212,8 +212,8 @@ int unpack_nodes(non_null() Node_format *nodes, uint16_t max_num_nodes, nullable
                  uint16_t length, bool tcp_enabled);
 /*----------------------------------------------------------------------------------*/
 
-typedef int cryptopacket_handler_cb(void *object, const IP_Port *source, const uint8_t *source_pubkey,
-                                    const uint8_t *packet, uint16_t length, void *userdata);
+typedef int cryptopacket_handler_cb(non_null() void *object, non_null() const IP_Port *source, non_null() const uint8_t *source_pubkey,
+                                    non_null() const uint8_t *packet, uint16_t length, nullable() void *userdata);
 
 typedef struct DHT DHT;
 
@@ -253,9 +253,9 @@ const uint8_t *dht_get_shared_key_sent(non_null() DHT *dht, non_null() const uin
  */
 bool dht_send_nodes_request(non_null() DHT *dht, non_null() const IP_Port *ip_port, non_null() const uint8_t *public_key, non_null() const uint8_t *client_id);
 
-typedef void dht_ip_cb(void *object, int32_t number, const IP_Port *ip_port);
+typedef void dht_ip_cb(nullable() void *object, int32_t number, non_null() const IP_Port *ip_port);
 
-typedef void dht_nodes_response_cb(const DHT *dht, const Node_format *node, void *user_data);
+typedef void dht_nodes_response_cb(non_null() const DHT *dht, non_null() const Node_format *node, nullable() void *user_data);
 
 /** Sets the callback to be triggered on a nodes response. */
 void dht_callback_nodes_response(non_null() DHT *dht, nullable() dht_nodes_response_cb *function);

@@ -44,7 +44,7 @@ typedef struct Bin_Pack Bin_Pack;
  * This function would typically cast the `void *` to the actual object pointer type and then call
  * more appropriately typed packing functions.
  */
-typedef bool bin_pack_cb(const void *obj, const Logger *logger, Bin_Pack *bp);
+typedef bool bin_pack_cb(nullable() const void *obj, nullable() const Logger *logger, non_null() Bin_Pack *bp);
 
 /** @brief Function used to pack an array of objects.
  *
@@ -54,7 +54,7 @@ typedef bool bin_pack_cb(const void *obj, const Logger *logger, Bin_Pack *bp);
  * @param arr is the object array as void pointer.
  * @param index is the index in the object array that is currently being packed.
  */
-typedef bool bin_pack_array_cb(const void *arr, uint32_t index, const Logger *logger, Bin_Pack *bp);
+typedef bool bin_pack_array_cb(nullable() const void *arr, uint32_t index, nullable() const Logger *logger, non_null() Bin_Pack *bp);
 
 /** @brief Determine the serialised size of an object.
  *

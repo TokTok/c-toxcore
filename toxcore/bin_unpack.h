@@ -29,7 +29,7 @@ typedef struct Bin_Unpack Bin_Unpack;
  * This function would typically cast the `void *` to the actual object pointer type and then call
  * more appropriately typed unpacking functions.
  */
-typedef bool bin_unpack_cb(void *obj, Bin_Unpack *bu);
+typedef bool bin_unpack_cb(non_null() void *obj, non_null() Bin_Unpack *bu);
 
 /** @brief Unpack an object from a buffer of a given size.
  *

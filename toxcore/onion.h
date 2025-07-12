@@ -18,7 +18,7 @@
 #include "network.h"
 #include "shared_key_cache.h"
 
-typedef int onion_recv_1_cb(void *object, const IP_Port *dest, const uint8_t *data, uint16_t length);
+typedef int onion_recv_1_cb(nullable() void *object, non_null() const IP_Port *dest, non_null() const uint8_t *data, uint16_t length);
 
 typedef struct Onion {
     const Logger *log;

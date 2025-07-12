@@ -118,9 +118,9 @@ int send_announce_request(non_null() const Logger *log, non_null() const Memory 
 int send_data_request(non_null() const Logger *log, non_null() const Memory *mem, non_null() const Networking_Core *net, non_null() const Random *rng, non_null() const Onion_Path *path,
                       non_null() const IP_Port *dest, non_null() const uint8_t *public_key, non_null() const uint8_t *encrypt_public_key, non_null() const uint8_t *nonce, non_null() const uint8_t *data, uint16_t length);
 
-typedef int pack_extra_data_cb(void *object, const Logger *logger, const Memory *mem, const Mono_Time *mono_time,
-                               uint8_t num_nodes, uint8_t *plain, uint16_t plain_size,
-                               uint8_t *response, uint16_t response_size, uint16_t offset);
+typedef int pack_extra_data_cb(non_null() void *object, non_null() const Logger *logger, non_null() const Memory *mem, non_null() const Mono_Time *mono_time,
+                               uint8_t num_nodes, non_null() uint8_t *plain, uint16_t plain_size,
+                               non_null() uint8_t *response, uint16_t response_size, uint16_t offset);
 
 void onion_announce_extra_data_callback(non_null() Onion_Announce *onion_a, uint16_t extra_data_max_size, non_null() pack_extra_data_cb *extra_data_callback, non_null() void *extra_data_object);
 

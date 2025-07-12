@@ -24,44 +24,44 @@ typedef enum Groupchat_Type {
     GROUPCHAT_TYPE_AV,
 } Groupchat_Type;
 
-typedef void peer_on_join_cb(void *object, uint32_t conference_number, uint32_t peer_number);
-typedef void peer_on_leave_cb(void *object, uint32_t conference_number, void *peer_object);
-typedef void group_on_delete_cb(void *object, uint32_t conference_number);
+typedef void peer_on_join_cb(nullable() void *object, uint32_t conference_number, uint32_t peer_number);
+typedef void peer_on_leave_cb(nullable() void *object, uint32_t conference_number, nullable() void *peer_object);
+typedef void group_on_delete_cb(nullable() void *object, uint32_t conference_number);
 
 /** @brief Callback for group invites.
  *
  * data of length is what needs to be passed to `join_groupchat()`.
  */
-typedef void g_conference_invite_cb(Messenger *m, uint32_t friend_number, int type, const uint8_t *cookie,
-                                    size_t length, void *user_data);
+typedef void g_conference_invite_cb(non_null() Messenger *m, uint32_t friend_number, int type, non_null() const uint8_t *cookie,
+                                    size_t length, nullable() void *user_data);
 
 /** Callback for group connection. */
-typedef void g_conference_connected_cb(Messenger *m, uint32_t conference_number, void *user_data);
+typedef void g_conference_connected_cb(non_null() Messenger *m, uint32_t conference_number, nullable() void *user_data);
 
 /** Callback for group messages. */
-typedef void g_conference_message_cb(Messenger *m, uint32_t conference_number, uint32_t peer_number, int type,
-                                     const uint8_t *message, size_t length, void *user_data);
+typedef void g_conference_message_cb(non_null() Messenger *m, uint32_t conference_number, uint32_t peer_number, int type,
+                                     non_null() const uint8_t *message, size_t length, nullable() void *user_data);
 
 /** Callback for peer nickname changes. */
-typedef void peer_name_cb(Messenger *m, uint32_t conference_number, uint32_t peer_number, const uint8_t *name,
-                          size_t length, void *user_data);
+typedef void peer_name_cb(non_null() Messenger *m, uint32_t conference_number, uint32_t peer_number, non_null() const uint8_t *name,
+                          size_t length, nullable() void *user_data);
 
 /** Set callback function for peer list changes. */
-typedef void peer_list_changed_cb(Messenger *m, uint32_t conference_number, void *user_data);
+typedef void peer_list_changed_cb(non_null() Messenger *m, uint32_t conference_number, nullable() void *user_data);
 
 /** @brief Callback for title changes.
  *
  * If peer_number == -1, then author is unknown (e.g. initial joining the group).
  */
-typedef void title_cb(Messenger *m, uint32_t conference_number, uint32_t peer_number, const uint8_t *title,
-                      size_t length, void *user_data);
+typedef void title_cb(non_null() Messenger *m, uint32_t conference_number, uint32_t peer_number, non_null() const uint8_t *title,
+                      size_t length, nullable() void *user_data);
 
 /** @brief Callback for lossy packets.
  *
  * NOTE: Handler must return 0 if packet is to be relayed, -1 if the packet should not be relayed.
  */
-typedef int lossy_packet_cb(void *object, uint32_t conference_number, uint32_t peer_number, void *peer_object,
-                            const uint8_t *packet, uint16_t length);
+typedef int lossy_packet_cb(nullable() void *object, uint32_t conference_number, uint32_t peer_number, nullable() void *peer_object,
+                            non_null() const uint8_t *packet, uint16_t length);
 
 typedef struct Group_Chats Group_Chats;
 

@@ -1968,7 +1968,7 @@ static int friend_iplist(non_null() const DHT *dht, non_null() IP_Port *ip_portl
  * @param n A pointer to the number that will be returned from `foreach_ip_port`.
  * @param userdata The `userdata` pointer passed to `foreach_ip_port`.
  */
-typedef bool foreach_ip_port_cb(const DHT *dht, const IP_Port *ip_port, uint32_t *n, void *userdata);
+typedef bool foreach_ip_port_cb(non_null() const DHT *dht, non_null() const IP_Port *ip_port, non_null() uint32_t *n, non_null() void *userdata);
 
 /**
  * Runs a callback on every active connection for a given DHT friend.

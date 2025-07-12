@@ -83,11 +83,11 @@ int get_friendcon_public_keys(nullable() uint8_t *real_pk, nullable() uint8_t *d
 /** Set temp dht key for connection. */
 void set_dht_temp_pk(non_null() Friend_Connections *fr_c, int friendcon_id, non_null() const uint8_t *dht_temp_pk, non_null() void *userdata);
 
-typedef int global_status_cb(void *object, int friendcon_id, bool status, void *userdata);
+typedef int global_status_cb(nullable() void *object, int friendcon_id, bool status, nullable() void *userdata);
 
-typedef int fc_status_cb(void *object, int friendcon_id, bool status, void *userdata);
-typedef int fc_data_cb(void *object, int friendcon_id, const uint8_t *data, uint16_t length, void *userdata);
-typedef int fc_lossy_data_cb(void *object, int friendcon_id, const uint8_t *data, uint16_t length, void *userdata);
+typedef int fc_status_cb(nullable() void *object, int friendcon_id, bool status, nullable() void *userdata);
+typedef int fc_data_cb(nullable() void *object, int friendcon_id, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
+typedef int fc_lossy_data_cb(nullable() void *object, int friendcon_id, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
 
 /** Set global status callback for friend connections. */
 void set_global_status_callback(non_null() Friend_Connections *fr_c, nullable() global_status_cb *global_status_callback, nullable() void *object);
@@ -134,7 +134,7 @@ int kill_friend_connection(non_null() Friend_Connections *fr_c, int friendcon_id
 int send_friend_request_packet(non_null() Friend_Connections *fr_c, int friendcon_id, uint32_t nospam_num, non_null() const uint8_t *data, uint16_t length);
 
 typedef int fr_request_cb(
-    void *object, const uint8_t *source_pubkey, const uint8_t *data, uint16_t length, void *userdata);
+    non_null() void *object, non_null() const uint8_t *source_pubkey, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
 
 /** @brief Set friend request callback.
  *

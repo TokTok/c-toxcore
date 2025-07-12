@@ -33,8 +33,8 @@ typedef enum Logger_Level {
 
 typedef struct Logger Logger;
 
-typedef void logger_cb(void *context, Logger_Level level, const char *file, uint32_t line,
-                       const char *func, const char *message, void *userdata);
+typedef void logger_cb(nullable() void *context, Logger_Level level, non_null() const char *file, uint32_t line,
+                       non_null() const char *func, non_null() const char *message, nullable() void *userdata);
 
 /**
  * Creates a new logger with logging disabled (callback is NULL) by default.

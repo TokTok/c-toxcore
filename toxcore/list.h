@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-typedef int bs_list_cmp_cb(const void *a, const void *b, size_t size);
+typedef int bs_list_cmp_cb(non_null() const void *a, non_null() const void *b, size_t size);
 
 typedef struct BS_List {
     const Memory *mem;

@@ -17,10 +17,10 @@
 extern "C" {
 #endif
 
-typedef void *mem_malloc_cb(void *obj, uint32_t size);
-typedef void *mem_calloc_cb(void *obj, uint32_t nmemb, uint32_t size);
-typedef void *mem_realloc_cb(void *obj, void *ptr, uint32_t size);
-typedef void mem_free_cb(void *obj, void *ptr);
+typedef void *mem_malloc_cb(nullable() void *obj, uint32_t size);
+typedef void *mem_calloc_cb(nullable() void *obj, uint32_t nmemb, uint32_t size);
+typedef void *mem_realloc_cb(nullable() void *obj, nullable() void *ptr, uint32_t size);
+typedef void mem_free_cb(nullable() void *obj, nullable() void *ptr);
 
 /** @brief Functions wrapping standard C memory allocation functions. */
 typedef struct Memory_Funcs {

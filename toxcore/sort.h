@@ -15,25 +15,25 @@ extern "C" {
 #endif
 
 /** @brief Compare elements with a less-than ordering: `a < b`. */
-typedef bool sort_less_cb(const void *object, const void *a, const void *b);
+typedef bool sort_less_cb(non_null() const void *object, non_null() const void *a, non_null() const void *b);
 /** @brief Get element from array at index. */
-typedef const void *sort_get_cb(const void *arr, uint32_t index);
+typedef const void *sort_get_cb(non_null() const void *arr, uint32_t index);
 /** @brief Set element in array at index to new value (perform copy). */
-typedef void sort_set_cb(void *arr, uint32_t index, const void *val);
+typedef void sort_set_cb(non_null() void *arr, uint32_t index, non_null() const void *val);
 /** @brief Get a sub-array at an index of a given size (mutable pointer).
  *
  * Used to index in the temporary array allocated by `sort_alloc_cb` and get
  * a sub-array for working memory.
  */
-typedef void *sort_subarr_cb(void *arr, uint32_t index, uint32_t size);
+typedef void *sort_subarr_cb(non_null() void *arr, uint32_t index, uint32_t size);
 /** @brief Allocate a new array of the element type.
  *
  * @param size The array size in elements of type T (not byte size). This value
  *   is always exactly the input array size as passed to `merge_sort`.
  */
-typedef void *sort_alloc_cb(const void *object, uint32_t size);
+typedef void *sort_alloc_cb(non_null() const void *object, uint32_t size);
 /** @brief Free the element type array. */
-typedef void sort_delete_cb(const void *object, void *arr, uint32_t size);
+typedef void sort_delete_cb(non_null() const void *object, non_null() void *arr, uint32_t size);
 
 /** @brief Virtual function table for getting/setting elements in an array and
  * comparing them.

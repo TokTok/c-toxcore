@@ -84,14 +84,14 @@ extern "C" {
  * secure pseudo-random number generator (CSPRNG). The security of Tox heavily
  * depends on the security of this RNG.
  */
-typedef void crypto_random_bytes_cb(void *obj, uint8_t *bytes, size_t length);
+typedef void crypto_random_bytes_cb(nullable() void *obj, non_null() uint8_t *bytes, size_t length);
 
 /** @brief Generate a random integer between 0 and @p upper_bound.
  *
  * Should produce a uniform random distribution, but Tox security does not
  * depend on this being correct. In principle, it could even be a non-CSPRNG.
  */
-typedef uint32_t crypto_random_uniform_cb(void *obj, uint32_t upper_bound);
+typedef uint32_t crypto_random_uniform_cb(nullable() void *obj, uint32_t upper_bound);
 
 /** @brief Virtual function table for Random. */
 typedef struct Random_Funcs {

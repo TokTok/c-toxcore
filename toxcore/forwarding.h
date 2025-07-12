@@ -81,19 +81,19 @@ bool forward_reply(non_null() const Networking_Core *net, non_null() const IP_Po
  * To reply to the packet, callback should use `forward_reply()` to send a reply
  * forwarded via forwarder, passing the provided sendback.
  */
-typedef void forwarded_request_cb(void *object, const IP_Port *forwarder, const uint8_t *sendback,
-                                  uint16_t sendback_length, const uint8_t *data,
-                                  uint16_t length, void *userdata);
+typedef void forwarded_request_cb(nullable() void *object, non_null() const IP_Port *forwarder, non_null() const uint8_t *sendback,
+                                  uint16_t sendback_length, non_null() const uint8_t *data,
+                                  uint16_t length, nullable() void *userdata);
 void set_callback_forwarded_request(non_null() Forwarding *forwarding, nullable() forwarded_request_cb *function, nullable() void *object);
 /** @brief Set callback to handle a forwarded response. */
-typedef void forwarded_response_cb(void *object, const uint8_t *data, uint16_t length, void *userdata);
+typedef void forwarded_response_cb(nullable() void *object, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
 void set_callback_forwarded_response(non_null() Forwarding *forwarding, nullable() forwarded_response_cb *function, nullable() void *object);
 /** @brief Send forwarding packet to dest with given sendback data and data. */
 bool send_forwarding(non_null() const Forwarding *forwarding, non_null() const IP_Port *dest,
                      nullable() const uint8_t *sendback_data, uint16_t sendback_data_len,
                      non_null() const uint8_t *data, uint16_t length);
-typedef bool forward_reply_cb(void *object, const uint8_t *sendback_data, uint16_t sendback_data_len,
-                              const uint8_t *data, uint16_t length);
+typedef bool forward_reply_cb(nullable() void *object, nullable() const uint8_t *sendback_data, uint16_t sendback_data_len,
+                              non_null() const uint8_t *data, uint16_t length);
 
 /**
  * @brief Set callback to handle a forward reply with an otherwise unhandled

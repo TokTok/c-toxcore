@@ -46,7 +46,7 @@ extern "C" {
  */
 typedef struct Mono_Time Mono_Time;
 
-typedef uint64_t mono_time_current_time_cb(void *user_data);
+typedef uint64_t mono_time_current_time_cb(nullable() void *user_data);
 
 Mono_Time *mono_time_new(non_null() const Memory *mem, nullable() mono_time_current_time_cb *current_time_callback, nullable() void *user_data);
 void mono_time_free(non_null() const Memory *mem, nullable() Mono_Time *mono_time);

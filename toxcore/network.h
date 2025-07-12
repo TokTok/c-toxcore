@@ -36,22 +36,22 @@ typedef struct Socket {
 int net_socket_to_native(Socket sock);
 Socket net_socket_from_native(int sock);
 
-typedef int net_close_cb(void *obj, Socket sock);
-typedef Socket net_accept_cb(void *obj, Socket sock);
-typedef int net_bind_cb(void *obj, Socket sock, const Network_Addr *addr);
-typedef int net_listen_cb(void *obj, Socket sock, int backlog);
-typedef int net_connect_cb(void *obj, Socket sock, const Network_Addr *addr);
-typedef int net_recvbuf_cb(void *obj, Socket sock);
-typedef int net_recv_cb(void *obj, Socket sock, uint8_t *buf, size_t len);
-typedef int net_recvfrom_cb(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr);
-typedef int net_send_cb(void *obj, Socket sock, const uint8_t *buf, size_t len);
-typedef int net_sendto_cb(void *obj, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr);
-typedef Socket net_socket_cb(void *obj, int domain, int type, int proto);
-typedef int net_socket_nonblock_cb(void *obj, Socket sock, bool nonblock);
-typedef int net_getsockopt_cb(void *obj, Socket sock, int level, int optname, void *optval, size_t *optlen);
-typedef int net_setsockopt_cb(void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen);
-typedef int net_getaddrinfo_cb(void *obj, const Memory *mem, const char *address, int family, int protocol, Network_Addr **addrs);
-typedef int net_freeaddrinfo_cb(void *obj, const Memory *mem, Network_Addr *addrs);
+typedef int net_close_cb(nullable() void *obj, Socket sock);
+typedef Socket net_accept_cb(nullable() void *obj, Socket sock);
+typedef int net_bind_cb(nullable() void *obj, Socket sock, non_null() const Network_Addr *addr);
+typedef int net_listen_cb(nullable() void *obj, Socket sock, int backlog);
+typedef int net_connect_cb(nullable() void *obj, Socket sock, non_null() const Network_Addr *addr);
+typedef int net_recvbuf_cb(nullable() void *obj, Socket sock);
+typedef int net_recv_cb(nullable() void *obj, Socket sock, non_null() uint8_t *buf, size_t len);
+typedef int net_recvfrom_cb(nullable() void *obj, Socket sock, non_null() uint8_t *buf, size_t len, non_null() Network_Addr *addr);
+typedef int net_send_cb(nullable() void *obj, Socket sock, non_null() const uint8_t *buf, size_t len);
+typedef int net_sendto_cb(nullable() void *obj, Socket sock, non_null() const uint8_t *buf, size_t len, non_null() const Network_Addr *addr);
+typedef Socket net_socket_cb(nullable() void *obj, int domain, int type, int proto);
+typedef int net_socket_nonblock_cb(nullable() void *obj, Socket sock, bool nonblock);
+typedef int net_getsockopt_cb(nullable() void *obj, Socket sock, int level, int optname, non_null() void *optval, non_null() size_t *optlen);
+typedef int net_setsockopt_cb(nullable() void *obj, Socket sock, int level, int optname, non_null() const void *optval, size_t optlen);
+typedef int net_getaddrinfo_cb(nullable() void *obj, non_null() const Memory *mem, non_null() const char *address, int family, int protocol, non_null() Network_Addr **addrs);
+typedef int net_freeaddrinfo_cb(nullable() void *obj, non_null() const Memory *mem, nullable() Network_Addr *addrs);
 
 /** @brief Functions wrapping POSIX network functions.
  *
@@ -405,7 +405,7 @@ bool addr_resolve_or_parse_ip(non_null() const Network *ns, non_null() const Mem
  * Packet data is put into data.
  * Packet length is put into length.
  */
-typedef int packet_handler_cb(void *object, const IP_Port *source, const uint8_t *packet, uint16_t length, void *userdata);
+typedef int packet_handler_cb(nullable() void *object, non_null() const IP_Port *source, non_null() const uint8_t *packet, uint16_t length, nullable() void *userdata);
 
 typedef struct Networking_Core Networking_Core;
 

@@ -52,7 +52,7 @@ typedef enum State_Load_Status {
     STATE_LOAD_STATUS_END,
 } State_Load_Status;
 
-typedef State_Load_Status state_load_cb(void *outer, const uint8_t *data, uint32_t length, uint16_t type);
+typedef State_Load_Status state_load_cb(non_null() void *outer, non_null() const uint8_t *data, uint32_t length, uint16_t type);
 
 /** state load/save */
 int state_load(non_null() const Logger *log, non_null() state_load_cb *state_load_callback, non_null() void *outer, non_null() const uint8_t *data, uint32_t length, uint16_t cookie_inner);

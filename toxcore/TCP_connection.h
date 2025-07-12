@@ -149,7 +149,7 @@ int tcp_send_forward_request(non_null() const Logger *logger, non_null() TCP_Con
  */
 int tcp_send_oob_packet(non_null() const TCP_Connections *tcp_c, unsigned int tcp_connections_number, non_null() const uint8_t *public_key, non_null() const uint8_t *packet, uint16_t length);
 
-typedef int tcp_data_cb(void *object, int crypt_connection_id, const uint8_t *packet, uint16_t length, void *userdata);
+typedef int tcp_data_cb(non_null() void *object, int crypt_connection_id, non_null() const uint8_t *packet, uint16_t length, nullable() void *userdata);
 
 int tcp_send_oob_packet_using_relay(non_null() const TCP_Connections *tcp_c, non_null() const uint8_t *relay_pk, non_null() const uint8_t *public_key, non_null() const uint8_t *packet,
                                     uint16_t length);
@@ -157,7 +157,7 @@ int tcp_send_oob_packet_using_relay(non_null() const TCP_Connections *tcp_c, non
 /** @brief Set the callback for TCP data packets. */
 void set_packet_tcp_connection_callback(non_null() TCP_Connections *tcp_c, non_null() tcp_data_cb *tcp_data_callback, non_null() void *object);
 
-typedef int tcp_onion_cb(void *object, const uint8_t *data, uint16_t length, void *userdata);
+typedef int tcp_onion_cb(nullable() void *object, non_null() const uint8_t *data, uint16_t length, nullable() void *userdata);
 
 /** @brief Set the callback for TCP onion packets. */
 void set_onion_packet_tcp_connection_callback(non_null() TCP_Connections *tcp_c, nullable() tcp_onion_cb *tcp_onion_callback, nullable() void *object);
@@ -165,8 +165,8 @@ void set_onion_packet_tcp_connection_callback(non_null() TCP_Connections *tcp_c,
 void set_forwarding_packet_tcp_connection_callback(non_null() TCP_Connections *tcp_c,
         nullable() forwarded_response_cb *tcp_forwarded_response_callback,
         nullable() void *object);
-typedef int tcp_oob_cb(void *object, const uint8_t *public_key, unsigned int tcp_connections_number,
-                       const uint8_t *packet, uint16_t length, void *userdata);
+typedef int tcp_oob_cb(non_null() void *object, non_null() const uint8_t *public_key, unsigned int tcp_connections_number,
+                       non_null() const uint8_t *packet, uint16_t length, nullable() void *userdata);
 
 /** @brief Set the callback for TCP oob data packets. */
 void set_oob_packet_tcp_connection_callback(non_null() TCP_Connections *tcp_c, non_null() tcp_oob_cb *tcp_oob_callback, non_null() void *object);

@@ -622,7 +622,7 @@ int gc_rejoin_group(non_null() GC_Session *c, non_null() GC_Chat *chat, nullable
  */
 int gc_accept_invite(non_null() GC_Session *c, int32_t friend_number, non_null() const uint8_t *data, uint16_t length, non_null() const uint8_t *nick,
                      size_t nick_length, nullable() const uint8_t *passwd, uint16_t passwd_len);
-typedef bool gc_send_group_invite_packet_cb(const Messenger *m, uint32_t friendnumber, const uint8_t *packet,
+typedef bool gc_send_group_invite_packet_cb(non_null() const Messenger *m, uint32_t friendnumber, non_null() const uint8_t *packet,
         uint16_t length);
 
 /** @brief Invites friend designated by `friendnumber` to chat.

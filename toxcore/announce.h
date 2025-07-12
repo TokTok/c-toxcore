@@ -16,7 +16,7 @@
 
 #define MAX_ANNOUNCEMENT_SIZE 512
 
-typedef void announce_on_retrieve_cb(void *object, const uint8_t *data, uint16_t length);
+typedef void announce_on_retrieve_cb(nullable() void *object, nullable() const uint8_t *data, uint16_t length);
 
 uint8_t announce_response_of_request_type(uint8_t request_type);
 
