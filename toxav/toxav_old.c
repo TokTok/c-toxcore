@@ -8,7 +8,7 @@
  */
 #include "toxav.h"
 
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_impl.h"
 #include "groupav.h"
 
 int toxav_add_av_groupchat(Tox *tox, audio_data_cb *audio_callback, void *userdata)

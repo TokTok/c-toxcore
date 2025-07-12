@@ -13,8 +13,10 @@
 #include "tox.h"
 
 #include <assert.h>
+#include <pthread.h>
 #include <string.h>
 
+#include "../toxencryptsave/defines.h"
 #include "DHT.h"
 #include "Messenger.h"
 #include "TCP_client.h"
@@ -31,14 +33,14 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "os_system.h"
 #include "state.h"
+#include "tox_impl.h"
 #include "tox_log_level.h"
 #include "tox_options.h"
 #include "tox_private.h"
-#include "tox_struct.h" // IWYU pragma: keep
+#include "tox_system.h"
 #include "util.h"
-
-#include "../toxencryptsave/defines.h"
 
 #define SET_ERROR_PARAMETER(param, x) \
     do {                              \
@@ -73,6 +75,36 @@ static_assert(TOX_GROUP_MAX_MESSAGE_LENGTH == GROUP_MAX_MESSAGE_LENGTH,
               "TOX_GROUP_MAX_MESSAGE_LENGTH is assumed to be equal to GROUP_MAX_MESSAGE_LENGTH");
 static_assert(TOX_MAX_CUSTOM_PACKET_SIZE == MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE,
               "TOX_MAX_CUSTOM_PACKET_SIZE is assumed to be equal to MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE");
+
+struct Tox_Mutex {
+    pthread_mutex_t underlying;
+};
+
+void tox_lock(const Tox *tox)
+{
+    if (tox->mutex != nullptr) {
+        pthread_mutex_lock(&tox->mutex->underlying);
+    }
+}
+
+void tox_unlock(const Tox *tox)
+{
+    if (tox->mutex != nullptr) {
+        pthread_mutex_unlock(&tox->mutex->underlying);
+    }
+}
+
+non_null()
+static void tox_mutex_init(Tox_Mutex *mutex)
+{
+    pthread_mutex_init(&mutex->underlying, nullptr);
+}
+
+non_null()
+static void tox_mutex_destroy(Tox_Mutex *mutex)
+{
+    pthread_mutex_destroy(&mutex->underlying);
+}
 
 struct Tox_Userdata {
     Tox *tox;
@@ -633,9 +665,10 @@ static int tox_load(non_null() Tox *tox, non_null() const uint8_t *data, uint32_
                       length - cookie_len, STATE_COOKIE_TYPE);
 }
 
-static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullable() Tox_Err_New *error, nullable() const Tox_System *sys)
+Tox *tox_new(const Tox_Options *options, Tox_Err_New *error)
 {
-    struct Tox_Options *default_options = nullptr;
+    Tox_Options *default_options = nullptr;
+
     if (options == nullptr) {
         Tox_Err_Options_New err;
         default_options = tox_options_new(&err);
@@ -653,16 +686,16 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
         }
     }
 
-    const struct Tox_Options *const opts = options != nullptr ? options : default_options;
+    const Tox_Options *const opts = options != nullptr ? options : default_options;
     assert(opts != nullptr);
 
-    const Tox_System default_system = tox_default_system();
+    const Tox_System *sys = tox_options_get_operating_system(opts);
 
     if (sys == nullptr) {
-        sys = &default_system;
+        sys = os_system();
     }
 
-    if (sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
+    if (sys == nullptr || sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
         // TODO(iphydf): Not quite right, but similar.
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
         tox_options_free(default_options);
@@ -790,7 +823,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    tox->mono_time = mono_time_new(tox->sys.mem, sys->mono_time_callback, sys->mono_time_user_data);
+    tox->mono_time = mono_time_new(tox->sys.mem, sys->tm);
 
     if (tox->mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -800,7 +833,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
     }
 
     if (tox_options_get_experimental_thread_safety(opts)) {
-        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
+        Tox_Mutex *mutex = (Tox_Mutex *)mem_alloc(sys->mem, sizeof(Tox_Mutex));
 
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -809,8 +842,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
             return nullptr;
         }
 
-        pthread_mutex_init(mutex, nullptr);
-
+        tox_mutex_init(mutex);
         tox->mutex = mutex;
     } else {
         tox->mutex = nullptr;
@@ -839,7 +871,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
-            pthread_mutex_destroy(tox->mutex);
+            tox_mutex_destroy(tox->mutex);
         }
 
         mem_delete(sys->mem, tox->mutex);
@@ -857,7 +889,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
-            pthread_mutex_destroy(tox->mutex);
+            tox_mutex_destroy(tox->mutex);
         }
 
         mem_delete(sys->mem, tox->mutex);
@@ -877,7 +909,7 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
-            pthread_mutex_destroy(tox->mutex);
+            tox_mutex_destroy(tox->mutex);
         }
 
         mem_delete(sys->mem, tox->mutex);
@@ -942,37 +974,6 @@ static Tox *tox_new_system(nullable() const struct Tox_Options *options, nullabl
     return tox;
 }
 
-Tox *tox_new(const struct Tox_Options *options, Tox_Err_New *error)
-{
-    return tox_new_system(options, error, nullptr);
-}
-
-Tox *tox_new_testing(const Tox_Options *options, Tox_Err_New *error, const Tox_Options_Testing *testing, Tox_Err_New_Testing *testing_error)
-{
-    if (testing == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_NULL);
-        SET_ERROR_PARAMETER(testing_error, TOX_ERR_NEW_TESTING_NULL);
-        return nullptr;
-    }
-
-    if (testing->operating_system == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_NULL);
-        SET_ERROR_PARAMETER(testing_error, TOX_ERR_NEW_TESTING_NULL);
-        return nullptr;
-    }
-
-    const Tox_System *sys = testing->operating_system;
-
-    if (sys->rng == nullptr || sys->ns == nullptr || sys->mem == nullptr) {
-        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_NULL);
-        SET_ERROR_PARAMETER(testing_error, TOX_ERR_NEW_TESTING_NULL);
-        return nullptr;
-    }
-
-    SET_ERROR_PARAMETER(testing_error, TOX_ERR_NEW_TESTING_OK);
-    return tox_new_system(options, error, sys);
-}
-
 void tox_kill(Tox *tox)
 {
     if (tox == nullptr) {
@@ -987,7 +988,7 @@ void tox_kill(Tox *tox)
     tox_unlock(tox);
 
     if (tox->mutex != nullptr) {
-        pthread_mutex_destroy(tox->mutex);
+        tox_mutex_destroy(tox->mutex);
         mem_delete(tox->sys.mem, tox->mutex);
     }
 

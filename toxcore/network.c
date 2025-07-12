@@ -47,15 +47,9 @@
 #include <ws2tcpip.h>
 #endif /* OS_WIN32 */
 
-#ifdef __APPLE__
-#include <mach/clock.h>
-#include <mach/mach.h>
-#endif /* __APPLE__ */
-
 #if !defined(OS_WIN32)
 #include <arpa/inet.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -87,12 +81,9 @@
 #include "logger.h"
 #include "mem.h"
 #include "net_profile.h"
+#include "os_network_impl.h"
+#include "tox_network.h"
 #include "util.h"
-
-// Disable MSG_NOSIGNAL on systems not supporting it, e.g. Windows, FreeBSD
-#if !defined(MSG_NOSIGNAL)
-#define MSG_NOSIGNAL 0
-#endif /* !defined(MSG_NOSIGNAL) */
 
 #ifndef IPV6_ADD_MEMBERSHIP
 #ifdef IPV6_JOIN_GROUP
@@ -471,247 +462,14 @@ bool sock_valid(Socket sock)
     return sock.value != invalid_socket.value;
 }
 
-struct Network_Addr {
-    struct sockaddr_storage addr;
-    size_t size;
-};
-
-static int sys_close(non_null() void *obj, Socket sock)
-{
-#if defined(OS_WIN32)
-    return closesocket(net_socket_to_native(sock));
-#else  // !OS_WIN32
-    return close(net_socket_to_native(sock));
-#endif /* OS_WIN32 */
-}
-
-static Socket sys_accept(non_null() void *obj, Socket sock)
-{
-    return net_socket_from_native(accept(net_socket_to_native(sock), nullptr, nullptr));
-}
-
-static int sys_bind(non_null() void *obj, Socket sock, non_null() const Network_Addr *addr)
-{
-    return bind(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
-}
-
-static int sys_listen(non_null() void *obj, Socket sock, int backlog)
-{
-    return listen(net_socket_to_native(sock), backlog);
-}
-
-static int sys_connect(non_null() void *obj, Socket sock, non_null() const Network_Addr *addr)
-{
-    return connect(net_socket_to_native(sock), (const struct sockaddr *)&addr->addr, addr->size);
-}
-
-static int sys_recvbuf(non_null() void *obj, Socket sock)
-{
-#ifdef OS_WIN32
-    u_long count = 0;
-    ioctlsocket(net_socket_to_native(sock), FIONREAD, &count);
-#else
-    int count = 0;
-    ioctl(net_socket_to_native(sock), FIONREAD, &count);
-#endif /* OS_WIN32 */
-
-    return count;
-}
-
-static int sys_recv(non_null() void *obj, Socket sock, non_null() uint8_t *buf, size_t len)
-{
-    return recv(net_socket_to_native(sock), (char *)buf, len, MSG_NOSIGNAL);
-}
-
-static int sys_send(non_null() void *obj, Socket sock, non_null() const uint8_t *buf, size_t len)
-{
-    return send(net_socket_to_native(sock), (const char *)buf, len, MSG_NOSIGNAL);
-}
-
-static int sys_sendto(non_null() void *obj, Socket sock, non_null() const uint8_t *buf, size_t len, non_null() const Network_Addr *addr)
-{
-    return sendto(net_socket_to_native(sock), (const char *)buf, len, 0, (const struct sockaddr *)&addr->addr, addr->size);
-}
-
-static int sys_recvfrom(non_null() void *obj, Socket sock, non_null() uint8_t *buf, size_t len, non_null() Network_Addr *addr)
-{
-    socklen_t size = addr->size;
-    const int ret = recvfrom(net_socket_to_native(sock), (char *)buf, len, 0, (struct sockaddr *)&addr->addr, &size);
-    addr->size = size;
-    return ret;
-}
-
-static Socket sys_socket(non_null() void *obj, int domain, int type, int proto)
-{
-    return net_socket_from_native(socket(domain, type, proto));
-}
-
-static int sys_socket_nonblock(non_null() void *obj, Socket sock, bool nonblock)
-{
-#ifdef OS_WIN32
-    u_long mode = nonblock ? 1 : 0;
-    return ioctlsocket(net_socket_to_native(sock), FIONBIO, &mode);
-#else
-    return fcntl(net_socket_to_native(sock), F_SETFL, O_NONBLOCK, nonblock ? 1 : 0);
-#endif /* OS_WIN32 */
-}
-
-static int sys_getsockopt(non_null() void *obj, Socket sock, int level, int optname, non_null() void *optval, non_null() size_t *optlen)
-{
-    socklen_t len = *optlen;
-    const int ret = getsockopt(net_socket_to_native(sock), level, optname, (char *)optval, &len);
-    *optlen = len;
-    return ret;
-}
-
-static int sys_setsockopt(non_null() void *obj, Socket sock, int level, int optname, non_null() const void *optval, size_t optlen)
-{
-#ifdef EMSCRIPTEN
-    return 0;
-#else
-    return setsockopt(net_socket_to_native(sock), level, optname, (const char *)optval, optlen);
-#endif /* EMSCRIPTEN */
-}
-
-// sets and fills an array of addrs for address
-// returns the number of entries in addrs
-static int sys_getaddrinfo(non_null() void *obj, non_null() const Memory *mem, non_null() const char *address, int family, int sock_type, non_null() Network_Addr **addrs)
-{
-    assert(addrs != nullptr);
-
-    struct addrinfo hints = {0};
-    hints.ai_family = family;
-
-
-    // different platforms favour a different field
-    // hints.ai_socktype = SOCK_DGRAM; // type of socket Tox uses.
-    hints.ai_socktype = sock_type;
-    // hints.ai_protocol = protocol;
-
-    struct addrinfo *infos = nullptr;
-
-    const int rc = getaddrinfo(address, nullptr, &hints, &infos);
-
-    // Lookup failed.
-    if (rc != 0) {
-        // TODO(Green-Sky): log error
-        return 0;
-    }
-
-    const int32_t max_count = INT32_MAX / sizeof(Network_Addr);
-
-    // we count number of "valid" results
-    int result = 0;
-    for (struct addrinfo *walker = infos; walker != nullptr && result < max_count; walker = walker->ai_next) {
-        if (walker->ai_family == family || family == AF_UNSPEC) {
-            ++result;
-        }
-
-        // do we need to check socktype/protocol?
-    }
-
-    assert(max_count >= result);
-
-    Network_Addr *tmp_addrs = (Network_Addr *)mem_valloc(mem, result, sizeof(Network_Addr));
-    if (tmp_addrs == nullptr) {
-        freeaddrinfo(infos);
-        return 0;
-    }
-
-    // now we fill in
-    int i = 0;
-    for (struct addrinfo *walker = infos; walker != nullptr; walker = walker->ai_next) {
-        if (walker->ai_family == family || family == AF_UNSPEC) {
-            tmp_addrs[i].size = sizeof(struct sockaddr_storage);
-            tmp_addrs[i].addr.ss_family = walker->ai_family;
-
-            // according to spec, storage is supposed to be large enough (and source shows they are)
-            // storage is 128 bytes
-            assert(walker->ai_addrlen <= tmp_addrs[i].size);
-
-            memcpy(&tmp_addrs[i].addr, walker->ai_addr, walker->ai_addrlen);
-            tmp_addrs[i].size = walker->ai_addrlen;
-
-            ++i;
-        }
-    }
-
-    assert(i == result);
-
-    freeaddrinfo(infos);
-
-    *addrs = tmp_addrs;
-
-    // number of entries in addrs
-    return result;
-}
-
-static int sys_freeaddrinfo(non_null() void *obj, non_null() const Memory *mem, non_null() Network_Addr *addrs)
-{
-    if (addrs == nullptr) {
-        return 0;
-    }
-
-    mem_delete(mem, addrs);
-
-    return 0;
-}
-
-static const Network_Funcs os_network_funcs = {
-    sys_close,
-    sys_accept,
-    sys_bind,
-    sys_listen,
-    sys_connect,
-    sys_recvbuf,
-    sys_recv,
-    sys_recvfrom,
-    sys_send,
-    sys_sendto,
-    sys_socket,
-    sys_socket_nonblock,
-    sys_getsockopt,
-    sys_setsockopt,
-    sys_getaddrinfo,
-    sys_freeaddrinfo,
-};
-static const Network os_network_obj = {&os_network_funcs, nullptr};
-
-const Network *os_network(void)
-{
-#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    if ((true)) {
-        return nullptr;
-    }
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-#ifdef OS_WIN32
-    WSADATA wsaData;
-
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != NO_ERROR) {
-        return nullptr;
-    }
-#endif /* OS_WIN32 */
-    return &os_network_obj;
-}
-
-#if 0
-/* TODO(iphydf): Call this from functions that use `os_network()`. */
-void os_network_deinit(const Network *ns)
-{
-#ifdef OS_WIN32
-    WSACleanup();
-#endif /* OS_WIN32 */
-}
-#endif /* 0 */
-
 static int net_setsockopt(non_null() const Network *ns, Socket sock, int level, int optname, non_null() const void *optval, size_t optlen)
 {
-    return ns->funcs->setsockopt(ns->obj, sock, level, optname, optval, optlen);
+    return tox_network_setsockopt(ns, sock, level, optname, optval, optlen);
 }
 
 static int net_getsockopt(non_null() const Network *ns, Socket sock, int level, int optname, non_null() void *optval, non_null() size_t *optlen)
 {
-    return ns->funcs->getsockopt(ns->obj, sock, level, optname, optval, optlen);
+    return tox_network_getsockopt(ns, sock, level, optname, optval, optlen);
 }
 
 static uint32_t data_0(uint16_t buflen, non_null() const uint8_t *buffer)
@@ -881,7 +639,7 @@ static void loglogdata(non_null() const Logger *log, non_null() const char *mess
 int net_send(const Network *ns, const Logger *log,
              Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
 {
-    const int res = ns->funcs->send(ns->obj, sock, buf, len);
+    const int res = tox_network_send(ns, sock, buf, len);
 
     if (res > 0) {
         netprof_record_packet(net_profile, buf[0], res, PACKET_DIRECTION_SEND);
@@ -893,46 +651,46 @@ int net_send(const Network *ns, const Logger *log,
 
 static int net_sendto(non_null() const Network *ns, Socket sock, non_null() const uint8_t *buf, size_t len, non_null() const Network_Addr *addr, non_null() const IP_Port *ip_port)
 {
-    return ns->funcs->sendto(ns->obj, sock, buf, len, addr);
+    return tox_network_sendto(ns, sock, buf, len, addr);
 }
 
 int net_recv(const Network *ns, const Logger *log,
              Socket sock, uint8_t *buf, size_t len, const IP_Port *ip_port)
 {
-    const int res = ns->funcs->recv(ns->obj, sock, buf, len);
+    const int res = tox_network_recv(ns, sock, buf, len);
     loglogdata(log, "=>T", buf, len, ip_port, res);
     return res;
 }
 
 static int net_recvfrom(non_null() const Network *ns, Socket sock, non_null() uint8_t *buf, size_t len, non_null() Network_Addr *addr)
 {
-    return ns->funcs->recvfrom(ns->obj, sock, buf, len, addr);
+    return tox_network_recvfrom(ns, sock, buf, len, addr);
 }
 
 int net_listen(const Network *ns, Socket sock, int backlog)
 {
-    return ns->funcs->listen(ns->obj, sock, backlog);
+    return tox_network_listen(ns, sock, backlog);
 }
 
 static int net_bind(non_null() const Network *ns, Socket sock, non_null() const Network_Addr *addr)
 {
-    return ns->funcs->bind(ns->obj, sock, addr);
+    return tox_network_bind(ns, sock, addr);
 }
 
 Socket net_accept(const Network *ns, Socket sock)
 {
-    return ns->funcs->accept(ns->obj, sock);
+    return tox_network_accept(ns, sock);
 }
 
 /** Close the socket. */
 void kill_sock(const Network *ns, Socket sock)
 {
-    ns->funcs->close(ns->obj, sock);
+    tox_network_close(ns, sock);
 }
 
 bool set_socket_nonblock(const Network *ns, Socket sock)
 {
-    return ns->funcs->socket_nonblock(ns->obj, sock, true) == 0;
+    return tox_network_socket_nonblock(ns, sock, true) == 0;
 }
 
 bool set_socket_nosigpipe(const Network *ns, Socket sock)
@@ -1043,34 +801,41 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         ipp_copy.ip.ip.v6 = ip6;
     }
 
-    Network_Addr addr;
+    Network_Addr *addr;
 
     if (net_family_is_ipv4(ipp_copy.ip.family)) {
-        struct sockaddr_in *const addr4 = (struct sockaddr_in *)&addr.addr;
+        struct sockaddr_in addr4 = {0};
 
-        addr.size = sizeof(struct sockaddr_in);
-        addr4->sin_family = AF_INET;
-        addr4->sin_port = ipp_copy.port;
-        fill_addr4(&ipp_copy.ip.ip.v4, &addr4->sin_addr);
+        addr4.sin_family = AF_INET;
+        addr4.sin_port = ipp_copy.port;
+        fill_addr4(&ipp_copy.ip.ip.v4, &addr4.sin_addr);
+
+        addr = net_addr_new(&addr4, sizeof(addr4), net->mem);
     } else if (net_family_is_ipv6(ipp_copy.ip.family)) {
-        struct sockaddr_in6 *const addr6 = (struct sockaddr_in6 *)&addr.addr;
+        struct sockaddr_in6 addr6 = {0};
 
-        addr.size = sizeof(struct sockaddr_in6);
-        addr6->sin6_family = AF_INET6;
-        addr6->sin6_port = ipp_copy.port;
-        fill_addr6(&ipp_copy.ip.ip.v6, &addr6->sin6_addr);
+        addr6.sin6_family = AF_INET6;
+        addr6.sin6_port = ipp_copy.port;
+        fill_addr6(&ipp_copy.ip.ip.v6, &addr6.sin6_addr);
 
-        addr6->sin6_flowinfo = 0;
-        addr6->sin6_scope_id = 0;
+        addr6.sin6_flowinfo = 0;
+        addr6.sin6_scope_id = 0;
+
+        addr = net_addr_new(&addr6, sizeof(addr6), net->mem);
     } else {
         LOGGER_ERROR(net->log, "unknown address type: %d", ipp_copy.ip.family.value);
         return -1;
     }
 
-    const long res = net_sendto(net->ns, net->sock, packet.data, packet.length, &addr, &ipp_copy);
+    if (addr == nullptr) {
+        return -1;
+    }
+
+    const long res = net_sendto(net->ns, net->sock, packet.data, packet.length, addr, &ipp_copy);
     loglogdata(net->log, "O=>", packet.data, packet.length, ip_port, res);
 
     assert(res <= INT_MAX);
+    net_addr_free(addr, net->mem);
 
     if (res == packet.length && packet.data != nullptr) {
         netprof_record_packet(net->udp_net_profile, packet.data[0], packet.length, PACKET_DIRECTION_SEND);
@@ -1095,14 +860,17 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
  * Packet data is put into data.
  * Packet length is put into length.
  */
-static int receivepacket(non_null() const Network *ns, non_null() const Logger *log, Socket sock, non_null() IP_Port *ip_port, non_null() uint8_t *data, non_null() uint32_t *length)
+static int receivepacket(non_null() const Network *ns, non_null() const Memory *mem, non_null() const Logger *log, Socket sock, non_null() IP_Port *ip_port, non_null() uint8_t *data, non_null() uint32_t *length)
 {
     memset(ip_port, 0, sizeof(IP_Port));
-    Network_Addr addr = {{0}};
-    addr.size = sizeof(addr.addr);
+    Network_Addr *addr = net_addr_new(nullptr, 0, mem);
     *length = 0;
 
-    const int fail_or_len = net_recvfrom(ns, sock, data, MAX_UDP_PACKET_SIZE, &addr);
+    if (addr == nullptr) {
+        return -1;
+    }
+
+    const int fail_or_len = net_recvfrom(ns, sock, data, MAX_UDP_PACKET_SIZE, addr);
 
     if (fail_or_len < 0) {
         const int error = net_error();
@@ -1112,30 +880,33 @@ static int receivepacket(non_null() const Network *ns, non_null() const Logger *
             LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", error, net_strerror(error, &error_str));
         }
 
+        net_addr_free(addr, mem);
         return -1; /* Nothing received. */
     }
 
     *length = (uint32_t)fail_or_len;
 
-    if (addr.addr.ss_family == AF_INET) {
-        const struct sockaddr_in *addr_in = (const struct sockaddr_in *)&addr.addr;
+    if (net_addr_is_ipv4(addr)) {
+        const struct sockaddr_in *addr_in = (const struct sockaddr_in *)net_addr_get_addr(addr);
 
         const Family *const family = make_tox_family(addr_in->sin_family);
         assert(family != nullptr);
 
         if (family == nullptr) {
+            net_addr_free(addr, mem);
             return -1;
         }
 
         ip_port->ip.family = *family;
         get_ip4(&ip_port->ip.ip.v4, &addr_in->sin_addr);
         ip_port->port = addr_in->sin_port;
-    } else if (addr.addr.ss_family == AF_INET6) {
-        const struct sockaddr_in6 *addr_in6 = (const struct sockaddr_in6 *)&addr.addr;
+    } else if (net_addr_is_ipv6(addr)) {
+        const struct sockaddr_in6 *addr_in6 = (const struct sockaddr_in6 *)net_addr_get_addr(addr);
         const Family *const family = make_tox_family(addr_in6->sin6_family);
         assert(family != nullptr);
 
         if (family == nullptr) {
+            net_addr_free(addr, mem);
             return -1;
         }
 
@@ -1148,11 +919,13 @@ static int receivepacket(non_null() const Network *ns, non_null() const Logger *
             ip_port->ip.ip.v4.uint32 = ip_port->ip.ip.v6.uint32[3];
         }
     } else {
+        net_addr_free(addr, mem);
         return -1;
     }
 
     loglogdata(log, "=>O", data, MAX_UDP_PACKET_SIZE, ip_port, *length);
 
+    net_addr_free(addr, mem);
     return 0;
 }
 
@@ -1173,7 +946,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
     uint8_t data[MAX_UDP_PACKET_SIZE] = {0};
     uint32_t length;
 
-    while (receivepacket(net->ns, net->log, net->sock, &ip_port, data, &length) != -1) {
+    while (receivepacket(net->ns, net->mem, net->log, net->sock, &ip_port, data, &length) != -1) {
         if (length < 1) {
             continue;
         }
@@ -1316,21 +1089,31 @@ Networking_Core *new_networking_ex(
 
     /* Bind our socket to port PORT and the given IP address (usually 0.0.0.0 or ::) */
     uint16_t *portptr = nullptr;
-    Network_Addr addr = {{0}};
+    Network_Addr *addr = net_addr_new(nullptr, 0, mem);
+
+    if (addr == nullptr) {
+        kill_networking(temp);
+
+        if (error != nullptr) {
+            *error = 2;
+        }
+
+        return nullptr;
+    }
 
     if (net_family_is_ipv4(temp->family)) {
-        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr.addr;
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)net_addr_mut_addr(addr);
 
-        addr.size = sizeof(struct sockaddr_in);
+        net_addr_set_size(addr, sizeof(struct sockaddr_in));
         addr4->sin_family = AF_INET;
         addr4->sin_port = 0;
         fill_addr4(&ip->ip.v4, &addr4->sin_addr);
 
         portptr = &addr4->sin_port;
     } else if (net_family_is_ipv6(temp->family)) {
-        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr.addr;
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)net_addr_mut_addr(addr);
 
-        addr.size = sizeof(struct sockaddr_in6);
+        net_addr_set_size(addr, sizeof(struct sockaddr_in6));
         addr6->sin6_family = AF_INET6;
         addr6->sin6_port = 0;
         fill_addr6(&ip->ip.v6, &addr6->sin6_addr);
@@ -1341,6 +1124,7 @@ Networking_Core *new_networking_ex(
         portptr = &addr6->sin6_port;
     } else {
         mem_delete(mem, temp);
+        net_addr_free(addr, mem);
         return nullptr;
     }
 
@@ -1394,7 +1178,7 @@ Networking_Core *new_networking_ex(
     *portptr = net_htons(port_to_try);
 
     for (uint16_t tries = port_from; tries <= port_to; ++tries) {
-        const int res = net_bind(ns, temp->sock, &addr);
+        const int res = net_bind(ns, temp->sock, addr);
 
         if (res == 0) {
             temp->port = *portptr;
@@ -1414,6 +1198,7 @@ Networking_Core *new_networking_ex(
                 *error = 0;
             }
 
+            net_addr_free(addr, mem);
             return temp;
         }
 
@@ -1437,6 +1222,7 @@ Networking_Core *new_networking_ex(
         *error = 1;
     }
 
+    net_addr_free(addr, mem);
     return nullptr;
 }
 
@@ -1911,7 +1697,7 @@ static bool addr_resolve(non_null() const Network *ns, non_null() const Memory *
     const int family = make_family(tox_family);
 
     Network_Addr *addrs = nullptr;
-    const int rc = ns->funcs->getaddrinfo(ns->obj, mem, address, family, 0, &addrs);
+    const int rc = tox_network_getaddrinfo(ns, mem, address, family, 0, &addrs);
 
     // Lookup failed / empty.
     if (rc <= 0) {
@@ -1929,16 +1715,18 @@ static bool addr_resolve(non_null() const Network *ns, non_null() const Memory *
     bool done = false;
 
     for (int i = 0; i < rc && !done; ++i) {
-        switch (addrs[i].addr.ss_family) {
+        const Network_Addr *const addr = net_addrs_get_addr(addrs, i);
+        const int addr_family = net_addr_get_family(addr);
+        switch (addr_family) {
             case AF_INET: {
-                if (addrs[i].addr.ss_family == family) { /* AF_INET requested, done */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
-                    get_ip4(&to->ip.v4, &addr->sin_addr);
+                if (addr_family == family) { /* AF_INET requested, done */
+                    const struct sockaddr_in *addr4 = (const struct sockaddr_in *)net_addr_get_addr(addr);
+                    get_ip4(&to->ip.v4, &addr4->sin_addr);
                     result = TOX_ADDR_RESOLVE_INET;
                     done = true;
                 } else if ((result & TOX_ADDR_RESOLVE_INET) == 0) { /* AF_UNSPEC requested, store away */
-                    const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
-                    get_ip4(&ip4.ip.v4, &addr->sin_addr);
+                    const struct sockaddr_in *addr4 = (const struct sockaddr_in *)net_addr_get_addr(addr);
+                    get_ip4(&ip4.ip.v4, &addr4->sin_addr);
                     result |= TOX_ADDR_RESOLVE_INET;
                 }
 
@@ -1946,17 +1734,17 @@ static bool addr_resolve(non_null() const Network *ns, non_null() const Memory *
             }
 
             case AF_INET6: {
-                if (addrs[i].addr.ss_family == family) { /* AF_INET6 requested, done */
-                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
-                        get_ip6(&to->ip.v6, &addr->sin6_addr);
+                if (addr_family == family) { /* AF_INET6 requested, done */
+                    if (net_addr_get_size(addr) == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)net_addr_get_addr(addr);
+                        get_ip6(&to->ip.v6, &addr6->sin6_addr);
                         result = TOX_ADDR_RESOLVE_INET6;
                         done = true;
                     }
                 } else if ((result & TOX_ADDR_RESOLVE_INET6) == 0) { /* AF_UNSPEC requested, store away */
-                    if (addrs[i].size == sizeof(struct sockaddr_in6)) {
-                        const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(void *)&addrs[i].addr;
-                        get_ip6(&ip6.ip.v6, &addr->sin6_addr);
+                    if (net_addr_get_size(addr) == sizeof(struct sockaddr_in6)) {
+                        const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)net_addr_get_addr(addr);
+                        get_ip6(&ip6.ip.v6, &addr6->sin6_addr);
                         result |= TOX_ADDR_RESOLVE_INET6;
                     }
                 }
@@ -1980,7 +1768,7 @@ static bool addr_resolve(non_null() const Network *ns, non_null() const Memory *
         }
     }
 
-    ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+    tox_network_freeaddrinfo(ns, mem, addrs);
     return result != 0;
 }
 
@@ -2009,19 +1797,23 @@ const char *net_err_connect_to_string(Net_Err_Connect err)
 
 bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port, Net_Err_Connect *err)
 {
-    Network_Addr addr = {{0}};
+    Network_Addr *addr = net_addr_new(ns, 0, mem);
+
+    if (addr == nullptr) {
+        return false;
+    }
 
     if (net_family_is_ipv4(ip_port->ip.family)) {
-        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr.addr;
+        struct sockaddr_in *addr4 = (struct sockaddr_in *)net_addr_mut_addr(addr);
 
-        addr.size = sizeof(struct sockaddr_in);
+        net_addr_set_size(addr, sizeof(struct sockaddr_in));
         addr4->sin_family = AF_INET;
         fill_addr4(&ip_port->ip.ip.v4, &addr4->sin_addr);
         addr4->sin_port = ip_port->port;
     } else if (net_family_is_ipv6(ip_port->ip.family)) {
-        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr.addr;
+        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)net_addr_mut_addr(addr);
 
-        addr.size = sizeof(struct sockaddr_in6);
+        net_addr_set_size(addr, sizeof(struct sockaddr_in6));
         addr6->sin6_family = AF_INET6;
         fill_addr6(&ip_port->ip.ip.v6, &addr6->sin6_addr);
         addr6->sin6_port = ip_port->port;
@@ -2029,12 +1821,14 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
         Ip_Ntoa ip_str;
         LOGGER_ERROR(log, "cannot connect to %s:%d which is neither IPv4 nor IPv6",
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
+        net_addr_free(addr, mem);
         *err = NET_ERR_CONNECT_INVALID_FAMILY;
         return false;
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
+        net_addr_free(addr, mem);
         *err = NET_ERR_CONNECT_OK;
         return true;
     }
@@ -2045,7 +1839,7 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
                  net_socket_to_native(sock), net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
     errno = 0;
 
-    if (ns->funcs->connect(ns->obj, sock, &addr) == -1) {
+    if (tox_network_connect(ns, sock, addr) == -1) {
         const int error = net_error();
 
         // Non-blocking socket: "Operation in progress" means it's connecting.
@@ -2053,11 +1847,13 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
             Net_Strerror error_str;
             LOGGER_WARNING(log, "failed to connect to %s:%d: %d (%s)",
                            net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error, net_strerror(error, &error_str));
+            net_addr_free(addr, mem);
             *err = NET_ERR_CONNECT_FAILED;
             return false;
         }
     }
 
+    net_addr_free(addr, mem);
     *err = NET_ERR_CONNECT_OK;
     return true;
 }
@@ -2076,6 +1872,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
         IP_Port *tmp = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
 
         if (tmp == nullptr) {
+            *res = nullptr;
             return -1;
         }
 
@@ -2091,9 +1888,11 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     if ((true)) {
         IP_Port *ip_port = (IP_Port *)mem_alloc(mem, sizeof(IP_Port));
+
         if (ip_port == nullptr) {
-            abort();
+            return -1;
         }
+
         ip_port->ip.ip.v4.uint32 = net_htonl(0x7F000003); // 127.0.0.3
         ip_port->ip.family = *make_tox_family(AF_INET);
 
@@ -2110,7 +1909,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
 
     // It's not an IP address, so now we try doing a DNS lookup.
     Network_Addr *addrs = nullptr;
-    const int rc = ns->funcs->getaddrinfo(ns->obj, mem, node, AF_UNSPEC, type, &addrs);
+    const int rc = tox_network_getaddrinfo(ns, mem, node, AF_UNSPEC, type, &addrs);
 
     // Lookup failed / empty.
     if (rc <= 0) {
@@ -2124,7 +1923,9 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     size_t count = 0;
 
     for (int i = 0; i < rc && count < max_count; ++i) {
-        if (addrs[i].addr.ss_family != AF_INET && addrs[i].addr.ss_family != AF_INET6) {
+        const Network_Addr *const addr = net_addrs_get_addr(addrs, i);
+        const int addr_family = net_addr_get_family(addr);
+        if (addr_family != AF_INET && addr_family != AF_INET6) {
             continue;
         }
 
@@ -2134,14 +1935,14 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     assert(count <= max_count);
 
     if (count == 0) {
-        ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+        tox_network_freeaddrinfo(ns, mem, addrs);
         return 0;
     }
 
     IP_Port *ip_port = (IP_Port *)mem_valloc(mem, count, sizeof(IP_Port));
 
     if (ip_port == nullptr) {
-        ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+        tox_network_freeaddrinfo(ns, mem, addrs);
         *res = nullptr;
         return -1;
     }
@@ -2149,21 +1950,23 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     *res = ip_port;
 
     for (int i = 0; i < rc && count < max_count; ++i) {
-        if (addrs[i].addr.ss_family == AF_INET) {
-            const struct sockaddr_in *addr = (const struct sockaddr_in *)(const void *)&addrs[i].addr;
-            ip_port->ip.ip.v4.uint32 = addr->sin_addr.s_addr;
-        } else if (addrs[i].addr.ss_family == AF_INET6) {
-            const struct sockaddr_in6 *addr = (const struct sockaddr_in6 *)(const void *)&addrs[i].addr;
-            memcpy(ip_port->ip.ip.v6.uint8, addr->sin6_addr.s6_addr, sizeof(IP6));
+        const Network_Addr *const addr = net_addrs_get_addr(addrs, i);
+        const int addr_family = net_addr_get_family(addr);
+        if (addr_family == AF_INET) {
+            const struct sockaddr_in *addr4 = (const struct sockaddr_in *)net_addr_get_addr(addr);
+            ip_port->ip.ip.v4.uint32 = addr4->sin_addr.s_addr;
+        } else if (addr_family == AF_INET6) {
+            const struct sockaddr_in6 *addr6 = (const struct sockaddr_in6 *)net_addr_get_addr(addr);
+            memcpy(ip_port->ip.ip.v6.uint8, addr6->sin6_addr.s6_addr, sizeof(IP6));
         } else {
             continue;
         }
 
-        const Family *const family = make_tox_family(addrs[i].addr.ss_family);
+        const Family *const family = make_tox_family(addr_family);
         assert(family != nullptr);
 
         if (family == nullptr) {
-            ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+            tox_network_freeaddrinfo(ns, mem, addrs);
             return -1;
         }
 
@@ -2172,7 +1975,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
         ++ip_port;
     }
 
-    ns->funcs->freeaddrinfo(ns->obj, mem, addrs);
+    tox_network_freeaddrinfo(ns, mem, addrs);
 
     return count;
 }
@@ -2182,27 +1985,31 @@ void net_freeipport(const Memory *mem, IP_Port *ip_ports)
     mem_delete(mem, ip_ports);
 }
 
-bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port)
+bool bind_to_port(const Network *ns, const Memory *mem, Socket sock, Family family, uint16_t port)
 {
-    Network_Addr addr = {{0}};
+    Network_Addr *addr;
 
     if (net_family_is_ipv4(family)) {
-        struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr.addr;
+        struct sockaddr_in addr4 = {0};
 
-        addr.size = sizeof(struct sockaddr_in);
-        addr4->sin_family = AF_INET;
-        addr4->sin_port = net_htons(port);
+        addr4.sin_family = AF_INET;
+        addr4.sin_port = net_htons(port);
+
+        addr = net_addr_new(&addr4, sizeof(addr4), mem);
     } else if (net_family_is_ipv6(family)) {
-        struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr.addr;
+        struct sockaddr_in6 addr6 = {0};
 
-        addr.size = sizeof(struct sockaddr_in6);
-        addr6->sin6_family = AF_INET6;
-        addr6->sin6_port = net_htons(port);
+        addr6.sin6_family = AF_INET6;
+        addr6.sin6_port = net_htons(port);
+
+        addr = net_addr_new(&addr6, sizeof(addr6), mem);
     } else {
         return false;
     }
 
-    return net_bind(ns, sock, &addr) == 0;
+    const bool ok = net_bind(ns, sock, addr) == 0;
+    net_addr_free(addr, mem);
+    return ok;
 }
 
 Socket net_socket(const Network *ns, Family domain, int type, int protocol)
@@ -2210,12 +2017,12 @@ Socket net_socket(const Network *ns, Family domain, int type, int protocol)
     const int platform_domain = make_family(domain);
     const int platform_type = make_socktype(type);
     const int platform_prot = make_proto(protocol);
-    return ns->funcs->socket(ns->obj, platform_domain, platform_type, platform_prot);
+    return tox_network_socket(ns, platform_domain, platform_type, platform_prot);
 }
 
 uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock)
 {
-    const int count = ns->funcs->recvbuf(ns->obj, sock);
+    const int count = tox_network_recvbuf(ns, sock);
     return (uint16_t)max_s32(0, min_s32(count, UINT16_MAX));
 }
 

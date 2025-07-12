@@ -3,25 +3,26 @@
  * Copyright © 2013 Tox project.
  */
 
-#ifndef C_TOXCORE_TOXCORE_TOX_STRUCT_H
-#define C_TOXCORE_TOXCORE_TOX_STRUCT_H
-
-#include <pthread.h>
+#ifndef C_TOXCORE_TOXCORE_TOX_IMPL_H
+#define C_TOXCORE_TOXCORE_TOX_IMPL_H
 
 #include "mono_time.h"
 #include "tox.h"
 #include "tox_options.h" // tox_log_cb
 #include "tox_private.h"
+#include "tox_system_impl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct Tox_Mutex Tox_Mutex;
+
 struct Tox {
     struct Messenger *m;
     Mono_Time *mono_time;
-    Tox_System sys;
-    pthread_mutex_t *mutex;
+    struct Tox_System sys;
+    Tox_Mutex *mutex;
 
     tox_log_cb *log_callback;
     tox_self_connection_status_cb *self_connection_status_callback;
@@ -72,4 +73,4 @@ struct Tox {
 } /* extern "C" */
 #endif
 
-#endif /* C_TOXCORE_TOXCORE_TOX_STRUCT_H */
+#endif /* C_TOXCORE_TOXCORE_TOX_IMPL_H */

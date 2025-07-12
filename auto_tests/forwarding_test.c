@@ -8,6 +8,9 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -116,7 +119,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     subtox->log = logger_new(mem);
     ck_assert(subtox->log != nullptr);
     logger_callback_log(subtox->log, print_debug_logger, nullptr, index);
-    subtox->mono_time = mono_time_new(mem, nullptr, nullptr);
+    subtox->mono_time = mono_time_new(mem, nullptr);
 
     if (no_udp) {
         subtox->net = new_networking_no_udp(subtox->log, mem, ns);

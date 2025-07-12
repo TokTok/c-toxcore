@@ -7,6 +7,9 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
 #include "../toxcore/net_crypto.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -60,7 +63,7 @@ static void test_store_data(void)
     Logger *log = logger_new(mem);
     ck_assert(log != nullptr);
     logger_callback_log(log, print_debug_logger, nullptr, nullptr);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time = mono_time_new(mem, nullptr);
     ck_assert(mono_time != nullptr);
     Networking_Core *net = new_networking_no_udp(log, mem, ns);
     ck_assert(net != nullptr);

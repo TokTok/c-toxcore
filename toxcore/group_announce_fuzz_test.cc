@@ -7,6 +7,7 @@
 
 #include "../testing/fuzzing/fuzz_support.hh"
 #include "mem_test_util.hh"
+#include "tox_time_impl.h"
 
 namespace {
 
@@ -53,12 +54,15 @@ void TestDoGca(Fuzz_Data &input)
 {
     Test_Memory mem;
     std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(mem), logger_kill);
+    constexpr Tox_Time_Funcs mock_time_funcs = {
+        [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
+    };
 
     uint64_t clock = 1;
+    std::unique_ptr<Tox_Time, void (*)(Tox_Time *)> tm(
+        tox_time_new(&mock_time_funcs, &clock, mem), tox_time_free);
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
-        mono_time_new(
-            mem, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock),
-        [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
+        mono_time_new(mem, tm.get()), [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
     assert(mono_time != nullptr);
     std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(
         new_gca_list(mem), kill_gca);

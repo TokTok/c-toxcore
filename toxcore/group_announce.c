@@ -57,11 +57,11 @@ static GC_Announces *get_announces_by_chat_id(non_null() const GC_Announces_List
     return nullptr;
 }
 
-int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces, uint8_t max_nodes,
-                      const uint8_t *chat_id, const uint8_t *except_public_key)
+int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *gc_announces,
+                      uint8_t max_nodes, const uint8_t *chat_id, const uint8_t *except_public_key)
 {
-    if (gc_announces == nullptr || gc_announces_list == nullptr || chat_id == nullptr || max_nodes == 0
-            || except_public_key == nullptr) {
+    if (gc_announces == nullptr || gc_announces_list == nullptr || chat_id == nullptr
+            || max_nodes == 0 || except_public_key == nullptr) {
         return -1;
     }
 
@@ -73,7 +73,9 @@ int gca_get_announces(const GC_Announces_List *gc_announces_list, GC_Announce *g
 
     uint16_t added_count = 0;
 
-    for (size_t i = 0; i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes; ++i) {
+    for (size_t i = 0;
+            i < announces->index && i < GCA_MAX_SAVED_ANNOUNCES_PER_GC && added_count < max_nodes;
+            ++i) {
         const size_t index = i % GCA_MAX_SAVED_ANNOUNCES_PER_GC;
 
         if (memcmp(except_public_key, announces->peer_announces[index].base_announce.peer_public_key,
@@ -105,7 +107,8 @@ uint16_t gca_pack_announces_list_size(uint16_t count)
     return count * GCA_ANNOUNCE_MAX_SIZE;
 }
 
-int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce)
+int gca_pack_announce(
+    const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announce)
 {
     if (length < GCA_ANNOUNCE_MAX_SIZE) {
         LOGGER_ERROR(log, "Invalid announce length: %u", length);
@@ -138,7 +141,8 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
     }
 
     if (announce->ip_port_is_set) {
-        const int ip_port_length = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
+        const int ip_port_length
+            = pack_ip_port(log, data + offset, length - offset, &announce->ip_port);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to pack ip_port");
@@ -148,8 +152,8 @@ int gca_pack_announce(const Logger *log, uint8_t *data, uint16_t length, const G
         offset += ip_port_length;
     }
 
-    const int nodes_length = pack_nodes(log, data + offset, length - offset, announce->tcp_relays,
-                                        announce->tcp_relays_count);
+    const int nodes_length = pack_nodes(
+                                 log, data + offset, length - offset, announce->tcp_relays, announce->tcp_relays_count);
 
     if (nodes_length == -1) {
         LOGGER_ERROR(log, "Failed to pack TCP nodes");
@@ -201,7 +205,8 @@ static int gca_unpack_announce(non_null() const Logger *log, non_null() const ui
             return -1;
         }
 
-        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, false);
+        const int ip_port_length
+            = unpack_ip_port(&announce->ip_port, data + offset, length - offset, false);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to unpack ip_port");
@@ -212,8 +217,8 @@ static int gca_unpack_announce(non_null() const Logger *log, non_null() const ui
     }
 
     uint16_t nodes_length;
-    const int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count, &nodes_length,
-                                         data + offset, length - offset, true);
+    const int nodes_count = unpack_nodes(announce->tcp_relays, announce->tcp_relays_count,
+                                         &nodes_length, data + offset, length - offset, true);
 
     if (nodes_count != announce->tcp_relays_count) {
         LOGGER_ERROR(log, "Failed to unpack TCP nodes");
@@ -223,8 +228,8 @@ static int gca_unpack_announce(non_null() const Logger *log, non_null() const ui
     return offset + nodes_length;
 }
 
-int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
-                             const GC_Public_Announce *public_announce)
+int gca_pack_public_announce(
+    const Logger *log, uint8_t *data, uint16_t length, const GC_Public_Announce *public_announce)
 {
     if (public_announce == nullptr || data == nullptr || length < CHAT_ID_SIZE) {
         return -1;
@@ -232,8 +237,8 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
 
     memcpy(data, public_announce->chat_public_key, CHAT_ID_SIZE);
 
-    const int packed_size = gca_pack_announce(log, data + CHAT_ID_SIZE, length - CHAT_ID_SIZE,
-                            &public_announce->base_announce);
+    const int packed_size = gca_pack_announce(
+                                log, data + CHAT_ID_SIZE, length - CHAT_ID_SIZE, &public_announce->base_announce);
 
     if (packed_size < 0) {
         LOGGER_ERROR(log, "Failed to pack public group announce");
@@ -243,8 +248,8 @@ int gca_pack_public_announce(const Logger *log, uint8_t *data, uint16_t length,
     return packed_size + CHAT_ID_SIZE;
 }
 
-int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t length,
-                               GC_Public_Announce *public_announce)
+int gca_unpack_public_announce(
+    const Logger *log, const uint8_t *data, uint16_t length, GC_Public_Announce *public_announce)
 {
     if (length < CHAT_ID_SIZE) {
         LOGGER_ERROR(log, "invalid public announce length: %u", length);
@@ -263,8 +268,8 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
 
     memcpy(public_announce->chat_public_key, data, CHAT_ID_SIZE);
 
-    const int base_announce_size = gca_unpack_announce(log, data + ENC_PUBLIC_KEY_SIZE, length - ENC_PUBLIC_KEY_SIZE,
-                                   &public_announce->base_announce);
+    const int base_announce_size = gca_unpack_announce(log, data + ENC_PUBLIC_KEY_SIZE,
+                                   length - ENC_PUBLIC_KEY_SIZE, &public_announce->base_announce);
 
     if (base_announce_size == -1) {
         LOGGER_ERROR(log, "Failed to unpack group announce");
@@ -274,8 +279,8 @@ int gca_unpack_public_announce(const Logger *log, const uint8_t *data, uint16_t 
     return base_announce_size + CHAT_ID_SIZE;
 }
 
-int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, const GC_Announce *announces,
-                            uint8_t announces_count, size_t *processed)
+int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length,
+                            const GC_Announce *announces, uint8_t announces_count, size_t *processed)
 {
     if (data == nullptr) {
         LOGGER_ERROR(log, "data is null");
@@ -290,7 +295,8 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
     uint16_t offset = 0;
 
     for (size_t i = 0; i < announces_count; ++i) {
-        const int packed_length = gca_pack_announce(log, data + offset, length - offset, &announces[i]);
+        const int packed_length
+            = gca_pack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (packed_length < 0) {
             LOGGER_ERROR(log, "Failed to pack group announce");
@@ -307,8 +313,8 @@ int gca_pack_announces_list(const Logger *log, uint8_t *data, uint16_t length, c
     return announces_count;
 }
 
-int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length, GC_Announce *announces,
-                              uint8_t max_count)
+int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t length,
+                              GC_Announce *announces, uint8_t max_count)
 {
     if (data == nullptr) {
         LOGGER_ERROR(log, "data is null");
@@ -324,7 +330,8 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
     int announces_count = 0;
 
     for (size_t i = 0; i < max_count && length > offset; ++i) {
-        const int unpacked_length = gca_unpack_announce(log, data + offset, length - offset, &announces[i]);
+        const int unpacked_length
+            = gca_unpack_announce(log, data + offset, length - offset, &announces[i]);
 
         if (unpacked_length == -1) {
             LOGGER_WARNING(log, "Failed to unpack group announce: %d %d", length, offset);
@@ -340,7 +347,7 @@ int gca_unpack_announces_list(const Logger *log, const uint8_t *data, uint16_t l
 
 static GC_Announces *gca_new_announces(non_null() const Memory *mem, non_null() GC_Announces_List *gc_announces_list, non_null() const GC_Public_Announce *public_announce)
 {
-    GC_Announces *announces = (GC_Announces *)mem_alloc(mem, sizeof(GC_Announces));
+    GC_Announces *announces = (GC_Announces *)mem_alloc(gc_announces_list->mem, sizeof(GC_Announces));
 
     if (announces == nullptr) {
         return nullptr;
@@ -367,7 +374,8 @@ GC_Peer_Announce *gca_add_announce(const Memory *mem, const Mono_Time *mono_time
         return nullptr;
     }
 
-    GC_Announces *announces = get_announces_by_chat_id(gc_announces_list, public_announce->chat_public_key);
+    GC_Announces *announces
+        = get_announces_by_chat_id(gc_announces_list, public_announce->chat_public_key);
 
     // No entry for this chat_id exists so we create one
     if (announces == nullptr) {
@@ -446,7 +454,8 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
         return;
     }
 
-    if (!mono_time_is_timeout(mono_time, gc_announces_list->last_timeout_check, GCA_DO_GCA_TIMEOUT)) {
+    if (!mono_time_is_timeout(
+                mono_time, gc_announces_list->last_timeout_check, GCA_DO_GCA_TIMEOUT)) {
         return;
     }
 
@@ -455,7 +464,8 @@ void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
     GC_Announces *announces = gc_announces_list->root_announces;
 
     while (announces != nullptr) {
-        if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp, GCA_ANNOUNCE_SAVE_TIMEOUT)) {
+        if (mono_time_is_timeout(mono_time, announces->last_announce_received_timestamp,
+                                 GCA_ANNOUNCE_SAVE_TIMEOUT)) {
             GC_Announces *to_delete = announces;
             announces = announces->next_announce;
             remove_announces(gc_announces_list, to_delete);

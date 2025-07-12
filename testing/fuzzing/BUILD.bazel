@@ -12,7 +12,13 @@ cc_library(
     deps = [
         "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:network",
+        "//c-toxcore/toxcore:os_network",
         "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_memory",
+        "//c-toxcore/toxcore:tox_network",
+        "//c-toxcore/toxcore:tox_random",
+        "//c-toxcore/toxcore:tox_system",
+        "//c-toxcore/toxcore:tox_time",
     ],
 )
 

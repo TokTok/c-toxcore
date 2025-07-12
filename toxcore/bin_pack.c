@@ -11,8 +11,11 @@
 #include "attributes.h"
 #include "ccompat.h"
 #include "logger.h"
+#include "mem.h"
 
 struct Bin_Pack {
+    const Memory *mem;
+
     uint8_t *bytes;
     uint32_t bytes_size;
     uint32_t bytes_pos;
@@ -54,6 +57,7 @@ static size_t buf_writer(non_null() cmp_ctx_t *ctx, non_null() const void *data,
 
 static void bin_pack_init(non_null() Bin_Pack *bp, nullable() uint8_t *buf, uint32_t buf_size)
 {
+    bp->mem = nullptr;
     bp->bytes = buf;
     bp->bytes_size = buf_size;
     bp->bytes_pos = 0;

@@ -41,6 +41,9 @@
 #include "../../../toxcore/network.h"
 #include "../../../toxcore/onion.h"
 #include "../../../toxcore/onion_announce.h"
+#include "../../../toxcore/os_memory.h"
+#include "../../../toxcore/os_network.h"
+#include "../../../toxcore/os_random.h"
 
 // misc
 #include "../../bootstrap_node_packets.h"
@@ -321,7 +324,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    Mono_Time *const mono_time = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *const mono_time = mono_time_new(mem, nullptr);
 
     if (mono_time == nullptr) {
         log_write(LOG_LEVEL_ERROR, "Couldn't initialize monotonic timer. Exiting.\n");

@@ -3,10 +3,16 @@
 #include <gtest/gtest.h>
 
 #include "mem.h"
+#include "os_memory.h"
 
 namespace {
 
-TEST(List, CreateAndDestroyWithNonZeroSize)
+struct List : ::testing::Test {
+protected:
+    const Memory *mem_ = os_memory();
+};
+
+TEST_F(List, CreateAndDestroyWithNonZeroSize)
 {
     const Memory *mem = os_memory();
     BS_List list;
@@ -14,7 +20,7 @@ TEST(List, CreateAndDestroyWithNonZeroSize)
     bs_list_free(&list);
 }
 
-TEST(List, CreateAndDestroyWithZeroSize)
+TEST_F(List, CreateAndDestroyWithZeroSize)
 {
     const Memory *mem = os_memory();
     BS_List list;
@@ -22,7 +28,7 @@ TEST(List, CreateAndDestroyWithZeroSize)
     bs_list_free(&list);
 }
 
-TEST(List, DeleteFromEmptyList)
+TEST_F(List, DeleteFromEmptyList)
 {
     const Memory *mem = os_memory();
     BS_List list;

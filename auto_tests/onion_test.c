@@ -6,6 +6,9 @@
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
 #include "../toxcore/onion_client.h"
+#include "../toxcore/os_memory.h"
+#include "../toxcore/os_network.h"
+#include "../toxcore/os_random.h"
 #include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
@@ -233,8 +236,8 @@ static void test_basic(void)
     Logger *log2 = logger_new(mem);
     logger_callback_log(log2, print_debug_logger, nullptr, &index[1]);
 
-    Mono_Time *mono_time1 = mono_time_new(mem, nullptr, nullptr);
-    Mono_Time *mono_time2 = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time1 = mono_time_new(mem, nullptr);
+    Mono_Time *mono_time2 = mono_time_new(mem, nullptr);
 
     IP ip = get_loopback();
     Onion *onion1 = new_onion(log1, mem, mono_time1, rng, new_dht(log1, mem, rng, ns, mono_time1, new_networking(log1, mem, ns, &ip, 36567), true, false));
@@ -332,7 +335,7 @@ static void test_basic(void)
     Logger *log3 = logger_new(mem);
     logger_callback_log(log3, print_debug_logger, nullptr, &index[2]);
 
-    Mono_Time *mono_time3 = mono_time_new(mem, nullptr, nullptr);
+    Mono_Time *mono_time3 = mono_time_new(mem, nullptr);
 
     Onion *onion3 = new_onion(log3, mem, mono_time3, rng, new_dht(log3, mem, rng, ns, mono_time3, new_networking(log3, mem, ns, &ip, 36569), true, false));
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
@@ -422,7 +425,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
 
     logger_callback_log(on->log, print_debug_logger, nullptr, index);
 
-    on->mono_time = mono_time_new(mem, nullptr, nullptr);
+    on->mono_time = mono_time_new(mem, nullptr);
 
     if (!on->mono_time) {
         logger_kill(on->log);

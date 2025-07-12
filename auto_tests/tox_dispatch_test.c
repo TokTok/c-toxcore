@@ -4,14 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_dispatch.h"
 #include "../toxcore/tox_events.h"
 #include "../toxcore/tox_private.h"
-#include "../toxcore/tox_unpack.h"
+#include "../toxcore/tox_system.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 

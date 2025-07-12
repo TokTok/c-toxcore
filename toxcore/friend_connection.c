@@ -21,8 +21,8 @@
 #include "mono_time.h"
 #include "net_crypto.h"
 #include "network.h"
-#include "onion.h"
-#include "onion_announce.h"
+#include "onion.h"  // IWYU pragma: keep
+#include "onion_announce.h"  // IWYU pragma: keep
 #include "onion_client.h"
 #include "util.h"
 
@@ -119,7 +119,7 @@ static bool friendconn_id_valid(non_null() const Friend_Connections *fr_c, int f
 
 /** @brief Set the size of the friend connections list to num.
  *
- * @retval false if realloc fails.
+ * @retval false if mem_vrealloc fails.
  * @retval true if it succeeds.
  */
 static bool realloc_friendconns(non_null() Friend_Connections *fr_c, uint32_t num)
