@@ -1970,7 +1970,7 @@ static int handle_gc_sync_request(non_null() GC_Chat *chat, uint32_t peer_number
     }
 
     if (!mono_time_is_timeout(chat->mono_time, gconn->last_sync_response, GC_PING_TIMEOUT)) {
-        LOGGER_DEBUG(chat->log, "sync request rate limit for peer %d", peer_number);
+        LOGGER_DEBUG(chat->log, "sync request rate limit for peer %u", peer_number);
         return 0;
     }
 
@@ -5946,7 +5946,7 @@ bool handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer
     }
 
     if (ret < 0) {
-        LOGGER_DEBUG(chat->log, "Lossless packet handle error %d: type: 0x%02x, peernumber: %d",
+        LOGGER_DEBUG(chat->log, "Lossless packet handle error %d: type: 0x%02x, peernumber: %u",
                      ret, packet_type, peer_number);
         return false;
     }
@@ -6081,7 +6081,7 @@ static bool handle_gc_lossless_packet(non_null() const GC_Session *c, non_null()
 
     /* request missing packet */
     if (lossless_ret == 1) {
-        LOGGER_TRACE(chat->log, "received out of order packet from peer %u. expected %llu, got %llu", peer_number,
+        LOGGER_TRACE(chat->log, "received out of order packet from peer %d. expected %llu, got %llu", peer_number,
                      (unsigned long long)gconn->received_message_id + 1, (unsigned long long)message_id);
         mem_delete(chat->mem, data);
         return gc_send_message_ack(chat, gconn, gconn->received_message_id + 1, GR_ACK_REQ);
@@ -6236,13 +6236,13 @@ static int handle_gc_tcp_packet(non_null() void *object, int crypt_connection_id
 
     if (length <= MIN_TCP_PACKET_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_TCP_PACKET_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       (unsigned int)MIN_TCP_PACKET_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE));
         return -1;
     }
 
     if (length > MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_TCP_PACKET_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       (unsigned int)MIN_TCP_PACKET_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_TCP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE));
         return -1;
     }
 
@@ -6315,13 +6315,13 @@ static int handle_gc_tcp_oob_packet(non_null() void *object, non_null() const ui
 
     if (length <= GC_MIN_HS_PACKET_PAYLOAD_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
-                       GC_MIN_HS_PACKET_PAYLOAD_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE);
+                       (unsigned int)GC_MIN_HS_PACKET_PAYLOAD_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE));
         return -1;
     }
 
     if (length > MAX_GC_PACKET_INCOMING_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE) {
         LOGGER_WARNING(m->log, "Got tcp oob packet with invalid length: %u (expected %u to %u)", length,
-                       GC_MIN_HS_PACKET_PAYLOAD_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE);
+                       (unsigned int)GC_MIN_HS_PACKET_PAYLOAD_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + CRYPTO_MAC_SIZE + CRYPTO_NONCE_SIZE));
         return -1;
     }
 
@@ -6369,13 +6369,13 @@ static int handle_gc_udp_packet(non_null() void *object, non_null() const IP_Por
 
     if (length <= MIN_UDP_PACKET_SIZE) {
         LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_UDP_PACKET_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       (unsigned int)MIN_UDP_PACKET_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE));
         return -1;
     }
 
     if (length > MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE) {
         LOGGER_WARNING(m->log, "Got UDP packet with invalid length: %u (expected %u to %u)", length,
-                       MIN_UDP_PACKET_SIZE, MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE);
+                       (unsigned int)MIN_UDP_PACKET_SIZE, (unsigned int)(MAX_GC_PACKET_INCOMING_CHUNK_SIZE + MIN_UDP_PACKET_SIZE + ENC_PUBLIC_KEY_SIZE));
         return -1;
     }
 

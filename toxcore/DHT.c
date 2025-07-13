@@ -535,7 +535,7 @@ static void update_client(non_null() const Logger *log, non_null() const Mono_Ti
         Ip_Ntoa ip_str_from;
         Ip_Ntoa ip_str_to;
         LOGGER_TRACE(log, "coipil[%u]: switching ipv%d from %s:%u to %s:%u",
-                     index, ip_version,
+                     (unsigned int)index, ip_version,
                      net_ip_ntoa(&assoc->ip_port.ip, &ip_str_from),
                      net_ntohs(assoc->ip_port.port),
                      net_ip_ntoa(&ip_port->ip, &ip_str_to),
@@ -2494,7 +2494,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     DHT *const dht = (DHT *)mem_alloc(mem, sizeof(DHT));
 
     if (dht == nullptr) {
-        LOGGER_ERROR(log, "failed to allocate DHT struct (%ld bytes)", (unsigned long)sizeof(DHT));
+        LOGGER_ERROR(log, "failed to allocate DHT struct (%lu bytes)", (unsigned long)sizeof(DHT));
         return nullptr;
     }
 
@@ -2666,7 +2666,7 @@ void dht_save(const DHT *dht, uint8_t *data)
     Node_format *clients = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
     if (clients == nullptr) {
-        LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);
+        LOGGER_ERROR(dht->log, "could not allocate %u nodes", (unsigned int)MAX_SAVED_DHT_NODES);
         return;
     }
 
@@ -2762,7 +2762,7 @@ static State_Load_Status dht_load_state_callback(non_null() void *outer, non_nul
             Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
             if (nodes == nullptr) {
-                LOGGER_ERROR(dht->log, "could not allocate %u nodes", MAX_SAVED_DHT_NODES);
+                LOGGER_ERROR(dht->log, "could not allocate %u nodes", (unsigned int)MAX_SAVED_DHT_NODES);
                 dht->loaded_num_nodes = 0;
                 break;
             }

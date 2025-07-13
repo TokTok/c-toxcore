@@ -2052,7 +2052,7 @@ static bool onion_isconnected(non_null() Onion_Client *onion_c)
 
     if (mono_time_is_timeout(onion_c->mono_time, onion_c->last_packet_recv, ONION_OFFLINE_TIMEOUT)) {
         LOGGER_TRACE(onion_c->logger, "onion is NOT connected: last packet received at %llu (timeout=%u)",
-                     (unsigned long long)onion_c->last_packet_recv, ONION_OFFLINE_TIMEOUT);
+                     (unsigned long long)onion_c->last_packet_recv, (unsigned int)ONION_OFFLINE_TIMEOUT);
         onion_c->last_populated = 0;
         return false;
     }
@@ -2084,7 +2084,7 @@ static bool onion_isconnected(non_null() Onion_Client *onion_c)
     if (live != 0 && announced != 0) {
         if ((live / 2) <= announced && (pnodes / 2) <= live) {
             LOGGER_TRACE(onion_c->logger, "onion is connected: %u live nodes, %u announced, %d path nodes",
-                         live, announced, pnodes);
+                         live, announced, (int)pnodes);
             return true;
         }
     }
@@ -2092,7 +2092,7 @@ static bool onion_isconnected(non_null() Onion_Client *onion_c)
     onion_c->last_populated = 0;
 
     LOGGER_TRACE(onion_c->logger, "onion is NOT connected: %u live nodes, %u announced, %d path nodes",
-                 live, announced, pnodes);
+                 live, announced, (int)pnodes);
     return false;
 }
 

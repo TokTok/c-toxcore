@@ -1178,7 +1178,7 @@ Tox_Connection tox_self_get_connection_status(const Tox *tox)
             return TOX_CONNECTION_UDP;
     }
 
-    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+    LOGGER_FATAL(tox->m->log, "impossible return value: %u", ret);
     return TOX_CONNECTION_NONE;
 }
 

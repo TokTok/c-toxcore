@@ -1767,8 +1767,8 @@ static int handle_filecontrol(non_null() Messenger *m, int32_t friendnumber, boo
             uint64_t position;
 
             if (length != sizeof(position)) {
-                LOGGER_DEBUG(m->log, "file control (friend %d, file %d): expected payload of length %d, but got %d",
-                             friendnumber, filenumber, (uint32_t)sizeof(position), length);
+                LOGGER_DEBUG(m->log, "file control (friend %d, file %d): expected payload of length %u, but got %d",
+                             friendnumber, filenumber, (unsigned int)sizeof(position), length);
                 return -1;
             }
 
@@ -1784,7 +1784,7 @@ static int handle_filecontrol(non_null() Messenger *m, int32_t friendnumber, boo
 
             if (position >= ft->size) {
                 LOGGER_DEBUG(m->log,
-                             "file control (friend %d, file %d): seek position %ld exceeds file size %ld",
+                             "file control (friend %d, file %d): seek position %lu exceeds file size %lu",
                              friendnumber, filenumber, (unsigned long)position, (unsigned long)ft->size);
                 return -1;
             }
@@ -2467,7 +2467,7 @@ static bool self_announce_group(non_null() const Messenger *m, non_null() GC_Cha
         memzero(chat->announced_tcp_relay_pk, sizeof(chat->announced_tcp_relay_pk));
     }
 
-    LOGGER_DEBUG(chat->log, "Published group announce. TCP relays: %d, UDP status: %d", tcp_num,
+    LOGGER_DEBUG(chat->log, "Published group announce. TCP relays: %d, UDP status: %u", tcp_num,
                  chat->self_udp_status);
     return true;
 }
@@ -2603,7 +2603,7 @@ void do_messenger(Messenger *m, void *userdata)
 
             if (msgfptr != nullptr) {
                 char id_str[IDSTRING_LEN];
-                LOGGER_TRACE(m->log, "F[%2u:%2u] <%s> %s",
+                LOGGER_TRACE(m->log, "F[%2d:%2u] <%s> %s",
                              dht2m[friend_idx], friend_idx, msgfptr->name,
                              id_to_string(msgfptr->real_pk, id_str, sizeof(id_str)));
             } else {

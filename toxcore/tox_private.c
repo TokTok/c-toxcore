@@ -269,7 +269,7 @@ uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type
         }
 
         default: {
-            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %u", type);
             break;
         }
     }
@@ -318,7 +318,7 @@ uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_T
         }
 
         default: {
-            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %u", type);
             break;
         }
     }
@@ -367,7 +367,7 @@ uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type
         }
 
         default: {
-            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %u", type);
             break;
         }
     }
@@ -416,7 +416,7 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
         }
 
         default: {
-            LOGGER_ERROR(tox->m->log, "invalid packet type: %d", type);
+            LOGGER_ERROR(tox->m->log, "invalid packet type: %u", type);
             break;
         }
     }

@@ -317,13 +317,13 @@ static int handle_send_initial(non_null() void *object, non_null() const IP_Port
 
     if (length > ONION_MAX_PACKET_SIZE) {
         LOGGER_TRACE(onion->log, "invalid initial onion packet length: %u (max: %u)",
-                     length, ONION_MAX_PACKET_SIZE);
+                     length, (unsigned int)ONION_MAX_PACKET_SIZE);
         return 1;
     }
 
     if (length <= 1 + SEND_1) {
         LOGGER_TRACE(onion->log, "initial onion packet cannot contain SEND_1 packet: %u <= %u",
-                     length, 1 + SEND_1);
+                     length, (unsigned int)(1 + SEND_1));
         return 1;
     }
 

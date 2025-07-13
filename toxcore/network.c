@@ -859,21 +859,21 @@ static void loglogdata(non_null() const Logger *log, non_null() const char *mess
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(buflen, 999), 'E',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error,
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)error,
                      net_strerror(error, &error_str), data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
         Ip_Ntoa ip_str;
         LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     } else { /* empty or overwrite */
         Ip_Ntoa ip_str;
         LOGGER_TRACE(log, "[%02x = %-21s] %s %lu%c%u %s:%u (%u: %s) | %08x%08x...%02x",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
-                     res, res == 0 ? '!' : '>', buflen,
-                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
+                     (unsigned long)res, res == 0 ? '!' : '>', buflen,
+                     net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), (unsigned int)0, "OK",
                      data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
     }
 }
@@ -1109,7 +1109,7 @@ static int receivepacket(non_null() const Network *ns, non_null() const Logger *
 
         if (!should_ignore_recv_error(error)) {
             Net_Strerror error_str;
-            LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", error, net_strerror(error, &error_str));
+            LOGGER_ERROR(log, "unexpected error reading from socket: %u, %s", (unsigned int)error, net_strerror(error, &error_str));
         }
 
         return -1; /* Nothing received. */

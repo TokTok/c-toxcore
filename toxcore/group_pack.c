@@ -160,7 +160,7 @@ static bool load_unpack_mod_list(non_null() GC_Chat *chat, non_null() Bin_Unpack
 {
     uint32_t actual_size = 0;
     if (!bin_unpack_array_fixed(bu, 2, &actual_size)) {
-        LOGGER_ERROR(chat->log, "Group mod list array malformed: %d != 2", actual_size);
+        LOGGER_ERROR(chat->log, "Group mod list array malformed: %u != 2", actual_size);
         return false;
     }
 
@@ -175,7 +175,7 @@ static bool load_unpack_mod_list(non_null() GC_Chat *chat, non_null() Bin_Unpack
     }
 
     if (chat->moderation.num_mods > MOD_MAX_NUM_MODERATORS) {
-        LOGGER_ERROR(chat->log, "moderation count %u exceeds maximum %u", chat->moderation.num_mods, MOD_MAX_NUM_MODERATORS);
+        LOGGER_ERROR(chat->log, "moderation count %u exceeds maximum %u", chat->moderation.num_mods, (unsigned int)MOD_MAX_NUM_MODERATORS);
         chat->moderation.num_mods = MOD_MAX_NUM_MODERATORS;
     }
 
@@ -321,7 +321,7 @@ bool gc_load_unpack_group(GC_Chat *chat, Bin_Unpack *bu)
 {
     uint32_t actual_size;
     if (!bin_unpack_array_fixed(bu, 7, &actual_size)) {
-        LOGGER_ERROR(chat->log, "Group info array malformed: %d != 7", actual_size);
+        LOGGER_ERROR(chat->log, "Group info array malformed: %u != 7", actual_size);
         return false;
     }
 

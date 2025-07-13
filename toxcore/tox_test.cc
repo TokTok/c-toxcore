@@ -87,7 +87,7 @@ TEST(Tox, OneTest)
     tox_options_set_log_callback(options,
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
-            fprintf(stderr, "[%c] %s:%d(%s): %s\n", tox_log_level_to_string(level)[0], file, line,
+            fprintf(stderr, "[%c] %s:%u(%s): %s\n", tox_log_level_to_string(level)[0], file, line,
                 func, message);
         });
 
