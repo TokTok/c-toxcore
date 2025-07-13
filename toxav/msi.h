@@ -64,7 +64,7 @@ typedef enum MSICallbackID {
  * The call struct. Please do not modify outside msi.c
  */
 typedef struct MSICall {
-    struct MSISession *session;           /* Session pointer */
+    struct MSISession *_Nonnull session;           /* Session pointer */
 
     MSICallState         state;
     uint8_t              peer_capabilities; /* Peer capabilities */
@@ -73,10 +73,10 @@ typedef struct MSICall {
     uint32_t             friend_number;     /* Index of this call in MSISession */
     MSIError             error;             /* Last error */
 
-    void                *user_data;         /* Pointer to av call handler */
+    void                *_Nullable user_data;         /* Pointer to av call handler */
 
-    struct MSICall       *next;
-    struct MSICall       *prev;
+    struct MSICall       *_Nullable next;
+    struct MSICall       *_Nullable prev;
 } MSICall;
 
 /**
@@ -84,14 +84,14 @@ typedef struct MSICall {
  * returned the call is considered errored and will be handled
  * as such which means it will be terminated without any notice.
  */
-typedef int msi_action_cb(void *object, MSICall *call);
+typedef int msi_action_cb(void *_Nullable object, MSICall *_Nonnull call);
 
 /**
  * Send packet callback.
  *
  * @return 0 on success, -1 on failure.
  */
-typedef int msi_send_packet_cb(void *user_data, uint32_t friend_number, const uint8_t *data, size_t length);
+typedef int msi_send_packet_cb(void *_Nullable user_data, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length);
 
 /**
  * MSI callbacks.
@@ -110,14 +110,14 @@ typedef struct MSICallbacks {
  */
 typedef struct MSISession {
     /* Call handlers */
-    MSICall       **calls;
+    MSICall       *_Nullable *_Nullable calls;
     uint32_t        calls_tail;
     uint32_t        calls_head;
 
-    void           *user_data;
+    void           *_Nullable user_data;
 
-    msi_send_packet_cb *send_packet;
-    void               *send_packet_user_data;
+    msi_send_packet_cb *_Nonnull send_packet;
+    void               *_Nullable send_packet_user_data;
 
     pthread_mutex_t mutex[1];
 

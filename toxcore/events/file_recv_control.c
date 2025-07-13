@@ -121,7 +121,7 @@ Tox_Event_File_Recv_Control *tox_event_file_recv_control_new(const Memory *mem)
 void tox_event_file_recv_control_free(Tox_Event_File_Recv_Control *file_recv_control, const Memory *mem)
 {
     if (file_recv_control != nullptr) {
-        tox_event_file_recv_control_destruct(file_recv_control, mem);
+        tox_event_file_recv_control_destruct((Tox_Event_File_Recv_Control * _Nonnull)file_recv_control, mem);
     }
     mem_delete(mem, file_recv_control);
 }

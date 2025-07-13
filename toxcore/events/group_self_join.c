@@ -86,7 +86,7 @@ Tox_Event_Group_Self_Join *tox_event_group_self_join_new(const Memory *mem)
 void tox_event_group_self_join_free(Tox_Event_Group_Self_Join *group_self_join, const Memory *mem)
 {
     if (group_self_join != nullptr) {
-        tox_event_group_self_join_destruct(group_self_join, mem);
+        tox_event_group_self_join_destruct((Tox_Event_Group_Self_Join * _Nonnull)group_self_join, mem);
     }
     mem_delete(mem, group_self_join);
 }

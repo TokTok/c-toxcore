@@ -58,7 +58,7 @@ struct BWCMessage {
     uint32_t recv;
 };
 
-static void send_update(BWController *bwc);
+static void send_update(BWController *_Nonnull bwc);
 
 
 BWController *bwc_new(const Logger *log, uint32_t friendnumber,
@@ -163,7 +163,7 @@ static void send_update(BWController *bwc)
     }
 }
 
-static int on_update(BWController *bwc, const struct BWCMessage *msg)
+static int on_update(BWController *_Nonnull bwc, const struct BWCMessage *_Nonnull msg)
 {
     LOGGER_DEBUG(bwc->log, "%p Got update from peer", (void *)bwc);
 

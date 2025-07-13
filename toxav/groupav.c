@@ -31,7 +31,7 @@ typedef struct Group_JitterBuffer {
     uint64_t last_queued_time;
 } Group_JitterBuffer;
 
-static void free_audio_packet(Group_Audio_Packet *pk)
+static void free_audio_packet(Group_Audio_Packet *_Nullable pk)
 {
     if (pk == nullptr) {
         return;
@@ -41,7 +41,7 @@ static void free_audio_packet(Group_Audio_Packet *pk)
     free(pk);
 }
 
-static Group_JitterBuffer *create_queue(unsigned int capacity)
+static Group_JitterBuffer *_Nullable create_queue(unsigned int capacity)
 {
     unsigned int size = 1;
 
@@ -67,7 +67,7 @@ static Group_JitterBuffer *create_queue(unsigned int capacity)
     return q;
 }
 
-static void clear_queue(Group_JitterBuffer *q)
+static void clear_queue(Group_JitterBuffer *_Nonnull q)
 {
     while (q->bottom != q->top) {
         const size_t idx = q->bottom % q->size;
@@ -77,7 +77,7 @@ static void clear_queue(Group_JitterBuffer *q)
     }
 }
 
-static void terminate_queue(Group_JitterBuffer *q)
+static void terminate_queue(Group_JitterBuffer *_Nullable q)
 {
     if (q == nullptr) {
         return;
@@ -91,7 +91,7 @@ static void terminate_queue(Group_JitterBuffer *q)
 /** @retval 0 if packet was queued
  * @retval -1 if it wasn't.
  */
-static int queue(Group_JitterBuffer *q, const Mono_Time *mono_time, Group_Audio_Packet *pk)
+static int queue(Group_JitterBuffer *_Nonnull q, const Mono_Time *_Nonnull mono_time, Group_Audio_Packet *_Nonnull pk)
 {
     const uint16_t sequnum = pk->sequnum;
 
@@ -133,7 +133,7 @@ static int queue(Group_JitterBuffer *q, const Mono_Time *mono_time, Group_Audio_
  * - 1 when there's a good packet
  * - 2 when there's a lost packet
  */
-static Group_Audio_Packet *dequeue(Group_JitterBuffer *q, int *success)
+static Group_Audio_Packet *_Nullable dequeue(Group_JitterBuffer *_Nonnull q, int *_Nonnull success)
 {
     if (q->top == q->bottom) {
         *success = 0;
@@ -185,7 +185,7 @@ typedef struct Group_Peer_AV {
     unsigned int last_packet_samples;
 } Group_Peer_AV;
 
-static void kill_group_av(Group_AV *group_av)
+static void kill_group_av(Group_AV *_Nonnull group_av)
 {
     if (group_av->audio_encoder != nullptr) {
         opus_encoder_destroy(group_av->audio_encoder);
@@ -194,7 +194,7 @@ static void kill_group_av(Group_AV *group_av)
     free(group_av);
 }
 
-static int recreate_encoder(Group_AV *group_av)
+static int recreate_encoder(Group_AV *_Nonnull group_av)
 {
     if (group_av->audio_encoder != nullptr) {
         opus_encoder_destroy(group_av->audio_encoder);
@@ -232,8 +232,8 @@ static int recreate_encoder(Group_AV *group_av)
     return 0;
 }
 
-static Group_AV *new_group_av(const Logger *log, Tox *tox, Group_Chats *g_c, audio_data_cb *audio_callback,
-                              void *userdata)
+static Group_AV *_Nullable new_group_av(const Logger *_Nonnull log, Tox *_Nonnull tox, Group_Chats *_Nonnull g_c, audio_data_cb *_Nullable audio_callback,
+                                        void *_Nullable userdata)
 {
     if (g_c == nullptr) {
         return nullptr;
@@ -255,7 +255,7 @@ static Group_AV *new_group_av(const Logger *log, Tox *tox, Group_Chats *g_c, aud
     return group_av;
 }
 
-static void group_av_peer_new(void *object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number)
+static void group_av_peer_new(void *_Nonnull object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number)
 {
     const Group_AV *group_av = (const Group_AV *)object;
     Group_Peer_AV *peer_av = (Group_Peer_AV *)calloc(1, sizeof(Group_Peer_AV));
@@ -272,7 +272,7 @@ static void group_av_peer_new(void *object, Tox_Conference_Number conference_num
     }
 }
 
-static void group_av_peer_delete(void *object, Tox_Conference_Number conference_number, void *peer_object)
+static void group_av_peer_delete(void *_Nullable object, Tox_Conference_Number conference_number, void *_Nullable peer_object)
 {
     Group_Peer_AV *peer_av = (Group_Peer_AV *)peer_object;
 
@@ -288,7 +288,7 @@ static void group_av_peer_delete(void *object, Tox_Conference_Number conference_
     free(peer_object);
 }
 
-static void group_av_groupchat_delete(void *object, Tox_Conference_Number conference_number)
+static void group_av_groupchat_delete(void *_Nullable object, Tox_Conference_Number conference_number)
 {
     Group_AV *group_av = (Group_AV *)object;
     if (group_av != nullptr) {
@@ -296,7 +296,7 @@ static void group_av_groupchat_delete(void *object, Tox_Conference_Number confer
     }
 }
 
-static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, Tox_Conference_Number conference_number,
+static int decode_audio_packet(Group_AV *_Nonnull group_av, Group_Peer_AV *_Nonnull peer_av, Tox_Conference_Number conference_number,
                                Tox_Conference_Peer_Number peer_number)
 {
     if (group_av == nullptr || peer_av == nullptr) {
@@ -402,8 +402,8 @@ static int decode_audio_packet(Group_AV *group_av, Group_Peer_AV *peer_av, Tox_C
     return -1;
 }
 
-static int handle_group_audio_packet(void *object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, void *peer_object,
-                                     const uint8_t *packet, uint16_t length)
+static int handle_group_audio_packet(void *_Nonnull object, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, void *_Nonnull peer_object,
+                                     const uint8_t *_Nonnull packet, uint16_t length)
 {
     Group_AV *group_av = (Group_AV *)object;
     Group_Peer_AV *peer_av = (Group_Peer_AV *)peer_object;
@@ -579,7 +579,7 @@ int join_av_groupchat(const Logger *log, Tox *tox, Group_Chats *g_c, Tox_Friend_
  * @retval 0 on success.
  * @retval -1 on failure.
  */
-static int send_audio_packet(const Group_Chats *g_c, Tox_Conference_Number conference_number, const uint8_t *packet, uint16_t length)
+static int send_audio_packet(const Group_Chats *_Nonnull g_c, Tox_Conference_Number conference_number, const uint8_t *_Nonnull packet, uint16_t length)
 {
     if (length == 0 || length > MAX_CRYPTO_DATA_SIZE - 1 - sizeof(uint16_t)) {
         return -1;

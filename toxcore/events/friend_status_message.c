@@ -134,7 +134,7 @@ Tox_Event_Friend_Status_Message *tox_event_friend_status_message_new(const Memor
 void tox_event_friend_status_message_free(Tox_Event_Friend_Status_Message *friend_status_message, const Memory *mem)
 {
     if (friend_status_message != nullptr) {
-        tox_event_friend_status_message_destruct(friend_status_message, mem);
+        tox_event_friend_status_message_destruct((Tox_Event_Friend_Status_Message * _Nonnull)friend_status_message, mem);
     }
     mem_delete(mem, friend_status_message);
 }

@@ -55,20 +55,20 @@ typedef struct Onion_Announce_Entry {
 } Onion_Announce_Entry;
 
 struct Onion_Announce {
-    const Logger *log;
-    const Mono_Time *mono_time;
-    const Random *rng;
-    const Memory *mem;
-    DHT     *dht;
-    Networking_Core *net;
+    const Logger *_Nonnull log;
+    const Mono_Time *_Nonnull mono_time;
+    const Random *_Nonnull rng;
+    const Memory *_Nonnull mem;
+    DHT *_Nonnull dht;
+    Networking_Core *_Nonnull net;
     Onion_Announce_Entry entries[ONION_ANNOUNCE_MAX_ENTRIES];
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
-    Shared_Key_Cache *shared_keys_recv;
+    Shared_Key_Cache *_Nonnull shared_keys_recv;
 
     uint16_t extra_data_max_size;
-    pack_extra_data_cb *extra_data_callback;
-    void *extra_data_object;
+    pack_extra_data_cb *_Nullable extra_data_callback;
+    void *_Nullable extra_data_object;
 };
 
 void onion_announce_extra_data_callback(Onion_Announce *onion_a, uint16_t extra_data_max_size,
@@ -693,6 +693,13 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
         return nullptr;
     }
 
+    Shared_Key_Cache *const shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht_get_self_secret_key(dht), KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    if (shared_keys_recv == nullptr) {
+        mem_delete(mem, onion_a);
+        return nullptr;
+    }
+    onion_a->shared_keys_recv = shared_keys_recv;
+
     onion_a->log = log;
     onion_a->rng = rng;
     onion_a->mem = mem;
@@ -703,13 +710,6 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
     onion_a->extra_data_callback = nullptr;
     onion_a->extra_data_object = nullptr;
     new_hmac_key(rng, onion_a->hmac_key);
-
-    onion_a->shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht_get_self_secret_key(dht), KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    if (onion_a->shared_keys_recv == nullptr) {
-        // cppcheck-suppress mismatchAllocDealloc
-        kill_onion_announce(onion_a);
-        return nullptr;
-    }
 
     networking_registerhandler(onion_a->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_announce_request, onion_a);
     networking_registerhandler(onion_a->net, NET_PACKET_ANNOUNCE_REQUEST_OLD, &handle_announce_request_old, onion_a);

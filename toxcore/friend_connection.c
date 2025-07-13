@@ -29,11 +29,11 @@
 #define PORTS_PER_DISCOVERY 10
 
 typedef struct Friend_Conn_Callbacks {
-    fc_status_cb *status_callback;
-    fc_data_cb *data_callback;
-    fc_lossy_data_cb *lossy_data_callback;
+    fc_status_cb *_Nullable status_callback;
+    fc_data_cb *_Nullable data_callback;
+    fc_lossy_data_cb *_Nullable lossy_data_callback;
 
-    void *callback_object;
+    void *_Nullable callback_object;
     int callback_id;
 } Friend_Conn_Callbacks;
 
@@ -68,23 +68,23 @@ struct Friend_Conn {
 static const Friend_Conn empty_friend_conn = {0};
 
 struct Friend_Connections {
-    const Mono_Time *mono_time;
-    const Memory *mem;
-    const Logger *logger;
-    Networking_Core *net;
-    Net_Crypto *net_crypto;
-    DHT *dht;
-    Broadcast_Info *broadcast;
-    Onion_Client *onion_c;
+    const Mono_Time *_Nonnull mono_time;
+    const Memory *_Nonnull mem;
+    const Logger *_Nonnull logger;
+    Networking_Core *_Nonnull net;
+    Net_Crypto *_Nonnull net_crypto;
+    DHT *_Nonnull dht;
+    Broadcast_Info *_Nullable broadcast;
+    Onion_Client *_Nonnull onion_c;
 
-    Friend_Conn *conns;
+    Friend_Conn *_Nullable conns;
     uint32_t num_cons;
 
-    fr_request_cb *fr_request_callback;
-    void *fr_request_object;
+    fr_request_cb *_Nullable fr_request_callback;
+    void *_Nullable fr_request_object;
 
-    global_status_cb *global_status_callback;
-    void *global_status_callback_object;
+    global_status_cb *_Nullable global_status_callback;
+    void *_Nullable global_status_callback_object;
 
     uint64_t last_lan_discovery;
     uint16_t next_lan_port;
@@ -387,7 +387,7 @@ static void change_dht_pk(Friend_Connections *_Nonnull fr_c, int friendcon_id, c
     memcpy(friend_con->dht_temp_pk, dht_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 }
 
-static int handle_status(void *_Nonnull object, int id, bool status, void *_Nonnull userdata)
+static int handle_status(void *_Nonnull object, int id, bool status, void *_Nullable userdata)
 {
     Friend_Connections *const fr_c = (Friend_Connections *)object;
     Friend_Conn *const friend_con = get_conn(fr_c, id);
@@ -434,7 +434,7 @@ static int handle_status(void *_Nonnull object, int id, bool status, void *_Nonn
 }
 
 /** Callback for dht public key changes. */
-static void dht_pk_callback(void *_Nonnull object, int32_t number, const uint8_t *_Nonnull dht_public_key, void *_Nonnull userdata)
+static void dht_pk_callback(void *_Nonnull object, int32_t number, const uint8_t *_Nonnull dht_public_key, void *_Nullable userdata)
 {
     Friend_Connections *const fr_c = (Friend_Connections *)object;
     Friend_Conn *const friend_con = get_conn(fr_c, number);
@@ -940,6 +940,9 @@ Friend_Connections *new_friend_connections(
 static void lan_discovery(Friend_Connections *_Nonnull fr_c)
 {
     if (fr_c->last_lan_discovery + LAN_DISCOVERY_INTERVAL < mono_time_get(fr_c->mono_time)) {
+        if (fr_c->broadcast == nullptr) {
+            return;
+        }
         const uint16_t first = fr_c->next_lan_port;
         uint16_t last = first + PORTS_PER_DISCOVERY;
         last = last > TOX_PORTRANGE_TO ? TOX_PORTRANGE_TO : last;

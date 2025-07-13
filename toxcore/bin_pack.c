@@ -13,7 +13,7 @@
 #include "logger.h"
 
 struct Bin_Pack {
-    uint8_t *bytes;
+    uint8_t *_Nullable bytes;
     uint32_t bytes_size;
     uint32_t bytes_pos;
     cmp_ctx_t ctx;

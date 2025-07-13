@@ -669,6 +669,10 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         return nullptr;
     }
 
+    const Random *const rng = sys->rng;
+    const Network *const ns = sys->ns;
+    const Memory *const mem = sys->mem;
+
     Messenger_Options m_options = {false};
 
     m_options.dns_enabled = !tox_options_get_experimental_disable_dns(opts);
@@ -722,7 +726,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         m_options.local_discovery_enabled = false;
     }
 
-    Tox *tox = (Tox *)mem_alloc(sys->mem, sizeof(Tox));
+    Tox *tox = (Tox *)mem_alloc(mem, sizeof(Tox));
 
     if (tox == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
@@ -753,7 +757,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
 
         default: {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_TYPE);
-            mem_delete(sys->mem, tox);
+            mem_delete(mem, tox);
             tox_options_free(default_options);
             return nullptr;
         }
@@ -764,7 +768,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
-            mem_delete(sys->mem, tox);
+            mem_delete(mem, tox);
             tox_options_free(default_options);
             return nullptr;
         }
@@ -779,10 +783,10 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         const bool dns_enabled = !tox_options_get_experimental_disable_dns(opts);
 
         if (proxy_host == nullptr
-                || !addr_resolve_or_parse_ip(tox->sys.ns, tox->sys.mem, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr, dns_enabled)) {
+                || !addr_resolve_or_parse_ip(ns, mem, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr, dns_enabled)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
-            mem_delete(sys->mem, tox);
+            mem_delete(mem, tox);
             tox_options_free(default_options);
             return nullptr;
         }
@@ -790,21 +794,22 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         m_options.proxy_info.ip_port.port = net_htons(tox_options_get_proxy_port(opts));
     }
 
-    tox->mono_time = mono_time_new(tox->sys.mem, sys->mono_time_callback, sys->mono_time_user_data);
+    Mono_Time *temp_mono_time = mono_time_new(mem, sys->mono_time_callback, sys->mono_time_user_data);
 
-    if (tox->mono_time == nullptr) {
+    if (temp_mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-        mem_delete(sys->mem, tox);
+        mem_delete(mem, tox);
         tox_options_free(default_options);
         return nullptr;
     }
+    tox->mono_time = temp_mono_time;
 
     if (tox_options_get_experimental_thread_safety(opts)) {
-        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(sys->mem, sizeof(pthread_mutex_t));
+        pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(mem, sizeof(pthread_mutex_t));
 
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
-            mem_delete(sys->mem, tox);
+            mem_delete(mem, tox);
             tox_options_free(default_options);
             return nullptr;
         }
@@ -819,9 +824,9 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
     tox_lock(tox);
 
     Messenger_Error m_error;
-    tox->m = new_messenger(tox->mono_time, tox->sys.mem, tox->sys.rng, tox->sys.ns, &m_options, &m_error);
+    Messenger *temp_m = new_messenger(tox->mono_time, mem, rng, ns, &m_options, &m_error);
 
-    if (tox->m == nullptr) {
+    if (temp_m == nullptr) {
         switch (m_error) {
             case MESSENGER_ERROR_PORT:
             case MESSENGER_ERROR_TCP_SERVER: {
@@ -835,33 +840,34 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
             }
         }
 
-        mono_time_free(tox->sys.mem, tox->mono_time);
+        mono_time_free(mem, tox->mono_time);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
             pthread_mutex_destroy(tox->mutex);
         }
 
-        mem_delete(sys->mem, tox->mutex);
-        mem_delete(sys->mem, tox);
+        mem_delete(mem, tox->mutex);
+        mem_delete(mem, tox);
         tox_options_free(default_options);
         return nullptr;
     }
+    tox->m = temp_m;
 
-    tox->m->conferences_object = new_groupchats(tox->mono_time, sys->mem, tox->m);
+    tox->m->conferences_object = new_groupchats(tox->mono_time, mem, tox->m);
 
     if (tox->m->conferences_object == nullptr) {
         kill_messenger(tox->m);
 
-        mono_time_free(tox->sys.mem, tox->mono_time);
+        mono_time_free(mem, tox->mono_time);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
             pthread_mutex_destroy(tox->mutex);
         }
 
-        mem_delete(sys->mem, tox->mutex);
-        mem_delete(sys->mem, tox);
+        mem_delete(mem, tox->mutex);
+        mem_delete(mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
         tox_options_free(default_options);
@@ -873,15 +879,15 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         kill_groupchats(tox->m->conferences_object);
         kill_messenger(tox->m);
 
-        mono_time_free(tox->sys.mem, tox->mono_time);
+        mono_time_free(mem, tox->mono_time);
         tox_unlock(tox);
 
         if (tox->mutex != nullptr) {
             pthread_mutex_destroy(tox->mutex);
         }
 
-        mem_delete(sys->mem, tox->mutex);
-        mem_delete(sys->mem, tox);
+        mem_delete(mem, tox->mutex);
+        mem_delete(mem, tox);
 
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_LOAD_BAD_FORMAT);
         tox_options_free(default_options);
@@ -4641,7 +4647,7 @@ bool tox_group_kick_peer(const Tox *tox, uint32_t group_number, uint32_t peer_id
     return false;
 }
 
-const Tox_System *tox_get_system(Tox *tox)
+const Tox_System *tox_get_system(const Tox *tox)
 {
     assert(tox != nullptr);
     return &tox->sys;

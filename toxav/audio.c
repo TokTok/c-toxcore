@@ -48,16 +48,16 @@ struct ACSession {
 };
 
 
-static struct JitterBuffer *jbuf_new(uint32_t capacity);
-static void jbuf_clear(struct JitterBuffer *q);
-static void jbuf_free(struct JitterBuffer *q);
-static int jbuf_write(const Logger *log, struct JitterBuffer *q, struct RTPMessage *m);
-static struct RTPMessage *jbuf_read(struct JitterBuffer *q, int32_t *success);
-static OpusEncoder *create_audio_encoder(const Logger *log, uint32_t bit_rate, uint32_t sampling_rate,
+static struct JitterBuffer *_Nullable jbuf_new(uint32_t capacity);
+static void jbuf_clear(struct JitterBuffer *_Nonnull q);
+static void jbuf_free(struct JitterBuffer *_Nullable q);
+static int jbuf_write(const Logger *_Nonnull log, struct JitterBuffer *_Nonnull q, struct RTPMessage *_Nonnull m);
+static struct RTPMessage *_Nullable jbuf_read(struct JitterBuffer *_Nonnull q, int32_t *_Nonnull success);
+static OpusEncoder *_Nullable create_audio_encoder(const Logger *_Nonnull log, uint32_t bit_rate, uint32_t sampling_rate,
         uint8_t channel_count);
-static bool reconfigure_audio_encoder(const Logger *log, OpusEncoder **e, uint32_t new_br, uint32_t new_sr,
-                                      uint8_t new_ch, uint32_t *old_br, uint32_t *old_sr, uint8_t *old_ch);
-static bool reconfigure_audio_decoder(ACSession *ac, uint32_t sampling_rate, uint8_t channels);
+static bool reconfigure_audio_encoder(const Logger *_Nonnull log, OpusEncoder *_Nonnull *_Nonnull e, uint32_t new_br, uint32_t new_sr,
+                                      uint8_t new_ch, uint32_t *_Nonnull old_br, uint32_t *_Nonnull old_sr, uint8_t *_Nonnull old_ch);
+static bool reconfigure_audio_decoder(ACSession *_Nonnull ac, uint32_t sampling_rate, uint8_t channels);
 
 
 

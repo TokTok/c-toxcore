@@ -150,7 +150,7 @@ Tox_Event_Friend_Message *tox_event_friend_message_new(const Memory *mem)
 void tox_event_friend_message_free(Tox_Event_Friend_Message *friend_message, const Memory *mem)
 {
     if (friend_message != nullptr) {
-        tox_event_friend_message_destruct(friend_message, mem);
+        tox_event_friend_message_destruct((Tox_Event_Friend_Message * _Nonnull)friend_message, mem);
     }
     mem_delete(mem, friend_message);
 }

@@ -35,23 +35,23 @@ extern "C" {
 #define AUDIO_MAX_BUFFER_SIZE_PCM16 ((AUDIO_MAX_SAMPLE_RATE * AUDIO_MAX_FRAME_DURATION_MS) / 1000)
 #define AUDIO_MAX_BUFFER_SIZE_BYTES (AUDIO_MAX_BUFFER_SIZE_PCM16 * 2)
 
-typedef void ac_audio_receive_frame_cb(uint32_t friend_number, const int16_t *pcm, size_t sample_count,
-                                       uint8_t channels, uint32_t sampling_rate, void *user_data);
+typedef void ac_audio_receive_frame_cb(uint32_t friend_number, const int16_t *_Nonnull pcm, size_t sample_count,
+                                       uint8_t channels, uint32_t sampling_rate, void *_Nullable user_data);
 
 typedef struct ACSession ACSession;
 
 struct RTPMessage;
 
-ACSession *ac_new(Mono_Time *mono_time, const Logger *log, uint32_t friend_number,
-                  ac_audio_receive_frame_cb *cb, void *user_data);
-void ac_kill(ACSession *ac);
-void ac_iterate(ACSession *ac);
-int ac_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg);
-int ac_reconfigure_encoder(ACSession *ac, uint32_t bit_rate, uint32_t sampling_rate, uint8_t channels);
+ACSession *_Nullable ac_new(Mono_Time *_Nonnull mono_time, const Logger *_Nonnull log, uint32_t friend_number,
+                            ac_audio_receive_frame_cb *_Nullable cb, void *_Nullable user_data);
+void ac_kill(ACSession *_Nullable ac);
+void ac_iterate(ACSession *_Nullable ac);
+int ac_queue_message(const Mono_Time *_Nonnull mono_time, void *_Nullable cs, struct RTPMessage *_Nullable msg);
+int ac_reconfigure_encoder(ACSession *_Nullable ac, uint32_t bit_rate, uint32_t sampling_rate, uint8_t channels);
 
-uint32_t ac_get_lp_frame_duration(const ACSession *ac);
+uint32_t ac_get_lp_frame_duration(const ACSession *_Nonnull ac);
 
-int ac_encode(ACSession *ac, const int16_t *pcm, size_t sample_count, uint8_t *dest, size_t dest_max);
+int ac_encode(ACSession *_Nonnull ac, const int16_t *_Nonnull pcm, size_t sample_count, uint8_t *_Nonnull dest, size_t dest_max);
 
 #ifdef __cplusplus
 } /* extern "C" */

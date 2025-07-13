@@ -54,19 +54,19 @@ typedef struct MSIMessage {
     MSIHeaderCapabilities capabilities;
 } MSIMessage;
 
-static void msg_init(MSIMessage *dest, MSIRequest request);
-static void kill_call(const Logger *log, MSICall *call);
-static int msg_parse_in(const Logger *log, MSIMessage *dest, const uint8_t *data, uint16_t length);
-static uint8_t *msg_parse_header_out(MSIHeaderID id, uint8_t *dest, const uint8_t *value, uint8_t value_len,
-                                     uint16_t *length);
-static int send_message(const Logger *log, MSISession *session, uint32_t friend_number, const MSIMessage *msg);
-static int send_error(const Logger *log, MSISession *session, uint32_t friend_number, MSIError error);
-static MSICall *get_call(MSISession *session, uint32_t friend_number);
-static MSICall *new_call(MSISession *session, uint32_t friend_number);
-static bool invoke_callback(const Logger *log, MSICall *call, MSICallbackID cb);
-static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg);
-static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg);
-static void handle_pop(const Logger *log, MSICall *call, const MSIMessage *msg);
+static void msg_init(MSIMessage *_Nonnull dest, MSIRequest request);
+static void kill_call(const Logger *_Nonnull log, MSICall *_Nonnull call);
+static int msg_parse_in(const Logger *_Nonnull log, MSIMessage *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length);
+static uint8_t *_Nonnull msg_parse_header_out(MSIHeaderID id, uint8_t *_Nonnull dest, const uint8_t *_Nonnull value, uint8_t value_len,
+        uint16_t *_Nonnull length);
+static int send_message(const Logger *_Nonnull log, MSISession *_Nonnull session, uint32_t friend_number, const MSIMessage *_Nonnull msg);
+static int send_error(const Logger *_Nonnull log, MSISession *_Nonnull session, uint32_t friend_number, MSIError error);
+static MSICall *_Nullable get_call(MSISession *_Nonnull session, uint32_t friend_number);
+static MSICall *_Nullable new_call(MSISession *_Nonnull session, uint32_t friend_number);
+static bool invoke_callback(const Logger *_Nonnull log, MSICall *_Nonnull call, MSICallbackID cb);
+static void handle_init(const Logger *_Nonnull log, MSICall *_Nonnull call, const MSIMessage *_Nonnull msg);
+static void handle_push(const Logger *_Nonnull log, MSICall *_Nonnull call, const MSIMessage *_Nonnull msg);
+static void handle_pop(const Logger *_Nonnull log, MSICall *_Nonnull call, const MSIMessage *_Nonnull msg);
 
 /*
  * Public functions
@@ -321,7 +321,7 @@ static void msg_init(MSIMessage *dest, MSIRequest request)
     dest->request.value = request;
 }
 
-static bool check_size(const Logger *log, const uint8_t *bytes, int *constraint, uint8_t size)
+static bool check_size(const Logger *_Nonnull log, const uint8_t *_Nonnull bytes, int *_Nonnull constraint, uint8_t size)
 {
     *constraint -= 2 + size;
 
@@ -339,7 +339,7 @@ static bool check_size(const Logger *log, const uint8_t *bytes, int *constraint,
 }
 
 /** Assumes size == 1 */
-static bool check_enum_high(const Logger *log, const uint8_t *bytes, uint8_t enum_high)
+static bool check_enum_high(const Logger *_Nonnull log, const uint8_t *_Nonnull bytes, uint8_t enum_high)
 {
     if (bytes[2] > enum_high) {
         LOGGER_ERROR(log, "Failed enum high limit!");
@@ -349,7 +349,7 @@ static bool check_enum_high(const Logger *log, const uint8_t *bytes, uint8_t enu
     return true;
 }
 
-static const uint8_t *msg_parse_one(const Logger *log, MSIMessage *dest, const uint8_t *it, int *size_constraint)
+static const uint8_t *_Nullable msg_parse_one(const Logger *_Nonnull log, MSIMessage *_Nonnull dest, const uint8_t *_Nonnull it, int *_Nonnull size_constraint)
 {
     switch (*it) {
         case ID_REQUEST: {
@@ -501,7 +501,7 @@ static int send_error(const Logger *log, MSISession *session, uint32_t friend_nu
     return 0;
 }
 
-static int invoke_callback_inner(const Logger *log, MSICall *call, MSICallbackID id)
+static int invoke_callback_inner(const Logger *_Nonnull log, MSICall *_Nonnull call, MSICallbackID id)
 {
     MSISession *session = call->session;
     LOGGER_DEBUG(log, "invoking callback function: %u", id);
@@ -671,7 +671,7 @@ CLEAR_CONTAINER:
 }
 
 
-static bool try_handle_init(const Logger *log, MSICall *call, const MSIMessage *msg)
+static bool try_handle_init(const Logger *_Nonnull log, MSICall *_Nonnull call, const MSIMessage *_Nonnull msg)
 {
     if (!msg->capabilities.exists) {
         LOGGER_WARNING(log, "Session: %p Invalid capabilities on 'init'", (void *)call->session);

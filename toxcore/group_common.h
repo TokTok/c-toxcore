@@ -276,7 +276,7 @@ typedef struct GC_Chat {
     IP_Port         self_ip_port;
 
     Networking_Core *_Nonnull net;
-    TCP_Connections *_Nullable tcp_conn;
+    TCP_Connections *_Nonnull tcp_conn;
 
     uint64_t        last_checked_tcp_relays;
     Group_Handshake_Join_Type join_type;
@@ -380,8 +380,8 @@ typedef void gc_rejected_cb(const Messenger *_Nonnull m, uint32_t group_number, 
 typedef struct GC_Session {
     Messenger                 *_Nonnull messenger;
     GC_Chat                   *_Nullable chats;
-    Net_Profile               *_Nullable tcp_np;
-    struct GC_Announces_List  *_Nullable announces_list;
+    Net_Profile               *_Nonnull tcp_np;
+    struct GC_Announces_List  *_Nonnull announces_list;
 
     uint32_t     chats_index;
 

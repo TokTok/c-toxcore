@@ -19,21 +19,21 @@ extern "C" {
 
 typedef struct BWController BWController;
 
-typedef void bwc_loss_report_cb(BWController *bwc, uint32_t friend_number, float loss, void *user_data);
+typedef void bwc_loss_report_cb(BWController *_Nonnull bwc, uint32_t friend_number, float loss, void *_Nullable user_data);
 
-typedef int bwc_send_packet_cb(void *user_data, const uint8_t *data, uint16_t length);
+typedef int bwc_send_packet_cb(void *_Nullable user_data, const uint8_t *_Nonnull data, uint16_t length);
 
-BWController *bwc_new(const Logger *log, uint32_t friendnumber,
-                      bwc_loss_report_cb *mcb, void *mcb_user_data,
-                      bwc_send_packet_cb *send_packet, void *send_packet_user_data,
-                      Mono_Time *bwc_mono_time);
+BWController *_Nullable bwc_new(const Logger *_Nonnull log, uint32_t friendnumber,
+                                bwc_loss_report_cb *_Nullable mcb, void *_Nullable mcb_user_data,
+                                bwc_send_packet_cb *_Nullable send_packet, void *_Nullable send_packet_user_data,
+                                Mono_Time *_Nonnull bwc_mono_time);
 
-void bwc_kill(BWController *bwc);
+void bwc_kill(BWController *_Nullable bwc);
 
-void bwc_add_lost(BWController *bwc, uint32_t bytes_lost);
-void bwc_add_recv(BWController *bwc, uint32_t recv_bytes);
+void bwc_add_lost(BWController *_Nullable bwc, uint32_t bytes_lost);
+void bwc_add_recv(BWController *_Nullable bwc, uint32_t recv_bytes);
 
-void bwc_handle_packet(BWController *bwc, const uint8_t *data, size_t length);
+void bwc_handle_packet(BWController *_Nullable bwc, const uint8_t *_Nonnull data, size_t length);
 
 #ifdef __cplusplus
 } /* extern "C" */

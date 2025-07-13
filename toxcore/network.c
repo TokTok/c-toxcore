@@ -807,22 +807,22 @@ bool set_socket_dualstack(const Network *ns, Socket sock)
 }
 
 typedef struct Packet_Handler {
-    packet_handler_cb *function;
-    void *object;
+    packet_handler_cb *_Nullable function;
+    void *_Nullable object;
 } Packet_Handler;
 
 struct Networking_Core {
-    const Logger *log;
-    const Memory *mem;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
     Packet_Handler packethandlers[256];
-    const Network *ns;
+    const Network *_Nonnull ns;
 
     Family family;
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
 
-    Net_Profile *udp_net_profile;
+    Net_Profile *_Nullable udp_net_profile;
 };
 
 Family net_family(const Networking_Core *net)

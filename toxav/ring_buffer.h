@@ -9,20 +9,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "../toxcore/attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /** Ring buffer */
 typedef struct RingBuffer RingBuffer;
-bool rb_full(const RingBuffer *b);
-bool rb_empty(const RingBuffer *b);
-void *rb_write(RingBuffer *b, void *p);
-bool rb_read(RingBuffer *b, void **p);
-RingBuffer *rb_new(int size);
-void rb_kill(RingBuffer *b);
-uint16_t rb_size(const RingBuffer *b);
-uint16_t rb_data(const RingBuffer *b, void **dest);
+bool rb_full(const RingBuffer *_Nonnull b);
+bool rb_empty(const RingBuffer *_Nonnull b);
+void *_Nullable rb_write(RingBuffer *_Nullable b, void *_Nullable p);
+bool rb_read(RingBuffer *_Nonnull b, void *_Nonnull *_Nullable p);
+RingBuffer *_Nullable rb_new(int size);
+void rb_kill(RingBuffer *_Nullable b);
+uint16_t rb_size(const RingBuffer *_Nonnull b);
+uint16_t rb_data(const RingBuffer *_Nonnull b, void *_Nonnull *_Nonnull dest);
 
 #ifdef __cplusplus
 } /* extern "C" */

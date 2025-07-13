@@ -150,22 +150,6 @@ TEST_F(BwcTest, HandlePacket)
     bwc_kill(bwc);
 }
 
-TEST_F(BwcTest, NullArgs)
-{
-    // These should just return without crashing
-    bwc_kill(nullptr);
-    bwc_add_lost(nullptr, 100);
-    bwc_add_recv(nullptr, 100);
-    bwc_handle_packet(nullptr, nullptr, 0);
-
-    MockBwcData sd;
-    BWController *bwc = bwc_new(
-        log, 123, MockBwcData::loss_report, &sd, MockBwcData::send_packet, &sd, mono_time);
-    bwc_add_recv(bwc, 0);  // Should return early
-    bwc_add_lost(bwc, 0);  // Should return early
-    bwc_kill(bwc);
-}
-
 TEST_F(BwcTest, InvalidPacketSize)
 {
     MockBwcData sd;

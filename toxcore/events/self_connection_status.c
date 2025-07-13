@@ -88,7 +88,7 @@ Tox_Event_Self_Connection_Status *tox_event_self_connection_status_new(const Mem
 void tox_event_self_connection_status_free(Tox_Event_Self_Connection_Status *self_connection_status, const Memory *mem)
 {
     if (self_connection_status != nullptr) {
-        tox_event_self_connection_status_destruct(self_connection_status, mem);
+        tox_event_self_connection_status_destruct((Tox_Event_Self_Connection_Status * _Nonnull)self_connection_status, mem);
     }
     mem_delete(mem, self_connection_status);
 }

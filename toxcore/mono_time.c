@@ -43,12 +43,12 @@ struct Mono_Time {
     uint64_t base_time;
 
 #ifndef ESP_PLATFORM
-    /* protect `time` from concurrent access */
-    pthread_rwlock_t *time_update_lock;
+    /** protect @ref cur_time from concurrent access */
+    pthread_rwlock_t *_Nonnull time_update_lock;
 #endif /* ESP_PLATFORM */
 
-    mono_time_current_time_cb *current_time_callback;
-    void *user_data;
+    mono_time_current_time_cb *_Nonnull current_time_callback;
+    void *_Nullable user_data;
 };
 
 static uint64_t timespec_to_u64(struct timespec clock_mono)
@@ -116,7 +116,7 @@ Mono_Time *mono_time_new(const Memory *mem, mono_time_current_time_cb *current_t
     }
 
 #ifndef ESP_PLATFORM
-    pthread_rwlock_t *rwlock = (pthread_rwlock_t *)mem_alloc(mem, sizeof(pthread_rwlock_t));
+    pthread_rwlock_t *const rwlock = (pthread_rwlock_t *)mem_alloc(mem, sizeof(pthread_rwlock_t));
 
     if (rwlock == nullptr) {
         mem_delete(mem, mono_time);

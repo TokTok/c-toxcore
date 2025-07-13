@@ -17,6 +17,7 @@ CPPCHECK+=("--error-exitcode=1")
 CPPCHECK+=("--suppress=unmatchedSuppression")
 # We don't cast function pointers, which cppcheck suggests here.
 CPPCHECK+=("--suppress=constParameterCallback")
+CPPCHECK+=("--suppress=constParameterPointer")
 # This disagrees with clang's warnings.
 CPPCHECK+=("--suppress=invalidPrintfArgType_uint")
 # False positives in switch statements.

@@ -134,7 +134,7 @@ Tox_Event_Friend_Lossless_Packet *tox_event_friend_lossless_packet_new(const Mem
 void tox_event_friend_lossless_packet_free(Tox_Event_Friend_Lossless_Packet *friend_lossless_packet, const Memory *mem)
 {
     if (friend_lossless_packet != nullptr) {
-        tox_event_friend_lossless_packet_destruct(friend_lossless_packet, mem);
+        tox_event_friend_lossless_packet_destruct((Tox_Event_Friend_Lossless_Packet * _Nonnull)friend_lossless_packet, mem);
     }
     mem_delete(mem, friend_lossless_packet);
 }

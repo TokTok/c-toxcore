@@ -183,7 +183,8 @@ TEST_F(RtpPublicTest, HandlingInvalidPackets)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
     // Packet too short to even contain the Tox packet ID
-    rtp_receive_packet(session, nullptr, 0);
+    uint8_t empty[1];
+    rtp_receive_packet(session, empty, 0);
 
     // Packet too short (less than RTP_HEADER_SIZE + 1)
     uint8_t short_pkt[10] = {RTP_TYPE_AUDIO};

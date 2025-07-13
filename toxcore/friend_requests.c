@@ -36,15 +36,15 @@ struct Received_Requests {
 };
 
 struct Friend_Requests {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
 
     uint32_t nospam;
-    fr_friend_request_cb *handle_friendrequest;
+    fr_friend_request_cb *_Nullable handle_friendrequest;
     uint8_t handle_friendrequest_isset;
-    void *handle_friendrequest_object;
+    void *_Nullable handle_friendrequest_object;
 
-    filter_function_cb *filter_function;
-    void *filter_function_userdata;
+    filter_function_cb *_Nullable filter_function;
+    void *_Nullable filter_function_userdata;
 
     struct Received_Requests received;
 };

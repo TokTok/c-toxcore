@@ -56,28 +56,28 @@ typedef struct RTPMessage RTPMessage;
 typedef struct RTPSession RTPSession;
 
 /* RTPMessage accessors */
-const uint8_t *rtp_message_data(const RTPMessage *msg);
-uint32_t rtp_message_len(const RTPMessage *msg);
-uint8_t rtp_message_pt(const RTPMessage *msg);
-uint16_t rtp_message_sequnum(const RTPMessage *msg);
-uint64_t rtp_message_flags(const RTPMessage *msg);
-uint32_t rtp_message_data_length_full(const RTPMessage *msg);
+const uint8_t *_Nonnull rtp_message_data(const RTPMessage *_Nonnull msg);
+uint32_t rtp_message_len(const RTPMessage *_Nonnull msg);
+uint8_t rtp_message_pt(const RTPMessage *_Nonnull msg);
+uint16_t rtp_message_sequnum(const RTPMessage *_Nonnull msg);
+uint64_t rtp_message_flags(const RTPMessage *_Nonnull msg);
+uint32_t rtp_message_data_length_full(const RTPMessage *_Nonnull msg);
 
 /* RTPSession accessors */
-bool rtp_session_is_receiving_active(const RTPSession *session);
-uint32_t rtp_session_get_ssrc(const RTPSession *session);
-void rtp_session_set_ssrc(RTPSession *session, uint32_t ssrc);
+bool rtp_session_is_receiving_active(const RTPSession *_Nullable session);
+uint32_t rtp_session_get_ssrc(const RTPSession *_Nonnull session);
+void rtp_session_set_ssrc(RTPSession *_Nonnull session, uint32_t ssrc);
 
 #define USED_RTP_WORKBUFFER_COUNT 3
 #define DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT 10
 
-typedef int rtp_m_cb(const Mono_Time *mono_time, void *cs, RTPMessage *msg);
+typedef int rtp_m_cb(const Mono_Time *_Nonnull mono_time, void *_Nonnull cs, RTPMessage *_Nonnull msg);
 
-typedef int rtp_send_packet_cb(void *user_data, const uint8_t *data, uint16_t length);
-typedef void rtp_add_recv_cb(void *user_data, uint32_t bytes);
-typedef void rtp_add_lost_cb(void *user_data, uint32_t bytes);
+typedef int rtp_send_packet_cb(void *_Nullable user_data, const uint8_t *_Nonnull data, uint16_t length);
+typedef void rtp_add_recv_cb(void *_Nullable user_data, uint32_t bytes);
+typedef void rtp_add_lost_cb(void *_Nullable user_data, uint32_t bytes);
 
-void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length);
+void rtp_receive_packet(RTPSession *_Nonnull session, const uint8_t *_Nonnull data, size_t length);
 
 /**
  * Serialise an RTPHeader to bytes to be sent over the network.
@@ -87,7 +87,7 @@ void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length)
  *   to this function.
  * @param header The RTPHeader to serialise.
  */
-size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
+size_t rtp_header_pack(uint8_t *_Nonnull rdata, const struct RTPHeader *_Nonnull header);
 
 /**
  * Deserialise an RTPHeader from bytes received over the network.
@@ -95,15 +95,15 @@ size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
  * @param data A byte array of length RTP_HEADER_SIZE.
  * @param header The RTPHeader to write the unpacked values to.
  */
-size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header);
+size_t rtp_header_unpack(const uint8_t *_Nonnull data, struct RTPHeader *_Nonnull header);
 
-RTPSession *rtp_new(const Logger *log, int payload_type, Mono_Time *mono_time,
-                    rtp_send_packet_cb *send_packet, void *send_packet_user_data,
-                    rtp_add_recv_cb *add_recv, rtp_add_lost_cb *add_lost, void *bwc_user_data,
-                    void *cs, rtp_m_cb *mcb);
-void rtp_kill(const Logger *log, RTPSession *session);
-void rtp_allow_receiving_mark(RTPSession *session);
-void rtp_stop_receiving_mark(RTPSession *session);
+RTPSession *_Nullable rtp_new(const Logger *_Nonnull log, int payload_type, Mono_Time *_Nonnull mono_time,
+                              rtp_send_packet_cb *_Nullable send_packet, void *_Nullable send_packet_user_data,
+                              rtp_add_recv_cb *_Nullable add_recv, rtp_add_lost_cb *_Nullable add_lost, void *_Nullable bwc_user_data,
+                              void *_Nonnull cs, rtp_m_cb *_Nonnull mcb);
+void rtp_kill(const Logger *_Nonnull log, RTPSession *_Nullable session);
+void rtp_allow_receiving_mark(RTPSession *_Nullable session);
+void rtp_stop_receiving_mark(RTPSession *_Nullable session);
 
 /**
  * @brief Send a frame of audio or video data, chunked in @ref RTPMessage instances.
@@ -114,7 +114,7 @@ void rtp_stop_receiving_mark(RTPSession *session);
  * @param is_keyframe Whether this video frame is a key frame. If it is an
  *   audio frame, this parameter is ignored.
  */
-int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, uint32_t length,
+int rtp_send_data(const Logger *_Nonnull log, RTPSession *_Nonnull session, const uint8_t *_Nonnull data, uint32_t length,
                   bool is_keyframe);
 
 #ifdef __cplusplus

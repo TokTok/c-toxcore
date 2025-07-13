@@ -64,18 +64,18 @@ typedef struct TCP_Secure_Connection {
 static const TCP_Secure_Connection empty_tcp_secure_connection = {{nullptr}};
 
 struct TCP_Server {
-    const Logger *logger;
-    const Memory *mem;
-    const Random *rng;
-    const Network *ns;
-    Onion *onion;
-    Forwarding *forwarding;
+    const Logger *_Nonnull logger;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    const Network *_Nonnull ns;
+    Onion *_Nullable onion;
+    Forwarding *_Nullable forwarding;
 
 #ifdef TCP_SERVER_USE_EPOLL
     int efd;
     uint64_t last_run_pinged;
 #endif /* TCP_SERVER_USE_EPOLL */
-    Socket *socks_listening;
+    Socket *_Nullable socks_listening;
     unsigned int num_listening_socks;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -85,7 +85,7 @@ struct TCP_Server {
     TCP_Secure_Connection unconfirmed_connection_queue[MAX_INCOMING_CONNECTIONS];
     uint16_t unconfirmed_connection_queue_index;
 
-    TCP_Secure_Connection *accepted_connection_array;
+    TCP_Secure_Connection *_Nullable accepted_connection_array;
     uint32_t size_accepted_connections;
     uint32_t num_accepted_connections;
 
@@ -94,7 +94,7 @@ struct TCP_Server {
     BS_List accepted_key_list;
 
     /* Network profile for all TCP server packets. */
-    Net_Profile *net_profile;
+    Net_Profile *_Nullable net_profile;
 };
 
 static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,

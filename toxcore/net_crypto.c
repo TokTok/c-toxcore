@@ -35,7 +35,7 @@ typedef struct Packet_Data {
 } Packet_Data;
 
 typedef struct Packets_Array {
-    Packet_Data *buffer[CRYPTO_PACKET_BUFFER_SIZE];
+    Packet_Data *_Nullable buffer[CRYPTO_PACKET_BUFFER_SIZE];
     uint32_t  buffer_start;
     uint32_t  buffer_end; /* packet numbers in array: `{buffer_start, buffer_end)` */
 } Packets_Array;
@@ -66,7 +66,7 @@ typedef struct Crypto_Connection {
     uint64_t cookie_request_number; /* number used in the cookie request packets for this connection */
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer */
 
-    uint8_t *temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
+    uint8_t *_Nullable temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
     uint16_t temp_packet_length;
     uint64_t temp_packet_sent_time; /* The time at which the last temp_packet was sent in ms. */
     uint32_t temp_packet_num_sent;
@@ -81,16 +81,16 @@ typedef struct Crypto_Connection {
     Packets_Array send_array;
     Packets_Array recv_array;
 
-    connection_status_cb *connection_status_callback;
-    void *connection_status_callback_object;
+    connection_status_cb *_Nullable connection_status_callback;
+    void *_Nullable connection_status_callback_object;
     int connection_status_callback_id;
 
-    connection_data_cb *connection_data_callback;
-    void *connection_data_callback_object;
+    connection_data_cb *_Nullable connection_data_callback;
+    void *_Nullable connection_data_callback_object;
     int connection_data_callback_id;
 
-    connection_lossy_data_cb *connection_lossy_data_callback;
-    void *connection_lossy_data_callback_object;
+    connection_lossy_data_cb *_Nullable connection_lossy_data_callback;
+    void *_Nullable connection_lossy_data_callback_object;
     int connection_lossy_data_callback_id;
 
     uint64_t last_request_packet_sent;
@@ -124,25 +124,25 @@ typedef struct Crypto_Connection {
 
     bool maximum_speed_reached;
 
-    dht_pk_cb *dht_pk_callback;
-    void *dht_pk_callback_object;
+    dht_pk_cb *_Nullable dht_pk_callback;
+    void *_Nullable dht_pk_callback_object;
     uint32_t dht_pk_callback_number;
 } Crypto_Connection;
 
 static const Crypto_Connection empty_crypto_connection = {{0}};
 
 struct Net_Crypto {
-    const Logger *log;
-    const Memory *mem;
-    const Random *rng;
-    Mono_Time *mono_time;
-    const Network *ns;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    Mono_Time *_Nonnull mono_time;
+    const Network *_Nonnull ns;
     Networking_Core *net;
 
-    DHT *dht;
-    TCP_Connections *tcp_c;
+    DHT *_Nonnull dht;
+    TCP_Connections *_Nonnull tcp_c;
 
-    Crypto_Connection *crypto_connections;
+    Crypto_Connection *_Nullable crypto_connections;
 
     uint32_t crypto_connections_length; /* Length of connections array. */
 
@@ -153,8 +153,8 @@ struct Net_Crypto {
     /* The secret key used for cookies */
     uint8_t secret_symmetric_key[CRYPTO_SYMMETRIC_KEY_SIZE];
 
-    new_connection_cb *new_connection_callback;
-    void *new_connection_callback_object;
+    new_connection_cb *_Nullable new_connection_callback;
+    void *_Nullable new_connection_callback_object;
 
     /* The current optimal sleep time */
     uint32_t current_sleep_time;
@@ -2240,7 +2240,7 @@ uint32_t copy_connected_tcp_relays_index(const Net_Crypto *c, Node_format *tcp_r
     return tcp_copy_connected_relays_index(c->tcp_c, tcp_relays, num, idx);
 }
 
-static void do_tcp(Net_Crypto *_Nonnull c, void *_Nonnull userdata)
+static void do_tcp(Net_Crypto *_Nonnull c, void *_Nullable userdata)
 {
     do_tcp_connections(c->log, c->tcp_c, userdata);
 
@@ -2930,12 +2930,14 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->ns = ns;
     temp->net = net;
 
-    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
+    TCP_Connections *const tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
 
-    if (temp->tcp_c == nullptr) {
+    if (tcp_c == nullptr) {
         mem_delete(mem, temp);
         return nullptr;
     }
+
+    temp->tcp_c = tcp_c;
 
     set_packet_tcp_connection_callback(temp->tcp_c, &tcp_data_callback, temp);
     set_oob_packet_tcp_connection_callback(temp->tcp_c, &tcp_oob_callback, temp);

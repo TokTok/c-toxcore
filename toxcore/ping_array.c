@@ -17,15 +17,15 @@
 #include "mono_time.h"
 
 typedef struct Ping_Array_Entry {
-    uint8_t *data;
+    uint8_t *_Nullable data;
     uint32_t length;
     uint64_t ping_time;
     uint64_t ping_id;
 } Ping_Array_Entry;
 
 struct Ping_Array {
-    const Memory *mem;
-    Ping_Array_Entry *entries;
+    const Memory *_Nonnull mem;
+    Ping_Array_Entry *_Nonnull entries;
 
     uint32_t last_deleted; /* number representing the next entry to be deleted. */
     uint32_t last_added;   /* number representing the last entry to be added. */
@@ -50,15 +50,15 @@ Ping_Array *ping_array_new(const Memory *mem, uint32_t size, uint32_t timeout)
         return nullptr;
     }
 
-    Ping_Array_Entry *entries = (Ping_Array_Entry *)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
+    Ping_Array_Entry *const entries = (Ping_Array_Entry *)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
 
     if (entries == nullptr) {
         mem_delete(mem, empty_array);
         return nullptr;
     }
+    empty_array->entries = entries;
 
     empty_array->mem = mem;
-    empty_array->entries = entries;
     empty_array->last_deleted = 0;
     empty_array->last_added = 0;
     empty_array->total_size = size;

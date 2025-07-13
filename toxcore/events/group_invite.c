@@ -176,7 +176,7 @@ Tox_Event_Group_Invite *tox_event_group_invite_new(const Memory *mem)
 void tox_event_group_invite_free(Tox_Event_Group_Invite *group_invite, const Memory *mem)
 {
     if (group_invite != nullptr) {
-        tox_event_group_invite_destruct(group_invite, mem);
+        tox_event_group_invite_destruct((Tox_Event_Group_Invite * _Nonnull)group_invite, mem);
     }
     mem_delete(mem, group_invite);
 }

@@ -209,9 +209,9 @@ Onion_Connection_Status onion_connection_status(const Onion_Client *_Nonnull oni
 typedef struct Onion_Friend Onion_Friend;
 
 uint16_t onion_get_friend_count(const Onion_Client *_Nonnull onion_c);
-Onion_Friend *_Nullable onion_get_friend(const Onion_Client *_Nonnull onion_c, uint16_t friend_num);
-const uint8_t *_Nullable onion_friend_get_gc_public_key(const Onion_Friend *_Nonnull onion_friend);
-const uint8_t *_Nullable onion_friend_get_gc_public_key_num(const Onion_Client *_Nonnull onion_c, uint32_t num);
+Onion_Friend *_Nonnull onion_get_friend(const Onion_Client *_Nonnull onion_c, uint16_t friend_num);
+const uint8_t *_Nonnull onion_friend_get_gc_public_key(const Onion_Friend *_Nonnull onion_friend);
+const uint8_t *_Nonnull onion_friend_get_gc_public_key_num(const Onion_Client *_Nonnull onion_c, uint32_t num);
 void onion_friend_set_gc_public_key(Onion_Friend *_Nonnull onion_friend, const uint8_t *_Nonnull public_key);
 void onion_friend_set_gc_data(Onion_Friend *_Nonnull onion_friend, const uint8_t *_Nullable gc_data, uint16_t gc_data_length);
 bool onion_friend_is_groupchat(const Onion_Friend *_Nonnull onion_friend);

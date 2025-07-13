@@ -408,13 +408,6 @@ TEST_F(VideoTest, MultiReconfigureEncode)
     vc_kill(vc);
 }
 
-TEST_F(VideoTest, NewWithNullMonoTime)
-{
-    VideoTestData data;
-    VCSession *vc = vc_new(log, nullptr, 123, VideoTestData::receive_frame, &data);
-    EXPECT_EQ(vc, nullptr);
-}
-
 TEST_F(VideoTest, ReconfigureFailDoS)
 {
     VideoTestData data;
