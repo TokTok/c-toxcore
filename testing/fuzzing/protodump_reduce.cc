@@ -152,7 +152,7 @@ void TestEndToEnd(Fuzz_Data &input)
             const char *message, void *user_data) {
             // Log to stdout.
             if (PROTODUMP_DEBUG) {
-                std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
+                std::printf("[tox1] %c %s:%u(%s): %s\n", tox_log_level_name(level), file, line,
                     func, message);
             }
         });

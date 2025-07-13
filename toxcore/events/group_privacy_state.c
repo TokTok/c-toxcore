@@ -107,7 +107,7 @@ Tox_Event_Group_Privacy_State *tox_event_group_privacy_state_new(const Memory *m
 void tox_event_group_privacy_state_free(Tox_Event_Group_Privacy_State *group_privacy_state, const Memory *mem)
 {
     if (group_privacy_state != nullptr) {
-        tox_event_group_privacy_state_destruct(group_privacy_state, mem);
+        tox_event_group_privacy_state_destruct((Tox_Event_Group_Privacy_State * _Nonnull)group_privacy_state, mem);
     }
     mem_delete(mem, group_privacy_state);
 }

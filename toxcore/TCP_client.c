@@ -52,23 +52,23 @@ struct TCP_Client_Connection {
     uint64_t ping_request_id;
 
     TCP_Client_Conn connections[NUM_CLIENT_CONNECTIONS];
-    tcp_routing_response_cb *response_callback;
-    void *response_callback_object;
-    tcp_routing_status_cb *status_callback;
-    void *status_callback_object;
-    tcp_routing_data_cb *data_callback;
-    void *data_callback_object;
-    tcp_oob_data_cb *oob_data_callback;
-    void *oob_data_callback_object;
+    tcp_routing_response_cb *_Nullable response_callback;
+    void *_Nullable response_callback_object;
+    tcp_routing_status_cb *_Nullable status_callback;
+    void *_Nullable status_callback_object;
+    tcp_routing_data_cb *_Nullable data_callback;
+    void *_Nullable data_callback_object;
+    tcp_oob_data_cb *_Nullable oob_data_callback;
+    void *_Nullable oob_data_callback_object;
 
-    tcp_onion_response_cb *onion_callback;
-    void *onion_callback_object;
+    tcp_onion_response_cb *_Nullable onion_callback;
+    void *_Nullable onion_callback_object;
 
-    forwarded_response_cb *forwarded_response_callback;
-    void *forwarded_response_callback_object;
+    forwarded_response_cb *_Nullable forwarded_response_callback;
+    void *_Nullable forwarded_response_callback_object;
 
     /* Can be used by user. */
-    void *custom_object;
+    void *_Nullable custom_object;
     uint32_t custom_uint;
 };
 
@@ -630,7 +630,7 @@ TCP_Client_Connection *new_tcp_connection(
         return nullptr;
     }
 
-    if (!connect_sock_to(ns, logger, mem, sock, ip_port, proxy_info)) {
+    if (!connect_sock_to(ns, logger, mem, sock, ip_port, (const TCP_Proxy_Info * _Nonnull)proxy_info)) {
         Ip_Ntoa ip_ntoa;
         LOGGER_WARNING(logger, "Failed to connect TCP socket to %s:%u",
                        net_ip_ntoa(&ip_port->ip, &ip_ntoa), net_ntohs(ip_port->port));
@@ -711,7 +711,7 @@ static int handle_tcp_client_routing_response(TCP_Client_Connection *_Nonnull co
     memcpy(conn->connections[con_id].public_key, data + 2, CRYPTO_PUBLIC_KEY_SIZE);
 
     if (conn->response_callback != nullptr) {
-        conn->response_callback(conn->response_callback_object, con_id, conn->connections[con_id].public_key);
+        conn->response_callback((void *_Nonnull)conn->response_callback_object, con_id, conn->connections[con_id].public_key);
     }
 
     return 0;
@@ -736,7 +736,7 @@ static int handle_tcp_client_connection_notification(TCP_Client_Connection *_Non
     conn->connections[con_id].status = 2;
 
     if (conn->status_callback != nullptr) {
-        conn->status_callback(conn->status_callback_object, conn->connections[con_id].number, con_id,
+        conn->status_callback((void *_Nonnull)conn->status_callback_object, conn->connections[con_id].number, con_id,
                               conn->connections[con_id].status);
     }
 
@@ -766,7 +766,7 @@ static int handle_tcp_client_disconnect_notification(TCP_Client_Connection *_Non
     conn->connections[con_id].status = 1;
 
     if (conn->status_callback != nullptr) {
-        conn->status_callback(conn->status_callback_object, conn->connections[con_id].number, con_id,
+        conn->status_callback((void *_Nonnull)conn->status_callback_object, conn->connections[con_id].number, con_id,
                               conn->connections[con_id].status);
     }
 
@@ -813,7 +813,7 @@ static int handle_tcp_client_oob_recv(TCP_Client_Connection *_Nonnull conn, cons
     }
 
     if (conn->oob_data_callback != nullptr) {
-        conn->oob_data_callback(conn->oob_data_callback_object, data + 1, data + 1 + CRYPTO_PUBLIC_KEY_SIZE,
+        conn->oob_data_callback((void *_Nonnull)conn->oob_data_callback_object, data + 1, data + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                 length - (1 + CRYPTO_PUBLIC_KEY_SIZE), userdata);
     }
 
@@ -854,7 +854,7 @@ static int handle_tcp_client_packet(const Logger *_Nonnull logger, TCP_Client_Co
 
         case TCP_PACKET_ONION_RESPONSE: {
             if (conn->onion_callback != nullptr) {
-                conn->onion_callback(conn->onion_callback_object, data + 1, length - 1, userdata);
+                conn->onion_callback((void *_Nonnull)conn->onion_callback_object, data + 1, length - 1, userdata);
             }
             return 0;
         }
@@ -874,7 +874,7 @@ static int handle_tcp_client_packet(const Logger *_Nonnull logger, TCP_Client_Co
             const uint8_t con_id = data[0] - NUM_RESERVED_PORTS;
 
             if (conn->data_callback != nullptr) {
-                conn->data_callback(conn->data_callback_object, conn->connections[con_id].number, con_id, data + 1, length - 1,
+                conn->data_callback((void *_Nonnull)conn->data_callback_object, conn->connections[con_id].number, con_id, data + 1, length - 1,
                                     userdata);
             }
         }
@@ -1036,6 +1036,6 @@ void kill_tcp_connection(TCP_Client_Connection *tcp_connection)
 
     wipe_priority_list(tcp_connection->con.mem, tcp_connection->con.priority_queue_start);
     kill_sock(tcp_connection->con.ns, tcp_connection->con.sock);
-    crypto_memzero(tcp_connection, sizeof(TCP_Client_Connection));
+    crypto_memzero((void *_Nonnull)tcp_connection, sizeof(TCP_Client_Connection));
     mem_delete(mem, tcp_connection);
 }

@@ -1555,7 +1555,7 @@ int send_file_data(const Messenger *m, int32_t friendnumber, uint32_t filenumber
  * @return true if there's still work to do, false otherwise.
  *
  */
-static bool do_all_filetransfers(Messenger *_Nonnull m, int32_t friendnumber, void *_Nonnull userdata, uint32_t *_Nonnull free_slots)
+static bool do_all_filetransfers(Messenger *_Nonnull m, int32_t friendnumber, void *_Nullable userdata, uint32_t *_Nonnull free_slots)
 {
     Friend *const friendcon = &m->friendlist[friendnumber];
 
@@ -2426,7 +2426,7 @@ static bool self_announce_group(const Messenger *_Nonnull m, GC_Chat *_Nonnull c
     GC_Public_Announce announce = {{{{{0}}}}};
 
     const bool ip_port_is_set = chat->self_udp_status != SELF_UDP_STATUS_NONE;
-    const int tcp_num = tcp_copy_connected_relays(chat->tcp_conn, announce.base_announce.tcp_relays,
+    const int tcp_num = tcp_copy_connected_relays((const TCP_Connections * _Nonnull)chat->tcp_conn, announce.base_announce.tcp_relays,
                         GCA_MAX_ANNOUNCED_TCP_RELAYS);
 
     if (tcp_num == 0 && !ip_port_is_set) {
@@ -2514,7 +2514,7 @@ void do_messenger(Messenger *m, void *userdata)
             local_ip_port.port = net_htons(m->options.tcp_server_port);
             local_ip_port.ip.family = net_family_ipv4();
             local_ip_port.ip.ip.v4 = get_ip4_loopback();
-            add_tcp_relay(m->net_crypto, &local_ip_port, tcp_server_public_key(m->tcp_server));
+            add_tcp_relay(m->net_crypto, &local_ip_port, tcp_server_public_key((const TCP_Server * _Nonnull)m->tcp_server));
         }
     }
 
@@ -2524,7 +2524,7 @@ void do_messenger(Messenger *m, void *userdata)
     }
 
     if (m->tcp_server != nullptr) {
-        do_tcp_server(m->tcp_server, m->mono_time);
+        do_tcp_server((TCP_Server * _Nonnull)m->tcp_server, m->mono_time);
     }
 
     do_net_crypto(m->net_crypto, userdata);
@@ -3374,21 +3374,25 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->mem = mem;
     m->rng = rng;
     m->ns = ns;
+    m->forwarding = nullptr;
+    m->announce = nullptr;
+    m->tcp_server = nullptr;
+    m->fr_c = nullptr;
 
-    m->fr = friendreq_new(mem);
-
-    if (m->fr == nullptr) {
+    Friend_Requests *fr = friendreq_new(mem);
+    if (fr == nullptr) {
         mem_delete(mem, m);
         return nullptr;
     }
+    m->fr = fr;
 
-    m->log = logger_new(mem);
-
-    if (m->log == nullptr) {
+    Logger *log = logger_new(mem);
+    if (log == nullptr) {
         friendreq_kill(m->fr);
         mem_delete(mem, m);
         return nullptr;
     }
+    m->log = log;
 
     logger_callback_log(m->log, options->log_callback, options->log_context, options->log_user_data);
 
@@ -3400,15 +3404,16 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         options->udp_disabled = true;
     }
 
+    Networking_Core *net;
     if (options->udp_disabled) {
-        m->net = new_networking_no_udp(m->log, m->mem, m->ns);
+        net = new_networking_no_udp(m->log, m->mem, m->ns);
     } else {
         IP ip;
         ip_init(&ip, options->ipv6enabled);
-        m->net = new_networking_ex(m->log, m->mem, m->ns, &ip, options->port_range[0], options->port_range[1], &net_err);
+        net = new_networking_ex(m->log, m->mem, m->ns, &ip, options->port_range[0], options->port_range[1], &net_err);
     }
 
-    if (m->net == nullptr) {
+    if (net == nullptr) {
         friendreq_kill(m->fr);
 
         if (error != nullptr && net_err == 1) {
@@ -3420,20 +3425,20 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->net = net;
 
-    m->dht = new_dht(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
-
-    if (m->dht == nullptr) {
+    DHT *dht = new_dht(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
+    if (dht == nullptr) {
         kill_networking(m->net);
         friendreq_kill(m->fr);
         logger_kill(m->log);
         mem_delete(mem, m);
         return nullptr;
     }
+    m->dht = dht;
 
-    m->tcp_np = netprof_new(m->log, mem);
-
-    if (m->tcp_np == nullptr) {
+    Net_Profile *tcp_np = netprof_new(m->log, mem);
+    if (tcp_np == nullptr) {
         LOGGER_WARNING(m->log, "TCP netprof initialisation failed");
         kill_dht(m->dht);
         kill_networking(m->net);
@@ -3442,10 +3447,10 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->tcp_np = tcp_np;
 
-    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info, m->tcp_np);
-
-    if (m->net_crypto == nullptr) {
+    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info, m->tcp_np);
+    if (net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
 
         netprof_kill(mem, m->tcp_np);
@@ -3456,10 +3461,10 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->net_crypto = net_crypto;
 
-    m->group_announce = new_gca_list(m->mem);
-
-    if (m->group_announce == nullptr) {
+    GC_Announces_List *group_announce = new_gca_list(m->mem);
+    if (group_announce == nullptr) {
         LOGGER_WARNING(m->log, "DHT group chats initialisation failed");
 
         kill_net_crypto(m->net_crypto);
@@ -3471,35 +3476,33 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->group_announce = group_announce;
 
     if (options->dht_announcements_enabled) {
         m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
         if (m->forwarding != nullptr) {
-            m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
-        } else {
-            m->announce = nullptr;
+            m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, (Forwarding * _Nonnull)m->forwarding);
         }
-    } else {
-        m->forwarding = nullptr;
-        m->announce = nullptr;
     }
 
-    m->onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
-    m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
-    if (m->onion_c != nullptr) {
-        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+    Onion *onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht);
+    Onion_Announce *onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
+    Onion_Client *onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
+    Friend_Connections *fr_c = nullptr;
+
+    if (onion_c != nullptr) {
+        fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, onion_c, options->local_discovery_enabled);
     }
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||
-            m->onion == nullptr || m->onion_a == nullptr || m->onion_c == nullptr || m->fr_c == nullptr) {
+            onion == nullptr || onion_a == nullptr || onion_c == nullptr || fr_c == nullptr) {
         LOGGER_WARNING(m->log, "onion initialisation failed");
 
-        kill_onion(m->onion);
-        kill_onion_announce(m->onion_a);
-        kill_onion_client(m->onion_c);
+        kill_onion(onion);
+        kill_onion_announce(onion_a);
+        kill_onion_client(onion_c);
         kill_gca(m->group_announce);
-        kill_friend_connections(m->fr_c);
+        kill_friend_connections(fr_c);
         kill_announcements(m->announce);
         kill_forwarding(m->forwarding);
         kill_net_crypto(m->net_crypto);
@@ -3511,12 +3514,15 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->onion = onion;
+    m->onion_a = onion_a;
+    m->onion_c = onion_c;
+    m->fr_c = fr_c;
 
     gca_onion_init(m->group_announce, m->onion_a);
 
-    m->group_handler = new_dht_groupchats(m);
-
-    if (m->group_handler == nullptr) {
+    GC_Session *group_handler = new_dht_groupchats(m);
+    if (group_handler == nullptr) {
         LOGGER_WARNING(m->log, "conferences initialisation failed");
 
         kill_onion(m->onion);
@@ -3535,6 +3541,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         mem_delete(mem, m);
         return nullptr;
     }
+    m->group_handler = group_handler;
 
     if (options->tcp_server_port != 0) {
         m->tcp_server = new_tcp_server(m->log, m->mem, m->rng, m->ns, options->ipv6enabled, 1,
@@ -3614,7 +3621,7 @@ void kill_messenger(Messenger *m)
     kill_networking(m->net);
 
     for (uint32_t i = 0; i < m->numfriends; ++i) {
-        clear_receipts(m, i);
+        clear_receipts((Messenger * _Nonnull)m, i);
     }
 
     mem_delete(m->mem, m->friendlist);

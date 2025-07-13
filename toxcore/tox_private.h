@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "attributes.h"
 #include "tox.h"
 #include "tox_options.h"
 
@@ -17,22 +18,22 @@
 extern "C" {
 #endif
 
-typedef uint64_t tox_mono_time_cb(void *user_data);
+typedef uint64_t tox_mono_time_cb(void *_Nullable user_data);
 
 typedef struct Tox_System {
-    tox_mono_time_cb *mono_time_callback;
-    void *mono_time_user_data;
-    const struct Random *rng;
-    const struct Network *ns;
-    const struct Memory *mem;
+    tox_mono_time_cb *_Nullable mono_time_callback;
+    void *_Nullable mono_time_user_data;
+    const struct Random *_Nullable rng;
+    const struct Network *_Nullable ns;
+    const struct Memory *_Nullable mem;
 } Tox_System;
 
 Tox_System tox_default_system(void);
 
-const Tox_System *tox_get_system(Tox *tox);
+const Tox_System *_Nonnull tox_get_system(const Tox *_Nonnull tox);
 
 typedef struct Tox_Options_Testing {
-    const struct Tox_System *operating_system;
+    const struct Tox_System *_Nullable operating_system;
 } Tox_Options_Testing;
 
 typedef enum Tox_Err_New_Testing {
@@ -40,10 +41,10 @@ typedef enum Tox_Err_New_Testing {
     TOX_ERR_NEW_TESTING_NULL,
 } Tox_Err_New_Testing;
 
-Tox *tox_new_testing(const Tox_Options *options, Tox_Err_New *error, const Tox_Options_Testing *testing, Tox_Err_New_Testing *testing_error);
+Tox *_Nullable tox_new_testing(const Tox_Options *_Nonnull options, Tox_Err_New *_Nullable error, const Tox_Options_Testing *_Nonnull testing, Tox_Err_New_Testing *_Nullable testing_error);
 
-void tox_lock(const Tox *tox);
-void tox_unlock(const Tox *tox);
+void tox_lock(const Tox *_Nonnull tox);
+void tox_unlock(const Tox *_Nonnull tox);
 
 /**
  * Set the callback for the `friend_lossy_packet` event for a specific packet
@@ -53,7 +54,7 @@ void tox_unlock(const Tox *tox);
  * from `PACKET_ID_RANGE_LOSSY_START` to `PACKET_ID_RANGE_LOSSY_END` (both
  * inclusive)
  */
-void tox_callback_friend_lossy_packet_per_pktid(Tox *tox, tox_friend_lossy_packet_cb *callback, uint8_t pktid);
+void tox_callback_friend_lossy_packet_per_pktid(Tox *_Nonnull tox, tox_friend_lossy_packet_cb *_Nullable callback, uint8_t pktid);
 
 /**
  * Set the callback for the `friend_lossless_packet` event for a specific packet
@@ -63,10 +64,10 @@ void tox_callback_friend_lossy_packet_per_pktid(Tox *tox, tox_friend_lossy_packe
  * from `PACKET_ID_RANGE_LOSSLESS_CUSTOM_START` to
  * `PACKET_ID_RANGE_LOSSLESS_CUSTOM_END` (both inclusive) and `PACKET_ID_MSI`
  */
-void tox_callback_friend_lossless_packet_per_pktid(Tox *tox, tox_friend_lossless_packet_cb *callback, uint8_t pktid);
+void tox_callback_friend_lossless_packet_per_pktid(Tox *_Nonnull tox, tox_friend_lossless_packet_cb *_Nullable callback, uint8_t pktid);
 
-void tox_set_av_object(Tox *tox, void *object);
-void *tox_get_av_object(const Tox *tox);
+void tox_set_av_object(Tox *_Nonnull tox, void *_Nullable object);
+void *_Nullable tox_get_av_object(const Tox *_Nonnull tox);
 
 /*******************************************************************************
  *
@@ -94,15 +95,15 @@ uint32_t tox_dht_node_public_key_size(void);
  * @param port The node's port.
  */
 typedef void tox_dht_nodes_response_cb(
-    Tox *tox, const uint8_t *public_key, const char *ip, uint32_t ip_length,
-    uint16_t port, void *user_data);
+    Tox *_Nonnull tox, const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint32_t ip_length,
+    uint16_t port, void *_Nullable user_data);
 
 /**
  * Set the callback for the `dht_nodes_response` event. Pass NULL to unset.
  *
  * This event is triggered when a nodes response is received from a DHT peer.
  */
-void tox_callback_dht_nodes_response(Tox *tox, tox_dht_nodes_response_cb *callback);
+void tox_callback_dht_nodes_response(Tox *_Nonnull tox, tox_dht_nodes_response_cb *_Nullable callback);
 
 typedef enum Tox_Err_Dht_Send_Nodes_Request {
     /**
@@ -153,15 +154,15 @@ typedef enum Tox_Err_Dht_Send_Nodes_Request {
  *
  * @return true on success.
  */
-bool tox_dht_send_nodes_request(const Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
-                                const uint8_t *target_public_key, Tox_Err_Dht_Send_Nodes_Request *error);
+bool tox_dht_send_nodes_request(const Tox *_Nonnull tox, const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint16_t port,
+                                const uint8_t *_Nonnull target_public_key, Tox_Err_Dht_Send_Nodes_Request *_Nullable error);
 
 /**
  * This function returns the number of DHT nodes in the closelist.
  *
  * @return number
  */
-uint16_t tox_dht_get_num_closelist(const Tox *tox);
+uint16_t tox_dht_get_num_closelist(const Tox *_Nonnull tox);
 
 /**
  * This function returns the number of DHT nodes in the closelist
@@ -169,7 +170,7 @@ uint16_t tox_dht_get_num_closelist(const Tox *tox);
  *
  * @return number
  */
-uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *tox);
+uint16_t tox_dht_get_num_closelist_announce_capable(const Tox *_Nonnull tox);
 
 /*******************************************************************************
  *
@@ -347,7 +348,7 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_BOOTSTRAP_INFO       = 0xf0,
 } Tox_Netprof_Packet_Id;
 
-const char *tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value);
+const char *_Nonnull tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value);
 
 /**
  * Specifies the packet type for a given query.
@@ -374,7 +375,7 @@ typedef enum Tox_Netprof_Packet_Type {
     TOX_NETPROF_PACKET_TYPE_UDP,
 } Tox_Netprof_Packet_Type;
 
-const char *tox_netprof_packet_type_to_string(Tox_Netprof_Packet_Type value);
+const char *_Nonnull tox_netprof_packet_type_to_string(Tox_Netprof_Packet_Type value);
 
 /**
  * Specifies the packet direction for a given query.
@@ -391,7 +392,7 @@ typedef enum Tox_Netprof_Direction {
     TOX_NETPROF_DIRECTION_RECV,
 } Tox_Netprof_Direction;
 
-const char *tox_netprof_direction_to_string(Tox_Netprof_Direction value);
+const char *_Nonnull tox_netprof_direction_to_string(Tox_Netprof_Direction value);
 
 /**
  * Return the number of packets sent or received for a specific packet ID.
@@ -400,7 +401,7 @@ const char *tox_netprof_direction_to_string(Tox_Netprof_Direction value);
  * @param id The packet ID being queried.
  * @param direction The packet direction.
  */
-uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type type, uint8_t id,
+uint64_t tox_netprof_get_packet_id_count(const Tox *_Nonnull tox, Tox_Netprof_Packet_Type type, uint8_t id,
         Tox_Netprof_Direction direction);
 
 /**
@@ -409,7 +410,7 @@ uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type
  * @param type The types of packets being queried.
  * @param direction The packet direction.
  */
-uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_Type type,
+uint64_t tox_netprof_get_packet_total_count(const Tox *_Nonnull tox, Tox_Netprof_Packet_Type type,
         Tox_Netprof_Direction direction);
 
 /**
@@ -419,7 +420,7 @@ uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_T
  * @param id The packet ID being queried.
  * @param direction The packet direction.
  */
-uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type type, uint8_t id,
+uint64_t tox_netprof_get_packet_id_bytes(const Tox *_Nonnull tox, Tox_Netprof_Packet_Type type, uint8_t id,
         Tox_Netprof_Direction direction);
 
 /**
@@ -428,7 +429,7 @@ uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type
  * @param type The types of packets being queried.
  * @param direction The packet direction.
  */
-uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_Type type,
+uint64_t tox_netprof_get_packet_total_bytes(const Tox *_Nonnull tox, Tox_Netprof_Packet_Type type,
         Tox_Netprof_Direction direction);
 
 
@@ -453,8 +454,8 @@ uint32_t tox_group_peer_ip_string_max_length(void);
  * @param peer_id The ID of the peer whose IP address length we want to
  *   retrieve.
  */
-size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number, uint32_t peer_id,
-        Tox_Err_Group_Peer_Query *error);
+size_t tox_group_peer_get_ip_address_size(const Tox *_Nonnull tox, uint32_t group_number, uint32_t peer_id,
+        Tox_Err_Group_Peer_Query *_Nullable error);
 /**
  * Write the IP address associated with the designated peer_id for the
  * designated group number to ip_addr.
@@ -475,8 +476,8 @@ size_t tox_group_peer_get_ip_address_size(const Tox *tox, uint32_t group_number,
  *
  * @return true on success.
  */
-bool tox_group_peer_get_ip_address(const Tox *tox, uint32_t group_number, uint32_t peer_id, uint8_t *ip_addr,
-                                   Tox_Err_Group_Peer_Query *error);
+bool tox_group_peer_get_ip_address(const Tox *_Nonnull tox, uint32_t group_number, uint32_t peer_id, uint8_t *_Nonnull ip_addr,
+                                   Tox_Err_Group_Peer_Query *_Nullable error);
 
 #ifdef __cplusplus
 } /* extern "C" */

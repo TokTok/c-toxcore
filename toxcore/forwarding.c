@@ -18,12 +18,12 @@
 #include "timed_auth.h"
 
 struct Forwarding {
-    const Logger *log;
-    const Memory *mem;
-    const Random *rng;
-    DHT *dht;
-    const Mono_Time *mono_time;
-    Networking_Core *net;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    DHT *_Nonnull dht;
+    const Mono_Time *_Nonnull mono_time;
+    Networking_Core *_Nonnull net;
 
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 

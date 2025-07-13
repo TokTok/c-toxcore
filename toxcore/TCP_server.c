@@ -64,18 +64,18 @@ typedef struct TCP_Secure_Connection {
 static const TCP_Secure_Connection empty_tcp_secure_connection = {{nullptr}};
 
 struct TCP_Server {
-    const Logger *logger;
-    const Memory *mem;
-    const Random *rng;
-    const Network *ns;
-    Onion *onion;
-    Forwarding *forwarding;
+    const Logger *_Nonnull logger;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    const Network *_Nonnull ns;
+    Onion *_Nullable onion;
+    Forwarding *_Nullable forwarding;
 
 #ifdef TCP_SERVER_USE_EPOLL
     int efd;
     uint64_t last_run_pinged;
 #endif /* TCP_SERVER_USE_EPOLL */
-    Socket *socks_listening;
+    Socket *_Nullable socks_listening;
     unsigned int num_listening_socks;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -85,7 +85,7 @@ struct TCP_Server {
     TCP_Secure_Connection unconfirmed_connection_queue[MAX_INCOMING_CONNECTIONS];
     uint16_t unconfirmed_connection_queue_index;
 
-    TCP_Secure_Connection *accepted_connection_array;
+    TCP_Secure_Connection *_Nullable accepted_connection_array;
     uint32_t size_accepted_connections;
     uint32_t num_accepted_connections;
 
@@ -94,7 +94,7 @@ struct TCP_Server {
     BS_List accepted_key_list;
 
     /* Network profile for all TCP server packets. */
-    Net_Profile *net_profile;
+    Net_Profile *_Nullable net_profile;
 };
 
 static_assert(sizeof(TCP_Server) < 7 * 1024 * 1024,
@@ -275,7 +275,7 @@ static void kill_tcp_secure_connection(TCP_Secure_Connection *_Nullable con)
     }
 
     kill_sock(con->con.ns, con->con.sock);
-    wipe_secure_connection(con);
+    wipe_secure_connection((TCP_Secure_Connection * _Nonnull)con);
 }
 
 static int rm_connection_index(TCP_Server *_Nonnull tcp_server, TCP_Secure_Connection *_Nonnull con, uint8_t con_number);
@@ -749,7 +749,7 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
                 }
 
                 const IP_Port source = con_id_to_ip_port(con_id, con->identifier);
-                onion_send_1(tcp_server->onion, data + 1 + CRYPTO_NONCE_SIZE, length - (1 + CRYPTO_NONCE_SIZE), &source,
+                onion_send_1((const Onion * _Nonnull)tcp_server->onion, data + 1 + CRYPTO_NONCE_SIZE, length - (1 + CRYPTO_NONCE_SIZE), &source,
                              data + 1);
             }
 
@@ -786,7 +786,7 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
                 return -1;
             }
 
-            send_forwarding(tcp_server->forwarding, &dest, sendback_data, sendback_data_len, forward_data, forward_data_len);
+            send_forwarding((const Forwarding * _Nonnull)tcp_server->forwarding, &dest, sendback_data, sendback_data_len, forward_data, forward_data_len);
             return 0;
         }
 
@@ -1020,12 +1020,12 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
 
     if (onion != nullptr) {
         temp->onion = onion;
-        set_callback_handle_recv_1(onion, &handle_onion_recv_1, temp);
+        set_callback_handle_recv_1((Onion * _Nonnull)onion, &handle_onion_recv_1, temp);
     }
 
     if (forwarding != nullptr) {
         temp->forwarding = forwarding;
-        set_callback_forward_reply(forwarding, &handle_forward_reply_tcp, temp);
+        set_callback_forward_reply((Forwarding * _Nonnull)forwarding, &handle_forward_reply_tcp, temp);
     }
 
     memcpy(temp->secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
@@ -1381,11 +1381,11 @@ void kill_tcp_server(TCP_Server *tcp_server)
     }
 
     if (tcp_server->onion != nullptr) {
-        set_callback_handle_recv_1(tcp_server->onion, nullptr, nullptr);
+        set_callback_handle_recv_1((Onion * _Nonnull)tcp_server->onion, nullptr, nullptr);
     }
 
     if (tcp_server->forwarding != nullptr) {
-        set_callback_forward_reply(tcp_server->forwarding, nullptr, nullptr);
+        set_callback_forward_reply((Forwarding * _Nonnull)tcp_server->forwarding, nullptr, nullptr);
     }
 
     bs_list_free(&tcp_server->accepted_key_list);
@@ -1399,7 +1399,7 @@ void kill_tcp_server(TCP_Server *tcp_server)
         wipe_secure_connection(&tcp_server->unconfirmed_connection_queue[i]);
     }
 
-    free_accepted_connection_array(tcp_server);
+    free_accepted_connection_array((TCP_Server * _Nonnull)tcp_server);
 
     crypto_memzero(tcp_server->secret_key, sizeof(tcp_server->secret_key));
 

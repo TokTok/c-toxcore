@@ -417,7 +417,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     // free
     f << "void tox_event_" << event_name_l << "_free(Tox_Event_" << event_name << " *" << event_name_l << ", const Memory *mem)\n{\n";
     f << "    if (" << event_name_l << " != nullptr) {\n";
-    f << "        tox_event_" << event_name_l << "_destruct(" << event_name_l << ", mem);\n    }\n";
+    f << "        tox_event_" << event_name_l << "_destruct((Tox_Event_" << event_name << " * _Nonnull)" << event_name_l << ", mem);\n    }\n";
     f << "    mem_delete(mem, " << event_name_l << ");\n}\n\n";
 
     // add

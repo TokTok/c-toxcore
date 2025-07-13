@@ -541,7 +541,7 @@ void do_gc(GC_Session *_Nonnull c, void *_Nullable userdata);
  * Make sure that DHT is initialized before calling this.
  * Returns a NULL pointer on failure.
  */
-GC_Session *_Nullable new_dht_groupchats(Messenger *_Nullable m);
+GC_Session *_Nullable new_dht_groupchats(Messenger *_Nonnull m);
 /** @brief Cleans up groupchat structures and calls `gc_group_exit()` for every group chat */
 void kill_dht_groupchats(GC_Session *_Nullable c);
 /** @brief Loads a previously saved group and attempts to join it.
@@ -680,7 +680,7 @@ bool gc_send_message_ack(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull g
  *
  * @retval true if packet is successfully handled.
  */
-bool handle_gc_lossless_helper(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data,
+bool handle_gc_lossless_helper(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nonnull data,
                                uint16_t length, uint8_t packet_type, void *_Nullable userdata);
 /** @brief Handles an invite accept packet.
  *

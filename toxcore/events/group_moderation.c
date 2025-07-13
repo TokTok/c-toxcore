@@ -135,7 +135,7 @@ Tox_Event_Group_Moderation *tox_event_group_moderation_new(const Memory *mem)
 void tox_event_group_moderation_free(Tox_Event_Group_Moderation *group_moderation, const Memory *mem)
 {
     if (group_moderation != nullptr) {
-        tox_event_group_moderation_destruct(group_moderation, mem);
+        tox_event_group_moderation_destruct((Tox_Event_Group_Moderation * _Nonnull)group_moderation, mem);
     }
     mem_delete(mem, group_moderation);
 }

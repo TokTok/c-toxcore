@@ -91,7 +91,7 @@ const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
 Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
 {
     const Tox_System *sys = tox_get_system(tox);
-    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem};
+    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, (const Memory * _Nonnull)sys->mem};
     tox_iterate(tox, &state);
 
     if (error != nullptr) {
@@ -158,7 +158,7 @@ static bool tox_events_unpack_handler(void *_Nonnull obj, Bin_Unpack *_Nonnull b
 
 Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
-    Tox_Events *events = (Tox_Events *)mem_alloc(sys->mem, sizeof(Tox_Events));
+    Tox_Events *events = (Tox_Events *)mem_alloc((const Memory * _Nonnull)sys->mem, sizeof(Tox_Events));
 
     if (events == nullptr) {
         return nullptr;
@@ -167,9 +167,9 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     *events = (Tox_Events) {
         nullptr
     };
-    events->mem = sys->mem;
+    events->mem = (const Memory * _Nonnull)sys->mem;
 
-    if (!bin_unpack_obj(sys->mem, tox_events_unpack_handler, events, bytes, bytes_size)) {
+    if (!bin_unpack_obj((const Memory * _Nonnull)sys->mem, tox_events_unpack_handler, events, bytes, bytes_size)) {
         tox_events_free(events);
         return nullptr;
     }
@@ -189,12 +189,12 @@ bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Even
         return false;
     }
 
-    uint8_t *a_bytes = (uint8_t *)mem_balloc(sys->mem, a_size);
-    uint8_t *b_bytes = (uint8_t *)mem_balloc(sys->mem, b_size);
+    uint8_t *a_bytes = (uint8_t *)mem_balloc((const Memory * _Nonnull)sys->mem, a_size);
+    uint8_t *b_bytes = (uint8_t *)mem_balloc((const Memory * _Nonnull)sys->mem, b_size);
 
     if (a_bytes == nullptr || b_bytes == nullptr) {
-        mem_delete(sys->mem, b_bytes);
-        mem_delete(sys->mem, a_bytes);
+        mem_delete((const Memory * _Nonnull)sys->mem, b_bytes);
+        mem_delete((const Memory * _Nonnull)sys->mem, a_bytes);
         return false;
     }
 
@@ -203,8 +203,8 @@ bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Even
 
     const bool ret = memcmp(a_bytes, b_bytes, a_size) == 0;
 
-    mem_delete(sys->mem, b_bytes);
-    mem_delete(sys->mem, a_bytes);
+    mem_delete((const Memory * _Nonnull)sys->mem, b_bytes);
+    mem_delete((const Memory * _Nonnull)sys->mem, a_bytes);
 
     return ret;
 }
