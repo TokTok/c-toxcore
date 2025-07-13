@@ -148,7 +148,7 @@ Tox_Event_Conference_Title *tox_event_conference_title_new(const Memory *mem)
 void tox_event_conference_title_free(Tox_Event_Conference_Title *conference_title, const Memory *mem)
 {
     if (conference_title != nullptr) {
-        tox_event_conference_title_destruct(conference_title, mem);
+        tox_event_conference_title_destruct((Tox_Event_Conference_Title * _Nonnull)conference_title, mem);
     }
     mem_delete(mem, conference_title);
 }

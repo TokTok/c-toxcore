@@ -133,7 +133,7 @@ Tox_Event_File_Chunk_Request *tox_event_file_chunk_request_new(const Memory *mem
 void tox_event_file_chunk_request_free(Tox_Event_File_Chunk_Request *file_chunk_request, const Memory *mem)
 {
     if (file_chunk_request != nullptr) {
-        tox_event_file_chunk_request_destruct(file_chunk_request, mem);
+        tox_event_file_chunk_request_destruct((Tox_Event_File_Chunk_Request * _Nonnull)file_chunk_request, mem);
     }
     mem_delete(mem, file_chunk_request);
 }

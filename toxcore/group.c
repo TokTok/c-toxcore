@@ -87,7 +87,7 @@ typedef struct Group_Peer {
     uint16_t bottom_lossy_number;
     uint16_t top_lossy_number;
 
-    void *object;
+    void *_Nullable object;
 } Group_Peer;
 
 typedef struct Groupchat_Connection {
@@ -112,10 +112,10 @@ typedef struct Group_c {
     bool need_send_name;
     bool title_fresh;
 
-    Group_Peer *group;
+    Group_Peer *_Nullable group;
     uint32_t numpeers;
 
-    Group_Peer *frozen;
+    Group_Peer *_Nullable frozen;
     uint32_t numfrozen;
 
     uint32_t maxfrozen;
@@ -140,31 +140,31 @@ typedef struct Group_c {
 
     uint32_t num_introducer_connections;
 
-    void *object;
+    void *_Nullable object;
 
-    peer_on_join_cb *peer_on_join;
-    peer_on_leave_cb *peer_on_leave;
-    group_on_delete_cb *group_on_delete;
+    peer_on_join_cb *_Nullable peer_on_join;
+    peer_on_leave_cb *_Nullable peer_on_leave;
+    group_on_delete_cb *_Nullable group_on_delete;
 } Group_c;
 
 struct Group_Chats {
-    const Memory *mem;
-    const Mono_Time *mono_time;
+    const Memory *_Nonnull mem;
+    const Mono_Time *_Nonnull mono_time;
 
-    Messenger *m;
-    Friend_Connections *fr_c;
+    Messenger *_Nonnull m;
+    Friend_Connections *_Nonnull fr_c;
 
-    Group_c *chats;
+    Group_c *_Nullable chats;
     uint16_t num_chats;
 
-    g_conference_invite_cb *invite_callback;
-    g_conference_connected_cb *connected_callback;
-    g_conference_message_cb *message_callback;
-    peer_name_cb *peer_name_callback;
-    peer_list_changed_cb *peer_list_changed_callback;
-    title_cb *title_callback;
+    g_conference_invite_cb *_Nullable invite_callback;
+    g_conference_connected_cb *_Nullable connected_callback;
+    g_conference_message_cb *_Nullable message_callback;
+    peer_name_cb *_Nullable peer_name_callback;
+    peer_list_changed_cb *_Nullable peer_list_changed_callback;
+    title_cb *_Nullable title_callback;
 
-    lossy_packet_cb *lossy_packethandlers[256];
+    lossy_packet_cb *_Nullable lossy_packethandlers[256];
 };
 
 static const Group_c empty_group_c = {0};
@@ -994,7 +994,7 @@ static bool delete_old_frozen(Group_c *_Nonnull g, const Memory *_Nonnull mem)
         return true;
     }
 
-    merge_sort(g->frozen, g->numfrozen, mem, &group_peer_cmp_funcs);
+    merge_sort((Group_Peer * _Nonnull)g->frozen, g->numfrozen, mem, &group_peer_cmp_funcs);
 
     Group_Peer *temp = (Group_Peer *)mem_vrealloc(mem, g->frozen, g->maxfrozen, sizeof(Group_Peer));
 
@@ -3748,7 +3748,7 @@ void kill_groupchats(Group_Chats *g_c)
     }
 
     for (uint16_t i = 0; i < g_c->num_chats; ++i) {
-        del_groupchat(g_c, i, false);
+        del_groupchat((Group_Chats * _Nonnull)g_c, i, false);
     }
 
     m_callback_conference_invite(g_c->m, nullptr);

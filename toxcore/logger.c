@@ -18,11 +18,11 @@
 #include "mem.h"
 
 struct Logger {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
 
-    logger_cb *callback;
-    void *context;
-    void *userdata;
+    logger_cb *_Nullable callback;
+    void *_Nullable context;
+    void *_Nullable userdata;
 };
 
 /*

@@ -57,8 +57,8 @@
 #define KEYS_TIMEOUT 600
 
 typedef struct DHT_Friend_Callback {
-    dht_ip_cb *ip_callback;
-    void *data;
+    dht_ip_cb *_Nullable ip_callback;
+    void *_Nullable data;
     int32_t number;
 } DHT_Friend_Callback;
 
@@ -88,17 +88,17 @@ const Node_format empty_node_format = {{0}};
 static_assert(sizeof(empty_dht_friend.lock_flags) * 8 == DHT_FRIEND_MAX_LOCKS, "Bitfield size and number of locks don't match");
 
 typedef struct Cryptopacket_Handler {
-    cryptopacket_handler_cb *function;
-    void *object;
+    cryptopacket_handler_cb *_Nullable function;
+    void *_Nullable object;
 } Cryptopacket_Handler;
 
 struct DHT {
-    const Logger *log;
-    const Network *ns;
-    Mono_Time *mono_time;
-    const Memory *mem;
-    const Random *rng;
-    Networking_Core *net;
+    const Logger *_Nonnull log;
+    const Network *_Nonnull ns;
+    Mono_Time *_Nonnull mono_time;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    Networking_Core *_Nonnull net;
 
     bool hole_punching_enabled;
     bool lan_discovery_enabled;
@@ -111,18 +111,18 @@ struct DHT {
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
 
-    DHT_Friend    *friends_list;
+    DHT_Friend    *_Nullable friends_list;
     uint16_t       num_friends;
 
-    Node_format   *loaded_nodes_list;
+    Node_format   *_Nullable loaded_nodes_list;
     uint32_t       loaded_num_nodes;
     unsigned int   loaded_nodes_index;
 
-    Shared_Key_Cache *shared_keys_recv;
-    Shared_Key_Cache *shared_keys_sent;
+    Shared_Key_Cache *_Nonnull shared_keys_recv;
+    Shared_Key_Cache *_Nonnull shared_keys_sent;
 
-    struct Ping   *ping;
-    Ping_Array    *dht_ping_array;
+    struct Ping   *_Nonnull ping;
+    Ping_Array    *_Nonnull dht_ping_array;
     uint64_t       cur_time;
 
     Cryptopacket_Handler cryptopackethandlers[256];
@@ -130,7 +130,7 @@ struct DHT {
     Node_format to_bootstrap[MAX_CLOSE_TO_BOOTSTRAP_NODES];
     unsigned int num_to_bootstrap;
 
-    dht_nodes_response_cb *nodes_response_callback;
+    dht_nodes_response_cb *_Nullable nodes_response_callback;
 };
 
 const uint8_t *dht_friend_public_key(const DHT_Friend *dht_friend)
@@ -734,7 +734,7 @@ int get_close_nodes(
     return get_somewhat_close_nodes(
                dht->cur_time, public_key, nodes_list,
                sa_family, dht->close_clientlist,
-               dht->friends_list, dht->num_friends,
+               (const DHT_Friend * _Nonnull)dht->friends_list, dht->num_friends,
                is_lan, want_announce);
 }
 
@@ -849,9 +849,9 @@ static bool store_node_ok(const Client_data *_Nonnull client, uint64_t cur_time,
 }
 
 typedef struct Client_data_Cmp {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
     uint64_t cur_time;
-    const uint8_t *comp_public_key;
+    const uint8_t *_Nonnull comp_public_key;
 } Client_data_Cmp;
 
 static int client_data_cmp(const Client_data_Cmp *_Nonnull cmp, const Client_data *_Nonnull entry1, const Client_data *_Nonnull entry2)
@@ -2509,13 +2509,15 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     dht->hole_punching_enabled = hole_punching_enabled;
     dht->lan_discovery_enabled = lan_discovery_enabled;
 
-    dht->ping = ping_new(mem, mono_time, rng, dht);
+    struct Ping *temp_ping = ping_new(mem, mono_time, rng, dht);
 
-    if (dht->ping == nullptr) {
+    if (temp_ping == nullptr) {
         LOGGER_ERROR(log, "failed to initialise ping");
         kill_dht(dht);
         return nullptr;
     }
+
+    dht->ping = temp_ping;
 
     networking_registerhandler(dht->net, NET_PACKET_NODES_REQUEST, &handle_nodes_request, dht);
     networking_registerhandler(dht->net, NET_PACKET_NODES_RESPONSE, &handle_nodes_response, dht);
@@ -2529,22 +2531,35 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
     crypto_new_keypair(rng, dht->self_public_key, dht->self_secret_key);
 
-    dht->shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    dht->shared_keys_sent = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
-    if (dht->shared_keys_recv == nullptr || dht->shared_keys_sent == nullptr) {
+    if (temp_shared_keys_recv == nullptr) {
         LOGGER_ERROR(log, "failed to initialise shared key cache");
         kill_dht(dht);
         return nullptr;
     }
 
-    dht->dht_ping_array = ping_array_new(mem, DHT_PING_ARRAY_SIZE, PING_TIMEOUT);
+    dht->shared_keys_recv = temp_shared_keys_recv;
 
-    if (dht->dht_ping_array == nullptr) {
+    Shared_Key_Cache *const temp_shared_keys_sent = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+
+    if (temp_shared_keys_sent == nullptr) {
+        LOGGER_ERROR(log, "failed to initialise shared key cache");
+        kill_dht(dht);
+        return nullptr;
+    }
+
+    dht->shared_keys_sent = temp_shared_keys_sent;
+
+    Ping_Array *const temp_ping_array = ping_array_new(mem, DHT_PING_ARRAY_SIZE, PING_TIMEOUT);
+
+    if (temp_ping_array == nullptr) {
         LOGGER_ERROR(log, "failed to initialise ping array");
         kill_dht(dht);
         return nullptr;
     }
+
+    dht->dht_ping_array = temp_ping_array;
 
     for (uint32_t i = 0; i < DHT_FAKE_FRIEND_NUMBER; ++i) {
         uint8_t random_public_key_bytes[CRYPTO_PUBLIC_KEY_SIZE];
@@ -2600,7 +2615,7 @@ void kill_dht(DHT *dht)
     networking_registerhandler(dht->net, NET_PACKET_NODES_RESPONSE, nullptr, nullptr);
     networking_registerhandler(dht->net, NET_PACKET_CRYPTO, nullptr, nullptr);
     networking_registerhandler(dht->net, NET_PACKET_LAN_DISCOVERY, nullptr, nullptr);
-    cryptopacket_registerhandler(dht, CRYPTO_PACKET_NAT_PING, nullptr, nullptr);
+    cryptopacket_registerhandler((DHT * _Nonnull)dht, CRYPTO_PACKET_NAT_PING, nullptr, nullptr);
 
     shared_key_cache_free(dht->shared_keys_recv);
     shared_key_cache_free(dht->shared_keys_sent);

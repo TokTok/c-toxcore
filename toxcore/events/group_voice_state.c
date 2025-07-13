@@ -107,7 +107,7 @@ Tox_Event_Group_Voice_State *tox_event_group_voice_state_new(const Memory *mem)
 void tox_event_group_voice_state_free(Tox_Event_Group_Voice_State *group_voice_state, const Memory *mem)
 {
     if (group_voice_state != nullptr) {
-        tox_event_group_voice_state_destruct(group_voice_state, mem);
+        tox_event_group_voice_state_destruct((Tox_Event_Group_Voice_State * _Nonnull)group_voice_state, mem);
     }
     mem_delete(mem, group_voice_state);
 }

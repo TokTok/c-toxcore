@@ -275,7 +275,7 @@ bool gcc_ip_port_is_set(const GC_Connection *gconn)
 
 void gcc_set_ip_port(GC_Connection *gconn, const IP_Port *ipp)
 {
-    if (ipp != nullptr && ipport_isset(ipp)) {
+    if (ipp != nullptr && ipport_isset((const IP_Port * _Nonnull)ipp)) {
         gconn->addr.ip_port = *ipp;
     }
 }
@@ -452,14 +452,14 @@ int gcc_handle_packet_fragment(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    gconn = get_gc_connection(chat, peer_number);
+    gconn = (GC_Connection * _Nonnull)get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         mem_delete(chat->mem, payload);
         return 0;
     }
 
-    gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
+    gcc_set_recv_message_id((GC_Connection * _Nonnull)gconn, gconn->received_message_id + 1);
     gconn->last_chunk_id = 0;
 
     mem_delete(chat->mem, payload);
@@ -510,12 +510,12 @@ static bool process_recv_array_entry(const GC_Session *_Nonnull c, GC_Chat *_Non
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
-    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
+    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, (const uint8_t *_Nonnull)array_entry->data, array_entry->data_length,
                      array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */
     peer_number = get_peer_number_of_enc_pk(chat, sender_pk, false);
-    gconn = get_gc_connection(chat, peer_number);
+    gconn = (GC_Connection * _Nonnull)get_gc_connection(chat, peer_number);
 
     clear_array_entry(chat->mem, array_entry);
 
@@ -524,13 +524,13 @@ static bool process_recv_array_entry(const GC_Session *_Nonnull c, GC_Chat *_Non
     }
 
     if (!ret) {
-        gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_REQ);
+        gc_send_message_ack(chat, (GC_Connection * _Nonnull)gconn, array_entry->message_id, GR_ACK_REQ);
         return false;
     }
 
-    gc_send_message_ack(chat, gconn, array_entry->message_id, GR_ACK_RECV);
+    gc_send_message_ack(chat, (GC_Connection * _Nonnull)gconn, array_entry->message_id, GR_ACK_RECV);
 
-    gcc_set_recv_message_id(gconn, gconn->received_message_id + 1);
+    gcc_set_recv_message_id((GC_Connection * _Nonnull)gconn, gconn->received_message_id + 1);
 
     return true;
 }
@@ -563,7 +563,7 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     }
 
     if (mono_time_is_timeout(chat->mono_time, array_entry->time_added, GC_CONFIRMED_PEER_TIMEOUT)) {
-        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
+        gcc_mark_for_deletion(gconn, (TCP_Connections * _Nonnull)chat->tcp_conn, GC_EXIT_TYPE_TIMEOUT, nullptr, 0);
         LOGGER_DEBUG(chat->log, "Send array stuck; timing out peer");
         return;
     }
@@ -612,7 +612,10 @@ bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *p
         }
     }
 
-    const int ret = send_packet_tcp_connection(chat->tcp_conn, gconn->tcp_connection_num, packet, length);
+    if (chat->tcp_conn == nullptr) {
+        return false;
+    }
+    const int ret = send_packet_tcp_connection((const TCP_Connections * _Nonnull)chat->tcp_conn, gconn->tcp_connection_num, packet, length);
     return ret == 0 || direct_send_attempt;
 }
 
@@ -682,7 +685,9 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
     gconn->pending_delete = true;
     gconn->exit_info.exit_type = type;
 
-    kill_tcp_connection_to(tcp_conn, gconn->tcp_connection_num);
+    if (tcp_conn != nullptr) {
+        kill_tcp_connection_to((TCP_Connections * _Nonnull)tcp_conn, gconn->tcp_connection_num);
+    }
 
     if (length > 0 && length <= MAX_GC_PART_MESSAGE_SIZE  && part_message != nullptr) {
         memcpy(gconn->exit_info.part_message, part_message, length);

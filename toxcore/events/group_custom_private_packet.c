@@ -148,7 +148,7 @@ Tox_Event_Group_Custom_Private_Packet *tox_event_group_custom_private_packet_new
 void tox_event_group_custom_private_packet_free(Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet, const Memory *mem)
 {
     if (group_custom_private_packet != nullptr) {
-        tox_event_group_custom_private_packet_destruct(group_custom_private_packet, mem);
+        tox_event_group_custom_private_packet_destruct((Tox_Event_Group_Custom_Private_Packet * _Nonnull)group_custom_private_packet, mem);
     }
     mem_delete(mem, group_custom_private_packet);
 }

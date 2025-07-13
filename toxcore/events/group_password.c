@@ -134,7 +134,7 @@ Tox_Event_Group_Password *tox_event_group_password_new(const Memory *mem)
 void tox_event_group_password_free(Tox_Event_Group_Password *group_password, const Memory *mem)
 {
     if (group_password != nullptr) {
-        tox_event_group_password_destruct(group_password, mem);
+        tox_event_group_password_destruct((Tox_Event_Group_Password * _Nonnull)group_password, mem);
     }
     mem_delete(mem, group_password);
 }

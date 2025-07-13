@@ -724,17 +724,35 @@ Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_tim
     onion->timestamp = mono_time_get(onion->mono_time);
 
     const uint8_t *secret_key = dht_get_self_secret_key(dht);
-    onion->shared_keys_1 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    onion->shared_keys_2 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    onion->shared_keys_3 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_1 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
-    if (onion->shared_keys_1 == nullptr ||
-            onion->shared_keys_2 == nullptr ||
-            onion->shared_keys_3 == nullptr) {
+    if (temp_shared_keys_1 == nullptr) {
         // cppcheck-suppress mismatchAllocDealloc
         kill_onion(onion);
         return nullptr;
     }
+
+    onion->shared_keys_1 = temp_shared_keys_1;
+
+    Shared_Key_Cache *const temp_shared_keys_2 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+
+    if (temp_shared_keys_2 == nullptr) {
+        // cppcheck-suppress mismatchAllocDealloc
+        kill_onion(onion);
+        return nullptr;
+    }
+
+    onion->shared_keys_2 = temp_shared_keys_2;
+
+    Shared_Key_Cache *const temp_shared_keys_3 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+
+    if (temp_shared_keys_3 == nullptr) {
+        // cppcheck-suppress mismatchAllocDealloc
+        kill_onion(onion);
+        return nullptr;
+    }
+
+    onion->shared_keys_3 = temp_shared_keys_3;
 
     networking_registerhandler(onion->net, NET_PACKET_ONION_SEND_INITIAL, &handle_send_initial, onion);
     networking_registerhandler(onion->net, NET_PACKET_ONION_SEND_1, &handle_send_1, onion);

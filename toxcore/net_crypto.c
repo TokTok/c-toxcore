@@ -35,7 +35,7 @@ typedef struct Packet_Data {
 } Packet_Data;
 
 typedef struct Packets_Array {
-    Packet_Data *buffer[CRYPTO_PACKET_BUFFER_SIZE];
+    Packet_Data *_Nullable buffer[CRYPTO_PACKET_BUFFER_SIZE];
     uint32_t  buffer_start;
     uint32_t  buffer_end; /* packet numbers in array: `{buffer_start, buffer_end)` */
 } Packets_Array;
@@ -66,7 +66,7 @@ typedef struct Crypto_Connection {
     uint64_t cookie_request_number; /* number used in the cookie request packets for this connection */
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer */
 
-    uint8_t *temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
+    uint8_t *_Nullable temp_packet; /* Where the cookie request/handshake packet is stored while it is being sent. */
     uint16_t temp_packet_length;
     uint64_t temp_packet_sent_time; /* The time at which the last temp_packet was sent in ms. */
     uint32_t temp_packet_num_sent;
@@ -81,16 +81,16 @@ typedef struct Crypto_Connection {
     Packets_Array send_array;
     Packets_Array recv_array;
 
-    connection_status_cb *connection_status_callback;
-    void *connection_status_callback_object;
+    connection_status_cb *_Nullable connection_status_callback;
+    void *_Nullable connection_status_callback_object;
     int connection_status_callback_id;
 
-    connection_data_cb *connection_data_callback;
-    void *connection_data_callback_object;
+    connection_data_cb *_Nullable connection_data_callback;
+    void *_Nullable connection_data_callback_object;
     int connection_data_callback_id;
 
-    connection_lossy_data_cb *connection_lossy_data_callback;
-    void *connection_lossy_data_callback_object;
+    connection_lossy_data_cb *_Nullable connection_lossy_data_callback;
+    void *_Nullable connection_lossy_data_callback_object;
     int connection_lossy_data_callback_id;
 
     uint64_t last_request_packet_sent;
@@ -124,24 +124,24 @@ typedef struct Crypto_Connection {
 
     bool maximum_speed_reached;
 
-    dht_pk_cb *dht_pk_callback;
-    void *dht_pk_callback_object;
+    dht_pk_cb *_Nullable dht_pk_callback;
+    void *_Nullable dht_pk_callback_object;
     uint32_t dht_pk_callback_number;
 } Crypto_Connection;
 
 static const Crypto_Connection empty_crypto_connection = {{0}};
 
 struct Net_Crypto {
-    const Logger *log;
-    const Memory *mem;
-    const Random *rng;
-    Mono_Time *mono_time;
-    const Network *ns;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    Mono_Time *_Nonnull mono_time;
+    const Network *_Nonnull ns;
 
-    DHT *dht;
-    TCP_Connections *tcp_c;
+    DHT *_Nonnull dht;
+    TCP_Connections *_Nonnull tcp_c;
 
-    Crypto_Connection *crypto_connections;
+    Crypto_Connection *_Nullable crypto_connections;
 
     uint32_t crypto_connections_length; /* Length of connections array. */
 
@@ -152,8 +152,8 @@ struct Net_Crypto {
     /* The secret key used for cookies */
     uint8_t secret_symmetric_key[CRYPTO_SYMMETRIC_KEY_SIZE];
 
-    new_connection_cb *new_connection_callback;
-    void *new_connection_callback_object;
+    new_connection_cb *_Nullable new_connection_callback;
+    void *_Nullable new_connection_callback_object;
 
     /* The current optimal sleep time */
     uint32_t current_sleep_time;
@@ -518,7 +518,7 @@ static bool handle_crypto_handshake(const Net_Crypto *_Nonnull c, uint8_t *_Nonn
         return false;
     }
 
-    if (expected_real_pk != nullptr && !pk_equal(cookie_plain, expected_real_pk)) {
+    if (expected_real_pk != nullptr && !pk_equal((const uint8_t *_Nonnull)cookie_plain, (const uint8_t *_Nonnull)expected_real_pk)) {
         return false;
     }
 
@@ -772,7 +772,7 @@ static int get_data_pointer(const Packets_Array *_Nonnull array, Packet_Data *_N
         return 0;
     }
 
-    *data = array->buffer[num];
+    *data = (Packet_Data * _Nonnull)array->buffer[num];
     return 1;
 }
 
@@ -1383,7 +1383,7 @@ static int send_temp_packet(const Net_Crypto *_Nonnull c, int crypt_connection_i
         return -1;
     }
 
-    if (send_packet_to(c, crypt_connection_id, conn->temp_packet, conn->temp_packet_length) != 0) {
+    if (send_packet_to(c, crypt_connection_id, (const uint8_t *_Nonnull)conn->temp_packet, conn->temp_packet_length) != 0) {
         return -1;
     }
 
@@ -1447,7 +1447,7 @@ static void connection_kill(Net_Crypto *_Nonnull c, int crypt_connection_id, voi
     }
 
     if (conn->connection_status_callback != nullptr) {
-        conn->connection_status_callback(conn->connection_status_callback_object, conn->connection_status_callback_id,
+        conn->connection_status_callback((void *_Nonnull)conn->connection_status_callback_object, conn->connection_status_callback_id,
                                          false, userdata);
     }
 
@@ -1522,7 +1522,7 @@ static int handle_data_packet_core(Net_Crypto *_Nonnull c, int crypt_connection_
         conn->status = CRYPTO_CONN_ESTABLISHED;
 
         if (conn->connection_status_callback != nullptr) {
-            conn->connection_status_callback(conn->connection_status_callback_object, conn->connection_status_callback_id,
+            conn->connection_status_callback((void *_Nonnull)conn->connection_status_callback_object, conn->connection_status_callback_id,
                                              true, userdata);
         }
     }
@@ -1560,7 +1560,7 @@ static int handle_data_packet_core(Net_Crypto *_Nonnull c, int crypt_connection_
             }
 
             if (conn->connection_data_callback != nullptr) {
-                conn->connection_data_callback(conn->connection_data_callback_object, conn->connection_data_callback_id, dt.data,
+                conn->connection_data_callback((void *_Nonnull)conn->connection_data_callback_object, conn->connection_data_callback_id, dt.data,
                                                dt.length, userdata);
             }
 
@@ -1579,7 +1579,7 @@ static int handle_data_packet_core(Net_Crypto *_Nonnull c, int crypt_connection_
         set_buffer_end(&conn->recv_array, num);
 
         if (conn->connection_lossy_data_callback != nullptr) {
-            conn->connection_lossy_data_callback(conn->connection_lossy_data_callback_object,
+            conn->connection_lossy_data_callback((void *_Nonnull)conn->connection_lossy_data_callback_object,
                                                  conn->connection_lossy_data_callback_id, real_data, real_length, userdata);
         }
     } else {
@@ -1663,7 +1663,7 @@ static int handle_packet_crypto_hs(const Net_Crypto *_Nonnull c, int crypt_conne
         conn->status = CRYPTO_CONN_NOT_CONFIRMED;
     } else {
         if (conn->dht_pk_callback != nullptr) {
-            conn->dht_pk_callback(conn->dht_pk_callback_object, conn->dht_pk_callback_number, dht_public_key, userdata);
+            conn->dht_pk_callback((void *_Nonnull)conn->dht_pk_callback_object, conn->dht_pk_callback_number, dht_public_key, userdata);
         }
     }
 
@@ -1946,7 +1946,7 @@ static int handle_new_connection_handshake(Net_Crypto *_Nonnull c, const IP_Port
         }
     }
 
-    const int ret = c->new_connection_callback(c->new_connection_callback_object, &n_c);
+    const int ret = c->new_connection_callback((void *_Nonnull)c->new_connection_callback_object, &n_c);
     mem_delete(c->mem, n_c.cookie);
     return ret;
 }
@@ -2244,7 +2244,7 @@ uint32_t copy_connected_tcp_relays_index(const Net_Crypto *c, Node_format *tcp_r
     return tcp_copy_connected_relays_index(c->tcp_c, tcp_relays, num, idx);
 }
 
-static void do_tcp(Net_Crypto *_Nonnull c, void *_Nonnull userdata)
+static void do_tcp(Net_Crypto *_Nonnull c, void *_Nullable userdata)
 {
     do_tcp_connections(c->log, c->tcp_c, userdata);
 
@@ -2933,12 +2933,14 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->mono_time = mono_time;
     temp->ns = ns;
 
-    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
+    TCP_Connections *const tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
 
-    if (temp->tcp_c == nullptr) {
+    if (tcp_c == nullptr) {
         mem_delete(mem, temp);
         return nullptr;
     }
+
+    temp->tcp_c = tcp_c;
 
     set_packet_tcp_connection_callback(temp->tcp_c, &tcp_data_callback, temp);
     set_oob_packet_tcp_connection_callback(temp->tcp_c, &tcp_oob_callback, temp);
@@ -3011,7 +3013,7 @@ void kill_net_crypto(Net_Crypto *c)
     const Memory *mem = c->mem;
 
     for (uint32_t i = 0; i < c->crypto_connections_length; ++i) {
-        crypto_kill(c, i);
+        crypto_kill((Net_Crypto * _Nonnull)c, i);
     }
 
     kill_tcp_connections(c->tcp_c);
@@ -3020,6 +3022,6 @@ void kill_net_crypto(Net_Crypto *c)
     networking_registerhandler(dht_get_net(c->dht), NET_PACKET_COOKIE_RESPONSE, nullptr, nullptr);
     networking_registerhandler(dht_get_net(c->dht), NET_PACKET_CRYPTO_HS, nullptr, nullptr);
     networking_registerhandler(dht_get_net(c->dht), NET_PACKET_CRYPTO_DATA, nullptr, nullptr);
-    crypto_memzero(c, sizeof(Net_Crypto));
+    crypto_memzero((Net_Crypto * _Nonnull)c, sizeof(Net_Crypto));
     mem_delete(mem, c);
 }

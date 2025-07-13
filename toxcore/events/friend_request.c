@@ -128,7 +128,7 @@ Tox_Event_Friend_Request *tox_event_friend_request_new(const Memory *mem)
 void tox_event_friend_request_free(Tox_Event_Friend_Request *friend_request, const Memory *mem)
 {
     if (friend_request != nullptr) {
-        tox_event_friend_request_destruct(friend_request, mem);
+        tox_event_friend_request_destruct((Tox_Event_Friend_Request * _Nonnull)friend_request, mem);
     }
     mem_delete(mem, friend_request);
 }
@@ -203,5 +203,5 @@ void tox_events_handle_friend_request(Tox *tox, const uint8_t *public_key, const
     const Tox_System *sys = tox_get_system(tox);
 
     tox_event_friend_request_set_public_key(friend_request, public_key);
-    tox_event_friend_request_set_message(friend_request, message, length, sys->mem);
+    tox_event_friend_request_set_message(friend_request, message, length, (const Memory * _Nonnull)sys->mem);
 }

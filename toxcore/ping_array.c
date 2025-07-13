@@ -17,15 +17,15 @@
 #include "mono_time.h"
 
 typedef struct Ping_Array_Entry {
-    uint8_t *data;
+    uint8_t *_Nullable data;
     uint32_t length;
     uint64_t ping_time;
     uint64_t ping_id;
 } Ping_Array_Entry;
 
 struct Ping_Array {
-    const Memory *mem;
-    Ping_Array_Entry *entries;
+    const Memory *_Nonnull mem;
+    Ping_Array_Entry *_Nonnull entries;
 
     uint32_t last_deleted; /* number representing the next entry to be deleted. */
     uint32_t last_added;   /* number representing the last entry to be added. */
@@ -50,15 +50,15 @@ Ping_Array *ping_array_new(const Memory *mem, uint32_t size, uint32_t timeout)
         return nullptr;
     }
 
-    Ping_Array_Entry *entries = (Ping_Array_Entry *)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
+    Ping_Array_Entry *const entries = (Ping_Array_Entry *)mem_valloc(mem, size, sizeof(Ping_Array_Entry));
 
     if (entries == nullptr) {
         mem_delete(mem, empty_array);
         return nullptr;
     }
+    empty_array->entries = entries;
 
     empty_array->mem = mem;
-    empty_array->entries = entries;
     empty_array->last_deleted = 0;
     empty_array->last_added = 0;
     empty_array->total_size = size;
@@ -81,7 +81,7 @@ void ping_array_kill(Ping_Array *array)
 
     while (array->last_deleted != array->last_added) {
         const uint32_t index = array->last_deleted % array->total_size;
-        clear_entry(array, index);
+        clear_entry((Ping_Array * _Nonnull)array, index);
         ++array->last_deleted;
     }
 
@@ -112,7 +112,7 @@ uint64_t ping_array_add(Ping_Array *array, const Mono_Time *mono_time, const Ran
 
     if (array->entries[index].data != nullptr) {
         array->last_deleted = array->last_added - array->total_size;
-        clear_entry(array, index);
+        clear_entry((Ping_Array * _Nonnull)array, index);
     }
 
     uint8_t *entry_data = (uint8_t *)mem_balloc(array->mem, length);
@@ -169,6 +169,6 @@ int32_t ping_array_check(Ping_Array *array, const Mono_Time *mono_time, uint8_t 
 
     memcpy(data, array->entries[index].data, array->entries[index].length);
     const uint32_t len = array->entries[index].length;
-    clear_entry(array, index);
+    clear_entry((Ping_Array * _Nonnull)array, index);
     return len;
 }

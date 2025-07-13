@@ -107,7 +107,7 @@ Tox_Event_Group_Join_Fail *tox_event_group_join_fail_new(const Memory *mem)
 void tox_event_group_join_fail_free(Tox_Event_Group_Join_Fail *group_join_fail, const Memory *mem)
 {
     if (group_join_fail != nullptr) {
-        tox_event_group_join_fail_destruct(group_join_fail, mem);
+        tox_event_group_join_fail_destruct((Tox_Event_Group_Join_Fail * _Nonnull)group_join_fail, mem);
     }
     mem_delete(mem, group_join_fail);
 }

@@ -35,14 +35,14 @@ typedef void fr_friend_request_cb(void *_Nonnull object, const uint8_t *_Nonnull
                                   void *_Nullable user_data);
 
 /** Set the function that will be executed when a friend request for us is received. */
-void callback_friendrequest(Friend_Requests *_Nonnull fr, fr_friend_request_cb *_Nonnull function, void *_Nonnull object);
+void callback_friendrequest(Friend_Requests *_Nonnull fr, fr_friend_request_cb *_Nullable function, void *_Nullable object);
 
 typedef int filter_function_cb(void *_Nonnull object, const uint8_t *_Nonnull public_key);
 
 /** @brief Set the function used to check if a friend request should be displayed to the user or not.
  * It must return 0 if the request is ok (anything else if it is bad).
  */
-void set_filter_function(Friend_Requests *_Nonnull fr, filter_function_cb *_Nonnull function, void *_Nonnull userdata);
+void set_filter_function(Friend_Requests *_Nonnull fr, filter_function_cb *_Nullable function, void *_Nullable userdata);
 
 /** Sets up friendreq packet handlers. */
 void friendreq_init(Friend_Requests *_Nonnull fr, Friend_Connections *_Nonnull fr_c);

@@ -587,124 +587,124 @@ static bool tox_event_data_pack(Tox_Event_Type type, const Tox_Event_Data *_Nonn
 {
     switch (type) {
         case TOX_EVENT_CONFERENCE_CONNECTED:
-            return tox_event_conference_connected_pack(data->conference_connected, bp);
+            return tox_event_conference_connected_pack((const Tox_Event_Conference_Connected * _Nonnull)data->conference_connected, bp);
 
         case TOX_EVENT_CONFERENCE_INVITE:
-            return tox_event_conference_invite_pack(data->conference_invite, bp);
+            return tox_event_conference_invite_pack((const Tox_Event_Conference_Invite * _Nonnull)data->conference_invite, bp);
 
         case TOX_EVENT_CONFERENCE_MESSAGE:
-            return tox_event_conference_message_pack(data->conference_message, bp);
+            return tox_event_conference_message_pack((const Tox_Event_Conference_Message * _Nonnull)data->conference_message, bp);
 
         case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED:
-            return tox_event_conference_peer_list_changed_pack(data->conference_peer_list_changed, bp);
+            return tox_event_conference_peer_list_changed_pack((const Tox_Event_Conference_Peer_List_Changed * _Nonnull)data->conference_peer_list_changed, bp);
 
         case TOX_EVENT_CONFERENCE_PEER_NAME:
-            return tox_event_conference_peer_name_pack(data->conference_peer_name, bp);
+            return tox_event_conference_peer_name_pack((const Tox_Event_Conference_Peer_Name * _Nonnull)data->conference_peer_name, bp);
 
         case TOX_EVENT_CONFERENCE_TITLE:
-            return tox_event_conference_title_pack(data->conference_title, bp);
+            return tox_event_conference_title_pack((const Tox_Event_Conference_Title * _Nonnull)data->conference_title, bp);
 
         case TOX_EVENT_FILE_CHUNK_REQUEST:
-            return tox_event_file_chunk_request_pack(data->file_chunk_request, bp);
+            return tox_event_file_chunk_request_pack((const Tox_Event_File_Chunk_Request * _Nonnull)data->file_chunk_request, bp);
 
         case TOX_EVENT_FILE_RECV_CHUNK:
-            return tox_event_file_recv_chunk_pack(data->file_recv_chunk, bp);
+            return tox_event_file_recv_chunk_pack((const Tox_Event_File_Recv_Chunk * _Nonnull)data->file_recv_chunk, bp);
 
         case TOX_EVENT_FILE_RECV_CONTROL:
-            return tox_event_file_recv_control_pack(data->file_recv_control, bp);
+            return tox_event_file_recv_control_pack((const Tox_Event_File_Recv_Control * _Nonnull)data->file_recv_control, bp);
 
         case TOX_EVENT_FILE_RECV:
-            return tox_event_file_recv_pack(data->file_recv, bp);
+            return tox_event_file_recv_pack((const Tox_Event_File_Recv * _Nonnull)data->file_recv, bp);
 
         case TOX_EVENT_FRIEND_CONNECTION_STATUS:
-            return tox_event_friend_connection_status_pack(data->friend_connection_status, bp);
+            return tox_event_friend_connection_status_pack((const Tox_Event_Friend_Connection_Status * _Nonnull)data->friend_connection_status, bp);
 
         case TOX_EVENT_FRIEND_LOSSLESS_PACKET:
-            return tox_event_friend_lossless_packet_pack(data->friend_lossless_packet, bp);
+            return tox_event_friend_lossless_packet_pack((const Tox_Event_Friend_Lossless_Packet * _Nonnull)data->friend_lossless_packet, bp);
 
         case TOX_EVENT_FRIEND_LOSSY_PACKET:
-            return tox_event_friend_lossy_packet_pack(data->friend_lossy_packet, bp);
+            return tox_event_friend_lossy_packet_pack((const Tox_Event_Friend_Lossy_Packet * _Nonnull)data->friend_lossy_packet, bp);
 
         case TOX_EVENT_FRIEND_MESSAGE:
-            return tox_event_friend_message_pack(data->friend_message, bp);
+            return tox_event_friend_message_pack((const Tox_Event_Friend_Message * _Nonnull)data->friend_message, bp);
 
         case TOX_EVENT_FRIEND_NAME:
-            return tox_event_friend_name_pack(data->friend_name, bp);
+            return tox_event_friend_name_pack((const Tox_Event_Friend_Name * _Nonnull)data->friend_name, bp);
 
         case TOX_EVENT_FRIEND_READ_RECEIPT:
-            return tox_event_friend_read_receipt_pack(data->friend_read_receipt, bp);
+            return tox_event_friend_read_receipt_pack((const Tox_Event_Friend_Read_Receipt * _Nonnull)data->friend_read_receipt, bp);
 
         case TOX_EVENT_FRIEND_REQUEST:
-            return tox_event_friend_request_pack(data->friend_request, bp);
+            return tox_event_friend_request_pack((const Tox_Event_Friend_Request * _Nonnull)data->friend_request, bp);
 
         case TOX_EVENT_FRIEND_STATUS:
-            return tox_event_friend_status_pack(data->friend_status, bp);
+            return tox_event_friend_status_pack((const Tox_Event_Friend_Status * _Nonnull)data->friend_status, bp);
 
         case TOX_EVENT_FRIEND_STATUS_MESSAGE:
-            return tox_event_friend_status_message_pack(data->friend_status_message, bp);
+            return tox_event_friend_status_message_pack((const Tox_Event_Friend_Status_Message * _Nonnull)data->friend_status_message, bp);
 
         case TOX_EVENT_FRIEND_TYPING:
-            return tox_event_friend_typing_pack(data->friend_typing, bp);
+            return tox_event_friend_typing_pack((const Tox_Event_Friend_Typing * _Nonnull)data->friend_typing, bp);
 
         case TOX_EVENT_SELF_CONNECTION_STATUS:
-            return tox_event_self_connection_status_pack(data->self_connection_status, bp);
+            return tox_event_self_connection_status_pack((const Tox_Event_Self_Connection_Status * _Nonnull)data->self_connection_status, bp);
 
         case TOX_EVENT_GROUP_PEER_NAME:
-            return tox_event_group_peer_name_pack(data->group_peer_name, bp);
+            return tox_event_group_peer_name_pack((const Tox_Event_Group_Peer_Name * _Nonnull)data->group_peer_name, bp);
 
         case TOX_EVENT_GROUP_PEER_STATUS:
-            return tox_event_group_peer_status_pack(data->group_peer_status, bp);
+            return tox_event_group_peer_status_pack((const Tox_Event_Group_Peer_Status * _Nonnull)data->group_peer_status, bp);
 
         case TOX_EVENT_GROUP_TOPIC:
-            return tox_event_group_topic_pack(data->group_topic, bp);
+            return tox_event_group_topic_pack((const Tox_Event_Group_Topic * _Nonnull)data->group_topic, bp);
 
         case TOX_EVENT_GROUP_PRIVACY_STATE:
-            return tox_event_group_privacy_state_pack(data->group_privacy_state, bp);
+            return tox_event_group_privacy_state_pack((const Tox_Event_Group_Privacy_State * _Nonnull)data->group_privacy_state, bp);
 
         case TOX_EVENT_GROUP_VOICE_STATE:
-            return tox_event_group_voice_state_pack(data->group_voice_state, bp);
+            return tox_event_group_voice_state_pack((const Tox_Event_Group_Voice_State * _Nonnull)data->group_voice_state, bp);
 
         case TOX_EVENT_GROUP_TOPIC_LOCK:
-            return tox_event_group_topic_lock_pack(data->group_topic_lock, bp);
+            return tox_event_group_topic_lock_pack((const Tox_Event_Group_Topic_Lock * _Nonnull)data->group_topic_lock, bp);
 
         case TOX_EVENT_GROUP_PEER_LIMIT:
-            return tox_event_group_peer_limit_pack(data->group_peer_limit, bp);
+            return tox_event_group_peer_limit_pack((const Tox_Event_Group_Peer_Limit * _Nonnull)data->group_peer_limit, bp);
 
         case TOX_EVENT_GROUP_PASSWORD:
-            return tox_event_group_password_pack(data->group_password, bp);
+            return tox_event_group_password_pack((const Tox_Event_Group_Password * _Nonnull)data->group_password, bp);
 
         case TOX_EVENT_GROUP_MESSAGE:
-            return tox_event_group_message_pack(data->group_message, bp);
+            return tox_event_group_message_pack((const Tox_Event_Group_Message * _Nonnull)data->group_message, bp);
 
         case TOX_EVENT_GROUP_PRIVATE_MESSAGE:
-            return tox_event_group_private_message_pack(data->group_private_message, bp);
+            return tox_event_group_private_message_pack((const Tox_Event_Group_Private_Message * _Nonnull)data->group_private_message, bp);
 
         case TOX_EVENT_GROUP_CUSTOM_PACKET:
-            return tox_event_group_custom_packet_pack(data->group_custom_packet, bp);
+            return tox_event_group_custom_packet_pack((const Tox_Event_Group_Custom_Packet * _Nonnull)data->group_custom_packet, bp);
 
         case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET:
-            return tox_event_group_custom_private_packet_pack(data->group_custom_private_packet, bp);
+            return tox_event_group_custom_private_packet_pack((const Tox_Event_Group_Custom_Private_Packet * _Nonnull)data->group_custom_private_packet, bp);
 
         case TOX_EVENT_GROUP_INVITE:
-            return tox_event_group_invite_pack(data->group_invite, bp);
+            return tox_event_group_invite_pack((const Tox_Event_Group_Invite * _Nonnull)data->group_invite, bp);
 
         case TOX_EVENT_GROUP_PEER_JOIN:
-            return tox_event_group_peer_join_pack(data->group_peer_join, bp);
+            return tox_event_group_peer_join_pack((const Tox_Event_Group_Peer_Join * _Nonnull)data->group_peer_join, bp);
 
         case TOX_EVENT_GROUP_PEER_EXIT:
-            return tox_event_group_peer_exit_pack(data->group_peer_exit, bp);
+            return tox_event_group_peer_exit_pack((const Tox_Event_Group_Peer_Exit * _Nonnull)data->group_peer_exit, bp);
 
         case TOX_EVENT_GROUP_SELF_JOIN:
-            return tox_event_group_self_join_pack(data->group_self_join, bp);
+            return tox_event_group_self_join_pack((const Tox_Event_Group_Self_Join * _Nonnull)data->group_self_join, bp);
 
         case TOX_EVENT_GROUP_JOIN_FAIL:
-            return tox_event_group_join_fail_pack(data->group_join_fail, bp);
+            return tox_event_group_join_fail_pack((const Tox_Event_Group_Join_Fail * _Nonnull)data->group_join_fail, bp);
 
         case TOX_EVENT_GROUP_MODERATION:
-            return tox_event_group_moderation_pack(data->group_moderation, bp);
+            return tox_event_group_moderation_pack((const Tox_Event_Group_Moderation * _Nonnull)data->group_moderation, bp);
 
         case TOX_EVENT_DHT_NODES_RESPONSE:
-            return tox_event_dht_nodes_response_pack(data->dht_nodes_response, bp);
+            return tox_event_dht_nodes_response_pack((const Tox_Event_Dht_Nodes_Response * _Nonnull)data->dht_nodes_response, bp);
 
         case TOX_EVENT_INVALID:
             return false;

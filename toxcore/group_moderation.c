@@ -304,7 +304,7 @@ int sanctions_list_pack(uint8_t *_Nonnull data, uint16_t length, const Mod_Sanct
         return -1;
     }
 
-    const uint16_t cred_len = sanctions_creds_pack(creds, &data[packed_len]);
+    const uint16_t cred_len = sanctions_creds_pack((const Mod_Sanction_Creds * _Nonnull)creds, &data[packed_len]);
 
     if (cred_len != MOD_SANCTIONS_CREDS_SIZE) {
         return -1;
@@ -586,7 +586,7 @@ static bool sanctions_apply_new(Moderation *_Nonnull moderation, Mod_Sanction *_
                                 uint16_t num_sanctions)
 {
     if (new_creds != nullptr) {
-        if (!sanctions_creds_validate(moderation, new_sanctions, new_creds, num_sanctions)) {
+        if (!sanctions_creds_validate(moderation, new_sanctions, (const Mod_Sanction_Creds * _Nonnull) new_creds, num_sanctions)) {
             LOGGER_WARNING(moderation->log, "Failed to validate credentials");
             return false;
         }
@@ -633,7 +633,7 @@ static bool sanctions_list_remove_index(Moderation *_Nonnull moderation, uint16_
 
     if (new_num == 0) {
         if (creds != nullptr) {
-            if (!sanctions_creds_validate(moderation, nullptr, creds, 0)) {
+            if (!sanctions_creds_validate(moderation, nullptr, (const Mod_Sanction_Creds * _Nonnull) creds, 0)) {
                 return false;
             }
 
@@ -646,7 +646,10 @@ static bool sanctions_list_remove_index(Moderation *_Nonnull moderation, uint16_
     }
 
     /* Operate on a copy of the list in case something goes wrong. */
-    Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
+    if (moderation->sanctions == NULL) {
+        return false;
+    }
+    Mod_Sanction *sanctions_copy = sanctions_list_copy(moderation->mem, (const Mod_Sanction * _Nonnull)moderation->sanctions, moderation->num_sanctions);
 
     if (sanctions_copy == nullptr) {
         return false;
@@ -744,7 +747,10 @@ bool sanctions_list_add_entry(Moderation *_Nonnull moderation, const Mod_Sanctio
     Mod_Sanction *sanctions_copy = nullptr;
 
     if (moderation->num_sanctions > 0) {
-        sanctions_copy = sanctions_list_copy(moderation->mem, moderation->sanctions, moderation->num_sanctions);
+        if (moderation->sanctions == NULL) {
+            return false;
+        }
+        sanctions_copy = sanctions_list_copy(moderation->mem, (const Mod_Sanction * _Nonnull)moderation->sanctions, moderation->num_sanctions);
 
         if (sanctions_copy == nullptr) {
             return false;

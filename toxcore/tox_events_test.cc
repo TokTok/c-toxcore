@@ -15,7 +15,7 @@ TEST(ToxEvents, UnpackRandomDataDoesntCrash)
     const Tox_System sys = tox_default_system();
     ASSERT_NE(sys.rng, nullptr);
     std::array<uint8_t, 128> data;
-    random_bytes(sys.rng, data.data(), data.size());
+    random_bytes(static_cast<const Random *_Nonnull>(sys.rng), data.data(), data.size());
     tox_events_free(tox_events_load(&sys, data.data(), data.size()));
 }
 

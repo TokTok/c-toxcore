@@ -36,15 +36,15 @@ struct Received_Requests {
 };
 
 struct Friend_Requests {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
 
     uint32_t nospam;
-    fr_friend_request_cb *handle_friendrequest;
+    fr_friend_request_cb *_Nullable handle_friendrequest;
     uint8_t handle_friendrequest_isset;
-    void *handle_friendrequest_object;
+    void *_Nullable handle_friendrequest_object;
 
-    filter_function_cb *filter_function;
-    void *filter_function_userdata;
+    filter_function_cb *_Nullable filter_function;
+    void *_Nullable filter_function_userdata;
 
     struct Received_Requests received;
 };
@@ -145,7 +145,7 @@ static int friendreq_handlepacket(void *_Nonnull object, const uint8_t *_Nonnull
     }
 
     if (fr->filter_function != nullptr) {
-        if (fr->filter_function(fr->filter_function_userdata, source_pubkey) != 0) {
+        if (fr->filter_function((void *_Nonnull)fr->filter_function_userdata, source_pubkey) != 0) {
             return 1;
         }
     }
@@ -157,7 +157,7 @@ static int friendreq_handlepacket(void *_Nonnull object, const uint8_t *_Nonnull
     memcpy(message, data + sizeof(fr->nospam), message_len);
     message[message_len] = 0; /* Be sure the message is null terminated. TODO(iphydf): But why? */
 
-    fr->handle_friendrequest(fr->handle_friendrequest_object, source_pubkey, message, message_len, userdata);
+    fr->handle_friendrequest((void *_Nonnull)fr->handle_friendrequest_object, source_pubkey, message, message_len, userdata);
     return 0;
 }
 

@@ -188,7 +188,7 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
             // Log to stdout.
-            std::printf("[%s] %c %s:%d(%s): %s\n", static_cast<Record_System *>(user_data)->name_,
+            std::printf("[%s] %c %s:%u(%s): %s\n", static_cast<Record_System *>(user_data)->name_,
                 tox_log_level_name(level), file, line, func, message);
         });
 
