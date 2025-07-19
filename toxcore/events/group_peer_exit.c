@@ -206,7 +206,7 @@ Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_new(const Memory *mem)
 void tox_event_group_peer_exit_free(Tox_Event_Group_Peer_Exit *group_peer_exit, const Memory *mem)
 {
     if (group_peer_exit != nullptr) {
-        tox_event_group_peer_exit_destruct(group_peer_exit, mem);
+        tox_event_group_peer_exit_destruct((Tox_Event_Group_Peer_Exit * _Nonnull)group_peer_exit, mem);
     }
     mem_delete(mem, group_peer_exit);
 }

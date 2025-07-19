@@ -150,7 +150,7 @@ Tox_Event_Conference_Invite *tox_event_conference_invite_new(const Memory *mem)
 void tox_event_conference_invite_free(Tox_Event_Conference_Invite *conference_invite, const Memory *mem)
 {
     if (conference_invite != nullptr) {
-        tox_event_conference_invite_destruct(conference_invite, mem);
+        tox_event_conference_invite_destruct((Tox_Event_Conference_Invite * _Nonnull)conference_invite, mem);
     }
     mem_delete(mem, conference_invite);
 }

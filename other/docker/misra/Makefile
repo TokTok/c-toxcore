@@ -42,6 +42,10 @@ SUPPRESSIONS += 10.8
 #
 # Reason: this is needed for generic callbacks to make any sense.
 SUPPRESSIONS += 11.5
+# A conversion shall not remove any const, volatile or _Atomic qualification from the type pointed to by a pointer.
+#
+# Reason: we need to cast from _Nullable to _Nonnull.
+SUPPRESSIONS += 11.8
 # The precedence of operators within expressions should be made explicit.
 #
 # Reason: this asks us to add a lot of extra parentheses that don't really help

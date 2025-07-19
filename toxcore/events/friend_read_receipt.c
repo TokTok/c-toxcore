@@ -105,7 +105,7 @@ Tox_Event_Friend_Read_Receipt *tox_event_friend_read_receipt_new(const Memory *m
 void tox_event_friend_read_receipt_free(Tox_Event_Friend_Read_Receipt *friend_read_receipt, const Memory *mem)
 {
     if (friend_read_receipt != nullptr) {
-        tox_event_friend_read_receipt_destruct(friend_read_receipt, mem);
+        tox_event_friend_read_receipt_destruct((Tox_Event_Friend_Read_Receipt * _Nonnull)friend_read_receipt, mem);
     }
     mem_delete(mem, friend_read_receipt);
 }

@@ -836,7 +836,7 @@ static void saved_peers_remove_entry(GC_Chat *_Nonnull chat, const uint8_t *_Non
 static int saved_peers_get_new_index(const GC_Chat *_Nonnull chat, const uint8_t *_Nullable public_key)
 {
     if (public_key != nullptr) {
-        const int idx = saved_peer_index(chat, public_key);
+        const int idx = saved_peer_index(chat, (const uint8_t *_Nonnull)public_key);
         if (idx != -1) {
             return idx;
         }
@@ -1069,7 +1069,11 @@ static bool prune_gc_mod_list(GC_Chat *_Nonnull chat)
     bool pruned_mod = false;
 
     for (uint16_t i = 0; i < chat->moderation.num_mods; ++i) {
-        if (get_peer_number_of_sig_pk(chat, chat->moderation.mod_list[i]) == -1) {
+        if (chat->moderation.mod_list[i] == nullptr) {
+            LOGGER_ERROR(chat->log, "Moderator list contains a null entry at index %u", i);
+            continue;
+        }
+        if (get_peer_number_of_sig_pk(chat, (const uint8_t *_Nonnull)chat->moderation.mod_list[i]) == -1) {
             memcpy(public_sig_key, chat->moderation.mod_list[i], SIG_PUBLIC_KEY_SIZE);
 
             if (!mod_list_remove_index(&chat->moderation, i)) {
@@ -1481,7 +1485,7 @@ static int group_packet_unwrap(const Logger *_Nonnull log, const Memory *_Nonnul
     plain_len -= sizeof(uint8_t);
 
     if (message_id != nullptr) {
-        net_unpack_u64(real_plain + sizeof(uint8_t), message_id);
+        net_unpack_u64(real_plain + sizeof(uint8_t), (uint64_t *_Nonnull)message_id);
         plain_len -= GC_MESSAGE_ID_BYTES;
         header_len += GC_MESSAGE_ID_BYTES;
     }
@@ -1622,7 +1626,10 @@ static bool send_lossless_group_packet(const GC_Chat *_Nonnull chat, GC_Connecti
     }
 
     if (length > MAX_GC_PACKET_CHUNK_SIZE) {
-        return gcc_send_lossless_packet_fragments(chat, gconn, data, length, packet_type);
+        if (data == nullptr) {
+            return false;
+        }
+        return gcc_send_lossless_packet_fragments(chat, gconn, (const uint8_t *_Nonnull)data, length, packet_type);
     }
 
     return gcc_send_lossless_packet(chat, gconn, data, length, packet_type) == 0;
@@ -1719,7 +1726,10 @@ static bool unpack_gc_sync_announce(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
         uint32_t added_tcp_relays = 0;
 
         for (uint8_t i = 0; i < announce.tcp_relays_count; ++i) {
-            const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, new_gconn->tcp_connection_num,
+            if (chat->tcp_conn == nullptr) {
+                return false;
+            }
+            const int add_tcp_result = add_tcp_relay_connection((TCP_Connections * _Nonnull)chat->tcp_conn, new_gconn->tcp_connection_num,
                                        &announce.tcp_relays[i].ip_port,
                                        announce.tcp_relays[i].public_key);
 
@@ -1733,7 +1743,10 @@ static bool unpack_gc_sync_announce(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
         }
 
         if (!announce.ip_port_is_set && added_tcp_relays == 0) {
-            gcc_mark_for_deletion(new_gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
+            if (chat->tcp_conn == nullptr) {
+                return false;
+            }
+            gcc_mark_for_deletion(new_gconn, (TCP_Connections * _Nonnull)chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
             LOGGER_ERROR(chat->log, "Sync error: Invalid peer connection info");
             return false;
         }
@@ -1765,7 +1778,10 @@ static int handle_gc_sync_response(const GC_Session *_Nonnull c, GC_Chat *_Nonnu
     }
 
     if (length > 0) {
-        if (!unpack_gc_sync_announce(chat, data, length)) {
+        if (data == NULL) {
+            return -1;
+        }
+        if (!unpack_gc_sync_announce(chat, (const uint8_t *_Nonnull)data, length)) {
             return -1;
         }
     }
@@ -2184,7 +2200,7 @@ static bool send_gc_invite_response_reject(const GC_Chat *_Nonnull chat, GC_Conn
  * Return -3 if we fail to send an invite response.
  * Return -4 if peer_number does not designate a valid peer.
  */
-static int handle_gc_invite_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data, uint16_t length)
+static int handle_gc_invite_request(GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nonnull data, uint16_t length)
 {
     if (chat->shared_state.version == 0) {  // we aren't synced yet; ignore request
         return 0;
@@ -7229,12 +7245,14 @@ static bool init_gc_tcp_connection(const GC_Session *_Nonnull c, GC_Chat *_Nonnu
 {
     const Messenger *m = c->messenger;
 
-    chat->tcp_conn = new_tcp_connections(chat->log, chat->mem, chat->rng, m->ns, chat->mono_time, chat->self_secret_key.enc,
-                                         &m->options.proxy_info, c->tcp_np);
+    TCP_Connections *tcp_conn = new_tcp_connections(chat->log, chat->mem, chat->rng, m->ns, chat->mono_time, chat->self_secret_key.enc,
+                                &m->options.proxy_info, c->tcp_np);
 
-    if (chat->tcp_conn == nullptr) {
+    if (tcp_conn == nullptr) {
         return false;
     }
+
+    chat->tcp_conn = tcp_conn;
 
     add_tcp_relays_to_chat(c, chat);
 
@@ -8160,7 +8178,7 @@ void kill_dht_groupchats(GC_Session *c)
             continue;
         }
 
-        if (kill_group(c, chat) != 0) {
+        if (kill_group((GC_Session * _Nonnull)c, chat) != 0) {
             LOGGER_WARNING(c->messenger->log, "Failed to send group exit packet");
         }
     }
