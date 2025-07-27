@@ -103,10 +103,10 @@ int main(int argc, char *argv[])
     Messenger_Options options = {0};
     options.ipv6enabled = ipv6enabled;
     Messenger_Error err;
-    m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);
+    m = new_messenger(mono_time, mem, (const Random * _Nonnull)os_random(), (const Network * _Nonnull)os_network(), &options, &err);
 
     if (!m) {
-        fprintf(stderr, "Failed to allocate messenger datastructure: %d\n", err);
+        fprintf(stderr, "Failed to allocate messenger datastructure: %u\n", err);
         exit(0);
     }
 

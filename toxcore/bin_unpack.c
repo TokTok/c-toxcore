@@ -13,9 +13,9 @@
 #include "mem.h"
 
 struct Bin_Unpack {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
 
-    const uint8_t *bytes;
+    const uint8_t *_Nonnull bytes;
     uint32_t bytes_size;
     cmp_ctx_t ctx;
 };

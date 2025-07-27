@@ -148,7 +148,7 @@ Tox_Event_Conference_Peer_Name *tox_event_conference_peer_name_new(const Memory 
 void tox_event_conference_peer_name_free(Tox_Event_Conference_Peer_Name *conference_peer_name, const Memory *mem)
 {
     if (conference_peer_name != nullptr) {
-        tox_event_conference_peer_name_destruct(conference_peer_name, mem);
+        tox_event_conference_peer_name_destruct((Tox_Event_Conference_Peer_Name * _Nonnull)conference_peer_name, mem);
     }
     mem_delete(mem, conference_peer_name);
 }

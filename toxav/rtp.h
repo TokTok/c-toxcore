@@ -78,9 +78,9 @@ struct RTPHeader {
     uint64_t flags;
 
     /**
-     * The full 32 bit data offset of the current data chunk. The @ref
-     * offset_lower data member contains the lower 16 bits of this value. For
-     * frames smaller than 64KiB, @ref offset_full and @ref offset_lower are
+     * The full 32 bit data offset of the current data chunk. The
+     * @ref offset_lower data member contains the lower 16 bits of this value.
+     * For frames smaller than 64KiB, @ref offset_full and @ref offset_lower are
      * equal.
      */
     uint32_t offset_full;

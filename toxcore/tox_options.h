@@ -239,12 +239,13 @@ struct Tox_Options {
      */
     void *log_user_data;
 
-    /**
+    /*
      * These options are experimental, so avoid writing code that depends on
      * them. Options marked "experimental" may change their behaviour or go away
      * entirely in the future, or may be renamed to something non-experimental
      * if they become part of the supported API.
      */
+
     /**
      * Make public API functions thread-safe using a per-instance lock.
      *

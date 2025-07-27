@@ -127,11 +127,11 @@ bool tox_dht_send_nodes_request(const Tox *tox, const uint8_t *public_key, const
 
     IP_Port *root;
 
-    const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, ip, &root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
+    const int32_t count = net_getipport((const Network * _Nonnull)tox->sys.ns, (const Memory * _Nonnull)tox->sys.mem, ip, &root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
 
     if (count < 1) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DHT_SEND_NODES_REQUEST_BAD_IP);
-        net_freeipport(tox->sys.mem, root);
+        net_freeipport((const Memory * _Nonnull)tox->sys.mem, root);
         tox_unlock(tox);
         return false;
     }
@@ -148,7 +148,7 @@ bool tox_dht_send_nodes_request(const Tox *tox, const uint8_t *public_key, const
 
     tox_unlock(tox);
 
-    net_freeipport(tox->sys.mem, root);
+    net_freeipport((const Memory * _Nonnull)tox->sys.mem, root);
 
     if (!success) {
         SET_ERROR_PARAMETER(error, TOX_ERR_DHT_SEND_NODES_REQUEST_FAIL);

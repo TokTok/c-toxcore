@@ -102,8 +102,8 @@ static uint8_t *crypto_malloc(const Memory *_Nonnull mem, size_t bytes)
 static void crypto_free(const Memory *_Nonnull mem, uint8_t *_Nullable ptr, size_t bytes)
 {
     if (ptr != nullptr) {
-        crypto_memzero(ptr, bytes);
-        crypto_memunlock(ptr, bytes);
+        crypto_memzero((uint8_t *_Nonnull)ptr, bytes);
+        crypto_memunlock((uint8_t *_Nonnull)ptr, bytes);
     }
 
     mem_delete(mem, ptr);

@@ -164,7 +164,7 @@ Tox_Event_Conference_Message *tox_event_conference_message_new(const Memory *mem
 void tox_event_conference_message_free(Tox_Event_Conference_Message *conference_message, const Memory *mem)
 {
     if (conference_message != nullptr) {
-        tox_event_conference_message_destruct(conference_message, mem);
+        tox_event_conference_message_destruct((Tox_Event_Conference_Message * _Nonnull)conference_message, mem);
     }
     mem_delete(mem, conference_message);
 }

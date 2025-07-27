@@ -148,7 +148,7 @@ Tox_Event_Group_Peer_Name *tox_event_group_peer_name_new(const Memory *mem)
 void tox_event_group_peer_name_free(Tox_Event_Group_Peer_Name *group_peer_name, const Memory *mem)
 {
     if (group_peer_name != nullptr) {
-        tox_event_group_peer_name_destruct(group_peer_name, mem);
+        tox_event_group_peer_name_destruct((Tox_Event_Group_Peer_Name * _Nonnull)group_peer_name, mem);
     }
     mem_delete(mem, group_peer_name);
 }

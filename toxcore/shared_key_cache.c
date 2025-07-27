@@ -21,12 +21,12 @@ typedef struct Shared_Key {
 } Shared_Key;
 
 struct Shared_Key_Cache {
-    Shared_Key *keys;
-    const uint8_t *self_secret_key;
+    Shared_Key *_Nonnull keys;
+    const uint8_t *_Nonnull self_secret_key;
     uint64_t timeout; /** After this time (in seconds), a key is erased on the next housekeeping cycle */
-    const Mono_Time *mono_time;
-    const Memory *mem;
-    const Logger *log;
+    const Mono_Time *_Nonnull mono_time;
+    const Memory *_Nonnull mem;
+    const Logger *_Nonnull log;
     uint8_t keys_per_slot;
 };
 

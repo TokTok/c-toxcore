@@ -162,7 +162,7 @@ Tox_Event_File_Recv_Chunk *tox_event_file_recv_chunk_new(const Memory *mem)
 void tox_event_file_recv_chunk_free(Tox_Event_File_Recv_Chunk *file_recv_chunk, const Memory *mem)
 {
     if (file_recv_chunk != nullptr) {
-        tox_event_file_recv_chunk_destruct(file_recv_chunk, mem);
+        tox_event_file_recv_chunk_destruct((Tox_Event_File_Recv_Chunk * _Nonnull)file_recv_chunk, mem);
     }
     mem_delete(mem, file_recv_chunk);
 }
