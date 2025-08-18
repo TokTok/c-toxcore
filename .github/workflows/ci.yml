@@ -8,7 +8,7 @@ jobs:
   linux-asan:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: mmap rnd_bits workaround
         run: |
           sudo sysctl -w vm.mmap_rnd_bits=28
@@ -41,7 +41,7 @@ jobs:
   linux-tsan:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: mmap rnd_bits workaround
         run: |
           sudo sysctl -w vm.mmap_rnd_bits=28
