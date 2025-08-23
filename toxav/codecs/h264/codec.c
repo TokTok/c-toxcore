@@ -41,6 +41,18 @@ extern "C" {
 }
 #endif
 
+// ffmpeg 8.0 ----------------------------------
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(60, 8, 100)
+#ifndef FF_PROFILE_H264_HIGH
+#define FF_PROFILE_H264_HIGH AV_PROFILE_H264_HIGH
+#endif
+#ifndef FF_PROFILE_H264_BASELINE
+#define FF_PROFILE_H264_BASELINE AV_PROFILE_H264_BASELINE
+#endif
+#endif
+// ffmpeg 8.0 ----------------------------------
+
+
 // HINT: cant get the loglevel enum here for some reason. so here is the workaround.
 #ifndef LOGGER_LEVEL_TRACE
 #define LOGGER_LEVEL_TRACE 0
@@ -361,12 +373,6 @@ static int works_encoder_codec_by_name(char *codec_name)
     {
         AVCodecContext *avctx = avcodec_alloc_context3(codec);
 
-// ffmpeg 8.0 ----------------------------------
-#ifndef FF_PROFILE_H264_HIGH
-#define FF_PROFILE_H264_HIGH AV_PROFILE_H264_HIGH
-#endif
-// ffmpeg 8.0 ----------------------------------
-
         // -------- wanted (and also needed settings) --------
         av_opt_set(avctx->priv_data, "profile", "baseline", 0);
         avctx->profile = FF_PROFILE_H264_BASELINE;
@@ -646,12 +652,6 @@ VCSession *vc_new_h264(Logger *log, ToxAV *av, uint32_t friend_number, toxav_vid
         vc->h264_encoder2 = avcodec_alloc_context3(codec2);
 
         vc->h264_out_pic2 = av_packet_alloc();
-
-// ffmpeg 8.0 ----------------------------------
-#ifndef FF_PROFILE_H264_HIGH
-#define FF_PROFILE_H264_HIGH AV_PROFILE_H264_HIGH
-#endif
-// ffmpeg 8.0 ----------------------------------
 
         if ((int)(H264_ENCODER_STARTWITH_PROFILE_HIGH) == 1) {
             av_opt_set(vc->h264_encoder2->priv_data, "profile", "high", 0);
@@ -1174,12 +1174,6 @@ int vc_reconfigure_encoder_h264(Logger *log, VCSession *vc, uint32_t bit_rate,
 
                 vc->h264_encoder2 = avcodec_alloc_context3(codec2);
 
-// ffmpeg 8.0 ----------------------------------
-#ifndef FF_PROFILE_H264_HIGH
-#define FF_PROFILE_H264_HIGH AV_PROFILE_H264_HIGH
-#endif
-// ffmpeg 8.0 ----------------------------------
-
                 if ((int)(H264_ENCODER_STARTWITH_PROFILE_HIGH) == 1) {
                     av_opt_set(vc->h264_encoder2->priv_data, "profile", "high", 0);
                     vc->h264_encoder2->profile               = FF_PROFILE_H264_HIGH; // FF_PROFILE_H264_HIGH;
@@ -1573,8 +1567,10 @@ void decode_frame_h264(VCSession *vc, Tox *tox, uint8_t skip_video_flag, uint64_
 #endif
 
 #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(59, 0, 0)
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 8, 100)
                 LOGGER_API_DEBUG(vc->av->tox, "out_pts:%lu %lu %ld %ld",
                         frame->pts, frame->pkt_dts, frame->best_effort_timestamp, frame->pkt_pos);
+#endif
 #endif
 
                 LOGGER_API_DEBUG(vc->av->tox, "dec:XX:03:%d %d %d %d %d",
