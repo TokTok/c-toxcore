@@ -44044,10 +44044,15 @@ uint32_t messenger_size(const Messenger *m)
 /** Save the messenger in data (must be allocated memory of size at least `Messenger_size()`) */
 uint8_t *messenger_save(const Messenger *m, uint8_t *data)
 {
+    LOGGER_TRACE(m->log, "save ...");
     for (uint8_t i = 0; i < m->options.state_plugins_length; ++i) {
+        LOGGER_TRACE(m->log, "save:plugin:%d", (int)i);
         const Messenger_State_Plugin plugin = m->options.state_plugins[i];
+        LOGGER_TRACE(m->log, "save:plugin:%d:start", (int)i);
         data = plugin.save(m, data);
+        LOGGER_TRACE(m->log, "save:plugin:%d:end", (int)i);
     }
+    LOGGER_TRACE(m->log, "save READY");
 
     return data;
 }
