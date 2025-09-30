@@ -245,6 +245,7 @@ struct Tox_Options {
      * entirely in the future, or may be renamed to something non-experimental
      * if they become part of the supported API.
      */
+
     /**
      * Make public API functions thread-safe using a per-instance lock.
      *

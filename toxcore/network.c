@@ -224,7 +224,7 @@ static_assert(TOX_INET6_ADDRSTRLEN >= INET6_ADDRSTRLEN,
 static_assert(TOX_INET_ADDRSTRLEN >= INET_ADDRSTRLEN,
               "TOX_INET_ADDRSTRLEN should be greater or equal to INET_ADDRSTRLEN (#INET_ADDRSTRLEN)");
 
-static int make_proto(int proto)
+static int make_proto(Tox_Proto proto)
 {
     switch (proto) {
         case TOX_PROTO_TCP:
@@ -238,7 +238,7 @@ static int make_proto(int proto)
     }
 }
 
-static int make_socktype(int type)
+static int make_socktype(Tox_Sock_Type type)
 {
     switch (type) {
         case TOX_SOCK_STREAM:
@@ -254,32 +254,35 @@ static int make_socktype(int type)
 
 static int make_family(Family tox_family)
 {
-    switch (tox_family.value) {
-        case TOX_AF_INET:
-        case TCP_INET:
+    const uint8_t family = family_to_int(tox_family);
+    switch (family) {
+        case NET_FAMILY_IPV4:
+        case NET_FAMILY_TCP_IPV4:
+        case NET_FAMILY_TOX_TCP_IPV4:
             return AF_INET;
 
-        case TOX_AF_INET6:
-        case TCP_INET6:
+        case NET_FAMILY_IPV6:
+        case NET_FAMILY_TCP_IPV6:
+        case NET_FAMILY_TOX_TCP_IPV6:
             return AF_INET6;
 
-        case TOX_AF_UNSPEC:
+        case NET_FAMILY_UNSPEC:
             return AF_UNSPEC;
 
         default:
-            return tox_family.value;
+            return family;
     }
 }
 
-static const Family family_unspec = {TOX_AF_UNSPEC};
-static const Family family_ipv4 = {TOX_AF_INET};
-static const Family family_ipv6 = {TOX_AF_INET6};
-static const Family family_tcp_server = {TCP_SERVER_FAMILY};
-static const Family family_tcp_client = {TCP_CLIENT_FAMILY};
-static const Family family_tcp_ipv4 = {TCP_INET};
-static const Family family_tcp_ipv6 = {TCP_INET6};
-static const Family family_tox_tcp_ipv4 = {TOX_TCP_INET};
-static const Family family_tox_tcp_ipv6 = {TOX_TCP_INET6};
+static const Family family_unspec = {(force Family_Value)NET_FAMILY_UNSPEC};
+static const Family family_ipv4 = {(force Family_Value)NET_FAMILY_IPV4};
+static const Family family_ipv6 = {(force Family_Value)NET_FAMILY_IPV6};
+static const Family family_tcp_server = {(force Family_Value)NET_FAMILY_TCP_SERVER};
+static const Family family_tcp_client = {(force Family_Value)NET_FAMILY_TCP_CLIENT};
+static const Family family_tcp_ipv4 = {(force Family_Value)NET_FAMILY_TCP_IPV4};
+static const Family family_tcp_ipv6 = {(force Family_Value)NET_FAMILY_TCP_IPV6};
+static const Family family_tox_tcp_ipv4 = {(force Family_Value)NET_FAMILY_TOX_TCP_IPV4};
+static const Family family_tox_tcp_ipv6 = {(force Family_Value)NET_FAMILY_TOX_TCP_IPV6};
 
 static const Family *make_tox_family(int family)
 {
@@ -296,6 +299,66 @@ static const Family *make_tox_family(int family)
         default:
             return nullptr;
     }
+}
+
+bool net_family_from_int(uint8_t family, Net_Family *_Nonnull out)
+{
+    switch (family) {
+        case NET_FAMILY_UNSPEC: {
+            *out = NET_FAMILY_UNSPEC;
+            return true;
+        }
+        case NET_FAMILY_IPV4: {
+            *out = NET_FAMILY_IPV4;
+            return true;
+        }
+        case NET_FAMILY_IPV6: {
+            *out = NET_FAMILY_IPV6;
+            return true;
+        }
+        case NET_FAMILY_TOX_TCP_IPV4: {
+            *out = NET_FAMILY_TOX_TCP_IPV4;
+            return true;
+        }
+        case NET_FAMILY_TOX_TCP_IPV6: {
+            *out = NET_FAMILY_TOX_TCP_IPV6;
+            return true;
+        }
+        case NET_FAMILY_TCP_CLIENT: {
+            *out = NET_FAMILY_TCP_CLIENT;
+            return true;
+        }
+        case NET_FAMILY_TCP_IPV4: {
+            *out = NET_FAMILY_TCP_IPV4;
+            return true;
+        }
+        case NET_FAMILY_TCP_IPV6: {
+            *out = NET_FAMILY_TCP_IPV6;
+            return true;
+        }
+        case NET_FAMILY_TCP_SERVER: {
+            *out = NET_FAMILY_TCP_SERVER;
+            return true;
+        }
+        default: {
+            *out = NET_FAMILY_UNSPEC;
+            return false;
+        }
+    }
+}
+
+Family family_from_net_family(Net_Family value)
+{
+    // TODO(iphydf): Fix cimple bug.
+    // const Family family = {(force Family_Value)value};
+    Family family;
+    family.value = (force Family_Value)value;
+    return family;
+}
+
+uint8_t family_to_int(Family family)
+{
+    return (force uint8_t)family.value;
 }
 
 static void get_ip4(IP4 *_Nonnull result, const struct in_addr *_Nonnull addr)
@@ -840,7 +903,7 @@ static const char *net_packet_type_name(Net_Packet_Type type)
         case NET_PACKET_STORE_ANNOUNCE_RESPONSE:
             return "STORE_ANNOUNCE_RESPONSE";
 
-        case BOOTSTRAP_INFO_PACKET_ID:
+        case NET_PACKET_BOOTSTRAP_INFO:
             return "BOOTSTRAP_INFO";
 
         case NET_PACKET_MAX:
@@ -1018,7 +1081,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
         return -1;
     }
 
-    /* socket TOX_AF_INET, but target IP NOT: can't send */
+    /* socket NET_FAMILY_IPV4, but target IP NOT: can't send */
     if (net_family_is_ipv4(net->family) && !net_family_is_ipv4(ipp_copy.ip.family)) {
         // TODO(iphydf): Make this an error. Occasionally we try to send to an
         // all-zero ip_port.
@@ -1541,24 +1604,29 @@ static int ip6_cmp(const IP6 *_Nonnull a, const IP6 *_Nonnull b)
     return cmp_uint(a->uint64[1], b->uint64[1]);
 }
 
+static int family_cmp(Family a, Family b)
+{
+    return cmp_uint(family_to_int(a), family_to_int(b));
+}
+
 static int ip_cmp(const IP *_Nonnull a, const IP *_Nonnull b)
 {
-    const int res = cmp_uint(a->family.value, b->family.value);
+    const int res = family_cmp(a->family, b->family);
     if (res != 0) {
         return res;
     }
-    switch (a->family.value) {
-        case TOX_AF_UNSPEC:
+    switch (family_to_int(a->family)) {
+        case NET_FAMILY_UNSPEC:
             return 0;
-        case TOX_AF_INET:
-        case TCP_INET:
-        case TOX_TCP_INET:
+        case NET_FAMILY_IPV4:
+        case NET_FAMILY_TCP_IPV4:
+        case NET_FAMILY_TOX_TCP_IPV4:
             return ip4_cmp(&a->ip.v4, &b->ip.v4);
-        case TOX_AF_INET6:
-        case TCP_INET6:
-        case TOX_TCP_INET6:
-        case TCP_SERVER_FAMILY:  // these happen to be ipv6 according to TCP_server.c.
-        case TCP_CLIENT_FAMILY:
+        case NET_FAMILY_IPV6:
+        case NET_FAMILY_TCP_IPV6:
+        case NET_FAMILY_TOX_TCP_IPV6:
+        case NET_FAMILY_TCP_SERVER:  // these happen to be ipv6 according to TCP_server.c.
+        case NET_FAMILY_TCP_CLIENT:
             return ip6_cmp(&a->ip.v6, &b->ip.v6);
     }
     // Invalid, we don't compare any further and consider them equal.
@@ -1695,16 +1763,16 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
     if (net_family_is_ipv4(ip_port->ip.family)) {
         // TODO(irungentoo): use functions to convert endianness
         is_ipv4 = true;
-        family = TOX_AF_INET;
+        family = NET_FAMILY_IPV4;
     } else if (net_family_is_tcp_ipv4(ip_port->ip.family)) {
         is_ipv4 = true;
-        family = TOX_TCP_INET;
+        family = NET_FAMILY_TOX_TCP_IPV4;
     } else if (net_family_is_ipv6(ip_port->ip.family)) {
         is_ipv4 = false;
-        family = TOX_AF_INET6;
+        family = NET_FAMILY_IPV6;
     } else if (net_family_is_tcp_ipv6(ip_port->ip.family)) {
         is_ipv4 = false;
-        family = TOX_TCP_INET6;
+        family = NET_FAMILY_TOX_TCP_IPV6;
     } else {
         Ip_Ntoa ip_str;
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
@@ -1749,20 +1817,20 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
     bool is_ipv4;
     Family host_family;
 
-    if (data[0] == TOX_AF_INET) {
+    if (data[0] == NET_FAMILY_IPV4) {
         is_ipv4 = true;
         host_family = net_family_ipv4();
-    } else if (data[0] == TOX_TCP_INET) {
+    } else if (data[0] == NET_FAMILY_TOX_TCP_IPV4) {
         if (!tcp_enabled) {
             return -1;
         }
 
         is_ipv4 = true;
         host_family = net_family_tcp_ipv4();
-    } else if (data[0] == TOX_AF_INET6) {
+    } else if (data[0] == NET_FAMILY_IPV6) {
         is_ipv4 = false;
         host_family = net_family_ipv6();
-    } else if (data[0] == TOX_TCP_INET6) {
+    } else if (data[0] == NET_FAMILY_TOX_TCP_IPV6) {
         if (!tcp_enabled) {
             return -1;
         }
@@ -1885,13 +1953,13 @@ bool addr_parse_ip(const char *address, IP *to)
  *
  * @param address a hostname (or something parseable to an IP address)
  * @param to to.family MUST be initialized, either set to a specific IP version
- *   (TOX_AF_INET/TOX_AF_INET6) or to the unspecified TOX_AF_UNSPEC (0), if both
+ *   (NET_FAMILY_IPV4/NET_FAMILY_IPV6) or to the unspecified NET_FAMILY_UNSPEC (0), if both
  *   IP versions are acceptable
  * @param extra can be NULL and is only set in special circumstances, see returns
  *
  * Returns in `*to` a valid IPAny (v4/v6),
- * prefers v6 if `ip.family` was TOX_AF_UNSPEC and both available
- * Returns in `*extra` an IPv4 address, if family was TOX_AF_UNSPEC and `*to` is TOX_AF_INET6
+ * prefers v6 if `ip.family` was NET_FAMILY_UNSPEC and both available
+ * Returns in `*extra` an IPv4 address, if family was NET_FAMILY_UNSPEC and `*to` is NET_FAMILY_IPV6
  *
  * @return false on failure, true on success.
  */
@@ -2062,7 +2130,7 @@ bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket
     return true;
 }
 
-int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, int tox_type, bool dns_enabled)
+int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP_Port **res, Tox_Sock_Type tox_type, bool dns_enabled)
 {
     assert(node != nullptr);
 
@@ -2102,11 +2170,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 
-    int type = make_socktype(tox_type);
-    // ugly
-    if (tox_type == -1) {
-        type = 0;
-    }
+    const int type = make_socktype(tox_type);
 
     // It's not an IP address, so now we try doing a DNS lookup.
     Network_Addr *addrs = nullptr;
@@ -2205,7 +2269,7 @@ bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port)
     return net_bind(ns, sock, &addr) == 0;
 }
 
-Socket net_socket(const Network *ns, Family domain, int type, int protocol)
+Socket net_socket(const Network *ns, Family domain, Tox_Sock_Type type, Tox_Proto protocol)
 {
     const int platform_domain = make_family(domain);
     const int platform_type = make_socktype(type);

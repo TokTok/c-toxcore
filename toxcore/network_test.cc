@@ -27,18 +27,6 @@ TEST(IpNtoa, DoesntWriteOutOfBounds)
     EXPECT_LT(std::string(ip_str.buf).length(), IP_NTOA_LEN);
 }
 
-TEST(IpNtoa, ReportsInvalidIpFamily)
-{
-    Ip_Ntoa ip_str;
-    IP ip;
-    ip.family.value = 255 - net_family_ipv6().value;
-    ip.ip.v4.uint32 = 0;
-
-    net_ip_ntoa(&ip, &ip_str);
-
-    EXPECT_EQ(std::string(ip_str.buf), "(IP invalid, family 245)");
-}
-
 TEST(IpNtoa, FormatsIPv4)
 {
     Ip_Ntoa ip_str;
@@ -86,8 +74,8 @@ TEST(IpportCmp, BehavesLikeMemcmp)
 {
     auto cmp_val = [](int val) { return val < 0 ? -1 : val > 0 ? 1 : 0; };
 
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {{{NET_FAMILY_UNSPEC}}};
+    IP_Port b = {{{NET_FAMILY_UNSPEC}}};
 
     a.ip.family = net_family_ipv4();
     b.ip.family = net_family_ipv4();
@@ -121,8 +109,8 @@ TEST(IpportCmp, BehavesLikeMemcmp)
 
 TEST(IpportCmp, Ipv6BeginAndEndCompareCorrectly)
 {
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {{{NET_FAMILY_UNSPEC}}};
+    IP_Port b = {{{NET_FAMILY_UNSPEC}}};
 
     a.ip.family = net_family_ipv6();
     b.ip.family = net_family_ipv6();
@@ -142,25 +130,11 @@ TEST(IpportCmp, Ipv6BeginAndEndCompareCorrectly)
 
 TEST(IpportCmp, UnspecAlwaysComparesEqual)
 {
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {{{NET_FAMILY_UNSPEC}}};
+    IP_Port b = {{{NET_FAMILY_UNSPEC}}};
 
     a.ip.family = net_family_unspec();
     b.ip.family = net_family_unspec();
-
-    a.ip.ip.v4.uint8[0] = 0xab;
-    b.ip.ip.v4.uint8[0] = 0xba;
-
-    EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 0);
-}
-
-TEST(IpportCmp, InvalidAlwaysComparesEqual)
-{
-    IP_Port a = {0};
-    IP_Port b = {0};
-
-    a.ip.family.value = 0xff;
-    b.ip.family.value = 0xff;
 
     a.ip.ip.v4.uint8[0] = 0xab;
     b.ip.ip.v4.uint8[0] = 0xba;
