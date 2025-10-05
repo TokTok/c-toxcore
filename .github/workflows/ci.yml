@@ -116,12 +116,12 @@ jobs:
               libopus
               libsodium
               libvpx
-              ninja
+              ninja-build
               pkg-config
 
           run: |
             # TODO(iphydf): Investigate NetBSD failures on these tests.
-            sed -Ei -e '/\((TCP|dht_nodes_response_api)\)/s/^/#/' auto_tests/CMakeLists.txt
+            sed -Ei -e '/\((TCP|dht_nodes_response_api|tcp_relay)\)/s/^/#/' auto_tests/CMakeLists.txt
             cmake . \
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \

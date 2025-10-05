@@ -1,5 +1,5 @@
 FROM toxchat/c-toxcore:sources AS sources
-FROM ghcr.io/goblint/analyzer:latest
+FROM ghcr.io/goblint/analyzer:2.5.0
 
 RUN apt-get update && \
  DEBIAN_FRONTEND="noninteractive" apt-get install -y --no-install-recommends \

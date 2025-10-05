@@ -23,6 +23,11 @@ add_flag -Werror
 # C99-only compilers we test against anyway. Anything that passes all the
 # compilers we use is fine.
 add_c_flag -Wno-c11-extensions
+add_c_flag -Wno-pre-c11-compat
+
+# TODO(iphydf): Investigate if we can get lan discovery to work on macos CI.
+# It works, but CI doesn't let us press the "allow broadcast" button.
+sed -Ei -e '/\((lan_discovery)\)/s/^/#/' auto_tests/CMakeLists.txt
 
 cmake -B_build -H. \
   -DCMAKE_C_FLAGS="$C_FLAGS" \

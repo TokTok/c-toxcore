@@ -55,7 +55,8 @@ typedef struct Friend_Connections Friend_Connections;
 
 Net_Crypto *_Nonnull friendconn_net_crypto(const Friend_Connections *_Nonnull fr_c);
 
-/** @return friendcon_id corresponding to the real public key on success.
+/**
+ * @return friendcon_id corresponding to the real public key on success.
  * @retval -1 on failure.
  */
 int getfriend_conn_id_pk(const Friend_Connections *_Nonnull fr_c, const uint8_t *_Nonnull real_pk);
