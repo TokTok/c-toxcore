@@ -140,7 +140,7 @@ int onion_send_1(const Onion *_Nonnull onion, const uint8_t *_Nonnull plain, uin
 
 /** Set the callback to be called when the dest ip_port doesn't have TOX_AF_INET6 or TOX_AF_INET as the family. */
 void set_callback_handle_recv_1(Onion *_Nonnull onion, onion_recv_1_cb *_Nullable function, void *_Nullable object);
-Onion *_Nullable new_onion(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, DHT *_Nonnull dht);
+Onion *_Nullable new_onion(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, DHT *_Nonnull dht, Networking_Core *_Nonnull net);
 
 void kill_onion(Onion *_Nullable onion);
 #endif /* C_TOXCORE_TOXCORE_ONION_H */

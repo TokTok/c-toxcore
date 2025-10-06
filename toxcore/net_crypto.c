@@ -137,6 +137,7 @@ struct Net_Crypto {
     const Random *rng;
     Mono_Time *mono_time;
     const Network *ns;
+    Networking_Core *net;
 
     DHT *dht;
     TCP_Connections *tcp_c;
@@ -174,11 +175,6 @@ const uint8_t *nc_get_self_secret_key(const Net_Crypto *c)
 TCP_Connections *nc_get_tcp_c(const Net_Crypto *c)
 {
     return c->tcp_c;
-}
-
-DHT *nc_get_dht(const Net_Crypto *c)
-{
-    return c->dht;
 }
 
 static bool crypt_connection_id_is_valid(const Net_Crypto *_Nonnull c, int crypt_connection_id)
@@ -366,7 +362,7 @@ static int udp_handle_cookie_request(void *_Nonnull object, const IP_Port *_Nonn
         return 1;
     }
 
-    if ((uint32_t)sendpacket(dht_get_net(c->dht), source, data, sizeof(data)) != sizeof(data)) {
+    if ((uint32_t)sendpacket(c->net, source, data, sizeof(data)) != sizeof(data)) {
         return 1;
     }
 
@@ -676,7 +672,7 @@ static int send_packet_to(const Net_Crypto *_Nonnull c, int crypt_connection_id,
         crypto_connection_status(c, crypt_connection_id, &direct_connected, nullptr);
 
         if (direct_connected) {
-            if ((uint32_t)sendpacket(dht_get_net(c->dht), &ip_port, data, length) == length) {
+            if ((uint32_t)sendpacket(c->net, &ip_port, data, length) == length) {
                 return 0;
             }
 
@@ -689,7 +685,7 @@ static int send_packet_to(const Net_Crypto *_Nonnull c, int crypt_connection_id,
 
         if ((((UDP_DIRECT_TIMEOUT / 2) + conn->direct_send_attempt_time) < current_time && length < 96)
                 || data[0] == NET_PACKET_COOKIE_REQUEST || data[0] == NET_PACKET_CRYPTO_HS) {
-            if ((uint32_t)sendpacket(dht_get_net(c->dht), &ip_port, data, length) == length) {
+            if ((uint32_t)sendpacket(c->net, &ip_port, data, length) == length) {
                 direct_send_attempt = true;
                 conn->direct_send_attempt_time = mono_time_get(c->mono_time);
             }
@@ -2915,7 +2911,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
+                           Mono_Time *mono_time, Networking_Core *net, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
     if (dht == nullptr) {
         return nullptr;
@@ -2932,6 +2928,7 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->rng = rng;
     temp->mono_time = mono_time;
     temp->ns = ns;
+    temp->net = net;
 
     temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
 
@@ -2950,10 +2947,10 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
 
     temp->current_sleep_time = CRYPTO_SEND_PACKET_INTERVAL;
 
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_COOKIE_REQUEST, &udp_handle_cookie_request, temp);
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_COOKIE_RESPONSE, &udp_handle_packet, temp);
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_CRYPTO_HS, &udp_handle_packet, temp);
-    networking_registerhandler(dht_get_net(dht), NET_PACKET_CRYPTO_DATA, &udp_handle_packet, temp);
+    networking_registerhandler(net, NET_PACKET_COOKIE_REQUEST, &udp_handle_cookie_request, temp);
+    networking_registerhandler(net, NET_PACKET_COOKIE_RESPONSE, &udp_handle_packet, temp);
+    networking_registerhandler(net, NET_PACKET_CRYPTO_HS, &udp_handle_packet, temp);
+    networking_registerhandler(net, NET_PACKET_CRYPTO_DATA, &udp_handle_packet, temp);
 
     bs_list_init(&temp->ip_port_list, mem, sizeof(IP_Port), 8, ipport_cmp_handler);
 
@@ -3016,10 +3013,10 @@ void kill_net_crypto(Net_Crypto *c)
 
     kill_tcp_connections(c->tcp_c);
     bs_list_free(&c->ip_port_list);
-    networking_registerhandler(dht_get_net(c->dht), NET_PACKET_COOKIE_REQUEST, nullptr, nullptr);
-    networking_registerhandler(dht_get_net(c->dht), NET_PACKET_COOKIE_RESPONSE, nullptr, nullptr);
-    networking_registerhandler(dht_get_net(c->dht), NET_PACKET_CRYPTO_HS, nullptr, nullptr);
-    networking_registerhandler(dht_get_net(c->dht), NET_PACKET_CRYPTO_DATA, nullptr, nullptr);
+    networking_registerhandler(c->net, NET_PACKET_COOKIE_REQUEST, nullptr, nullptr);
+    networking_registerhandler(c->net, NET_PACKET_COOKIE_RESPONSE, nullptr, nullptr);
+    networking_registerhandler(c->net, NET_PACKET_CRYPTO_HS, nullptr, nullptr);
+    networking_registerhandler(c->net, NET_PACKET_CRYPTO_DATA, nullptr, nullptr);
     crypto_memzero(c, sizeof(Net_Crypto));
     mem_delete(mem, c);
 }

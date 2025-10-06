@@ -71,6 +71,7 @@ struct Friend_Connections {
     const Mono_Time *mono_time;
     const Memory *mem;
     const Logger *logger;
+    Networking_Core *net;
     Net_Crypto *net_crypto;
     DHT *dht;
     Broadcast_Info *broadcast;
@@ -896,7 +897,8 @@ int send_friend_request_packet(Friend_Connections *fr_c, int friendcon_id, uint3
 /** Create new friend_connections instance. */
 Friend_Connections *new_friend_connections(
     const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Network *ns,
-    Onion_Client *onion_c, bool local_discovery_enabled)
+    Onion_Client *onion_c, DHT *dht, Net_Crypto *net_crypto, Networking_Core *net,
+    bool local_discovery_enabled)
 {
     if (onion_c == nullptr) {
         return nullptr;
@@ -922,8 +924,9 @@ Friend_Connections *new_friend_connections(
     temp->mono_time = mono_time;
     temp->mem = mem;
     temp->logger = logger;
-    temp->dht = onion_get_dht(onion_c);
-    temp->net_crypto = onion_get_net_crypto(onion_c);
+    temp->dht = dht;
+    temp->net = net;
+    temp->net_crypto = net_crypto;
     temp->onion_c = onion_c;
     // Don't include default port in port range
     temp->next_lan_port = TOX_PORTRANGE_FROM + 1;
@@ -942,12 +945,12 @@ static void lan_discovery(Friend_Connections *_Nonnull fr_c)
         last = last > TOX_PORTRANGE_TO ? TOX_PORTRANGE_TO : last;
 
         // Always send to default port
-        lan_discovery_send(dht_get_net(fr_c->dht), fr_c->broadcast, dht_get_self_public_key(fr_c->dht),
+        lan_discovery_send(fr_c->net, fr_c->broadcast, dht_get_self_public_key(fr_c->dht),
                            net_htons(TOX_PORT_DEFAULT));
 
         // And check some extra ports
         for (uint16_t port = first; port < last; ++port) {
-            lan_discovery_send(dht_get_net(fr_c->dht), fr_c->broadcast, dht_get_self_public_key(fr_c->dht), net_htons(port));
+            lan_discovery_send(fr_c->net, fr_c->broadcast, dht_get_self_public_key(fr_c->dht), net_htons(port));
         }
 
         // Don't include default port in port range

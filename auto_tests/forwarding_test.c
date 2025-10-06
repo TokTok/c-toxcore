@@ -8,7 +8,6 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/forwarding.h"
 #include "../toxcore/net_crypto.h"
-#include "../toxcore/util.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -131,12 +130,12 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     ck_assert(subtox->tcp_np != nullptr);
 
     const TCP_Proxy_Info inf = {{{{0}}}};
-    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->dht, &inf, subtox->tcp_np);
+    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, subtox->dht, &inf, subtox->tcp_np);
 
-    subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht);
+    subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht, subtox->net);
     ck_assert(subtox->forwarding != nullptr);
 
-    subtox->announce = new_announcements(subtox->log, mem, rng, subtox->mono_time, subtox->forwarding);
+    subtox->announce = new_announcements(subtox->log, mem, rng, subtox->mono_time, subtox->forwarding, subtox->dht, subtox->net);
     ck_assert(subtox->announce != nullptr);
 
     return subtox;
