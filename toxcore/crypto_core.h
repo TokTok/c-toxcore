@@ -106,7 +106,7 @@ typedef struct Random_Funcs {
  * CSPRNG and use `os_random` below.
  */
 typedef struct Random {
-    const Random_Funcs *_Nullable funcs;
+    const Random_Funcs *_Nonnull funcs;
     void *_Nullable obj;
 } Random;
 

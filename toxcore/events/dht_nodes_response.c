@@ -133,7 +133,7 @@ Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_new(const Memory *mem
 void tox_event_dht_nodes_response_free(Tox_Event_Dht_Nodes_Response *dht_nodes_response, const Memory *mem)
 {
     if (dht_nodes_response != nullptr) {
-        tox_event_dht_nodes_response_destruct(dht_nodes_response, mem);
+        tox_event_dht_nodes_response_destruct((Tox_Event_Dht_Nodes_Response * _Nonnull)dht_nodes_response, mem);
     }
     mem_delete(mem, dht_nodes_response);
 }
@@ -198,7 +198,9 @@ void tox_events_handle_dht_nodes_response(
     Tox *tox, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE],
     const char *ip, uint32_t ip_length, uint16_t port, void *user_data)
 {
-    Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_alloc(user_data);
+    void *_Nonnull object = (void *_Nonnull)user_data;
+
+    Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_alloc(object);
 
     if (dht_nodes_response == nullptr) {
         return;
@@ -207,6 +209,6 @@ void tox_events_handle_dht_nodes_response(
     const Tox_System *sys = tox_get_system(tox);
 
     tox_event_dht_nodes_response_set_public_key(dht_nodes_response, public_key);
-    tox_event_dht_nodes_response_set_ip(dht_nodes_response, ip, ip_length, sys->mem);
+    tox_event_dht_nodes_response_set_ip(dht_nodes_response, ip, ip_length, (const Memory * _Nonnull)sys->mem);
     tox_event_dht_nodes_response_set_port(dht_nodes_response, port);
 }

@@ -134,7 +134,7 @@ Tox_Event_Friend_Name *tox_event_friend_name_new(const Memory *mem)
 void tox_event_friend_name_free(Tox_Event_Friend_Name *friend_name, const Memory *mem)
 {
     if (friend_name != nullptr) {
-        tox_event_friend_name_destruct(friend_name, mem);
+        tox_event_friend_name_destruct((Tox_Event_Friend_Name * _Nonnull)friend_name, mem);
     }
     mem_delete(mem, friend_name);
 }

@@ -178,7 +178,7 @@ Tox_Event_Group_Private_Message *tox_event_group_private_message_new(const Memor
 void tox_event_group_private_message_free(Tox_Event_Group_Private_Message *group_private_message, const Memory *mem)
 {
     if (group_private_message != nullptr) {
-        tox_event_group_private_message_destruct(group_private_message, mem);
+        tox_event_group_private_message_destruct((Tox_Event_Group_Private_Message * _Nonnull)group_private_message, mem);
     }
     mem_delete(mem, group_private_message);
 }
