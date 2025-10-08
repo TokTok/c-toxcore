@@ -53,3 +53,8 @@ endif()
 
 # For tox-bootstrapd.
 pkg_search_module(LIBCONFIG   libconfig IMPORTED_TARGET)
+
+# For profiling.
+if(ENABLE_PROFILING)
+  pkg_search_module(LIBPROFILER libprofiler IMPORTED_TARGET REQUIRED)
+endif()
