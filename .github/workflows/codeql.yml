@@ -24,16 +24,16 @@ jobs:
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
 
     - name: install deps
       run: sudo apt-get update ; sudo apt-get install -y --force-yes --no-install-recommends cmake  libconfig-dev libgtest-dev libopus-dev libsodium-dev libvpx-dev pkg-config binutils libavutil-dev libavcodec-dev    libavformat-dev    libavfilter-dev    libx264-dev libx265-dev
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      uses: github/codeql-action/autobuild@v4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
