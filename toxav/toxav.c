@@ -1061,23 +1061,27 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
 
     {   /* Encode */
         vpx_image_t img;
-        img.w = 0;
-        img.h = 0;
-        img.d_w = 0;
-        img.d_h = 0;
-        if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
-            pthread_mutex_unlock(call->mutex_video);
-            LOGGER_ERROR(av->log, "Could not allocate image for frame");
-            rc = TOXAV_ERR_SEND_FRAME_INVALID;
-            goto RETURN;
-        }
+        // TODO(Green-Sky): figure out stride_align
+        // TODO(Green-Sky): check memory alignment?
+        if (vpx_img_wrap(&img, VPX_IMG_FMT_I420, width, height, 0, (uint8_t *)y) != nullptr) {
+            // vpx_img_wrap assumes contigues memory, so we fix that
+            img.planes[VPX_PLANE_U] = (uint8_t *)u;
+            img.planes[VPX_PLANE_V] = (uint8_t *)v;
+        } else {
+            // call to wrap failed, falling back to copy
+            img.w = 0;
+            img.h = 0;
+            img.d_w = 0;
+            img.d_h = 0;
+            vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0);
 
-        /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-         * http://fourcc.org/yuv.php#IYUV
-         */
-        memcpy(img.planes[VPX_PLANE_Y], y, width * height);
-        memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
-        memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+            /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
+             * http://fourcc.org/yuv.php#IYUV
+             */
+            memcpy(img.planes[VPX_PLANE_Y], y, width * height);
+            memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
+            memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+        }
 
         const vpx_codec_err_t vrc = vpx_codec_encode(call->video->encoder, &img,
                                     call->video->frame_counter, 1, vpx_encode_flags, VPX_DL_REALTIME);
