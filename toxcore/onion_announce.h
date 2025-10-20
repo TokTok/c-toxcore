@@ -124,7 +124,8 @@ typedef int pack_extra_data_cb(void *_Nonnull object, const Logger *_Nonnull log
 
 void onion_announce_extra_data_callback(Onion_Announce *_Nonnull onion_a, uint16_t extra_data_max_size, pack_extra_data_cb *_Nonnull extra_data_callback, void *_Nonnull extra_data_object);
 
-Onion_Announce *_Nullable new_onion_announce(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Mono_Time *_Nonnull mono_time, DHT *_Nonnull dht);
+Onion_Announce *_Nullable new_onion_announce(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Mono_Time *_Nonnull mono_time, DHT *_Nonnull dht,
+        Networking_Core *_Nonnull net);
 
 void kill_onion_announce(Onion_Announce *_Nullable onion_a);
 #endif /* C_TOXCORE_TOXCORE_ONION_ANNOUNCE_H */

@@ -203,16 +203,6 @@ bool onion_friend_is_groupchat(const Onion_Friend *const onion_friend)
     return onion_friend->is_groupchat;
 }
 
-DHT *onion_get_dht(const Onion_Client *onion_c)
-{
-    return onion_c->dht;
-}
-
-Net_Crypto *onion_get_net_crypto(const Onion_Client *onion_c)
-{
-    return onion_c->c;
-}
-
 /** @brief Add a node to the path_nodes bootstrap array.
  *
  * If a node with the given public key was already in the bootstrap array, this function has no
@@ -2169,7 +2159,8 @@ void do_onion_client(Onion_Client *onion_c)
     onion_c->last_run = mono_time_get(onion_c->mono_time);
 }
 
-Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c)
+Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Random *rng, const Mono_Time *mono_time, Net_Crypto *c,
+                               DHT *dht, Networking_Core *net)
 {
     if (c == nullptr) {
         return nullptr;
@@ -2192,8 +2183,8 @@ Onion_Client *new_onion_client(const Logger *logger, const Memory *mem, const Ra
     onion_c->logger = logger;
     onion_c->rng = rng;
     onion_c->mem = mem;
-    onion_c->dht = nc_get_dht(c);
-    onion_c->net = dht_get_net(onion_c->dht);
+    onion_c->dht = dht;
+    onion_c->net = net;
     onion_c->c = c;
     new_symmetric_key(rng, onion_c->secret_symmetric_key);
     crypto_new_keypair(rng, onion_c->temp_public_key, onion_c->temp_secret_key);

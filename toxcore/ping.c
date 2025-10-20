@@ -33,6 +33,7 @@ struct Ping {
     const Random *rng;
     const Memory *mem;
     DHT *dht;
+    Networking_Core *net;
 
     Ping_Array  *ping_array;
     Node_format to_ping[MAX_TO_PING];
@@ -83,7 +84,7 @@ void ping_send_request(Ping *ping, const IP_Port *ipp, const uint8_t *public_key
     }
 
     // We never check this return value and failures in sendpacket are already logged
-    sendpacket(dht_get_net(ping->dht), ipp, pk, sizeof(pk));
+    sendpacket(ping->net, ipp, pk, sizeof(pk));
 }
 
 static int ping_send_response(const Ping *_Nonnull ping, const IP_Port *_Nonnull ipp, const uint8_t *_Nonnull public_key, uint64_t ping_id, const uint8_t *_Nonnull shared_encryption_key)
@@ -112,7 +113,7 @@ static int ping_send_response(const Ping *_Nonnull ping, const IP_Port *_Nonnull
         return 1;
     }
 
-    return sendpacket(dht_get_net(ping->dht), ipp, pk, sizeof(pk));
+    return sendpacket(ping->net, ipp, pk, sizeof(pk));
 }
 
 static int handle_ping_request(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, void *_Nonnull userdata)
@@ -324,7 +325,7 @@ void ping_iterate(Ping *ping)
     }
 }
 
-Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht)
+Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht, Networking_Core *net)
 {
     Ping *ping = (Ping *)mem_alloc(mem, sizeof(Ping));
 
@@ -343,8 +344,9 @@ Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng,
     ping->rng = rng;
     ping->mem = mem;
     ping->dht = dht;
-    networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_REQUEST, &handle_ping_request, dht);
-    networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_RESPONSE, &handle_ping_response, dht);
+    ping->net = net;
+    networking_registerhandler(ping->net, NET_PACKET_PING_REQUEST, &handle_ping_request, dht);
+    networking_registerhandler(ping->net, NET_PACKET_PING_RESPONSE, &handle_ping_response, dht);
 
     return ping;
 }
@@ -355,8 +357,8 @@ void ping_kill(const Memory *mem, Ping *ping)
         return;
     }
 
-    networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_REQUEST, nullptr, nullptr);
-    networking_registerhandler(dht_get_net(ping->dht), NET_PACKET_PING_RESPONSE, nullptr, nullptr);
+    networking_registerhandler(ping->net, NET_PACKET_PING_REQUEST, nullptr, nullptr);
+    networking_registerhandler(ping->net, NET_PACKET_PING_RESPONSE, nullptr, nullptr);
     ping_array_kill(ping->ping_array);
 
     mem_delete(mem, ping);

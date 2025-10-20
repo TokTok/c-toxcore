@@ -76,7 +76,7 @@ void TestNetCrypto(Fuzz_Data &input)
 
     const Ptr<Net_Crypto> net_crypto(
         new_net_crypto(logger.get(), sys.mem.get(), sys.rng.get(), sys.ns.get(), mono_time.get(),
-            dht.get(), &proxy_info, tcp_np),
+            net.get(), dht.get(), &proxy_info, tcp_np),
         kill_net_crypto);
     if (net_crypto == nullptr) {
         netprof_kill(sys.mem.get(), tcp_np);

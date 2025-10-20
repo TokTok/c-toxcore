@@ -222,7 +222,6 @@ const uint8_t *_Nonnull dht_get_self_secret_key(const DHT *_Nonnull dht);
 void dht_set_self_public_key(DHT *_Nonnull dht, const uint8_t *_Nonnull key);
 void dht_set_self_secret_key(DHT *_Nonnull dht, const uint8_t *_Nonnull key);
 
-Networking_Core *_Nonnull dht_get_net(const DHT *_Nonnull dht);
 struct Ping *_Nonnull dht_get_ping(const DHT *_Nonnull dht);
 const Client_data *_Nonnull dht_get_close_clientlist(const DHT *_Nonnull dht);
 const Client_data *_Nonnull dht_get_close_client(const DHT *_Nonnull dht, uint32_t client_num);

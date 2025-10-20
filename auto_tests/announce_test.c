@@ -64,9 +64,9 @@ static void test_store_data(void)
     ck_assert(net != nullptr);
     DHT *dht = new_dht(log, mem, rng, ns, mono_time, net, true, true);
     ck_assert(dht != nullptr);
-    Forwarding *forwarding = new_forwarding(log, mem, rng, mono_time, dht);
+    Forwarding *forwarding = new_forwarding(log, mem, rng, mono_time, dht, net);
     ck_assert(forwarding != nullptr);
-    Announcements *announce = new_announcements(log, mem, rng, mono_time, forwarding);
+    Announcements *announce = new_announcements(log, mem, rng, mono_time, forwarding, dht, net);
     ck_assert(announce != nullptr);
 
     /* Just to prevent CI from complaining that set_synch_offset is unused: */

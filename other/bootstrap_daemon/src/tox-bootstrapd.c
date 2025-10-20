@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht);
+    Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht, net);
 
     if (forwarding == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize forwarding. Exiting.\n");
@@ -367,7 +367,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Announcements *announce = new_announcements(logger, mem, rng, mono_time, forwarding);
+    Announcements *announce = new_announcements(logger, mem, rng, mono_time, forwarding, dht, net);
 
     if (announce == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize DHT announcements. Exiting.\n");
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion *onion = new_onion(logger, mem, mono_time, rng, dht);
+    Onion *onion = new_onion(logger, mem, mono_time, rng, dht, net);
 
     if (onion == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht);
+    Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht, net);
 
     if (onion_a == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
     gca_onion_init(group_announce, onion_a);
 
     if (enable_motd) {
-        if (bootstrap_set_callbacks(dht_get_net(dht), DAEMON_VERSION_NUMBER, (uint8_t *)motd, strlen(motd) + 1) == 0) {
+        if (bootstrap_set_callbacks(net, DAEMON_VERSION_NUMBER, (uint8_t *)motd, strlen(motd) + 1) == 0) {
             LOG_WRITE(LOG_LEVEL_INFO, "Set MOTD successfully.\n");
             free(motd);
         } else {
@@ -596,7 +596,7 @@ int main(int argc, char *argv[])
         do_dht(dht);
 
         if (enable_lan_discovery && mono_time_is_timeout(mono_time, last_lan_discovery, LAN_DISCOVERY_INTERVAL)) {
-            lan_discovery_send(dht_get_net(dht), broadcast, dht_get_self_public_key(dht), net_htons_port);
+            lan_discovery_send(net, broadcast, dht_get_self_public_key(dht), net_htons_port);
             last_lan_discovery = mono_time_get(mono_time);
         }
 
@@ -606,7 +606,7 @@ int main(int argc, char *argv[])
             do_tcp_server(tcp_server, mono_time);
         }
 
-        networking_poll(dht_get_net(dht), nullptr);
+        networking_poll(net, nullptr);
 
         if (waiting_for_dht_connection && dht_isconnected(dht)) {
             LOG_WRITE(LOG_LEVEL_INFO, "Connected to another bootstrap node successfully.\n");

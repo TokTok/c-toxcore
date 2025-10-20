@@ -25,7 +25,6 @@
 #include "shared_key_cache.h"
 #include "sort.h"
 #include "state.h"
-#include "util.h"
 
 /** The timeout after which a node is discarded completely. */
 #define KILL_NODE_TIMEOUT (BAD_NODE_TIMEOUT + PING_INTERVAL)
@@ -161,10 +160,6 @@ void dht_set_self_secret_key(DHT *dht, const uint8_t *key)
     memcpy(dht->self_secret_key, key, CRYPTO_SECRET_KEY_SIZE);
 }
 
-Networking_Core *dht_get_net(const DHT *dht)
-{
-    return dht->net;
-}
 struct Ping *dht_get_ping(const DHT *dht)
 {
     return dht->ping;
@@ -2509,7 +2504,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
     dht->hole_punching_enabled = hole_punching_enabled;
     dht->lan_discovery_enabled = lan_discovery_enabled;
 
-    dht->ping = ping_new(mem, mono_time, rng, dht);
+    dht->ping = ping_new(mem, mono_time, rng, dht, net);
 
     if (dht->ping == nullptr) {
         LOGGER_ERROR(log, "failed to initialise ping");

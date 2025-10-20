@@ -3443,7 +3443,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->dht, &options->proxy_info, m->tcp_np);
+    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &options->proxy_info, m->tcp_np);
 
     if (m->net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
@@ -3473,9 +3473,9 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
 
     if (options->dht_announcements_enabled) {
-        m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht);
+        m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht, m->net);
         if (m->forwarding != nullptr) {
-            m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding);
+            m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding, m->dht, m->net);
         } else {
             m->announce = nullptr;
         }
@@ -3484,11 +3484,11 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         m->announce = nullptr;
     }
 
-    m->onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht);
-    m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht);
-    m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto);
+    m->onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht, m->net);
+    m->onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht, m->net);
+    m->onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto, m->dht, m->net);
     if (m->onion_c != nullptr) {
-        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, options->local_discovery_enabled);
+        m->fr_c = new_friend_connections(m->log, m->mem, m->mono_time, m->ns, m->onion_c, m->dht, m->net_crypto, m->net, options->local_discovery_enabled);
     }
 
     if ((options->dht_announcements_enabled && (m->forwarding == nullptr || m->announce == nullptr)) ||

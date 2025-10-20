@@ -3,6 +3,7 @@
 
 #include "../testing/misc_tools.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/network.h"
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
 #include "../toxcore/onion_client.h"
@@ -238,8 +239,10 @@ static void test_basic(void)
     Mono_Time *mono_time2 = mono_time_new(mem, nullptr, nullptr);
 
     IP ip = get_loopback();
-    Onion *onion1 = new_onion(log1, mem, mono_time1, rng, new_dht(log1, mem, rng, ns, mono_time1, new_networking(log1, mem, ns, &ip, 36567), true, false));
-    Onion *onion2 = new_onion(log2, mem, mono_time2, rng, new_dht(log2, mem, rng, ns, mono_time2, new_networking(log2, mem, ns, &ip, 36568), true, false));
+    Networking_Core *net1 = new_networking(log1, mem, ns, &ip, 36567);
+    Onion *onion1 = new_onion(log1, mem, mono_time1, rng, new_dht(log1, mem, rng, ns, mono_time1, net1, true, false), net1);
+    Networking_Core *net2 = new_networking(log2, mem, ns, &ip, 36568);
+    Onion *onion2 = new_onion(log2, mem, mono_time2, rng, new_dht(log2, mem, rng, ns, mono_time2, net2, true, false), net2);
     ck_assert_msg((onion1 != nullptr) && (onion2 != nullptr), "Onion failed initializing.");
     networking_registerhandler(onion2->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_test_1, onion2);
 
@@ -282,8 +285,8 @@ static void test_basic(void)
         do_onion(mono_time2, onion2);
     } while (handled_test_2 == 0);
 
-    Onion_Announce *onion1_a = new_onion_announce(log1, mem, rng, mono_time1, onion1->dht);
-    Onion_Announce *onion2_a = new_onion_announce(log2, mem, rng, mono_time2, onion2->dht);
+    Onion_Announce *onion1_a = new_onion_announce(log1, mem, rng, mono_time1, onion1->dht, onion1->net);
+    Onion_Announce *onion2_a = new_onion_announce(log2, mem, rng, mono_time2, onion2->dht, onion2->net);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE, &handle_test_3, onion1);
     networking_registerhandler(onion1->net, NET_PACKET_ANNOUNCE_RESPONSE_OLD, &handle_test_3_old, onion1);
     ck_assert_msg((onion1_a != nullptr) && (onion2_a != nullptr), "Onion_Announce failed initializing.");
@@ -335,7 +338,8 @@ static void test_basic(void)
 
     Mono_Time *mono_time3 = mono_time_new(mem, nullptr, nullptr);
 
-    Onion *onion3 = new_onion(log3, mem, mono_time3, rng, new_dht(log3, mem, rng, ns, mono_time3, new_networking(log3, mem, ns, &ip, 36569), true, false));
+    Networking_Core *net3 = new_networking(log3, mem, ns, &ip, 36569);
+    Onion *onion3 = new_onion(log3, mem, mono_time3, rng, new_dht(log3, mem, rng, ns, mono_time3, net3, true, false), net3);
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
 
     random_nonce(rng, nonce);
@@ -360,7 +364,7 @@ static void test_basic(void)
     {
         Onion *onion = onion3;
 
-        Networking_Core *net = dht_get_net(onion->dht);
+        Networking_Core *net = onion->net;
         DHT *dht = onion->dht;
         kill_onion(onion);
         kill_dht(dht);
@@ -372,7 +376,7 @@ static void test_basic(void)
     {
         Onion *onion = onion2;
 
-        Networking_Core *net = dht_get_net(onion->dht);
+        Networking_Core *net = onion->net;
         DHT *dht = onion->dht;
         kill_onion(onion);
         kill_dht(dht);
@@ -384,7 +388,7 @@ static void test_basic(void)
     {
         Onion *onion = onion1;
 
-        Networking_Core *net = dht_get_net(onion->dht);
+        Networking_Core *net = onion->net;
         DHT *dht = onion->dht;
         kill_onion(onion);
         kill_dht(dht);
@@ -397,6 +401,7 @@ static void test_basic(void)
 typedef struct {
     Logger *log;
     Mono_Time *mono_time;
+    Net_Crypto *nc;
     Net_Profile *tcp_np;
     Onion *onion;
     Onion_Announce *onion_a;
@@ -450,7 +455,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    on->onion = new_onion(on->log, mem, on->mono_time, rng, dht);
+    on->onion = new_onion(on->log, mem, on->mono_time, rng, dht, net);
 
     if (!on->onion) {
         kill_dht(dht);
@@ -461,7 +466,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    on->onion_a = new_onion_announce(on->log, mem, rng, on->mono_time, dht);
+    on->onion_a = new_onion_announce(on->log, mem, rng, on->mono_time, dht, net);
 
     if (!on->onion_a) {
         kill_onion(on->onion);
@@ -487,7 +492,8 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
     }
 
     TCP_Proxy_Info inf = {{{{0}}}};
-    on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, new_net_crypto(on->log, mem, rng, ns, on->mono_time, dht, &inf, on->tcp_np));
+    on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, net, dht, &inf, on->tcp_np);
+    on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, on->nc, dht, net);
 
     if (!on->onion_c) {
         netprof_kill(mem, on->tcp_np);
@@ -515,9 +521,9 @@ static void do_onions(Onions *on)
 
 static void kill_onions(const Memory *mem, Onions *on)
 {
-    Networking_Core *net = dht_get_net(on->onion->dht);
+    Networking_Core *net = on->onion->net;
     DHT *dht = on->onion->dht;
-    Net_Crypto *c = onion_get_net_crypto(on->onion_c);
+    Net_Crypto *c = on->nc;
     kill_onion_client(on->onion_c);
     kill_onion_announce(on->onion_a);
     kill_onion(on->onion);
@@ -641,9 +647,9 @@ static void test_announce(void)
 
     printf("adding friend\n");
     int frnum_f = onion_addfriend(onions[NUM_FIRST]->onion_c,
-                                  nc_get_self_public_key(onion_get_net_crypto(onions[NUM_LAST]->onion_c)));
+                                  nc_get_self_public_key(onions[NUM_LAST]->nc));
     int frnum = onion_addfriend(onions[NUM_LAST]->onion_c,
-                                nc_get_self_public_key(onion_get_net_crypto(onions[NUM_FIRST]->onion_c)));
+                                nc_get_self_public_key(onions[NUM_FIRST]->nc));
 
     onion_dht_pk_callback(onions[NUM_FIRST]->onion_c, frnum_f, &dht_pk_callback, onions[NUM_FIRST], NUM_FIRST);
     onion_dht_pk_callback(onions[NUM_LAST]->onion_c, frnum, &dht_pk_callback, onions[NUM_LAST], NUM_LAST);

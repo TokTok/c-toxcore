@@ -613,7 +613,7 @@ static int handle_dht_announce_request(
 }
 
 Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
-                                 Forwarding *forwarding)
+                                 Forwarding *forwarding, DHT *dht, Networking_Core *net)
 {
     if (log == nullptr || mono_time == nullptr || forwarding == nullptr) {
         return nullptr;
@@ -630,8 +630,8 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     announce->rng = rng;
     announce->forwarding = forwarding;
     announce->mono_time = mono_time;
-    announce->dht = forwarding_get_dht(forwarding);
-    announce->net = dht_get_net(announce->dht);
+    announce->dht = dht;
+    announce->net = net;
     announce->public_key = dht_get_self_public_key(announce->dht);
     announce->secret_key = dht_get_self_secret_key(announce->dht);
     new_hmac_key(announce->rng, announce->hmac_key);
