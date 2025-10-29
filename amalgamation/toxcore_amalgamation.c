@@ -70941,6 +70941,13 @@ struct Tox_Pass_Key {
 
 void tox_pass_key_free(Tox_Pass_Key *key)
 {
+    if (key == NULL) {
+        return;
+    }
+
+    /* wipe sensitive state */
+    crypto_memzero(key->salt, TOX_PASS_SALT_LENGTH);
+    crypto_memzero(key->key, TOX_PASS_KEY_LENGTH);
     free(key);
 }
 
