@@ -439,13 +439,41 @@ typedef enum Groupchat_Closest_Change {
     GROUPCHAT_CLOSEST_CHANGE_REMOVED,
 } Groupchat_Closest_Change;
 
+/** @brief Where a peer goes: a free slot, or the slot of the furthest peer that is further than it.
+ *
+ * @retval DESIRED_CLOSEST if it is no closer than the peers we have.
+ */
+static unsigned int closest_slot(const Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk)
+{
+    for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
+        if (!g->closest_peers[i].active) {
+            return i;
+        }
+    }
+
+    unsigned int index = DESIRED_CLOSEST;
+    uint64_t comp_d = 0;
+
+    for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
+        const bool below = i < DESIRED_CLOSEST / 2;
+        const uint8_t *slot_pk = g->closest_peers[i].real_pk;
+        const uint64_t comp_val = below ? calculate_comp_value(g->real_pk, real_pk) : calculate_comp_value(real_pk, g->real_pk);
+        const uint64_t comp = below ? calculate_comp_value(g->real_pk, slot_pk) : calculate_comp_value(slot_pk, g->real_pk);
+
+        if (comp > comp_val && comp > comp_d) {
+            index = i;
+            comp_d = comp;
+        }
+    }
+
+    return index;
+}
+
 static bool add_to_closest(Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk, const uint8_t *_Nonnull temp_pk)
 {
     if (pk_equal(g->real_pk, real_pk)) {
         return false;
     }
-
-    unsigned int index = DESIRED_CLOSEST;
 
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
         if (g->closest_peers[i].active && pk_equal(real_pk, g->closest_peers[i].real_pk)) {
@@ -453,65 +481,30 @@ static bool add_to_closest(Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk,
         }
     }
 
-    for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (!g->closest_peers[i].active) {
-            index = i;
+    Groupchat_Closest peer = {true};
+    memcpy(peer.real_pk, real_pk, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(peer.temp_pk, temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
+    bool added = false;
+
+    // A peer that takes the slot of one further away sends that one looking for a slot itself.
+    while (peer.active) {
+        const unsigned int index = closest_slot(g, peer.real_pk);
+
+        if (index == DESIRED_CLOSEST) {
             break;
         }
+
+        const Groupchat_Closest old = g->closest_peers[index];
+        g->closest_peers[index] = peer;
+        peer = old;
+        added = true;
     }
 
-    if (index == DESIRED_CLOSEST) {
-        uint64_t comp_val = calculate_comp_value(g->real_pk, real_pk);
-        uint64_t comp_d = 0;
-
-        for (unsigned int i = 0; i < (DESIRED_CLOSEST / 2); ++i) {
-            const uint64_t comp = calculate_comp_value(g->real_pk, g->closest_peers[i].real_pk);
-
-            if (comp > comp_val && comp > comp_d) {
-                index = i;
-                comp_d = comp;
-            }
-        }
-
-        comp_val = calculate_comp_value(real_pk, g->real_pk);
-
-        for (unsigned int i = DESIRED_CLOSEST / 2; i < DESIRED_CLOSEST; ++i) {
-            const uint64_t comp = calculate_comp_value(g->closest_peers[i].real_pk, g->real_pk);
-
-            if (comp > comp_val && comp > comp_d) {
-                index = i;
-                comp_d = comp;
-            }
-        }
-    }
-
-    if (index == DESIRED_CLOSEST) {
-        return false;
-    }
-
-    uint8_t old_real_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t old_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    bool old = false;
-
-    if (g->closest_peers[index].active) {
-        memcpy(old_real_pk, g->closest_peers[index].real_pk, CRYPTO_PUBLIC_KEY_SIZE);
-        memcpy(old_temp_pk, g->closest_peers[index].temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
-        old = true;
-    }
-
-    g->closest_peers[index].active = true;
-    memcpy(g->closest_peers[index].real_pk, real_pk, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(g->closest_peers[index].temp_pk, temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
-
-    if (old) {
-        add_to_closest(g, old_real_pk, old_temp_pk);
-    }
-
-    if (g->changed == GROUPCHAT_CLOSEST_CHANGE_NONE) {
+    if (added && g->changed == GROUPCHAT_CLOSEST_CHANGE_NONE) {
         g->changed = GROUPCHAT_CLOSEST_CHANGE_ADDED;
     }
 
-    return true;
+    return added;
 }
 
 static bool pk_in_closest_peers(const Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk)
