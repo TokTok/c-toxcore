@@ -1,6 +1,7 @@
 lib_LTLIBRARIES += libtoxcore.la
 
 libtoxcore_la_include_HEADERS = \
+                        ../toxcore/tox_log_level.h \
                         ../toxcore/tox.h \
                         ../toxcore/tox_options.h
 
