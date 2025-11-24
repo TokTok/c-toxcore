@@ -8,7 +8,7 @@ jobs:
   tcc:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - run: |
           sudo apt-get update && \
           sudo DEBIAN_FRONTEND=noninteractive \
