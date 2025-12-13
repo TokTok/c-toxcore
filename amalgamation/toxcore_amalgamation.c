@@ -4008,6 +4008,7 @@ typedef struct GC_Connection {
     uint64_t    last_sent_tcp_relays_time;  /* the last time we attempted to send this peer our tcp relays */
     uint16_t    tcp_relay_share_index;
     uint64_t    last_received_direct_time;   /* the last time we received a direct UDP packet from this connection */
+    uint64_t    last_sent_direct_try_time;   /* the last time we tried sending a direct UDP packet */
     uint64_t    last_sent_ip_time;  /* the last time we sent our ip info to this peer in a ping packet */
 
     Node_format connected_tcp_relays[MAX_FRIEND_TCP_CONNECTIONS];
@@ -13441,6 +13442,10 @@ void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 non_null()
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
 
+/** @brief Return true if we can try a direct connection with `gconn` again. */
+non_null()
+bool gcc_conn_should_try_direct(const Mono_Time *mono_time, const GC_Connection *gconn);
+
 /** @brief Return true if a direct UDP connection is possible with `gconn`. */
 non_null()
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn);
@@ -13452,7 +13457,7 @@ bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn
  * Return true on success.
  */
 non_null()
-bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length);
+bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *packet, uint16_t length);
 
 /** @brief Sends a lossless packet to `gconn` comprised of `data` of size `length`.
  *
@@ -13489,7 +13494,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
  * Return true on success.
  */
 non_null(1, 2) nullable(3)
-bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type);
 
 /** @brief Called when a peer leaves the group. */
@@ -30408,7 +30413,7 @@ int group_packet_wrap(
  * Returns true on success.
  */
 non_null()
-static bool send_lossy_group_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+static bool send_lossy_group_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
                                     uint16_t length, uint8_t packet_type)
 {
     assert(length <= MAX_GC_PACKET_CHUNK_SIZE);
@@ -31019,7 +31024,7 @@ static int handle_gc_invite_response_reject(const GC_Session *c, GC_Chat *chat, 
  * Return true on success.
  */
 non_null()
-static bool send_gc_invite_response_reject(const GC_Chat *chat, const GC_Connection *gconn, uint8_t type)
+static bool send_gc_invite_response_reject(const GC_Chat *chat, GC_Connection *gconn, uint8_t type)
 {
     if (type >= GJ_INVALID) {
         type = GJ_INVITE_FAILED;
@@ -31114,7 +31119,7 @@ non_null()
 static void send_gc_lossy_packet_all_peers(const GC_Chat *chat, const uint8_t *data, uint16_t length, uint8_t type)
 {
     for (uint32_t i = 1; i < chat->numpeers; ++i) {
-        const GC_Connection *gconn = get_gc_connection(chat, i);
+        GC_Connection *gconn = get_gc_connection(chat, i);
 
         assert(gconn != nullptr);
 
@@ -35911,7 +35916,7 @@ static void do_peer_delete(const GC_Session *c, GC_Chat *chat, void *userdata)
  * Return true on success.
  */
 non_null()
-static bool ping_peer(const GC_Chat *chat, const GC_Connection *gconn)
+static bool ping_peer(const GC_Chat *chat, GC_Connection *gconn)
 {
     const uint16_t buf_size = GC_PING_PACKET_MIN_DATA_SIZE + sizeof(IP_Port);
     uint8_t *data = (uint8_t *)malloc(buf_size);
@@ -37546,6 +37551,9 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
 /** Seconds since last direct UDP packet was received before the connection is considered dead */
 #define GCC_UDP_DIRECT_TIMEOUT (GC_PING_TIMEOUT + 4)
 
+/** Seconds since last direct UDP packet was sent before we can try again. Cheap NAT hole punch */
+#define GCC_UDP_DIRECT_RETRY 1
+
 /** Returns true if array entry does not contain an active packet. */
 non_null()
 static bool array_entry_is_empty(const GC_Message_Array_Entry *array_entry)
@@ -38107,7 +38115,7 @@ void gcc_resend_packets(const GC_Chat *chat, GC_Connection *gconn)
     }
 }
 
-bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *packet, uint16_t length)
+bool gcc_send_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *packet, uint16_t length)
 {
     if (packet == nullptr || length == 0) {
         return false;
@@ -38120,8 +38128,12 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
             return (uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length;
         }
 
-        if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
-            direct_send_attempt = true;
+        if (gcc_conn_should_try_direct(chat->mono_time, gconn)) {
+            gconn->last_sent_direct_try_time = mono_time_get(chat->mono_time);
+
+            if ((uint16_t) sendpacket(chat->net, &gconn->addr.ip_port, packet, length) == length) {
+                direct_send_attempt = true;
+            }
         }
     }
 
@@ -38129,7 +38141,7 @@ bool gcc_send_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint
     return ret == 0 || direct_send_attempt;
 }
 
-bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, const GC_Connection *gconn, const uint8_t *data,
+bool gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gconn, const uint8_t *data,
         uint16_t length, uint64_t message_id, uint8_t packet_type)
 {
     const uint16_t packet_size = gc_get_wrapped_packet_size(length, NET_PACKET_GC_LOSSLESS);
@@ -38169,6 +38181,11 @@ void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
 {
     return GCC_UDP_DIRECT_TIMEOUT + gconn->last_received_direct_time > mono_time_get(mono_time);
+}
+
+bool gcc_conn_should_try_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
+{
+    return mono_time_is_timeout(mono_time, gconn->last_sent_direct_try_time, GCC_UDP_DIRECT_RETRY);
 }
 
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn)
