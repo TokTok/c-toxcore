@@ -23,6 +23,10 @@
 #define _Nullable
 #endif
 
+#ifndef _Owned
+#define _Owned
+#endif
+
 #ifdef SPARSE
 #define bitwise __attribute__((bitwise))
 #define force __attribute__((force))

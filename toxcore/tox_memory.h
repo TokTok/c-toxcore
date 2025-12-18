@@ -49,7 +49,7 @@ void tox_memory_free(Tox_Memory *_Nullable mem);
  * The array will not be initialised. Supported built-in types are
  * `uint8_t`, `int8_t`, and `int16_t`.
  */
-void *_Nullable tox_memory_malloc(const Tox_Memory *_Nonnull mem, uint32_t size);
+void *_Owned _Nullable tox_memory_malloc(const Tox_Memory *_Nonnull mem, uint32_t size);
 
 /**
  * @brief Allocate a single zero-initialised object.
@@ -60,13 +60,13 @@ void *_Nullable tox_memory_malloc(const Tox_Memory *_Nonnull mem, uint32_t size)
  * @param mem The memory allocator.
  * @param size Size in bytes of each element.
  */
-void *_Nullable tox_memory_alloc(const Tox_Memory *_Nonnull mem, uint32_t size);
+void *_Owned _Nullable tox_memory_alloc(const Tox_Memory *_Nonnull mem, uint32_t size);
 
 /** @brief Resize a memory chunk vector. */
-void *_Nullable tox_memory_realloc(const Tox_Memory *_Nonnull mem, void *_Nullable ptr, uint32_t size);
+void *_Owned _Nullable tox_memory_realloc(const Tox_Memory *_Nonnull mem, void *_Owned _Nullable ptr, uint32_t size);
 
 /** @brief Free an array, object, or object vector. */
-void tox_memory_dealloc(const Tox_Memory *_Nonnull mem, void *_Nullable ptr);
+void tox_memory_dealloc(const Tox_Memory *_Nonnull mem, void *_Owned _Nullable ptr);
 
 #ifdef __cplusplus
 } /* extern "C" */

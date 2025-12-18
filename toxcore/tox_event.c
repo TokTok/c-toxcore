@@ -152,207 +152,206 @@ Tox_Event_Type tox_event_get_type(const Tox_Event *event)
 bool tox_event_construct(Tox_Event *event, Tox_Event_Type type, const Memory *mem)
 {
     event->type = type;
-    event->data.value = nullptr;
 
-    switch (type) {
+    switch (event->type) {
         case TOX_EVENT_CONFERENCE_CONNECTED: {
             event->data.conference_connected = tox_event_conference_connected_new(mem);
-            break;
+            return event->data.conference_connected != nullptr;
         }
 
         case TOX_EVENT_CONFERENCE_INVITE: {
             event->data.conference_invite = tox_event_conference_invite_new(mem);
-            break;
+            return event->data.conference_invite != nullptr;
         }
 
         case TOX_EVENT_CONFERENCE_MESSAGE: {
             event->data.conference_message = tox_event_conference_message_new(mem);
-            break;
+            return event->data.conference_message != nullptr;
         }
 
         case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED: {
             event->data.conference_peer_list_changed = tox_event_conference_peer_list_changed_new(mem);
-            break;
+            return event->data.conference_peer_list_changed != nullptr;
         }
 
         case TOX_EVENT_CONFERENCE_PEER_NAME: {
             event->data.conference_peer_name = tox_event_conference_peer_name_new(mem);
-            break;
+            return event->data.conference_peer_name != nullptr;
         }
 
         case TOX_EVENT_CONFERENCE_TITLE: {
             event->data.conference_title = tox_event_conference_title_new(mem);
-            break;
+            return event->data.conference_title != nullptr;
         }
 
         case TOX_EVENT_FILE_CHUNK_REQUEST: {
             event->data.file_chunk_request = tox_event_file_chunk_request_new(mem);
-            break;
+            return event->data.file_chunk_request != nullptr;
         }
 
         case TOX_EVENT_FILE_RECV_CHUNK: {
             event->data.file_recv_chunk = tox_event_file_recv_chunk_new(mem);
-            break;
+            return event->data.file_recv_chunk != nullptr;
         }
 
         case TOX_EVENT_FILE_RECV_CONTROL: {
             event->data.file_recv_control = tox_event_file_recv_control_new(mem);
-            break;
+            return event->data.file_recv_control != nullptr;
         }
 
         case TOX_EVENT_FILE_RECV: {
             event->data.file_recv = tox_event_file_recv_new(mem);
-            break;
+            return event->data.file_recv != nullptr;
         }
 
         case TOX_EVENT_FRIEND_CONNECTION_STATUS: {
             event->data.friend_connection_status = tox_event_friend_connection_status_new(mem);
-            break;
+            return event->data.friend_connection_status != nullptr;
         }
 
         case TOX_EVENT_FRIEND_LOSSLESS_PACKET: {
             event->data.friend_lossless_packet = tox_event_friend_lossless_packet_new(mem);
-            break;
+            return event->data.friend_lossless_packet != nullptr;
         }
 
         case TOX_EVENT_FRIEND_LOSSY_PACKET: {
             event->data.friend_lossy_packet = tox_event_friend_lossy_packet_new(mem);
-            break;
+            return event->data.friend_lossy_packet != nullptr;
         }
 
         case TOX_EVENT_FRIEND_MESSAGE: {
             event->data.friend_message = tox_event_friend_message_new(mem);
-            break;
+            return event->data.friend_message != nullptr;
         }
 
         case TOX_EVENT_FRIEND_NAME: {
             event->data.friend_name = tox_event_friend_name_new(mem);
-            break;
+            return event->data.friend_name != nullptr;
         }
 
         case TOX_EVENT_FRIEND_READ_RECEIPT: {
             event->data.friend_read_receipt = tox_event_friend_read_receipt_new(mem);
-            break;
+            return event->data.friend_read_receipt != nullptr;
         }
 
         case TOX_EVENT_FRIEND_REQUEST: {
             event->data.friend_request = tox_event_friend_request_new(mem);
-            break;
+            return event->data.friend_request != nullptr;
         }
 
         case TOX_EVENT_FRIEND_STATUS: {
             event->data.friend_status = tox_event_friend_status_new(mem);
-            break;
+            return event->data.friend_status != nullptr;
         }
 
         case TOX_EVENT_FRIEND_STATUS_MESSAGE: {
             event->data.friend_status_message = tox_event_friend_status_message_new(mem);
-            break;
+            return event->data.friend_status_message != nullptr;
         }
 
         case TOX_EVENT_FRIEND_TYPING: {
             event->data.friend_typing = tox_event_friend_typing_new(mem);
-            break;
+            return event->data.friend_typing != nullptr;
         }
 
         case TOX_EVENT_SELF_CONNECTION_STATUS: {
             event->data.self_connection_status = tox_event_self_connection_status_new(mem);
-            break;
+            return event->data.self_connection_status != nullptr;
         }
 
         case TOX_EVENT_GROUP_PEER_NAME: {
             event->data.group_peer_name = tox_event_group_peer_name_new(mem);
-            break;
+            return event->data.group_peer_name != nullptr;
         }
 
         case TOX_EVENT_GROUP_PEER_STATUS: {
             event->data.group_peer_status = tox_event_group_peer_status_new(mem);
-            break;
+            return event->data.group_peer_status != nullptr;
         }
 
         case TOX_EVENT_GROUP_TOPIC: {
             event->data.group_topic = tox_event_group_topic_new(mem);
-            break;
+            return event->data.group_topic != nullptr;
         }
 
         case TOX_EVENT_GROUP_PRIVACY_STATE: {
             event->data.group_privacy_state = tox_event_group_privacy_state_new(mem);
-            break;
+            return event->data.group_privacy_state != nullptr;
         }
 
         case TOX_EVENT_GROUP_VOICE_STATE: {
             event->data.group_voice_state = tox_event_group_voice_state_new(mem);
-            break;
+            return event->data.group_voice_state != nullptr;
         }
 
         case TOX_EVENT_GROUP_TOPIC_LOCK: {
             event->data.group_topic_lock = tox_event_group_topic_lock_new(mem);
-            break;
+            return event->data.group_topic_lock != nullptr;
         }
 
         case TOX_EVENT_GROUP_PEER_LIMIT: {
             event->data.group_peer_limit = tox_event_group_peer_limit_new(mem);
-            break;
+            return event->data.group_peer_limit != nullptr;
         }
 
         case TOX_EVENT_GROUP_PASSWORD: {
             event->data.group_password = tox_event_group_password_new(mem);
-            break;
+            return event->data.group_password != nullptr;
         }
 
         case TOX_EVENT_GROUP_MESSAGE: {
             event->data.group_message = tox_event_group_message_new(mem);
-            break;
+            return event->data.group_message != nullptr;
         }
 
         case TOX_EVENT_GROUP_PRIVATE_MESSAGE: {
             event->data.group_private_message = tox_event_group_private_message_new(mem);
-            break;
+            return event->data.group_private_message != nullptr;
         }
 
         case TOX_EVENT_GROUP_CUSTOM_PACKET: {
             event->data.group_custom_packet = tox_event_group_custom_packet_new(mem);
-            break;
+            return event->data.group_custom_packet != nullptr;
         }
 
         case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET: {
             event->data.group_custom_private_packet = tox_event_group_custom_private_packet_new(mem);
-            break;
+            return event->data.group_custom_private_packet != nullptr;
         }
 
         case TOX_EVENT_GROUP_INVITE: {
             event->data.group_invite = tox_event_group_invite_new(mem);
-            break;
+            return event->data.group_invite != nullptr;
         }
 
         case TOX_EVENT_GROUP_PEER_JOIN: {
             event->data.group_peer_join = tox_event_group_peer_join_new(mem);
-            break;
+            return event->data.group_peer_join != nullptr;
         }
 
         case TOX_EVENT_GROUP_PEER_EXIT: {
             event->data.group_peer_exit = tox_event_group_peer_exit_new(mem);
-            break;
+            return event->data.group_peer_exit != nullptr;
         }
 
         case TOX_EVENT_GROUP_SELF_JOIN: {
             event->data.group_self_join = tox_event_group_self_join_new(mem);
-            break;
+            return event->data.group_self_join != nullptr;
         }
 
         case TOX_EVENT_GROUP_JOIN_FAIL: {
             event->data.group_join_fail = tox_event_group_join_fail_new(mem);
-            break;
+            return event->data.group_join_fail != nullptr;
         }
 
         case TOX_EVENT_GROUP_MODERATION: {
             event->data.group_moderation = tox_event_group_moderation_new(mem);
-            break;
+            return event->data.group_moderation != nullptr;
         }
 
         case TOX_EVENT_DHT_NODES_RESPONSE: {
             event->data.dht_nodes_response = tox_event_dht_nodes_response_new(mem);
-            break;
+            return event->data.dht_nodes_response != nullptr;
         }
 
         case TOX_EVENT_INVALID: {
@@ -360,7 +359,7 @@ bool tox_event_construct(Tox_Event *event, Tox_Event_Type type, const Memory *me
         }
     }
 
-    return event->data.value != nullptr;
+    return false;
 }
 
 void tox_event_destruct(Tox_Event *event, const Memory *mem)
@@ -574,8 +573,6 @@ void tox_event_destruct(Tox_Event *event, const Memory *mem)
             break;
         }
     }
-
-    event->data.value = nullptr;
 }
 
 static bool tox_event_type_pack(Tox_Event_Type type, Bin_Pack *_Nonnull bp)

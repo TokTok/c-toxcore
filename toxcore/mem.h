@@ -26,7 +26,7 @@ typedef Tox_Memory Memory;
  * The array will not be initialised. Supported built-in types are
  * `uint8_t`, `int8_t`, and `int16_t`.
  */
-void *_Nullable mem_balloc(const Memory *_Nonnull mem, uint32_t size);
+void *_Owned _Nullable mem_balloc(const Memory *_Nonnull mem, uint32_t size);
 
 /**
  * @brief Resize an array of a given size for built-in types.
@@ -34,21 +34,21 @@ void *_Nullable mem_balloc(const Memory *_Nonnull mem, uint32_t size);
  * If used for a type other than byte-sized types, `size` needs to be manually
  * multiplied by the element size.
  */
-void *_Nullable mem_brealloc(const Memory *_Nonnull mem, void *_Nullable ptr, uint32_t size);
+void *_Owned _Nullable mem_brealloc(const Memory *_Nonnull mem, void *_Owned _Nullable ptr, uint32_t size);
 
 /**
  * @brief Allocate a single object.
  *
  * Always use as `(T *)mem_alloc(mem, sizeof(T))`.
  */
-void *_Nullable mem_alloc(const Memory *_Nonnull mem, uint32_t size);
+void *_Owned _Nullable mem_alloc(const Memory *_Nonnull mem, uint32_t size);
 
 /**
  * @brief Allocate a vector (array) of objects.
  *
  * Always use as `(T *)mem_valloc(mem, N, sizeof(T))`.
  */
-void *_Nullable mem_valloc(const Memory *_Nonnull mem, uint32_t nmemb, uint32_t size);
+void *_Owned _Nullable mem_valloc(const Memory *_Nonnull mem, uint32_t nmemb, uint32_t size);
 
 /**
  * @brief Resize an object vector.
@@ -65,10 +65,10 @@ void *_Nullable mem_valloc(const Memory *_Nonnull mem, uint32_t nmemb, uint32_t 
  * case where the multiplication would overflow. If such an overflow occurs,
  * `mem_vrealloc()` returns `nullptr`.
  */
-void *_Nullable mem_vrealloc(const Memory *_Nonnull mem, void *_Nullable ptr, uint32_t nmemb, uint32_t size);
+void *_Owned _Nullable mem_vrealloc(const Memory *_Nonnull mem, void *_Owned _Nullable ptr, uint32_t nmemb, uint32_t size);
 
 /** @brief Free an array, object, or object vector. */
-void mem_delete(const Memory *_Nonnull mem, void *_Nullable ptr);
+void mem_delete(const Memory *_Nonnull mem, void *_Owned _Nullable ptr);
 
 #ifdef __cplusplus
 } /* extern "C" */

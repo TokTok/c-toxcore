@@ -214,6 +214,7 @@ def main() -> None:
                 "-Werror",
                 "-Wno-missing-braces",
                 "-DTCP_SERVER_USE_EPOLL",
+                "-D_Owned=",
                 "-std=c++23",
                 "-fdiagnostics-color=always",
                 "-fmodules",

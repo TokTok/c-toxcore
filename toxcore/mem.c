@@ -10,28 +10,28 @@
 #include "ccompat.h"
 #include "tox_memory.h"
 
-void *mem_balloc(const Memory *mem, uint32_t size)
+void *_Owned _Nullable mem_balloc(const Memory *mem, uint32_t size)
 {
-    void *const ptr = tox_memory_malloc(mem, size);
+    void *_Owned ptr = tox_memory_malloc(mem, size);
     return ptr;
 }
 
-void *mem_brealloc(const Memory *mem, void *ptr, uint32_t size)
+void *_Owned _Nullable mem_brealloc(const Memory *mem, void *_Owned _Nullable ptr, uint32_t size)
 {
-    void *const new_ptr = tox_memory_realloc(mem, ptr, size);
+    void *_Owned new_ptr = tox_memory_realloc(mem, ptr, size);
     return new_ptr;
 }
 
-void *mem_alloc(const Memory *mem, uint32_t size)
+void *_Owned _Nullable mem_alloc(const Memory *mem, uint32_t size)
 {
-    void *const ptr = tox_memory_malloc(mem, size);
+    void *_Owned ptr = tox_memory_malloc(mem, size);
     if (ptr != nullptr) {
         memset(ptr, 0, size);
     }
     return ptr;
 }
 
-void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size)
+void *_Owned _Nullable mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size)
 {
     const uint32_t bytes = nmemb * size;
 
@@ -39,26 +39,29 @@ void *mem_valloc(const Memory *mem, uint32_t nmemb, uint32_t size)
         return nullptr;
     }
 
-    void *const ptr = tox_memory_malloc(mem, bytes);
+    void *_Owned ptr = tox_memory_malloc(mem, bytes);
+
     if (ptr != nullptr) {
         memset(ptr, 0, bytes);
     }
+
     return ptr;
 }
 
-void *mem_vrealloc(const Memory *mem, void *ptr, uint32_t nmemb, uint32_t size)
+void *_Owned _Nullable mem_vrealloc(const Memory *mem, void *_Owned _Nullable ptr, uint32_t nmemb, uint32_t size)
 {
     const uint32_t bytes = nmemb * size;
 
     if (size != 0 && bytes / size != nmemb) {
+        mem_delete(mem, ptr);
         return nullptr;
     }
 
-    void *const new_ptr = tox_memory_realloc(mem, ptr, bytes);
+    void *_Owned new_ptr = tox_memory_realloc(mem, ptr, bytes);
     return new_ptr;
 }
 
-void mem_delete(const Memory *mem, void *ptr)
+void mem_delete(const Memory *mem, void *_Owned _Nullable ptr)
 {
     tox_memory_dealloc(mem, ptr);
 }

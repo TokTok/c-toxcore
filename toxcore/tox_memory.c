@@ -33,28 +33,28 @@ void tox_memory_free(Tox_Memory *mem)
     tox_memory_dealloc(mem, mem);
 }
 
-void *tox_memory_malloc(const Tox_Memory *mem, uint32_t size)
+void *_Owned _Nullable tox_memory_malloc(const Tox_Memory *mem, uint32_t size)
 {
-    void *const ptr = mem->funcs->malloc_callback(mem->user_data, size);
+    void *_Owned ptr = mem->funcs->malloc_callback(mem->user_data, size);
     return ptr;
 }
 
-void *tox_memory_alloc(const Tox_Memory *mem, uint32_t size)
+void *_Owned _Nullable tox_memory_alloc(const Tox_Memory *mem, uint32_t size)
 {
-    void *const ptr = tox_memory_malloc(mem, size);
+    void *_Owned ptr = tox_memory_malloc(mem, size);
     if (ptr != nullptr) {
         memset(ptr, 0, size);
     }
     return ptr;
 }
 
-void *tox_memory_realloc(const Tox_Memory *mem, void *ptr, uint32_t size)
+void *_Owned _Nullable tox_memory_realloc(const Tox_Memory *mem, void *_Owned _Nullable ptr, uint32_t size)
 {
-    void *const new_ptr = mem->funcs->realloc_callback(mem->user_data, ptr, size);
+    void *_Owned new_ptr = mem->funcs->realloc_callback(mem->user_data, ptr, size);
     return new_ptr;
 }
 
-void tox_memory_dealloc(const Tox_Memory *mem, void *ptr)
+void tox_memory_dealloc(const Tox_Memory *mem, void *_Owned _Nullable ptr)
 {
     mem->funcs->dealloc_callback(mem->user_data, ptr);
 }

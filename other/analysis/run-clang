@@ -30,6 +30,7 @@ run() {
     -Wno-nullable-to-nonnull-conversion \
     -Wno-old-style-cast \
     -Wno-padded \
+    -Wno-reserved-macro-identifier \
     -Wno-source-uses-openmp \
     -Wno-switch-default \
     -Wno-tautological-pointer-compare \

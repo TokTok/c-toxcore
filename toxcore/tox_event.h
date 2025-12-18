@@ -17,32 +17,27 @@ extern "C" {
 #endif
 
 typedef union Tox_Event_Data {
-    /**
-     * Opaque pointer just to check whether any value is set.
-     */
-    void *_Nullable value;
-
-    Tox_Event_Conference_Connected *_Nullable conference_connected;
-    Tox_Event_Conference_Invite *_Nullable conference_invite;
-    Tox_Event_Conference_Message *_Nullable conference_message;
-    Tox_Event_Conference_Peer_List_Changed *_Nullable conference_peer_list_changed;
-    Tox_Event_Conference_Peer_Name *_Nullable conference_peer_name;
-    Tox_Event_Conference_Title *_Nullable conference_title;
+    Tox_Event_Self_Connection_Status *_Nullable self_connection_status;
+    Tox_Event_Friend_Request *_Nullable friend_request;
+    Tox_Event_Friend_Connection_Status *_Nullable friend_connection_status;
+    Tox_Event_Friend_Lossy_Packet *_Nullable friend_lossy_packet;
+    Tox_Event_Friend_Lossless_Packet *_Nullable friend_lossless_packet;
+    Tox_Event_Friend_Name *_Nullable friend_name;
+    Tox_Event_Friend_Status *_Nullable friend_status;
+    Tox_Event_Friend_Status_Message *_Nullable friend_status_message;
+    Tox_Event_Friend_Message *_Nullable friend_message;
+    Tox_Event_Friend_Read_Receipt *_Nullable friend_read_receipt;
+    Tox_Event_Friend_Typing *_Nullable friend_typing;
     Tox_Event_File_Chunk_Request *_Nullable file_chunk_request;
     Tox_Event_File_Recv *_Nullable file_recv;
     Tox_Event_File_Recv_Chunk *_Nullable file_recv_chunk;
     Tox_Event_File_Recv_Control *_Nullable file_recv_control;
-    Tox_Event_Friend_Connection_Status *_Nullable friend_connection_status;
-    Tox_Event_Friend_Lossless_Packet *_Nullable friend_lossless_packet;
-    Tox_Event_Friend_Lossy_Packet *_Nullable friend_lossy_packet;
-    Tox_Event_Friend_Message *_Nullable friend_message;
-    Tox_Event_Friend_Name *_Nullable friend_name;
-    Tox_Event_Friend_Read_Receipt *_Nullable friend_read_receipt;
-    Tox_Event_Friend_Request *_Nullable friend_request;
-    Tox_Event_Friend_Status *_Nullable friend_status;
-    Tox_Event_Friend_Status_Message *_Nullable friend_status_message;
-    Tox_Event_Friend_Typing *_Nullable friend_typing;
-    Tox_Event_Self_Connection_Status *_Nullable self_connection_status;
+    Tox_Event_Conference_Invite *_Nullable conference_invite;
+    Tox_Event_Conference_Connected *_Nullable conference_connected;
+    Tox_Event_Conference_Peer_List_Changed *_Nullable conference_peer_list_changed;
+    Tox_Event_Conference_Peer_Name *_Nullable conference_peer_name;
+    Tox_Event_Conference_Title *_Nullable conference_title;
+    Tox_Event_Conference_Message *_Nullable conference_message;
     Tox_Event_Group_Peer_Name *_Nullable group_peer_name;
     Tox_Event_Group_Peer_Status *_Nullable group_peer_status;
     Tox_Event_Group_Topic *_Nullable group_topic;

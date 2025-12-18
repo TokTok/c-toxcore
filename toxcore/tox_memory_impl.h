@@ -18,9 +18,9 @@ extern "C" {
 #endif
 
 /** @brief Allocate a byte array, similar to malloc. */
-typedef void *tox_memory_malloc_cb(void *self, uint32_t size);
+typedef void *_Owned _Nullable tox_memory_malloc_cb(void *_Nonnull self, uint32_t size);
 /** @brief Reallocate a byte array, similar to realloc. */
-typedef void *tox_memory_realloc_cb(void *self, void *ptr, uint32_t size);
+typedef void *_Owned _Nullable tox_memory_realloc_cb(void *_Nonnull self, void *_Owned _Nullable ptr, uint32_t size);
 /**
  * @brief Deallocate a byte or object array, similar to free.
  *
@@ -28,18 +28,18 @@ typedef void *tox_memory_realloc_cb(void *self, void *ptr, uint32_t size);
  * once the deallocation is done, the allocator data structures can no longer be
  * referenced.
  */
-typedef void tox_memory_dealloc_cb(void *self, void *ptr);
+typedef void tox_memory_dealloc_cb(void *_Nonnull self, void *_Owned _Nullable ptr);
 
 /** @brief Functions wrapping standard C memory allocation functions. */
 struct Tox_Memory_Funcs {
-    tox_memory_malloc_cb *malloc_callback;
-    tox_memory_realloc_cb *realloc_callback;
-    tox_memory_dealloc_cb *dealloc_callback;
+    tox_memory_malloc_cb *_Nonnull malloc_callback;
+    tox_memory_realloc_cb *_Nonnull realloc_callback;
+    tox_memory_dealloc_cb *_Nonnull dealloc_callback;
 };
 
 struct Tox_Memory {
-    const Tox_Memory_Funcs *funcs;
-    void *user_data;
+    const Tox_Memory_Funcs *_Nonnull funcs;
+    void *_Nullable user_data;
 };
 
 #ifdef __cplusplus

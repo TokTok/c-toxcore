@@ -1,0 +1,33 @@
+#!/bin/sh
+
+set -eux
+
+# This script should be run from the root of the c-toxcore repository.
+# It mimics other/event_tooling/run but without Docker.
+
+# Navigate to the root of the repository if called from the tool directory
+if [ ! -d "toxcore/events" ] && [ -d "../../toxcore/events" ]; then
+  cd ../..
+fi
+
+TOOL_SRC="other/event_tooling/generate_event_c.cpp"
+TOOL_BIN="other/event_tooling/generate_event_c"
+OUT_DIR="other/event_tooling/out"
+
+# Compile the generator
+g++ -std=c++17 "$TOOL_SRC" -o "$TOOL_BIN"
+
+# Run the generator
+mkdir -p "$OUT_DIR"
+(cd other/event_tooling && ./generate_event_c)
+
+# Copy generated files to the target directory
+cp "$OUT_DIR"/*.c toxcore/events/
+
+# Apply patches
+sed -i -e 's/, uint16_t length,/, size_t length,/' toxcore/events/file_chunk_request.c
+sed -i -e 's/^        0/        TOX_CONNECTION_NONE/' toxcore/events/self_connection_status.c
+
+# Cleanup
+rm "$TOOL_BIN"
+rm -rf "$OUT_DIR"

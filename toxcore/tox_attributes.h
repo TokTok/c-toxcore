@@ -20,6 +20,10 @@
 #define _Nullable
 #endif
 
+#ifndef _Owned
+#define _Owned
+#endif
+
 #ifdef SPARSE
 #define tox_bitwise __attribute__((bitwise))
 #else
