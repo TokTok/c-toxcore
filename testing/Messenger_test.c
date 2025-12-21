@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);
 
     if (!m) {
-        fprintf(stderr, "Failed to allocate messenger datastructure: %d\n", err);
+        fprintf(stderr, "Failed to allocate messenger datastructure: %u\n", err);
         exit(0);
     }
 

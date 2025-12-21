@@ -145,221 +145,7 @@ const char *tox_event_type_to_string(Tox_Event_Type type)
 
 Tox_Event_Type tox_event_get_type(const Tox_Event *event)
 {
-    assert(event != nullptr);
     return event->type;
-}
-
-bool tox_event_construct(Tox_Event *event, Tox_Event_Type type, const Memory *mem)
-{
-    event->type = type;
-
-    switch (event->type) {
-        case TOX_EVENT_CONFERENCE_CONNECTED: {
-            event->data.conference_connected = tox_event_conference_connected_new(mem);
-            return event->data.conference_connected != nullptr;
-        }
-
-        case TOX_EVENT_CONFERENCE_INVITE: {
-            event->data.conference_invite = tox_event_conference_invite_new(mem);
-            return event->data.conference_invite != nullptr;
-        }
-
-        case TOX_EVENT_CONFERENCE_MESSAGE: {
-            event->data.conference_message = tox_event_conference_message_new(mem);
-            return event->data.conference_message != nullptr;
-        }
-
-        case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED: {
-            event->data.conference_peer_list_changed = tox_event_conference_peer_list_changed_new(mem);
-            return event->data.conference_peer_list_changed != nullptr;
-        }
-
-        case TOX_EVENT_CONFERENCE_PEER_NAME: {
-            event->data.conference_peer_name = tox_event_conference_peer_name_new(mem);
-            return event->data.conference_peer_name != nullptr;
-        }
-
-        case TOX_EVENT_CONFERENCE_TITLE: {
-            event->data.conference_title = tox_event_conference_title_new(mem);
-            return event->data.conference_title != nullptr;
-        }
-
-        case TOX_EVENT_FILE_CHUNK_REQUEST: {
-            event->data.file_chunk_request = tox_event_file_chunk_request_new(mem);
-            return event->data.file_chunk_request != nullptr;
-        }
-
-        case TOX_EVENT_FILE_RECV_CHUNK: {
-            event->data.file_recv_chunk = tox_event_file_recv_chunk_new(mem);
-            return event->data.file_recv_chunk != nullptr;
-        }
-
-        case TOX_EVENT_FILE_RECV_CONTROL: {
-            event->data.file_recv_control = tox_event_file_recv_control_new(mem);
-            return event->data.file_recv_control != nullptr;
-        }
-
-        case TOX_EVENT_FILE_RECV: {
-            event->data.file_recv = tox_event_file_recv_new(mem);
-            return event->data.file_recv != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_CONNECTION_STATUS: {
-            event->data.friend_connection_status = tox_event_friend_connection_status_new(mem);
-            return event->data.friend_connection_status != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_LOSSLESS_PACKET: {
-            event->data.friend_lossless_packet = tox_event_friend_lossless_packet_new(mem);
-            return event->data.friend_lossless_packet != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_LOSSY_PACKET: {
-            event->data.friend_lossy_packet = tox_event_friend_lossy_packet_new(mem);
-            return event->data.friend_lossy_packet != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_MESSAGE: {
-            event->data.friend_message = tox_event_friend_message_new(mem);
-            return event->data.friend_message != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_NAME: {
-            event->data.friend_name = tox_event_friend_name_new(mem);
-            return event->data.friend_name != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_READ_RECEIPT: {
-            event->data.friend_read_receipt = tox_event_friend_read_receipt_new(mem);
-            return event->data.friend_read_receipt != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_REQUEST: {
-            event->data.friend_request = tox_event_friend_request_new(mem);
-            return event->data.friend_request != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_STATUS: {
-            event->data.friend_status = tox_event_friend_status_new(mem);
-            return event->data.friend_status != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_STATUS_MESSAGE: {
-            event->data.friend_status_message = tox_event_friend_status_message_new(mem);
-            return event->data.friend_status_message != nullptr;
-        }
-
-        case TOX_EVENT_FRIEND_TYPING: {
-            event->data.friend_typing = tox_event_friend_typing_new(mem);
-            return event->data.friend_typing != nullptr;
-        }
-
-        case TOX_EVENT_SELF_CONNECTION_STATUS: {
-            event->data.self_connection_status = tox_event_self_connection_status_new(mem);
-            return event->data.self_connection_status != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PEER_NAME: {
-            event->data.group_peer_name = tox_event_group_peer_name_new(mem);
-            return event->data.group_peer_name != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PEER_STATUS: {
-            event->data.group_peer_status = tox_event_group_peer_status_new(mem);
-            return event->data.group_peer_status != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_TOPIC: {
-            event->data.group_topic = tox_event_group_topic_new(mem);
-            return event->data.group_topic != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PRIVACY_STATE: {
-            event->data.group_privacy_state = tox_event_group_privacy_state_new(mem);
-            return event->data.group_privacy_state != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_VOICE_STATE: {
-            event->data.group_voice_state = tox_event_group_voice_state_new(mem);
-            return event->data.group_voice_state != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_TOPIC_LOCK: {
-            event->data.group_topic_lock = tox_event_group_topic_lock_new(mem);
-            return event->data.group_topic_lock != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PEER_LIMIT: {
-            event->data.group_peer_limit = tox_event_group_peer_limit_new(mem);
-            return event->data.group_peer_limit != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PASSWORD: {
-            event->data.group_password = tox_event_group_password_new(mem);
-            return event->data.group_password != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_MESSAGE: {
-            event->data.group_message = tox_event_group_message_new(mem);
-            return event->data.group_message != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PRIVATE_MESSAGE: {
-            event->data.group_private_message = tox_event_group_private_message_new(mem);
-            return event->data.group_private_message != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_CUSTOM_PACKET: {
-            event->data.group_custom_packet = tox_event_group_custom_packet_new(mem);
-            return event->data.group_custom_packet != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET: {
-            event->data.group_custom_private_packet = tox_event_group_custom_private_packet_new(mem);
-            return event->data.group_custom_private_packet != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_INVITE: {
-            event->data.group_invite = tox_event_group_invite_new(mem);
-            return event->data.group_invite != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PEER_JOIN: {
-            event->data.group_peer_join = tox_event_group_peer_join_new(mem);
-            return event->data.group_peer_join != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_PEER_EXIT: {
-            event->data.group_peer_exit = tox_event_group_peer_exit_new(mem);
-            return event->data.group_peer_exit != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_SELF_JOIN: {
-            event->data.group_self_join = tox_event_group_self_join_new(mem);
-            return event->data.group_self_join != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_JOIN_FAIL: {
-            event->data.group_join_fail = tox_event_group_join_fail_new(mem);
-            return event->data.group_join_fail != nullptr;
-        }
-
-        case TOX_EVENT_GROUP_MODERATION: {
-            event->data.group_moderation = tox_event_group_moderation_new(mem);
-            return event->data.group_moderation != nullptr;
-        }
-
-        case TOX_EVENT_DHT_NODES_RESPONSE: {
-            event->data.dht_nodes_response = tox_event_dht_nodes_response_new(mem);
-            return event->data.dht_nodes_response != nullptr;
-        }
-
-        case TOX_EVENT_INVALID: {
-            return false;
-        }
-    }
-
-    return false;
 }
 
 void tox_event_destruct(Tox_Event *event, const Memory *mem)
@@ -575,148 +361,178 @@ void tox_event_destruct(Tox_Event *event, const Memory *mem)
     }
 }
 
-static bool tox_event_type_pack(Tox_Event_Type type, Bin_Pack *_Nonnull bp)
+bool tox_event_pack(const Tox_Event *event, Bin_Pack *bp)
 {
-    return bin_pack_u32(bp, (uint32_t)type);
-}
+    if (!bin_pack_array(bp, 2)) {
+        return false;
+    }
 
-static bool tox_event_data_pack(Tox_Event_Type type, const Tox_Event_Data *_Nonnull data, Bin_Pack *_Nonnull bp)
-{
-    switch (type) {
+    switch (event->type) {
         case TOX_EVENT_CONFERENCE_CONNECTED:
-            return tox_event_conference_connected_pack(data->conference_connected, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_CONNECTED)
+                   && tox_event_conference_connected_pack(event->data.conference_connected, bp);
 
         case TOX_EVENT_CONFERENCE_INVITE:
-            return tox_event_conference_invite_pack(data->conference_invite, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_INVITE)
+                   && tox_event_conference_invite_pack(event->data.conference_invite, bp);
 
         case TOX_EVENT_CONFERENCE_MESSAGE:
-            return tox_event_conference_message_pack(data->conference_message, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_MESSAGE)
+                   && tox_event_conference_message_pack(event->data.conference_message, bp);
 
         case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED:
-            return tox_event_conference_peer_list_changed_pack(data->conference_peer_list_changed, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED)
+                   && tox_event_conference_peer_list_changed_pack(event->data.conference_peer_list_changed, bp);
 
         case TOX_EVENT_CONFERENCE_PEER_NAME:
-            return tox_event_conference_peer_name_pack(data->conference_peer_name, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_PEER_NAME)
+                   && tox_event_conference_peer_name_pack(event->data.conference_peer_name, bp);
 
         case TOX_EVENT_CONFERENCE_TITLE:
-            return tox_event_conference_title_pack(data->conference_title, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_CONFERENCE_TITLE)
+                   && tox_event_conference_title_pack(event->data.conference_title, bp);
 
         case TOX_EVENT_FILE_CHUNK_REQUEST:
-            return tox_event_file_chunk_request_pack(data->file_chunk_request, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FILE_CHUNK_REQUEST)
+                   && tox_event_file_chunk_request_pack(event->data.file_chunk_request, bp);
 
         case TOX_EVENT_FILE_RECV_CHUNK:
-            return tox_event_file_recv_chunk_pack(data->file_recv_chunk, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FILE_RECV_CHUNK)
+                   && tox_event_file_recv_chunk_pack(event->data.file_recv_chunk, bp);
 
         case TOX_EVENT_FILE_RECV_CONTROL:
-            return tox_event_file_recv_control_pack(data->file_recv_control, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FILE_RECV_CONTROL)
+                   && tox_event_file_recv_control_pack(event->data.file_recv_control, bp);
 
         case TOX_EVENT_FILE_RECV:
-            return tox_event_file_recv_pack(data->file_recv, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FILE_RECV)
+                   && tox_event_file_recv_pack(event->data.file_recv, bp);
 
         case TOX_EVENT_FRIEND_CONNECTION_STATUS:
-            return tox_event_friend_connection_status_pack(data->friend_connection_status, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_CONNECTION_STATUS)
+                   && tox_event_friend_connection_status_pack(event->data.friend_connection_status, bp);
 
         case TOX_EVENT_FRIEND_LOSSLESS_PACKET:
-            return tox_event_friend_lossless_packet_pack(data->friend_lossless_packet, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_LOSSLESS_PACKET)
+                   && tox_event_friend_lossless_packet_pack(event->data.friend_lossless_packet, bp);
 
         case TOX_EVENT_FRIEND_LOSSY_PACKET:
-            return tox_event_friend_lossy_packet_pack(data->friend_lossy_packet, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_LOSSY_PACKET)
+                   && tox_event_friend_lossy_packet_pack(event->data.friend_lossy_packet, bp);
 
         case TOX_EVENT_FRIEND_MESSAGE:
-            return tox_event_friend_message_pack(data->friend_message, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_MESSAGE)
+                   && tox_event_friend_message_pack(event->data.friend_message, bp);
 
         case TOX_EVENT_FRIEND_NAME:
-            return tox_event_friend_name_pack(data->friend_name, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_NAME)
+                   && tox_event_friend_name_pack(event->data.friend_name, bp);
 
         case TOX_EVENT_FRIEND_READ_RECEIPT:
-            return tox_event_friend_read_receipt_pack(data->friend_read_receipt, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_READ_RECEIPT)
+                   && tox_event_friend_read_receipt_pack(event->data.friend_read_receipt, bp);
 
         case TOX_EVENT_FRIEND_REQUEST:
-            return tox_event_friend_request_pack(data->friend_request, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_REQUEST)
+                   && tox_event_friend_request_pack(event->data.friend_request, bp);
 
         case TOX_EVENT_FRIEND_STATUS:
-            return tox_event_friend_status_pack(data->friend_status, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_STATUS)
+                   && tox_event_friend_status_pack(event->data.friend_status, bp);
 
         case TOX_EVENT_FRIEND_STATUS_MESSAGE:
-            return tox_event_friend_status_message_pack(data->friend_status_message, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_STATUS_MESSAGE)
+                   && tox_event_friend_status_message_pack(event->data.friend_status_message, bp);
 
         case TOX_EVENT_FRIEND_TYPING:
-            return tox_event_friend_typing_pack(data->friend_typing, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_FRIEND_TYPING)
+                   && tox_event_friend_typing_pack(event->data.friend_typing, bp);
 
         case TOX_EVENT_SELF_CONNECTION_STATUS:
-            return tox_event_self_connection_status_pack(data->self_connection_status, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_SELF_CONNECTION_STATUS)
+                   && tox_event_self_connection_status_pack(event->data.self_connection_status, bp);
 
         case TOX_EVENT_GROUP_PEER_NAME:
-            return tox_event_group_peer_name_pack(data->group_peer_name, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PEER_NAME)
+                   && tox_event_group_peer_name_pack(event->data.group_peer_name, bp);
 
         case TOX_EVENT_GROUP_PEER_STATUS:
-            return tox_event_group_peer_status_pack(data->group_peer_status, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PEER_STATUS)
+                   && tox_event_group_peer_status_pack(event->data.group_peer_status, bp);
 
         case TOX_EVENT_GROUP_TOPIC:
-            return tox_event_group_topic_pack(data->group_topic, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_TOPIC)
+                   && tox_event_group_topic_pack(event->data.group_topic, bp);
 
         case TOX_EVENT_GROUP_PRIVACY_STATE:
-            return tox_event_group_privacy_state_pack(data->group_privacy_state, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PRIVACY_STATE)
+                   && tox_event_group_privacy_state_pack(event->data.group_privacy_state, bp);
 
         case TOX_EVENT_GROUP_VOICE_STATE:
-            return tox_event_group_voice_state_pack(data->group_voice_state, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_VOICE_STATE)
+                   && tox_event_group_voice_state_pack(event->data.group_voice_state, bp);
 
         case TOX_EVENT_GROUP_TOPIC_LOCK:
-            return tox_event_group_topic_lock_pack(data->group_topic_lock, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_TOPIC_LOCK)
+                   && tox_event_group_topic_lock_pack(event->data.group_topic_lock, bp);
 
         case TOX_EVENT_GROUP_PEER_LIMIT:
-            return tox_event_group_peer_limit_pack(data->group_peer_limit, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PEER_LIMIT)
+                   && tox_event_group_peer_limit_pack(event->data.group_peer_limit, bp);
 
         case TOX_EVENT_GROUP_PASSWORD:
-            return tox_event_group_password_pack(data->group_password, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PASSWORD)
+                   && tox_event_group_password_pack(event->data.group_password, bp);
 
         case TOX_EVENT_GROUP_MESSAGE:
-            return tox_event_group_message_pack(data->group_message, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_MESSAGE)
+                   && tox_event_group_message_pack(event->data.group_message, bp);
 
         case TOX_EVENT_GROUP_PRIVATE_MESSAGE:
-            return tox_event_group_private_message_pack(data->group_private_message, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PRIVATE_MESSAGE)
+                   && tox_event_group_private_message_pack(event->data.group_private_message, bp);
 
         case TOX_EVENT_GROUP_CUSTOM_PACKET:
-            return tox_event_group_custom_packet_pack(data->group_custom_packet, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_CUSTOM_PACKET)
+                   && tox_event_group_custom_packet_pack(event->data.group_custom_packet, bp);
 
         case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET:
-            return tox_event_group_custom_private_packet_pack(data->group_custom_private_packet, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET)
+                   && tox_event_group_custom_private_packet_pack(event->data.group_custom_private_packet, bp);
 
         case TOX_EVENT_GROUP_INVITE:
-            return tox_event_group_invite_pack(data->group_invite, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_INVITE)
+                   && tox_event_group_invite_pack(event->data.group_invite, bp);
 
         case TOX_EVENT_GROUP_PEER_JOIN:
-            return tox_event_group_peer_join_pack(data->group_peer_join, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PEER_JOIN)
+                   && tox_event_group_peer_join_pack(event->data.group_peer_join, bp);
 
         case TOX_EVENT_GROUP_PEER_EXIT:
-            return tox_event_group_peer_exit_pack(data->group_peer_exit, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_PEER_EXIT)
+                   && tox_event_group_peer_exit_pack(event->data.group_peer_exit, bp);
 
         case TOX_EVENT_GROUP_SELF_JOIN:
-            return tox_event_group_self_join_pack(data->group_self_join, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_SELF_JOIN)
+                   && tox_event_group_self_join_pack(event->data.group_self_join, bp);
 
         case TOX_EVENT_GROUP_JOIN_FAIL:
-            return tox_event_group_join_fail_pack(data->group_join_fail, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_JOIN_FAIL)
+                   && tox_event_group_join_fail_pack(event->data.group_join_fail, bp);
 
         case TOX_EVENT_GROUP_MODERATION:
-            return tox_event_group_moderation_pack(data->group_moderation, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_GROUP_MODERATION)
+                   && tox_event_group_moderation_pack(event->data.group_moderation, bp);
 
         case TOX_EVENT_DHT_NODES_RESPONSE:
-            return tox_event_dht_nodes_response_pack(data->dht_nodes_response, bp);
+            return bin_pack_u32(bp, (uint32_t)TOX_EVENT_DHT_NODES_RESPONSE)
+                   && tox_event_dht_nodes_response_pack(event->data.dht_nodes_response, bp);
 
         case TOX_EVENT_INVALID:
             return false;
     }
 
     return false;
-}
-
-bool tox_event_pack(const Tox_Event *event, Bin_Pack *bp)
-{
-    assert(event->type != TOX_EVENT_INVALID);
-
-    return bin_pack_array(bp, 2)
-           && tox_event_type_pack(event->type, bp)
-           && tox_event_data_pack(event->type, &event->data, bp);
 }
 
 static bool tox_event_type_from_int(uint32_t value, Tox_Event_Type *_Nonnull out_enum)
@@ -934,146 +750,505 @@ static bool tox_event_type_from_int(uint32_t value, Tox_Event_Type *_Nonnull out
     }
 }
 
-static bool tox_event_type_unpack(Tox_Event_Type *_Nonnull val, Bin_Unpack *_Nonnull bu)
+bool tox_event_unpack_into(Tox_Event *event, Bin_Unpack *bu, const Memory *mem)
 {
-    uint32_t u32;
-    return bin_unpack_u32(bu, &u32)
-           && tox_event_type_from_int(u32, val);
-}
+    uint32_t type_u32;
 
-static bool tox_event_data_unpack(Tox_Event_Type type, Tox_Event_Data *_Nonnull data, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem)
-{
+    if (!bin_unpack_array_fixed(bu, 2, nullptr) || !bin_unpack_u32(bu, &type_u32)) {
+        return false;
+    }
+
+    Tox_Event_Type type;
+
+    if (!tox_event_type_from_int(type_u32, &type)) {
+        return false;
+    }
+
     switch (type) {
-        case TOX_EVENT_CONFERENCE_CONNECTED:
-            return tox_event_conference_connected_unpack(&data->conference_connected, bu, mem);
+        case TOX_EVENT_CONFERENCE_CONNECTED: {
+            Tox_Event_Conference_Connected *conference_connected = nullptr;
 
-        case TOX_EVENT_CONFERENCE_INVITE:
-            return tox_event_conference_invite_unpack(&data->conference_invite, bu, mem);
+            if (tox_event_conference_connected_unpack(&conference_connected, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_CONNECTED;
+                event->data.conference_connected = conference_connected;
+                return true;
+            }
 
-        case TOX_EVENT_CONFERENCE_MESSAGE:
-            return tox_event_conference_message_unpack(&data->conference_message, bu, mem);
-
-        case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED:
-            return tox_event_conference_peer_list_changed_unpack(&data->conference_peer_list_changed, bu, mem);
-
-        case TOX_EVENT_CONFERENCE_PEER_NAME:
-            return tox_event_conference_peer_name_unpack(&data->conference_peer_name, bu, mem);
-
-        case TOX_EVENT_CONFERENCE_TITLE:
-            return tox_event_conference_title_unpack(&data->conference_title, bu, mem);
-
-        case TOX_EVENT_FILE_CHUNK_REQUEST:
-            return tox_event_file_chunk_request_unpack(&data->file_chunk_request, bu, mem);
-
-        case TOX_EVENT_FILE_RECV_CHUNK:
-            return tox_event_file_recv_chunk_unpack(&data->file_recv_chunk, bu, mem);
-
-        case TOX_EVENT_FILE_RECV_CONTROL:
-            return tox_event_file_recv_control_unpack(&data->file_recv_control, bu, mem);
-
-        case TOX_EVENT_FILE_RECV:
-            return tox_event_file_recv_unpack(&data->file_recv, bu, mem);
-
-        case TOX_EVENT_FRIEND_CONNECTION_STATUS:
-            return tox_event_friend_connection_status_unpack(&data->friend_connection_status, bu, mem);
-
-        case TOX_EVENT_FRIEND_LOSSLESS_PACKET:
-            return tox_event_friend_lossless_packet_unpack(&data->friend_lossless_packet, bu, mem);
-
-        case TOX_EVENT_FRIEND_LOSSY_PACKET:
-            return tox_event_friend_lossy_packet_unpack(&data->friend_lossy_packet, bu, mem);
-
-        case TOX_EVENT_FRIEND_MESSAGE:
-            return tox_event_friend_message_unpack(&data->friend_message, bu, mem);
-
-        case TOX_EVENT_FRIEND_NAME:
-            return tox_event_friend_name_unpack(&data->friend_name, bu, mem);
-
-        case TOX_EVENT_FRIEND_READ_RECEIPT:
-            return tox_event_friend_read_receipt_unpack(&data->friend_read_receipt, bu, mem);
-
-        case TOX_EVENT_FRIEND_REQUEST:
-            return tox_event_friend_request_unpack(&data->friend_request, bu, mem);
-
-        case TOX_EVENT_FRIEND_STATUS_MESSAGE:
-            return tox_event_friend_status_message_unpack(&data->friend_status_message, bu, mem);
-
-        case TOX_EVENT_FRIEND_STATUS:
-            return tox_event_friend_status_unpack(&data->friend_status, bu, mem);
-
-        case TOX_EVENT_FRIEND_TYPING:
-            return tox_event_friend_typing_unpack(&data->friend_typing, bu, mem);
-
-        case TOX_EVENT_SELF_CONNECTION_STATUS:
-            return tox_event_self_connection_status_unpack(&data->self_connection_status, bu, mem);
-
-        case TOX_EVENT_GROUP_PEER_NAME:
-            return tox_event_group_peer_name_unpack(&data->group_peer_name, bu, mem);
-
-        case TOX_EVENT_GROUP_PEER_STATUS:
-            return tox_event_group_peer_status_unpack(&data->group_peer_status, bu, mem);
-
-        case TOX_EVENT_GROUP_TOPIC:
-            return tox_event_group_topic_unpack(&data->group_topic, bu, mem);
-
-        case TOX_EVENT_GROUP_PRIVACY_STATE:
-            return tox_event_group_privacy_state_unpack(&data->group_privacy_state, bu, mem);
-
-        case TOX_EVENT_GROUP_VOICE_STATE:
-            return tox_event_group_voice_state_unpack(&data->group_voice_state, bu, mem);
-
-        case TOX_EVENT_GROUP_TOPIC_LOCK:
-            return tox_event_group_topic_lock_unpack(&data->group_topic_lock, bu, mem);
-
-        case TOX_EVENT_GROUP_PEER_LIMIT:
-            return tox_event_group_peer_limit_unpack(&data->group_peer_limit, bu, mem);
-
-        case TOX_EVENT_GROUP_PASSWORD:
-            return tox_event_group_password_unpack(&data->group_password, bu, mem);
-
-        case TOX_EVENT_GROUP_MESSAGE:
-            return tox_event_group_message_unpack(&data->group_message, bu, mem);
-
-        case TOX_EVENT_GROUP_PRIVATE_MESSAGE:
-            return tox_event_group_private_message_unpack(&data->group_private_message, bu, mem);
-
-        case TOX_EVENT_GROUP_CUSTOM_PACKET:
-            return tox_event_group_custom_packet_unpack(&data->group_custom_packet, bu, mem);
-
-        case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET:
-            return tox_event_group_custom_private_packet_unpack(&data->group_custom_private_packet, bu, mem);
-
-        case TOX_EVENT_GROUP_INVITE:
-            return tox_event_group_invite_unpack(&data->group_invite, bu, mem);
-
-        case TOX_EVENT_GROUP_PEER_JOIN:
-            return tox_event_group_peer_join_unpack(&data->group_peer_join, bu, mem);
-
-        case TOX_EVENT_GROUP_PEER_EXIT:
-            return tox_event_group_peer_exit_unpack(&data->group_peer_exit, bu, mem);
-
-        case TOX_EVENT_GROUP_SELF_JOIN:
-            return tox_event_group_self_join_unpack(&data->group_self_join, bu, mem);
-
-        case TOX_EVENT_GROUP_JOIN_FAIL:
-            return tox_event_group_join_fail_unpack(&data->group_join_fail, bu, mem);
-
-        case TOX_EVENT_GROUP_MODERATION:
-            return tox_event_group_moderation_unpack(&data->group_moderation, bu, mem);
-
-        case TOX_EVENT_DHT_NODES_RESPONSE:
-            return tox_event_dht_nodes_response_unpack(&data->dht_nodes_response, bu, mem);
-
-        case TOX_EVENT_INVALID:
             return false;
+        }
+
+        case TOX_EVENT_CONFERENCE_INVITE: {
+            Tox_Event_Conference_Invite *conference_invite = nullptr;
+
+            if (tox_event_conference_invite_unpack(&conference_invite, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_INVITE;
+                event->data.conference_invite = conference_invite;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_CONFERENCE_MESSAGE: {
+            Tox_Event_Conference_Message *conference_message = nullptr;
+
+            if (tox_event_conference_message_unpack(&conference_message, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_MESSAGE;
+                event->data.conference_message = conference_message;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED: {
+            Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = nullptr;
+
+            if (tox_event_conference_peer_list_changed_unpack(&conference_peer_list_changed, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED;
+                event->data.conference_peer_list_changed = conference_peer_list_changed;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_CONFERENCE_PEER_NAME: {
+            Tox_Event_Conference_Peer_Name *conference_peer_name = nullptr;
+
+            if (tox_event_conference_peer_name_unpack(&conference_peer_name, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_PEER_NAME;
+                event->data.conference_peer_name = conference_peer_name;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_CONFERENCE_TITLE: {
+            Tox_Event_Conference_Title *conference_title = nullptr;
+
+            if (tox_event_conference_title_unpack(&conference_title, bu, mem)) {
+                event->type = TOX_EVENT_CONFERENCE_TITLE;
+                event->data.conference_title = conference_title;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FILE_CHUNK_REQUEST: {
+            Tox_Event_File_Chunk_Request *file_chunk_request = nullptr;
+
+            if (tox_event_file_chunk_request_unpack(&file_chunk_request, bu, mem)) {
+                event->type = TOX_EVENT_FILE_CHUNK_REQUEST;
+                event->data.file_chunk_request = file_chunk_request;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FILE_RECV_CHUNK: {
+            Tox_Event_File_Recv_Chunk *file_recv_chunk = nullptr;
+
+            if (tox_event_file_recv_chunk_unpack(&file_recv_chunk, bu, mem)) {
+                event->type = TOX_EVENT_FILE_RECV_CHUNK;
+                event->data.file_recv_chunk = file_recv_chunk;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FILE_RECV_CONTROL: {
+            Tox_Event_File_Recv_Control *file_recv_control = nullptr;
+
+            if (tox_event_file_recv_control_unpack(&file_recv_control, bu, mem)) {
+                event->type = TOX_EVENT_FILE_RECV_CONTROL;
+                event->data.file_recv_control = file_recv_control;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FILE_RECV: {
+            Tox_Event_File_Recv *file_recv = nullptr;
+
+            if (tox_event_file_recv_unpack(&file_recv, bu, mem)) {
+                event->type = TOX_EVENT_FILE_RECV;
+                event->data.file_recv = file_recv;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_CONNECTION_STATUS: {
+            Tox_Event_Friend_Connection_Status *friend_connection_status = nullptr;
+
+            if (tox_event_friend_connection_status_unpack(&friend_connection_status, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_CONNECTION_STATUS;
+                event->data.friend_connection_status = friend_connection_status;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_LOSSLESS_PACKET: {
+            Tox_Event_Friend_Lossless_Packet *friend_lossless_packet = nullptr;
+
+            if (tox_event_friend_lossless_packet_unpack(&friend_lossless_packet, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_LOSSLESS_PACKET;
+                event->data.friend_lossless_packet = friend_lossless_packet;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_LOSSY_PACKET: {
+            Tox_Event_Friend_Lossy_Packet *friend_lossy_packet = nullptr;
+
+            if (tox_event_friend_lossy_packet_unpack(&friend_lossy_packet, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_LOSSY_PACKET;
+                event->data.friend_lossy_packet = friend_lossy_packet;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_MESSAGE: {
+            Tox_Event_Friend_Message *friend_message = nullptr;
+
+            if (tox_event_friend_message_unpack(&friend_message, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_MESSAGE;
+                event->data.friend_message = friend_message;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_NAME: {
+            Tox_Event_Friend_Name *friend_name = nullptr;
+
+            if (tox_event_friend_name_unpack(&friend_name, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_NAME;
+                event->data.friend_name = friend_name;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_READ_RECEIPT: {
+            Tox_Event_Friend_Read_Receipt *friend_read_receipt = nullptr;
+
+            if (tox_event_friend_read_receipt_unpack(&friend_read_receipt, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_READ_RECEIPT;
+                event->data.friend_read_receipt = friend_read_receipt;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_REQUEST: {
+            Tox_Event_Friend_Request *friend_request = nullptr;
+
+            if (tox_event_friend_request_unpack(&friend_request, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_REQUEST;
+                event->data.friend_request = friend_request;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_STATUS: {
+            Tox_Event_Friend_Status *friend_status = nullptr;
+
+            if (tox_event_friend_status_unpack(&friend_status, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_STATUS;
+                event->data.friend_status = friend_status;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_STATUS_MESSAGE: {
+            Tox_Event_Friend_Status_Message *friend_status_message = nullptr;
+
+            if (tox_event_friend_status_message_unpack(&friend_status_message, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_STATUS_MESSAGE;
+                event->data.friend_status_message = friend_status_message;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_FRIEND_TYPING: {
+            Tox_Event_Friend_Typing *friend_typing = nullptr;
+
+            if (tox_event_friend_typing_unpack(&friend_typing, bu, mem)) {
+                event->type = TOX_EVENT_FRIEND_TYPING;
+                event->data.friend_typing = friend_typing;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_SELF_CONNECTION_STATUS: {
+            Tox_Event_Self_Connection_Status *self_connection_status = nullptr;
+
+            if (tox_event_self_connection_status_unpack(&self_connection_status, bu, mem)) {
+                event->type = TOX_EVENT_SELF_CONNECTION_STATUS;
+                event->data.self_connection_status = self_connection_status;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PEER_NAME: {
+            Tox_Event_Group_Peer_Name *group_peer_name = nullptr;
+
+            if (tox_event_group_peer_name_unpack(&group_peer_name, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PEER_NAME;
+                event->data.group_peer_name = group_peer_name;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PEER_STATUS: {
+            Tox_Event_Group_Peer_Status *group_peer_status = nullptr;
+
+            if (tox_event_group_peer_status_unpack(&group_peer_status, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PEER_STATUS;
+                event->data.group_peer_status = group_peer_status;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_TOPIC: {
+            Tox_Event_Group_Topic *group_topic = nullptr;
+
+            if (tox_event_group_topic_unpack(&group_topic, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_TOPIC;
+                event->data.group_topic = group_topic;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PRIVACY_STATE: {
+            Tox_Event_Group_Privacy_State *group_privacy_state = nullptr;
+
+            if (tox_event_group_privacy_state_unpack(&group_privacy_state, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PRIVACY_STATE;
+                event->data.group_privacy_state = group_privacy_state;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_VOICE_STATE: {
+            Tox_Event_Group_Voice_State *group_voice_state = nullptr;
+
+            if (tox_event_group_voice_state_unpack(&group_voice_state, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_VOICE_STATE;
+                event->data.group_voice_state = group_voice_state;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_TOPIC_LOCK: {
+            Tox_Event_Group_Topic_Lock *group_topic_lock = nullptr;
+
+            if (tox_event_group_topic_lock_unpack(&group_topic_lock, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_TOPIC_LOCK;
+                event->data.group_topic_lock = group_topic_lock;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PEER_LIMIT: {
+            Tox_Event_Group_Peer_Limit *group_peer_limit = nullptr;
+
+            if (tox_event_group_peer_limit_unpack(&group_peer_limit, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PEER_LIMIT;
+                event->data.group_peer_limit = group_peer_limit;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PASSWORD: {
+            Tox_Event_Group_Password *group_password = nullptr;
+
+            if (tox_event_group_password_unpack(&group_password, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PASSWORD;
+                event->data.group_password = group_password;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_MESSAGE: {
+            Tox_Event_Group_Message *group_message = nullptr;
+
+            if (tox_event_group_message_unpack(&group_message, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_MESSAGE;
+                event->data.group_message = group_message;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PRIVATE_MESSAGE: {
+            Tox_Event_Group_Private_Message *group_private_message = nullptr;
+
+            if (tox_event_group_private_message_unpack(&group_private_message, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PRIVATE_MESSAGE;
+                event->data.group_private_message = group_private_message;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_CUSTOM_PACKET: {
+            Tox_Event_Group_Custom_Packet *group_custom_packet = nullptr;
+
+            if (tox_event_group_custom_packet_unpack(&group_custom_packet, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_CUSTOM_PACKET;
+                event->data.group_custom_packet = group_custom_packet;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET: {
+            Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = nullptr;
+
+            if (tox_event_group_custom_private_packet_unpack(&group_custom_private_packet, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET;
+                event->data.group_custom_private_packet = group_custom_private_packet;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_INVITE: {
+            Tox_Event_Group_Invite *group_invite = nullptr;
+
+            if (tox_event_group_invite_unpack(&group_invite, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_INVITE;
+                event->data.group_invite = group_invite;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PEER_JOIN: {
+            Tox_Event_Group_Peer_Join *group_peer_join = nullptr;
+
+            if (tox_event_group_peer_join_unpack(&group_peer_join, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PEER_JOIN;
+                event->data.group_peer_join = group_peer_join;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_PEER_EXIT: {
+            Tox_Event_Group_Peer_Exit *group_peer_exit = nullptr;
+
+            if (tox_event_group_peer_exit_unpack(&group_peer_exit, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_PEER_EXIT;
+                event->data.group_peer_exit = group_peer_exit;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_SELF_JOIN: {
+            Tox_Event_Group_Self_Join *group_self_join = nullptr;
+
+            if (tox_event_group_self_join_unpack(&group_self_join, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_SELF_JOIN;
+                event->data.group_self_join = group_self_join;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_JOIN_FAIL: {
+            Tox_Event_Group_Join_Fail *group_join_fail = nullptr;
+
+            if (tox_event_group_join_fail_unpack(&group_join_fail, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_JOIN_FAIL;
+                event->data.group_join_fail = group_join_fail;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_GROUP_MODERATION: {
+            Tox_Event_Group_Moderation *group_moderation = nullptr;
+
+            if (tox_event_group_moderation_unpack(&group_moderation, bu, mem)) {
+                event->type = TOX_EVENT_GROUP_MODERATION;
+                event->data.group_moderation = group_moderation;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_DHT_NODES_RESPONSE: {
+            Tox_Event_Dht_Nodes_Response *dht_nodes_response = nullptr;
+
+            if (tox_event_dht_nodes_response_unpack(&dht_nodes_response, bu, mem)) {
+                event->type = TOX_EVENT_DHT_NODES_RESPONSE;
+                event->data.dht_nodes_response = dht_nodes_response;
+                return true;
+            }
+
+            return false;
+        }
+
+        case TOX_EVENT_INVALID: {
+            return false;
+        }
     }
 
     return false;
-}
-
-bool tox_event_unpack_into(Tox_Event *event, Bin_Unpack *bu, const Memory *mem)
-{
-    return bin_unpack_array_fixed(bu, 2, nullptr)  //
-           && tox_event_type_unpack(&event->type, bu)  //
-           && tox_event_data_unpack(event->type, &event->data, bu, mem);
 }

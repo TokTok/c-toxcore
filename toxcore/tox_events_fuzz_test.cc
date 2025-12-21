@@ -1,4 +1,5 @@
 #include "tox_events.h"
+#include "tox_event.h"
 
 #include <cassert>
 #include <cstdint>
@@ -73,7 +74,7 @@ void TestUnpack(Fuzz_Data data)
     tox_events_callback_group_join_fail(dispatch, ignore);
     tox_events_callback_group_moderation(dispatch, ignore);
 
-    Tox_Events *events = tox_events_load(sys.sys.get(), events_data, events_size);
+    Tox_Events *events = tox_events_load_system(sys.sys.get(), events_data, events_size);
     if (events) {
         std::vector<uint8_t> packed(tox_events_bytes_size(events));
         tox_events_get_bytes(events, packed.data());

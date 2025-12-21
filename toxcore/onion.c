@@ -7,6 +7,7 @@
  * Implementation of the onion part of docs/Prevent_Tracking.txt
  */
 #include "onion.h"
+#include "onion_impl.h"
 
 #include <assert.h>
 #include <string.h>

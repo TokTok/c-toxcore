@@ -156,7 +156,7 @@ static bool tox_events_unpack_handler(void *_Nonnull obj, Bin_Unpack *_Nonnull b
     return true;
 }
 
-Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
+Tox_Events *tox_events_load_system(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size)
 {
     Tox_Events *events = (Tox_Events *)mem_alloc(sys->mem, sizeof(Tox_Events));
 
@@ -177,7 +177,13 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     return events;
 }
 
-bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Events *b)
+Tox_Events *tox_events_load(const uint8_t *bytes, uint32_t bytes_size)
+{
+    const Tox_System sys = tox_default_system();
+    return tox_events_load_system(&sys, bytes, bytes_size);
+}
+
+bool tox_events_equal_system(const Tox_System *sys, const Tox_Events *a, const Tox_Events *b)
 {
     assert(sys != nullptr);
     assert(sys->mem != nullptr);
@@ -207,4 +213,10 @@ bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Even
     mem_delete(sys->mem, a_bytes);
 
     return ret;
+}
+
+bool tox_events_equal(const Tox_Events *a, const Tox_Events *b)
+{
+    const Tox_System sys = tox_default_system();
+    return tox_events_equal_system(&sys, a, b);
 }

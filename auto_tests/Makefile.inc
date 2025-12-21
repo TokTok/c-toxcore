@@ -31,6 +31,7 @@ TESTS = \
 	overflow_recvq_test \
 	overflow_sendq_test \
 	reconnect_test \
+	replay_attack_test \
 	save_compatibility_test \
 	save_friend_test \
 	send_message_test \
@@ -43,7 +44,8 @@ TESTS = \
 	tox_many_test \
 	tox_strncasecmp_test \
 	typing_test \
-	version_test
+	version_test \
+	vulnerability_test
 
 AUTOTEST_CFLAGS = \
 	$(LIBSODIUM_CFLAGS)
@@ -168,6 +170,10 @@ reconnect_test_SOURCES = ../auto_tests/reconnect_test.c
 reconnect_test_CFLAGS = $(AUTO_TEST_CFLAGS)
 reconnect_test_LDADD = $(AUTOTEST_LDADD)
 
+replay_attack_test_SOURCES = ../auto_tests/replay_attack_test.c
+replay_attack_test_CFLAGS = $(AUTOTEST_CFLAGS)
+replay_attack_test_LDADD = $(AUTOTEST_LDADD)
+
 save_compatibility_test_SOURCES = ../auto_tests/save_compatibility_test.c
 save_compatibility_test_CFLAGS = $(AUTOTEST_CFLAGS)
 save_compatibility_test_LDADD = $(AUTOTEST_LDADD)
@@ -219,6 +225,10 @@ typing_test_LDADD = $(AUTOTEST_LDADD)
 version_test_SOURCES = ../auto_tests/version_test.c
 version_test_CFLAGS = $(AUTOTEST_CFLAGS)
 version_test_LDADD = $(AUTOTEST_LDADD)
+
+vulnerability_test_SOURCES = ../auto_tests/vulnerability_test.c
+vulnerability_test_CFLAGS = $(AUTOTEST_CFLAGS)
+vulnerability_test_LDADD = $(AUTOTEST_LDADD)
 
 if BUILD_AV
 

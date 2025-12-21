@@ -65,9 +65,8 @@ struct Tox_Event {
 };
 
 /**
- * Constructor.
+ * Constructors.
  */
-bool tox_event_construct(Tox_Event *_Nonnull event, Tox_Event_Type type, const Memory *_Nonnull mem);
 
 Tox_Event_Conference_Connected *_Nullable tox_event_conference_connected_new(const Memory *_Nonnull mem);
 Tox_Event_Conference_Invite *_Nullable tox_event_conference_invite_new(const Memory *_Nonnull mem);
@@ -247,6 +246,9 @@ bool tox_event_group_self_join_unpack(Tox_Event_Group_Self_Join *_Nonnull *_Nonn
 bool tox_event_group_join_fail_unpack(Tox_Event_Group_Join_Fail *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
 bool tox_event_group_moderation_unpack(Tox_Event_Group_Moderation *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
 bool tox_event_dht_nodes_response_unpack(Tox_Event_Dht_Nodes_Response *_Nonnull *_Nonnull event, Bin_Unpack *_Nonnull bu, const Memory *_Nonnull mem);
+
+Tox_Events *tox_events_load_system(const Tox_System *sys, const uint8_t *bytes, uint32_t bytes_size);
+bool tox_events_equal_system(const Tox_System *sys, const Tox_Events *a, const Tox_Events *b);
 
 #ifdef __cplusplus
 } /* extern "C" */

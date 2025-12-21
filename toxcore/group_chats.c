@@ -7187,11 +7187,12 @@ static int get_new_group_index(const Memory *_Nonnull mem, GC_Session *_Nonnull 
     }
 
     const int new_index = c->chats_index;
+    GC_Chat *const chat = &c->chats[new_index];
 
-    c->chats[new_index] = empty_gc_chat;
+    *chat = empty_gc_chat;
 
-    for (size_t i = 0; i < sizeof(c->chats[new_index].saved_invites) / sizeof(*c->chats[new_index].saved_invites); ++i) {
-        c->chats[new_index].saved_invites[i] = -1;
+    for (size_t i = 0; i < sizeof(chat->saved_invites) / sizeof(*chat->saved_invites); ++i) {
+        chat->saved_invites[i] = -1;
     }
 
     ++c->chats_index;

@@ -640,7 +640,7 @@ cc_fuzz_test(
 cc_library(
     name = "onion",
     srcs = ["onion.c"],
-    hdrs = ["onion.h"],
+    hdrs = ["onion.h", "onion_impl.h"],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
@@ -738,7 +738,7 @@ cc_library(
 cc_library(
     name = "TCP_server",
     srcs = ["TCP_server.c"],
-    hdrs = ["TCP_server.h"],
+    hdrs = ["TCP_server.h", "TCP_server_impl.h"],
     copts = select({
         "//tools/config:linux": ["-DTCP_SERVER_USE_EPOLL=1"],
         "//conditions:default": [],
@@ -824,7 +824,7 @@ cc_test(
 cc_library(
     name = "net_crypto",
     srcs = ["net_crypto.c"],
-    hdrs = ["net_crypto.h"],
+    hdrs = ["net_crypto.h", "net_crypto_impl.h"],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/toxav:__pkg__",

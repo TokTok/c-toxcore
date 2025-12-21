@@ -39,7 +39,7 @@ extra_data = {
 
 [cc_test(
     name = src[:-2],
-    size = "small",
+    timeout = "moderate",
     srcs = [src],
     args = ["$(location %s)" % src] + extra_args.get(
         src[:-2],

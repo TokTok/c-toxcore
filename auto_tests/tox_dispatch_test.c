@@ -10,6 +10,7 @@
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_dispatch.h"
 #include "../toxcore/tox_events.h"
+#include "../toxcore/tox_event.h"
 #include "../toxcore/tox_private.h"
 #include "../toxcore/tox_unpack.h"
 #include "auto_test_support.h"
@@ -58,12 +59,12 @@ static void print_events(const Tox_System *sys, Tox_Events *events)
     // Make sure get_bytes is deterministic.
     ck_assert(memcmp(bytes1, bytes2, size) == 0);
 
-    Tox_Events *events_copy = tox_events_load(sys, bytes1, size);
+    Tox_Events *events_copy = tox_events_load_system(sys, bytes1, size);
     ck_assert(events_copy != nullptr);
     free(bytes1);
     free(bytes2);
 
-    ck_assert(tox_events_equal(sys, events, events_copy));
+    ck_assert(tox_events_equal_system(sys, events, events_copy));
 
     tox_events_free(events_copy);
     tox_events_free(events);

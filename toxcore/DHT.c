@@ -56,7 +56,7 @@
 #define KEYS_TIMEOUT 600
 
 typedef struct DHT_Friend_Callback {
-    dht_ip_cb *ip_callback;
+    dht_ip_cb *_Nullable ip_callback;
     void *data;
     int32_t number;
 } DHT_Friend_Callback;

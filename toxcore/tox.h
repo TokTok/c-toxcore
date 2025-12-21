@@ -239,7 +239,7 @@ uint32_t tox_conference_id_size(void);
 /**
  * @brief The size of the nospam in bytes when written in a Tox address.
  */
-#define TOX_NOSPAM_SIZE                (sizeof(uint32_t))
+#define TOX_NOSPAM_SIZE                4
 
 uint32_t tox_nospam_size(void);
 
@@ -253,7 +253,7 @@ uint32_t tox_nospam_size(void);
  * byte is an XOR of all the even bytes (0, 2, 4, ...), the second byte is an
  * XOR of all the odd bytes (1, 3, 5, ...) of the Public Key and nospam.
  */
-#define TOX_ADDRESS_SIZE               (TOX_PUBLIC_KEY_SIZE + TOX_NOSPAM_SIZE + sizeof(uint16_t))
+#define TOX_ADDRESS_SIZE               38
 
 uint32_t tox_address_size(void);
 

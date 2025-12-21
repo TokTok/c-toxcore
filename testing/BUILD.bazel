@@ -1,5 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
+load("//hs-tokstyle/tools:tokstyle.bzl", "tokstyle_c_test")
+
 CIMPLE_FILES = [
     "//c-toxcore/toxav:cimple_files",
     "//c-toxcore/toxcore:cimple_files",
@@ -9,7 +11,7 @@ CIMPLE_FILES = [
 
 sh_test(
     name = "cimple_test",
-    size = "small",
+    timeout = "moderate",
     srcs = ["//hs-tokstyle/tools:check-cimple"],
     args = ["$(locations %s)" % f for f in CIMPLE_FILES] + [
         "-Wno-boolean-return",
@@ -26,37 +28,25 @@ sh_test(
     ],
 )
 
-sh_test(
+tokstyle_c_test(
     name = "c_test",
-    size = "small",
-    srcs = ["//hs-tokstyle/tools:check-c"],
-    args = [
-        "--cc=$(CC)",
-        "-Iexternal/libsodium/include",
-        "-Iexternal/libvpx",
-        "-Iexternal/opus/include",
-        "-Ihs-tokstyle/include",
-    ] + ["$(locations %s)" % f for f in CIMPLE_FILES] + [
-        "+RTS",
-        "-N4",
-        "-RTS",
-    ],
-    data = CIMPLE_FILES + [
+    timeout = "moderate",
+    srcs = CIMPLE_FILES,
+    deps = [
         "//hs-tokstyle:headers",
-        "@libsodium//:headers",
-        "@libvpx//:headers",
-        "@opus//:headers",
+        "@libsodium",
+        "@libvpx",
+        "@opus",
     ],
     tags = [
         "haskell",
         "no-cross",
     ],
-    toolchains = ["@rules_cc//cc:current_cc_toolchain"],
 )
 
 sh_test(
     name = "cimplefmt_test",
-    size = "small",
+    timeout = "moderate",
     srcs = ["//hs-cimple/tools:cimplefmt"],
     args = ["--reparse"] + ["$(locations %s)" % f for f in CIMPLE_FILES],
     data = CIMPLE_FILES,

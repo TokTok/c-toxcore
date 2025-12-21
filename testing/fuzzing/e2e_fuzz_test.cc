@@ -11,6 +11,7 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_event.h"
 #include "fuzz_support.hh"
 #include "fuzz_tox.hh"
 
@@ -174,7 +175,7 @@ void TestEndToEnd(Fuzz_Data &input)
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
-        assert(tox_events_equal(null_sys.sys.get(), events, events));
+        assert(tox_events_equal_system(null_sys.sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
         // Move the clock forward a decent amount so all the time-based checks

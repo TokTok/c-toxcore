@@ -5,6 +5,7 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_event.h"
 #include "../../toxcore/tox_private.h"
 #include "fuzz_support.hh"
 #include "fuzz_tox.hh"
@@ -152,7 +153,7 @@ void TestEndToEnd(Fuzz_Data &input)
             const char *message, void *user_data) {
             // Log to stdout.
             if (PROTODUMP_DEBUG) {
-                std::printf("[tox1] %c %s:%d(%s): %s\n", tox_log_level_name(level), file, line,
+                std::printf("[tox1] %c %s:%u(%s): %s\n", tox_log_level_name(level), file, line,
                     func, message);
             }
         });
@@ -179,7 +180,7 @@ void TestEndToEnd(Fuzz_Data &input)
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
-        tox_events_equal(tox_get_system(tox), events, events);  // TODO(iphydf): assert?
+        tox_events_equal_system(tox_get_system(tox), events, events);  // TODO(iphydf): assert?
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
         const uint8_t clock_increment = random_u08(sys.rng.get());

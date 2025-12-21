@@ -66,12 +66,12 @@ extern "C" {
 /**
  * External Tox type.
  */
-#ifndef APIGEN_IGNORE
+
 #ifndef TOX_DEFINED
 #define TOX_DEFINED
 typedef struct Tox Tox;
 #endif /* !TOX_DEFINED */
-#endif /* !APIGEN_IGNORE */
+
 
 #ifndef TOXAV_DEFINED
 #define TOXAV_DEFINED
@@ -596,8 +596,8 @@ typedef enum Toxav_Err_Send_Frame {
  * @param sampling_rate Audio sampling rate used in this frame. Valid sampling
  *   rates are 8000, 12000, 16000, 24000, or 48000.
  */
-bool toxav_audio_send_frame(ToxAV *av, uint32_t friend_number, const int16_t pcm[], size_t sample_count,
-                            uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *error);
+bool toxav_audio_send_frame(ToxAV *av, uint32_t friend_number, const int16_t pcm[/*! sample_count * channels */],
+                            size_t sample_count, uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *error);
 
 /**
  * Set the bit rate to be used in subsequent audio frames.
@@ -696,7 +696,7 @@ void toxav_callback_video_bit_rate(ToxAV *av, toxav_video_bit_rate_cb *callback,
  * @param sampling_rate Sampling rate used in this frame.
  *
  */
-typedef void toxav_audio_receive_frame_cb(ToxAV *av, uint32_t friend_number, const int16_t pcm[], size_t sample_count,
+typedef void toxav_audio_receive_frame_cb(ToxAV *av, uint32_t friend_number, const int16_t pcm[/*! sample_count * channels */], size_t sample_count,
         uint8_t channels, uint32_t sampling_rate, void *user_data);
 
 /**
@@ -741,7 +741,7 @@ typedef void toxav_video_receive_frame_cb(
  */
 void toxav_callback_video_receive_frame(ToxAV *av, toxav_video_receive_frame_cb *callback, void *user_data);
 
-#ifndef APIGEN_IGNORE
+
 
 /***
  * NOTE Compatibility with old ToxAV group calls. TODO(iphydf): remove
@@ -830,7 +830,7 @@ int32_t toxav_groupchat_disable_av(Tox *tox, uint32_t groupnumber);
 /** @brief Return whether A/V is enabled in the groupchat. */
 bool toxav_groupchat_av_enabled(Tox *tox, uint32_t groupnumber);
 
-#endif /* !APIGEN_IGNORE */
+
 
 /** @} */
 

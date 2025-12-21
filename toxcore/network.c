@@ -578,8 +578,6 @@ static int sys_setsockopt(void *_Nonnull obj, Socket sock, int level, int optnam
 // returns the number of entries in addrs
 static int sys_getaddrinfo(void *_Nonnull obj, const Memory *_Nonnull mem, const char *_Nonnull address, int family, int sock_type, Network_Addr **_Nonnull addrs)
 {
-    assert(addrs != nullptr);
-
     struct addrinfo hints = {0};
     hints.ai_family = family;
 
@@ -649,10 +647,6 @@ static int sys_getaddrinfo(void *_Nonnull obj, const Memory *_Nonnull mem, const
 
 static int sys_freeaddrinfo(void *_Nonnull obj, const Memory *_Nonnull mem, Network_Addr *_Nonnull addrs)
 {
-    if (addrs == nullptr) {
-        return 0;
-    }
-
     mem_delete(mem, addrs);
 
     return 0;
@@ -909,7 +903,7 @@ int send_packet(const Networking_Core *net, const IP_Port *ip_port, Packet packe
 
     assert(res <= INT_MAX);
 
-    if (res == packet.length && packet.data != nullptr) {
+    if (res == packet.length && packet.length != 0) {
         netprof_record_packet(net->udp_net_profile, packet.data[0], packet.length, PACKET_DIRECTION_SEND);
     }
 
@@ -1739,10 +1733,6 @@ static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem,
         return false;
     }
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-
-    if (address == nullptr || to == nullptr) {
-        return false;
-    }
 
     const Family tox_family = to->family;
     const int family = make_family(tox_family);

@@ -1246,23 +1246,24 @@ long int new_filesender(const Messenger *m, int32_t friendnumber, uint32_t file_
 }
 
 static bool send_file_control_packet(const Messenger *_Nonnull m, int32_t friendnumber, bool inbound, uint8_t filenumber,
-                                     uint8_t control_type, const uint8_t *_Nullable data, uint16_t data_length)
+                                     uint8_t control_type, const uint8_t *_Nullable data, uint16_t length)
 {
-    assert(data_length == 0 || data != nullptr);
-    if ((unsigned int)(1 + 3 + data_length) > MAX_CRYPTO_DATA_SIZE) {
+    uint8_t packet[MAX_CRYPTO_PACKET_SIZE];
+    uint16_t packet_size = 3 + length;
+
+    if (packet_size > MAX_CRYPTO_PACKET_SIZE) {
         return false;
     }
 
-    const uint16_t packet_size = 3 + data_length;
-    VLA(uint8_t, packet, packet_size);
-
-    packet[0] = inbound ? 1 : 0;
+    packet[0] = inbound;
     packet[1] = filenumber;
     packet[2] = control_type;
 
-    if (data_length > 0) {
-        memcpy(packet + 3, data, data_length);
+    if (length > 0) {
+        memcpy(packet + 3, data, length);
     }
+
+    LOGGER_DEBUG(m->log, "friend=%d, inbound=%d, file=%d, control=%d", friendnumber, inbound, filenumber, control_type);
 
     return write_cryptpacket_id(m, friendnumber, PACKET_ID_FILE_CONTROL, packet, packet_size, false);
 }
@@ -2145,6 +2146,8 @@ static int m_handle_packet_file_control(Messenger *_Nonnull m, const int friendc
     const bool outbound = data[0] == 1;
     const uint8_t filenumber = data[1];
     const uint8_t control_type = data[2];
+
+    LOGGER_DEBUG(m->log, "friendcon_id=%d, filenumber=%d, control_type=%d, outbound=%d", friendcon_id, filenumber, control_type, outbound);
 
 #if UINT8_MAX >= MAX_CONCURRENT_FILE_PIPES
 
@@ -3638,8 +3641,10 @@ bool m_is_receiving_file(Messenger *m)
     // TODO(iphydf): This is a very expensive loop. Consider keeping track of
     // the number of live file transfers.
     for (size_t friend_number = 0; friend_number < m->numfriends; ++friend_number) {
+        const struct File_Transfers *const file_receiving = m->friendlist[friend_number].file_receiving;
+
         for (size_t i = 0; i < MAX_CONCURRENT_FILE_PIPES; ++i) {
-            if (m->friendlist[friend_number].file_receiving[i].status == FILESTATUS_TRANSFERRING) {
+            if (file_receiving[i].status == FILESTATUS_TRANSFERRING) {
                 m->is_receiving_file = skip_count;
                 return true;
             }

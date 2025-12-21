@@ -5,6 +5,7 @@
 #include "../toxcore/mono_time.h"
 #include "../toxcore/network.h"
 #include "../toxcore/onion.h"
+#include "../toxcore/onion_impl.h"
 #include "../toxcore/onion_announce.h"
 #include "../toxcore/onion_client.h"
 #include "../toxcore/os_memory.h"
