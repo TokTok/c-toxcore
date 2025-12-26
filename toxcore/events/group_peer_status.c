@@ -121,7 +121,7 @@ Tox_Event_Group_Peer_Status *tox_event_group_peer_status_new(const Memory *mem)
 void tox_event_group_peer_status_free(Tox_Event_Group_Peer_Status *group_peer_status, const Memory *mem)
 {
     if (group_peer_status != nullptr) {
-        tox_event_group_peer_status_destruct(group_peer_status, mem);
+        tox_event_group_peer_status_destruct((Tox_Event_Group_Peer_Status * _Nonnull)group_peer_status, mem);
     }
     mem_delete(mem, group_peer_status);
 }

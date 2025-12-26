@@ -241,28 +241,28 @@ typedef struct Friend {
 } Friend;
 
 struct Messenger {
-    Logger *_Nullable log;
-    Mono_Time *_Nullable mono_time;
-    const Memory *_Nullable mem;
-    const Random *_Nullable rng;
-    const Network *_Nullable ns;
+    Logger *_Nonnull log;
+    Mono_Time *_Nonnull mono_time;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    const Network *_Nonnull ns;
 
     Networking_Core *_Nonnull net;
     Net_Crypto *_Nonnull net_crypto;
-    Net_Profile *_Nullable tcp_np;
+    Net_Profile *_Nonnull tcp_np;
     DHT *_Nonnull dht;
 
     Forwarding *_Nullable forwarding;
     Announcements *_Nullable announce;
 
-    Onion *_Nullable onion;
-    Onion_Announce *_Nullable onion_a;
-    Onion_Client *_Nullable onion_c;
+    Onion *_Nonnull onion;
+    Onion_Announce *_Nonnull onion_a;
+    Onion_Client *_Nonnull onion_c;
 
-    Friend_Connections *_Nullable fr_c;
+    Friend_Connections *_Nonnull fr_c;
 
     TCP_Server *_Nullable tcp_server;
-    Friend_Requests *_Nullable fr;
+    Friend_Requests *_Nonnull fr;
     uint8_t name[MAX_NAME_LENGTH];
     uint16_t name_length;
 

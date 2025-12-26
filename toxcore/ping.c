@@ -29,13 +29,13 @@
 #define TIME_TO_PING 2
 
 struct Ping {
-    const Mono_Time *mono_time;
-    const Random *rng;
-    const Memory *mem;
-    DHT *dht;
-    Networking_Core *net;
+    const Mono_Time *_Nonnull mono_time;
+    const Random *_Nonnull rng;
+    const Memory *_Nonnull mem;
+    DHT *_Nonnull dht;
+    Networking_Core *_Nonnull net;
 
-    Ping_Array  *ping_array;
+    Ping_Array  *_Nonnull ping_array;
     Node_format to_ping[MAX_TO_PING];
     uint64_t    last_to_ping;
 };
@@ -333,12 +333,13 @@ Ping *ping_new(const Memory *mem, const Mono_Time *mono_time, const Random *rng,
         return nullptr;
     }
 
-    ping->ping_array = ping_array_new(mem, PING_NUM_MAX, PING_TIMEOUT);
+    Ping_Array *const ping_array = ping_array_new(mem, PING_NUM_MAX, PING_TIMEOUT);
 
-    if (ping->ping_array == nullptr) {
+    if (ping_array == nullptr) {
         mem_delete(mem, ping);
         return nullptr;
     }
+    ping->ping_array = ping_array;
 
     ping->mono_time = mono_time;
     ping->rng = rng;

@@ -212,7 +212,7 @@ int unpack_nodes(Node_format *_Nonnull nodes, uint16_t max_num_nodes, uint16_t *
                  uint16_t length, bool tcp_enabled);
 /*----------------------------------------------------------------------------------*/
 
-typedef int cryptopacket_handler_cb(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull source_pubkey,
+typedef int cryptopacket_handler_cb(void *_Nullable object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull source_pubkey,
                                     const uint8_t *_Nonnull packet, uint16_t length, void *_Nullable userdata);
 
 typedef struct DHT DHT;

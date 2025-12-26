@@ -51,22 +51,22 @@ uint8_t announce_response_of_request_type(uint8_t request_type)
 typedef struct Announce_Entry {
     uint64_t store_until;
     uint8_t data_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t *data;
+    uint8_t *_Nullable data;
     uint32_t length;
 } Announce_Entry;
 
 struct Announcements {
-    const Logger *log;
-    const Memory *mem;
-    const Random *rng;
-    Forwarding *forwarding;
-    const Mono_Time *mono_time;
-    DHT *dht;
-    Networking_Core *net;
-    const uint8_t *public_key;
-    const uint8_t *secret_key;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
+    const Random *_Nonnull rng;
+    Forwarding *_Nonnull forwarding;
+    const Mono_Time *_Nonnull mono_time;
+    DHT *_Nonnull dht;
+    Networking_Core *_Nonnull net;
+    const uint8_t *_Nonnull public_key;
+    const uint8_t *_Nonnull secret_key;
 
-    Shared_Key_Cache *shared_keys;
+    Shared_Key_Cache *_Nonnull shared_keys;
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
     int32_t synch_offset;
@@ -328,7 +328,11 @@ static int create_reply_plain_data_search_request(Announcements *_Nonnull announ
     } else {
         *p = 1;
         ++p;
-        crypto_sha256(p, stored->data, stored->length);
+        if (stored->data == nullptr) {
+            LOGGER_ERROR(announce->log, "Stored data is null for public key.");
+            return -1;
+        }
+        crypto_sha256(p, (const uint8_t *_Nonnull)stored->data, stored->length);
         p += CRYPTO_SHA256_SIZE;
     }
 
@@ -462,7 +466,11 @@ static int create_reply_plain_store_announce_request(Announcements *_Nonnull ann
         }
 
         uint8_t stored_hash[CRYPTO_SHA256_SIZE];
-        crypto_sha256(stored_hash, stored->data, stored->length);
+        if (stored->data == nullptr) {
+            LOGGER_ERROR(announce->log, "Stored data is null for public key.");
+            return -1;
+        }
+        crypto_sha256(stored_hash, (const uint8_t *_Nonnull)stored->data, stored->length);
 
         if (!crypto_sha256_eq(announcement, stored_hash)) {
             delete_entry(stored);
@@ -635,11 +643,12 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     announce->public_key = dht_get_self_public_key(announce->dht);
     announce->secret_key = dht_get_self_secret_key(announce->dht);
     new_hmac_key(announce->rng, announce->hmac_key);
-    announce->shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    if (announce->shared_keys == nullptr) {
+    Shared_Key_Cache *const shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    if (shared_keys == nullptr) {
         mem_delete(announce->mem, announce);
         return nullptr;
     }
+    announce->shared_keys = shared_keys;
 
     announce->start_time = mono_time_get(announce->mono_time);
 

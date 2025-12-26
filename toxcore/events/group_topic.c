@@ -148,7 +148,7 @@ Tox_Event_Group_Topic *tox_event_group_topic_new(const Memory *mem)
 void tox_event_group_topic_free(Tox_Event_Group_Topic *group_topic, const Memory *mem)
 {
     if (group_topic != nullptr) {
-        tox_event_group_topic_destruct(group_topic, mem);
+        tox_event_group_topic_destruct((Tox_Event_Group_Topic * _Nonnull)group_topic, mem);
     }
     mem_delete(mem, group_topic);
 }

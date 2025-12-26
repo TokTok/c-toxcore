@@ -178,7 +178,7 @@ Tox_Event_Group_Message *tox_event_group_message_new(const Memory *mem)
 void tox_event_group_message_free(Tox_Event_Group_Message *group_message, const Memory *mem)
 {
     if (group_message != nullptr) {
-        tox_event_group_message_destruct(group_message, mem);
+        tox_event_group_message_destruct((Tox_Event_Group_Message * _Nonnull)group_message, mem);
     }
     mem_delete(mem, group_message);
 }

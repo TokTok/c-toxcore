@@ -82,7 +82,7 @@ unsigned int friend_con_connected(const Friend_Connections *_Nonnull fr_c, int f
  */
 int get_friendcon_public_keys(uint8_t *_Nullable real_pk, uint8_t *_Nullable dht_temp_pk, const Friend_Connections *_Nonnull fr_c, int friendcon_id);
 /** Set temp dht key for connection. */
-void set_dht_temp_pk(Friend_Connections *_Nonnull fr_c, int friendcon_id, const uint8_t *_Nonnull dht_temp_pk, void *_Nonnull userdata);
+void set_dht_temp_pk(Friend_Connections *_Nonnull fr_c, int friendcon_id, const uint8_t *_Nonnull dht_temp_pk, void *_Nullable userdata);
 
 typedef int global_status_cb(void *_Nullable object, int friendcon_id, bool status, void *_Nullable userdata);
 
@@ -141,7 +141,7 @@ typedef int fr_request_cb(
  *
  * This function will be called every time a friend request packet is received.
  */
-void set_friend_request_callback(Friend_Connections *_Nonnull fr_c, fr_request_cb *_Nonnull fr_request_callback, void *_Nonnull object);
+void set_friend_request_callback(Friend_Connections *_Nonnull fr_c, fr_request_cb *_Nullable fr_request_callback, void *_Nullable object);
 
 /** Create new friend_connections instance. */
 Friend_Connections *_Nullable new_friend_connections(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Network *_Nonnull ns,
@@ -149,7 +149,7 @@ Friend_Connections *_Nullable new_friend_connections(const Logger *_Nonnull logg
         bool local_discovery_enabled);
 
 /** main friend_connections loop. */
-void do_friend_connections(Friend_Connections *_Nonnull fr_c, void *_Nonnull userdata);
+void do_friend_connections(Friend_Connections *_Nonnull fr_c, void *_Nullable userdata);
 
 /** Free everything related with friend_connections. */
 void kill_friend_connections(Friend_Connections *_Nullable fr_c);
