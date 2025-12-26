@@ -143,7 +143,7 @@ Tox *toxav_get_tox(const ToxAV *av);
 
 /**
  * Returns the interval in milliseconds when the next toxav_iterate call should
- * be. If no call is active at the moment, this function returns 200.
+ * be. If no call is active at the moment, this function returns 1000.
  * This function MUST be called from the same thread as toxav_iterate.
  */
 uint32_t toxav_iteration_interval(const ToxAV *av);
@@ -163,7 +163,7 @@ void toxav_iterate(ToxAV *av);
 
 /**
  * Returns the interval in milliseconds when the next toxav_audio_iterate call
- * should be. If no call is active at the moment, this function returns 200.
+ * should be. If no call is active at the moment, this function returns 1000.
  * This function MUST be called from the same thread as toxav_audio_iterate.
  */
 uint32_t toxav_audio_iteration_interval(const ToxAV *av);
@@ -179,7 +179,7 @@ void toxav_audio_iterate(ToxAV *av);
 
 /**
  * Returns the interval in milliseconds when the next toxav_video_iterate call
- * should be. If no call is active at the moment, this function returns 200.
+ * should be. If no call is active at the moment, this function returns 1000.
  * This function MUST be called from the same thread as toxav_video_iterate.
  */
 uint32_t toxav_video_iteration_interval(const ToxAV *av);
