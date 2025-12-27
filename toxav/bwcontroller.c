@@ -10,17 +10,14 @@
 #include <string.h>
 
 #include "ring_buffer.h"
-#include "toxav_hacks.h"
 
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/network.h"
-#include "../toxcore/tox_private.h"
 #include "../toxcore/util.h"
 
 
-#define BWC_PACKET_ID 196
 #define BWC_SEND_INTERVAL_MS 950     // 0.95s
 #define BWC_AVG_PKT_COUNT 20
 #define BWC_AVG_LOSS_OVER_CYCLES_COUNT 30
@@ -40,9 +37,10 @@ typedef struct BWCRcvPkt {
 } BWCRcvPkt;
 
 struct BWController {
-    m_cb *mcb;
+    bwc_loss_report_cb *mcb;
     void *mcb_user_data;
-    Tox *tox;
+    bwc_send_packet_cb *send_packet;
+    void *send_packet_user_data;
     const Logger *log;
     uint32_t friend_number;
 
@@ -60,11 +58,12 @@ struct BWCMessage {
     uint32_t recv;
 };
 
-static void bwc_handle_data(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data);
 static void send_update(BWController *bwc);
 
 
-BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber, m_cb *mcb, void *mcb_user_data,
+BWController *bwc_new(const Logger *log, uint32_t friendnumber,
+                      bwc_loss_report_cb *mcb, void *mcb_user_data,
+                      bwc_send_packet_cb *send_packet, void *send_packet_user_data,
                       Mono_Time *bwc_mono_time)
 {
     BWController *retu = (BWController *)calloc(1, sizeof(BWController));
@@ -77,12 +76,13 @@ BWController *bwc_new(const Logger *log, Tox *tox, uint32_t friendnumber, m_cb *
 
     retu->mcb = mcb;
     retu->mcb_user_data = mcb_user_data;
+    retu->send_packet = send_packet;
+    retu->send_packet_user_data = send_packet_user_data;
     retu->friend_number = friendnumber;
     retu->bwc_mono_time = bwc_mono_time;
     const uint64_t now = current_time_monotonic(bwc_mono_time);
     retu->cycle.last_sent_timestamp = now;
     retu->cycle.last_refresh_timestamp = now;
-    retu->tox = tox;
     retu->log = log;
     retu->bwc_receive_active = true;
     retu->rcvpkt.rb = rb_new(BWC_AVG_PKT_COUNT);
@@ -141,7 +141,7 @@ static void send_update(BWController *bwc)
         if (bwc->cycle.lost != 0) {
             LOGGER_DEBUG(bwc->log, "%p Sent update rcv: %u lost: %u percent: %f %%",
                          (void *)bwc, bwc->cycle.recv, bwc->cycle.lost,
-                         ((double)bwc->cycle.lost / (bwc->cycle.recv + bwc->cycle.lost)) * 100.0);
+                         ((double)bwc->cycle.lost / ((double)bwc->cycle.recv + (double)bwc->cycle.lost)) * 100.0);
             uint8_t bwc_packet[sizeof(struct BWCMessage) + 1];
             size_t offset = 0;
 
@@ -152,11 +152,8 @@ static void send_update(BWController *bwc)
             offset += net_pack_u32(bwc_packet + offset, bwc->cycle.recv);
             assert(offset == sizeof(bwc_packet));
 
-            Tox_Err_Friend_Custom_Packet error;
-            tox_friend_send_lossy_packet(bwc->tox, bwc->friend_number, bwc_packet, sizeof(bwc_packet), &error);
-
-            if (error != TOX_ERR_FRIEND_CUSTOM_PACKET_OK) {
-                LOGGER_WARNING(bwc->log, "BWC send failed: %u", error);
+            if (bwc->send_packet != nullptr && bwc->send_packet(bwc->send_packet_user_data, bwc_packet, sizeof(bwc_packet)) != 0) {
+                LOGGER_WARNING(bwc->log, "BWC send failed");
             }
         }
 
@@ -171,7 +168,7 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
     LOGGER_DEBUG(bwc->log, "%p Got update from peer", (void *)bwc);
 
     /* Peers sent update too soon */
-    if (bwc->cycle.last_recv_timestamp + BWC_SEND_INTERVAL_MS > current_time_monotonic(bwc->bwc_mono_time)) {
+    if (current_time_monotonic(bwc->bwc_mono_time) - bwc->cycle.last_recv_timestamp < BWC_SEND_INTERVAL_MS) {
         LOGGER_INFO(bwc->log, "%p Rejecting extra update", (void *)bwc);
         return -1;
     }
@@ -183,49 +180,28 @@ static int on_update(BWController *bwc, const struct BWCMessage *msg)
     if (lost != 0 && bwc->mcb != nullptr) {
         const uint32_t recv = msg->recv;
         LOGGER_DEBUG(bwc->log, "recved: %u lost: %u percentage: %f %%", recv, lost,
-                     ((double) lost / (recv + lost)) * 100.0);
+                     ((double) lost / ((double)recv + (double)lost)) * 100.0);
         bwc->mcb(bwc, bwc->friend_number,
-                 (float)lost / (recv + lost),
+                 (float)((double)lost / ((double)recv + (double)lost)),
                  bwc->mcb_user_data);
     }
 
     return 0;
 }
 
-static void bwc_handle_data(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
+void bwc_handle_packet(BWController *bwc, const uint8_t *data, size_t length)
 {
-    /* get BWController object from Tox and friend number */
-    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
-
-    if (toxav == nullptr) {
-        // LOGGER_ERROR(log, "Could not get ToxAV object from Tox");
+    if (bwc == nullptr) {
         return;
     }
-
-    const Logger *log = toxav_get_logger(toxav);
 
     if (length - 1 != sizeof(struct BWCMessage)) {
-        LOGGER_ERROR(log, "Got BWCMessage of insufficient size.");
-        return;
-    }
-
-    const ToxAVCall *call = call_get(toxav, friend_number);
-
-    if (call == nullptr) {
-        LOGGER_ERROR(log, "Could not get ToxAVCall object from ToxAV.");
-        return;
-    }
-
-    /* get Call object from Tox and friend number */
-    BWController *bwc = bwc_controller_get(call);
-
-    if (bwc == nullptr) {
-        LOGGER_WARNING(log, "No session!");
+        LOGGER_ERROR(bwc->log, "Got BWCMessage of insufficient size.");
         return;
     }
 
     if (!bwc->bwc_receive_active) {
-        LOGGER_WARNING(log, "receiving not allowed!");
+        LOGGER_WARNING(bwc->log, "receiving not allowed!");
         return;
     }
 
@@ -236,14 +212,4 @@ static void bwc_handle_data(Tox *tox, uint32_t friend_number, const uint8_t *dat
     assert(offset == length);
 
     on_update(bwc, &msg);
-}
-
-void bwc_allow_receiving(Tox *tox)
-{
-    tox_callback_friend_lossy_packet_per_pktid(tox, bwc_handle_data, BWC_PACKET_ID);
-}
-
-void bwc_stop_receiving(Tox *tox)
-{
-    tox_callback_friend_lossy_packet_per_pktid(tox, nullptr, BWC_PACKET_ID);
 }
