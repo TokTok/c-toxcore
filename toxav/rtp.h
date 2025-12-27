@@ -6,11 +6,11 @@
 #define C_TOXCORE_TOXAV_RTP_H
 
 #include <stdbool.h>
-
-#include "bwcontroller.h"
+#include <stddef.h>
+#include <stdint.h>
 
 #include "../toxcore/logger.h"
-#include "../toxcore/tox.h"
+#include "../toxcore/mono_time.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,11 +35,6 @@ typedef enum RTP_Type {
     RTP_TYPE_VIDEO = 193,
 } RTP_Type;
 
-#ifndef TOXAV_DEFINED
-#define TOXAV_DEFINED
-typedef struct ToxAV ToxAV;
-#endif /* TOXAV_DEFINED */
-
 /**
  * A bit mask (up to 64 bits) specifying features of the current frame affecting
  * the behaviour of the decoder.
@@ -56,124 +51,33 @@ typedef enum RTPFlags {
     RTP_KEY_FRAME = 1 << 1,
 } RTPFlags;
 
-struct RTPHeader {
-    /* Standard RTP header */
-    unsigned ve: 2; /* Version has only 2 bits! */
-    unsigned pe: 1; /* Padding */
-    unsigned xe: 1; /* Extra header */
-    unsigned cc: 4; /* Contributing sources count */
+typedef struct RTPHeader RTPHeader;
+typedef struct RTPMessage RTPMessage;
+typedef struct RTPSession RTPSession;
 
-    unsigned ma: 1; /* Marker */
-    unsigned pt: 7; /* Payload type */
+/* RTPMessage accessors */
+const uint8_t *rtp_message_data(const RTPMessage *msg);
+uint16_t rtp_message_len(const RTPMessage *msg);
+uint8_t rtp_message_pt(const RTPMessage *msg);
+uint16_t rtp_message_sequnum(const RTPMessage *msg);
+uint64_t rtp_message_flags(const RTPMessage *msg);
+uint32_t rtp_message_data_length_full(const RTPMessage *msg);
 
-    uint16_t sequnum;
-    uint32_t timestamp;
-    uint32_t ssrc;
-
-    /* Non-standard Tox-specific fields */
-
-    /**
-     * Bit mask of `RTPFlags` setting features of the current frame.
-     */
-    uint64_t flags;
-
-    /**
-     * The full 32 bit data offset of the current data chunk. The
-     * @ref offset_lower data member contains the lower 16 bits of this value.
-     * For frames smaller than 64KiB, @ref offset_full and @ref offset_lower are
-     * equal.
-     */
-    uint32_t offset_full;
-    /**
-     * The full 32 bit payload length without header and packet id.
-     */
-    uint32_t data_length_full;
-    /**
-     * Only the receiver uses this field (why do we have this?).
-     */
-    uint32_t received_length_full;
-
-    /**
-     * Data offset of the current part (lower bits).
-     */
-    uint16_t offset_lower;
-    /**
-     * Total message length (lower bits).
-     */
-    uint16_t data_length_lower;
-};
-
-struct RTPMessage {
-    /**
-     * This is used in the old code that doesn't deal with large frames, i.e.
-     * the audio code or receiving code for old 16 bit messages. We use it to
-     * record the number of bytes received so far in a multi-part message. The
-     * multi-part message in the old code is stored in `RTPSession::mp`.
-     */
-    uint16_t len;
-
-    struct RTPHeader header;
-    uint8_t data[];
-};
+/* RTPSession accessors */
+bool rtp_session_is_receiving_active(const RTPSession *session);
+uint32_t rtp_session_get_ssrc(const RTPSession *session);
+void rtp_session_set_ssrc(RTPSession *session, uint32_t ssrc);
 
 #define USED_RTP_WORKBUFFER_COUNT 3
-
-/**
- * One slot in the work buffer list. Represents one frame that is currently
- * being assembled.
- */
-struct RTPWorkBuffer {
-    /**
-     * Whether this slot contains a key frame. This is true iff
-     * `buf->header.flags & RTP_KEY_FRAME`.
-     */
-    bool is_keyframe;
-    /**
-     * The number of bytes received so far, regardless of which pieces. I.e. we
-     * could have received the first 1000 bytes and the last 1000 bytes with
-     * 4000 bytes in the middle still to come, and this number would be 2000.
-     */
-    uint32_t received_len;
-    /**
-     * The message currently being assembled.
-     */
-    struct RTPMessage *buf;
-};
-
-struct RTPWorkBufferList {
-    int8_t next_free_entry;
-    struct RTPWorkBuffer work_buffer[USED_RTP_WORKBUFFER_COUNT];
-};
-
 #define DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT 10
 
-typedef int rtp_m_cb(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg);
+typedef int rtp_m_cb(const Mono_Time *mono_time, void *cs, RTPMessage *msg);
 
-/**
- * RTP control session.
- */
-typedef struct RTPSession {
-    uint8_t  payload_type;
-    uint16_t sequnum;      /* Sending sequence number */
-    uint16_t rsequnum;     /* Receiving sequence number */
-    uint32_t rtimestamp;
-    uint32_t ssrc; //  this seems to be unused!?
-    struct RTPMessage *mp; /* Expected parted message */
-    struct RTPWorkBufferList *work_buffer_list;
-    uint8_t  first_packets_counter; /* dismiss first few lost video packets */
-    const Logger *log;
-    const Memory *mem;
-    Tox *tox;
-    ToxAV *toxav;
-    uint32_t friend_number;
-    bool rtp_receive_active; /* if this is set to false then incoming rtp packets will not be processed by handle_rtp_packet() */
-    BWController *bwc;
-    void *cs;
-    rtp_m_cb *mcb;
-} RTPSession;
+typedef int rtp_send_packet_cb(void *user_data, const uint8_t *data, uint16_t length);
+typedef void rtp_add_recv_cb(void *user_data, uint32_t bytes);
+typedef void rtp_add_lost_cb(void *user_data, uint32_t bytes);
 
-
-void handle_rtp_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data);
+void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length);
 
 /**
  * Serialise an RTPHeader to bytes to be sent over the network.
@@ -193,13 +97,13 @@ size_t rtp_header_pack(uint8_t *rdata, const struct RTPHeader *header);
  */
 size_t rtp_header_unpack(const uint8_t *data, struct RTPHeader *header);
 
-RTPSession *rtp_new(const Logger *log, const Memory *mem, int payload_type, Tox *tox, ToxAV *toxav, uint32_t friendnumber,
-                    BWController *bwc, void *cs, rtp_m_cb *mcb);
+RTPSession *rtp_new(const Logger *log, int payload_type, Mono_Time *mono_time,
+                    rtp_send_packet_cb *send_packet, void *send_packet_user_data,
+                    rtp_add_recv_cb *add_recv, rtp_add_lost_cb *add_lost, void *bwc_user_data,
+                    void *cs, rtp_m_cb *mcb);
 void rtp_kill(const Logger *log, RTPSession *session);
 void rtp_allow_receiving_mark(RTPSession *session);
 void rtp_stop_receiving_mark(RTPSession *session);
-void rtp_allow_receiving(Tox *tox);
-void rtp_stop_receiving(Tox *tox);
 
 /**
  * @brief Send a frame of audio or video data, chunked in @ref RTPMessage instances.

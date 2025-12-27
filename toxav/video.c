@@ -285,21 +285,20 @@ void vc_iterate(VCSession *vc)
 
     const uint16_t log_rb_size = rb_size(vc->vbuf_raw);
     pthread_mutex_unlock(vc->queue_mutex);
-    const struct RTPHeader *const header = &p->header;
 
     uint32_t full_data_len;
 
-    if ((header->flags & RTP_LARGE_FRAME) != 0) {
-        full_data_len = header->data_length_full;
+    if ((rtp_message_flags(p) & RTP_LARGE_FRAME) != 0) {
+        full_data_len = rtp_message_data_length_full(p);
         LOGGER_DEBUG(vc->log, "vc_iterate:001:full_data_len=%d", (int)full_data_len);
     } else {
-        full_data_len = p->len;
+        full_data_len = rtp_message_len(p);
         LOGGER_DEBUG(vc->log, "vc_iterate:002");
     }
 
-    LOGGER_DEBUG(vc->log, "vc_iterate: rb_read p->len=%d p->header.xe=%d", (int)full_data_len, p->header.xe);
+    LOGGER_DEBUG(vc->log, "vc_iterate: rb_read p->len=%d", (int)full_data_len);
     LOGGER_DEBUG(vc->log, "vc_iterate: rb_read rb size=%d", (int)log_rb_size);
-    const vpx_codec_err_t rc = vpx_codec_decode(vc->decoder, p->data, full_data_len, nullptr, 0);
+    const vpx_codec_err_t rc = vpx_codec_decode(vc->decoder, rtp_message_data(p), full_data_len, nullptr, 0);
     free(p);
 
     if (rc != VPX_CODEC_OK) {
@@ -337,24 +336,22 @@ int vc_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *ms
         return -1;
     }
 
-    const struct RTPHeader *const header = &msg->header;
-
-    if (msg->header.pt == (RTP_TYPE_VIDEO + 2) % 128) {
+    if (rtp_message_pt(msg) == (RTP_TYPE_VIDEO + 2) % 128) {
         LOGGER_WARNING(vc->log, "Got dummy!");
         free(msg);
         return 0;
     }
 
-    if (msg->header.pt != RTP_TYPE_VIDEO % 128) {
-        LOGGER_WARNING(vc->log, "Invalid payload type! pt=%d", (int)msg->header.pt);
+    if (rtp_message_pt(msg) != RTP_TYPE_VIDEO % 128) {
+        LOGGER_WARNING(vc->log, "Invalid payload type! pt=%d", (int)rtp_message_pt(msg));
         free(msg);
         return -1;
     }
 
     pthread_mutex_lock(vc->queue_mutex);
 
-    if ((header->flags & RTP_LARGE_FRAME) != 0 && header->pt == RTP_TYPE_VIDEO % 128) {
-        LOGGER_DEBUG(vc->log, "rb_write msg->len=%d b0=%d b1=%d", (int)msg->len, (int)msg->data[0], (int)msg->data[1]);
+    if ((rtp_message_flags(msg) & RTP_LARGE_FRAME) != 0 && rtp_message_pt(msg) == RTP_TYPE_VIDEO % 128) {
+        LOGGER_DEBUG(vc->log, "rb_write msg->len=%d b0=%d b1=%d", (int)rtp_message_len(msg), (int)rtp_message_data(msg)[0], (int)rtp_message_data(msg)[1]);
     }
 
     free(rb_write(vc->vbuf_raw, msg));

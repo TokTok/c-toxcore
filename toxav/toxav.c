@@ -116,6 +116,53 @@ struct ToxAV {
 
 static void callback_bwc(BWController *bwc, uint32_t friend_number, float loss, void *user_data);
 
+static int rtp_send_packet(void *user_data, const uint8_t *data, uint16_t length)
+{
+    ToxAVCall *call = (ToxAVCall *)user_data;
+    Tox_Err_Friend_Custom_Packet error;
+    tox_friend_send_lossy_packet(call->av->tox, call->friend_number, data, length, &error);
+    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK ? 0 : -1;
+}
+
+static void rtp_add_recv(void *user_data, uint32_t bytes)
+{
+    BWController *bwc = (BWController *)user_data;
+    bwc_add_recv(bwc, bytes);
+}
+
+static void rtp_add_lost(void *user_data, uint32_t bytes)
+{
+    BWController *bwc = (BWController *)user_data;
+    bwc_add_lost(bwc, bytes);
+}
+
+static void handle_rtp_packet(Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
+{
+    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
+
+    if (toxav == nullptr) {
+        return;
+    }
+
+    ToxAVCall *call = call_get(toxav, friend_number);
+
+    if (call == nullptr) {
+        return;
+    }
+
+    RTPSession *session = rtp_session_get(call, data[0]);
+
+    if (session == nullptr) {
+        return;
+    }
+
+    if (!rtp_session_is_receiving_active(session)) {
+        return;
+    }
+
+    rtp_receive_packet(session, data, length);
+}
+
 static int callback_invite(void *object, MSICall *call);
 static int callback_start(void *object, MSICall *call);
 static int callback_end(void *object, MSICall *call);
@@ -215,7 +262,8 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
     av->tox = tox;
     av->msi = msi_new(av->log, av->tox);
 
-    rtp_allow_receiving(av->tox);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_VIDEO);
     bwc_allow_receiving(av->tox);
 
     av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
@@ -269,7 +317,8 @@ void toxav_kill(ToxAV *av)
         tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, i);
     }
 
-    rtp_stop_receiving(av->tox);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_VIDEO);
     bwc_stop_receiving(av->tox);
 
     /* To avoid possible deadlocks */
@@ -1045,18 +1094,18 @@ bool toxav_video_send_frame(ToxAV *av, uint32_t friend_number, uint16_t width, u
     }
 
     // we start with I-frames (full frames) and then switch to normal mode later
-    if (call->video_rtp->ssrc < VIDEO_SEND_X_KEYFRAMES_FIRST) {
+    if (rtp_session_get_ssrc(call->video_rtp) < VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // Key frame flag for first frames
         vpx_encode_flags = VPX_EFLAG_FORCE_KF;
-        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u only-i-frame mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u only-i-frame mode", rtp_session_get_ssrc(call->video_rtp));
 
-        ++call->video_rtp->ssrc;
-    } else if (call->video_rtp->ssrc == VIDEO_SEND_X_KEYFRAMES_FIRST) {
+        rtp_session_set_ssrc(call->video_rtp, rtp_session_get_ssrc(call->video_rtp) + 1);
+    } else if (rtp_session_get_ssrc(call->video_rtp) == VIDEO_SEND_X_KEYFRAMES_FIRST) {
         // normal keyframe placement
         vpx_encode_flags = 0;
-        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u normal mode", call->video_rtp->ssrc);
+        LOGGER_DEBUG(av->log, "I_FRAME_FLAG:%u normal mode", rtp_session_get_ssrc(call->video_rtp));
 
-        ++call->video_rtp->ssrc;
+        rtp_session_set_ssrc(call->video_rtp, rtp_session_get_ssrc(call->video_rtp) + 1);
     }
 
     {   /* Encode */
@@ -1499,7 +1548,9 @@ static bool call_prepare_transmission(ToxAVCall *call)
             goto FAILURE;
         }
 
-        call->audio_rtp = rtp_new(av->log, av->mem, RTP_TYPE_AUDIO, av->tox, av, call->friend_number, call->bwc,
+        call->audio_rtp = rtp_new(av->log, RTP_TYPE_AUDIO, av->toxav_mono_time,
+                                  rtp_send_packet, call,
+                                  rtp_add_recv, rtp_add_lost, call->bwc,
                                   call->audio, ac_queue_message);
 
         if (call->audio_rtp == nullptr) {
@@ -1515,7 +1566,9 @@ static bool call_prepare_transmission(ToxAVCall *call)
             goto FAILURE;
         }
 
-        call->video_rtp = rtp_new(av->log, av->mem, RTP_TYPE_VIDEO, av->tox, av, call->friend_number, call->bwc,
+        call->video_rtp = rtp_new(av->log, RTP_TYPE_VIDEO, av->toxav_mono_time,
+                                  rtp_send_packet, call,
+                                  rtp_add_recv, rtp_add_lost, call->bwc,
                                   call->video, vc_queue_message);
 
         if (call->video_rtp == nullptr) {
@@ -1574,13 +1627,4 @@ static void call_kill_transmission(ToxAVCall *call)
 
     pthread_mutex_destroy(call->mutex_audio);
     pthread_mutex_destroy(call->mutex_video);
-}
-
-Mono_Time *toxav_get_av_mono_time(const ToxAV *av)
-{
-    if (av == nullptr) {
-        return nullptr;
-    }
-
-    return av->toxav_mono_time;
 }
