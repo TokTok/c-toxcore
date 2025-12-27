@@ -2012,7 +2012,7 @@ static uint32_t foreach_ip_port(const DHT *_Nonnull dht, const DHT_Friend *_Nonn
 static bool send_packet_to_friend(const DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, uint32_t *_Nonnull n, void *_Nonnull userdata)
 {
     const Packet *packet = (const Packet *)userdata;
-    const int retval = send_packet(dht->net, ip_port, *packet);
+    const int retval = net_send_packet(dht->net, ip_port, *packet);
 
     if ((uint32_t)retval == packet->length) {
         ++*n;
@@ -2081,7 +2081,7 @@ static uint32_t routeone_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonn
     }
 
     const uint32_t rand_idx = random_range_u32(dht->rng, n);
-    const int retval = send_packet(dht->net, &ip_list[rand_idx], *packet);
+    const int retval = net_send_packet(dht->net, &ip_list[rand_idx], *packet);
 
     if ((unsigned int)retval == packet->length) {
         return 1;

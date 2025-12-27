@@ -22,8 +22,6 @@ MSISession *_Nullable tox_av_msi_get(const ToxAV *_Nonnull av);
 
 BWController *_Nullable bwc_controller_get(const ToxAVCall *_Nonnull call);
 
-Mono_Time *_Nullable toxav_get_av_mono_time(const ToxAV *_Nonnull av);
-
 const Logger *_Nonnull toxav_get_logger(const ToxAV *_Nonnull av);
 
 #endif /* C_TOXCORE_TOXAV_HACKS_H */
