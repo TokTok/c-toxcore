@@ -145,13 +145,15 @@ void ac_iterate(ACSession *ac)
             const int fs = (ac->lp_sampling_rate * ac->lp_frame_duration) / 1000;
             rc = opus_decode(ac->decoder, nullptr, 0, temp_audio_buffer, fs, 1);
         } else {
-            assert(msg->len > 4);
+            const uint8_t *msg_data = rtp_message_data(msg);
+            const uint16_t msg_length = rtp_message_len(msg);
+            assert(msg_length > 4);
 
             /* Pick up sampling rate from packet */
-            memcpy(&ac->lp_sampling_rate, msg->data, 4);
+            memcpy(&ac->lp_sampling_rate, msg_data, 4);
             ac->lp_sampling_rate = net_ntohl(ac->lp_sampling_rate);
 
-            ac->lp_channel_count = opus_packet_get_nb_channels(msg->data + 4);
+            ac->lp_channel_count = opus_packet_get_nb_channels(msg_data + 4);
 
             /** NOTE: even though OPUS supports decoding mono frames with stereo decoder and vice versa,
               * it didn't work quite well.
@@ -172,7 +174,7 @@ void ac_iterate(ACSession *ac)
              * max_size is the max duration of the frame in samples (per channel) that can fit
              * into the decoded_frame array
              */
-            rc = opus_decode(ac->decoder, msg->data + 4, msg->len - 4, temp_audio_buffer, 5760, 0);
+            rc = opus_decode(ac->decoder, msg_data + 4, msg_length - 4, temp_audio_buffer, 5760, 0);
             free(msg);
         }
 
@@ -204,13 +206,13 @@ int ac_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *ms
         return -1;
     }
 
-    if ((msg->header.pt & 0x7f) == (RTP_TYPE_AUDIO + 2) % 128) {
+    if ((rtp_message_pt(msg) & 0x7f) == (RTP_TYPE_AUDIO + 2) % 128) {
         LOGGER_WARNING(ac->log, "Got dummy!");
         free(msg);
         return 0;
     }
 
-    if ((msg->header.pt & 0x7f) != RTP_TYPE_AUDIO % 128) {
+    if ((rtp_message_pt(msg) & 0x7f) != RTP_TYPE_AUDIO % 128) {
         LOGGER_WARNING(ac->log, "Invalid payload type!");
         free(msg);
         return -1;
@@ -303,7 +305,7 @@ static void jbuf_free(struct JitterBuffer *q)
  */
 static int jbuf_write(const Logger *log, struct JitterBuffer *q, struct RTPMessage *m)
 {
-    const uint16_t sequnum = m->header.sequnum;
+    const uint16_t sequnum = rtp_message_sequnum(m);
 
     const unsigned int num = sequnum % q->size;
 

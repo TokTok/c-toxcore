@@ -448,7 +448,7 @@ bool set_socket_dualstack(const Network *_Nonnull ns, Socket sock);
 /**
  * An outgoing network packet.
  *
- * Use `send_packet` to send it to an IP/port endpoint.
+ * Use `net_send_packet` to send it to an IP/port endpoint.
  */
 typedef struct Packet {
     const uint8_t *_Nonnull data;
@@ -458,12 +458,12 @@ typedef struct Packet {
 /**
  * Function to send a network packet to a given IP/port.
  */
-int send_packet(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, Packet packet);
+int net_send_packet(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, Packet packet);
 
 /**
  * Function to send packet(data) of length length to ip_port.
  *
- * @deprecated Use send_packet instead.
+ * @deprecated Use net_send_packet instead.
  */
 int sendpacket(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull data, uint16_t length);
 
