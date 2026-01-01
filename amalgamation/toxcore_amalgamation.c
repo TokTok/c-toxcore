@@ -74334,6 +74334,14 @@ uint16_t rb_data(const RingBuffer *b, void **dest)
 
 
 
+/**
+ * Maximum size of a single RTP frame in bytes.
+ * This limit prevents memory exhaustion attacks where a malicious peer sends
+ * a header indicating a very large frame size, causing the receiver to allocate
+ * excessive memory.
+ */
+#define MAX_RTP_FRAME_SIZE (32 * 1024 * 1024)
+
 Mono_Time *toxav_get_av_mono_time(ToxAV *toxav);
 int rtp_send_custom_lossy_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
 int rtp_send_custom_lossless_packet(Tox *tox, int32_t friendnumber, const uint8_t *data, uint32_t length);
@@ -74574,6 +74582,11 @@ static bool fill_data_into_slot(Tox *tox, struct RTPWorkBufferList *wkbl, const 
     if (slot->received_len == 0) {
         assert(slot->buf == nullptr);
 
+        if (header->data_length_full > MAX_RTP_FRAME_SIZE) {
+            LOGGER_API_WARNING(tox, "RTP frame too large: %u > %u", (unsigned)header->data_length_full, (unsigned)MAX_RTP_FRAME_SIZE);
+            return false;
+        }
+
         // No data for this slot has been received, yet, so we create a new
         // message for it with enough memory for the entire frame.
         // AV_INPUT_BUFFER_PADDING_SIZE --> is needed later if we give it to ffmpeg!
@@ -74596,8 +74609,26 @@ static bool fill_data_into_slot(Tox *tox, struct RTPWorkBufferList *wkbl, const 
         slot->is_keyframe = is_keyframe;
         slot->received_len = 0;
 
+
+
         assert(wkbl->next_free_entry < USED_RTP_WORKBUFFER_COUNT);
         ++wkbl->next_free_entry;
+    } else {
+        if (slot->buf->header.data_length_full != header->data_length_full) {
+            LOGGER_API_WARNING(tox, "Received packet with different length than previous packets in same frame: %u != %u",
+                            header->data_length_full, slot->buf->header.data_length_full);
+            return false;
+        }
+    }
+
+    // We already checked this when we received the packet, but we rely on it
+    // here, so assert again.
+    assert(header->offset_full < header->data_length_full);
+
+    if (header->data_length_full - header->offset_full < incoming_data_length) {
+        LOGGER_API_ERROR(tox, "Packet too long for buffer: offset %u + len %u > total %u",
+                    (unsigned)header->offset_full, (unsigned)incoming_data_length, (unsigned)header->data_length_full);
+        return false;
     }
 
     // Copy the incoming chunk of data into the correct position in the full
@@ -74697,6 +74728,7 @@ static int handle_video_packet(RTPSession *session, const struct RTPHeader *head
 
     // get_slot said there is no free slot.
     if (slot_id == GET_SLOT_RESULT_DROP_OLDEST_SLOT) {
+        LOGGER_API_DEBUG(session->tox, "there was no free slot, so we process the oldest frame");
         // We now own the frame.
         struct RTPMessage *m_new = process_frame(session->tox, session->work_buffer_list, 0);
 
@@ -74732,7 +74764,7 @@ static int handle_video_packet(RTPSession *session, const struct RTPHeader *head
                 header,
                 incoming_data,
                 incoming_data_length)) {
-
+        // Memory allocation failed. Return error.
         return -1;
     }
 
@@ -75168,7 +75200,8 @@ void handle_rtp_packet(Tox *tox, uint32_t friendnumber, const uint8_t *data, siz
 
             /* Make sure we have enough allocated memory */
             if (session->mp->header.data_length_lower - session->mp->len < (int)(length - RTP_HEADER_SIZE) ||
-                    session->mp->header.data_length_lower <= header.offset_lower) {
+                    session->mp->header.data_length_lower <= header.offset_lower ||
+                    session->mp->header.data_length_lower - header.offset_lower < (int)(length - RTP_HEADER_SIZE)) {
                 /* There happened to be some corruption on the stream;
                  * continue wihtout this part
                  */
@@ -75208,6 +75241,13 @@ void handle_rtp_packet(Tox *tox, uint32_t friendnumber, const uint8_t *data, siz
          */
         /* This is also a point for new multiparted messages */
 NEW_MULTIPARTED:
+
+        if (header.data_length_lower - header.offset_lower < (int)(length - RTP_HEADER_SIZE)) {
+            LOGGER_API_WARNING(tox, "Packet too long for buffer: offset %u + len %u > total %u",
+                            (unsigned)header.offset_lower, (unsigned)(length - RTP_HEADER_SIZE),
+                            (unsigned)header.data_length_lower);
+            return;
+        }
 
         /* Message is not late; pick up the latest parameters */
         session->rsequnum = header.sequnum;
