@@ -79,7 +79,7 @@ static void test_save_compatibility(const char *save_path)
     ck_assert_msg(save_data != nullptr, "error while reading save file '%s'", save_path);
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, save_data, size);
+    ck_assert(tox_options_set_savedata(options, save_data, size));
 
     size_t index = 0;
     Tox_Err_New err;

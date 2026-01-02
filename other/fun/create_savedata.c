@@ -17,7 +17,7 @@
 #include "../../toxcore/tox.h"
 #include "create_common.h"
 
-static bool create_tox(const unsigned char *const secret_key, Tox **const tox)
+static bool create_tox(const uint8_t secret_key[TOX_SECRET_KEY_SIZE], Tox **const tox)
 {
     Tox_Err_Options_New options_error;
     struct Tox_Options *const options = tox_options_new(&options_error);
@@ -28,7 +28,10 @@ static bool create_tox(const unsigned char *const secret_key, Tox **const tox)
     }
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
-    tox_options_set_savedata_data(options, secret_key, crypto_box_SECRETKEYBYTES);
+    if (!tox_options_set_savedata(options, secret_key, TOX_SECRET_KEY_SIZE)) {
+        tox_options_free(options);
+        return false;
+    }
     Tox_Err_New tox_error;
     *tox = tox_new(options, &tox_error);
 

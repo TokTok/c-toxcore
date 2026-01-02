@@ -162,7 +162,7 @@ TEST(Tox, OneTest)
     Tox_Err_New err_n;
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, data.data(), data.size());
+    ASSERT_TRUE(tox_options_set_savedata(options, data.data(), data.size()));
     tox2 = tox_new(options, &err_n);
     EXPECT_EQ(err_n, TOX_ERR_NEW_OK) << "Load failed";
 
@@ -191,7 +191,7 @@ TEST(Tox, OneTest)
 
     tox_options_default(options);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
-    tox_options_set_savedata_data(options, sk.data(), sk.size());
+    ASSERT_TRUE(tox_options_set_savedata(options, sk.data(), sk.size()));
     tox2 = tox_new(options, &err_n);
     ASSERT_EQ(err_n, TOX_ERR_NEW_OK) << "Load failed";
     tox_self_set_nospam(tox2, tox_self_get_nospam(tox1));

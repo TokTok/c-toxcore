@@ -3,11 +3,10 @@
 
 #include "check_compat.h"
 #include "../testing/misc_tools.h"
-#include "../toxcore/Messenger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox_dispatch.h"
 #include "../toxcore/tox_events.h"
-#include "../toxcore/tox_struct.h"
+#include "../toxcore/tox_struct.h" // IWYU pragma: keep
 
 #include "auto_test_support.h"
 
@@ -211,7 +210,7 @@ void reload(AutoTox *autotox)
     ck_assert(options != nullptr);
     tox_options_set_ipv6_enabled(options, USE_IPV6);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
-    tox_options_set_savedata_data(options, autotox->save_state, autotox->save_size);
+    ck_assert(tox_options_set_savedata(options, autotox->save_state, autotox->save_size));
     autotox->tox = tox_new_log(options, nullptr, &autotox->index);
     ck_assert(autotox->tox != nullptr);
     autotox->dispatch = tox_dispatch_new(nullptr);
