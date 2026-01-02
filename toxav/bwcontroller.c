@@ -14,7 +14,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/network.h"
+#include "../toxcore/net.h"
 #include "../toxcore/util.h"
 
 

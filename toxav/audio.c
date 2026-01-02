@@ -16,7 +16,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/network.h"
+#include "../toxcore/net.h"
 #include "../toxcore/util.h"
 
 
@@ -209,8 +209,7 @@ void ac_iterate(ACSession *ac)
 
             /* Pick up sampling rate from packet */
             uint32_t sampling_rate;
-            memcpy(&sampling_rate, msg_data, 4);
-            sampling_rate = net_ntohl(sampling_rate);
+            net_unpack_u32(msg_data, &sampling_rate);
 
             const int channels = opus_packet_get_nb_channels(msg_data + 4);
 

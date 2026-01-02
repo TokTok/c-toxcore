@@ -22,6 +22,12 @@ extern "C" {
 #define RTP_HEADER_SIZE 80
 
 /**
+ * The largest packet RTP sends: the largest Tox custom packet,
+ * @ref TOX_MAX_CUSTOM_PACKET_SIZE.
+ */
+#define RTP_MAX_PACKET_SIZE 1373
+
+/**
  * Number of 32 bit padding fields between @ref RTPHeader::offset_lower and
  * everything before it.
  */

@@ -26,6 +26,8 @@
 #include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
 
+static_assert(RTP_MAX_PACKET_SIZE == TOX_MAX_CUSTOM_PACKET_SIZE, "ToxAV and toxcore disagree on the packet size");
+
 #define VIDEO_SEND_X_KEYFRAMES_FIRST 7 // force the first n frames to be keyframes!
 
 // iteration interval that is used when no call is active

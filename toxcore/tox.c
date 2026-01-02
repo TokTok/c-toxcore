@@ -78,6 +78,8 @@ static_assert(TOX_GROUP_MAX_MESSAGE_LENGTH == GROUP_MAX_MESSAGE_LENGTH,
               "TOX_GROUP_MAX_MESSAGE_LENGTH is assumed to be equal to GROUP_MAX_MESSAGE_LENGTH");
 static_assert(TOX_MAX_CUSTOM_PACKET_SIZE == MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE,
               "TOX_MAX_CUSTOM_PACKET_SIZE is assumed to be equal to MAX_GC_CUSTOM_LOSSLESS_PACKET_SIZE");
+static_assert(TOX_MAX_CUSTOM_PACKET_SIZE == MAX_CRYPTO_DATA_SIZE,
+              "TOX_MAX_CUSTOM_PACKET_SIZE is assumed to be equal to MAX_CRYPTO_DATA_SIZE");
 
 struct Tox_Userdata {
     Tox *_Nonnull tox;
