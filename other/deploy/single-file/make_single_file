@@ -6,10 +6,10 @@
 #
 # Example:
 #
-#   other/deploy/single-file/make_single_file auto_tests/toxav_basic_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
+#   other/deploy/single-file/make_single_file auto_tests/scenarios/scenario_toxav_basic_test.c auto_tests/scenarios/framework/framework.c testing/misc_tools.c | \
 #     tcc -o toxav_basic_test - $(pkg-config --cflags --libs libsodium opus vpx)
 #
-#   other/deploy/single-file/make_single_file -core auto_tests/send_message_test.c auto_tests/auto_test_support.c testing/misc_tools.c | \
+#   other/deploy/single-file/make_single_file -core auto_tests/scenarios/scenario_send_message_test.c auto_tests/scenarios/framework/framework.c testing/misc_tools.c | \
 #     tcc -o send_message_test - $(pkg-config --cflags --libs libsodium)
 
 use strict;

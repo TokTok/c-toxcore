@@ -16,4 +16,4 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN git clone --depth=1 --branch=stable https://github.com/jedisct1/libsodium /work/libsodium
 COPY other/docker/compcert/Makefile /work/
 RUN make "-j$(nproc)"
-RUN ./send_message_test | grep 'tox clients connected'
+RUN ./send_message_test 2>&1 | grep 'Correctly failed to send too long message'

@@ -373,7 +373,7 @@ cc_library(
     srcs = ["mono_time.c"],
     hdrs = ["mono_time.h"],
     visibility = [
-        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/auto_tests:__subpackages__",
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
         "//c-toxcore/testing:__pkg__",
@@ -448,7 +448,7 @@ cc_library(
         "network.h",
     ],
     visibility = [
-        "//c-toxcore/auto_tests:__pkg__",
+        "//c-toxcore/auto_tests:__subpackages__",
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
         "//c-toxcore/testing/fuzzing:__pkg__",

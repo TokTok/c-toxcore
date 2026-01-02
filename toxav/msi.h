@@ -6,6 +6,7 @@
 #define C_TOXCORE_TOXAV_MSI_H
 
 #include <pthread.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "../toxcore/logger.h"

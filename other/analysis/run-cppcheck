@@ -15,8 +15,6 @@ CPPCHECK+=("--library=other/docker/cppcheck/toxcore.cfg")
 CPPCHECK+=("--error-exitcode=1")
 # Some files don't match all our suppressions below.
 CPPCHECK+=("--suppress=unmatchedSuppression")
-# We don't cast function pointers, which cppcheck suggests here.
-CPPCHECK+=("--suppress=constParameterCallback")
 # This disagrees with clang's warnings.
 CPPCHECK+=("--suppress=invalidPrintfArgType_uint")
 # False positives in switch statements.
@@ -25,6 +23,11 @@ CPPCHECK+=("--suppress=knownConditionTrueFalse")
 CPPCHECK+=("--suppress=missingIncludeSystem")
 # TODO(iphydf): Maybe fix?
 CPPCHECK+=("--suppress=signConversion")
+# These const correctness checks are very broken for C.
+CPPCHECK+=("--suppress=constParameter")
+CPPCHECK+=("--suppress=constParameterCallback")
+CPPCHECK+=("--suppress=constParameterPointer")
+CPPCHECK+=("--suppress=constVariablePointer")
 
 # We use this for VLAs.
 CPPCHECK_CXX+=("--suppress=allocaCalled")

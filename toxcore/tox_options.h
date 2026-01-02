@@ -411,6 +411,18 @@ void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experim
  */
 void tox_options_default(Tox_Options *options);
 
+/**
+ * @brief Copy all options from one object to another.
+ *
+ * The result of this function is independent of the original options.
+ *
+ * If either options object is NULL, this function has no effect.
+ *
+ * @param dest The options object to be written to.
+ * @param src The options object to be read from.
+ */
+void tox_options_copy(Tox_Options *dest, const Tox_Options *src);
+
 typedef enum Tox_Err_Options_New {
     /**
      * The function returned successfully.

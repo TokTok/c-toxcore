@@ -227,11 +227,11 @@ static constexpr Tox_Random_Funcs fuzz_random_funcs = {
 
 Fuzz_System::Fuzz_System(Fuzz_Data &input)
     : System{
-        std::make_unique<Tox_System>(),
-        std::make_unique<Tox_Memory>(Tox_Memory{&fuzz_memory_funcs, this}),
-        std::make_unique<Network>(Network{&fuzz_network_funcs, this}),
-        std::make_unique<Tox_Random>(Tox_Random{&fuzz_random_funcs, this}),
-    }
+          std::make_unique<Tox_System>(),
+          std::make_unique<Tox_Memory>(Tox_Memory{&fuzz_memory_funcs, this}),
+          std::make_unique<Network>(Network{&fuzz_network_funcs, this}),
+          std::make_unique<Tox_Random>(Tox_Random{&fuzz_random_funcs, this}),
+      }
     , data(input)
 {
     sys->mono_time_callback = [](void *self) { return static_cast<Fuzz_System *>(self)->clock; };
@@ -456,11 +456,11 @@ static constexpr Tox_Random_Funcs record_random_funcs = {
 
 Record_System::Record_System(Global &global, uint64_t seed, const char *name)
     : System{
-        std::make_unique<Tox_System>(),
-        std::make_unique<Tox_Memory>(Tox_Memory{&record_memory_funcs, this}),
-        std::make_unique<Network>(Network{&record_network_funcs, this}),
-        std::make_unique<Random>(Random{&record_random_funcs, this}),
-    }
+          std::make_unique<Tox_System>(),
+          std::make_unique<Tox_Memory>(Tox_Memory{&record_memory_funcs, this}),
+          std::make_unique<Network>(Network{&record_network_funcs, this}),
+          std::make_unique<Random>(Random{&record_random_funcs, this}),
+      }
     , global_(global)
     , seed_(seed)
     , name_(name)

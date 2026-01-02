@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef ck_assert
 #define ck_assert(ok) do {                                              \
   if (!(ok)) {                                                          \
     fprintf(stderr, "%s:%d: failed `%s'\n", __FILE__, __LINE__, #ok);   \
@@ -28,5 +29,6 @@
   fprintf(stderr, "\n");                                                \
   exit(7);                                                              \
 } while (0)
+#endif
 
 #endif // C_TOXCORE_AUTO_TESTS_CHECK_COMPAT_H

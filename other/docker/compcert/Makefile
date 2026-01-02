@@ -19,8 +19,8 @@ $(libsodium_OBJECTS): CFLAGS += \
 	-Ilibsodium/src/libsodium/include/sodium
 
 toxcore_SOURCES := $(wildcard \
-	   auto_tests/auto_test_support.c \
-	   auto_tests/send_message_test.c \
+	   auto_tests/scenarios/framework/framework.c \
+	   auto_tests/scenarios/scenario_send_message_test.c \
 	   testing/misc_tools.c \
 	   toxav/*.c \
 	   toxcore/*.c \
