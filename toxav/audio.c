@@ -41,6 +41,8 @@ struct ACSession {
 
     pthread_mutex_t queue_mutex[1];
 
+    int16_t *decode_buffer;
+
     uint32_t friend_number;
     /* Audio frame receive callback */
     ac_audio_receive_frame_cb *acb;
@@ -96,6 +98,13 @@ ACSession *ac_new(Mono_Time *mono_time, const Logger *log, uint32_t friend_numbe
     ac->mono_time = mono_time;
     ac->log = log;
 
+    ac->decode_buffer = (int16_t *)malloc(AUDIO_MAX_BUFFER_SIZE_PCM16 * AUDIO_MAX_CHANNEL_COUNT * sizeof(int16_t));
+
+    if (ac->decode_buffer == nullptr) {
+        LOGGER_ERROR(log, "Failed to allocate memory for audio buffer");
+        goto DECODER_CLEANUP;
+    }
+
     /* Initialize encoders with default values */
     ac->encoder = create_audio_encoder(log, AUDIO_START_BITRATE, AUDIO_START_SAMPLE_RATE, AUDIO_START_CHANNEL_COUNT);
 
@@ -141,6 +150,7 @@ void ac_kill(ACSession *ac)
     opus_encoder_destroy(ac->encoder);
     opus_decoder_destroy(ac->decoder);
     jbuf_free((struct JitterBuffer *)ac->j_buf);
+    free(ac->decode_buffer);
 
     pthread_mutex_destroy(ac->queue_mutex);
 
@@ -155,14 +165,6 @@ void ac_iterate(ACSession *ac)
     }
 
     /* TODO: fix this and jitter buffering */
-
-    /* Enough space for the maximum frame size (120 ms 48 KHz stereo audio) */
-    int16_t *temp_audio_buffer = (int16_t *)malloc(AUDIO_MAX_BUFFER_SIZE_PCM16 * AUDIO_MAX_CHANNEL_COUNT * sizeof(int16_t));
-
-    if (temp_audio_buffer == nullptr) {
-        LOGGER_ERROR(ac->log, "Failed to allocate memory for audio buffer");
-        return;
-    }
 
     int rc = 0;
 
@@ -190,7 +192,7 @@ void ac_iterate(ACSession *ac)
                 LOGGER_WARNING(ac->log, "Invalid PLC parameters: sr %u, dur %u", sampling_rate, frame_duration);
             } else {
                 const int fs = (sampling_rate * frame_duration) / 1000;
-                rc = opus_decode(ac->decoder, nullptr, 0, temp_audio_buffer, fs, 1);
+                rc = opus_decode(ac->decoder, nullptr, 0, ac->decode_buffer, fs, 1);
             }
         } else {
             const uint8_t *msg_data = rtp_message_data(msg);
@@ -240,7 +242,7 @@ void ac_iterate(ACSession *ac)
              * max_size is the max duration of the frame in samples (per channel) that can fit
              * into the decoded_frame array
              */
-            rc = opus_decode(ac->decoder, msg_data + 4, msg_length - 4, temp_audio_buffer, AUDIO_MAX_BUFFER_SIZE_PCM16, 0);
+            rc = opus_decode(ac->decoder, msg_data + 4, msg_length - 4, ac->decode_buffer, AUDIO_MAX_BUFFER_SIZE_PCM16, 0);
             free(msg);
         }
 
@@ -249,7 +251,7 @@ void ac_iterate(ACSession *ac)
         } else if (ac->acb != nullptr) {
             ac->lp_frame_duration = (rc * 1000) / ac->lp_sampling_rate;
 
-            ac->acb(ac->friend_number, temp_audio_buffer, (size_t)rc, ac->lp_channel_count,
+            ac->acb(ac->friend_number, ac->decode_buffer, (size_t)rc, ac->lp_channel_count,
                     ac->lp_sampling_rate, ac->user_data);
         }
 
@@ -257,8 +259,6 @@ void ac_iterate(ACSession *ac)
     }
 
     pthread_mutex_unlock(ac->queue_mutex);
-
-    free(temp_audio_buffer);
 }
 
 int ac_queue_message(const Mono_Time *mono_time, void *cs, struct RTPMessage *msg)
@@ -536,6 +536,22 @@ static OpusEncoder *create_audio_encoder(const Logger *log, uint32_t bit_rate, u
      */
     /* Set algorithm to the highest complexity, maximizing compression */
     status = opus_encoder_ctl(rc, OPUS_SET_COMPLEXITY(AUDIO_OPUS_COMPLEXITY));
+
+    if (status != OPUS_OK) {
+        LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
+        goto FAILURE;
+    }
+
+    /* Enable Discontinuous Transmission (DTX) to reduce CPU and bandwidth during silence */
+    status = opus_encoder_ctl(rc, OPUS_SET_DTX(1));
+
+    if (status != OPUS_OK) {
+        LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
+        goto FAILURE;
+    }
+
+    /* Signal the encoder that the input is primarily voice */
+    status = opus_encoder_ctl(rc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
 
     if (status != OPUS_OK) {
         LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
