@@ -395,3 +395,22 @@ sh_library(
     ]),
     visibility = ["//c-toxcore/testing:__pkg__"],
 )
+
+cc_fuzz_test(
+    name = "toxav_fuzz_test",
+    srcs = ["toxav_fuzz_test.cc"],
+    copts = ["-UNDEBUG"],
+    # corpus = ["//tools/toktok-fuzzer/corpus:toxav_fuzz_test"],
+    deps = [
+        ":toxav_core",
+        "//c-toxcore/testing/support",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:os_memory",
+    ],
+)
+
+cc_binary(
+    name = "toxav_fuzz_seed_gen",
+    srcs = ["toxav_fuzz_seed_gen.cc"],
+    visibility = ["//visibility:public"],
+)
