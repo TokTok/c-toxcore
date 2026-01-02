@@ -4,6 +4,8 @@ CPPFLAGS="-DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE"
 CPPFLAGS+=("-DCMP_NO_FLOAT=1")
 CPPFLAGS+=("-isystem" "/usr/include/opus")
 CPPFLAGS+=("-Iauto_tests")
+CPPFLAGS+=("-Iauto_tests/scenarios")
+CPPFLAGS+=("-Iauto_tests/scenarios/framework")
 CPPFLAGS+=("-Iother")
 CPPFLAGS+=("-Iother/bootstrap_daemon/src")
 CPPFLAGS+=("-Iother/fun")

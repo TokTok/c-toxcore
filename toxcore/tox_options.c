@@ -260,6 +260,26 @@ void tox_options_default(Tox_Options *options)
     }
 }
 
+void tox_options_copy(Tox_Options *dest, const Tox_Options *src)
+{
+    if (dest != nullptr && src != nullptr) {
+        // Clear dest's owned pointers before copying src's members
+        dest->owned_proxy_host = nullptr;
+        dest->owned_savedata_data = nullptr;
+
+        // Copy all non-owned members
+        *dest = *src;
+
+        // Clear these again as they now point to src's memory
+        dest->owned_proxy_host = nullptr;
+        dest->owned_savedata_data = nullptr;
+
+        // Use setters to correctly re-allocate and copy if experimental_owned_data is true
+        tox_options_set_proxy_host(dest, src->proxy_host);
+        tox_options_set_savedata_data(dest, src->savedata_data, src->savedata_length);
+    }
+}
+
 Tox_Options *tox_options_new(Tox_Err_Options_New *error)
 {
     Tox_Options *options = (Tox_Options *)calloc(1, sizeof(Tox_Options));

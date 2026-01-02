@@ -24,9 +24,6 @@ cc_library(
 
 flaky_tests = {
     "crypto_core_test": True,
-    "lan_discovery_test": True,
-    "save_load_test": True,
-    "tox_many_tcp_test": True,
 }
 
 extra_args = {
@@ -39,7 +36,6 @@ extra_data = {
 
 [cc_test(
     name = src[:-2],
-    timeout = "moderate",
     srcs = [src],
     args = ["$(location %s)" % src] + extra_args.get(
         src[:-2],

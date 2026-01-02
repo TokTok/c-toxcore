@@ -41,4 +41,4 @@ COPY other/docker/slimcc/Makefile /work/c-toxcore/
 RUN ["make"]
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN ./send_message_test | grep "tox clients connected"
+RUN ./send_message_test 2>&1 | grep "Correctly failed to send too long message"

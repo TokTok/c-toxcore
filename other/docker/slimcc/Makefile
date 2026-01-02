@@ -1,5 +1,6 @@
-SOURCES		:= auto_tests/send_message_test.c \
-		   auto_tests/auto_test_support.c \
+SOURCES		:= \
+		   auto_tests/scenarios/framework/framework.c \
+		   auto_tests/scenarios/scenario_send_message_test.c \
 		   testing/misc_tools.c \
 		   $(wildcard tox*/*.c tox*/*/*.c) \
 		   third_party/cmp/cmp.c

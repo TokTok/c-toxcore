@@ -22,8 +22,8 @@ RUN tcc \
  -o send_message_test \
  -Wall -Werror \
  -bench -g \
- auto_tests/auto_test_support.c \
- auto_tests/send_message_test.c \
+ auto_tests/scenarios/framework/framework.c \
+ auto_tests/scenarios/scenario_send_message_test.c \
  testing/misc_tools.c \
  toxav/*.c \
  toxcore/*.c \
@@ -31,29 +31,29 @@ RUN tcc \
  toxencryptsave/*.c \
  third_party/cmp/*.c \
  $(pkg-config --cflags --libs libsodium opus vpx) \
- && ./send_message_test | grep 'tox clients connected'
+ && ./send_message_test 2>&1 | grep 'Correctly failed to send too long message'
 
 COPY other/deploy/single-file/make_single_file /work/
 RUN \
  ./make_single_file -core \
-   auto_tests/auto_test_support.c \
-   auto_tests/send_message_test.c \
+   auto_tests/scenarios/framework/framework.c \
+   auto_tests/scenarios/scenario_send_message_test.c \
    testing/misc_tools.c | \
  tcc - \
    -o send_message_test \
    -Wall -Werror \
    -bench -g \
    $(pkg-config --cflags --libs libsodium) \
- && ./send_message_test | grep 'tox clients connected'
+ && ./send_message_test 2>&1 | grep 'Correctly failed to send too long message'
 
 RUN \
  ./make_single_file \
-   auto_tests/auto_test_support.c \
-   auto_tests/toxav_basic_test.c \
+   auto_tests/scenarios/framework/framework.c \
+   auto_tests/scenarios/scenario_toxav_basic_test.c \
    testing/misc_tools.c | \
  tcc - \
    -o toxav_basic_test \
    -Wall -Werror \
    -bench -g \
    $(pkg-config --cflags --libs libsodium opus vpx) \
- && ./toxav_basic_test | grep 'Test successful'
+ && ./toxav_basic_test 2>&1 | grep 'Cancel Flow finished'
