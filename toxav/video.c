@@ -28,6 +28,9 @@ struct VCSession {
     vpx_codec_ctx_t encoder[1];
     uint32_t frame_counter;
 
+    vpx_image_t raw_encoder_frame;
+    bool raw_encoder_frame_allocated;
+
     /* decoding */
     vpx_codec_ctx_t decoder[1];
     struct RingBuffer *vbuf_raw; /* Un-decoded data */
@@ -296,6 +299,10 @@ void vc_kill(VCSession *vc)
         return;
     }
 
+    if (vc->raw_encoder_frame_allocated) {
+        vpx_img_free(&vc->raw_encoder_frame);
+    }
+
     vpx_codec_destroy(vc->encoder);
     vpx_codec_destroy(vc->decoder);
     void *p;
@@ -493,19 +500,25 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
 int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
               const uint8_t *u, const uint8_t *v, int encode_flags)
 {
-    vpx_image_t img;
-
-    if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
-        LOGGER_ERROR(vc->log, "Could not allocate image for frame");
-        return -1;
+    if (vc->raw_encoder_frame_allocated && (vc->raw_encoder_frame.d_w != width || vc->raw_encoder_frame.d_h != height)) {
+        vpx_img_free(&vc->raw_encoder_frame);
+        vc->raw_encoder_frame_allocated = false;
     }
 
-    /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-     * http://fourcc.org/yuv.php#IYUV
-     */
-    memcpy(img.planes[VPX_PLANE_Y], y, (size_t)width * height);
-    memcpy(img.planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
-    memcpy(img.planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
+    if (!vc->raw_encoder_frame_allocated) {
+        if (vpx_img_alloc(&vc->raw_encoder_frame, VPX_IMG_FMT_I420, width, height, 1) == nullptr) {
+            LOGGER_ERROR(vc->log, "Could not allocate image for frame");
+            return -1;
+        }
+
+        vc->raw_encoder_frame_allocated = true;
+    }
+
+    vpx_image_t *img = &vc->raw_encoder_frame;
+
+    memcpy(img->planes[VPX_PLANE_Y], y, (size_t)width * height);
+    memcpy(img->planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
+    memcpy(img->planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
 
     int vpx_flags = 0;
 
@@ -513,10 +526,8 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
         vpx_flags |= VPX_EFLAG_FORCE_KF;
     }
 
-    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, &img,
+    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, img,
                                 vc->frame_counter, 1, vpx_flags, VPX_DL_REALTIME);
-
-    vpx_img_free(&img);
 
     if (vrc != VPX_CODEC_OK) {
         LOGGER_ERROR(vc->log, "Could not encode video frame: %s", vpx_codec_err_to_string(vrc));
