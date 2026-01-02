@@ -17,12 +17,22 @@
 extern "C" {
 #endif
 
-/** @brief Allocate a byte array, similar to malloc. */
+/**
+ * @brief Allocate a byte array, similar to malloc.
+ *
+ * @thread any
+ */
 typedef void *_Nullable memory_malloc_cb(void *_Nullable self, uint32_t size);
-/** @brief Reallocate a byte array, similar to realloc. */
+/**
+ * @brief Reallocate a byte array, similar to realloc.
+ *
+ * @thread any
+ */
 typedef void *_Nullable memory_realloc_cb(void *_Nullable self, void *_Nullable ptr, uint32_t size);
 /**
  * @brief Deallocate a byte or object array, similar to free.
+ *
+ * @thread any
  */
 typedef void memory_dealloc_cb(void *_Nullable self, void *_Nullable ptr);
 

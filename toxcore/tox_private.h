@@ -19,6 +19,11 @@
 extern "C" {
 #endif
 
+/**
+ * @brief The current monotonic time in milliseconds.
+ *
+ * @thread any
+ */
 typedef uint64_t tox_mono_time_cb(void *_Nullable user_data);
 
 typedef struct Random Random;
