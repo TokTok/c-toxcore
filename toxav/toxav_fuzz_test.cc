@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "../testing/support/public/fuzz_data.hh"
-#include "../toxcore/logger.h"
 #include "../toxcore/os_memory.h"
-#include "av_core.h"
+#include "tox_av.h"
+#include "tox_av_private.h"
 
 namespace {
 
@@ -31,23 +31,15 @@ struct FuzzContext {
 
 // Mock IO callbacks
 static bool mock_send_lossy(
-    ToxAV *av, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
+    Tox_Av *av, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
 {
     return static_cast<FuzzContext *>(user_data)->send_success;
 }
 
 static bool mock_send_lossless(
-    ToxAV *av, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
+    Tox_Av *av, uint32_t friend_number, const uint8_t *data, size_t length, void *user_data)
 {
     return static_cast<FuzzContext *>(user_data)->send_success;
-}
-
-static bool mock_friend_exists(uint32_t friend_number, void *user_data) { return true; }
-
-static bool mock_friend_connected(uint32_t friend_number, void *user_data)
-{
-    const FuzzContext *ctx = static_cast<FuzzContext *>(user_data);
-    return friend_number < ctx->friend_connected.size() && ctx->friend_connected[friend_number];
 }
 
 static uint64_t mock_current_time(void *user_data)
@@ -55,24 +47,24 @@ static uint64_t mock_current_time(void *user_data)
     return static_cast<FuzzContext *>(user_data)->current_time_ms;
 }
 
-// Callbacks for ToxAV events (just to avoid crashes if they are called)
-static void on_call(ToxAV *av, uint32_t friend_number, bool audio, bool video, void *user_data) { }
-static void on_call_state(ToxAV *av, uint32_t friend_number, uint32_t state, void *user_data) { }
-static void on_audio_frame(ToxAV *av, uint32_t friend_number, const int16_t *pcm,
+// Callbacks for Tox_Av events (just to avoid crashes if they are called)
+static void on_call(Tox_Av *av, uint32_t friend_number, bool audio, bool video, void *user_data) { }
+static void on_call_state(Tox_Av *av, uint32_t friend_number, uint32_t state, void *user_data) { }
+static void on_audio_frame(Tox_Av *av, uint32_t friend_number, const int16_t *pcm,
     size_t sample_count, uint8_t channels, uint32_t sampling_rate, void *user_data)
 {
 }
-static void on_video_frame(ToxAV *av, uint32_t friend_number, uint16_t width, uint16_t height,
+static void on_video_frame(Tox_Av *av, uint32_t friend_number, uint16_t width, uint16_t height,
     const uint8_t *y, const uint8_t *u, const uint8_t *v, int32_t ystride, int32_t ustride,
     int32_t vstride, void *user_data)
 {
 }
 static void on_audio_bit_rate(
-    ToxAV *av, uint32_t friend_number, uint32_t audio_bit_rate, void *user_data)
+    Tox_Av *av, uint32_t friend_number, uint32_t audio_bit_rate, void *user_data)
 {
 }
 static void on_video_bit_rate(
-    ToxAV *av, uint32_t friend_number, uint32_t video_bit_rate, void *user_data)
+    Tox_Av *av, uint32_t friend_number, uint32_t video_bit_rate, void *user_data)
 {
 }
 
@@ -82,41 +74,32 @@ void fuzz_toxav_custom(Fuzz_Data &input)
     CONSUME1_OR_RETURN(uint8_t, mode, input);
     bool multithreaded = mode % 2;
 
-    struct LoggerDeleter {
-        void operator()(Logger *log) { logger_kill(log); }
-    };
-    std::unique_ptr<Logger, LoggerDeleter> log(logger_new(os_memory()));
-
-    if (log == nullptr) {
-        return;
-    }
-
-    const Av_Core_Network net = {
-        mock_send_lossy,
-        mock_send_lossless,
-        mock_friend_exists,
-        mock_friend_connected,
-        &ctx,
-    };
+    Tox_Err_Av_New_Testing err_new;
     struct AvDeleter {
-        void operator()(ToxAV *av) { av_core_kill(av); }
+        void operator()(Tox_Av *av) { tox_av_kill(av); }
     };
-    std::unique_ptr<ToxAV, AvDeleter> av(
-        av_core_new(os_memory(), log.get(), mock_current_time, &ctx, &net));
+    std::unique_ptr<Tox_Av, AvDeleter> av(
+        tox_av_new_testing(os_memory(), mock_current_time, &ctx, &err_new));
 
-    if (av == nullptr) {
+    if (err_new != TOX_ERR_AV_NEW_TESTING_OK) {
         return;
     }
 
-    ctx.friend_connected.fill(true);
+    tox_av_callback_send_lossy_packet(av.get(), mock_send_lossy, &ctx);
+    tox_av_callback_send_lossless_packet(av.get(), mock_send_lossless, &ctx);
+
+    for (uint32_t i = 0; i < ctx.friend_connected.size(); ++i) {
+        ctx.friend_connected[i] = true;
+        tox_av_friend_connection_status(av.get(), i, true);
+    }
 
     // Register callbacks
-    toxav_callback_call(av.get(), on_call, nullptr);
-    toxav_callback_call_state(av.get(), on_call_state, nullptr);
-    toxav_callback_audio_receive_frame(av.get(), on_audio_frame, nullptr);
-    toxav_callback_video_receive_frame(av.get(), on_video_frame, nullptr);
-    toxav_callback_audio_bit_rate(av.get(), on_audio_bit_rate, nullptr);
-    toxav_callback_video_bit_rate(av.get(), on_video_bit_rate, nullptr);
+    tox_av_callback_call(av.get(), on_call, nullptr);
+    tox_av_callback_call_state(av.get(), on_call_state, nullptr);
+    tox_av_callback_audio_receive_frame(av.get(), on_audio_frame, nullptr);
+    tox_av_callback_video_receive_frame(av.get(), on_video_frame, nullptr);
+    tox_av_callback_audio_bit_rate(av.get(), on_audio_bit_rate, nullptr);
+    tox_av_callback_video_bit_rate(av.get(), on_video_bit_rate, nullptr);
 
     fuzz_log("Starting fuzz_toxav_custom (size=%zu, mode=%s)\n", input.size(),
         multithreaded ? "MT" : "ST");
@@ -129,10 +112,10 @@ void fuzz_toxav_custom(Fuzz_Data &input)
         case 0: {  // iterate
             fuzz_log("iterate\n");
             if (multithreaded) {
-                toxav_audio_iterate(av.get());
-                toxav_video_iterate(av.get());
+                tox_av_audio_iterate(av.get());
+                tox_av_video_iterate(av.get());
             } else {
-                toxav_iterate(av.get());
+                tox_av_iterate(av.get());
             }
             break;
         }
@@ -141,8 +124,8 @@ void fuzz_toxav_custom(Fuzz_Data &input)
             CONSUME1_OR_RETURN(uint32_t, audio_br, input);
             CONSUME1_OR_RETURN(uint32_t, video_br, input);
             fuzz_log("call(friend=%d, abr=%u, vbr=%u)\n", friend_number, audio_br, video_br);
-            Toxav_Err_Call err;
-            toxav_call(av.get(), friend_number, audio_br, video_br, &err);
+            Tox_Err_Av_Call err;
+            tox_av_call(av.get(), friend_number, audio_br, video_br, &err);
             break;
         }
         case 2: {  // answer
@@ -150,17 +133,17 @@ void fuzz_toxav_custom(Fuzz_Data &input)
             CONSUME1_OR_RETURN(uint32_t, audio_br, input);
             CONSUME1_OR_RETURN(uint32_t, video_br, input);
             fuzz_log("answer(friend=%d, abr=%u, vbr=%u)\n", friend_number, audio_br, video_br);
-            Toxav_Err_Answer err;
-            toxav_answer(av.get(), friend_number, audio_br, video_br, &err);
+            Tox_Err_Av_Answer err;
+            tox_av_answer(av.get(), friend_number, audio_br, video_br, &err);
             break;
         }
         case 3: {  // call_control
             CONSUME1_OR_RETURN(uint8_t, friend_number, input);
             CONSUME1_OR_RETURN(uint8_t, control_val, input);
-            Toxav_Call_Control control = static_cast<Toxav_Call_Control>(control_val % 7);
+            Tox_Av_Call_Control control = static_cast<Tox_Av_Call_Control>(control_val % 7);
             fuzz_log("call_control(friend=%d, ctrl=%d)\n", friend_number, control);
-            Toxav_Err_Call_Control err;
-            toxav_call_control(av.get(), friend_number, control, &err);
+            Tox_Err_Av_Call_Control err;
+            tox_av_call_control(av.get(), friend_number, control, &err);
             break;
         }
         case 4: {  // audio_send_frame
@@ -184,8 +167,8 @@ void fuzz_toxav_custom(Fuzz_Data &input)
 
             fuzz_log("audio_send_frame(friend=%d, samples=%u)\n", friend_number, sample_count);
 
-            Toxav_Err_Send_Frame err;
-            toxav_audio_send_frame(
+            Tox_Err_Av_Send_Frame err;
+            tox_av_audio_send_frame(
                 av.get(), friend_number, pcm.data(), sample_count, channels, sampling_rate, &err);
             break;
         }
@@ -213,8 +196,8 @@ void fuzz_toxav_custom(Fuzz_Data &input)
 
             fuzz_log("video_send_frame(friend=%d, %dx%d)\n", friend_number, width, height);
 
-            Toxav_Err_Send_Frame err;
-            toxav_video_send_frame(av.get(), friend_number, width, height, y, u, v, &err);
+            Tox_Err_Av_Send_Frame err;
+            tox_av_video_send_frame(av.get(), friend_number, width, height, y, u, v, &err);
             break;
         }
         case 6: {  // receive_packet
@@ -238,23 +221,23 @@ void fuzz_toxav_custom(Fuzz_Data &input)
 
             fuzz_log("receive_packet(friend=%d, len=%u, bias=%d)\n", friend_number, len, bias);
 
-            av_core_receive_packet(av.get(), friend_number, packet.data(), len);
+            tox_av_receive_packet(av.get(), friend_number, packet.data(), len);
             break;
         }
         case 7: {  // set_audio_bit_rate
             CONSUME1_OR_RETURN(uint8_t, friend_number, input);
             CONSUME1_OR_RETURN(uint32_t, br, input);
             fuzz_log("set_audio_bit_rate(friend=%d, br=%u)\n", friend_number, br);
-            Toxav_Err_Bit_Rate_Set err;
-            toxav_audio_set_bit_rate(av.get(), friend_number, br, &err);
+            Tox_Err_Av_Bit_Rate_Set err;
+            tox_av_audio_set_bit_rate(av.get(), friend_number, br, &err);
             break;
         }
         case 8: {  // set_video_bit_rate
             CONSUME1_OR_RETURN(uint8_t, friend_number, input);
             CONSUME1_OR_RETURN(uint32_t, br, input);
             fuzz_log("set_video_bit_rate(friend=%d, br=%u)\n", friend_number, br);
-            Toxav_Err_Bit_Rate_Set err;
-            toxav_video_set_bit_rate(av.get(), friend_number, br, &err);
+            Tox_Err_Av_Bit_Rate_Set err;
+            tox_av_video_set_bit_rate(av.get(), friend_number, br, &err);
             break;
         }
         case 9: {  // advance time
@@ -267,6 +250,8 @@ void fuzz_toxav_custom(Fuzz_Data &input)
             CONSUME1_OR_RETURN(uint8_t, friend_number, input);
             fuzz_log("toggle_connected(friend=%d)\n", friend_number);
             ctx.friend_connected[friend_number] = !ctx.friend_connected[friend_number];
+            tox_av_friend_connection_status(
+                av.get(), friend_number, ctx.friend_connected[friend_number]);
             break;
         }
         case 11: {  // toggle send success

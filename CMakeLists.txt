@@ -427,7 +427,6 @@ if(BUILD_TOXAV)
   set(toxcore_SOURCES ${toxcore_SOURCES}
     toxav/audio.c
     toxav/audio.h
-    toxav/av_core.h
     toxav/bwcontroller.c
     toxav/bwcontroller.h
     toxav/group_jitter_buffer.c
@@ -442,12 +441,16 @@ if(BUILD_TOXAV)
     toxav/rtp.h
     toxav/toxav.c
     toxav/toxav.h
+    toxav/tox_av.h
+    toxav/tox_av_private.h
     toxav/toxav_compat.c
     toxav/toxav_old.c
+    toxav/toxav_struct.h
     toxav/video.c
     toxav/video.h)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
-    ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
+    ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav
+    ${toxcore_SOURCE_DIR}/toxav/tox_av.h^tox)
 
   if(TARGET Opus::opus AND TARGET libvpx::libvpx)
     set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Opus::opus libvpx::libvpx)
