@@ -28,6 +28,9 @@ struct VCSession {
     vpx_codec_ctx_t encoder[1];
     uint32_t frame_counter;
 
+    vpx_image_t raw_frame;
+    bool raw_frame_allocated;
+
     /* decoding */
     vpx_codec_ctx_t decoder[1];
     struct RingBuffer *vbuf_raw; /* Un-decoded data */
@@ -85,8 +88,8 @@ static vpx_codec_iface_t *video_codec_encoder_interface(void)
 
 #define VPX_MAX_DIST_START 40
 
-#define VPX_MAX_ENCODER_THREADS 4
-#define VPX_MAX_DECODER_THREADS 4
+#define VPX_MAX_ENCODER_THREADS 8
+#define VPX_MAX_DECODER_THREADS 8
 #define VIDEO_VP8_DECODER_POST_PROCESSING_ENABLED 0
 
 static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int16_t kf_max_dist)
@@ -119,7 +122,7 @@ static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int
      */
     cfg->kf_min_dist = 0;
     cfg->kf_mode = VPX_KF_AUTO; // Encoder determines optimal placement automatically
-    cfg->rc_end_usage = VPX_VBR; // what quality mode?
+    cfg->rc_end_usage = VPX_CBR; // what quality mode?
 
     /*
      * VPX_VBR    Variable Bit Rate (VBR) mode
@@ -158,6 +161,37 @@ static void vc_init_encoder_cfg(const Logger *log, vpx_codec_enc_cfg_t *cfg, int
 #endif /* 0 */
 }
 
+static int vc_set_encoder_controls(const Logger *log, vpx_codec_ctx_t *encoder)
+{
+    vpx_codec_err_t rc;
+    rc = vpx_codec_control(encoder, VP8E_SET_CPUUSED, VP8E_SET_CPUUSED_VALUE);
+
+    if (rc != VPX_CODEC_OK) {
+        LOGGER_ERROR(log, "Failed to set VP8E_SET_CPUUSED: %s", vpx_codec_err_to_string(rc));
+        return -1;
+    }
+
+    rc = vpx_codec_control(encoder, VP8E_SET_TOKEN_PARTITIONS, VP8_EIGHT_TOKENPARTITION);
+
+    if (rc != VPX_CODEC_OK) {
+        rc = vpx_codec_control(encoder, VP8E_SET_TOKEN_PARTITIONS, VP8_FOUR_TOKENPARTITION);
+
+        if (rc != VPX_CODEC_OK) {
+            LOGGER_ERROR(log, "Failed to set VP8E_SET_TOKEN_PARTITIONS: %s", vpx_codec_err_to_string(rc));
+            return -1;
+        }
+    }
+
+    rc = vpx_codec_control(encoder, VP8E_SET_STATIC_THRESHOLD, 1);
+
+    if (rc != VPX_CODEC_OK) {
+        LOGGER_ERROR(log, "Failed to set VP8E_SET_STATIC_THRESHOLD: %s", vpx_codec_err_to_string(rc));
+        return -1;
+    }
+
+    return 0;
+}
+
 VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend_number,
                   vc_video_receive_frame_cb *cb, void *user_data)
 {
@@ -178,8 +212,6 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         free(vc);
         return nullptr;
     }
-
-    const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
 
     vc->vbuf_raw = rb_new(VIDEO_DECODE_BUFFER_SIZE);
 
@@ -246,10 +278,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         goto BASE_CLEANUP_1;
     }
 
-    rc = vpx_codec_control(vc->encoder, VP8E_SET_CPUUSED, cpu_used_value);
-
-    if (rc != VPX_CODEC_OK) {
-        LOGGER_ERROR(log, "Failed to set encoder control setting: %s", vpx_codec_err_to_string(rc));
+    if (vc_set_encoder_controls(log, vc->encoder) != 0) {
         vpx_codec_destroy(vc->encoder);
         goto BASE_CLEANUP_1;
     }
@@ -292,6 +321,10 @@ void vc_kill(VCSession *vc)
 {
     if (vc == nullptr) {
         return;
+    }
+
+    if (vc->raw_frame_allocated) {
+        vpx_img_free(&vc->raw_frame);
     }
 
     vpx_codec_destroy(vc->encoder);
@@ -438,6 +471,11 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
         return 0; /* Nothing changed */
     }
 
+    if (vc->raw_frame_allocated && (cfg2.g_w != width || cfg2.g_h != height)) {
+        vpx_img_free(&vc->raw_frame);
+        vc->raw_frame_allocated = false;
+    }
+
     if (cfg2.g_w == width && cfg2.g_h == height && kf_max_dist == -1) {
         /* Only bit rate changed */
         LOGGER_INFO(vc->log, "bitrate change from: %u to: %u", (uint32_t)cfg2.rc_target_bitrate, (uint32_t)bit_rate);
@@ -469,12 +507,7 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
             return -1;
         }
 
-        const int cpu_used_value = VP8E_SET_CPUUSED_VALUE;
-
-        rc = vpx_codec_control(&new_encoder, VP8E_SET_CPUUSED, cpu_used_value);
-
-        if (rc != VPX_CODEC_OK) {
-            LOGGER_ERROR(vc->log, "Failed to set encoder control setting: %s", vpx_codec_err_to_string(rc));
+        if (vc_set_encoder_controls(vc->log, &new_encoder) != 0) {
             vpx_codec_destroy(&new_encoder);
             return -1;
         }
@@ -491,19 +524,25 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
 int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
               const uint8_t *u, const uint8_t *v, int encode_flags)
 {
-    vpx_image_t img;
-
-    if (vpx_img_alloc(&img, VPX_IMG_FMT_I420, width, height, 0) == nullptr) {
-        LOGGER_ERROR(vc->log, "Could not allocate image for frame");
-        return -1;
+    if (vc->raw_frame_allocated && (vc->raw_frame.d_w != width || vc->raw_frame.d_h != height)) {
+        vpx_img_free(&vc->raw_frame);
+        vc->raw_frame_allocated = false;
     }
 
-    /* I420 "It comprises an NxM Y plane followed by (N/2)x(M/2) V and U planes."
-     * http://fourcc.org/yuv.php#IYUV
-     */
-    memcpy(img.planes[VPX_PLANE_Y], y, width * height);
-    memcpy(img.planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
-    memcpy(img.planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
+    if (!vc->raw_frame_allocated) {
+        if (vpx_img_alloc(&vc->raw_frame, VPX_IMG_FMT_I420, width, height, 1) == nullptr) {
+            LOGGER_ERROR(vc->log, "Could not allocate image for frame");
+            return -1;
+        }
+
+        vc->raw_frame_allocated = true;
+    }
+
+    vpx_image_t *img = &vc->raw_frame;
+
+    memcpy(img->planes[VPX_PLANE_Y], y, width * height);
+    memcpy(img->planes[VPX_PLANE_U], u, (width / 2) * (height / 2));
+    memcpy(img->planes[VPX_PLANE_V], v, (width / 2) * (height / 2));
 
     int vpx_flags = 0;
 
@@ -511,10 +550,8 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
         vpx_flags |= VPX_EFLAG_FORCE_KF;
     }
 
-    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, &img,
+    const vpx_codec_err_t vrc = vpx_codec_encode(vc->encoder, img,
                                 vc->frame_counter, 1, vpx_flags, VPX_DL_REALTIME);
-
-    vpx_img_free(&img);
 
     if (vrc != VPX_CODEC_OK) {
         LOGGER_ERROR(vc->log, "Could not encode video frame: %s", vpx_codec_err_to_string(vrc));
