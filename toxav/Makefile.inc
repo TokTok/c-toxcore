@@ -1,7 +1,8 @@
 if BUILD_AV
 
 lib_LTLIBRARIES +=  libtoxav.la
-                    libtoxav_la_include_HEADERS = ../toxav/toxav.h
+                    libtoxav_la_include_HEADERS = ../toxav/toxav.h \
+                    ../toxav/tox_av.h
                     libtoxav_la_includedir = $(includedir)/tox
 
 libtoxav_la_SOURCES = ../toxav/rtp.h \
@@ -22,7 +23,11 @@ libtoxav_la_SOURCES = ../toxav/rtp.h \
                     ../toxav/ring_buffer.c \
                     ../toxav/toxav.h \
                     ../toxav/toxav.c \
-                    ../toxav/toxav_old.c
+                    ../toxav/toxav_compat.c \
+                    ../toxav/toxav_old.c \
+                    ../toxav/tox_av.h \
+                    ../toxav/tox_av_private.h \
+                    ../toxav/toxav_struct.h
 
 libtoxav_la_CFLAGS = -I../toxcore \
                     -I../toxav \

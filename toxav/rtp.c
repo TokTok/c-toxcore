@@ -13,8 +13,7 @@
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
-#include "../toxcore/net_crypto.h"
-#include "../toxcore/network.h"
+#include "../toxcore/net.h"
 #include "../toxcore/util.h"
 
 /**
@@ -1010,14 +1009,14 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
         return -1;
     }
 
-    const uint16_t rdata_size = min_u32(length + RTP_HEADER_SIZE + 1, MAX_CRYPTO_DATA_SIZE);
+    const uint16_t rdata_size = min_u32(length + RTP_HEADER_SIZE + 1, RTP_MAX_PACKET_SIZE);
     VLA(uint8_t, rdata, rdata_size);
     memset(rdata, 0, rdata_size);
     rdata[0] = session->payload_type;  // packet id == payload_type
 
     struct RTPHeader header = rtp_default_header(session, length, is_keyframe);
 
-    if (MAX_CRYPTO_DATA_SIZE > (length + RTP_HEADER_SIZE + 1)) {
+    if (RTP_MAX_PACKET_SIZE > (length + RTP_HEADER_SIZE + 1)) {
         /*
          * The length is lesser than the maximum allowed length (including header)
          * Send the packet in single piece.
@@ -1030,9 +1029,9 @@ int rtp_send_data(const Logger *log, RTPSession *session, const uint8_t *data, u
          * Send the packet in multiple pieces.
          */
         uint32_t sent = 0;
-        uint16_t piece = MAX_CRYPTO_DATA_SIZE - (RTP_HEADER_SIZE + 1);
+        uint16_t piece = RTP_MAX_PACKET_SIZE - (RTP_HEADER_SIZE + 1);
 
-        while ((length - sent) + RTP_HEADER_SIZE + 1 > MAX_CRYPTO_DATA_SIZE) {
+        while ((length - sent) + RTP_HEADER_SIZE + 1 > RTP_MAX_PACKET_SIZE) {
             rtp_send_piece(session, &header, data + sent, rdata, piece);
 
             sent += piece;
