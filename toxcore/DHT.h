@@ -252,12 +252,14 @@ const uint8_t *_Nullable dht_get_shared_key_sent(DHT *_Nonnull dht, const uint8_
  */
 bool dht_send_nodes_request(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull client_id);
 
+
 typedef void dht_ip_cb(void *_Nullable object, int32_t number, const IP_Port *_Nonnull ip_port);
 
 typedef void dht_nodes_response_cb(const DHT *_Nonnull dht, const Node_format *_Nonnull node, void *_Nullable user_data);
 
 /** Sets the callback to be triggered on a nodes response. */
 void dht_callback_nodes_response(DHT *_Nonnull dht, dht_nodes_response_cb *_Nullable function);
+
 /** @brief Add a new friend to the friends list.
  * @param public_key must be CRYPTO_PUBLIC_KEY_SIZE bytes long.
  *

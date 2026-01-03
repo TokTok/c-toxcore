@@ -327,6 +327,7 @@ static dht_nodes_response_cb tox_dht_nodes_response_handler;
 static void tox_dht_nodes_response_handler(const DHT *_Nonnull dht, const Node_format *_Nonnull node, void *_Nullable user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
+
     if (tox_data->tox->dht_nodes_response_callback == nullptr) {
         return;
     }
@@ -713,6 +714,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
     }
 
     m_options.ipv6enabled = tox_options_get_ipv6_enabled(opts);
+    m_options.noise_compatibility_enabled = tox_options_get_noise_compatibility_enabled(opts);
     m_options.udp_disabled = !tox_options_get_udp_enabled(opts);
     m_options.port_range[0] = tox_options_get_start_port(opts);
     m_options.port_range[1] = tox_options_get_end_port(opts);

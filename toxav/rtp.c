@@ -17,6 +17,7 @@
 #include "../toxcore/network.h"
 #include "../toxcore/util.h"
 
+
 /**
  * Maximum size of a single RTP frame in bytes.
  * This limit prevents memory exhaustion attacks where a malicious peer sends

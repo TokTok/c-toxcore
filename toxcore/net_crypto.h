@@ -139,11 +139,22 @@ TCP_Connections *_Nonnull nc_get_tcp_c(const Net_Crypto *_Nonnull c);
 
 typedef struct New_Connection {
     IP_Port source;
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
-    uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
-    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
-    uint8_t peersessionpublic_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
-    uint8_t *_Nonnull cookie;
+    uint8_t peer_id_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
+    uint8_t peer_dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
+    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce to decrypt received packets. */
+    uint8_t peer_ephemeral_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
+    // Necessary for Noise
+    // TODO(goldroom): refactor to not use struct
+    Noise_Handshake noise_handshake_data;
+    Noise_Handshake *_Nullable noise_handshake;
+    // TODO(goldroom): if no struct necessary
+    // uint8_t noise_hash[CRYPTO_SHA512_SIZE];
+    // uint8_t noise_chaining_key[CRYPTO_SHA512_SIZE];
+    // uint8_t niose_send_key[CRYPTO_SHARED_KEY_SIZE];
+    // uint8_t noise_recv_key[CRYPTO_SHARED_KEY_SIZE];
+    // bool initiator;
+
+    uint8_t *_Nullable peer_cookie;
     uint8_t cookie_length;
 } New_Connection;
 
@@ -380,7 +391,7 @@ void load_secret_key(Net_Crypto *_Nonnull c, const uint8_t *_Nonnull sk);
  */
 Net_Crypto *_Nullable new_net_crypto(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time,
                                      Networking_Core *_Nonnull net, void *_Nonnull dht, const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs,
-                                     const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np);
+                                     const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np, bool noise_compatibility_enabled);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 uint32_t crypto_run_interval(const Net_Crypto *_Nonnull c);
@@ -388,6 +399,7 @@ uint32_t crypto_run_interval(const Net_Crypto *_Nonnull c);
 /** Main loop. */
 void do_net_crypto(Net_Crypto *_Nonnull c, void *_Nullable userdata);
 void kill_net_crypto(Net_Crypto *_Nullable c);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
