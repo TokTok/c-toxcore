@@ -715,6 +715,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
     }
 
     m_options.ipv6enabled = tox_options_get_ipv6_enabled(opts);
+    m_options.handshake_mode = (Crypto_Handshake_Mode)tox_options_get_handshake_mode(opts);
     m_options.udp_disabled = !tox_options_get_udp_enabled(opts);
     m_options.port_range[0] = tox_options_get_start_port(opts);
     m_options.port_range[1] = tox_options_get_end_port(opts);

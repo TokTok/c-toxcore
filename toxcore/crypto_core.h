@@ -70,6 +70,11 @@ extern "C" {
 #define CRYPTO_NONCE_SIZE              24
 
 /**
+ * @brief NoiseIK: The number of bytes in a nonce used for encryption/decryption (ChaChaPoly1305-IETF).
+ */
+#define CRYPTO_NOISE_NONCE_SIZE              12
+
+/**
  * @brief The number of bytes in a SHA256 hash.
  */
 #define CRYPTO_SHA256_SIZE             32
@@ -78,6 +83,7 @@ extern "C" {
  * @brief The number of bytes in a SHA512 hash.
  */
 #define CRYPTO_SHA512_SIZE             64
+
 
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
@@ -278,9 +284,6 @@ typedef struct Extended_Secret_Key {
  * @brief Creates an extended keypair: curve25519 and ed25519 for encryption and signing
  *   respectively. The Encryption keys are derived from the signature keys.
  *
- * NOTE: This does *not* use Random, so any code using this will not be fuzzable.
- * TODO: Make it use Random.
- *
  * @param[out] pk The buffer where the public key will be stored. Must have room for EXT_PUBLIC_KEY_SIZE bytes.
  * @param[out] sk The buffer where the secret key will be stored. Must have room for EXT_SECRET_KEY_SIZE bytes.
  * @param rng The random number generator to use for the key generator seed.
@@ -416,6 +419,64 @@ bool crypto_memunlock(void *_Nonnull data, size_t length);
  * @brief Generate a random secret HMAC key.
  */
 void new_hmac_key(const Random *_Nonnull rng, uint8_t key[_Nonnull CRYPTO_HMAC_KEY_SIZE]);
+
+/**
+ * @brief Encrypt message with precomputed shared key using ChaCha20-Poly1305-IETF (RFC7539).
+ *
+ * Encrypts plain of plain_length to encrypted of plain_length + @ref CRYPTO_MAC_SIZE
+ * using a shared key @ref CRYPTO_SHARED_KEY_SIZE big and a @ref CRYPTO_NOISE_NONCE_SIZE
+ * byte nonce. The encrypted message, as well as a tag authenticating both the confidential
+ * message m and adlen bytes of non-confidential data ad, are put into encrypted.
+ *
+ * @retval -1 if there was a problem.
+ * @return length of encrypted data if everything was fine.
+ */
+int32_t encrypt_data_symmetric_aead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NOISE_NONCE_SIZE], const uint8_t *_Nonnull plain,
+                                    size_t plain_length,
+                                    uint8_t encrypted[_Nonnull /*! plain_length + CRYPTO_MAC_SIZE */], const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Decrypt message with precomputed shared key using ChaCha20-Poly1305-IETF (RFC7539).
+ *
+ * Decrypts encrypted of encrypted_length to plain of length
+ * `encrypted_length - CRYPTO_MAC_SIZE` using a shared key @ref CRYPTO_SHARED_KEY_SIZE
+ * big and a @ref CRYPTO_NOISE_NONCE_SIZE byte nonce.
+ *
+ * @retval -1 if there was a problem (decryption failed).
+ * @return length of plain data if everything was fine.
+ */
+int32_t decrypt_data_symmetric_aead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NOISE_NONCE_SIZE], const uint8_t *_Nonnull encrypted,
+                                    size_t encrypted_length,
+                                    uint8_t *_Nonnull plain, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Encrypt message with precomputed shared key using XChaCha20-Poly1305.
+ *
+ * Encrypts plain of plain_length to encrypted of plain_length + @ref CRYPTO_MAC_SIZE
+ * using a shared key @ref CRYPTO_SYMMETRIC_KEY_SIZE big and a @ref CRYPTO_NONCE_SIZE
+ * byte nonce. The encrypted message, as well as a tag authenticating both the confidential
+ * message m and adlen bytes of non-confidential data ad, are put into encrypted.
+ *
+ * @retval -1 if there was a problem.
+ * @return length of encrypted data if everything was fine.
+ */
+int32_t encrypt_data_symmetric_xaead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NONCE_SIZE], const uint8_t *_Nonnull plain, size_t plain_length,
+                                     uint8_t *_Nonnull encrypted, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Decrypt message with precomputed shared key using XChaCha20-Poly1305.
+ *
+ * Decrypts encrypted of encrypted_length to plain of length
+ * `encrypted_length - CRYPTO_MAC_SIZE` using a shared key @ref CRYPTO_SHARED_KEY_SIZE
+ * big and a @ref CRYPTO_NONCE_SIZE byte nonce.
+ *
+ * @retval -1 if there was a problem (decryption failed).
+ * @return length of plain data if everything was fine.
+ */
+int32_t decrypt_data_symmetric_xaead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NONCE_SIZE], const uint8_t *_Nonnull encrypted,
+                                     size_t encrypted_length,
+                                     uint8_t *_Nonnull plain, const uint8_t *_Nullable ad, size_t ad_length);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

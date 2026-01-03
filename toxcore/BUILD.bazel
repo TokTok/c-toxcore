@@ -341,6 +341,33 @@ cc_library(
 )
 
 cc_library(
+    name = "noise",
+    srcs = ["noise.c"],
+    hdrs = ["noise.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        "@libsodium",
+    ],
+)
+
+cc_test(
+    name = "noise_test",
+    size = "small",
+    srcs = ["noise_test.cc"],
+    deps = [
+        ":crypto_core",
+        ":crypto_core_test_util",
+        ":noise",
+        "//c-toxcore/testing/support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "crypto_core_pack",
     srcs = ["crypto_core_pack.c"],
     hdrs = ["crypto_core_pack.h"],
@@ -375,6 +402,7 @@ cc_test(
     deps = [
         ":crypto_core",
         ":crypto_core_test_util",
+        ":noise",
         ":util",
         "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
@@ -1030,6 +1058,7 @@ cc_library(
         ":net",
         ":net_profile",
         ":network",
+        ":noise",
         ":rng",
         ":util",
         "@pthread",
