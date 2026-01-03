@@ -13,6 +13,7 @@
 
 #include "util.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "ccompat.h"
@@ -179,4 +180,46 @@ uint32_t jenkins_one_at_a_time_hash(const uint8_t *key, size_t len)
     hash ^= hash >> 11;
     hash += (uint32_t)((uint64_t)hash << 15);
     return hash;
+}
+
+/**
+ * @brief Generic function to print bytes as String.
+ *
+ * @param bytes Bytes to be printed as String.
+ * @param bytes_length The length in bytes
+ * @param str The string to save the result to.
+ * @param str_length Length of the string
+ */
+void bytes_to_string(const uint8_t *bytes, size_t bytes_length, char *str, size_t str_length)
+{
+    if (str_length == 0) {
+        return;
+    }
+
+    if (bytes_length * 2 + 1 <= str_length) {
+        for (size_t i = 0; i < bytes_length; ++i) {
+            snprintf(&str[i * 2], str_length - i * 2, "%02X", bytes[i]);
+        }
+        return;
+    }
+
+    if (str_length < 6) {
+        snprintf(str, str_length, "...");
+        return;
+    }
+
+    const size_t end_bytes = 1;
+    const size_t start_chars = str_length - 6;
+    const size_t start_bytes = start_chars / 2;
+
+    size_t current_pos = 0;
+    for (size_t i = 0; i < start_bytes; ++i) {
+        snprintf(str + current_pos, str_length - current_pos, "%02X", bytes[i]);
+        current_pos += 2;
+    }
+
+    snprintf(str + current_pos, str_length - current_pos, "...");
+    current_pos += 3;
+
+    snprintf(str + current_pos, str_length - current_pos, "%02X", bytes[bytes_length - 1]);
 }

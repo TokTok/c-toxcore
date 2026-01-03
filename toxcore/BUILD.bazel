@@ -1090,6 +1090,7 @@ cc_fuzz_test(
         ":ev",
         ":net_crypto",
         ":net_profile",
+
         ":network",
         ":os_event",
         "//c-toxcore/testing/support",

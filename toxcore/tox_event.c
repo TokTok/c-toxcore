@@ -351,6 +351,7 @@ bool tox_event_construct(Tox_Event *event, Tox_Event_Type type, const Memory *me
         }
 
         case TOX_EVENT_DHT_NODES_RESPONSE: {
+
             event->data.dht_nodes_response = tox_event_dht_nodes_response_new(mem);
             break;
         }
@@ -566,6 +567,7 @@ void tox_event_destruct(Tox_Event *event, const Memory *mem)
         }
 
         case TOX_EVENT_DHT_NODES_RESPONSE: {
+
             tox_event_dht_nodes_response_free(event->data.dht_nodes_response, mem);
             break;
         }
@@ -705,6 +707,7 @@ static bool tox_event_data_pack(Tox_Event_Type type, const Tox_Event_Data *_Nonn
 
         case TOX_EVENT_DHT_NODES_RESPONSE:
             return tox_event_dht_nodes_response_pack(data->dht_nodes_response, bp);
+
 
         case TOX_EVENT_INVALID:
             return false;
@@ -1066,6 +1069,7 @@ static bool tox_event_data_unpack(Tox_Event_Type type, Tox_Event_Data *_Nonnull 
 
         case TOX_EVENT_DHT_NODES_RESPONSE:
             return tox_event_dht_nodes_response_unpack(&data->dht_nodes_response, bu, mem);
+
 
         case TOX_EVENT_INVALID:
             return false;

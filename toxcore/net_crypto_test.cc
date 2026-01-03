@@ -31,7 +31,8 @@ using namespace tox::test;
 template <typename DHTWrapper>
 class TestNode {
 public:
-    TestNode(SimulatedEnvironment &env, std::uint16_t port, bool enable_trace = false)
+    TestNode(SimulatedEnvironment &env, std::uint16_t port,
+        Crypto_Handshake_Mode mode = CRYPTO_HANDSHAKE_MODE_NOISE_BOTH, bool enable_trace = false)
         : dht_wrapper_(env, port)
         , net_profile_(netprof_new(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory),
               [mem = &dht_wrapper_.node().c_memory](Net_Profile *p) { netprof_kill(mem, p); })
@@ -56,7 +57,7 @@ public:
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
             dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            net_profile_.get(), mode));
 
         // 4. Register Callbacks
         new_connection_handler(net_crypto_.get(), &TestNode::static_new_connection_cb, this);
@@ -133,6 +134,11 @@ public:
 
     // Helper to get the ID assigned to a peer by Public Key (for the acceptor side)
     int get_connection_id_by_pk(const std::uint8_t *pk) { return last_accepted_id_; }
+
+    bool is_noise_enabled(int conn_id) const
+    {
+        return nc_testonly_get_noise_enabled(net_crypto_.get(), conn_id);
+    }
 
     ~TestNode();
 
@@ -580,6 +586,302 @@ TEST_F(NetCryptoTest, EndToEndDataExchange_RealDHT)
     }
 
     EXPECT_TRUE(data_received) << "Bob did not receive the correct data";
+}
+
+// --- Handshake Mode Integration Tests ---
+
+// Helper: run until both sides are connected, return true on success.
+template <typename NodeA, typename NodeB>
+bool wait_for_connection(SimulatedEnvironment &env, NodeA &a, int a_conn_id, NodeB &b,
+    int &b_conn_id, std::uint64_t timeout_ms = 5000)
+{
+    auto start = env.clock().current_time_ms();
+    while ((env.clock().current_time_ms() - start) < timeout_ms) {
+        a.poll();
+        b.poll();
+        env.advance_time(10);
+
+        b_conn_id = b.get_connection_id_by_pk(a.real_public_key());
+        if (a.is_connected(a_conn_id) && b_conn_id != -1 && b.is_connected(b_conn_id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Helper: send data from a to b, wait for delivery, return true on success.
+template <typename NodeA, typename NodeB>
+bool exchange_data(SimulatedEnvironment &env, NodeA &a, int a_conn_id, NodeB &b, int b_conn_id,
+    const std::vector<std::uint8_t> &message, std::uint64_t timeout_ms = 2000)
+{
+    if (!a.send_data(a_conn_id, message)) {
+        return false;
+    }
+    auto start = env.clock().current_time_ms();
+    while ((env.clock().current_time_ms() - start) < timeout_ms) {
+        a.poll();
+        b.poll();
+        env.advance_time(10);
+        if (b.get_last_received_data(b_conn_id) == message) {
+            return true;
+        }
+    }
+    return false;
+}
+
+TEST_F(NetCryptoTest, NoiseHandshakeDataExchange)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    int bob_conn_id = -1;
+    ASSERT_TRUE(wait_for_connection(env, alice, alice_conn_id, bob, bob_conn_id));
+
+    // Both should have used Noise handshake
+    EXPECT_TRUE(alice.is_noise_enabled(alice_conn_id));
+    EXPECT_TRUE(bob.is_noise_enabled(bob_conn_id));
+
+    // Exchange data
+    std::vector<std::uint8_t> message = {160, 'N', 'o', 'i', 's', 'e'};
+    EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+}
+
+TEST_F(NetCryptoTest, LegacyHandshakeDataExchange)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_LEGACY_ONLY);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_LEGACY_ONLY);
+
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    int bob_conn_id = -1;
+    ASSERT_TRUE(wait_for_connection(env, alice, alice_conn_id, bob, bob_conn_id));
+
+    // Both should have used legacy handshake
+    EXPECT_FALSE(alice.is_noise_enabled(alice_conn_id));
+    EXPECT_FALSE(bob.is_noise_enabled(bob_conn_id));
+
+    // Exchange data
+    std::vector<std::uint8_t> message = {160, 'L', 'e', 'g', 'a', 'c', 'y'};
+    EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+}
+
+TEST_F(NetCryptoTest, NoiseToLegacyFallback)
+{
+    // One NOISE_BOTH node connects to one LEGACY_ONLY node.
+    // Both sides initiate (mirrors real friend_connection behavior).
+    // Bob's legacy handshake triggers Alice to fall back from Noise.
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_LEGACY_ONLY);
+
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    // Bob also initiates (as friend_connection would do bidirectionally)
+    int bob_conn_id_init = bob.connect_to(alice);
+    ASSERT_NE(bob_conn_id_init, -1);
+
+    // Run until connected
+    auto start = env.clock().current_time_ms();
+    bool connected = false;
+    int bob_conn_id = -1;
+    while ((env.clock().current_time_ms() - start) < 10000) {
+        alice.poll();
+        bob.poll();
+        env.advance_time(10);
+
+        // Check both possible connection IDs on Bob's side
+        if (alice.is_connected(alice_conn_id)) {
+            // Bob may have connected via his initiated connection or accepted Alice's
+            if (bob.is_connected(bob_conn_id_init)) {
+                bob_conn_id = bob_conn_id_init;
+                connected = true;
+                break;
+            }
+            int bob_accepted = bob.get_connection_id_by_pk(alice.real_public_key());
+            if (bob_accepted != -1 && bob.is_connected(bob_accepted)) {
+                bob_conn_id = bob_accepted;
+                connected = true;
+                break;
+            }
+        }
+    }
+
+    ASSERT_TRUE(connected) << "Noise-to-legacy fallback should succeed";
+
+    // Both should have fallen back to legacy
+    EXPECT_FALSE(alice.is_noise_enabled(alice_conn_id));
+    EXPECT_FALSE(bob.is_noise_enabled(bob_conn_id));
+
+    // Exchange data
+    std::vector<std::uint8_t> message = {160, 'F', 'a', 'l', 'l'};
+    EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+}
+
+TEST_F(NetCryptoTest, NoiseSimultaneousOpen)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+
+    // Both sides initiate simultaneously
+    int alice_conn_id = alice.connect_to(bob);
+    int bob_conn_id_init = bob.connect_to(alice);
+    ASSERT_NE(alice_conn_id, -1);
+    ASSERT_NE(bob_conn_id_init, -1);
+
+    // Run until at least one side is connected
+    auto start = env.clock().current_time_ms();
+    bool connected = false;
+    while ((env.clock().current_time_ms() - start) < 5000) {
+        alice.poll();
+        bob.poll();
+        env.advance_time(10);
+
+        if (alice.is_connected(alice_conn_id) && bob.is_connected(bob_conn_id_init)) {
+            connected = true;
+            break;
+        }
+        // Also check if bob accepted alice's connection
+        int bob_accepted = bob.get_connection_id_by_pk(alice.real_public_key());
+        if (alice.is_connected(alice_conn_id) && bob_accepted != -1
+            && bob.is_connected(bob_accepted)) {
+            connected = true;
+            break;
+        }
+    }
+
+    ASSERT_TRUE(connected) << "Simultaneous open should succeed";
+
+    // Exchange data (use alice's initiated connection)
+    std::vector<std::uint8_t> message = {160, 'S', 'i', 'm'};
+    // Try sending from Alice; Bob may have accepted via callback
+    int bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
+    if (bob_conn_id != -1 && bob.is_connected(bob_conn_id)) {
+        EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+    }
+}
+
+TEST_F(NetCryptoTest, NoiseHandshakePacketLoss)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+
+    // Drop the first NET_PACKET_CRYPTO_HS packet
+    bool dropped = false;
+    env.simulation().net().add_filter([&](tox::test::Packet &p) {
+        if (!dropped && p.data.size() > 0 && p.data[0] == NET_PACKET_CRYPTO_HS) {
+            dropped = true;
+            return false;  // Drop it
+        }
+        return true;
+    });
+
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    int bob_conn_id = -1;
+    // Allow more time for retransmission (handshake retransmit interval ~1s)
+    ASSERT_TRUE(wait_for_connection(env, alice, alice_conn_id, bob, bob_conn_id, 10000))
+        << "Handshake should succeed after retransmission";
+    EXPECT_TRUE(dropped) << "Filter should have dropped a handshake packet";
+
+    // Exchange data
+    std::vector<std::uint8_t> message = {160, 'R', 'e', 't', 'r', 'y'};
+    EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+}
+
+// --- Security Regression Tests ---
+
+// Compute legacy HANDSHAKE_PACKET_LENGTH from public constants.
+// COOKIE_LENGTH = NONCE + sizeof(uint64_t) + 2*PK + MAC = 24+8+64+16 = 112
+constexpr std::size_t kCookieLength
+    = CRYPTO_NONCE_SIZE + sizeof(std::uint64_t) + CRYPTO_PUBLIC_KEY_SIZE * 2 + CRYPTO_MAC_SIZE;
+constexpr std::size_t kLegacyHandshakePacketLength = 1 + kCookieLength + CRYPTO_NONCE_SIZE
+    + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_SHA512_SIZE + kCookieLength
+    + CRYPTO_MAC_SIZE;
+
+// A NOISE_BOTH node must not destroy its Noise handshake state when it receives
+// an invalid packet that happens to be legacy handshake length. The Noise state
+// must survive so the handshake can complete via retransmission.
+TEST_F(NetCryptoTest, NoiseStateSurvivesGarbageLegacyLengthPacket)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    // Replace the first CRYPTO_HS packet arriving at Alice (Bob's response) with
+    // garbage of exactly legacy handshake length. The first CRYPTO_HS on the wire
+    // is Alice's initiator HS to Bob; the second is Bob's response to Alice.
+    int hs_count = 0;
+    bool injected = false;
+    env.simulation().net().add_filter([&](tox::test::Packet &p) {
+        if (p.data.size() > 0 && p.data[0] == NET_PACKET_CRYPTO_HS) {
+            ++hs_count;
+            if (hs_count == 2 && !injected) {
+                p.data.assign(kLegacyHandshakePacketLength, 0xAA);
+                p.data[0] = NET_PACKET_CRYPTO_HS;
+                injected = true;
+            }
+        }
+        return true;
+    });
+
+    int bob_conn_id = -1;
+    ASSERT_TRUE(wait_for_connection(env, alice, alice_conn_id, bob, bob_conn_id, 10000))
+        << "Noise handshake must recover after receiving a garbage legacy-length packet";
+    EXPECT_TRUE(injected) << "Filter should have injected a garbage packet";
+
+    // Connection completed via Noise (not downgraded to legacy).
+    EXPECT_TRUE(alice.is_noise_enabled(alice_conn_id));
+    EXPECT_TRUE(bob.is_noise_enabled(bob_conn_id));
+
+    std::vector<std::uint8_t> message = {160, 'O', 'K'};
+    EXPECT_TRUE(exchange_data(env, alice, alice_conn_id, bob, bob_conn_id, message));
+}
+
+// Two nodes with the same identity key attempting simultaneous open must not
+// deadlock. The connection should be cleanly rejected (self-connection).
+TEST_F(NetCryptoTest, SimultaneousOpenEqualKeysIsRejected)
+{
+    NetCryptoNode alice(env, 33445, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+    NetCryptoNode bob(env, 33446, CRYPTO_HANDSHAKE_MODE_NOISE_BOTH);
+
+    // Give both nodes the same identity key.
+    std::uint8_t shared_sk[CRYPTO_SECRET_KEY_SIZE];
+    std::memset(shared_sk, 42, CRYPTO_SECRET_KEY_SIZE);
+    load_secret_key(alice.get_net_crypto(), shared_sk);
+    load_secret_key(bob.get_net_crypto(), shared_sk);
+    ASSERT_EQ(
+        std::memcmp(alice.real_public_key(), bob.real_public_key(), CRYPTO_PUBLIC_KEY_SIZE), 0);
+
+    // Both sides initiate simultaneously.
+    int alice_conn_id = alice.connect_to(bob);
+    int bob_conn_id_init = bob.connect_to(alice);
+    ASSERT_NE(alice_conn_id, -1);
+    ASSERT_NE(bob_conn_id_init, -1);
+
+    // Neither side should reach CONNECTED — the equal-key case must be detected
+    // and the connection rejected rather than silently deadlocking.
+    auto start = env.clock().current_time_ms();
+    bool connected = false;
+    while ((env.clock().current_time_ms() - start) < 10000) {
+        alice.poll();
+        bob.poll();
+        env.advance_time(10);
+
+        if (alice.is_connected(alice_conn_id) || bob.is_connected(bob_conn_id_init)) {
+            connected = true;
+            break;
+        }
+    }
+
+    EXPECT_FALSE(connected)
+        << "Equal-key nodes must not establish a connection";
 }
 
 }  // namespace

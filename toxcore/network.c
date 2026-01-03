@@ -68,6 +68,7 @@ int net_send(const Network *ns, const Logger *log,
     }
 
     net_log_data(log, "T=>", buf, len, ip_port, res);
+
     return res;
 }
 
@@ -76,6 +77,7 @@ int net_recv(const Network *ns, const Logger *log,
 {
     const int res = ns_recv(ns, sock, buf, len);
     net_log_data(log, "=>T", buf, len, ip_port, res);
+
     return res;
 }
 

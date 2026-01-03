@@ -601,6 +601,7 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *_Nonnull dispatch, con
         }
 
         case TOX_EVENT_DHT_NODES_RESPONSE: {
+
             if (dispatch->dht_nodes_response_callback != nullptr) {
                 dispatch->dht_nodes_response_callback(event->data.dht_nodes_response, user_data);
             }

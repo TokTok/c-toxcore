@@ -29,6 +29,15 @@
 extern "C" {
 #endif
 
+/**
+ * @brief Handshake mode selection for crypto connections.
+ */
+typedef enum Crypto_Handshake_Mode {
+    CRYPTO_HANDSHAKE_MODE_NOISE_ONLY,   /* Only NoiseIK handshake */
+    CRYPTO_HANDSHAKE_MODE_NOISE_BOTH,   /* NoiseIK preferred, fall back to legacy (default) */
+    CRYPTO_HANDSHAKE_MODE_LEGACY_ONLY,  /* Only legacy handshake (for old peers / testing) */
+} Crypto_Handshake_Mode;
+
 typedef const uint8_t *_Nullable nc_dht_get_shared_key_sent_cb(void *_Nonnull obj, const uint8_t *_Nonnull public_key);
 typedef const uint8_t *_Nonnull nc_dht_get_self_public_key_cb(const void *_Nonnull obj);
 typedef const uint8_t *_Nonnull nc_dht_get_self_secret_key_cb(const void *_Nonnull obj);
@@ -144,11 +153,13 @@ TCP_Connections *_Nonnull nc_get_tcp_c(const Net_Crypto *_Nonnull c);
 
 typedef struct New_Connection {
     IP_Port source;
-    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
-    uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
-    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
-    uint8_t peersessionpublic_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
-    uint8_t *_Nonnull cookie;
+    uint8_t peer_id_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
+    uint8_t peer_dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
+    uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce to decrypt received packets. */
+    uint8_t peer_ephemeral_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The public key of the peer. */
+    Noise_Handshake *_Nullable noise_handshake;
+
+    uint8_t *_Nullable peer_cookie;
     uint8_t cookie_length;
 } New_Connection;
 
@@ -385,7 +396,7 @@ void load_secret_key(Net_Crypto *_Nonnull c, const uint8_t *_Nonnull sk);
  */
 Net_Crypto *_Nullable new_net_crypto(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time,
                                      Networking_Core *_Nonnull net, void *_Nonnull dht, const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs,
-                                     const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np);
+                                     const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np, Crypto_Handshake_Mode handshake_mode);
 
 /** return the optimal interval in ms for running do_net_crypto. */
 uint32_t crypto_run_interval(const Net_Crypto *_Nonnull c);
@@ -396,6 +407,7 @@ void kill_net_crypto(Net_Crypto *_Nullable c);
 
 /** Unit test support functions. Do not use outside tests. */
 void nc_testonly_get_secrets(const Net_Crypto *_Nonnull c, int conn_id, uint8_t *_Nonnull shared_key, uint8_t *_Nonnull sent_nonce, uint8_t *_Nonnull recv_nonce);
+bool nc_testonly_get_noise_enabled(const Net_Crypto *_Nonnull c, int conn_id);
 
 #ifdef __cplusplus
 } /* extern "C" */
