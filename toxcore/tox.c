@@ -585,6 +585,31 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
 
     logger_callback_log(tox->log, tox_log_handler, tox, tox_options_get_log_user_data(opts));
 
+    const Tox_Handshake_Mode handshake_mode = tox_options_get_handshake_mode(opts);
+
+    switch (handshake_mode) {
+        case TOX_HANDSHAKE_MODE_NOISE_ONLY: {
+            m_options.handshake_mode = CRYPTO_HANDSHAKE_MODE_NOISE_ONLY;
+            break;
+        }
+
+        case TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY: {
+            m_options.handshake_mode = CRYPTO_HANDSHAKE_MODE_NOISE_BOTH;
+            break;
+        }
+
+        case TOX_HANDSHAKE_MODE_LEGACY_ONLY: {
+            m_options.handshake_mode = CRYPTO_HANDSHAKE_MODE_LEGACY_ONLY;
+            break;
+        }
+
+        default: {
+            LOGGER_WARNING(tox->log, "invalid handshake mode %d, using Noise and legacy", (int)handshake_mode);
+            m_options.handshake_mode = CRYPTO_HANDSHAKE_MODE_NOISE_BOTH;
+            break;
+        }
+    }
+
     switch (tox_options_get_proxy_type(opts)) {
         case TOX_PROXY_TYPE_HTTP: {
             m_options.proxy_info.proxy_type = TCP_PROXY_HTTP;

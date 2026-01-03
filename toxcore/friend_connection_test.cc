@@ -54,7 +54,7 @@ public:
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
             dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            net_profile_.get(), CRYPTO_HANDSHAKE_MODE_NOISE_ONLY));
 
         new_keys(net_crypto_.get());
 
