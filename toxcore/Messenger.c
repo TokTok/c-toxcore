@@ -3480,7 +3480,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
     }
     m->tcp_np = tcp_np;
 
-    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
+    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np, options->handshake_mode);
 
     if (net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");

@@ -64,6 +64,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/crypto_core_pack.h \
                         ../toxcore/crypto_core.c \
                         ../toxcore/crypto_core.h \
+                        ../toxcore/noise.c \
+                        ../toxcore/noise.h \
                         ../toxcore/DHT.c \
                         ../toxcore/DHT.h \
                         ../toxcore/ev.c \
