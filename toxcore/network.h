@@ -36,6 +36,7 @@ typedef enum Net_Packet_Type {
     NET_PACKET_COOKIE_RESPONSE      = 0x19, /* Cookie response packet */
     NET_PACKET_CRYPTO_HS            = 0x1a, /* Crypto handshake packet */
     NET_PACKET_CRYPTO_DATA          = 0x1b, /* Crypto data packet */
+    NET_PACKET_CRYPTO_NOISE_HS      = 0x1c, /* Noise IK handshake packet */
     NET_PACKET_CRYPTO               = 0x20, /* Encrypted data packet ID. */
     NET_PACKET_LAN_DISCOVERY        = 0x21, /* LAN discovery packet ID. */
 
