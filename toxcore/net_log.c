@@ -41,6 +41,9 @@ static const char *_Nonnull net_packet_type_name(Net_Packet_Type type)
         case NET_PACKET_CRYPTO_DATA:
             return "CRYPTO_DATA";
 
+        case NET_PACKET_CRYPTO_NOISE_HS:
+            return "CRYPTO_NOISE_HS";
+
         case NET_PACKET_CRYPTO:
             return "CRYPTO";
 
