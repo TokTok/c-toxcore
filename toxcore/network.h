@@ -13,6 +13,10 @@
 #include <stddef.h>     // size_t
 #include <stdint.h>     // uint*_t
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #include "attributes.h"
 #include "bin_pack.h"
 #include "logger.h"
@@ -411,6 +415,13 @@ typedef struct Networking_Core Networking_Core;
 
 Family net_family(const Networking_Core *_Nonnull net);
 uint16_t net_port(const Networking_Core *_Nonnull net);
+Socket net_sock(const Networking_Core *_Nonnull net);
+
+#ifdef HAVE_LIBEV
+typedef void net_ev_listen_cb(struct ev_loop *dispatcher, ev_io *sock_listener, int events);
+void net_ev_listen(Networking_Core *_Nonnull net, struct ev_loop *dispatcher, net_ev_listen_cb *callback, void *data);
+void net_ev_stop(Networking_Core *_Nonnull net);
+#endif
 
 /** Close the socket. */
 void kill_sock(const Network *_Nonnull ns, Socket sock);

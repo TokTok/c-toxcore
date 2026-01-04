@@ -447,6 +447,7 @@ cc_library(
         "net_log.h",
         "network.h",
     ],
+    defines = ["HAVE_LIBEV"],
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
@@ -464,6 +465,7 @@ cc_library(
         ":mono_time",
         ":net_profile",
         ":util",
+        "@ev",
         "@libsodium",
         "@psocket",
         "@pthread",

@@ -83,6 +83,18 @@ typedef struct TCP_Connections TCP_Connections;
 
 const uint8_t *_Nonnull tcp_connections_public_key(const TCP_Connections *_Nonnull tcp_c);
 
+uint32_t tcp_connections_length(const TCP_Connections *_Nonnull tcp_c);
+
+/**
+ * Return TCP connection stored at "idx" position.
+ *
+ * @param tcp_c struct containing TCP_con array.
+ * @param idx   index of TCP connection to return (values from 0 to `tcp_connections_length() - 1`).
+ *
+ * @return TCP connection stored at "idx" position, or NULL if errors occurred.
+ */
+const TCP_con *_Nullable tcp_connections_connection_at(const TCP_Connections *_Nonnull tcp_c, uint32_t idx);
+
 uint32_t tcp_connections_count(const TCP_Connections *_Nonnull tcp_c);
 
 /** @brief Returns the number of connected TCP relays. */

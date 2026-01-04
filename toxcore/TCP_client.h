@@ -9,6 +9,10 @@
 #ifndef C_TOXCORE_TOXCORE_TCP_CLIENT_H
 #define C_TOXCORE_TOXCORE_TCP_CLIENT_H
 
+#ifdef HAVE_LIBEV
+#include <ev.h>
+#endif
+
 #include "attributes.h"
 #include "crypto_core.h"
 #include "forwarding.h"
@@ -47,6 +51,17 @@ typedef struct TCP_Client_Connection TCP_Client_Connection;
 const uint8_t *_Nonnull tcp_con_public_key(const TCP_Client_Connection *_Nonnull con);
 IP_Port tcp_con_ip_port(const TCP_Client_Connection *_Nonnull con);
 TCP_Client_Status tcp_con_status(const TCP_Client_Connection *_Nonnull con);
+
+// TODO(iphydf): This is exactly the same as in network.h. It should be factored
+// out and probably abstracted away from ev.h.
+#ifdef HAVE_LIBEV
+typedef void tcp_con_ev_listen_cb(struct ev_loop *dispatcher, ev_io *sock_listener, int events);
+void tcp_con_ev_listen(TCP_Client_Connection *_Nonnull con, struct ev_loop *dispatcher, tcp_con_ev_listen_cb *callback,
+                       void *data);
+void tcp_con_ev_stop(TCP_Client_Connection *_Nonnull con);
+#else
+Socket tcp_con_sock(const TCP_Client_Connection *_Nonnull con);
+#endif
 
 void *_Nullable tcp_con_custom_object(const TCP_Client_Connection *_Nonnull con);
 uint32_t tcp_con_custom_uint(const TCP_Client_Connection *_Nonnull con);
