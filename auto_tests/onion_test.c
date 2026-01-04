@@ -492,7 +492,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
     }
 
     TCP_Proxy_Info inf = {{{{0}}}};
-    on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, net, dht, &inf, on->tcp_np);
+    on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, net, dht, &auto_test_dht_funcs, &inf, on->tcp_np);
     on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, on->nc, dht, net);
 
     if (!on->onion_c) {

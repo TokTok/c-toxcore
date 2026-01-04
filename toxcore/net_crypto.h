@@ -9,7 +9,6 @@
 #ifndef C_TOXCORE_TOXCORE_NET_CRYPTO_H
 #define C_TOXCORE_TOXCORE_NET_CRYPTO_H
 
-#include "DHT.h"
 #include "TCP_client.h"
 #include "TCP_connection.h"
 #include "attributes.h"
@@ -23,6 +22,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef const uint8_t *_Nullable nc_dht_get_shared_key_sent_cb(void *_Nonnull obj, const uint8_t *_Nonnull public_key);
+typedef const uint8_t *_Nonnull nc_dht_get_self_public_key_cb(const void *_Nonnull obj);
+typedef const uint8_t *_Nonnull nc_dht_get_self_secret_key_cb(const void *_Nonnull obj);
+
+typedef struct Net_Crypto_DHT_Funcs {
+    nc_dht_get_shared_key_sent_cb *_Nonnull get_shared_key_sent;
+    nc_dht_get_self_public_key_cb *_Nonnull get_self_public_key;
+    nc_dht_get_self_secret_key_cb *_Nonnull get_self_secret_key;
+} Net_Crypto_DHT_Funcs;
 
 /*** Crypto payloads. */
 
@@ -369,7 +378,7 @@ void load_secret_key(Net_Crypto *_Nonnull c, const uint8_t *_Nonnull sk);
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *_Nullable new_net_crypto(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time,
-                                     Networking_Core *_Nonnull net, DHT *_Nonnull dht,
+                                     Networking_Core *_Nonnull net, void *_Nonnull dht, const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs,
                                      const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np);
 
 /** return the optimal interval in ms for running do_net_crypto. */

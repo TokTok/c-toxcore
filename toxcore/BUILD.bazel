@@ -830,7 +830,6 @@ cc_library(
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [
-        ":DHT",
         ":LAN_discovery",
         ":TCP_client",
         ":TCP_connection",

@@ -8,6 +8,7 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/tox_dispatch.h"
+#include "../toxcore/net_crypto.h"
 
 typedef struct AutoTox {
     Tox *tox;
@@ -65,5 +66,7 @@ void print_debug_logger(void *context, Logger_Level level, const char *file, uin
 
 Tox *tox_new_log(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data);
 Tox *tox_new_log_lan(struct Tox_Options *options, Tox_Err_New *err, void *log_user_data, bool lan_discovery);
+
+extern const Net_Crypto_DHT_Funcs auto_test_dht_funcs;
 
 #endif

@@ -8,12 +8,35 @@
 #include "../toxcore/tox_dispatch.h"
 #include "../toxcore/tox_events.h"
 #include "../toxcore/tox_struct.h"
+#include "../toxcore/net_crypto.h"
+#include "../toxcore/DHT.h"
 
 #include "auto_test_support.h"
 
 #ifndef ABORT_ON_LOG_ERROR
 #define ABORT_ON_LOG_ERROR true
 #endif
+
+static const uint8_t *auto_test_nc_dht_get_shared_key_sent_wrapper(void *dht, const uint8_t *public_key)
+{
+    return dht_get_shared_key_sent((DHT *)dht, public_key);
+}
+
+static const uint8_t *auto_test_nc_dht_get_self_public_key_wrapper(const void *dht)
+{
+    return dht_get_self_public_key((const DHT *)dht);
+}
+
+static const uint8_t *auto_test_nc_dht_get_self_secret_key_wrapper(const void *dht)
+{
+    return dht_get_self_secret_key((const DHT *)dht);
+}
+
+const Net_Crypto_DHT_Funcs auto_test_dht_funcs = {
+    auto_test_nc_dht_get_shared_key_sent_wrapper,
+    auto_test_nc_dht_get_self_public_key_wrapper,
+    auto_test_nc_dht_get_self_secret_key_wrapper,
+};
 
 #ifndef USE_IPV6
 #define USE_IPV6 1

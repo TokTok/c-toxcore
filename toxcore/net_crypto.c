@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include <string.h>
 
-#include "DHT.h"
 #include "LAN_discovery.h"
 #include "TCP_client.h"
 #include "TCP_connection.h"
@@ -139,7 +138,8 @@ struct Net_Crypto {
     const Network *ns;
     Networking_Core *net;
 
-    DHT *dht;
+    void *dht;
+    const Net_Crypto_DHT_Funcs *dht_funcs;
     TCP_Connections *tcp_c;
 
     Crypto_Connection *crypto_connections;
@@ -218,12 +218,12 @@ static int create_cookie_request(const Net_Crypto *_Nonnull c, uint8_t *_Nonnull
     memcpy(plain, c->self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memzero(plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(plain + (CRYPTO_PUBLIC_KEY_SIZE * 2), &number, sizeof(uint64_t));
-    const uint8_t *tmp_shared_key = dht_get_shared_key_sent(c->dht, dht_public_key);
+    const uint8_t *tmp_shared_key = c->dht_funcs->get_shared_key_sent(c->dht, dht_public_key);
     memcpy(shared_key, tmp_shared_key, CRYPTO_SHARED_KEY_SIZE);
     uint8_t nonce[CRYPTO_NONCE_SIZE];
     random_nonce(c->rng, nonce);
     packet[0] = NET_PACKET_COOKIE_REQUEST;
-    memcpy(packet + 1, dht_get_self_public_key(c->dht), CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(packet + 1, c->dht_funcs->get_self_public_key(c->dht), CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, nonce, CRYPTO_NONCE_SIZE);
     const int len = encrypt_data_symmetric(c->mem, shared_key, nonce, plain, sizeof(plain),
                                            packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE);
@@ -330,11 +330,12 @@ static int handle_cookie_request(const Net_Crypto *_Nonnull c, uint8_t *_Nonnull
     }
 
     memcpy(dht_public_key, packet + 1, CRYPTO_PUBLIC_KEY_SIZE);
-    const uint8_t *tmp_shared_key = dht_get_shared_key_sent(c->dht, dht_public_key);
+    const uint8_t *tmp_shared_key = c->dht_funcs->get_shared_key_sent(c->dht, dht_public_key);
     memcpy(shared_key, tmp_shared_key, CRYPTO_SHARED_KEY_SIZE);
     const int len = decrypt_data_symmetric(c->mem, shared_key, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
                                            packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, COOKIE_REQUEST_PLAIN_LENGTH + CRYPTO_MAC_SIZE,
                                            request_plain);
+
 
     if (len != COOKIE_REQUEST_PLAIN_LENGTH) {
         return -1;
@@ -2911,9 +2912,9 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, Networking_Core *net, DHT *dht, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
+                           Mono_Time *mono_time, Networking_Core *net, void *dht, const Net_Crypto_DHT_Funcs *dht_funcs, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
-    if (dht == nullptr) {
+    if (dht == nullptr || dht_funcs == nullptr || dht_funcs->get_shared_key_sent == nullptr || dht_funcs->get_self_public_key == nullptr || dht_funcs->get_self_secret_key == nullptr) {
         return nullptr;
     }
 
@@ -2930,7 +2931,7 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->ns = ns;
     temp->net = net;
 
-    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_get_self_secret_key(dht), proxy_info, tcp_np);
+    temp->tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_funcs->get_self_secret_key(dht), proxy_info, tcp_np);
 
     if (temp->tcp_c == nullptr) {
         mem_delete(mem, temp);
@@ -2941,6 +2942,7 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     set_oob_packet_tcp_connection_callback(temp->tcp_c, &tcp_oob_callback, temp);
 
     temp->dht = dht;
+    temp->dht_funcs = dht_funcs;
 
     new_keys(temp);
     new_symmetric_key(rng, temp->secret_symmetric_key);

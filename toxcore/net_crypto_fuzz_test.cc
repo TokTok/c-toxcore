@@ -27,6 +27,14 @@ std::optional<std::tuple<IP_Port, uint8_t>> prepare(Fuzz_Data &input)
     return {{ipp, iterations}};
 }
 
+static constexpr Net_Crypto_DHT_Funcs dht_funcs = {
+    [](void *dht, const uint8_t *public_key) {
+        return dht_get_shared_key_sent(static_cast<DHT *>(dht), public_key);
+    },
+    [](const void *dht) { return dht_get_self_public_key(static_cast<const DHT *>(dht)); },
+    [](const void *dht) { return dht_get_self_secret_key(static_cast<const DHT *>(dht)); },
+};
+
 void TestNetCrypto(Fuzz_Data &input)
 {
     const auto prep = prepare(input);
@@ -76,7 +84,7 @@ void TestNetCrypto(Fuzz_Data &input)
 
     const Ptr<Net_Crypto> net_crypto(
         new_net_crypto(logger.get(), sys.mem.get(), sys.rng.get(), sys.ns.get(), mono_time.get(),
-            net.get(), dht.get(), &proxy_info, tcp_np),
+            net.get(), dht.get(), &dht_funcs, &proxy_info, tcp_np),
         kill_net_crypto);
     if (net_crypto == nullptr) {
         netprof_kill(sys.mem.get(), tcp_np);

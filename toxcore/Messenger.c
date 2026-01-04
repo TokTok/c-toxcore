@@ -47,6 +47,30 @@ static_assert(MAX_CONCURRENT_FILE_PIPES <= UINT8_MAX + 1,
 
 static const Friend empty_friend = {{0}};
 
+static const uint8_t *_Nullable nc_dht_get_shared_key_sent_wrapper(void *_Nonnull obj, const uint8_t *_Nonnull public_key)
+{
+    DHT *dht = (DHT *)obj;
+    return dht_get_shared_key_sent(dht, public_key);
+}
+
+static const uint8_t *_Nonnull nc_dht_get_self_public_key_wrapper(const void *_Nonnull obj)
+{
+    const DHT *dht = (const DHT *)obj;
+    return dht_get_self_public_key(dht);
+}
+
+static const uint8_t *_Nonnull nc_dht_get_self_secret_key_wrapper(const void *_Nonnull obj)
+{
+    const DHT *dht = (const DHT *)obj;
+    return dht_get_self_secret_key(dht);
+}
+
+static const Net_Crypto_DHT_Funcs m_dht_funcs = {
+    nc_dht_get_shared_key_sent_wrapper,
+    nc_dht_get_self_public_key_wrapper,
+    nc_dht_get_self_secret_key_wrapper,
+};
+
 /**
  * Determines if the friendnumber passed is valid in the Messenger object.
  *
@@ -3443,7 +3467,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
         return nullptr;
     }
 
-    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &options->proxy_info, m->tcp_np);
+    m->net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
 
     if (m->net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
