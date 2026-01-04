@@ -50,6 +50,10 @@ int RtpMock::noop_cb(const Mono_Time * /*mono_time*/, void * /*cs*/, RTPMessage 
 void fill_audio_frame(uint32_t sampling_rate, uint8_t channels, int frame_index,
     size_t sample_count, std::vector<int16_t> &pcm)
 {
+    if (pcm.size() < sample_count * channels) {
+        pcm.resize(sample_count * channels);
+    }
+
     const double pi = std::acos(-1.0);
     double amplitude = 10000.0;
 
@@ -68,6 +72,10 @@ void fill_audio_frame(uint32_t sampling_rate, uint8_t channels, int frame_index,
 
 void fill_silent_frame(uint8_t channels, size_t sample_count, std::vector<int16_t> &pcm)
 {
+    if (pcm.size() < sample_count * channels) {
+        pcm.resize(sample_count * channels);
+    }
+
     for (size_t i = 0; i < sample_count * channels; ++i) {
         // Very low amplitude white noise (simulating silence with background hiss)
         pcm[i] = (std::rand() % 21) - 10;
@@ -92,6 +100,16 @@ void AudioTestData::receive_frame(uint32_t friend_number, const int16_t *pcm, si
 void fill_video_frame(uint16_t width, uint16_t height, int frame_index, std::vector<uint8_t> &y,
     std::vector<uint8_t> &u, std::vector<uint8_t> &v)
 {
+    size_t y_size = static_cast<size_t>(width) * height;
+    size_t uv_size = y_size / 4;
+
+    if (y.size() < y_size)
+        y.resize(y_size);
+    if (u.size() < uv_size)
+        u.resize(uv_size);
+    if (v.size() < uv_size)
+        v.resize(uv_size);
+
     // Background (dark gray)
     std::fill(y.begin(), y.end(), 32);
     std::fill(u.begin(), u.end(), 128);
