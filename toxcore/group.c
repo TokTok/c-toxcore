@@ -218,7 +218,7 @@ const Mono_Time *g_mono_time(const Group_Chats *g_c)
 
 static bool group_id_eq(const uint8_t *_Nonnull a, const uint8_t *_Nonnull b)
 {
-    return pk_equal(a, b);
+    return pk_equal_fast(a, b);
 }
 
 static bool g_title_eq(const Group_c *_Nonnull g, const uint8_t *_Nonnull title, uint8_t title_len)

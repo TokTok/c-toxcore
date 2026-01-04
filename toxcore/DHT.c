@@ -318,7 +318,7 @@ int handle_request(const Memory *mem, const uint8_t *self_public_key, const uint
         return -1;
     }
 
-    if (!pk_equal(packet + 1, self_public_key)) {
+    if (!pk_equal_fast(packet + 1, self_public_key)) {
         return -1;
     }
 
@@ -461,7 +461,7 @@ static uint32_t index_of_client_pk(const Client_data *_Nullable array, uint32_t 
 {
     assert(size == 0 || array != nullptr);
     for (uint32_t i = 0; i < size; ++i) {
-        if (pk_equal(array[i].public_key, pk)) {
+        if (pk_equal_fast(array[i].public_key, pk)) {
             return i;
         }
     }
@@ -473,7 +473,7 @@ static uint32_t index_of_friend_pk(const DHT_Friend *_Nullable array, uint32_t s
 {
     assert(size == 0 || array != nullptr);
     for (uint32_t i = 0; i < size; ++i) {
-        if (pk_equal(array[i].public_key, pk)) {
+        if (pk_equal_fast(array[i].public_key, pk)) {
             return i;
         }
     }
@@ -485,7 +485,7 @@ static uint32_t index_of_node_pk(const Node_format *_Nullable array, uint32_t si
 {
     assert(size == 0 || array != nullptr);
     for (uint32_t i = 0; i < size; ++i) {
-        if (pk_equal(array[i].public_key, pk)) {
+        if (pk_equal_fast(array[i].public_key, pk)) {
             return i;
         }
     }
@@ -831,7 +831,7 @@ static int handle_data_search_response(void *_Nonnull object, const IP_Port *_No
         return 1;
     }
 
-    if (!pk_equal(ping_data, public_key)) {
+    if (!pk_equal_fast(ping_data, public_key)) {
         return 1;
     }
 
@@ -1195,7 +1195,7 @@ uint32_t addto_lists(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key
                                dht->friends_list[i].public_key)) {
             const DHT_Friend *dht_friend = &dht->friends_list[i];
 
-            if (pk_equal(public_key, dht_friend->public_key)) {
+            if (pk_equal_fast(public_key, dht_friend->public_key)) {
                 friend_foundip = dht_friend;
             }
 
@@ -1253,13 +1253,13 @@ static void returnedip_ports(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port,
 {
     const IP_Port ipp_copy = ip_port_normalize(ip_port);
 
-    if (pk_equal(public_key, dht->self_public_key)) {
+    if (pk_equal_fast(public_key, dht->self_public_key)) {
         update_client_data(dht->mono_time, dht->close_clientlist, LCLIENT_LIST, &ipp_copy, nodepublic_key, true);
         return;
     }
 
     for (uint32_t i = 0; i < dht->num_friends; ++i) {
-        if (pk_equal(public_key, dht->friends_list[i].public_key)) {
+        if (pk_equal_fast(public_key, dht->friends_list[i].public_key)) {
             Client_data *const client_list = dht->friends_list[i].client_list;
 
             if (update_client_data(dht->mono_time, client_list, MAX_FRIEND_CLIENTS, &ipp_copy, nodepublic_key, false)) {
@@ -1272,7 +1272,7 @@ static void returnedip_ports(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port,
 bool dht_send_nodes_request(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *client_id)
 {
     /* Check if packet is going to be sent to ourself. */
-    if (pk_equal(public_key, dht->self_public_key)) {
+    if (pk_equal_fast(public_key, dht->self_public_key)) {
         return false;
     }
 
@@ -1320,7 +1320,7 @@ static int send_nodes_response(const DHT *_Nonnull dht, const IP_Port *_Nonnull 
                                const uint8_t *_Nonnull sendback_data, uint16_t length, const uint8_t *_Nonnull shared_encryption_key)
 {
     /* Check if packet is going to be sent to ourself. */
-    if (pk_equal(public_key, dht->self_public_key)) {
+    if (pk_equal_fast(public_key, dht->self_public_key)) {
         return -1;
     }
 
@@ -1375,7 +1375,7 @@ static int handle_nodes_request(void *_Nonnull object, const IP_Port *_Nonnull s
     }
 
     /* Check if packet is from ourself. */
-    if (pk_equal(packet + 1, dht->self_public_key)) {
+    if (pk_equal_fast(packet + 1, dht->self_public_key)) {
         return 1;
     }
 
@@ -1415,7 +1415,7 @@ static bool sent_nodes_request_to_node(DHT *_Nonnull dht, const uint8_t *_Nonnul
         return false;
     }
 
-    return ipport_equal(&test.ip_port, node_ip_port) && pk_equal(test.public_key, public_key);
+    return ipport_equal(&test.ip_port, node_ip_port) && pk_equal_fast(test.public_key, public_key);
 }
 
 static bool handle_nodes_response_core(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, Node_format *_Nonnull plain_nodes,
@@ -1826,7 +1826,7 @@ static void do_close(DHT *_Nonnull dht)
 
 bool dht_bootstrap(DHT *dht, const IP_Port *ip_port, const uint8_t *public_key)
 {
-    if (pk_equal(public_key, dht->self_public_key)) {
+    if (pk_equal_fast(public_key, dht->self_public_key)) {
         // Bootstrapping off ourselves is ok (onion paths are still set up).
         return true;
     }
@@ -1867,7 +1867,7 @@ bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
 int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packet, uint16_t length)
 {
     for (uint32_t i = 0; i < LCLIENT_LIST; ++i) {
-        if (pk_equal(public_key, dht->close_clientlist[i].public_key)) {
+        if (pk_equal_fast(public_key, dht->close_clientlist[i].public_key)) {
             const Client_data *const client = &dht->close_clientlist[i];
             const IPPTsPng *const assocs[] = { &client->assoc6, &client->assoc4, nullptr };
 
@@ -1922,7 +1922,7 @@ static int friend_iplist(const DHT *_Nonnull dht, IP_Port *_Nonnull ip_portlist,
             ++num_ipv6s;
         }
 
-        if (pk_equal(client->public_key, dht_friend->public_key)) {
+        if (pk_equal_fast(client->public_key, dht_friend->public_key)) {
             if (!assoc_timeout(dht->cur_time, &client->assoc6)
                     || !assoc_timeout(dht->cur_time, &client->assoc4)) {
                 return 0; /* direct connectivity */
@@ -2432,7 +2432,7 @@ static int cryptopacket_handle(void *_Nonnull object, const IP_Port *_Nonnull so
     }
 
     // Check if request is for us.
-    if (pk_equal(packet + 1, dht->self_public_key)) {
+    if (pk_equal_fast(packet + 1, dht->self_public_key)) {
         uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
         uint8_t data[MAX_CRYPTO_REQUEST_SIZE];
         uint8_t number;

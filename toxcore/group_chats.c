@@ -543,7 +543,7 @@ static bool validate_password(const GC_Chat *_Nonnull chat, const uint8_t *_Nonn
         return false;
     }
 
-    return memcmp(chat->shared_state.password, password, length) == 0;
+    return crypto_memcmp(chat->shared_state.password, password, length) == 0;
 }
 
 /** @brief Returns the chat object that contains a peer with a public key equal to `id`.
@@ -3826,11 +3826,6 @@ static bool handle_gc_topic_validate(const GC_Chat *_Nonnull chat, const GC_Peer
         }
 
         if (topic_info->version == chat->shared_state.topic_lock) {
-            // always accept topic on initial connection
-            if (!mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT)) {
-                return true;
-            }
-
             return true;
         }
 

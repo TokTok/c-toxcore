@@ -175,6 +175,17 @@ bool pk_equal(const uint8_t pk1[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const uint8_t 
 void pk_copy(uint8_t dest[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const uint8_t src[_Nonnull CRYPTO_PUBLIC_KEY_SIZE]);
 
 /**
+ * @brief Compare 2 public keys of length @ref CRYPTO_PUBLIC_KEY_SIZE.
+ *
+ * Warning: This function is not constant time and should not be used for verification
+ * of secrets or where timing side-channels matters.
+ *
+ * @retval true if both mem locations of length are equal
+ * @retval false if they are not
+ */
+bool pk_equal_fast(const uint8_t pk1[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const uint8_t pk2[_Nonnull CRYPTO_PUBLIC_KEY_SIZE]);
+
+/**
  * @brief Compare 2 SHA512 checksums of length CRYPTO_SHA512_SIZE, not vulnerable to
  *   timing attacks.
  *
@@ -189,6 +200,13 @@ bool crypto_sha512_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA512_SIZE], const u
  * @return true if both mem locations of length are equal, false if they are not.
  */
 bool crypto_sha256_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA256_SIZE], const uint8_t cksum2[_Nonnull CRYPTO_SHA256_SIZE]);
+
+/**
+ * @brief Compare 2 memory locations of length @p length, not vulnerable to timing attacks.
+ *
+ * @return 0 if both mem locations of length are equal, -1 if they are not.
+ */
+int crypto_memcmp(const uint8_t *_Nonnull p1, const uint8_t *_Nonnull p2, size_t length);
 
 /**
  * @brief Shorter internal name for the RNG type.
