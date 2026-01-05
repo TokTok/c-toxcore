@@ -5,8 +5,8 @@
 #ifndef C_TOXCORE_TOXAV_AUDIO_H
 #define C_TOXCORE_TOXAV_AUDIO_H
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"

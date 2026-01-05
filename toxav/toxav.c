@@ -9,11 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "audio.h"
+#include "bwcontroller.h"
 #include "msi.h"
 #include "rtp.h"
-#include "audio.h"
 #include "video.h"
-#include "bwcontroller.h"
 
 #include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
@@ -1092,7 +1092,7 @@ static Toxav_Err_Send_Frame send_frames(const ToxAV *av, ToxAVCall *call)
     uint32_t size;
     bool is_keyframe;
 
-    while (vc_get_cx_data(call->video, &data, &size, &is_keyframe)) {
+    while (vc_get_cx_data(call->video, &data, &size, &is_keyframe) != 0) {
         const int res = rtp_send_data(
                             av->log,
                             call->video_rtp,
@@ -1289,8 +1289,8 @@ static int callback_invite(void *_Nonnull object, MSICall *_Nonnull call)
     av_call->msi_call = call;
 
     if (toxav->ccb != nullptr) {
-        toxav->ccb(toxav, call->friend_number, call->peer_capabilities & MSI_CAP_S_AUDIO,
-                   call->peer_capabilities & MSI_CAP_S_VIDEO, toxav->ccb_user_data);
+        toxav->ccb(toxav, call->friend_number, (call->peer_capabilities & MSI_CAP_S_AUDIO) != 0,
+                   (call->peer_capabilities & MSI_CAP_S_VIDEO) != 0, toxav->ccb_user_data);
     } else {
         /* No handler to capture the call request, send failure */
         pthread_mutex_unlock(toxav->mutex);

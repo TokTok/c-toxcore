@@ -451,7 +451,7 @@ static int send_message(const Logger *log, MSISession *session, uint32_t friend_
     uint16_t size = 0;
 
     if (msg->request.exists) {
-        uint8_t cast = msg->request.value;
+        const uint8_t cast = msg->request.value;
         it = msg_parse_header_out(ID_REQUEST, it, &cast,
                                   sizeof(cast), &size);
     } else {
@@ -460,7 +460,7 @@ static int send_message(const Logger *log, MSISession *session, uint32_t friend_
     }
 
     if (msg->error.exists) {
-        uint8_t cast = msg->error.value;
+        const uint8_t cast = msg->error.value;
         it = msg_parse_header_out(ID_ERROR, it, &cast,
                                   sizeof(cast), &size);
     }

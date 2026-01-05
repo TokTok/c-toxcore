@@ -224,7 +224,7 @@ VCSession *vc_new(const Logger *log, const Mono_Time *mono_time, uint32_t friend
         }
     } else {
         vp8_postproc_cfg_t pp = {0, 0, 0};
-        vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
+        const vpx_codec_err_t cc_res = vpx_codec_control(vc->decoder, VP8_SET_POSTPROC, &pp);
 
         if (cc_res != VPX_CODEC_OK) {
             LOGGER_WARNING(log, "Failed to turn OFF postproc");

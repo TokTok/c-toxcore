@@ -171,6 +171,9 @@ uint32_t rtp_message_data_length_full(const RTPMessage *msg)
 
 bool rtp_session_is_receiving_active(const RTPSession *session)
 {
+    if (session == nullptr) {
+        return false;
+    }
     return session->rtp_receive_active;
 }
 
@@ -390,7 +393,7 @@ static struct RTPMessage *_Nullable process_frame(const Logger *_Nonnull log, st
     --wkbl->next_free_entry;
 
     // Clear the newly freed entry.
-    const struct RTPWorkBuffer empty = {0};
+    const struct RTPWorkBuffer empty = {false};
     wkbl->work_buffer[wkbl->next_free_entry] = empty;
 
     // Move ownership of the frame to the caller.
@@ -490,13 +493,13 @@ static void update_bwc_values(RTPSession *_Nonnull session, const struct RTPMess
     } else {
         const uint32_t data_length_full = msg->header.data_length_full; // without header
         const uint32_t received_length_full = msg->header.received_length_full; // without header
-        if (session->add_recv) {
+        if (session->add_recv != nullptr) {
             session->add_recv(session->bwc_user_data, data_length_full);
         }
 
         if (received_length_full < data_length_full) {
             LOGGER_DEBUG(session->log, "BWC: full length=%u received length=%u", data_length_full, received_length_full);
-            if (session->add_lost) {
+            if (session->add_lost != nullptr) {
                 session->add_lost(session->bwc_user_data, data_length_full - received_length_full);
             }
         }
@@ -679,7 +682,7 @@ void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length)
         /* Message is not late; pick up the latest parameters */
         session->rsequnum = header.sequnum;
         session->rtimestamp = header.timestamp;
-        if (session->add_recv) {
+        if (session->add_recv != nullptr) {
             session->add_recv(session->bwc_user_data, payload_size);
         }
 
@@ -723,7 +726,7 @@ void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length)
             memcpy(session->mp->data + header.offset_lower, &payload[RTP_HEADER_SIZE],
                    payload_size - RTP_HEADER_SIZE);
             session->mp->len += payload_size - RTP_HEADER_SIZE;
-            if (session->add_recv) {
+            if (session->add_recv != nullptr) {
                 session->add_recv(session->bwc_user_data, payload_size);
             }
 
@@ -765,7 +768,7 @@ NEW_MULTIPARTED:
         /* Message is not late; pick up the latest parameters */
         session->rsequnum = header.sequnum;
         session->rtimestamp = header.timestamp;
-        if (session->add_recv) {
+        if (session->add_recv != nullptr) {
             session->add_recv(session->bwc_user_data, payload_size);
         }
 
@@ -909,7 +912,7 @@ void rtp_kill(const Logger *_Nonnull log, RTPSession *_Nullable session)
     LOGGER_DEBUG(log, "Terminated RTP session V3 work_buffer_list->next_free_entry: %d",
                  (int)session->work_buffer_list->next_free_entry);
 
-    if (session->work_buffer_list) {
+    if (session->work_buffer_list != nullptr) {
         for (int8_t i = 0; i < session->work_buffer_list->next_free_entry; ++i) {
             free(session->work_buffer_list->work_buffer[i].buf);
         }
@@ -941,7 +944,7 @@ static void rtp_send_piece(RTPSession *_Nonnull session, const struct RTPHeader 
 
     const uint16_t rdata_size = length + RTP_HEADER_SIZE + 1;
 
-    if (session->send_packet) {
+    if (session->send_packet != nullptr) {
         session->send_packet(session->send_packet_user_data, rdata, rdata_size);
     }
 }

@@ -312,6 +312,20 @@ bool get_general_config(const char *cfg_file_path, char **pid_file_path, char **
     return true;
 }
 
+static int hex_digit_to_int(char c)
+{
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
 /**
  *
  * Converts a hex string with even number of characters into binary.
@@ -337,9 +351,15 @@ static uint8_t *bootstrap_hex_string_to_bin(const char *hex_string)
     const char *pos = hex_string;
 
     for (size_t i = 0; i < len; ++i, pos += 2) {
-        unsigned int val;
-        sscanf(pos, "%02x", &val);
-        ret[i] = val;
+        const int hi = hex_digit_to_int(pos[0]);
+        const int lo = hex_digit_to_int(pos[1]);
+
+        if (hi == -1 || lo == -1) {
+            free(ret);
+            return nullptr;
+        }
+
+        ret[i] = (uint8_t)((hi << 4) | lo);
     }
 
     return ret;

@@ -215,6 +215,8 @@ TEST_F(RtpPublicTest, ReceiveActiveToggle)
     rtp_allow_receiving_mark(session);
     EXPECT_TRUE(rtp_session_is_receiving_active(session));
 
+    EXPECT_FALSE(rtp_session_is_receiving_active(nullptr));
+
     rtp_kill(log, session);
 }
 

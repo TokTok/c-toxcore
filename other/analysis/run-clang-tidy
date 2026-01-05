@@ -16,8 +16,7 @@ CHECKS="$CHECKS,-clang-analyzer-nullability.NullPassedToNonnull"
 # =========================================================
 
 # TODO(iphydf): Fix these.
-ERRORS="$ERRORS,-cert-err34-c"
-ERRORS="$ERRORS,-readability-suspicious-call-argument"
+CHECKS="$CHECKS,-readability-suspicious-call-argument"
 CHECKS="$CHECKS,-cppcoreguidelines-avoid-goto,-hicpp-avoid-goto"
 CHECKS="$CHECKS,-bugprone-incorrect-roundings"
 
@@ -193,12 +192,15 @@ CHECKS="$CHECKS,-cppcoreguidelines-macro-usage"
 # These are all very C++ and/or LLVM specific.
 CHECKS="$CHECKS,-llvmlibc-*"
 
+# We use unions in C, and can't use std::variant or boost::variant.
+CHECKS="$CHECKS,-cppcoreguidelines-pro-type-union-access"
+
 set -eux
 
-# TODO(iphydf): Add toxav.
 DIRS=(
   other/bootstrap_daemon/src
   other
+  toxav
   toxcore
   toxcore/events
   toxencryptsave

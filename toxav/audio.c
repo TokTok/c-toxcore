@@ -246,7 +246,7 @@ void ac_iterate(ACSession *ac)
 
         if (rc < 0) {
             LOGGER_WARNING(ac->log, "Decoding error: %s", opus_strerror(rc));
-        } else if (ac->acb != nullptr) {
+        } else if (ac->acb != nullptr && ac->lp_sampling_rate != 0) {
             ac->lp_frame_duration = (rc * 1000) / ac->lp_sampling_rate;
 
             ac->acb(ac->friend_number, temp_audio_buffer, (size_t)rc, ac->lp_channel_count,
