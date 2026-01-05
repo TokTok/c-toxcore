@@ -26,8 +26,8 @@ cc_test(
     srcs = ["test_util_test.cc"],
     deps = [
         ":crypto_core",
-        ":crypto_core_test_util",
         ":test_util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -114,19 +114,6 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
-        ":tox_memory",
-    ],
-)
-
-cc_library(
-    name = "mem_test_util",
-    testonly = True,
-    srcs = ["mem_test_util.cc"],
-    hdrs = ["mem_test_util.hh"],
-    deps = [
-        ":mem",
-        ":os_memory",
-        ":test_util",
         ":tox_memory",
     ],
 )
@@ -326,8 +313,8 @@ cc_test(
     deps = [
         ":crypto_core",
         ":crypto_core_test_util",
-        ":mem_test_util",
         ":util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -388,13 +375,25 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "mono_time_test_util",
+    testonly = True,
+    srcs = ["mono_time_test_util.cc"],
+    hdrs = ["mono_time_test_util.hh"],
+    deps = [
+        ":mono_time",
+        "//c-toxcore/testing/support",
+    ],
+)
+
 cc_test(
     name = "mono_time_test",
     size = "small",
     srcs = ["mono_time_test.cc"],
     deps = [
-        ":mem_test_util",
         ":mono_time",
+        ":mono_time_test_util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -491,6 +490,7 @@ cc_test(
     deps = [
         ":network",
         ":network_test_util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -528,9 +528,9 @@ cc_test(
     srcs = ["ping_array_test.cc"],
     deps = [
         ":crypto_core_test_util",
-        ":mem_test_util",
         ":mono_time",
         ":ping_array",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -614,11 +614,11 @@ cc_test(
         ":crypto_core",
         ":crypto_core_test_util",
         ":logger",
-        ":mem_test_util",
         ":mono_time",
         ":network",
         ":network_test_util",
         ":test_util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -632,9 +632,8 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:DHT_fuzz_test"],
     deps = [
         ":DHT",
-        ":mem_test_util",
         ":net_profile",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/support",
     ],
 )
 
@@ -690,8 +689,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:forwarding_fuzz_test"],
     deps = [
         ":forwarding",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
-        "//c-toxcore/testing/fuzzing:fuzz_tox",
+        "//c-toxcore/testing/support",
     ],
 )
 
@@ -858,12 +856,10 @@ cc_fuzz_test(
     deps = [
         ":DHT",
         ":TCP_client",
-        ":mem_test_util",
         ":net_crypto",
         ":net_profile",
         ":network",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
-        "//c-toxcore/testing/fuzzing:fuzz_tox",
+        "//c-toxcore/testing/support",
     ],
 )
 
@@ -926,9 +922,10 @@ cc_test(
         ":crypto_core",
         ":group_announce",
         ":logger",
-        ":mem_test_util",
         ":mono_time",
+        ":mono_time_test_util",
         ":network",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -942,8 +939,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:group_announce_fuzz_test"],
     deps = [
         ":group_announce",
-        ":mem_test_util",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/support",
     ],
 )
 
@@ -1074,8 +1070,8 @@ cc_test(
         ":crypto_core_test_util",
         ":group_moderation",
         ":logger",
-        ":mem_test_util",
         ":util",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -1089,8 +1085,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:group_moderation_fuzz_test"],
     deps = [
         ":group_moderation",
-        ":mem_test_util",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/support",
     ],
 )
 
@@ -1243,6 +1238,7 @@ cc_test(
         ":tox",
         ":tox_log_level",
         ":tox_options",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -1310,6 +1306,7 @@ cc_test(
         ":crypto_core",
         ":tox",
         ":tox_events",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -1323,7 +1320,7 @@ cc_fuzz_test(
     deps = [
         ":tox_dispatch",
         ":tox_events",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/support",
     ],
 )
 

@@ -5,10 +5,14 @@
 #include <memory>
 #include <vector>
 
-#include "../testing/fuzzing/fuzz_support.hh"
-#include "mem_test_util.hh"
+#include "../testing/support/public/fuzz_data.hh"
+#include "../testing/support/public/simulated_environment.hh"
 
 namespace {
+
+using tox::test::FakeClock;
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
 
 void TestUnpackAnnouncesList(Fuzz_Data &input)
 {
@@ -19,8 +23,9 @@ void TestUnpackAnnouncesList(Fuzz_Data &input)
     // TODO(iphydf): How do we know the packed size?
     CONSUME1_OR_RETURN(const uint16_t, packed_size, input);
 
-    Test_Memory mem;
-    Logger *logger = logger_new(mem);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Logger *logger = logger_new(&c_mem);
     if (gca_unpack_announces_list(logger, input.data(), input.size(), announces.data(), max_count)
         != -1) {
         // Always allocate at least something to avoid passing nullptr to functions below.
@@ -39,8 +44,9 @@ void TestUnpackPublicAnnounce(Fuzz_Data &input)
     // TODO(iphydf): How do we know the packed size?
     CONSUME1_OR_RETURN(const uint16_t, packed_size, input);
 
-    Test_Memory mem;
-    Logger *logger = logger_new(mem);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Logger *logger = logger_new(&c_mem);
     if (gca_unpack_public_announce(logger, input.data(), input.size(), &public_announce) != -1) {
         // Always allocate at least something to avoid passing nullptr to functions below.
         std::vector<uint8_t> packed(packed_size + 1);
@@ -51,17 +57,22 @@ void TestUnpackPublicAnnounce(Fuzz_Data &input)
 
 void TestDoGca(Fuzz_Data &input)
 {
-    Test_Memory mem;
-    std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(mem), logger_kill);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(&c_mem), logger_kill);
 
-    uint64_t clock = 1;
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time(
         mono_time_new(
-            mem, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &clock),
-        [mem](Mono_Time *ptr) { mono_time_free(mem, ptr); });
+            &c_mem,
+            [](void *user_data) -> uint64_t {
+                return static_cast<FakeClock *>(user_data)->current_time_ms();
+            },
+            &env.fake_clock()),
+        [c_mem](Mono_Time *ptr) { mono_time_free(&c_mem, ptr); });
     assert(mono_time != nullptr);
-    std::unique_ptr<GC_Announces_List, void (*)(GC_Announces_List *)> gca(
-        new_gca_list(mem), kill_gca);
+
+    std::unique_ptr<GC_Announces_List, std::function<void(GC_Announces_List *)>> gca(
+        new_gca_list(&c_mem), [](GC_Announces_List *ptr) { kill_gca(ptr); });
     assert(gca != nullptr);
 
     while (!input.empty()) {
@@ -73,14 +84,14 @@ void TestDoGca(Fuzz_Data &input)
             CONSUME_OR_RETURN(const uint8_t *data, input, length);
             GC_Public_Announce public_announce;
             if (gca_unpack_public_announce(logger.get(), data, length, &public_announce) != -1) {
-                gca_add_announce(mem, mono_time.get(), gca.get(), &public_announce);
+                gca_add_announce(&c_mem, mono_time.get(), gca.get(), &public_announce);
             }
             break;
         }
         case 1: {
             // Advance the time by a number of tox_iteration_intervals.
             CONSUME1_OR_RETURN(const uint8_t, iterations, input);
-            clock += iterations * 20;
+            env.fake_clock().advance(iterations * 20);
             // Do an iteration.
             do_gca(mono_time.get(), gca.get());
             break;
@@ -111,6 +122,7 @@ void TestDoGca(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target<TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca>(data, size);
+    tox::test::fuzz_select_target<TestUnpackAnnouncesList, TestUnpackPublicAnnounce, TestDoGca>(
+        data, size);
     return 0;
 }

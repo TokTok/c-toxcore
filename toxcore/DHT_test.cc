@@ -8,11 +8,11 @@
 #include <cstring>
 #include <random>
 
+#include "../testing/support/public/simulated_environment.hh"
 #include "DHT_test_util.hh"
 #include "crypto_core.h"
 #include "crypto_core_test_util.hh"
 #include "logger.h"
-#include "mem_test_util.hh"
 #include "mono_time.h"
 #include "network.h"
 #include "network_test_util.hh"
@@ -25,6 +25,7 @@ using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::PrintToString;
 using ::testing::UnorderedElementsAre;
+using namespace tox::test;
 
 using SecretKey = std::array<uint8_t, CRYPTO_SECRET_KEY_SIZE>;
 
@@ -37,13 +38,14 @@ struct KeyPair {
 
 TEST(IdClosest, KeyIsClosestToItself)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
-    PublicKey pk0 = random_pk(rng);
+    PublicKey pk0 = random_pk(&c_rng);
     PublicKey pk1;
     do {
         // Get a random key that's not the same as pk0.
-        pk1 = random_pk(rng);
+        pk1 = random_pk(&c_rng);
     } while (pk0 == pk1);
 
     EXPECT_EQ(id_closest(pk0.data(), pk0.data(), pk1.data()), 1);
@@ -51,21 +53,23 @@ TEST(IdClosest, KeyIsClosestToItself)
 
 TEST(IdClosest, IdenticalKeysAreSameDistance)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
-    PublicKey pk0 = random_pk(rng);
-    PublicKey pk1 = random_pk(rng);
+    PublicKey pk0 = random_pk(&c_rng);
+    PublicKey pk1 = random_pk(&c_rng);
 
     EXPECT_EQ(id_closest(pk0.data(), pk1.data(), pk1.data()), 0);
 }
 
 TEST(IdClosest, DistanceIsCommutative)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
-    PublicKey pk0 = random_pk(rng);
-    PublicKey pk1 = random_pk(rng);
-    PublicKey pk2 = random_pk(rng);
+    PublicKey pk0 = random_pk(&c_rng);
+    PublicKey pk1 = random_pk(&c_rng);
+    PublicKey pk2 = random_pk(&c_rng);
 
     ASSERT_NE(pk1, pk2);  // RNG can't produce the same random key twice
 
@@ -147,17 +151,18 @@ Node_format fill(Node_format v, PublicKey const &pk, IP_Port const &ip_port)
 
 TEST(AddToList, AddsFirstKeysInOrder)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
     // Make cmp_key the furthest away from 00000... as possible, so all initial inserts succeed.
     PublicKey const cmp_pk{0xff, 0xff, 0xff, 0xff};
 
     // Generate a bunch of other keys, sorted by distance from cmp_pk.
     auto const keys
-        = sorted(array_of<20>(random_pk, rng), [&cmp_pk](auto const &pk1, auto const &pk2) {
+        = sorted(array_of<20>(random_pk, &c_rng), [&cmp_pk](auto const &pk1, auto const &pk2) {
               return id_closest(cmp_pk.data(), pk1.data(), pk2.data()) == 1;
           });
-    auto const ips = array_of<20>(increasing_ip_port(0, rng));
+    auto const ips = array_of<20>(increasing_ip_port(0, &c_rng));
 
     std::vector<Node_format> nodes(4);
 
@@ -249,16 +254,17 @@ TEST(AddToList, AddsFirstKeysInOrder)
 
 TEST(AddToList, KeepsKeysInOrder)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
     // Any random cmp_pk should work, as well as the smallest or (approximately) largest pk.
-    for (PublicKey const cmp_pk : {random_pk(rng), PublicKey{0x00}, PublicKey{0xff, 0xff}}) {
+    for (PublicKey const cmp_pk : {random_pk(&c_rng), PublicKey{0x00}, PublicKey{0xff, 0xff}}) {
         auto const by_distance = [&cmp_pk](auto const &node1, auto const &node2) {
             return id_closest(cmp_pk.data(), node1.public_key, node2.public_key) == 1;
         };
 
         // Generate a bunch of other keys, not sorted.
-        auto const nodes = vector_of(16, random_node_format, rng);
+        auto const nodes = vector_of(16, random_node_format, &c_rng);
 
         std::vector<Node_format> node_list(4);
 
@@ -274,12 +280,13 @@ TEST(AddToList, KeepsKeysInOrder)
 
 TEST(Request, CreateAndParse)
 {
-    Test_Memory mem;
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    auto c_rng = env.fake_random().get_c_random();
 
     // Peers.
-    const KeyPair sender(rng);
-    const KeyPair receiver(rng);
+    const KeyPair sender(&c_rng);
+    const KeyPair receiver(&c_rng);
     const uint8_t sent_pkt_id = CRYPTO_PACKET_FRIEND_REQ;
 
     // Encoded packet.
@@ -292,33 +299,33 @@ TEST(Request, CreateAndParse)
 
     // Request data: maximum payload is 918 bytes, so create a payload 1 byte larger than max.
     std::vector<uint8_t> outgoing(919);
-    random_bytes(rng, outgoing.data(), outgoing.size());
+    random_bytes(&c_rng, outgoing.data(), outgoing.size());
 
-    EXPECT_LT(create_request(mem, rng, sender.pk.data(), sender.sk.data(), packet.data(),
+    EXPECT_LT(create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(),
                   receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id),
         0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
 
-    const int max_sent_length = create_request(mem, rng, sender.pk.data(), sender.sk.data(),
+    const int max_sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(),
         packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
-    EXPECT_LT(handle_request(mem, receiver.pk.data(), receiver.sk.data(), pk.data(),
+    EXPECT_LT(handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(), pk.data(),
                   incoming.data(), &recvd_pkt_id, packet.data(), max_sent_length + 1),
         0);
 
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
-        const int sent_length = create_request(mem, rng, sender.pk.data(), sender.sk.data(),
+        const int sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(),
             packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:
-        const int recvd_length = handle_request(mem, receiver.pk.data(), receiver.sk.data(),
+        const int recvd_length = handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(),
             pk.data(), incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
         ASSERT_GE(recvd_length, 0);
 
@@ -331,24 +338,40 @@ TEST(Request, CreateAndParse)
 
 TEST(AnnounceNodes, SetAndTest)
 {
-    Test_Random rng;
-    Test_Memory mem;
-    Test_Network ns;
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    auto c_rng = env.fake_random().get_c_random();
 
-    Logger *log = logger_new(mem);
+    // Use FakeNetwork instead of Test_Network (which wrapped os_network)
+    // Create endpoint bound to virtual port
+    auto node = env.create_node(33445);
+    struct Network net_struct = node->c_network;
+
+    Logger *log = logger_new(&c_mem);
     ASSERT_NE(log, nullptr);
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+
+    Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
-    Ptr<Networking_Core> net(new_networking_no_udp(log, mem, ns));
+
+    // Hook up simulation clock to mono_time
+    mono_time_set_current_time_callback(
+        mono_time,
+        [](void *user_data) -> uint64_t {
+            auto *clock = static_cast<FakeClock *>(user_data);
+            return clock->current_time_ms();
+        },
+        &env.fake_clock());
+
+    Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct));
     ASSERT_NE(net, nullptr);
-    Ptr<DHT> dht(new_dht(log, mem, rng, ns, mono_time, net.get(), true, true));
+    Ptr<DHT> dht(new_dht(log, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
     ASSERT_NE(dht, nullptr);
 
     uint8_t pk_data[CRYPTO_PUBLIC_KEY_SIZE];
     memcpy(pk_data, dht_get_self_public_key(dht.get()), sizeof(pk_data));
     PublicKey self_pk(to_array(pk_data));
 
-    PublicKey pk1 = random_pk(rng);
+    PublicKey pk1 = random_pk(&c_rng);
     ASSERT_NE(pk1, self_pk);
 
     // Test with maximally close key to self
@@ -373,7 +396,7 @@ TEST(AnnounceNodes, SetAndTest)
     EXPECT_EQ(
         2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
 
-    mono_time_free(mem, mono_time);
+    mono_time_free(&c_mem, mono_time);
     logger_kill(log);
 }
 

@@ -5,16 +5,28 @@
 
 #include <cassert>
 #include <cstdio>
+#include <functional>
 #include <vector>
 
 #include "../../toxcore/crypto_core.h"
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
-#include "fuzz_support.hh"
-#include "fuzz_tox.hh"
+#include "../support/public/fuzz_data.hh"
+#include "../support/public/fuzz_helpers.hh"
+#include "../support/public/simulated_environment.hh"
 
 namespace {
+
+using tox::test::configure_fuzz_memory_source;
+using tox::test::configure_fuzz_packet_source;
+using tox::test::configure_fuzz_random_source;
+using tox::test::FakeClock;
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
+
+template <typename T>
+using Ptr = std::unique_ptr<T, void (*)(T *)>;
 
 void setup_callbacks(Tox_Dispatch *dispatch)
 {
@@ -131,9 +143,16 @@ void setup_callbacks(Tox_Dispatch *dispatch)
 
 void TestEndToEnd(Fuzz_Data &input)
 {
-    Fuzz_System sys(input);
-    // Used for places where we want all allocations to succeed.
-    Null_System null_sys;
+    SimulatedEnvironment env;
+    env.fake_clock().advance(1000000000);  // Match legacy behavior
+    auto node = env.create_node(33445);
+    configure_fuzz_memory_source(env.fake_memory(), input);
+    configure_fuzz_packet_source(*node->endpoint, input);
+    configure_fuzz_random_source(env.fake_random(), input);
+
+    // Null system replacement for event comparison
+    SimulatedEnvironment null_env;
+    auto null_node = null_env.create_node(0);
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);
     assert(opts != nullptr);
@@ -144,13 +163,31 @@ void TestEndToEnd(Fuzz_Data &input)
             const char *message, void *user_data) {
             // Log to stdout.
             if (Fuzz_Data::FUZZ_DEBUG) {
-                std::printf("[tox1] %c %s:%u(%s): %s\n", tox_log_level_name(level), file, line,
-                    func, message);
+                // Approximate level name mapping
+                char level_char = '?';
+                switch (level) {
+                case TOX_LOG_LEVEL_TRACE:
+                    level_char = 'T';
+                    break;
+                case TOX_LOG_LEVEL_DEBUG:
+                    level_char = 'D';
+                    break;
+                case TOX_LOG_LEVEL_INFO:
+                    level_char = 'I';
+                    break;
+                case TOX_LOG_LEVEL_WARNING:
+                    level_char = 'W';
+                    break;
+                case TOX_LOG_LEVEL_ERROR:
+                    level_char = 'E';
+                    break;
+                }
+                std::printf("[tox1] %c %s:%u(%s): %s\n", level_char, file, line, func, message);
             }
         });
 
     Tox_Options_Testing tox_options_testing;
-    tox_options_testing.operating_system = sys.sys.get();
+    tox_options_testing.operating_system = &node->system;
 
     Tox_Err_New error_new;
     Tox_Err_New_Testing error_new_testing;
@@ -171,15 +208,18 @@ void TestEndToEnd(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
+    // MIN_ITERATION_INTERVAL = 20
+    const uint8_t MIN_ITERATION_INTERVAL = 20;
+
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
-        assert(tox_events_equal(null_sys.sys.get(), events, events));
+        assert(tox_events_equal(&null_node->system, events, events));
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
-        // Move the clock forward a decent amount so all the time-based checks
-        // trigger more quickly.
-        sys.clock += std::max(System::MIN_ITERATION_INTERVAL, random_u08(sys.rng.get()));
+
+        uint32_t rand_val = env.fake_random().uniform(256);
+        env.fake_clock().advance(std::max<uint64_t>(MIN_ITERATION_INTERVAL, rand_val));
     }
 
     tox_dispatch_free(dispatch);

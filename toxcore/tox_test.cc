@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 
+#include "../testing/support/public/simulated_environment.hh"
 #include "crypto_core.h"
 #include "os_random.h"
 #include "tox_log_level.h"
@@ -12,6 +13,8 @@
 #include "tox_private.h"
 
 namespace {
+
+using tox::test::SimulatedEnvironment;
 
 static void set_random_name_and_status_message(
     Tox *tox, const Random *rng, uint8_t *name, uint8_t *status_message)
@@ -82,6 +85,7 @@ TEST(Tox, BootstrapErrorCodes)
 
 TEST(Tox, OneTest)
 {
+    SimulatedEnvironment env;
     struct Tox_Options *options = tox_options_new(nullptr);
     ASSERT_NE(options, nullptr);
 
@@ -102,12 +106,21 @@ TEST(Tox, OneTest)
     std::vector<uint8_t> name2(tox_max_name_length());
     std::vector<uint8_t> status_message2(tox_max_status_message_length());
 
-    Tox *tox1 = tox_new(options, nullptr);
+    auto node1 = env.create_node(33545);
+    Tox_Options_Testing testing_opts1 = {};
+    testing_opts1.operating_system = &node1->system;
+
+    Tox *tox1 = tox_new_testing(options, nullptr, &testing_opts1, nullptr);
     ASSERT_NE(tox1, nullptr);
     const Random *rng = os_random();
     ASSERT_NE(rng, nullptr);
     set_random_name_and_status_message(tox1, rng, name.data(), status_message.data());
-    Tox *tox2 = tox_new(options, nullptr);
+
+    auto node2 = env.create_node(33546);
+    Tox_Options_Testing testing_opts2 = {};
+    testing_opts2.operating_system = &node2->system;
+
+    Tox *tox2 = tox_new_testing(options, nullptr, &testing_opts2, nullptr);
     ASSERT_NE(tox2, nullptr);
     set_random_name_and_status_message(tox2, rng, name2.data(), status_message2.data());
 
@@ -163,7 +176,7 @@ TEST(Tox, OneTest)
 
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_TOX_SAVE);
     tox_options_set_savedata_data(options, data.data(), data.size());
-    tox2 = tox_new(options, &err_n);
+    tox2 = tox_new_testing(options, &err_n, &testing_opts2, nullptr);
     EXPECT_EQ(err_n, TOX_ERR_NEW_OK) << "Load failed";
 
     EXPECT_EQ(tox_self_get_name_size(tox2), name.size()) << "Wrong name size.";
@@ -192,7 +205,7 @@ TEST(Tox, OneTest)
     tox_options_default(options);
     tox_options_set_savedata_type(options, TOX_SAVEDATA_TYPE_SECRET_KEY);
     tox_options_set_savedata_data(options, sk.data(), sk.size());
-    tox2 = tox_new(options, &err_n);
+    tox2 = tox_new_testing(options, &err_n, &testing_opts2, nullptr);
     ASSERT_EQ(err_n, TOX_ERR_NEW_OK) << "Load failed";
     tox_self_set_nospam(tox2, tox_self_get_nospam(tox1));
     std::array<uint8_t, TOX_ADDRESS_SIZE> address3;

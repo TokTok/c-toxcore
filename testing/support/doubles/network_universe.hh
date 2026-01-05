@@ -1,0 +1,81 @@
+#ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_NETWORK_UNIVERSE_H
+#define C_TOXCORE_TESTING_SUPPORT_DOUBLES_NETWORK_UNIVERSE_H
+
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <vector>
+
+#include "../../../toxcore/network.h"
+
+namespace tox::test {
+
+class FakeUdpSocket;
+class FakeTcpSocket;
+
+struct Packet {
+    IP_Port from;
+    IP_Port to;
+    std::vector<uint8_t> data;
+    uint64_t delivery_time;
+    bool is_tcp = false;
+
+    // TCP Simulation Fields
+    uint8_t tcp_flags = 0;  // 0x01=FIN, 0x02=SYN, 0x10=ACK
+    uint32_t seq = 0;
+    uint32_t ack = 0;
+
+    bool operator>(const Packet &other) const { return delivery_time > other.delivery_time; }
+};
+
+/**
+ * @brief The God Object for the network simulation.
+ * Manages routing, latency, and connectivity.
+ */
+class NetworkUniverse {
+public:
+    using PacketFilter = std::function<bool(Packet &)>;
+    using PacketSink = std::function<void(const Packet &)>;
+
+    NetworkUniverse();
+    ~NetworkUniverse();
+
+    // Registration
+    // Returns true if binding succeeded
+    bool bind_udp(uint16_t port, FakeUdpSocket *socket);
+    void unbind_udp(uint16_t port);
+
+    bool bind_tcp(uint16_t port, FakeTcpSocket *socket);
+    void unbind_tcp(uint16_t port, FakeTcpSocket *socket);
+
+    // Routing
+    void send_packet(Packet p);
+
+    // Simulation
+    void process_events(uint64_t current_time_ms);
+    void set_latency(uint64_t ms);
+    void add_filter(PacketFilter filter);
+    void add_observer(PacketSink sink);
+
+    // Helpers
+    // Finds a free port starting from 'start'
+    uint16_t find_free_port(uint16_t start = 33445);
+
+private:
+    std::map<uint16_t, FakeUdpSocket *> udp_bindings_;
+    std::multimap<uint16_t, FakeTcpSocket *> tcp_bindings_;
+
+    std::priority_queue<Packet, std::vector<Packet>, std::greater<Packet>> event_queue_;
+    std::vector<PacketFilter> filters_;
+    std::vector<PacketSink> observers_;
+
+    uint64_t global_latency_ms_ = 0;
+    std::mutex mutex_;
+};
+
+}  // namespace tox::test
+
+#endif  // C_TOXCORE_TESTING_SUPPORT_DOUBLES_NETWORK_UNIVERSE_H

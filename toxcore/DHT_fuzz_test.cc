@@ -5,14 +5,18 @@
 #include <cstring>
 #include <vector>
 
-#include "../testing/fuzzing/fuzz_support.hh"
-#include "mem_test_util.hh"
+#include "../testing/support/public/fuzz_data.hh"
+#include "../testing/support/public/simulated_environment.hh"
 
 namespace {
 
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
+
 void TestHandleRequest(Fuzz_Data &input)
 {
-    const Test_Memory mem;
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
 
     CONSUME_OR_RETURN(const uint8_t *self_public_key, input, CRYPTO_PUBLIC_KEY_SIZE);
     CONSUME_OR_RETURN(const uint8_t *self_secret_key, input, CRYPTO_SECRET_KEY_SIZE);
@@ -20,7 +24,7 @@ void TestHandleRequest(Fuzz_Data &input)
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t request[MAX_CRYPTO_REQUEST_SIZE];
     uint8_t request_id;
-    handle_request(mem, self_public_key, self_secret_key, public_key, request, &request_id,
+    handle_request(&c_mem, self_public_key, self_secret_key, public_key, request, &request_id,
         input.data(), input.size());
 }
 
@@ -34,8 +38,9 @@ void TestUnpackNodes(Fuzz_Data &input)
     const int packed_count = unpack_nodes(
         nodes, node_count, &processed_data_len, input.data(), input.size(), tcp_enabled);
     if (packed_count > 0) {
-        const Memory *mem = os_memory();
-        Logger *logger = logger_new(mem);
+        SimulatedEnvironment env;
+        auto c_mem = env.fake_memory().get_c_memory();
+        Logger *logger = logger_new(&c_mem);
         std::vector<uint8_t> packed(packed_count * PACKED_NODE_SIZE_IP6);
         const int packed_size
             = pack_nodes(logger, packed.data(), packed.size(), nodes, packed_count);
@@ -63,6 +68,6 @@ void TestUnpackNodes(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target<TestHandleRequest, TestUnpackNodes>(data, size);
+    tox::test::fuzz_select_target<TestHandleRequest, TestUnpackNodes>(data, size);
     return 0;
 }

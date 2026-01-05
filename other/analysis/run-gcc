@@ -65,7 +65,9 @@ run() {
     -Wunused-value \
     -Wunused-but-set-parameter \
     -Wunused-but-set-variable \
-    -fopenmp
+    -fopenmp \
+    -Wno-unused-function
+  # TODO(iphydf): Remove this last 1 when the test framework matures.
 }
 
 . other/analysis/variants.sh

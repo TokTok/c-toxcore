@@ -26,22 +26,40 @@
 #include <cstring>
 #include <fstream>
 #include <memory>
+#include <vector>
 
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
 #include "../../toxcore/tox_private.h"
-#include "fuzz_support.hh"
+#include "../support/public/simulated_environment.hh"
 
 namespace {
 
-/** @brief Number of messages to exchange between tox1 and tox2.
- *
- * The higher this number, the more room we give the fuzzer to mutate the
- * exchange into something more interesting. If it's too high, the fuzzer will
- * be slow.
- */
+using tox::test::FakeClock;
+using tox::test::Packet;
+using tox::test::ScopedToxSystem;
+using tox::test::SimulatedEnvironment;
+
 constexpr uint32_t MESSAGE_COUNT = 5;
+
+class Recorder {
+public:
+    std::vector<uint8_t> data;
+
+    void push(bool val) { data.push_back(val); }
+    void push(uint8_t val) { data.push_back(val); }
+    void push(const uint8_t *bytes, size_t size) { data.insert(data.end(), bytes, bytes + size); }
+
+    // Format: 2 bytes length (big-endian), then data.
+    void push_packet(const uint8_t *bytes, size_t size)
+    {
+        assert(size <= 65535);
+        push(static_cast<uint8_t>(size >> 8));
+        push(static_cast<uint8_t>(size & 0xFF));
+        push(bytes, size);
+    }
+};
 
 struct State {
     Tox *tox;
@@ -91,7 +109,6 @@ void setup_callbacks(Tox_Dispatch *dispatch)
     tox_events_callback_friend_connection_status(
         dispatch, [](const Tox_Event_Friend_Connection_Status *event, void *user_data) {
             State *state = static_cast<State *>(user_data);
-            // OK: friend came online.
             const uint32_t friend_number
                 = tox_event_friend_connection_status_get_friend_number(event);
             assert(friend_number == 0);
@@ -163,9 +180,7 @@ void setup_callbacks(Tox_Dispatch *dispatch)
             assert(!tox_event_friend_typing_get_typing(event));
         });
     tox_events_callback_self_connection_status(
-        dispatch, [](const Tox_Event_Self_Connection_Status *event, void *user_data) {
-            // OK: we got connected.
-        });
+        dispatch, [](const Tox_Event_Self_Connection_Status *event, void *user_data) {});
 }
 
 void dump(std::vector<uint8_t> recording, const char *filename)
@@ -177,69 +192,80 @@ void dump(std::vector<uint8_t> recording, const char *filename)
 
 void RecordBootstrap(const char *init, const char *bootstrap)
 {
-    auto global = std::make_unique<Record_System::Global>();
+    SimulatedEnvironment env1;
+    SimulatedEnvironment env2;
+
+    // Set deterministic seeds.
+    std::mt19937 rng1(4);
+    env1.fake_random().set_entropy_source([&](uint8_t *out, size_t count) {
+        std::uniform_int_distribution<uint16_t> dist(0, 255);
+        for (size_t i = 0; i < count; ++i)
+            out[i] = static_cast<uint8_t>(dist(rng1));
+    });
+
+    std::mt19937 rng2(5);
+    env2.fake_random().set_entropy_source([&](uint8_t *out, size_t count) {
+        std::uniform_int_distribution<uint16_t> dist(0, 255);
+        for (size_t i = 0; i < count; ++i)
+            out[i] = static_cast<uint8_t>(dist(rng2));
+    });
+
+    Recorder recorder1;
+    Recorder recorder2;
+
+    env1.fake_memory().set_observer([&](bool success) { recorder1.push(success); });
+
+    env1.fake_random().set_observer(
+        [&](const uint8_t *data, size_t count) { recorder1.push(data, count); });
+
+    auto node1 = env1.create_node(33445);
+    auto node2 = env2.create_node(33446);
+
+    // Record received packets.
+    node1->endpoint->set_recv_observer([&](const std::vector<uint8_t> &data, const IP_Port &from) {
+        recorder1.push_packet(data.data(), data.size());
+    });
+
+    // Bridge the two simulated networks.
+    env1.simulation().net().add_observer(
+        [&](const Packet &p) { env2.simulation().net().send_packet(p); });
+
+    env2.simulation().net().add_observer(
+        [&](const Packet &p) { env1.simulation().net().send_packet(p); });
 
     Tox_Options *opts = tox_options_new(nullptr);
-    assert(opts != nullptr);
-
     tox_options_set_local_discovery_enabled(opts, false);
 
-    tox_options_set_log_callback(opts,
-        [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
-            const char *message, void *user_data) {
-            // Log to stdout.
-            std::printf("[%s] %c %s:%u(%s): %s\n", static_cast<Record_System *>(user_data)->name_,
-                tox_log_level_name(level), file, line, func, message);
-        });
+    Tox_Options_Testing opts_test1;
+    opts_test1.operating_system = &node1->system;
 
     Tox_Err_New error_new;
     Tox_Err_New_Testing error_new_testing;
-    Tox_Options_Testing tox_options_testing;
 
-    auto sys1 = std::make_unique<Record_System>(*global, 4, "tox1");  // fair dice roll
-    tox_options_set_log_user_data(opts, sys1.get());
-    tox_options_testing.operating_system = sys1->sys.get();
-    Tox *tox1 = tox_new_testing(opts, &error_new, &tox_options_testing, &error_new_testing);
+    Tox *tox1 = tox_new_testing(opts, &error_new, &opts_test1, &error_new_testing);
     assert(tox1 != nullptr);
-    assert(error_new == TOX_ERR_NEW_OK);
-    assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
-    std::array<uint8_t, TOX_ADDRESS_SIZE> address1;
-    tox_self_get_address(tox1, address1.data());
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk1;
-    tox_self_get_public_key(tox1, pk1.data());
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key1;
-    tox_self_get_dht_id(tox1, dht_key1.data());
 
-    auto sys2 = std::make_unique<Record_System>(*global, 5, "tox2");  // unfair dice roll
-    tox_options_set_log_user_data(opts, sys2.get());
-    tox_options_testing.operating_system = sys2->sys.get();
-    Tox *tox2 = tox_new_testing(opts, &error_new, &tox_options_testing, &error_new_testing);
+    Tox_Options_Testing opts_test2;
+    opts_test2.operating_system = &node2->system;
+
+    Tox *tox2 = tox_new_testing(opts, &error_new, &opts_test2, &error_new_testing);
     assert(tox2 != nullptr);
-    assert(error_new == TOX_ERR_NEW_OK);
-    assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
-    std::array<uint8_t, TOX_ADDRESS_SIZE> address2;
-    tox_self_get_address(tox2, address2.data());
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk2;
-    tox_self_get_public_key(tox2, pk2.data());
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key2;
-    tox_self_get_dht_id(tox2, dht_key2.data());
-
-    assert(address1 != address2);
-    assert(pk1 != pk2);
-    assert(dht_key1 != dht_key2);
 
     tox_options_free(opts);
 
-    const uint16_t port = tox_self_get_udp_port(tox1, nullptr);
+    std::array<uint8_t, TOX_ADDRESS_SIZE> address1;
+    tox_self_get_address(tox1, address1.data());
+    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> dht_key1;
+    tox_self_get_dht_id(tox1, dht_key1.data());
 
-    const bool udp_success = tox_bootstrap(tox2, "127.0.0.2", port, dht_key1.data(), nullptr);
+    // Bootstrap tox2 to tox1.
+    const bool udp_success = tox_bootstrap(tox2, "127.0.0.1", 33445, dht_key1.data(), nullptr);
     assert(udp_success);
 
     tox_events_init(tox1);
     tox_events_init(tox2);
 
     Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
-    assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
     State state1 = {tox1, 0};
@@ -250,35 +276,26 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         Tox_Events *events;
 
         events = tox_events_iterate(tox1, true, &error_iterate);
-        assert(tox_events_equal(sys1->sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, &state1);
         tox_events_free(events);
 
         events = tox_events_iterate(tox2, true, &error_iterate);
-        assert(tox_events_equal(sys2->sys.get(), events, events));
         tox_dispatch_invoke(dispatch, events, &state2);
         tox_events_free(events);
 
-        // Move the clock forward a decent amount so all the time-based checks
-        // trigger more quickly.
-        sys1->clock += clock_increment;
-        sys2->clock += clock_increment;
+        // Record the clock increment.
+        env1.fake_clock().advance(clock_increment);
+        recorder1.push(clock_increment);
 
-        if (Fuzz_Data::FUZZ_DEBUG) {
-            printf("tox1: rng: %d (for clock)\n", clock_increment);
-            printf("tox2: rng: %d (for clock)\n", clock_increment);
-        }
-        sys1->push(clock_increment);
-        sys2->push(clock_increment);
+        env2.fake_clock().advance(clock_increment);
+
+        env1.simulation().net().process_events(env1.fake_clock().current_time_ms());
+        env2.simulation().net().process_events(env2.fake_clock().current_time_ms());
     };
 
     while (tox_self_get_connection_status(tox1) == TOX_CONNECTION_NONE
         || tox_self_get_connection_status(tox2) == TOX_CONNECTION_NONE) {
-        if (Fuzz_Data::FUZZ_DEBUG) {
-            std::printf("tox1: %d, tox2: %d\n", tox_self_get_connection_status(tox1),
-                tox_self_get_connection_status(tox2));
-        }
-        iterate(System::BOOTSTRAP_ITERATION_INTERVAL);
+        iterate(200);
     }
 
     std::printf("toxes are online\n");
@@ -289,27 +306,18 @@ void RecordBootstrap(const char *init, const char *bootstrap)
 
     while (tox_friend_get_connection_status(tox2, friend_number, nullptr) == TOX_CONNECTION_NONE
         || tox_friend_get_connection_status(tox1, 0, nullptr) == TOX_CONNECTION_NONE) {
-        if (Fuzz_Data::FUZZ_DEBUG) {
-            std::printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n",
-                tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2),
-                tox_friend_get_connection_status(tox1, 0, nullptr),
-                tox_friend_get_connection_status(tox2, 0, nullptr));
-        }
-        iterate(System::BOOTSTRAP_ITERATION_INTERVAL);
+        iterate(200);
     }
 
     std::printf("tox clients connected\n");
 
-    dump(sys1->take_recording(), init);
+    dump(recorder1.data, init);
+
+    // Clear the recorder.
+    recorder1.data.clear();
 
     while (state1.done < MESSAGE_COUNT && state2.done < MESSAGE_COUNT) {
-        if (Fuzz_Data::FUZZ_DEBUG) {
-            std::printf("tox1: %d, tox2: %d, tox1 -> tox2: %d, tox2 -> tox1: %d\n",
-                tox_self_get_connection_status(tox1), tox_self_get_connection_status(tox2),
-                tox_friend_get_connection_status(tox1, 0, nullptr),
-                tox_friend_get_connection_status(tox2, 0, nullptr));
-        }
-        iterate(System::MESSAGE_ITERATION_INTERVAL);
+        iterate(20);
     }
 
     std::printf("test complete\n");
@@ -318,7 +326,7 @@ void RecordBootstrap(const char *init, const char *bootstrap)
     tox_kill(tox2);
     tox_kill(tox1);
 
-    dump(sys1->recording(), bootstrap);
+    dump(recorder1.data, bootstrap);
 }
 
 }

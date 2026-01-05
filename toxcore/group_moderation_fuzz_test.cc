@@ -1,15 +1,19 @@
 #include "group_moderation.h"
 
-#include "../testing/fuzzing/fuzz_support.hh"
-#include "mem_test_util.hh"
+#include "../testing/support/public/fuzz_data.hh"
+#include "../testing/support/public/simulated_environment.hh"
 
 namespace {
+
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
 
 void TestModListUnpack(Fuzz_Data &input)
 {
     CONSUME1_OR_RETURN(const uint16_t, num_mods, input);
-    Test_Memory mem;
-    Moderation mods{mem};
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Moderation mods{&c_mem};
     mod_list_unpack(&mods, input.data(), input.size(), num_mods);
     mod_list_cleanup(&mods);
 }
@@ -34,7 +38,7 @@ void TestSanctionCredsUnpack(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target<TestModListUnpack, TestSanctionsListUnpack, TestSanctionCredsUnpack>(
-        data, size);
+    tox::test::fuzz_select_target<TestModListUnpack, TestSanctionsListUnpack,
+        TestSanctionCredsUnpack>(data, size);
     return 0;
 }

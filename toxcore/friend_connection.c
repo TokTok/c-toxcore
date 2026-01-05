@@ -351,10 +351,6 @@ static void dht_ip_callback(void *_Nonnull object, int32_t number, const IP_Port
         return;
     }
 
-    if (friend_con->crypt_connection_id == -1) {
-        friend_new_connection(fr_c, number);
-    }
-
     set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, ip_port, true);
     friend_con->dht_ip_port = *ip_port;
     friend_con->dht_ip_port_lastrecv = mono_time_get(fr_c->mono_time);
@@ -456,7 +452,6 @@ static void dht_pk_callback(void *_Nonnull object, int32_t number, const uint8_t
         handle_status(object, number, false, userdata); /* Going offline. */
     }
 
-    friend_new_connection(fr_c, number);
     onion_set_friend_dht_pubkey(fr_c->onion_c, friend_con->onion_friendnum, dht_public_key);
 }
 

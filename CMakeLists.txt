@@ -87,7 +87,7 @@ if(MSVC AND MSVC_TOOLSET_VERSION LESS 143)
 else()
   set(CMAKE_C_STANDARD 11)
 endif()
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -533,6 +533,8 @@ make_version_script(toxcore ${toxcore_API_HEADERS})
 # "${CMAKE_INSTALL_INCLUDEDIR}/tox".
 install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
 
+add_subdirectory(testing)
+
 ################################################################################
 #
 # :: Unit tests: no networking, just pure function calls.
@@ -545,8 +547,8 @@ if(UNITTEST)
     toxcore/DHT_test_util.hh
     toxcore/crypto_core_test_util.cc
     toxcore/crypto_core_test_util.hh
-    toxcore/mem_test_util.cc
-    toxcore/mem_test_util.hh
+    toxcore/mono_time_test_util.cc
+    toxcore/mono_time_test_util.hh
     toxcore/network_test_util.cc
     toxcore/network_test_util.hh
     toxcore/test_util.cc
@@ -555,7 +557,7 @@ endif()
 
 function(unit_test subdir target)
   add_executable(unit_${target}_test ${subdir}/${target}_test.cc)
-  target_link_libraries(unit_${target}_test PRIVATE test_util)
+  target_link_libraries(unit_${target}_test PRIVATE test_util support)
   if(TARGET toxcore_static)
     target_link_libraries(unit_${target}_test PRIVATE toxcore_static)
   else()
@@ -611,8 +613,6 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore tox)
   unit_test(toxcore util)
 endif()
-
-add_subdirectory(testing)
 
 ################################################################################
 #

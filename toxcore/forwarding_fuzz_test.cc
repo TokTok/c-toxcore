@@ -5,10 +5,20 @@
 #include <memory>
 #include <optional>
 
-#include "../testing/fuzzing/fuzz_support.hh"
-#include "../testing/fuzzing/fuzz_tox.hh"
+#include "../testing/support/public/fuzz_data.hh"
+#include "../testing/support/public/fuzz_helpers.hh"
+#include "../testing/support/public/simulated_environment.hh"
 
 namespace {
+
+using tox::test::configure_fuzz_memory_source;
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
+
+constexpr uint16_t SIZE_IP_PORT = SIZE_IP6 + sizeof(uint16_t);
+
+template <typename T>
+using Ptr = std::unique_ptr<T, void (*)(T *)>;
 
 std::optional<std::tuple<IP_Port, IP_Port, const uint8_t *, size_t>> prepare(Fuzz_Data &input)
 {
@@ -43,16 +53,18 @@ void TestSendForwardRequest(Fuzz_Data &input)
     }
     const auto [ipp, forwarder, data, data_size] = prep.value();
 
-    // rest of the fuzz data is input for malloc and network
-    Fuzz_System sys(input);
+    SimulatedEnvironment env;
+    auto node = env.create_node(ipp.port);
+    configure_fuzz_memory_source(env.fake_memory(), input);
 
-    const Ptr<Logger> logger(logger_new(sys.mem.get()), logger_kill);
+    const Ptr<Logger> logger(logger_new(&node->c_memory), logger_kill);
     if (logger == nullptr) {
         return;
     }
 
-    const Ptr<Networking_Core> net(new_networking_ex(logger.get(), sys.mem.get(), sys.ns.get(),
-                                       &ipp.ip, ipp.port, ipp.port + 100, nullptr),
+    const Ptr<Networking_Core> net(
+        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
+            ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;
@@ -72,16 +84,18 @@ void TestForwardReply(Fuzz_Data &input)
     }
     const auto [ipp, forwarder, data, data_size] = prep.value();
 
-    // rest of the fuzz data is input for malloc and network
-    Fuzz_System sys(input);
+    SimulatedEnvironment env;
+    auto node = env.create_node(ipp.port);
+    configure_fuzz_memory_source(env.fake_memory(), input);
 
-    const Ptr<Logger> logger(logger_new(sys.mem.get()), logger_kill);
+    const Ptr<Logger> logger(logger_new(&node->c_memory), logger_kill);
     if (logger == nullptr) {
         return;
     }
 
-    const Ptr<Networking_Core> net(new_networking_ex(logger.get(), sys.mem.get(), sys.ns.get(),
-                                       &ipp.ip, ipp.port, ipp.port + 100, nullptr),
+    const Ptr<Networking_Core> net(
+        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
+            ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;
@@ -95,6 +109,6 @@ void TestForwardReply(Fuzz_Data &input)
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    fuzz_select_target<TestSendForwardRequest, TestForwardReply>(data, size);
+    tox::test::fuzz_select_target<TestSendForwardRequest, TestForwardReply>(data, size);
     return 0;
 }

@@ -1,0 +1,52 @@
+#ifndef C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_NETWORK_STACK_H
+#define C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_NETWORK_STACK_H
+
+#include <map>
+#include <mutex>
+
+#include "../public/network.hh"
+#include "fake_sockets.hh"
+#include "network_universe.hh"
+
+namespace tox::test {
+
+class FakeNetworkStack : public NetworkSystem {
+public:
+    explicit FakeNetworkStack(NetworkUniverse &universe);
+    ~FakeNetworkStack() override;
+
+    // NetworkSystem Implementation
+    Socket socket(int domain, int type, int protocol) override;
+    int bind(Socket sock, const IP_Port *addr) override;
+    int close(Socket sock) override;
+    int sendto(Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) override;
+    int recvfrom(Socket sock, uint8_t *buf, size_t len, IP_Port *addr) override;
+
+    int listen(Socket sock, int backlog) override;
+    Socket accept(Socket sock) override;
+    int connect(Socket sock, const IP_Port *addr) override;
+    int send(Socket sock, const uint8_t *buf, size_t len) override;
+    int recv(Socket sock, uint8_t *buf, size_t len) override;
+
+    int socket_nonblock(Socket sock, bool nonblock) override;
+    int getsockopt(Socket sock, int level, int optname, void *optval, size_t *optlen) override;
+    int setsockopt(Socket sock, int level, int optname, const void *optval, size_t optlen) override;
+
+    struct Network get_c_network();
+
+    // For testing/fuzzing introspection
+    FakeUdpSocket *get_udp_socket(Socket sock);
+    std::vector<FakeUdpSocket *> get_bound_udp_sockets();
+
+private:
+    FakeSocket *get_sock(Socket sock);
+
+    NetworkUniverse &universe_;
+    std::map<int, std::unique_ptr<FakeSocket>> sockets_;
+    int next_fd_ = 100;
+    std::mutex mutex_;
+};
+
+}  // namespace tox::test
+
+#endif  // C_TOXCORE_TESTING_SUPPORT_DOUBLES_FAKE_NETWORK_STACK_H

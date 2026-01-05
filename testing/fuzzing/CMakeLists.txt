@@ -1,5 +1,4 @@
 # Override network and random functions
-add_library(fuzz_support func_conversion.hh fuzz_support.cc fuzz_support.hh)
 
 set(LIBFUZZER_LINKER_FLAGS)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -12,7 +11,7 @@ function(fuzz_test target source_dir)
   set(CORPUS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/toktok-fuzzer/corpus/${target}_fuzz_test)
   file(GLOB CORPUS "${CORPUS_DIR}/*")
   add_executable(${target}_fuzz_test ${source_dir}/${target}_fuzz_test.cc)
-  target_link_libraries(${target}_fuzz_test PRIVATE fuzz_support test_util toxcore_fuzz ${LIBFUZZER_LINKER_FLAGS})
+  target_link_libraries(${target}_fuzz_test PRIVATE support test_util toxcore_fuzz ${LIBFUZZER_LINKER_FLAGS})
   if(CORPUS)
     add_test(NAME ${target}_fuzz COMMAND ${CROSSCOMPILING_EMULATOR} ${target}_fuzz_test -max_total_time=10 ${CORPUS})
     set_property(TEST ${target}_fuzz PROPERTY ENVIRONMENT "LLVM_PROFILE_FILE=${target}.profraw;srcdir=${CMAKE_CURRENT_SOURCE_DIR}")

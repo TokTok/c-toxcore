@@ -6,8 +6,8 @@
 #include <array>
 #include <vector>
 
+#include "../testing/support/public/simulated_environment.hh"
 #include "crypto_core_test_util.hh"
-#include "mem_test_util.hh"
 
 namespace {
 
@@ -17,29 +17,31 @@ using SecretKey = std::array<uint8_t, CRYPTO_SECRET_KEY_SIZE>;
 using Signature = std::array<uint8_t, CRYPTO_SIGNATURE_SIZE>;
 using Nonce = std::array<uint8_t, CRYPTO_NONCE_SIZE>;
 
+using tox::test::SimulatedEnvironment;
+
 TEST(PkEqual, TwoRandomIdsAreNotEqual)
 {
-    std::mt19937 rng;
-    std::uniform_int_distribution<unsigned short> dist{0, UINT8_MAX};
+    SimulatedEnvironment env;
+    auto &rng = env.fake_random();
 
     uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE];
 
-    std::generate(std::begin(pk1), std::end(pk1), [&]() { return dist(rng); });
-    std::generate(std::begin(pk2), std::end(pk2), [&]() { return dist(rng); });
+    rng.bytes(pk1, sizeof(pk1));
+    rng.bytes(pk2, sizeof(pk2));
 
     EXPECT_FALSE(pk_equal(pk1, pk2));
 }
 
 TEST(PkEqual, IdCopyMakesKeysEqual)
 {
-    std::mt19937 rng;
-    std::uniform_int_distribution<unsigned short> dist{0, UINT8_MAX};
+    SimulatedEnvironment env;
+    auto &rng = env.fake_random();
 
     uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE] = {0};
 
-    std::generate(std::begin(pk1), std::end(pk1), [&]() { return dist(rng); });
+    rng.bytes(pk1, sizeof(pk1));
 
     pk_copy(pk2, pk1);
 
@@ -48,20 +50,21 @@ TEST(PkEqual, IdCopyMakesKeysEqual)
 
 TEST(CryptoCore, EncryptLargeData)
 {
-    Test_Memory mem;
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    auto c_rng = env.fake_random().get_c_random();
 
     Nonce nonce{};
     PublicKey pk;
     SecretKey sk;
-    crypto_new_keypair(rng, pk.data(), sk.data());
+    crypto_new_keypair(&c_rng, pk.data(), sk.data());
 
     // 100 MiB of data (all zeroes, doesn't matter what's inside).
     std::vector<uint8_t> plain(100 * 1024 * 1024);
     std::vector<uint8_t> encrypted(plain.size() + CRYPTO_MAC_SIZE);
 
     encrypt_data(
-        mem, pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
+        &c_mem, pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
 }
 
 TEST(CryptoCore, IncrementNonce)
@@ -99,12 +102,13 @@ TEST(CryptoCore, IncrementNonceNumber)
 
 TEST(CryptoCore, Signatures)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
     Extended_Public_Key pk;
     Extended_Secret_Key sk;
 
-    EXPECT_TRUE(create_extended_keypair(&pk, &sk, rng));
+    EXPECT_TRUE(create_extended_keypair(&pk, &sk, &c_rng));
 
     std::vector<uint8_t> message{0};
     message.clear();
@@ -117,16 +121,17 @@ TEST(CryptoCore, Signatures)
         EXPECT_TRUE(crypto_signature_verify(
             signature.data(), message.data(), message.size(), get_sig_pk(&pk)));
 
-        message.push_back(random_u08(rng));
+        message.push_back(random_u08(&c_rng));
     }
 }
 
 TEST(CryptoCore, Hmac)
 {
-    Test_Random rng;
+    SimulatedEnvironment env;
+    auto c_rng = env.fake_random().get_c_random();
 
     HmacKey sk;
-    new_hmac_key(rng, sk.data());
+    new_hmac_key(&c_rng, sk.data());
 
     std::vector<uint8_t> message{0};
     message.clear();
@@ -137,7 +142,7 @@ TEST(CryptoCore, Hmac)
         crypto_hmac(auth.data(), sk.data(), message.data(), message.size());
         EXPECT_TRUE(crypto_hmac_verify(auth.data(), sk.data(), message.data(), message.size()));
 
-        message.push_back(random_u08(rng));
+        message.push_back(random_u08(&c_rng));
     }
 }
 

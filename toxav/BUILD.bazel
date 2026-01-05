@@ -79,7 +79,7 @@ cc_fuzz_test(
     copts = ["-UNDEBUG"],
     deps = [
         ":rtp",
-        "//c-toxcore/testing/fuzzing:fuzz_support",
+        "//c-toxcore/testing/support",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:os_memory",

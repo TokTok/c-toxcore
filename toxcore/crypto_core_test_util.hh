@@ -4,41 +4,9 @@
 #include <algorithm>
 #include <array>
 #include <iosfwd>
-#include <random>
 
 #include "crypto_core.h"
 #include "test_util.hh"
-#include "tox_random_impl.h"
-
-struct Random_Class {
-    static Tox_Random_Funcs const vtable;
-    Tox_Random const self;
-
-    operator Tox_Random const *() const { return &self; }
-
-    Random_Class(Random_Class const &) = default;
-    Random_Class()
-        : self{&vtable, this}
-    {
-    }
-
-    virtual ~Random_Class();
-    virtual tox_random_bytes_cb random_bytes = 0;
-    virtual tox_random_uniform_cb random_uniform = 0;
-};
-
-/**
- * A very simple, fast, and deterministic PRNG just for testing.
- *
- * We generally don't want to use system_random(), since it's a
- * cryptographically secure PRNG and we don't need that in unit tests.
- */
-class Test_Random : public Random_Class {
-    std::minstd_rand lcg;
-
-    void random_bytes(void *obj, uint8_t *bytes, uint32_t length) override;
-    uint32_t random_uniform(void *obj, uint32_t upper_bound) override;
-};
 
 struct PublicKey : private std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE> {
     using Base = std::array<uint8_t, CRYPTO_PUBLIC_KEY_SIZE>;

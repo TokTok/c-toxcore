@@ -2,19 +2,23 @@
 
 #include <gtest/gtest.h>
 
+#include "../testing/support/public/simulated_environment.hh"
 #include "DHT.h"
 #include "crypto_core.h"
 #include "logger.h"
-#include "mem_test_util.hh"
 #include "mono_time.h"
+#include "mono_time_test_util.hh"
 #include "network.h"
 
 namespace {
 
+using tox::test::FakeClock;
+using tox::test::SimulatedEnvironment;
+
 struct Announces : ::testing::Test {
 protected:
-    Test_Memory mem_;
-    uint64_t clock_ = 1000;
+    SimulatedEnvironment env;
+    Tox_Memory c_mem_;
     Mono_Time *mono_time_ = nullptr;
     GC_Announces_List *gca_ = nullptr;
     GC_Announce _ann1;
@@ -22,24 +26,24 @@ protected:
 
     void SetUp() override
     {
-        mono_time_ = mono_time_new(mem_, nullptr, nullptr);
+        c_mem_ = env.fake_memory().get_c_memory();
+        mono_time_ = mono_time_new(&c_mem_, nullptr, nullptr);
         ASSERT_NE(mono_time_, nullptr);
-        mono_time_set_current_time_callback(
-            mono_time_, [](void *user_data) { return *static_cast<uint64_t *>(user_data); },
-            &clock_);
-        gca_ = new_gca_list(mem_);
+        setup_fake_clock(mono_time_, env.fake_clock());
+
+        gca_ = new_gca_list(&c_mem_);
         ASSERT_NE(gca_, nullptr);
     }
 
     ~Announces() override
     {
         kill_gca(gca_);
-        mono_time_free(mem_, mono_time_);
+        mono_time_free(&c_mem_, mono_time_);
     }
 
     void advance_clock(uint64_t increment)
     {
-        clock_ += increment;
+        env.fake_clock().advance(increment);
         mono_time_update(mono_time_);
     }
 };
@@ -54,10 +58,10 @@ TEST_F(Announces, CanBeCreatedAndDeleted)
 {
     GC_Public_Announce ann{};
     ann.chat_public_key[0] = 0x88;
-    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann), nullptr);
+    ASSERT_NE(gca_add_announce(&c_mem_, mono_time_, gca_, &ann), nullptr);
 #ifndef __clang__
-    ASSERT_EQ(gca_add_announce(mem_, mono_time_, gca_, nullptr), nullptr);
-    ASSERT_EQ(gca_add_announce(mem_, mono_time_, nullptr, &ann), nullptr);
+    ASSERT_EQ(gca_add_announce(&c_mem_, mono_time_, gca_, nullptr), nullptr);
+    ASSERT_EQ(gca_add_announce(&c_mem_, mono_time_, nullptr, &ann), nullptr);
 #endif
 }
 
@@ -67,7 +71,7 @@ TEST_F(Announces, AnnouncesCanTimeOut)
     ASSERT_EQ(gca_->root_announces, nullptr);
     GC_Public_Announce ann{};
     ann.chat_public_key[0] = 0xae;
-    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann), nullptr);
+    ASSERT_NE(gca_add_announce(&c_mem_, mono_time_, gca_, &ann), nullptr);
     ASSERT_NE(gca_->root_announces, nullptr);
     ASSERT_EQ(gca_->root_announces->chat_id[0], 0xae);
 
@@ -95,9 +99,9 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
     ann2.chat_public_key[0] = 0x92;
     ann2.base_announce.peer_public_key[0] = 0x7c;
 
-    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann1), nullptr);
-    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann2), nullptr);
-    ASSERT_NE(gca_add_announce(mem_, mono_time_, gca_, &ann2), nullptr);
+    ASSERT_NE(gca_add_announce(&c_mem_, mono_time_, gca_, &ann1), nullptr);
+    ASSERT_NE(gca_add_announce(&c_mem_, mono_time_, gca_, &ann2), nullptr);
+    ASSERT_NE(gca_add_announce(&c_mem_, mono_time_, gca_, &ann2), nullptr);
 
     uint8_t empty_pk[ENC_PUBLIC_KEY_SIZE] = {0};
 
@@ -117,13 +121,15 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
 
 struct AnnouncesPack : ::testing::Test {
 protected:
+    SimulatedEnvironment env;
+    Tox_Memory c_mem_;
     std::vector<GC_Announce> announces_;
-    Test_Memory mem_;
     Logger *logger_ = nullptr;
 
     void SetUp() override
     {
-        logger_ = logger_new(mem_);
+        c_mem_ = env.fake_memory().get_c_memory();
+        logger_ = logger_new(&c_mem_);
         ASSERT_NE(logger_, nullptr);
 
         // Add an announce without TCP relay.

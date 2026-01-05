@@ -36,7 +36,13 @@ run() {
     -Wno-unreachable-code-return \
     -Wno-unsafe-buffer-usage \
     -Wno-unused-parameter \
-    -Wno-used-but-marked-unused
+    -Wno-used-but-marked-unused \
+    -Wno-unneeded-member-function \
+    -Wno-unused-function \
+    -Wno-unused-member-function \
+    -Wno-unused-parameter \
+    -Wno-unused-template
+  # TODO(iphydf): Remove these last 5 when the test framework matures.
 }
 
 . other/analysis/variants.sh

@@ -5,10 +5,16 @@
 #include <cstring>
 #include <vector>
 
-#include "../testing/fuzzing/fuzz_support.hh"
+#include "../testing/support/public/fuzz_data.hh"
+#include "../testing/support/public/fuzz_helpers.hh"
+#include "../testing/support/public/simulated_environment.hh"
 #include "tox_dispatch.h"
 
 namespace {
+
+using tox::test::configure_fuzz_memory_source;
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
 
 void TestUnpack(Fuzz_Data data)
 {
@@ -27,7 +33,9 @@ void TestUnpack(Fuzz_Data data)
     }
 
     // rest of the fuzz data is input for malloc
-    Fuzz_System sys{data};
+    SimulatedEnvironment env;
+    auto node = env.create_node(33445);
+    configure_fuzz_memory_source(env.fake_memory(), data);
 
     Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
     assert(dispatch != nullptr);
@@ -73,7 +81,7 @@ void TestUnpack(Fuzz_Data data)
     tox_events_callback_group_join_fail(dispatch, ignore);
     tox_events_callback_group_moderation(dispatch, ignore);
 
-    Tox_Events *events = tox_events_load(sys.sys.get(), events_data, events_size);
+    Tox_Events *events = tox_events_load(&node->system, events_data, events_size);
     if (events) {
         std::vector<uint8_t> packed(tox_events_bytes_size(events));
         tox_events_get_bytes(events, packed.data());

@@ -1,27 +1,5 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
-
-cc_library(
-    name = "fuzz_support",
-    srcs = [
-        "func_conversion.hh",
-        "fuzz_support.cc",
-    ],
-    hdrs = ["fuzz_support.hh"],
-    visibility = ["//c-toxcore:__subpackages__"],
-    deps = [
-        "//c-toxcore/toxcore:crypto_core",
-        "//c-toxcore/toxcore:network",
-        "//c-toxcore/toxcore:tox",
-    ],
-)
-
-cc_library(
-    name = "fuzz_tox",
-    hdrs = ["fuzz_tox.hh"],
-    visibility = ["//c-toxcore:__subpackages__"],
-    deps = [":fuzz_support"],
-)
 
 cc_fuzz_test(
     name = "bootstrap_fuzz_test",
@@ -30,8 +8,7 @@ cc_fuzz_test(
     copts = ["-UNDEBUG"],
     corpus = ["//tools/toktok-fuzzer/corpus:bootstrap_fuzz_test"],
     deps = [
-        ":fuzz_support",
-        ":fuzz_tox",
+        "//c-toxcore/testing/support",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
@@ -46,8 +23,7 @@ cc_fuzz_test(
     corpus = ["//tools/toktok-fuzzer/corpus:e2e_fuzz_test"],
     data = ["//tools/toktok-fuzzer/init:e2e_fuzz_test.dat"],
     deps = [
-        ":fuzz_support",
-        ":fuzz_tox",
+        "//c-toxcore/testing/support",
         "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
@@ -62,7 +38,7 @@ cc_fuzz_test(
     copts = ["-UNDEBUG"],
     corpus = ["//tools/toktok-fuzzer/corpus:toxsave_fuzz_test"],
     deps = [
-        ":fuzz_support",
+        "//c-toxcore/testing/support",
         "//c-toxcore/toxcore:tox",
     ],
 )
@@ -72,7 +48,7 @@ cc_binary(
     srcs = ["protodump.cc"],
     copts = ["-UNDEBUG"],
     deps = [
-        ":fuzz_support",
+        "//c-toxcore/testing/support",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:tox_dispatch",
         "//c-toxcore/toxcore:tox_events",
@@ -89,39 +65,4 @@ genrule(
     cmd = "$(location :protodump) $(location e2e_fuzz_test_init.dat) $(location e2e_fuzz_test_bootstrap.dat)",
     tags = ["manual"],
     tools = [":protodump"],
-)
-
-# bazel test --config=asan-libfuzzer //c-toxcore/testing/fuzzing:protodump_reduce_test
-cc_test(
-    name = "protodump_reduce_test",
-    size = "small",
-    srcs = ["protodump_reduce.cc"],
-    args = ["$(location :e2e_fuzz_test_init.dat)"],
-    copts = ["-UNDEBUG"],
-    data = [":e2e_fuzz_test_init.dat"],
-    tags = ["manual"],
-    deps = [
-        ":fuzz_support",
-        ":fuzz_tox",
-        "//c-toxcore/toxcore:crypto_core",
-        "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:tox_dispatch",
-        "//c-toxcore/toxcore:tox_events",
-        "@rules_fuzzing//fuzzing:cc_engine",
-    ],
-)
-
-cc_fuzz_test(
-    name = "protodump_reduce",
-    size = "small",
-    srcs = ["protodump_reduce.cc"],
-    copts = ["-UNDEBUG"],
-    deps = [
-        ":fuzz_support",
-        ":fuzz_tox",
-        "//c-toxcore/toxcore:crypto_core",
-        "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:tox_dispatch",
-        "//c-toxcore/toxcore:tox_events",
-    ],
 )

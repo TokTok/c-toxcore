@@ -2,79 +2,89 @@
 
 #include <gtest/gtest.h>
 
-#include <chrono>
-#include <thread>
-
-#include "mem_test_util.hh"
+#include "../testing/support/public/simulated_environment.hh"
+#include "mono_time_test_util.hh"
 
 namespace {
 
-TEST(MonoTime, UnixTimeIncreasesOverTime)
+using tox::test::FakeClock;
+using tox::test::SimulatedEnvironment;
+
+TEST(MonoTime, TimeIncreasesWhenAdvanced)
 {
-    Test_Memory mem;
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
+    setup_fake_clock(mono_time, env.fake_clock());
 
     mono_time_update(mono_time);
     uint64_t const start = mono_time_get(mono_time);
 
-    while (start == mono_time_get(mono_time)) {
-        mono_time_update(mono_time);
-    }
+    // Advance 10 seconds to ensure we definitely cross second boundaries and see an increase
+    env.fake_clock().advance(10000);
+    mono_time_update(mono_time);
 
     uint64_t const end = mono_time_get(mono_time);
     EXPECT_GT(end, start);
+    EXPECT_EQ(end, start + 10);
 
-    mono_time_free(mem, mono_time);
+    mono_time_free(&c_mem, mono_time);
 }
 
 TEST(MonoTime, IsTimeout)
 {
-    Test_Memory mem;
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
+    setup_fake_clock(mono_time, env.fake_clock());
 
+    mono_time_update(mono_time);  // Ensure start is consistent with fake clock
     uint64_t const start = mono_time_get(mono_time);
     EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 1));
 
-    while (start == mono_time_get(mono_time)) {
-        mono_time_update(mono_time);
-    }
+    env.fake_clock().advance(2000);  // 2 seconds
+    mono_time_update(mono_time);
 
     EXPECT_TRUE(mono_time_is_timeout(mono_time, start, 1));
 
-    mono_time_free(mem, mono_time);
+    mono_time_free(&c_mem, mono_time);
 }
 
-TEST(MonoTime, IsTimeoutReal)
+TEST(MonoTime, IsTimeoutWithIntermediateUpdates)
 {
-    Test_Memory mem;
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
+    setup_fake_clock(mono_time, env.fake_clock());
 
+    mono_time_update(mono_time);
     uint64_t const start = mono_time_get(mono_time);
     EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 5));
 
-    const uint64_t before_sleep = mono_time_get(mono_time);
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    env.fake_clock().advance(100);
     mono_time_update(mono_time);
-    const uint64_t after_sleep = mono_time_get(mono_time);
 
-    // should still not have timed out (5sec) after sleeping ~100ms
-    EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 5))
-        << "before sleep: " << before_sleep << ", after sleep: " << after_sleep;
+    // Should not have timed out (5sec) after 100ms
+    EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 5));
 
-    mono_time_free(mem, mono_time);
+    env.fake_clock().advance(5000);
+    mono_time_update(mono_time);
+    EXPECT_TRUE(mono_time_is_timeout(mono_time, start, 5));
+
+    mono_time_free(&c_mem, mono_time);
 }
 
 TEST(MonoTime, CustomTime)
 {
-    Test_Memory mem;
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    SimulatedEnvironment env;
+    auto c_mem = env.fake_memory().get_c_memory();
+    Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
 
-    uint64_t test_time = current_time_monotonic(mono_time) + 42137;
-
+    uint64_t test_time = 123456;
     mono_time_set_current_time_callback(
         mono_time, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &test_time);
     mono_time_update(mono_time);
@@ -84,13 +94,12 @@ TEST(MonoTime, CustomTime)
     uint64_t const start = mono_time_get(mono_time);
 
     test_time += 7000;
-
     mono_time_update(mono_time);
-    EXPECT_EQ(mono_time_get(mono_time) - start, 7);
 
+    EXPECT_EQ(mono_time_get(mono_time) - start, 7);
     EXPECT_EQ(current_time_monotonic(mono_time), test_time);
 
-    mono_time_free(mem, mono_time);
+    mono_time_free(&c_mem, mono_time);
 }
 
 }  // namespace

@@ -38,3 +38,5 @@ if(BUILD_MISC_TESTS)
     target_link_libraries(Messenger_test PRIVATE Threads::Threads)
   endif()
 endif()
+
+add_subdirectory(support)

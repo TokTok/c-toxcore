@@ -1,0 +1,87 @@
+#include "fake_network_stack.hh"
+
+#include <gtest/gtest.h>
+
+#include "network_universe.hh"
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <winsock2.h>
+#else
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
+namespace tox::test {
+namespace {
+
+    class FakeNetworkStackTest : public ::testing::Test {
+    public:
+        ~FakeNetworkStackTest() override;
+
+    protected:
+        NetworkUniverse universe;
+        FakeNetworkStack stack{universe};
+    };
+
+    FakeNetworkStackTest::~FakeNetworkStackTest() = default;
+
+    TEST_F(FakeNetworkStackTest, SocketCreationAndLifecycle)
+    {
+        Socket udp_sock = stack.socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        ASSERT_NE(net_socket_to_native(udp_sock), -1);
+
+        // Check introspection
+        ASSERT_NE(stack.get_udp_socket(udp_sock), nullptr);
+
+        // Bind
+        IP_Port addr;
+        ip_init(&addr.ip, false);
+        addr.ip.ip.v4.uint32 = 0;
+        addr.port = 9002;
+        ASSERT_EQ(stack.bind(udp_sock, &addr), 0);
+
+        // Check introspection again
+        auto sockets = stack.get_bound_udp_sockets();
+        ASSERT_EQ(sockets.size(), 1);
+        EXPECT_EQ(sockets[0]->local_port(), 9002);
+
+        ASSERT_EQ(stack.close(udp_sock), 0);
+        ASSERT_EQ(stack.get_bound_udp_sockets().size(), 0);
+    }
+
+    TEST_F(FakeNetworkStackTest, TcpSocketThroughStack)
+    {
+        Socket tcp_sock = stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        ASSERT_NE(net_socket_to_native(tcp_sock), -1);
+
+        IP_Port addr;
+        ip_init(&addr.ip, false);
+        addr.ip.ip.v4.uint32 = 0;
+        addr.port = 9003;
+        ASSERT_EQ(stack.bind(tcp_sock, &addr), 0);
+        ASSERT_EQ(stack.listen(tcp_sock, 5), 0);
+
+        // Connect from another stack
+        FakeNetworkStack client_stack{universe};
+        Socket client_sock = client_stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = 0x7F000001;  // Localhost
+        server_addr.port = 9003;
+
+        ASSERT_EQ(client_stack.connect(client_sock, &server_addr), -1);
+        ASSERT_EQ(errno, EINPROGRESS);
+
+        universe.process_events(0);  // SYN
+        universe.process_events(0);  // SYN-ACK
+        universe.process_events(0);  // ACK
+
+        Socket accepted = stack.accept(tcp_sock);
+        ASSERT_NE(net_socket_to_native(accepted), -1);
+    }
+
+}  // namespace
+}  // namespace tox::test

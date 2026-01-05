@@ -11,6 +11,8 @@ CPPFLAGS+=("-Iother/bootstrap_daemon/src")
 CPPFLAGS+=("-Iother/fun")
 CPPFLAGS+=("-Itesting")
 CPPFLAGS+=("-Itesting/fuzzing")
+CPPFLAGS+=("-Itesting/support/doubles")
+CPPFLAGS+=("-Itesting/support/public")
 CPPFLAGS+=("-Itoxcore")
 CPPFLAGS+=("-Itoxcore/events")
 CPPFLAGS+=("-Itoxav")
@@ -51,33 +53,44 @@ callmain() {
 
 # Include all C and C++ code
 FIND_QUERY="find . '-(' -name '*.c' -or -name '*.cc' '-)'"
-# Excludes
-FIND_QUERY="$FIND_QUERY -and -not -wholename './_build/*'"
-FIND_QUERY="$FIND_QUERY -and -not -wholename './other/docker/*'"
-FIND_QUERY="$FIND_QUERY -and -not -wholename './super_donators/*'"
-FIND_QUERY="$FIND_QUERY -and -not -name amalgamation.cc"
-FIND_QUERY="$FIND_QUERY -and -not -name av_test.c"
-FIND_QUERY="$FIND_QUERY -and -not -name cracker.c"
-FIND_QUERY="$FIND_QUERY -and -not -name version_test.c"
-FIND_QUERY="$FIND_QUERY -and -not -name '*_fuzz_test.cc'"
-FIND_QUERY="$FIND_QUERY -and -not -wholename './testing/fuzzing/*'"
-FIND_QUERY="$FIND_QUERY -and -not -wholename './third_party/cmp/examples/*'"
-FIND_QUERY="$FIND_QUERY -and -not -wholename './third_party/cmp/test/*'"
+HEADER_QUERY="find . '-(' -name '*.h' -or -name '*.hh' '-)'"
+
+COMMON_EXCLUDES=""
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './_build/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './other/docker/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './super_donators/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './testing/fuzzing/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './third_party/cmp/examples/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './third_party/cmp/test/*'"
+
+# File name excludes
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name amalgamation.cc"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name av_test.c"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name cracker.c"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name version_test.c"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name '*_fuzz_test.cc'"
 
 if [ "$SKIP_BENCHMARK" == 1 ]; then
-  FIND_QUERY="$FIND_QUERY -and -not -name '*_bench.cc'"
+  COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name '*_bench.cc'"
 fi
 
 if [ "$SKIP_GTEST" == 1 ]; then
-  FIND_QUERY="$FIND_QUERY -and -not -name '*_test.cc'"
+  COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -name '*_test.cc'"
 fi
 
-readarray -t FILES <<<"$(eval "$FIND_QUERY")"
+FIND_QUERY="$FIND_QUERY $COMMON_EXCLUDES"
+HEADER_QUERY="$HEADER_QUERY $COMMON_EXCLUDES"
 
-(for i in "${FILES[@]}"; do
+readarray -t FILES <<<"$(eval "$FIND_QUERY")"
+readarray -t HEADERS <<<"$(eval "$HEADER_QUERY")"
+
+INCLUDES=$(for i in "${FILES[@]}" "${HEADERS[@]}"; do
   grep -o '#include <[^>]*>' "$i" |
     grep -E -v '<win|<ws|<iphlp|<libc|<mach/|<crypto_|<randombytes|<u.h>|<sys/filio|<stropts.h>|<linux'
-done) | sort -u >>amalgamation.cc
+done | sort -u)
+
+echo "$INCLUDES" | grep "<memory>" >>amalgamation.cc
+echo "$INCLUDES" | grep -v "<memory>" >>amalgamation.cc
 
 put auto_tests/check_compat.h
 

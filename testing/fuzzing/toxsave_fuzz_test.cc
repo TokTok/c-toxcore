@@ -4,9 +4,13 @@
 
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_private.h"
-#include "fuzz_support.hh"
+#include "../support/public/fuzz_data.hh"
+#include "../support/public/simulated_environment.hh"
 
 namespace {
+
+using tox::test::Fuzz_Data;
+using tox::test::SimulatedEnvironment;
 
 void TestSaveDataLoading(Fuzz_Data &input)
 {
@@ -27,10 +31,12 @@ void TestSaveDataLoading(Fuzz_Data &input)
     tox_options_set_savedata_type(tox_options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     Tox_Options_Testing tox_options_testing;
-    Null_System sys;
-    tox_options_testing.operating_system = sys.sys.get();
+    SimulatedEnvironment env;
+    auto node = env.create_node(33445);
+    tox_options_testing.operating_system = &node->system;
 
-    Tox *tox = tox_new_testing(tox_options, nullptr, &tox_options_testing, nullptr);
+    Tox_Err_New_Testing err_testing;
+    Tox *tox = tox_new_testing(tox_options, nullptr, &tox_options_testing, &err_testing);
     tox_options_free(tox_options);
     if (tox == nullptr) {
         // Tox save was invalid, we're finished here

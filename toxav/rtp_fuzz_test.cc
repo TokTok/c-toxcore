@@ -1,14 +1,17 @@
 #include "rtp.h"
 
 #include <cstdlib>
+#include <memory>
 #include <vector>
 
-#include "../testing/fuzzing/fuzz_support.hh"
+#include "../testing/support/public/fuzz_data.hh"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/os_memory.h"
 
 namespace {
+
+using tox::test::Fuzz_Data;
 
 struct MockSessionData { };
 
