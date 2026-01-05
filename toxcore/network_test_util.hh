@@ -48,15 +48,15 @@ class Test_Network : public Network_Class {
 
     int close(void *obj, Socket sock) override;
     Socket accept(void *obj, Socket sock) override;
-    int bind(void *obj, Socket sock, const Network_Addr *addr) override;
+    int bind(void *obj, Socket sock, const IP_Port *addr) override;
     int listen(void *obj, Socket sock, int backlog) override;
-    int connect(void *obj, Socket sock, const Network_Addr *addr) override;
+    int connect(void *obj, Socket sock, const IP_Port *addr) override;
     int recvbuf(void *obj, Socket sock) override;
     int recv(void *obj, Socket sock, uint8_t *buf, size_t len) override;
-    int recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) override;
+    int recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, IP_Port *addr) override;
     int send(void *obj, Socket sock, const uint8_t *buf, size_t len) override;
     int sendto(
-        void *obj, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr) override;
+        void *obj, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) override;
     Socket socket(void *obj, int domain, int type, int proto) override;
     int socket_nonblock(void *obj, Socket sock, bool nonblock) override;
     int getsockopt(
@@ -64,8 +64,8 @@ class Test_Network : public Network_Class {
     int setsockopt(
         void *obj, Socket sock, int level, int optname, const void *optval, size_t optlen) override;
     int getaddrinfo(void *obj, const Memory *mem, const char *address, int family, int protocol,
-        Network_Addr **addrs) override;
-    int freeaddrinfo(void *obj, const Memory *mem, Network_Addr *addrs) override;
+        IP_Port **addrs) override;
+    int freeaddrinfo(void *obj, const Memory *mem, IP_Port *addrs) override;
 };
 
 template <>

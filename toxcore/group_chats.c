@@ -3842,11 +3842,6 @@ static bool handle_gc_topic_validate(const GC_Chat *_Nonnull chat, const GC_Peer
         }
 
         if (topic_info->version == chat->shared_state.topic_lock) {
-            // always accept topic on initial connection
-            if (!mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT)) {
-                return true;
-            }
-
             return true;
         }
 

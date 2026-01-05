@@ -28,7 +28,7 @@ Network_Funcs const Network_Class::vtable = {
 
 int Test_Network::close(void *obj, Socket sock) { return net->funcs->close(net->obj, sock); }
 Socket Test_Network::accept(void *obj, Socket sock) { return net->funcs->accept(net->obj, sock); }
-int Test_Network::bind(void *obj, Socket sock, const Network_Addr *addr)
+int Test_Network::bind(void *obj, Socket sock, const IP_Port *addr)
 {
     return net->funcs->bind(net->obj, sock, addr);
 }
@@ -36,7 +36,7 @@ int Test_Network::listen(void *obj, Socket sock, int backlog)
 {
     return net->funcs->listen(net->obj, sock, backlog);
 }
-int Test_Network::connect(void *obj, Socket sock, const Network_Addr *addr)
+int Test_Network::connect(void *obj, Socket sock, const IP_Port *addr)
 {
     return net->funcs->connect(net->obj, sock, addr);
 }
@@ -45,7 +45,7 @@ int Test_Network::recv(void *obj, Socket sock, uint8_t *buf, size_t len)
 {
     return net->funcs->recv(net->obj, sock, buf, len);
 }
-int Test_Network::recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr)
+int Test_Network::recvfrom(void *obj, Socket sock, uint8_t *buf, size_t len, IP_Port *addr)
 {
     return net->funcs->recvfrom(net->obj, sock, buf, len, addr);
 }
@@ -54,7 +54,7 @@ int Test_Network::send(void *obj, Socket sock, const uint8_t *buf, size_t len)
     return net->funcs->send(net->obj, sock, buf, len);
 }
 int Test_Network::sendto(
-    void *obj, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr)
+    void *obj, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr)
 {
     return net->funcs->sendto(net->obj, sock, buf, len, addr);
 }
@@ -76,12 +76,12 @@ int Test_Network::setsockopt(
 {
     return net->funcs->setsockopt(net->obj, sock, level, optname, optval, optlen);
 }
-int Test_Network::getaddrinfo(void *obj, const Memory *mem, const char *address, int family,
-    int protocol, Network_Addr **addrs)
+int Test_Network::getaddrinfo(
+    void *obj, const Memory *mem, const char *address, int family, int protocol, IP_Port **addrs)
 {
     return net->funcs->getaddrinfo(net->obj, mem, address, family, protocol, addrs);
 }
-int Test_Network::freeaddrinfo(void *obj, const Memory *mem, Network_Addr *addrs)
+int Test_Network::freeaddrinfo(void *obj, const Memory *mem, IP_Port *addrs)
 {
     return net->funcs->freeaddrinfo(net->obj, mem, addrs);
 }

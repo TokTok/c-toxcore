@@ -452,6 +452,7 @@ cc_library(
         "//c-toxcore/other:__pkg__",
         "//c-toxcore/other/bootstrap_daemon:__pkg__",
         "//c-toxcore/testing/fuzzing:__pkg__",
+        "//c-toxcore/testing/support:__pkg__",
         "//c-toxcore/toxav:__pkg__",
     ],
     deps = [

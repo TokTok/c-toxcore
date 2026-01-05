@@ -23,35 +23,68 @@
 extern "C" {
 #endif
 
-/**
- * @brief Wrapper for sockaddr_storage and size.
- */
-typedef struct Network_Addr Network_Addr;
-
 typedef bitwise int Socket_Value;
 typedef struct Socket {
     Socket_Value value;
 } Socket;
+
+#define SIZE_IP4 4
+#define SIZE_IP6 16
+#define SIZE_IP (1 + SIZE_IP6)
+#define SIZE_PORT 2
+#define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
+
+typedef struct Family {
+    uint8_t value;
+} Family;
+
+typedef union IP4 {
+    uint32_t uint32;
+    uint16_t uint16[2];
+    uint8_t uint8[4];
+} IP4;
+
+typedef union IP6 {
+    uint8_t uint8[16];
+    uint16_t uint16[8];
+    uint32_t uint32[4];
+    uint64_t uint64[2];
+} IP6;
+
+typedef union IP_Union {
+    IP4 v4;
+    IP6 v6;
+} IP_Union;
+
+typedef struct IP {
+    Family family;
+    IP_Union ip;
+} IP;
+
+typedef struct IP_Port {
+    IP ip;
+    uint16_t port;
+} IP_Port;
 
 int net_socket_to_native(Socket sock);
 Socket net_socket_from_native(int sock);
 
 typedef int net_close_cb(void *_Nullable obj, Socket sock);
 typedef Socket net_accept_cb(void *_Nullable obj, Socket sock);
-typedef int net_bind_cb(void *_Nullable obj, Socket sock, const Network_Addr *_Nonnull addr);
+typedef int net_bind_cb(void *_Nullable obj, Socket sock, const IP_Port *_Nonnull addr);
 typedef int net_listen_cb(void *_Nullable obj, Socket sock, int backlog);
-typedef int net_connect_cb(void *_Nullable obj, Socket sock, const Network_Addr *_Nonnull addr);
+typedef int net_connect_cb(void *_Nullable obj, Socket sock, const IP_Port *_Nonnull addr);
 typedef int net_recvbuf_cb(void *_Nullable obj, Socket sock);
 typedef int net_recv_cb(void *_Nullable obj, Socket sock, uint8_t *_Nonnull buf, size_t len);
-typedef int net_recvfrom_cb(void *_Nullable obj, Socket sock, uint8_t *_Nonnull buf, size_t len, Network_Addr *_Nonnull addr);
+typedef int net_recvfrom_cb(void *_Nullable obj, Socket sock, uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull addr);
 typedef int net_send_cb(void *_Nullable obj, Socket sock, const uint8_t *_Nonnull buf, size_t len);
-typedef int net_sendto_cb(void *_Nullable obj, Socket sock, const uint8_t *_Nonnull buf, size_t len, const Network_Addr *_Nonnull addr);
+typedef int net_sendto_cb(void *_Nullable obj, Socket sock, const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull addr);
 typedef Socket net_socket_cb(void *_Nullable obj, int domain, int type, int proto);
 typedef int net_socket_nonblock_cb(void *_Nullable obj, Socket sock, bool nonblock);
 typedef int net_getsockopt_cb(void *_Nullable obj, Socket sock, int level, int optname, void *_Nonnull optval, size_t *_Nonnull optlen);
 typedef int net_setsockopt_cb(void *_Nullable obj, Socket sock, int level, int optname, const void *_Nonnull optval, size_t optlen);
-typedef int net_getaddrinfo_cb(void *_Nullable obj, const Memory *_Nonnull mem, const char *_Nonnull address, int family, int protocol, Network_Addr *_Nullable *_Nonnull addrs);
-typedef int net_freeaddrinfo_cb(void *_Nullable obj, const Memory *_Nonnull mem, Network_Addr *_Nullable addrs);
+typedef int net_getaddrinfo_cb(void *_Nullable obj, const Memory *_Nonnull mem, const char *_Nonnull address, int family, int protocol, IP_Port *_Nullable *_Nonnull addrs);
+typedef int net_freeaddrinfo_cb(void *_Nullable obj, const Memory *_Nonnull mem, IP_Port *_Nullable addrs);
 
 /** @brief Functions wrapping POSIX network functions.
  *
@@ -83,10 +116,6 @@ typedef struct Network {
 } Network;
 
 const Network *_Nullable os_network(void);
-
-typedef struct Family {
-    uint8_t value;
-} Family;
 
 bool net_family_is_unspec(Family family);
 bool net_family_is_ipv4(Family family);
@@ -182,45 +211,11 @@ typedef enum Net_Packet_Type {
 #define TCP_INET6 (TOX_AF_INET6 + 3)
 #define TCP_SERVER_FAMILY (TOX_AF_INET6 + 4)
 
-#define SIZE_IP4 4
-#define SIZE_IP6 16
-#define SIZE_IP (1 + SIZE_IP6)
-#define SIZE_PORT 2
-#define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
-
-typedef union IP4 {
-    uint32_t uint32;
-    uint16_t uint16[2];
-    uint8_t uint8[4];
-} IP4;
-
 IP4 get_ip4_loopback(void);
 IP4 get_ip4_broadcast(void);
 
-typedef union IP6 {
-    uint8_t uint8[16];
-    uint16_t uint16[8];
-    uint32_t uint32[4];
-    uint64_t uint64[2];
-} IP6;
-
 IP6 get_ip6_loopback(void);
 IP6 get_ip6_broadcast(void);
-
-typedef union IP_Union {
-    IP4 v4;
-    IP6 v6;
-} IP_Union;
-
-typedef struct IP {
-    Family family;
-    IP_Union ip;
-} IP;
-
-typedef struct IP_Port {
-    IP ip;
-    uint16_t port;
-} IP_Port;
 
 Socket net_socket(const Network *_Nonnull ns, Family domain, int type, int protocol);
 

@@ -29,12 +29,6 @@
 #include "../../toxcore/tox_random_impl.h"
 #include "func_conversion.hh"
 
-// TODO(iphydf): Put this somewhere shared.
-struct Network_Addr {
-    struct sockaddr_storage addr;
-    size_t size;
-};
-
 System::System(std::unique_ptr<Tox_System> in_sys, std::unique_ptr<Tox_Memory> in_mem,
     std::unique_ptr<Network> in_ns, std::unique_ptr<Tox_Random> in_rng)
     : sys(std::move(in_sys))
@@ -113,9 +107,9 @@ static constexpr Tox_Memory_Funcs fuzz_memory_funcs = {
 static constexpr Network_Funcs fuzz_network_funcs = {
     /* .close = */ ![](Fuzz_System *self, Socket sock) { return 0; },
     /* .accept = */ ![](Fuzz_System *self, Socket sock) { return Socket{1337}; },
-    /* .bind = */ ![](Fuzz_System *self, Socket sock, const Network_Addr *addr) { return 0; },
+    /* .bind = */ ![](Fuzz_System *self, Socket sock, const IP_Port *addr) { return 0; },
     /* .listen = */ ![](Fuzz_System *self, Socket sock, int backlog) { return 0; },
-    /* .connect = */ ![](Fuzz_System *self, Socket sock, const Network_Addr *addr) { return 0; },
+    /* .connect = */ ![](Fuzz_System *self, Socket sock, const IP_Port *addr) { return 0; },
     /* .recvbuf = */
     ![](Fuzz_System *self, Socket sock) {
         assert(sock.value == 42 || sock.value == 1337);
@@ -129,18 +123,12 @@ static constexpr Network_Funcs fuzz_network_funcs = {
         return recv_common(self->data, buf, len);
     },
     /* .recvfrom = */
-    ![](Fuzz_System *self, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) {
+    ![](Fuzz_System *self, Socket sock, uint8_t *buf, size_t len, IP_Port *addr) {
         assert(sock.value == 42 || sock.value == 1337);
 
-        addr->addr = sockaddr_storage{};
-        // Dummy Addr
-        addr->addr.ss_family = AF_INET;
-
-        // We want an AF_INET address with dummy values
-        sockaddr_in *addr_in = reinterpret_cast<sockaddr_in *>(&addr->addr);
-        addr_in->sin_port = htons(33446);
-        addr_in->sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
-        addr->size = sizeof(struct sockaddr);
+        ip_init(&addr->ip, false);
+        addr->ip.ip.v4.uint32 = net_htonl(0x7F000002);  // 127.0.0.2
+        addr->port = htons(33446);
 
         return recv_common(self->data, buf, len);
     },
@@ -151,7 +139,7 @@ static constexpr Network_Funcs fuzz_network_funcs = {
         return static_cast<int>(len);
     },
     /* .sendto = */
-    ![](Fuzz_System *self, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
+    ![](Fuzz_System *self, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) {
         assert(sock.value == 42 || sock.value == 1337);
         // Always succeed.
         return static_cast<int>(len);
@@ -253,9 +241,9 @@ static constexpr Tox_Memory_Funcs null_memory_funcs = {
 static constexpr Network_Funcs null_network_funcs = {
     /* .close = */ ![](Null_System *self, Socket sock) { return 0; },
     /* .accept = */ ![](Null_System *self, Socket sock) { return Socket{1337}; },
-    /* .bind = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
+    /* .bind = */ ![](Null_System *self, Socket sock, const IP_Port *addr) { return 0; },
     /* .listen = */ ![](Null_System *self, Socket sock, int backlog) { return 0; },
-    /* .connect = */ ![](Null_System *self, Socket sock, const Network_Addr *addr) { return 0; },
+    /* .connect = */ ![](Null_System *self, Socket sock, const IP_Port *addr) { return 0; },
     /* .recvbuf = */ ![](Null_System *self, Socket sock) { return 0; },
     /* .recv = */
     ![](Null_System *self, Socket sock, uint8_t *buf, size_t len) {
@@ -264,7 +252,7 @@ static constexpr Network_Funcs null_network_funcs = {
         return -1;
     },
     /* .recvfrom = */
-    ![](Null_System *self, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) {
+    ![](Null_System *self, Socket sock, uint8_t *buf, size_t len, IP_Port *addr) {
         // Always fail.
         errno = ENOMEM;
         return -1;
@@ -275,7 +263,7 @@ static constexpr Network_Funcs null_network_funcs = {
         return static_cast<int>(len);
     },
     /* .sendto = */
-    ![](Null_System *self, Socket sock, const uint8_t *buf, size_t len, const Network_Addr *addr) {
+    ![](Null_System *self, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) {
         // Always succeed.
         return static_cast<int>(len);
     },
@@ -327,15 +315,7 @@ Null_System::Null_System()
     sys->rng = rng.get();
 }
 
-static uint16_t get_port(const Network_Addr *addr)
-{
-    if (addr->addr.ss_family == AF_INET6) {
-        return reinterpret_cast<const sockaddr_in6 *>(&addr->addr)->sin6_port;
-    } else {
-        assert(addr->addr.ss_family == AF_INET);
-        return reinterpret_cast<const sockaddr_in *>(&addr->addr)->sin_port;
-    }
-}
+static uint16_t get_port(const IP_Port *addr) { return addr->port; }
 
 static constexpr Tox_Memory_Funcs record_memory_funcs = {
     /* .malloc = */
@@ -356,7 +336,7 @@ static constexpr Network_Funcs record_network_funcs = {
     /* .close = */ ![](Record_System *self, Socket sock) { return 0; },
     /* .accept = */ ![](Record_System *self, Socket sock) { return Socket{2}; },
     /* .bind = */
-    ![](Record_System *self, Socket sock, const Network_Addr *addr) {
+    ![](Record_System *self, Socket sock, const IP_Port *addr) {
         const uint16_t port = get_port(addr);
         if (self->global_.bound.find(port) != self->global_.bound.end()) {
             errno = EADDRINUSE;
@@ -367,7 +347,7 @@ static constexpr Network_Funcs record_network_funcs = {
         return 0;
     },
     /* .listen = */ ![](Record_System *self, Socket sock, int backlog) { return 0; },
-    /* .connect = */ ![](Record_System *self, Socket sock, const Network_Addr *addr) { return 0; },
+    /* .connect = */ ![](Record_System *self, Socket sock, const IP_Port *addr) { return 0; },
     /* .recvbuf = */ ![](Record_System *self, Socket sock) { return 0; },
     /* .recv = */
     ![](Record_System *self, Socket sock, uint8_t *buf, size_t len) {
@@ -376,7 +356,7 @@ static constexpr Network_Funcs record_network_funcs = {
         return -1;
     },
     /* .recvfrom = */
-    ![](Record_System *self, Socket sock, uint8_t *buf, size_t len, Network_Addr *addr) {
+    ![](Record_System *self, Socket sock, uint8_t *buf, size_t len, IP_Port *addr) {
         assert(sock.value == 42);
         if (self->recvq.empty()) {
             self->push("\xff\xff");
@@ -391,15 +371,9 @@ static constexpr Network_Funcs record_network_funcs = {
         const size_t recvlen = std::min(len, packet.size());
         std::copy(packet.begin(), packet.end(), buf);
 
-        addr->addr = sockaddr_storage{};
-        // Dummy Addr
-        addr->addr.ss_family = AF_INET;
-
-        // We want an AF_INET address with dummy values
-        sockaddr_in *addr_in = reinterpret_cast<sockaddr_in *>(&addr->addr);
-        addr_in->sin_port = from;
-        addr_in->sin_addr.s_addr = htonl(0x7f000002);  // 127.0.0.2
-        addr->size = sizeof(struct sockaddr);
+        ip_init(&addr->ip, false);
+        addr->ip.ip.v4.uint32 = net_htonl(0x7F000002);  // 127.0.0.2
+        addr->port = from;
 
         assert(recvlen > 0 && recvlen <= INT_MAX);
         self->push(uint8_t(recvlen >> 8));
@@ -417,8 +391,7 @@ static constexpr Network_Funcs record_network_funcs = {
         return static_cast<int>(len);
     },
     /* .sendto = */
-    ![](Record_System *self, Socket sock, const uint8_t *buf, size_t len,
-         const Network_Addr *addr) {
+    ![](Record_System *self, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr) {
         assert(sock.value == 42);
         auto backend = self->global_.bound.find(get_port(addr));
         assert(backend != self->global_.bound.end());
