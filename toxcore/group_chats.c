@@ -3841,8 +3841,18 @@ static bool handle_gc_topic_validate(const GC_Chat *_Nonnull chat, const GC_Peer
             }
         }
 
-        if (topic_info->version == chat->shared_state.topic_lock ||
-                !mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT)) {
+        if (topic_info->version == chat->shared_state.topic_lock) {
+            // always accept topic on initial connection
+            if (!mono_time_is_timeout(chat->mono_time, chat->time_connected, GC_PING_TIMEOUT)) {
+                return true;
+            }
+
+            if (chat->topic_prev_checksum == topic_info->checksum &&
+                    !mono_time_is_timeout(chat->mono_time, chat->topic_time_set, GC_CONFIRMED_PEER_TIMEOUT)) {
+                LOGGER_DEBUG(chat->log, "Topic reversion (probable sync error)");
+                return false;
+            }
+
             return true;
         }
 
