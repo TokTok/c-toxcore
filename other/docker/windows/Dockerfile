@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # When editing, make sure to update /other/windows_build_script_toxcore.sh and
 # INSTALL.md to match.
