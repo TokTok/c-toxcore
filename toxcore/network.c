@@ -773,6 +773,8 @@ static int net_getsockopt(const Network *_Nonnull ns, Socket sock, int level, in
     return ns->funcs->getsockopt(ns->obj, sock, level, optname, optval, optlen);
 }
 
+
+
 int net_send(const Network *ns, const Logger *log,
              Socket sock, const uint8_t *buf, size_t len, const IP_Port *ip_port, Net_Profile *net_profile)
 {
@@ -783,6 +785,7 @@ int net_send(const Network *ns, const Logger *log,
     }
 
     net_log_data(log, "T=>", buf, len, ip_port, res);
+
     return res;
 }
 
@@ -796,6 +799,7 @@ int net_recv(const Network *ns, const Logger *log,
 {
     const int res = ns->funcs->recv(ns->obj, sock, buf, len);
     net_log_data(log, "=>T", buf, len, ip_port, res);
+
     return res;
 }
 

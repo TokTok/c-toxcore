@@ -172,6 +172,7 @@ static void create_gc_session_keypair(const Logger *_Nonnull log, const Random *
 static size_t load_gc_peers(GC_Chat *_Nonnull chat, const GC_SavedPeerInfo *_Nonnull addrs, uint16_t num_addrs);
 static bool saved_peer_is_valid(const GC_SavedPeerInfo *_Nonnull saved_peer);
 
+
 static const GC_Chat empty_gc_chat = {nullptr};
 
 #define GC_INVALID_PEER_ID_VALUE ((force GC_Peer_Id_Value)-1)
@@ -810,6 +811,7 @@ static int saved_peer_index(const GC_Chat *_Nonnull chat, const uint8_t *_Nonnul
 
 /** @brief Removes entry containing `public_key` from the saved peers list. */
 static void saved_peers_remove_entry(GC_Chat *_Nonnull chat, const uint8_t *_Nonnull public_key)
+
 {
     const int idx = saved_peer_index(chat, public_key);
 
@@ -6559,6 +6561,7 @@ void gc_callback_rejected(const Messenger *m, gc_rejected_cb *function)
  * Return true on success.
  */
 static bool peer_delete(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, void *_Nullable userdata)
+
 {
     GC_Peer *peer = get_gc_peer(chat, peer_number);
     if (peer == nullptr) {

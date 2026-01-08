@@ -5,6 +5,7 @@
 
 #include "crypto_core.h"
 #include "test_util.hh"
+#include "tox_random_impl.h"
 
 PublicKey random_pk(const Random *rng)
 {

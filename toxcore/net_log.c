@@ -14,27 +14,6 @@
 #include "network.h"
 #include "util.h"
 
-static uint32_t data_0(uint16_t buflen, const uint8_t *_Nonnull buffer)
-{
-    uint32_t data = 0;
-
-    if (buflen > 4) {
-        net_unpack_u32(buffer + 1, &data);
-    }
-
-    return data;
-}
-static uint32_t data_1(uint16_t buflen, const uint8_t *_Nonnull buffer)
-{
-    uint32_t data = 0;
-
-    if (buflen > 8) {
-        net_unpack_u32(buffer + 5, &data);
-    }
-
-    return data;
-}
-
 static const char *net_packet_type_name(Net_Packet_Type type)
 {
     switch (type) {
@@ -153,28 +132,35 @@ static const char *net_packet_type_name(Net_Packet_Type type)
 void net_log_data(const Logger *log, const char *message, const uint8_t *buffer,
                   uint16_t buflen, const IP_Port *ip_port, long res)
 {
+    char data_str[TOX_BYTES_TO_STRING_BUF_SIZE];
+    data_str[0] = '\0';
+
+    if (buflen > 1) {
+        bytes_to_string(buffer + 1, buflen - 1, data_str, sizeof(data_str));
+    }
+
     if (res < 0) { /* Windows doesn't necessarily know `%zu` */
         Ip_Ntoa ip_str;
         const int error = net_error();
         Net_Strerror error_str;
-        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%d: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%d: %s) | %s",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(buflen, 999), 'E',
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), error,
-                     net_strerror(error, &error_str), data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+                     net_strerror(error, &error_str), data_str);
     } else if ((res > 0) && ((size_t)res <= buflen)) {
         Ip_Ntoa ip_str;
-        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%d: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %3u%c %s:%u (%d: %s) | %s",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      min_u16(res, 999), (size_t)res < buflen ? '<' : '=',
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+                     data_str);
     } else { /* empty or overwrite */
         Ip_Ntoa ip_str;
-        LOGGER_TRACE(log, "[%02x = %-21s] %s %ld%c%u %s:%u (%d: %s) | %08x%08x...%02x",
+        LOGGER_TRACE(log, "[%02x = %-21s] %s %ld%c%u %s:%u (%d: %s) | %s",
                      buffer[0], net_packet_type_name((Net_Packet_Type)buffer[0]), message,
                      res, res == 0 ? '!' : '>', buflen,
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port), 0, "OK",
-                     data_0(buflen, buffer), data_1(buflen, buffer), buffer[buflen - 1]);
+                     data_str);
     }
 }

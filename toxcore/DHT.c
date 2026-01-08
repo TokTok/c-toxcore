@@ -1102,6 +1102,7 @@ static bool is_pk_in_close_list(const DHT *_Nonnull dht, const uint8_t *_Nonnull
  * return true if it should.
  */
 static bool ping_node_from_nodes_response_ok(DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, const IP_Port *_Nonnull ip_port)
+
 {
     bool ret = false;
 
@@ -1318,6 +1319,7 @@ bool dht_send_nodes_request(DHT *dht, const IP_Port *ip_port, const uint8_t *pub
 /** Send a nodes response */
 static int send_nodes_response(const DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull client_id,
                                const uint8_t *_Nonnull sendback_data, uint16_t length, const uint8_t *_Nonnull shared_encryption_key)
+
 {
     /* Check if packet is going to be sent to ourself. */
     if (pk_equal(public_key, dht->self_public_key)) {
@@ -1367,6 +1369,7 @@ static int send_nodes_response(const DHT *_Nonnull dht, const IP_Port *_Nonnull 
 #define CRYPTO_NODE_SIZE (CRYPTO_PUBLIC_KEY_SIZE + sizeof(uint64_t))
 
 static int handle_nodes_request(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, void *_Nonnull userdata)
+
 {
     DHT *const dht = (DHT *)object;
 
@@ -1402,6 +1405,7 @@ static int handle_nodes_request(void *_Nonnull object, const IP_Port *_Nonnull s
 
 /** Return true if we sent a nodes request packet to the peer associated with the supplied info. */
 static bool sent_nodes_request_to_node(DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, const IP_Port *_Nonnull node_ip_port, uint64_t ping_id)
+
 {
     uint8_t data[sizeof(Node_format) * 2];
 
@@ -1420,6 +1424,7 @@ static bool sent_nodes_request_to_node(DHT *_Nonnull dht, const uint8_t *_Nonnul
 
 static bool handle_nodes_response_core(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, Node_format *_Nonnull plain_nodes,
                                        uint16_t size_plain_nodes, uint32_t *_Nonnull num_nodes_out)
+
 {
     DHT *const dht = (DHT *)object;
     const uint32_t cid_size = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + 1 + sizeof(uint64_t) + CRYPTO_MAC_SIZE;
@@ -1488,6 +1493,7 @@ static bool handle_nodes_response_core(void *_Nonnull object, const IP_Port *_No
 }
 
 static int handle_nodes_response(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length, void *_Nonnull userdata)
+
 {
     DHT *const dht = (DHT *)object;
     Node_format plain_nodes[MAX_SENT_NODES];

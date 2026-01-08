@@ -70,6 +70,11 @@ extern "C" {
 #define CRYPTO_NONCE_SIZE              24
 
 /**
+ * @brief NoiseIK: The number of bytes in a nonce used for encryption/decryption (ChaChaPoly1305-IETF).
+ */
+#define CRYPTO_NOISE_NONCE_SIZE              12
+
+/**
  * @brief The number of bytes in a SHA256 hash.
  */
 #define CRYPTO_SHA256_SIZE             32
@@ -78,6 +83,44 @@ extern "C" {
  * @brief The number of bytes in a SHA512 hash.
  */
 #define CRYPTO_SHA512_SIZE             64
+
+/**
+ * @brief The number of bytes in a BLAKE2b-512 hash (as defined for Noise in section 12.8.).
+ */
+#define CRYPTO_NOISE_BLAKE2B_HASH_SIZE             64
+
+/**
+ * @brief The number of bytes in a BLAKE2b block.
+ */
+#define CRYPTO_BLAKE2B_BLOCK_SIZE             128
+
+/** @brief Fill a byte array with random bytes.
+ *
+ * This is the key generator callback and as such must be a cryptographically
+ * secure pseudo-random number generator (CSPRNG). The security of Tox heavily
+ * depends on the security of this RNG.
+ */
+typedef Tox_Random Random;
+
+// TODO(goldroom): struct necessary?
+/** @brief Necessary NoiseIK handshake state information/values.
+ */
+typedef struct Noise_Handshake {
+    uint8_t static_private[CRYPTO_SECRET_KEY_SIZE];
+    uint8_t static_public[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t ephemeral_private[CRYPTO_SECRET_KEY_SIZE];
+    uint8_t ephemeral_public[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t remote_static[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t remote_ephemeral[CRYPTO_PUBLIC_KEY_SIZE];
+    // TODO(goldroom): precompute static static? cf. WireGuard struct noise_handshake
+    // uint8_t precomputed_static_static[CRYPTO_SHARED_KEY_SIZE];
+
+    uint8_t hash[CRYPTO_SHA512_SIZE];
+    uint8_t chaining_key[CRYPTO_SHA512_SIZE];
+
+    bool initiator;
+} Noise_Handshake;
+
 
 /**
  * @brief The number of bytes in an encryption public key used by DHT group chats.
@@ -190,10 +233,7 @@ bool crypto_sha512_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA512_SIZE], const u
  */
 bool crypto_sha256_eq(const uint8_t cksum1[_Nonnull CRYPTO_SHA256_SIZE], const uint8_t cksum2[_Nonnull CRYPTO_SHA256_SIZE]);
 
-/**
- * @brief Shorter internal name for the RNG type.
- */
-typedef Tox_Random Random;
+
 
 /**
  * @brief Return a random 8 bit integer.
@@ -282,9 +322,6 @@ typedef struct Extended_Secret_Key {
 /**
  * @brief Creates an extended keypair: curve25519 and ed25519 for encryption and signing
  *   respectively. The Encryption keys are derived from the signature keys.
- *
- * NOTE: This does *not* use Random, so any code using this will not be fuzzable.
- * TODO: Make it use Random.
  *
  * @param[out] pk The buffer where the public key will be stored. Must have room for EXT_PUBLIC_KEY_SIZE bytes.
  * @param[out] sk The buffer where the secret key will be stored. Must have room for EXT_SECRET_KEY_SIZE bytes.
@@ -421,6 +458,195 @@ bool crypto_memunlock(void *_Nonnull data, size_t length);
  * @brief Generate a random secret HMAC key.
  */
 void new_hmac_key(const Random *_Nonnull rng, uint8_t key[_Nonnull CRYPTO_HMAC_KEY_SIZE]);
+
+/* Necessary functions for Noise, cf. https://noiseprotocol.org/noise.html (Revision 34) */
+
+/**
+ * @brief Encrypt message with precomputed shared key using ChaCha20-Poly1305-IETF (RFC7539).
+ *
+ * Encrypts plain of plain_length to encrypted of plain_length + @ref CRYPTO_MAC_SIZE
+ * using a shared key @ref CRYPTO_SYMMETRIC_KEY_SIZE big and a @ref CRYPTO_NOISE_NONCE_SIZE
+ * byte nonce. The encrypted message, as well as a tag authenticating both the confidential
+ * message m and adlen bytes of non-confidential data ad, are put into encrypted.
+ *
+ * @retval -1 if there was a problem.
+ * @return length of encrypted data if everything was fine.
+ */
+int32_t encrypt_data_symmetric_aead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NOISE_NONCE_SIZE], const uint8_t *_Nonnull plain,
+                                    size_t plain_length,
+                                    uint8_t *_Nonnull encrypted, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Decrypt message with precomputed shared key using ChaCha20-Poly1305-IETF (RFC7539).
+ *
+ * Decrypts encrypted of encrypted_length to plain of length
+ * `length - CRYPTO_MAC_SIZE` using a shared key @ref CRYPTO_SHARED_KEY_SIZE
+ * big and a @ref CRYPTO_NOISE_NONCE_SIZE byte nonce.
+ *
+ * @retval -1 if there was a problem (decryption failed).
+ * @return length of plain data if everything was fine.
+ */
+int32_t decrypt_data_symmetric_aead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NOISE_NONCE_SIZE], const uint8_t *_Nonnull encrypted,
+                                    size_t encrypted_length,
+                                    uint8_t *_Nonnull plain, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Encrypt message with precomputed shared key using XChaCha20-Poly1305.
+ *
+ * Encrypts plain of plain_length to encrypted of plain_length + @ref CRYPTO_MAC_SIZE
+ * using a shared key @ref CRYPTO_SYMMETRIC_KEY_SIZE big and a @ref CRYPTO_NONCE_SIZE
+ * byte nonce. The encrypted message, as well as a tag authenticating both the confidential
+ * message m and adlen bytes of non-confidential data ad, are put into encrypted.
+ *
+ * @retval -1 if there was a problem.
+ * @return length of encrypted data if everything was fine.
+ */
+int32_t encrypt_data_symmetric_xaead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NONCE_SIZE], const uint8_t *_Nonnull plain, size_t plain_length,
+                                     uint8_t *_Nonnull encrypted, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Decrypt message with precomputed shared key using XChaCha20-Poly1305.
+ *
+ * Decrypts encrypted of encrypted_length to plain of length
+ * `length - CRYPTO_MAC_SIZE` using a shared key @ref CRYPTO_SHARED_KEY_SIZE
+ * big and a @ref CRYPTO_NONCE_SIZE byte nonce.
+ *
+ * @retval -1 if there was a problem (decryption failed).
+ * @return length of plain data if everything was fine.
+ */
+int32_t decrypt_data_symmetric_xaead(const uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[_Nonnull CRYPTO_NONCE_SIZE], const uint8_t *_Nonnull encrypted,
+                                     size_t encrypted_length,
+                                     uint8_t *_Nonnull plain, const uint8_t *_Nullable ad, size_t ad_length);
+
+/**
+ * @brief Computes the number of provides outputs (=keys) with HKDF-SHA512.
+ *
+ * cf. Noise sections 4.3 and 5.1
+ *
+ * This is Hugo Krawczyk's HKDF:
+ * - https://eprint.iacr.org/2010/264.pdf
+ * - https://tools.ietf.org/html/rfc5869
+ * HKDF(chaining_key, input_key_material, num_outputs): Takes a
+ * chaining_key byte sequence of length HASHLEN, and an input_key_material
+ * byte sequence with length either zero bytes, 32 bytes, or DHLEN bytes.
+ * Returns a pair or triple of byte sequences each of length HASHLEN,
+ * depending on whether num_outputs is two or three:
+ * – Sets temp_key = HMAC-HASH(chaining_key, input_key_material).
+ * – Sets output1 = HMAC-HASH(temp_key, byte(0x01)).
+ * – Sets output2 = HMAC-HASH(temp_key, output1 || byte(0x02)).
+ * – If num_outputs == 2 then returns the pair (output1, output2).
+ * – Sets output3 = HMAC-HASH(temp_key, output2 || byte(0x03)).
+ * – Returns the triple (output1, output2, output3).
+ * Note that temp_key, output1, output2, and output3 are all HASHLEN bytes in
+ * length. Also note that the HKDF() function is simply HKDF with the
+ * chaining_key as HKDF salt, and zero-length HKDF info.
+ *
+ * @param output1 First key to compute
+ * @param first_len Length of output1/key
+ * @param output2 Second key to compute
+ * @param second_len Length of output2/key
+ * @param data HKDF input_key_material byte sequence with length either zero bytes, 32 bytes, or DHLEN bytes
+ * @param data_len length of either zero bytes, 32 bytes, or DHLEN bytes
+ * @param chaining_key Noise 64 byte chaining key as HKDF salt
+ */
+void crypto_hkdf(uint8_t *_Nonnull output1, size_t first_len, uint8_t *_Nonnull output2,
+                 size_t second_len, const uint8_t *_Nullable data,
+                 size_t data_len, const uint8_t chaining_key[_Nonnull CRYPTO_SHA512_SIZE]);
+
+/**
+ * @brief Initializes a Noise Handshake State with provided static X25519 ID key pair, X25519 static ID public key from peer
+ * and sets if initiator or not.
+ *
+ * cf. Noise section 5.3
+ * Calls InitializeSymmetric(protocol_name).
+ * Calls MixHash(prologue).
+ * Sets the initiator, s, e, rs, and re variables to the corresponding arguments.
+ * Calls MixHash() once for each public key listed in the pre-messages.
+ *
+ * @param noise_handshake Noise handshake struct to save the necessary values to
+ * @param self_id_secret_key static private ID X25519 key of this Tox instance
+ * @param peer_id_public_key static public ID X25519 key from the peer to connect to
+ * @param initiator specifies if this Tox instance is the initiator of this crypto connection
+ * @param prologue specifies the Noise prologue, used in call to MixHash(prologue) which maybe zero-length
+ * @param prologue_length length of Noise prologue in bytes
+ *
+ * @return -1 on failure
+ * @return 0 on success
+ */
+int noise_handshake_init
+(Noise_Handshake *_Nonnull noise_handshake, const uint8_t self_id_secret_key[_Nonnull CRYPTO_SECRET_KEY_SIZE], const uint8_t peer_id_public_key[_Nullable CRYPTO_PUBLIC_KEY_SIZE], bool initiator,
+ const uint8_t *_Nullable prologue, size_t prologue_length);
+
+/**
+ * @brief Noise MixKey(input_key_material)
+ *
+ * cf. Noise section 5.2
+ * Executes the following steps:
+ * - Sets ck, temp_k = HKDF(ck, input_key_material, 2).
+ * - If HASHLEN is 64, then truncates temp_k to 32 bytes
+ * - Calls InitializeKey(temp_k).
+ * input_key_material = DH_X25519(private, public)
+ *
+ * @param chaining_key 64 byte Noise ck
+ * @param shared_key 32 byte secret key to be calculated
+ * @param private_key X25519 private key
+ * @param public_key X25519 public key
+ */
+int32_t noise_mix_key(uint8_t chaining_key[_Nonnull CRYPTO_SHA512_SIZE], uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE],
+                      const uint8_t private_key[_Nonnull CRYPTO_SECRET_KEY_SIZE],
+                      const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE]);
+
+/**
+ * @brief Noise MixHash(data): Sets h = HASH(h || data).
+ *
+ * cf. Noise section 5.2
+ *
+ * @param hash Contains current hash, is updated with new hash
+ * @param data to add to hash
+ * @param data_len length of data to hash
+ *
+ */
+void noise_mix_hash(uint8_t hash[_Nonnull CRYPTO_SHA512_SIZE], const uint8_t *_Nullable data, size_t data_len);
+
+/**
+ * @brief Noise EncryptAndHash(plaintext): Sets ciphertext = EncryptWithAd(h,
+ * plaintext), calls MixHash(ciphertext), and returns ciphertext. Note
+ * that if k is empty, the EncryptWithAd() call will set ciphertext equal
+ * to plaintext.
+ *
+ * cf. Noise section 5.2
+ * "Noise spec: Note that if k is empty, the EncryptWithAd() call will set ciphertext equal to plaintext."
+ * This is not the case in Tox.
+ *
+ * @param ciphertext stores encrypted plaintext
+ * @param plaintext to be encrypted
+ * @param plain_length length of plaintext
+ * @param shared_key used for XAEAD encryption
+ * @param hash stores hash value, used as associated data in XAEAD
+ */
+void noise_encrypt_and_hash(uint8_t *_Nonnull ciphertext, const uint8_t *_Nonnull plaintext,
+                            size_t plain_length, uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE],
+                            uint8_t hash[_Nonnull CRYPTO_SHA512_SIZE]);
+
+/**
+ * @brief DecryptAndHash(ciphertext): Sets plaintext = DecryptWithAd(h,
+ * ciphertext), calls MixHash(ciphertext), and returns plaintext. Note
+ * that if k is empty, the DecryptWithAd() call will set plaintext equal to
+ * ciphertext.
+ *
+ * cf. Noise section 5.2
+ * "Note that if k is empty, the DecryptWithAd() call will set plaintext equal to ciphertext."
+ * This is not the case in Tox.
+ *
+ * @param ciphertext contains ciphertext to decrypt
+ * @param plaintext stores decrypted ciphertext
+ * @param encrypted_length length of ciphertext+MAC
+ * @param shared_key used for XAEAD decryption
+ * @param hash stores hash value, used as associated data in XAEAD
+ */
+int noise_decrypt_and_hash(uint8_t *_Nonnull plaintext, const uint8_t *_Nonnull ciphertext,
+                           size_t encrypted_length, uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE],
+                           uint8_t hash[_Nonnull CRYPTO_SHA512_SIZE]);
 
 #ifdef __cplusplus
 } /* extern "C" */

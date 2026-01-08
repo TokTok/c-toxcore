@@ -900,6 +900,7 @@ cc_fuzz_test(
         ":TCP_client",
         ":net_crypto",
         ":net_profile",
+
         ":network",
         "//c-toxcore/testing/support",
     ],

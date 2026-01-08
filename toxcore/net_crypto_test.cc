@@ -39,7 +39,7 @@ public:
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
             dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            net_profile_.get(), true));
 
         // 4. Register Callbacks
         new_connection_handler(net_crypto_.get(), &TestNode::static_new_connection_cb, this);

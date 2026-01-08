@@ -2401,22 +2401,7 @@ static void m_connection_status_callback(Messenger *_Nonnull m, void *_Nullable 
 
 #define DUMPING_CLIENTS_FRIENDS_EVERY_N_SECONDS 60UL
 
-#define IDSTRING_LEN (CRYPTO_PUBLIC_KEY_SIZE * 2 + 1)
-/** id_str should be of length at least IDSTRING_LEN */
-static char *id_to_string(const uint8_t *_Nonnull pk, char *_Nonnull id_str, size_t length)
-{
-    if (length < IDSTRING_LEN) {
-        snprintf(id_str, length, "Bad buf length");
-        return id_str;
-    }
 
-    for (uint32_t i = 0; i < CRYPTO_PUBLIC_KEY_SIZE; ++i) {
-        snprintf(&id_str[i * 2], length - i * 2, "%02X", pk[i]);
-    }
-
-    id_str[CRYPTO_PUBLIC_KEY_SIZE * 2] = '\0';
-    return id_str;
-}
 
 /** @brief Minimum messenger run interval in ms
  * TODO(mannol): A/V
@@ -2579,11 +2564,12 @@ void do_messenger(Messenger *m, void *userdata)
                     }
 
                     Ip_Ntoa ip_str;
-                    char id_str[IDSTRING_LEN];
+                    char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];
+                    bytes_to_string(cptr->public_key, CRYPTO_PUBLIC_KEY_SIZE, id_str, sizeof(id_str));
                     LOGGER_TRACE(m->log, "C[%2u] %s:%u [%3u] %s",
                                  client, net_ip_ntoa(&assoc->ip_port.ip, &ip_str),
                                  net_ntohs(assoc->ip_port.port), last_pinged,
-                                 id_to_string(cptr->public_key, id_str, sizeof(id_str)));
+                                 id_str);
                 }
             }
         }
@@ -2626,14 +2612,16 @@ void do_messenger(Messenger *m, void *userdata)
             const DHT_Friend *const dhtfptr = dht_get_friend(m->dht, friend_idx);
 
             if (msgfptr != nullptr) {
-                char id_str[IDSTRING_LEN];
+                char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];
+                bytes_to_string(msgfptr->real_pk, CRYPTO_PUBLIC_KEY_SIZE, id_str, sizeof(id_str));
                 LOGGER_TRACE(m->log, "F[%2d:%2u] <%s> %s",
                              dht2m[friend_idx], friend_idx, msgfptr->name,
-                             id_to_string(msgfptr->real_pk, id_str, sizeof(id_str)));
+                             id_str);
             } else {
-                char id_str[IDSTRING_LEN];
+                char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];
+                bytes_to_string(dht_friend_public_key(dhtfptr), CRYPTO_PUBLIC_KEY_SIZE, id_str, sizeof(id_str));
                 LOGGER_TRACE(m->log, "F[--:%2u] %s", friend_idx,
-                             id_to_string(dht_friend_public_key(dhtfptr), id_str, sizeof(id_str)));
+                             id_str);
             }
 
             for (uint32_t client = 0; client < MAX_FRIEND_CLIENTS; ++client) {
@@ -2651,11 +2639,12 @@ void do_messenger(Messenger *m, void *userdata)
                         }
 
                         Ip_Ntoa ip_str;
-                        char id_str[IDSTRING_LEN];
+                        char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];
+                        bytes_to_string(cptr->public_key, CRYPTO_PUBLIC_KEY_SIZE, id_str, sizeof(id_str));
                         LOGGER_TRACE(m->log, "F[%2u] => C[%2u] %s:%u [%3u] %s",
                                      friend_idx, client, net_ip_ntoa(&assoc->ip_port.ip, &ip_str),
                                      net_ntohs(assoc->ip_port.port), last_pinged,
-                                     id_to_string(cptr->public_key, id_str, sizeof(id_str)));
+                                     id_str);
                     }
                 }
             }
@@ -3472,7 +3461,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
     m->tcp_np = tcp_np;
 
-    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
+    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np, options->noise_compatibility_enabled);
 
     if (net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");

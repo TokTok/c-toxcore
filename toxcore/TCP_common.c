@@ -235,6 +235,7 @@ int read_tcp_packet(
  * return -1 on failure.
  */
 static uint16_t read_tcp_length(const Logger *_Nonnull logger, const Network *_Nonnull ns, Socket sock, const IP_Port *_Nonnull ip_port)
+
 {
     const uint16_t count = net_socket_data_recv_buffer(ns, sock);
 

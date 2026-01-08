@@ -241,6 +241,7 @@ Socket net_invalid_socket(void);
  */
 int net_send(const Network *_Nonnull ns, const Logger *_Nonnull log, Socket sock, const uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull ip_port,
              Net_Profile *_Nullable net_profile);
+
 /**
  * Calls recv(sockfd, buf, len, MSG_NOSIGNAL).
  *
@@ -252,6 +253,7 @@ int net_send(const Network *_Nonnull ns, const Logger *_Nonnull log, Socket sock
  * @param ip_port IP and port of the sender.
  */
 int net_recv(const Network *_Nonnull ns, const Logger *_Nonnull log, Socket sock, uint8_t *_Nonnull buf, size_t len, const IP_Port *_Nonnull ip_port);
+
 /**
  * Calls listen(sockfd, backlog).
  */
@@ -564,6 +566,7 @@ typedef struct Net_Strerror {
  * @return pointer to a NULL-terminated string describing the error code.
  */
 char *_Nonnull net_strerror(int error, Net_Strerror *_Nonnull buf);
+
 
 /** @brief Initialize networking.
  * Bind to ip and port.
