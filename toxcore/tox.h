@@ -1516,7 +1516,8 @@ bool tox_hash(uint8_t hash[TOX_HASH_LENGTH], const uint8_t data[], size_t length
  * These are a hint to the client telling it what use the sender intended for
  * the file. The `kind` parameter in the send function and recv callback are
  * `uint32_t`, not Tox_File_Kind, because clients can invent their own file
- * kind. Unknown file kinds should be treated as TOX_FILE_KIND_DATA.
+ * kind. To avoid collisions, new client invented file kinds should avoid the first 256.
+ * Unknown file kinds should be treated as TOX_FILE_KIND_DATA.
  */
 enum Tox_File_Kind {
 
@@ -1524,7 +1525,7 @@ enum Tox_File_Kind {
      * Arbitrary file data. Clients can choose to handle it based on the file
      * name or magic or any other way they choose.
      */
-    TOX_FILE_KIND_DATA,
+    TOX_FILE_KIND_DATA = 0,
 
     /**
      * Avatar file_id. This consists of tox_hash(image).
@@ -1546,7 +1547,18 @@ enum Tox_File_Kind {
      * When file_size is set to 0 in the transfer request it means that the
      * client has no avatar.
      */
-    TOX_FILE_KIND_AVATAR,
+    TOX_FILE_KIND_AVATAR = 1,
+
+    /**
+     * To be specified.
+     */
+    TOX_FILE_KIND_STICKER = 2,
+
+    /**
+     * Here the file_id is the specified hash of the data.
+     */
+    TOX_FILE_KIND_SHA1 = 3,
+    TOX_FILE_KIND_SHA256 = 4,
 
 };
 
