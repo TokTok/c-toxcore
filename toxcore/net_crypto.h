@@ -388,6 +388,10 @@ uint32_t crypto_run_interval(const Net_Crypto *_Nonnull c);
 /** Main loop. */
 void do_net_crypto(Net_Crypto *_Nonnull c, void *_Nullable userdata);
 void kill_net_crypto(Net_Crypto *_Nullable c);
+
+/** Unit test support functions. Do not use outside tests. */
+void nc_testonly_get_secrets(const Net_Crypto *_Nonnull c, int conn_id, uint8_t *_Nonnull shared_key, uint8_t *_Nonnull sent_nonce, uint8_t *_Nonnull recv_nonce);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

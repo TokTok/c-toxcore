@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <random>
 #include <vector>
 
 #include "../testing/support/public/simulated_environment.hh"
@@ -28,12 +29,25 @@ using namespace tox::test;
 template <typename DHTWrapper>
 class TestNode {
 public:
-    TestNode(SimulatedEnvironment &env, uint16_t port)
+    TestNode(SimulatedEnvironment &env, uint16_t port, bool enable_trace = false)
         : dht_wrapper_(env, port)
         , net_profile_(netprof_new(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory),
               [mem = &dht_wrapper_.node().c_memory](Net_Profile *p) { netprof_kill(mem, p); })
         , net_crypto_(nullptr, [](Net_Crypto *c) { kill_net_crypto(c); })
+        , trace_enabled_(enable_trace)
     {
+        // Setup Logger to stderr
+        logger_callback_log(
+            dht_wrapper_.logger(),
+            [](void *context, Logger_Level level, const char *file, uint32_t line, const char *func,
+                const char *message, void *) {
+                auto *self = static_cast<TestNode *>(context);
+                if (self->trace_enabled_ || level >= LOGGER_LEVEL_DEBUG) {
+                    fprintf(stderr, "[%d] %s:%u %s: %s\n", level, file, line, func, message);
+                }
+            },
+            this, nullptr);
+
         // 3. Setup NetCrypto
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
@@ -48,6 +62,8 @@ public:
     Net_Crypto *get_net_crypto() { return net_crypto_.get(); }
     const uint8_t *dht_public_key() const { return dht_wrapper_.dht_public_key(); }
     const uint8_t *real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
+    int dht_computation_count() const { return dht_wrapper_.dht_computation_count(); }
+    const Memory *get_memory() const { return &dht_wrapper_.node().c_memory; }
 
     IP_Port get_ip_port() const { return dht_wrapper_.get_ip_port(); }
 
@@ -80,13 +96,17 @@ public:
     // Sends data to the connected peer (assuming only 1 for simplicity or last connected)
     bool send_data(int conn_id, const std::vector<uint8_t> &data)
     {
-        // PACKET_ID_RANGE_LOSSLESS_CUSTOM_START is 160.
-        // The first byte of the data passed to write_cryptpacket is the packet ID.
-        // It must be in the correct range.
         if (data.empty())
             return false;
 
         return write_cryptpacket(net_crypto_.get(), conn_id, data.data(), data.size(), false) != -1;
+    }
+
+    void send_direct_packet(const IP_Port &dest, const std::vector<uint8_t> &data)
+    {
+        if (data.empty())
+            return;
+        sendpacket(dht_wrapper_.networking(), &dest, data.data(), data.size());
     }
 
     // -- Observability --
@@ -169,6 +189,7 @@ private:
     // Use std::function for the deleter to allow capturing memory pointer
     std::unique_ptr<Net_Profile, std::function<void(Net_Profile *)>> net_profile_;
     std::unique_ptr<Net_Crypto, void (*)(Net_Crypto *)> net_crypto_;
+    bool trace_enabled_ = false;
 };
 
 template <typename DHTWrapper>
@@ -275,6 +296,7 @@ TEST_F(NetCryptoTest, ConnectionTimeout)
 
 TEST_F(NetCryptoTest, DataLossAndRetransmission)
 {
+    bool dropped = false;
     NetCryptoNode alice(env, 33445);
     NetCryptoNode bob(env, 33446);
 
@@ -303,7 +325,6 @@ TEST_F(NetCryptoTest, DataLossAndRetransmission)
     // Configure network to drop the next packet from Alice
     // NET_PACKET_CRYPTO_DATA is 0x1b
     // We want to drop the *first* data packet sent.
-    bool dropped = false;
     env.simulation().net().add_filter([&](tox::test::Packet &p) {
         if (!dropped && net_ntohs(p.to.port) == 33446 && p.data.size() > 0
             && p.data[0] == NET_PACKET_CRYPTO_DATA) {
@@ -335,6 +356,170 @@ TEST_F(NetCryptoTest, DataLossAndRetransmission)
 
     EXPECT_TRUE(dropped) << "Packet filter failed to target the data packet";
     EXPECT_TRUE(data_received) << "Bob failed to receive data after retransmission";
+}
+
+TEST_F(NetCryptoTest, CookieRequestCPUExhaustion)
+{
+    NetCryptoNode victim(env, 33445);
+    NetCryptoNode attacker(env, 33446);
+
+    // Cookie Request Packet Length
+    // From net_crypto.c:
+    // #define COOKIE_REQUEST_LENGTH (uint16_t)(1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE +
+    // COOKIE_REQUEST_PLAIN_LENGTH + CRYPTO_MAC_SIZE) 1 + 32 + 24 + (32 * 2 + 8) + 16 = 145
+    const int TEST_COOKIE_REQUEST_LENGTH = 145;
+
+    // Send enough packets to trigger rate limiting
+    const int NUM_PACKETS = 50;
+
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<uint8_t> dist;
+    auto gen = [&]() { return dist(rng); };
+
+    for (int i = 0; i < NUM_PACKETS; ++i) {
+        std::vector<uint8_t> packet(TEST_COOKIE_REQUEST_LENGTH);
+        packet[0] = NET_PACKET_COOKIE_REQUEST;
+
+        // Random public key at offset 1 (size 32)
+        std::generate(packet.begin() + 1, packet.begin() + 1 + CRYPTO_PUBLIC_KEY_SIZE, gen);
+
+        // Fill the rest with random data just to be safe
+        std::generate(packet.begin() + 1 + CRYPTO_PUBLIC_KEY_SIZE, packet.end(), gen);
+
+        attacker.send_direct_packet(victim.get_ip_port(), packet);
+
+        // Advance time to allow network delivery
+        env.advance_time(1);
+        victim.poll();
+    }
+
+    // Verify that the victim performed some computations (as it must for the first few packets)
+    // but filtered out the majority of the flood due to rate limiting.
+    int computations = victim.dht_computation_count();
+    EXPECT_GT(computations, 0) << "Should handle at least some packets";
+    EXPECT_LT(computations, NUM_PACKETS) << "Victim performed expensive shared key computations "
+                                            "for ALL packets! CPU exhaustion mitigation failed.";
+}
+
+TEST_F(NetCryptoTest, CookieRequestRateLimiting)
+{
+    NetCryptoNode victim(env, 33445);
+    NetCryptoNode attacker(env, 33446);
+
+    const int TEST_COOKIE_REQUEST_LENGTH = 145;
+    std::mt19937 rng(42);
+    std::uniform_int_distribution<uint8_t> dist;
+    auto gen = [&]() { return dist(rng); };
+
+    auto send_packet = [&]() {
+        std::vector<uint8_t> packet(TEST_COOKIE_REQUEST_LENGTH);
+        packet[0] = NET_PACKET_COOKIE_REQUEST;
+        std::generate(packet.begin() + 1, packet.begin() + 1 + CRYPTO_PUBLIC_KEY_SIZE, gen);
+        std::generate(packet.begin() + 1 + CRYPTO_PUBLIC_KEY_SIZE, packet.end(), gen);
+        attacker.send_direct_packet(victim.get_ip_port(), packet);
+        env.advance_time(1);  // Network delivery
+        victim.poll();
+    };
+
+    // 1. Initial Burst: Consume all 10 tokens
+    int initial_computations = victim.dht_computation_count();
+    for (int i = 0; i < 10; ++i) {
+        send_packet();
+    }
+    int burst_computations = victim.dht_computation_count();
+    EXPECT_EQ(burst_computations - initial_computations, 10)
+        << "Should accept initial burst of 10 packets";
+
+    // 2. Verify Limit Reached: 11th packet should be dropped
+    send_packet();
+    EXPECT_EQ(victim.dht_computation_count(), burst_computations) << "Should drop 11th packet";
+
+    // 3. Partial Refill Check: Advance 80ms (total < 100ms since empty)
+    env.advance_time(80);
+    send_packet();
+    EXPECT_EQ(victim.dht_computation_count(), burst_computations)
+        << "Should drop packet before 100ms refill";
+
+    // 4. Full Refill Check: Advance to > 100ms
+    env.advance_time(20);
+    send_packet();
+    EXPECT_EQ(victim.dht_computation_count(), burst_computations + 1)
+        << "Should accept packet after 100ms refill";
+}
+
+TEST_F(NetCryptoTest, HandleRequestPacketOOB)
+{
+    NetCryptoNode alice(env, 33445);
+    NetCryptoNode bob(env, 33446);
+
+    // 1. Establish connection
+    int alice_conn_id = alice.connect_to(bob);
+    ASSERT_NE(alice_conn_id, -1);
+
+    auto start = env.clock().current_time_ms();
+    int bob_conn_id = -1;
+    bool connected = false;
+
+    while ((env.clock().current_time_ms() - start) < 5000) {
+        alice.poll();
+        bob.poll();
+        env.advance_time(10);
+
+        bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
+        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
+            && bob.is_connected(bob_conn_id)) {
+            connected = true;
+            break;
+        }
+    }
+    ASSERT_TRUE(connected);
+
+    // 2. Alice sends many packets to populate her send_array.
+    std::vector<uint8_t> dummy_data(50, 'A');
+    for (int i = 0; i < 300; ++i) {
+        dummy_data[0] = 160 + (i % 30);  // Valid packet ID range
+        alice.send_data(alice_conn_id, dummy_data);
+    }
+    alice.poll();  // Process sends
+
+    // 3. Construct the malicious packet.
+    uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
+    uint8_t alice_sent_nonce[CRYPTO_NONCE_SIZE];
+    uint8_t alice_recv_nonce[CRYPTO_NONCE_SIZE];
+
+    // Retrieve secrets
+    nc_testonly_get_secrets(
+        alice.get_net_crypto(), alice_conn_id, shared_key, alice_sent_nonce, alice_recv_nonce);
+
+    // Use Alice's recv_nonce (which Bob uses to encrypt)
+    uint8_t nonce[CRYPTO_NONCE_SIZE];
+    memcpy(nonce, alice_recv_nonce, CRYPTO_NONCE_SIZE);
+
+    // Payload: [PACKET_ID_REQUEST (1), 255]
+    // The length of 2 will trigger the OOB read when n wraps around.
+    uint8_t plaintext[] = {PACKET_ID_REQUEST, 255};
+    uint16_t plaintext_len = sizeof(plaintext);
+
+    uint16_t packet_size = 1 + sizeof(uint16_t) + plaintext_len + CRYPTO_MAC_SIZE;
+    std::vector<uint8_t> malicious_packet(packet_size);
+
+    malicious_packet[0] = NET_PACKET_CRYPTO_DATA;
+    memcpy(&malicious_packet[1], nonce + (CRYPTO_NONCE_SIZE - sizeof(uint16_t)), sizeof(uint16_t));
+
+    int len = encrypt_data_symmetric(
+        alice.get_memory(), shared_key, nonce, plaintext, plaintext_len, &malicious_packet[3]);
+    ASSERT_EQ(len, plaintext_len + CRYPTO_MAC_SIZE);
+
+    // 4. Inject the packet
+    tox::test::Packet p;
+    p.to = alice.get_ip_port();
+    p.data = malicious_packet;
+    p.from = bob.get_ip_port();
+
+    env.simulation().net().send_packet(p);
+
+    // 5. Trigger processing - Expect ASAN/UBSAN failure if vulnerable
+    alice.poll();
 }
 
 // Test with Real DHT (but fake network) to ensure integration works

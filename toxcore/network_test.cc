@@ -1,8 +1,10 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "network.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
-#include "../testing/support/public/simulated_environment.hh"
 #include "network_test_util.hh"
 
 namespace {

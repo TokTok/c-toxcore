@@ -1,8 +1,10 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "mono_time.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
-#include "../testing/support/public/simulated_environment.hh"
 #include "mono_time_test_util.hh"
 
 namespace {

@@ -399,6 +399,11 @@ int send_data(const Logger *logger, TCP_Client_Connection *con, uint8_t con_id, 
         return 0;
     }
 
+    if (1 + length > MAX_PACKET_SIZE) {
+        LOGGER_ERROR(logger, "Packet length too long: %u", length);
+        return -1;
+    }
+
     const uint16_t packet_size = 1 + length;
     VLA(uint8_t, packet, packet_size);
     packet[0] = con_id + NUM_RESERVED_PORTS;
@@ -541,6 +546,11 @@ int send_disconnect_request(const Logger *logger, TCP_Client_Connection *con, ui
  */
 int send_onion_request(const Logger *logger, TCP_Client_Connection *con, const uint8_t *data, uint16_t length)
 {
+    if (1 + length > MAX_PACKET_SIZE) {
+        LOGGER_ERROR(logger, "Packet length too long: %u", length);
+        return -1;
+    }
+
     const uint16_t packet_size = 1 + length;
     VLA(uint8_t, packet, packet_size);
     packet[0] = TCP_PACKET_ONION_REQUEST;

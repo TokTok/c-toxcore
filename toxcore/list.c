@@ -59,7 +59,7 @@ static int find(const BS_List *_Nonnull list, const uint8_t *_Nonnull data)
     // closest match is found if we move back to where we have already been
 
     while (true) {
-        const int r = list->cmp_callback(data, (list->data + list->element_size * i), list->element_size);
+        const int r = list->cmp_callback(data, list->data + list->element_size * i, list->element_size);
 
         if (r == 0) {
             return i;

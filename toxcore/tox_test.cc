@@ -1,11 +1,13 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "tox.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
 #include <array>
 #include <vector>
 
-#include "../testing/support/public/simulated_environment.hh"
 #include "crypto_core.h"
 #include "os_random.h"
 #include "tox_log_level.h"

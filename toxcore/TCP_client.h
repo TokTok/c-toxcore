@@ -18,6 +18,10 @@
 #include "net_profile.h"
 #include "network.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TCP_CONNECTION_TIMEOUT 10
 
 typedef enum TCP_Proxy_Type {
@@ -125,5 +129,9 @@ typedef int tcp_oob_data_cb(void *_Nonnull object, const uint8_t *_Nonnull publi
  */
 int send_oob_packet(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull con, const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull data, uint16_t length);
 void oob_data_handler(TCP_Client_Connection *_Nonnull con, tcp_oob_data_cb *_Nonnull oob_data_callback, void *_Nonnull object);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_TCP_CLIENT_H */

@@ -18,6 +18,7 @@ STD_MODULE = """module std [system] {
   textual header "/usr/include/c++/14.2.0/cassert"
   textual header "/usr/include/c++/14.2.0/cerrno"
   textual header "/usr/include/c++/14.2.0/chrono"
+  textual header "/usr/include/c++/14.2.0/climits"
   textual header "/usr/include/c++/14.2.0/compare"
   textual header "/usr/include/c++/14.2.0/cstddef"
   textual header "/usr/include/c++/14.2.0/cstdint"
@@ -253,25 +254,10 @@ def main() -> None:
             full_src = os.path.join(t.package, src)
             src_to_module[full_src] = t.label
 
-    ignored = {
-        "toxcore/crypto_core_test.cc",
-        "toxcore/group_announce_test.cc",
-        "toxcore/group_moderation_test.cc",
-        "toxcore/mono_time_test.cc",
-        "toxcore/network_test.cc",
-        "toxcore/ping_array_test.cc",
-        "toxcore/util_test.cc",
-        "toxcore/tox_events_test.cc",
-        "toxcore/tox_test.cc",
-    }
-
     # Sort for deterministic output
     all_srcs = sorted(src_to_module.keys())
 
     for src in all_srcs:
-        if src in ignored:
-            continue
-
         print(f"Validating {src}", file=sys.stderr)
         module_name = src_to_module[src]
 

@@ -162,6 +162,10 @@ struct Net_Crypto {
     uint32_t current_sleep_time;
 
     BS_List ip_port_list;
+
+    /* Rate limiter for cookie requests */
+    uint64_t cookie_request_last_time;
+    uint32_t cookie_request_tokens;
 };
 
 const uint8_t *nc_get_self_public_key(const Net_Crypto *c)
@@ -203,6 +207,11 @@ static bool crypt_connection_id_is_valid(const Net_Crypto *_Nonnull c, int crypt
 #define COOKIE_REQUEST_PLAIN_LENGTH (uint16_t)(COOKIE_DATA_LENGTH + sizeof(uint64_t))
 #define COOKIE_REQUEST_LENGTH (uint16_t)(1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + COOKIE_REQUEST_PLAIN_LENGTH + CRYPTO_MAC_SIZE)
 #define COOKIE_RESPONSE_LENGTH (uint16_t)(1 + CRYPTO_NONCE_SIZE + COOKIE_LENGTH + sizeof(uint64_t) + CRYPTO_MAC_SIZE)
+
+/** Maximum number of tokens in the bucket for cookie request rate limiting. */
+#define COOKIE_REQUEST_MAX_TOKENS 10
+/** Interval in milliseconds to generate one token for cookie request rate limiting. */
+#define COOKIE_REQUEST_TOKEN_INTERVAL 100
 
 /** @brief Create a cookie request packet and put it in packet.
  *
@@ -358,7 +367,37 @@ static int handle_cookie_request(const Net_Crypto *_Nonnull c, uint8_t *_Nonnull
 static int udp_handle_cookie_request(void *_Nonnull object, const IP_Port *_Nonnull source, const uint8_t *_Nonnull packet, uint16_t length,
                                      void *_Nullable userdata)
 {
-    const Net_Crypto *c = (const Net_Crypto *)object;
+    Net_Crypto *c = (Net_Crypto *)object;
+
+    const uint64_t current_time = mono_time_get_ms(c->mono_time);
+
+    // Prevent issues if time goes backwards
+    if (c->cookie_request_last_time > current_time) {
+        c->cookie_request_last_time = current_time;
+    }
+
+    // Add 1 token every 100ms
+    const uint64_t new_tokens = (current_time - c->cookie_request_last_time) / COOKIE_REQUEST_TOKEN_INTERVAL;
+
+    if (new_tokens > 0) {
+        c->cookie_request_tokens += new_tokens;
+        if (c->cookie_request_tokens > COOKIE_REQUEST_MAX_TOKENS) {
+            c->cookie_request_tokens = COOKIE_REQUEST_MAX_TOKENS;
+            // Full bucket, reset time anchor to now so we stop accumulating until consumed
+            c->cookie_request_last_time = current_time;
+        } else {
+            // Advance time anchor by the exact time consumed to generate these tokens
+            // to preserve the remainder (precision)
+            c->cookie_request_last_time += new_tokens * COOKIE_REQUEST_TOKEN_INTERVAL;
+        }
+    }
+
+    if (c->cookie_request_tokens == 0) {
+        return 0;
+    }
+
+    --c->cookie_request_tokens;
+
     uint8_t request_plain[COOKIE_REQUEST_PLAIN_LENGTH];
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -2973,6 +3012,9 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
 
     bs_list_init(&temp->ip_port_list, mem, sizeof(IP_Port), 8, ipport_cmp_handler);
 
+    temp->cookie_request_tokens = COOKIE_REQUEST_MAX_TOKENS;
+    temp->cookie_request_last_time = mono_time_get_ms(mono_time);
+
     return temp;
 }
 
@@ -3038,4 +3080,14 @@ void kill_net_crypto(Net_Crypto *c)
     networking_registerhandler(c->net, NET_PACKET_CRYPTO_DATA, nullptr, nullptr);
     crypto_memzero(c, sizeof(Net_Crypto));
     mem_delete(mem, c);
+}
+
+void nc_testonly_get_secrets(const Net_Crypto *c, int conn_id, uint8_t *shared_key, uint8_t *sent_nonce, uint8_t *recv_nonce)
+{
+    const Crypto_Connection *conn = get_crypto_connection(c, conn_id);
+    if (conn != nullptr) {
+        memcpy(shared_key, conn->shared_key, CRYPTO_SHARED_KEY_SIZE);
+        memcpy(sent_nonce, conn->sent_nonce, CRYPTO_NONCE_SIZE);
+        memcpy(recv_nonce, conn->recv_nonce, CRYPTO_NONCE_SIZE);
+    }
 }

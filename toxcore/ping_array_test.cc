@@ -1,11 +1,13 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "ping_array.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
 #include <memory>
 #include <vector>
 
-#include "../testing/support/public/simulated_environment.hh"
 #include "crypto_core_test_util.hh"
 #include "mono_time.h"
 

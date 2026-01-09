@@ -1,4 +1,7 @@
+// clang-format off
+#include "../testing/support/public/simulated_environment.hh"
 #include "group_moderation.h"
+// clang-format on
 
 #include <gtest/gtest.h>
 
@@ -6,7 +9,6 @@
 #include <array>
 #include <vector>
 
-#include "../testing/support/public/simulated_environment.hh"
 #include "DHT.h"
 #include "crypto_core.h"
 #include "crypto_core_test_util.hh"
