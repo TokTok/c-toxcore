@@ -54,6 +54,7 @@ public:
     Onion_Client *get_onion_client() { return onion_client_.get(); }
     Net_Crypto *get_net_crypto() { return net_crypto_.get(); }
     DHT *get_dht() { return dht_wrapper_.get_dht(); }
+    Logger *get_logger() { return dht_wrapper_.logger(); }
     const uint8_t *dht_public_key() const { return dht_wrapper_.dht_public_key(); }
     const uint8_t *real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
     const Random *get_random() { return &dht_wrapper_.node().c_random; }
@@ -82,6 +83,13 @@ OnionTestNode<DHTWrapper>::~OnionTestNode() = default;
 using OnionNode = OnionTestNode<WrappedDHT>;
 
 class OnionClientTest : public ::testing::Test {
+public:
+    static void print_log(void *context, Logger_Level level, const char *file, uint32_t line,
+        const char *func, const char *message, void *userdata)
+    {
+        fprintf(stderr, "[%d] %s:%u %s: %s\n", level, file, line, func, message);
+    }
+
 protected:
     SimulatedEnvironment env;
 };
@@ -237,6 +245,7 @@ TEST_F(OnionClientTest, GroupChatHelpers)
 TEST_F(OnionClientTest, OOBReadInHandleAnnounceResponse)
 {
     OnionNode alice(env, 33445);
+    logger_callback_log(alice.get_logger(), OnionClientTest::print_log, nullptr, nullptr);
     WrappedDHT bob(env, 12345);
     FakeUdpSocket *bob_socket = bob.node().endpoint;
 
@@ -433,7 +442,9 @@ TEST_F(OnionClientTest, DISABLED_IntegerOverflowNumFriends)
 TEST_F(OnionClientTest, OnionAnnounceResponse_TooShort)
 {
     OnionNode alice(env, 33445);
+    logger_callback_log(alice.get_logger(), OnionClientTest::print_log, nullptr, nullptr);
     WrappedDHT bob(env, 12345);
+    logger_callback_log(bob.logger(), OnionClientTest::print_log, nullptr, nullptr);
     FakeUdpSocket *bob_socket = bob.node().endpoint;
 
     IP_Port bob_ip = bob.get_ip_port();

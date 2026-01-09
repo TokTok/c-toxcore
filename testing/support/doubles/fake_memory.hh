@@ -32,6 +32,16 @@ public:
     struct Tox_Memory get_c_memory();
 
 private:
+    struct Header {
+        size_t size;
+        size_t magic;
+    };
+    static constexpr size_t kMagic = 0xDEADC0DE;
+    static constexpr size_t kFreeMagic = 0xBAADF00D;
+
+    size_t current_allocation_ = 0;
+    size_t max_allocation_ = 0;
+
     FailureInjector failure_injector_;
     Observer observer_;
 };

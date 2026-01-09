@@ -23,8 +23,8 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = 0x7F000001;
-        server_addr.port = 8080;
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(8080);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
         ASSERT_EQ(server.listen(5), 0);
@@ -56,8 +56,8 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = 0x7F000001;
-        server_addr.port = 8081;
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(8081);
 
         server.bind(&server_addr);
         server.listen(5);
@@ -98,8 +98,8 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = 0x7F000001;
-        server_addr.port = 9000;
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(9000);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
 
@@ -116,7 +116,7 @@ namespace {
 
         ASSERT_GT(len, 0);
         EXPECT_EQ(std::string(reinterpret_cast<char *>(recv_buf), len), message);
-        EXPECT_EQ(sender_addr.port, client.local_port());
+        EXPECT_EQ(sender_addr.port, net_htons(client.local_port()));
     }
 
 }  // namespace

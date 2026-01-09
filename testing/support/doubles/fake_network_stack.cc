@@ -1,6 +1,10 @@
 #include "fake_network_stack.hh"
 
 #include <cerrno>
+#include <cstring>
+#include <iostream>
+
+#include "../../../toxcore/mem.h"
 
 namespace tox::test {
 
@@ -50,13 +54,49 @@ static const Network_Funcs kVtable = {
             return static_cast<FakeNetworkStack *>(obj)->setsockopt(
                 sock, level, optname, optval, optlen);
         },
-    .getaddrinfo = [](void *obj, const Memory *mem, const char *address, int family, int protocol,
-                       IP_Port **addrs) { return 0; },
-    .freeaddrinfo = [](void *obj, const Memory *mem, IP_Port *addrs) { return 0; },
+    .getaddrinfo =
+        [](void *obj, const Memory *mem, const char *address, int family, int protocol,
+            IP_Port **addrs) {
+            FakeNetworkStack *self = static_cast<FakeNetworkStack *>(obj);
+            if (self->universe().is_verbose()) {
+                std::cerr << "[FakeNetworkStack] getaddrinfo for " << address << std::endl;
+            }
+            if (strcmp(address, "127.0.0.1") == 0 || strcmp(address, "localhost") == 0) {
+                *addrs = static_cast<IP_Port *>(mem_alloc(mem, sizeof(IP_Port)));
+                memset(&(*addrs)->ip, 0, sizeof(IP));
+                ip_init(&(*addrs)->ip, false);
+                (*addrs)->ip.ip.v4.uint32 = net_htonl(0x7F000001);
+                (*addrs)->port = 0;
+                return 1;
+            }
+
+            uint32_t a, b, c, d;
+            if (sscanf(address, "%u.%u.%u.%u", &a, &b, &c, &d) == 4) {
+                *addrs = static_cast<IP_Port *>(mem_alloc(mem, sizeof(IP_Port)));
+                memset(&(*addrs)->ip, 0, sizeof(IP));
+                ip_init(&(*addrs)->ip, false);
+                uint32_t val = (a << 24) | (b << 16) | (c << 8) | d;
+                (*addrs)->ip.ip.v4.uint32 = net_htonl(val);
+                (*addrs)->port = 0;
+                if (self->universe().is_verbose()) {
+                    std::cerr << "[FakeNetworkStack] resolved " << address << " to " << a << "."
+                              << b << "." << c << "." << d << " (0x" << std::hex << val << std::dec
+                              << ")" << std::endl;
+                }
+                return 1;
+            }
+            return 0;
+        },
+    .freeaddrinfo =
+        [](void *obj, const Memory *mem, IP_Port *addrs) {
+            mem_delete(mem, addrs);
+            return 0;
+        },
 };
 
-FakeNetworkStack::FakeNetworkStack(NetworkUniverse &universe)
+FakeNetworkStack::FakeNetworkStack(NetworkUniverse &universe, const IP &node_ip)
     : universe_(universe)
+    , node_ip_(node_ip)
 {
 }
 
@@ -71,8 +111,14 @@ Socket FakeNetworkStack::socket(int domain, int type, int protocol)
 
     std::unique_ptr<FakeSocket> sock;
     if (type == SOCK_DGRAM) {
+        if (universe_.is_verbose()) {
+            std::cerr << "[FakeNetworkStack] create UDP socket fd=" << fd << std::endl;
+        }
         sock = std::make_unique<FakeUdpSocket>(universe_);
     } else if (type == SOCK_STREAM) {
+        if (universe_.is_verbose()) {
+            std::cerr << "[FakeNetworkStack] create TCP socket fd=" << fd << std::endl;
+        }
         sock = std::make_unique<FakeTcpSocket>(universe_);
     } else {
         // Unknown type
@@ -80,6 +126,7 @@ Socket FakeNetworkStack::socket(int domain, int type, int protocol)
     }
 
     sockets_[fd] = std::move(sock);
+    sockets_[fd]->set_ip(node_ip_);
     return net_socket_from_native(fd);
 }
 
@@ -110,8 +157,16 @@ int FakeNetworkStack::close(Socket sock)
 // Delegate all others
 int FakeNetworkStack::bind(Socket sock, const IP_Port *addr)
 {
-    if (auto *s = get_sock(sock))
-        return s->bind(addr);
+    if (auto *s = get_sock(sock)) {
+        int ret = s->bind(addr);
+        if (universe_.is_verbose() && ret == 0) {
+            char ip_str[TOX_INET_ADDRSTRLEN];
+            ip_parse_addr(&s->ip_address(), ip_str, sizeof(ip_str));
+            std::cerr << "[FakeNetworkStack] bound socket to " << ip_str << ":" << s->local_port()
+                      << std::endl;
+        }
+        return ret;
+    }
     errno = EBADF;
     return -1;
 }

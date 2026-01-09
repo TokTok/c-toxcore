@@ -512,7 +512,14 @@ static bool process_recv_array_entry(const GC_Session *_Nonnull c, GC_Chat *_Non
     uint8_t sender_pk[ENC_PUBLIC_KEY_SIZE];
     memcpy(sender_pk, get_enc_key(&gconn->addr.public_key), ENC_PUBLIC_KEY_SIZE);
 
-    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, array_entry->data, array_entry->data_length,
+    const uint8_t *data = array_entry->data;
+    // TODO(iphydf): This is ugly. We should probably change all the handlers to accept nullable.
+    const uint8_t empty_data[1] = { 0 };
+    if (data == nullptr) {
+        data = empty_data;
+    }
+
+    const bool ret = handle_gc_lossless_helper(c, chat, peer_number, data, array_entry->data_length,
                      array_entry->packet_type, userdata);
 
     /* peer number can change from peer add operations in packet handlers */

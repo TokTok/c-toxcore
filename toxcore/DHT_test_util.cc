@@ -60,7 +60,7 @@ WrappedMockDHT::WrappedMockDHT(tox::test::SimulatedEnvironment &env, uint16_t po
 {
     // Setup Networking
     IP ip;
-    ip_init(&ip, true);
+    ip_init(&ip, false);
     unsigned int error = 0;
     networking_.reset(new_networking_ex(
         logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
@@ -68,7 +68,7 @@ WrappedMockDHT::WrappedMockDHT(tox::test::SimulatedEnvironment &env, uint16_t po
 
     node_->endpoint = node_->node->get_primary_socket();
     assert(node_->endpoint != nullptr);
-    assert(net_ntohs(node_->endpoint->local_port()) == port);
+    assert(node_->endpoint->local_port() == port);
 }
 
 WrappedMockDHT::~WrappedMockDHT() = default;
@@ -76,9 +76,8 @@ WrappedMockDHT::~WrappedMockDHT() = default;
 IP_Port WrappedMockDHT::get_ip_port() const
 {
     IP_Port ip_port;
-    ip_init(&ip_port.ip, true);
-    ip_port.ip.ip.v6 = get_ip6_loopback();
-    ip_port.port = node_->endpoint->local_port();
+    ip_port.ip = node_->node->ip;
+    ip_port.port = net_htons(node_->endpoint->local_port());
     return ip_port;
 }
 
@@ -106,7 +105,7 @@ WrappedDHT::WrappedDHT(tox::test::SimulatedEnvironment &env, uint16_t port)
 {
     // Setup Networking
     IP ip;
-    ip_init(&ip, true);
+    ip_init(&ip, false);
     unsigned int error = 0;
     networking_.reset(new_networking_ex(
         logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
@@ -114,7 +113,7 @@ WrappedDHT::WrappedDHT(tox::test::SimulatedEnvironment &env, uint16_t port)
 
     node_->endpoint = node_->node->get_primary_socket();
     assert(node_->endpoint != nullptr);
-    assert(net_ntohs(node_->endpoint->local_port()) == port);
+    assert(node_->endpoint->local_port() == port);
 
     // Setup DHT
     dht_.reset(new_dht(logger_.get(), &node_->c_memory, &node_->c_random, &node_->c_network,
@@ -130,9 +129,8 @@ const uint8_t *WrappedDHT::dht_secret_key() const { return dht_get_self_secret_k
 IP_Port WrappedDHT::get_ip_port() const
 {
     IP_Port ip_port;
-    ip_init(&ip_port.ip, true);
-    ip_port.ip.ip.v6 = get_ip6_loopback();
-    ip_port.port = node_->endpoint->local_port();
+    ip_port.ip = node_->node->ip;
+    ip_port.port = net_htons(node_->endpoint->local_port());
     return ip_port;
 }
 
