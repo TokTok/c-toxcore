@@ -283,14 +283,14 @@ static int in_entries(const Onion_Announce *_Nonnull onion_a, const uint8_t *_No
 
 typedef struct Onion_Announce_Entry_Cmp {
     const Memory *mem;
-    const Mono_Time *mono_time;
+    uint64_t current_time;
     const uint8_t *comp_public_key;
 } Onion_Announce_Entry_Cmp;
 
 static int onion_announce_entry_cmp(const Onion_Announce_Entry_Cmp *_Nonnull cmp, const Onion_Announce_Entry *_Nonnull entry1, const Onion_Announce_Entry *_Nonnull entry2)
 {
-    const bool t1 = mono_time_is_timeout(cmp->mono_time, entry1->announce_time, ONION_ANNOUNCE_TIMEOUT);
-    const bool t2 = mono_time_is_timeout(cmp->mono_time, entry2->announce_time, ONION_ANNOUNCE_TIMEOUT);
+    const bool t1 = entry1->announce_time + ONION_ANNOUNCE_TIMEOUT <= cmp->current_time;
+    const bool t2 = entry2->announce_time + ONION_ANNOUNCE_TIMEOUT <= cmp->current_time;
 
     if (t1 && t2) {
         return 0;
@@ -379,7 +379,7 @@ static void sort_onion_announce_list(const Memory *_Nonnull mem, const Mono_Time
     // comparison function can use it as the base of comparison.
     const Onion_Announce_Entry_Cmp cmp = {
         mem,
-        mono_time,
+        mono_time_get(mono_time),
         comp_public_key,
     };
 
@@ -395,18 +395,23 @@ static int add_to_entries(Onion_Announce *_Nonnull onion_a, const IP_Port *_Nonn
                           const uint8_t *_Nonnull ret)
 {
     int pos = in_entries(onion_a, public_key);
+    bool was_timed_out = false;
 
     if (pos == -1) {
         for (unsigned i = 0; i < ONION_ANNOUNCE_MAX_ENTRIES; ++i) {
             if (mono_time_is_timeout(onion_a->mono_time, onion_a->entries[i].announce_time, ONION_ANNOUNCE_TIMEOUT)) {
                 pos = i;
+                was_timed_out = true;
             }
         }
+    } else {
+        was_timed_out = mono_time_is_timeout(onion_a->mono_time, onion_a->entries[pos].announce_time, ONION_ANNOUNCE_TIMEOUT);
     }
 
     if (pos == -1) {
         if (id_closest(dht_get_self_public_key(onion_a->dht), public_key, onion_a->entries[0].public_key) == 1) {
             pos = 0;
+            was_timed_out = mono_time_is_timeout(onion_a->mono_time, onion_a->entries[0].announce_time, ONION_ANNOUNCE_TIMEOUT);
         }
     }
 
@@ -420,10 +425,18 @@ static int add_to_entries(Onion_Announce *_Nonnull onion_a, const IP_Port *_Nonn
     memcpy(onion_a->entries[pos].data_public_key, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     onion_a->entries[pos].announce_time = mono_time_get(onion_a->mono_time);
 
-    sort_onion_announce_list(onion_a->mem, onion_a->mono_time,
-                             onion_a->entries, ONION_ANNOUNCE_MAX_ENTRIES,
-                             dht_get_self_public_key(onion_a->dht));
-    return in_entries(onion_a, public_key);
+    // If the entry was already active (not timed out), its position is determined solely by
+    // its distance to us (which hasn't changed since the public key is the same).
+    // So we don't need to resort.
+    // We only sort if we are bringing a timed-out entry back to life, or replacing a different entry.
+    if (was_timed_out) {
+        sort_onion_announce_list(onion_a->mem, onion_a->mono_time,
+                                 onion_a->entries, ONION_ANNOUNCE_MAX_ENTRIES,
+                                 dht_get_self_public_key(onion_a->dht));
+        return in_entries(onion_a, public_key);
+    }
+
+    return pos;
 }
 
 static void make_announce_payload_helper(const Onion_Announce *_Nonnull onion_a, const uint8_t *_Nonnull ping_id, uint8_t *_Nonnull response, int index,
