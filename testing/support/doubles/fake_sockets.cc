@@ -15,6 +15,8 @@ FakeSocket::FakeSocket(NetworkUniverse &universe, int type)
     : universe_(universe)
     , type_(type)
 {
+    ip_init(&ip_, false);
+    ip_.ip.v4.uint32 = net_htonl(0x7F000001);
 }
 
 FakeSocket::~FakeSocket() = default;
@@ -52,7 +54,7 @@ int FakeUdpSocket::close()
 void FakeUdpSocket::close_impl()
 {
     if (local_port_ != 0) {
-        universe_.unbind_udp(local_port_);
+        universe_.unbind_udp(ip_, local_port_);
         local_port_ = 0;
     }
 }
@@ -65,10 +67,12 @@ int FakeUdpSocket::bind(const IP_Port *addr)
 
     uint16_t port = addr->port;
     if (port == 0) {
-        port = universe_.find_free_port();
+        port = universe_.find_free_port(ip_);
+    } else {
+        port = net_ntohs(port);
     }
 
-    if (universe_.bind_udp(port, this)) {
+    if (universe_.bind_udp(ip_, port, this)) {
         local_port_ = port;
         return 0;
     }
@@ -109,8 +113,8 @@ int FakeUdpSocket::sendto(const uint8_t *buf, size_t len, const IP_Port *addr)
     std::lock_guard<std::mutex> lock(mutex_);
     if (local_port_ == 0) {
         // Implicit bind
-        uint16_t p = universe_.find_free_port();
-        if (universe_.bind_udp(p, this)) {
+        uint16_t p = universe_.find_free_port(ip_);
+        if (universe_.bind_udp(ip_, p, this)) {
             local_port_ = p;
         } else {
             errno = EADDRINUSE;
@@ -120,18 +124,20 @@ int FakeUdpSocket::sendto(const uint8_t *buf, size_t len, const IP_Port *addr)
 
     Packet p{};
     // Source
-    ip_init(&p.from.ip, net_family_is_ipv6(addr->ip.family));
-    if (net_family_is_ipv4(p.from.ip.family)) {
-        p.from.ip.ip.v4.uint32 = net_htonl(0x7F000001);
-    } else {
-        p.from.ip.ip.v6.uint8[15] = 1;
-    }
-    p.from.port = local_port_;
+    p.from.ip = ip_;
+    p.from.port = net_htons(local_port_);
     p.to = *addr;
     p.data.assign(buf, buf + len);
     p.is_tcp = false;
 
     universe_.send_packet(p);
+    if (universe_.is_verbose()) {
+        uint32_t tip4 = net_ntohl(addr->ip.ip.v4.uint32);
+        std::cerr << "[FakeUdpSocket] sent " << len << " bytes from port " << local_port_ << " to "
+                  << ((tip4 >> 24) & 0xFF) << "." << ((tip4 >> 16) & 0xFF) << "."
+                  << ((tip4 >> 8) & 0xFF) << "." << (tip4 & 0xFF) << ":" << net_ntohs(addr->port)
+                  << std::endl;
+    }
     return len;
 }
 
@@ -178,12 +184,28 @@ int FakeUdpSocket::recvfrom(uint8_t *buf, size_t len, IP_Port *addr)
         observer_copy(data_copy, from_copy);
     }
 
+    if (universe_.is_verbose()) {
+        std::cerr << "[FakeUdpSocket] recv " << copy_len << " bytes at port " << local_port_
+                  << " from port " << net_ntohs(addr->port) << std::endl;
+    }
+
     return copy_len;
 }
 
 void FakeUdpSocket::push_packet(std::vector<uint8_t> data, IP_Port from)
 {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (universe_.is_verbose()) {
+        uint32_t fip4 = net_ntohl(from.ip.ip.v4.uint32);
+        std::cerr << "[FakeUdpSocket] push " << data.size() << " bytes into queue for "
+                  << ((ip_.ip.v4.uint32 >> 24) & 0xFF)
+                  << "."  // ip_ is in network order from net_htonl
+                  << ((ip_.ip.v4.uint32 >> 16) & 0xFF) << "." << ((ip_.ip.v4.uint32 >> 8) & 0xFF)
+                  << "." << (ip_.ip.v4.uint32 & 0xFF) << ":" << local_port_ << " from "
+                  << ((fip4 >> 24) & 0xFF) << "." << ((fip4 >> 16) & 0xFF) << "."
+                  << ((fip4 >> 8) & 0xFF) << "." << (fip4 & 0xFF) << ":" << net_ntohs(from.port)
+                  << std::endl;
+    }
     recv_queue_.push_back({std::move(data), from});
 }
 
@@ -219,7 +241,7 @@ int FakeTcpSocket::close()
 void FakeTcpSocket::close_impl()
 {
     if (local_port_ != 0) {
-        universe_.unbind_tcp(local_port_, this);
+        universe_.unbind_tcp(ip_, local_port_, this);
         local_port_ = 0;
     }
     state_ = CLOSED;
@@ -233,10 +255,12 @@ int FakeTcpSocket::bind(const IP_Port *addr)
 
     uint16_t port = addr->port;
     if (port == 0) {
-        port = universe_.find_free_port();
+        port = universe_.find_free_port(ip_);
+    } else {
+        port = net_ntohs(port);
     }
 
-    if (universe_.bind_tcp(port, this)) {
+    if (universe_.bind_tcp(ip_, port, this)) {
         local_port_ = port;
         return 0;
     }
@@ -257,8 +281,8 @@ int FakeTcpSocket::connect(const IP_Port *addr)
     std::lock_guard<std::mutex> lock(mutex_);
     if (local_port_ == 0) {
         // Implicit bind
-        uint16_t p = universe_.find_free_port();
-        if (universe_.bind_tcp(p, this)) {
+        uint16_t p = universe_.find_free_port(ip_);
+        if (universe_.bind_tcp(ip_, p, this)) {
             local_port_ = p;
         } else {
             errno = EADDRINUSE;
@@ -270,13 +294,8 @@ int FakeTcpSocket::connect(const IP_Port *addr)
     state_ = SYN_SENT;
 
     Packet p{};
-    ip_init(&p.from.ip, net_family_is_ipv6(addr->ip.family));
-    if (net_family_is_ipv4(p.from.ip.family)) {
-        p.from.ip.ip.v4.uint32 = net_htonl(0x7F000001);
-    } else {
-        p.from.ip.ip.v6.uint8[15] = 1;
-    }
-    p.from.port = local_port_;
+    p.from.ip = ip_;
+    p.from.port = net_htons(local_port_);
     p.to = *addr;
     p.is_tcp = true;
     p.tcp_flags = 0x02;  // SYN
@@ -324,13 +343,8 @@ int FakeTcpSocket::send(const uint8_t *buf, size_t len)
     // Wrap as TCP packet
     Packet p{};
     // Source
-    ip_init(&p.from.ip, net_family_is_ipv6(remote_addr_.ip.family));
-    if (net_family_is_ipv4(p.from.ip.family)) {
-        p.from.ip.ip.v4.uint32 = net_htonl(0x7F000001);
-    } else {
-        p.from.ip.ip.v6.uint8[15] = 1;
-    }
-    p.from.port = local_port_;
+    p.from.ip = ip_;
+    p.from.port = net_htons(local_port_);
     p.to = remote_addr_;
     p.data.assign(buf, buf + len);
     p.is_tcp = true;
@@ -381,8 +395,10 @@ int FakeTcpSocket::recvfrom(uint8_t *buf, size_t len, IP_Port *addr)
 void FakeTcpSocket::handle_packet(const Packet &p)
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    std::cerr << "Handle Packet: Port " << local_port_ << " Flags " << static_cast<int>(p.tcp_flags)
-              << " State " << state_ << std::endl;
+    if (universe_.is_verbose()) {
+        std::cerr << "Handle Packet: Port " << local_port_ << " Flags "
+                  << static_cast<int>(p.tcp_flags) << " State " << state_ << std::endl;
+    }
 
     if (state_ == LISTEN) {
         if (p.tcp_flags & 0x02) {  // SYN
@@ -399,7 +415,7 @@ void FakeTcpSocket::handle_packet(const Packet &p)
             new_sock->last_ack_ = p.seq + 1;
             new_sock->next_seq_ = 1000;  // Random ISN
 
-            universe_.bind_tcp(local_port_, new_sock.get());
+            universe_.bind_tcp(ip_, local_port_, new_sock.get());
 
             // Send SYN-ACK
             Packet resp{};

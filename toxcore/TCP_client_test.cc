@@ -81,8 +81,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
 
     // 2. Client connects to Server
     IP_Port server_ip_port;
-    server_ip_port.ip.family = net_family_ipv4();
-    server_ip_port.ip.ip.v4.uint32 = 0x0100007F;  // 127.0.0.1 in NBO
+    server_ip_port.ip = server_node->node->ip;
     server_ip_port.port = net_htons(33445);
 
     TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,
@@ -103,6 +102,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
         if (!sock_valid(accepted_sock)) {
             accepted_sock = net_accept(&server_node->c_network, server_sock);
             if (sock_valid(accepted_sock)) {
+                fprintf(stderr, "Server accepted connection! Socket: %d\n", accepted_sock.value);
                 set_socket_nonblock(&server_node->c_network, accepted_sock);
             }
         }
@@ -113,6 +113,10 @@ TEST_F(TCPClientTest, ConnectsToRelay)
             IP_Port remote = {{{0}}};
             int len = net_recv(
                 &server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
+
+            if (len > 0) {
+                fprintf(stderr, "Server received %d bytes\n", len);
+            }
 
             if (len == TCP_CLIENT_HANDSHAKE_SIZE) {
                 // Verify client PK
@@ -130,6 +134,10 @@ TEST_F(TCPClientTest, ConnectsToRelay)
                     ciphertext_ptr,
                     TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
                     plain);
+
+                if (res != TCP_HANDSHAKE_PLAIN_SIZE) {
+                    fprintf(stderr, "Decryption failed: res=%d\n", res);
+                }
 
                 if (res == TCP_HANDSHAKE_PLAIN_SIZE) {
                     // Generate Response
@@ -212,8 +220,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
     Net_Profile *client_profile = netprof_new(client_log, &client_node->c_memory);
 
     IP_Port server_ip_port;
-    server_ip_port.ip.family = net_family_ipv4();
-    server_ip_port.ip.ip.v4.uint32 = 0x0100007F;
+    server_ip_port.ip = server_node->node->ip;
     server_ip_port.port = net_htons(33446);
 
     TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,

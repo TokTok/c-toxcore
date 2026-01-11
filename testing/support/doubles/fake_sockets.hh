@@ -55,12 +55,16 @@ public:
     bool is_nonblocking() const { return nonblocking_; }
     int type() const { return type_; }
     uint16_t local_port() const { return local_port_; }
+    const IP &ip_address() const { return ip_; }
+
+    void set_ip(const IP &ip) { ip_ = ip; }
 
 protected:
     NetworkUniverse &universe_;
     int type_;
     bool nonblocking_ = false;
     uint16_t local_port_ = 0;
+    IP ip_;
     std::mutex mutex_;  // Use regular mutex (recursive_mutex not fully supported in MinGW)
 };
 

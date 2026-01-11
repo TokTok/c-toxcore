@@ -1083,7 +1083,7 @@ Networking_Core *new_networking_ex(
     Net_Profile *np = netprof_new(log, mem);
 
     if (np == nullptr) {
-        free(temp);
+        mem_delete(mem, temp);
         return nullptr;
     }
 

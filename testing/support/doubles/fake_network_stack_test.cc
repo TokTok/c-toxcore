@@ -18,11 +18,15 @@ namespace {
 
     class FakeNetworkStackTest : public ::testing::Test {
     public:
+        FakeNetworkStackTest()
+            : stack{universe, make_ip(0x7F000001)}
+        {
+        }
         ~FakeNetworkStackTest() override;
 
     protected:
         NetworkUniverse universe;
-        FakeNetworkStack stack{universe};
+        FakeNetworkStack stack;
     };
 
     FakeNetworkStackTest::~FakeNetworkStackTest() = default;
@@ -39,7 +43,7 @@ namespace {
         IP_Port addr;
         ip_init(&addr.ip, false);
         addr.ip.ip.v4.uint32 = 0;
-        addr.port = 9002;
+        addr.port = net_htons(9002);
         ASSERT_EQ(stack.bind(udp_sock, &addr), 0);
 
         // Check introspection again
@@ -59,18 +63,18 @@ namespace {
         IP_Port addr;
         ip_init(&addr.ip, false);
         addr.ip.ip.v4.uint32 = 0;
-        addr.port = 9003;
+        addr.port = net_htons(9003);
         ASSERT_EQ(stack.bind(tcp_sock, &addr), 0);
         ASSERT_EQ(stack.listen(tcp_sock, 5), 0);
 
         // Connect from another stack
-        FakeNetworkStack client_stack{universe};
+        FakeNetworkStack client_stack{universe, make_ip(0x7F000002)};
         Socket client_sock = client_stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = 0x7F000001;  // Localhost
-        server_addr.port = 9003;
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);  // Localhost
+        server_addr.port = net_htons(9003);
 
         ASSERT_EQ(client_stack.connect(client_sock, &server_addr), -1);
         ASSERT_EQ(errno, EINPROGRESS);

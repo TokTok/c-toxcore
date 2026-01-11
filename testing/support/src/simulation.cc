@@ -1,5 +1,6 @@
 #include "../public/simulation.hh"
 
+#include <cassert>
 #include <iostream>
 
 namespace tox::test {
@@ -33,17 +34,27 @@ void Simulation::run_until(std::function<bool()> condition, uint64_t timeout_ms)
 
 std::unique_ptr<SimulatedNode> Simulation::create_node()
 {
-    return std::make_unique<SimulatedNode>(*this);
+    auto node = std::make_unique<SimulatedNode>(*this, ++node_count_);
+    if (net_->is_verbose()) {
+        uint32_t ip4 = net_ntohl(node->ip.ip.v4.uint32);
+        std::cerr << "[Simulation] Created node " << node_count_ << " with IP "
+                  << ((ip4 >> 24) & 0xFF) << "." << ((ip4 >> 16) & 0xFF) << "."
+                  << ((ip4 >> 8) & 0xFF) << "." << (ip4 & 0xFF) << std::endl;
+    }
+    return node;
 }
 
 // --- SimulatedNode ---
 
-SimulatedNode::SimulatedNode(Simulation &sim)
+SimulatedNode::SimulatedNode(Simulation &sim, uint32_t node_id)
     : sim_(sim)
-    , network_(std::make_unique<FakeNetworkStack>(sim.net()))
-    , random_(
-          std::make_unique<FakeRandom>(12345 + sim.net().find_free_port(0)))  // Pseudo-random seed
+    , network_(std::make_unique<FakeNetworkStack>(sim.net(), make_node_ip(node_id)))
+    , random_(std::make_unique<FakeRandom>(12345 + node_id))  // Unique seed
     , memory_(std::make_unique<FakeMemory>())
+    , c_network(network_->get_c_network())
+    , c_random(random_->get_c_random())
+    , c_memory(memory_->get_c_memory())
+    , ip(make_node_ip(node_id))
 {
 }
 
@@ -56,23 +67,23 @@ MemorySystem &SimulatedNode::memory() { return *memory_; }
 
 SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *options)
 {
-    std::unique_ptr<Tox_Options, decltype(&tox_options_free)> opts(
-        tox_options_new(nullptr), tox_options_free);
-    if (options) {
-        // Here we should copy relevant options manually or use the passed options
-        // For now, let's just use defaults as base
-    }
+    std::unique_ptr<Tox_Options, decltype(&tox_options_free)> default_options(
+        nullptr, tox_options_free);
 
-    // Inject dependencies
-    struct Network net_c = get_c_network();
-    struct Tox_Random rnd_c = get_c_random();
-    struct Tox_Memory mem_c = get_c_memory();
+    if (options == nullptr) {
+        default_options.reset(tox_options_new(nullptr));
+        assert(default_options != nullptr);
+        tox_options_set_ipv6_enabled(default_options.get(), false);
+        tox_options_set_start_port(default_options.get(), 33445);
+        tox_options_set_end_port(default_options.get(), 55555);
+        options = default_options.get();
+    }
 
     Tox_Options_Testing opts_testing;
     Tox_System system;
-    system.ns = &net_c;
-    system.rng = &rnd_c;
-    system.mem = &mem_c;
+    system.ns = &c_network;
+    system.rng = &c_random;
+    system.mem = &c_memory;
     system.mono_time_callback = [](void *user_data) -> uint64_t {
         return static_cast<FakeClock *>(user_data)->current_time_ms();
     };
@@ -83,15 +94,9 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *options)
     Tox_Err_New err;
     Tox_Err_New_Testing err_testing;
 
-    // Note: tox_new_testing takes ownership of nothing, but we pass pointers to stack structs
-    // These structs must remain valid for the lifetime of Tox.
-    // Since SimulatedNode owns the FakeNetworkStack/FakeRandom etc, and ToxPtr is owned by
-    // caller, the caller must ensure SimulatedNode outlives ToxPtr. This is standard pattern.
-
-    Tox *t = tox_new_testing(opts.get(), &err, &opts_testing, &err_testing);
+    Tox *t = tox_new_testing(options, &err, &opts_testing, &err_testing);
 
     if (!t) {
-        // std::cerr << "tox_new_testing failed: " << err << std::endl;
         return nullptr;
     }
     return ToxPtr(t);

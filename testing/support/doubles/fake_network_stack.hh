@@ -12,7 +12,7 @@ namespace tox::test {
 
 class FakeNetworkStack : public NetworkSystem {
 public:
-    explicit FakeNetworkStack(NetworkUniverse &universe);
+    explicit FakeNetworkStack(NetworkUniverse &universe, const IP &node_ip);
     ~FakeNetworkStack() override;
 
     // NetworkSystem Implementation
@@ -39,12 +39,15 @@ public:
     FakeUdpSocket *get_udp_socket(Socket sock);
     std::vector<FakeUdpSocket *> get_bound_udp_sockets();
 
+    NetworkUniverse &universe() { return universe_; }
+
 private:
     FakeSocket *get_sock(Socket sock);
 
     NetworkUniverse &universe_;
     std::map<int, std::unique_ptr<FakeSocket>> sockets_;
     int next_fd_ = 100;
+    IP node_ip_;
     std::mutex mutex_;
 };
 

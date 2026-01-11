@@ -36,6 +36,16 @@ public:
         = 0;
 };
 
+/**
+ * @brief Helper to create an IPv4 IP struct from a host-byte-order address.
+ */
+IP make_ip(uint32_t ipv4);
+
+/**
+ * @brief Helper to create a unique node IP in the 10.x.y.z range.
+ */
+IP make_node_ip(uint32_t node_id);
+
 }  // namespace tox::test
 
 #endif  // C_TOXCORE_TESTING_SUPPORT_NETWORK_H

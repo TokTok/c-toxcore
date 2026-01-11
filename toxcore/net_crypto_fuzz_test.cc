@@ -28,7 +28,7 @@ std::optional<std::tuple<IP_Port, uint8_t>> prepare(Fuzz_Data &input)
 {
     IP_Port ipp;
     ip_init(&ipp.ip, true);
-    ipp.port = 33445;
+    ipp.port = net_htons(33445);
 
     CONSUME_OR_RETURN_VAL(const uint8_t *iterations_packed, input, 1, std::nullopt);
     uint8_t iterations = *iterations_packed;

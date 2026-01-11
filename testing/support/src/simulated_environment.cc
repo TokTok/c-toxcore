@@ -18,7 +18,9 @@ NetworkSystem &SimulatedEnvironment::network()
     // Return a dummy stack for interface compliance; real networking is per-node.
     static FakeNetworkStack *dummy = nullptr;
     if (!dummy) {
-        dummy = new FakeNetworkStack(sim_->net());
+        IP dummy_ip;
+        ip_init(&dummy_ip, false);
+        dummy = new FakeNetworkStack(sim_->net(), dummy_ip);
     }
     return *dummy;
 }
@@ -42,7 +44,7 @@ std::unique_ptr<ScopedToxSystem> SimulatedEnvironment::create_node(uint16_t port
         IP_Port addr;
         ip_init(&addr.ip, false);
         addr.ip.ip.v4.uint32 = 0;
-        addr.port = port;
+        addr.port = net_htons(port);
         scoped->node->fake_network().bind(s, &addr);
     }
 

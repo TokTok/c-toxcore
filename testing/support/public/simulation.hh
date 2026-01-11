@@ -52,6 +52,7 @@ public:
 private:
     std::unique_ptr<FakeClock> clock_;
     std::unique_ptr<NetworkUniverse> net_;
+    uint32_t node_count_ = 0;
 };
 
 /**
@@ -60,7 +61,7 @@ private:
  */
 class SimulatedNode : public Environment {
 public:
-    explicit SimulatedNode(Simulation &sim);
+    explicit SimulatedNode(Simulation &sim, uint32_t node_id);
     ~SimulatedNode() override;
 
     // Environment Interface
@@ -97,6 +98,13 @@ private:
     std::unique_ptr<FakeNetworkStack> network_;
     std::unique_ptr<FakeRandom> random_;
     std::unique_ptr<FakeMemory> memory_;
+
+    // C-compatible views (must stay valid for the lifetime of Tox)
+public:
+    struct Network c_network;
+    struct Tox_Random c_random;
+    struct Tox_Memory c_memory;
+    struct IP ip;
 };
 
 }  // namespace tox::test

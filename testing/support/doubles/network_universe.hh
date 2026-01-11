@@ -45,11 +45,11 @@ public:
 
     // Registration
     // Returns true if binding succeeded
-    bool bind_udp(uint16_t port, FakeUdpSocket *socket);
-    void unbind_udp(uint16_t port);
+    bool bind_udp(IP ip, uint16_t port, FakeUdpSocket *socket);
+    void unbind_udp(IP ip, uint16_t port);
 
-    bool bind_tcp(uint16_t port, FakeTcpSocket *socket);
-    void unbind_tcp(uint16_t port, FakeTcpSocket *socket);
+    bool bind_tcp(IP ip, uint16_t port, FakeTcpSocket *socket);
+    void unbind_tcp(IP ip, uint16_t port, FakeTcpSocket *socket);
 
     // Routing
     void send_packet(Packet p);
@@ -57,23 +57,32 @@ public:
     // Simulation
     void process_events(uint64_t current_time_ms);
     void set_latency(uint64_t ms);
+    void set_verbose(bool verbose);
+    bool is_verbose() const;
     void add_filter(PacketFilter filter);
     void add_observer(PacketSink sink);
 
     // Helpers
     // Finds a free port starting from 'start'
-    uint16_t find_free_port(uint16_t start = 33445);
+    uint16_t find_free_port(IP ip, uint16_t start = 33445);
+
+    struct IP_Port_Key {
+        IP ip;
+        uint16_t port;
+        bool operator<(const IP_Port_Key &other) const;
+    };
 
 private:
-    std::map<uint16_t, FakeUdpSocket *> udp_bindings_;
-    std::multimap<uint16_t, FakeTcpSocket *> tcp_bindings_;
+    std::map<IP_Port_Key, FakeUdpSocket *> udp_bindings_;
+    std::multimap<IP_Port_Key, FakeTcpSocket *> tcp_bindings_;
 
     std::priority_queue<Packet, std::vector<Packet>, std::greater<Packet>> event_queue_;
     std::vector<PacketFilter> filters_;
     std::vector<PacketSink> observers_;
 
     uint64_t global_latency_ms_ = 0;
-    std::mutex mutex_;
+    bool verbose_ = false;
+    std::recursive_mutex mutex_;
 };
 
 }  // namespace tox::test
