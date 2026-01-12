@@ -61,6 +61,8 @@ void NetworkUniverse::unbind_tcp(IP ip, uint16_t port, FakeTcpSocket *socket)
 
 void NetworkUniverse::send_packet(Packet p)
 {
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+
     // Apply filters
     for (const auto &filter : filters_) {
         if (!filter(p))
@@ -74,7 +76,6 @@ void NetworkUniverse::send_packet(Packet p)
 
     p.delivery_time += global_latency_ms_;
 
-    std::lock_guard<std::recursive_mutex> lock(mutex_);
     event_queue_.push(std::move(p));
 }
 
@@ -162,9 +163,17 @@ void NetworkUniverse::set_verbose(bool verbose) { verbose_ = verbose; }
 
 bool NetworkUniverse::is_verbose() const { return verbose_; }
 
-void NetworkUniverse::add_filter(PacketFilter filter) { filters_.push_back(std::move(filter)); }
+void NetworkUniverse::add_filter(PacketFilter filter)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    filters_.push_back(std::move(filter));
+}
 
-void NetworkUniverse::add_observer(PacketSink sink) { observers_.push_back(std::move(sink)); }
+void NetworkUniverse::add_observer(PacketSink sink)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    observers_.push_back(std::move(sink));
+}
 
 uint16_t NetworkUniverse::find_free_port(IP ip, uint16_t start)
 {

@@ -9,9 +9,10 @@ namespace tox::test {
 
 // --- Simulation ---
 
-Simulation::Simulation()
+Simulation::Simulation(uint64_t seed)
     : clock_(std::make_unique<FakeClock>())
     , net_(std::make_unique<NetworkUniverse>())
+    , seed_(seed)
 {
 }
 
@@ -64,7 +65,9 @@ void Simulation::run_until(std::function<bool()> condition, uint64_t timeout_ms)
             std::unique_lock<std::mutex> lock(barrier_mutex_);
             // We use a lambda predicate to handle spurious wakeups.
             // The wait finishes when `active_runners_` reaches zero.
-            barrier_cv_.wait(lock, [this] { return active_runners_.load() == 0; });
+            // We use a small timeout to avoid permanent hangs if a runner is unregistered mid-tick.
+            barrier_cv_.wait_for(lock, std::chrono::milliseconds(100),
+                [this] { return active_runners_.load() == 0; });
         }
 
         // 4. Check condition
@@ -103,10 +106,12 @@ uint64_t Simulation::register_runner()
 void Simulation::unregister_runner()
 {
     std::lock_guard<std::mutex> lock(barrier_mutex_);
+    assert(registered_runners_ > 0);
     registered_runners_--;
 
-    // If we are currently running a tick (active_runners > 0), we need to decrement it
-    // because this runner will not be calling tick_complete()
+    // If a tick is currently in progress, we need to account for this runner
+    // leaving. Otherwise, the barrier will wait for a runner that is no longer
+    // active.
     if (active_runners_.load() > 0) {
         if (active_runners_.fetch_sub(1) == 1) {
             barrier_cv_.notify_all();
@@ -163,7 +168,7 @@ std::unique_ptr<SimulatedNode> Simulation::create_node()
 SimulatedNode::SimulatedNode(Simulation &sim, uint32_t node_id)
     : sim_(sim)
     , network_(std::make_unique<FakeNetworkStack>(sim.net(), make_node_ip(node_id)))
-    , random_(std::make_unique<FakeRandom>(12345 + node_id))  // Unique seed
+    , random_(std::make_unique<FakeRandom>(sim.seed() + node_id))
     , memory_(std::make_unique<FakeMemory>())
     , c_network(network_->get_c_network())
     , c_random(random_->get_c_random())

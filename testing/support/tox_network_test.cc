@@ -13,7 +13,7 @@ namespace {
 
     TEST(ToxNetworkTest, SetupConnectedFriends)
     {
-        Simulation sim;
+        Simulation sim{12345};
         sim.net().set_latency(5);
         auto main_node = sim.create_node();
         auto main_tox = main_node->create_tox();
@@ -58,7 +58,7 @@ namespace {
 
     TEST(ToxNetworkTest, Setup50ConnectedFriends)
     {
-        Simulation sim;
+        Simulation sim{12345};
         sim.net().set_latency(5);
         auto main_node = sim.create_node();
         auto main_tox = main_node->create_tox();
@@ -97,7 +97,7 @@ namespace {
 
     TEST(ToxNetworkTest, ConnectFriends)
     {
-        Simulation sim;
+        Simulation sim{12345};
         sim.net().set_latency(5);
         auto node1 = sim.create_node();
         auto tox1 = node1->create_tox();
@@ -133,7 +133,7 @@ namespace {
 
     TEST(ToxNetworkTest, SetupConnectedGroup)
     {
-        Simulation sim;
+        Simulation sim{12345};
         sim.net().set_latency(5);
         auto main_node = sim.create_node();
         auto main_tox = main_node->create_tox();
@@ -177,7 +177,7 @@ namespace {
 
     TEST(ToxNetworkTest, Setup50ConnectedGroup)
     {
-        Simulation sim;
+        Simulation sim{12345};
         sim.net().set_latency(5);
         auto main_node = sim.create_node();
         auto main_tox = main_node->create_tox();

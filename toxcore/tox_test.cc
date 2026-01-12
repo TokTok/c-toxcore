@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "crypto_core.h"
-#include "os_random.h"
 #include "tox_log_level.h"
 #include "tox_options.h"
 #include "tox_private.h"
@@ -87,7 +86,7 @@ TEST(Tox, BootstrapErrorCodes)
 
 TEST(Tox, OneTest)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     struct Tox_Options *options = tox_options_new(nullptr);
     ASSERT_NE(options, nullptr);
 
@@ -114,8 +113,7 @@ TEST(Tox, OneTest)
 
     Tox *tox1 = tox_new_testing(options, nullptr, &testing_opts1, nullptr);
     ASSERT_NE(tox1, nullptr);
-    const Random *rng = os_random();
-    ASSERT_NE(rng, nullptr);
+    const Random *rng = &node1->c_random;
     set_random_name_and_status_message(tox1, rng, name.data(), status_message.data());
 
     auto node2 = env.create_node(33546);

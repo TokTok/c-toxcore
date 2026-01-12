@@ -38,7 +38,7 @@ struct KeyPair {
 
 TEST(IdClosest, KeyIsClosestToItself)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     PublicKey pk0 = random_pk(&c_rng);
@@ -53,7 +53,7 @@ TEST(IdClosest, KeyIsClosestToItself)
 
 TEST(IdClosest, IdenticalKeysAreSameDistance)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     PublicKey pk0 = random_pk(&c_rng);
@@ -64,7 +64,7 @@ TEST(IdClosest, IdenticalKeysAreSameDistance)
 
 TEST(IdClosest, DistanceIsCommutative)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     PublicKey pk0 = random_pk(&c_rng);
@@ -151,7 +151,7 @@ Node_format fill(Node_format v, PublicKey const &pk, IP_Port const &ip_port)
 
 TEST(AddToList, AddsFirstKeysInOrder)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     // Make cmp_key the furthest away from 00000... as possible, so all initial inserts succeed.
@@ -254,7 +254,7 @@ TEST(AddToList, AddsFirstKeysInOrder)
 
 TEST(AddToList, KeepsKeysInOrder)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     // Any random cmp_pk should work, as well as the smallest or (approximately) largest pk.
@@ -280,7 +280,7 @@ TEST(AddToList, KeepsKeysInOrder)
 
 TEST(Request, CreateAndParse)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     auto c_rng = env.fake_random().get_c_random();
 
@@ -338,7 +338,7 @@ TEST(Request, CreateAndParse)
 
 TEST(AnnounceNodes, SetAndTest)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     auto c_rng = env.fake_random().get_c_random();
 

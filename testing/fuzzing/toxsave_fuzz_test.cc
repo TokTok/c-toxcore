@@ -31,7 +31,7 @@ void TestSaveDataLoading(Fuzz_Data &input)
     tox_options_set_savedata_type(tox_options, TOX_SAVEDATA_TYPE_TOX_SAVE);
 
     Tox_Options_Testing tox_options_testing;
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     tox_options_testing.operating_system = &node->system;
 

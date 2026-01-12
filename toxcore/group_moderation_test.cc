@@ -22,7 +22,7 @@ using ModerationHash = std::array<uint8_t, MOD_MODERATION_HASH_SIZE>;
 
 TEST(ModList, PackedSizeOfEmptyModListIsZero)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     EXPECT_EQ(mod_list_packed_size(&mods), 0);
@@ -34,7 +34,7 @@ TEST(ModList, PackedSizeOfEmptyModListIsZero)
 
 TEST(ModList, UnpackingZeroSizeArrayIsNoop)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     const uint8_t byte = 1;
@@ -43,7 +43,7 @@ TEST(ModList, UnpackingZeroSizeArrayIsNoop)
 
 TEST(ModList, AddRemoveMultipleMods)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     uint8_t sig_pk1[32] = {1};
@@ -57,7 +57,7 @@ TEST(ModList, AddRemoveMultipleMods)
 TEST(ModList, PackingAndUnpackingList)
 {
     using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
@@ -75,7 +75,7 @@ TEST(ModList, PackingAndUnpackingList)
 TEST(ModList, UnpackingTooManyModsFails)
 {
     using ModListEntry = std::array<uint8_t, MOD_LIST_ENTRY_SIZE>;
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     EXPECT_TRUE(mod_list_add_entry(&mods, ModListEntry{}.data()));
@@ -92,7 +92,7 @@ TEST(ModList, UnpackingFromEmptyBufferFails)
 {
     std::vector<uint8_t> packed(1);
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     EXPECT_EQ(mod_list_unpack(&mods, packed.data(), 0, 1), -1);
@@ -100,7 +100,7 @@ TEST(ModList, UnpackingFromEmptyBufferFails)
 
 TEST(ModList, HashOfEmptyModListZeroesOutBuffer)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     auto c_rng = env.fake_random().get_c_random();
 
@@ -115,7 +115,7 @@ TEST(ModList, HashOfEmptyModListZeroesOutBuffer)
 
 TEST(ModList, RemoveIndexFromEmptyModListFails)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     EXPECT_FALSE(mod_list_remove_index(&mods, 0));
@@ -124,7 +124,7 @@ TEST(ModList, RemoveIndexFromEmptyModListFails)
 
 TEST(ModList, RemoveEntryFromEmptyModListFails)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     uint8_t sig_pk[32] = {0};
@@ -133,7 +133,7 @@ TEST(ModList, RemoveEntryFromEmptyModListFails)
 
 TEST(ModList, ModListRemoveIndex)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     uint8_t sig_pk[32] = {1};
@@ -143,7 +143,7 @@ TEST(ModList, ModListRemoveIndex)
 
 TEST(ModList, CleanupOnEmptyModsIsNoop)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     mod_list_cleanup(&mods);
@@ -151,7 +151,7 @@ TEST(ModList, CleanupOnEmptyModsIsNoop)
 
 TEST(ModList, EmptyModListCannotVerifyAnySigPk)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     uint8_t sig_pk[32] = {1};
@@ -160,7 +160,7 @@ TEST(ModList, EmptyModListCannotVerifyAnySigPk)
 
 TEST(ModList, ModListAddVerifyRemoveSigPK)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods{&c_mem};
     uint8_t sig_pk[32] = {1};
@@ -172,7 +172,7 @@ TEST(ModList, ModListAddVerifyRemoveSigPK)
 
 TEST(ModList, ModListHashCheck)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mods1{&c_mem};
     uint8_t sig_pk1[32] = {1};
@@ -196,7 +196,7 @@ TEST(SanctionsList, PackingIntoUndersizedBufferFails)
 
 TEST(SanctionsList, PackUnpackSanctionsCreds)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().get_c_memory();
     Moderation mod{&c_mem};
     std::array<uint8_t, MOD_SANCTIONS_CREDS_SIZE> packed;
@@ -207,7 +207,7 @@ TEST(SanctionsList, PackUnpackSanctionsCreds)
 
 struct SanctionsListMod : ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     Tox_Memory c_mem_;
     Tox_Random c_rng_;
 

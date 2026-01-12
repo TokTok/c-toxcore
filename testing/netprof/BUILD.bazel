@@ -1,0 +1,199 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+cc_library(
+    name = "constants",
+    hdrs = ["constants.hh"],
+    visibility = ["//c-toxcore/testing/netprof:__subpackages__"],
+)
+
+cc_library(
+    name = "layout_engine",
+    srcs = ["layout_engine.cc"],
+    hdrs = ["layout_engine.hh"],
+    deps = [":constants"],
+)
+
+cc_library(
+    name = "model",
+    hdrs = ["model.hh"],
+    visibility = ["//c-toxcore/testing/netprof:__subpackages__"],
+    deps = [
+        ":constants",
+        "//c-toxcore/toxcore:tox",
+    ],
+)
+
+cc_library(
+    name = "model_utils",
+    srcs = ["model_utils.cc"],
+    hdrs = ["model_utils.hh"],
+    visibility = ["//c-toxcore/testing/netprof:__subpackages__"],
+    deps = [
+        ":model",
+    ],
+)
+
+cc_library(
+    name = "packet_utils",
+    srcs = ["packet_utils.cc"],
+    hdrs = ["packet_utils.hh"],
+    visibility = ["//c-toxcore/testing/netprof:__subpackages__"],
+    deps = [
+        "//c-toxcore/toxcore:tox",
+    ],
+)
+
+cc_library(
+    name = "node_wrapper",
+    srcs = ["node_wrapper.cc"],
+    hdrs = ["node_wrapper.hh"],
+    deps = [
+        ":constants",
+        ":model",
+        "//c-toxcore/testing/support",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_events",
+    ],
+)
+
+cc_library(
+    name = "simulation_manager",
+    srcs = ["simulation_manager.cc"],
+    hdrs = ["simulation_manager.hh"],
+    deps = [
+        ":constants",
+        ":model_utils",
+        ":node_wrapper",
+        "//c-toxcore/testing/support",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_events",
+        "@json",
+    ],
+)
+
+cc_library(
+    name = "ui",
+    srcs = [
+        "command_registry.cc",
+        "ui.cc",
+    ],
+    hdrs = [
+        "command_registry.hh",
+        "ui.hh",
+    ],
+    deps = [
+        ":constants",
+        ":layout_engine",
+        ":model",
+        ":model_utils",
+        "//c-toxcore/testing/netprof/views",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_events",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_library(
+    name = "ui_test_support",
+    testonly = True,
+    srcs = ["ui_test_support.cc"],
+    hdrs = ["ui_test_support.hh"],
+    visibility = ["//c-toxcore/testing/netprof:__subpackages__"],
+    deps = [
+        ":ui",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
+cc_library(
+    name = "app",
+    srcs = ["app.cc"],
+    hdrs = ["app.hh"],
+    deps = [
+        ":constants",
+        ":model",
+        ":model_utils",
+        ":packet_utils",
+        ":simulation_manager",
+        ":ui",
+        "//c-toxcore/toxcore:tox",
+    ],
+)
+
+cc_binary(
+    name = "netprof",
+    srcs = [
+        "main.cc",
+    ],
+    deps = [
+        ":app",
+        ":packet_utils",
+        ":simulation_manager",
+        ":ui",
+        "//c-toxcore/testing/support",
+        "//c-toxcore/toxcore:tox",
+        "//c-toxcore/toxcore:tox_events",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+        "@json",
+    ],
+)
+
+cc_test(
+    name = "app_test",
+    srcs = ["app_test.cc"],
+    deps = [
+        ":app",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "ui_test",
+    srcs = ["ui_test.cc"],
+    deps = [
+        ":ui",
+        ":ui_test_support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "model_utils_test",
+    srcs = ["model_utils_test.cc"],
+    deps = [
+        ":model_utils",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "simulation_manager_test",
+    srcs = ["simulation_manager_test.cc"],
+    deps = [
+        ":simulation_manager",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "node_wrapper_test",
+    srcs = ["node_wrapper_test.cc"],
+    deps = [
+        ":node_wrapper",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "layout_engine_test",
+    srcs = ["layout_engine_test.cc"],
+    deps = [
+        ":layout_engine",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

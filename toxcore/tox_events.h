@@ -353,6 +353,8 @@ Tox_Group_Mod_Event tox_event_group_moderation_get_mod_type(
     const Tox_Event_Group_Moderation *group_moderation);
 
 typedef struct Tox_Event_Dht_Nodes_Response Tox_Event_Dht_Nodes_Response;
+const uint8_t *tox_event_dht_nodes_response_get_responder_public_key(
+    const Tox_Event_Dht_Nodes_Response *dht_nodes_response);
 const uint8_t *tox_event_dht_nodes_response_get_public_key(
     const Tox_Event_Dht_Nodes_Response *dht_nodes_response);
 const uint8_t *tox_event_dht_nodes_response_get_ip(

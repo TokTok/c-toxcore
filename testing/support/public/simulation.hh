@@ -38,7 +38,7 @@ class Simulation {
 public:
     static constexpr uint32_t kDefaultTickIntervalMs = 50;
 
-    Simulation();
+    explicit Simulation(uint64_t seed);
     ~Simulation();
 
     // Time Control
@@ -102,13 +102,16 @@ public:
     NetworkUniverse &net() { return *net_; }
     const NetworkUniverse &net() const { return *net_; }
 
+    uint64_t seed() const { return seed_; }
+
     // Node Factory
     std::unique_ptr<SimulatedNode> create_node();
 
 private:
     std::unique_ptr<FakeClock> clock_;
     std::unique_ptr<NetworkUniverse> net_;
-    uint32_t node_count_ = 0;
+    const uint64_t seed_;
+    std::atomic<uint32_t> node_count_{0};
 
     // Barrier State
     std::mutex barrier_mutex_;

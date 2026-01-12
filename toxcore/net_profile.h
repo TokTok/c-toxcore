@@ -40,6 +40,11 @@ void netprof_record_packet(Net_Profile *_Nullable profile, uint8_t id, size_t le
  */
 uint64_t netprof_get_packet_count_id(const Net_Profile *_Nullable profile, uint8_t id, Packet_Direction dir);
 /**
+ * Returns the number of sent or received packets for the given ID range.
+ */
+uint64_t netprof_get_packet_count_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
+                                        Packet_Direction dir);
+/**
  * Returns the total number of sent or received packets for the given profile.
  */
 uint64_t netprof_get_packet_count_total(const Net_Profile *_Nullable profile, Packet_Direction dir);
@@ -47,6 +52,11 @@ uint64_t netprof_get_packet_count_total(const Net_Profile *_Nullable profile, Pa
  * Returns the number of bytes sent or received of packet type `id` for the given profile.
  */
 uint64_t netprof_get_bytes_id(const Net_Profile *_Nullable profile, uint8_t id, Packet_Direction dir);
+/**
+ * Returns the number of bytes sent or received for the given ID range.
+ */
+uint64_t netprof_get_bytes_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
+                                 Packet_Direction dir);
 /**
  * Returns the total number of bytes sent or received for the given profile.
  */

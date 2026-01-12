@@ -200,7 +200,7 @@ using RealDHTNode = TestNode<WrappedDHT>;
 
 class NetCryptoTest : public ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
 };
 
 TEST_F(NetCryptoTest, EndToEndDataExchange)

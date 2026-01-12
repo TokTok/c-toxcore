@@ -17,7 +17,7 @@ using tox::test::SimulatedEnvironment;
 
 TEST(ToxEvents, UnpackRandomDataDoesntCrash)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     ASSERT_NE(node->system.rng, nullptr);
     std::array<uint8_t, 128> data;
@@ -27,7 +27,7 @@ TEST(ToxEvents, UnpackRandomDataDoesntCrash)
 
 TEST(ToxEvents, UnpackEmptyDataFails)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     std::array<uint8_t, 1> data;
     Tox_Events *events = tox_events_load(&node->system, data.end(), 0);
@@ -36,7 +36,7 @@ TEST(ToxEvents, UnpackEmptyDataFails)
 
 TEST(ToxEvents, UnpackEmptyArrayCreatesEmptyEvents)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     std::array<uint8_t, 1> data{0x90};  // empty msgpack array
     Tox_Events *events = tox_events_load(&node->system, data.data(), data.size());
@@ -55,7 +55,7 @@ TEST(ToxEvents, NullEventsPacksToEmptyArray)
 
 TEST(ToxEvents, PackedEventsCanBeUnpacked)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     // [[0, 1]] == Tox_Self_Connection_Status { .connection_status = TOX_CONNECTION_TCP }
     std::array<uint8_t, 6> packed{0x91, 0x92, 0xcc, 0x00, 0xcc, 0x01};
@@ -70,7 +70,7 @@ TEST(ToxEvents, PackedEventsCanBeUnpacked)
 
 TEST(ToxEvents, DealsWithHugeMsgpackArrays)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     std::vector<uint8_t> data{0xdd, 0xff, 0xff, 0xff, 0xff};
     EXPECT_EQ(tox_events_load(&node->system, data.data(), data.size()), nullptr);

@@ -16,7 +16,7 @@ using tox::test::SimulatedEnvironment;
 
 TEST(CryptoCoreTestUtil, RandomBytesDoesNotTouchZeroSizeArray)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     std::array<uint8_t, 32> bytes{};
@@ -28,7 +28,7 @@ TEST(CryptoCoreTestUtil, RandomBytesDoesNotTouchZeroSizeArray)
 
 TEST(CryptoCoreTestUtil, RandomBytesFillsEntireArray)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     std::array<uint8_t, 32> bytes{};
@@ -51,7 +51,7 @@ TEST(CryptoCoreTestUtil, RandomBytesFillsEntireArray)
 
 TEST(CryptoCoreTestUtil, RandomBytesDoesNotBufferOverrun)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().get_c_random();
 
     std::array<uint8_t, 32> bytes{};

@@ -52,7 +52,7 @@ void TestNetCrypto(Fuzz_Data &input)
     }
     const auto [ipp, iterations] = prep.value();
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     env.fake_clock().advance(1000000000);  // Start clock high to match legacy behavior
     auto node = env.create_node(ipp.port);
     configure_fuzz_memory_source(env.fake_memory(), input);

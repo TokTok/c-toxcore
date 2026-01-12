@@ -232,6 +232,20 @@ bool tox_group_peer_get_ip_address(const Tox *tox, uint32_t group_number, uint32
     return true;
 }
 
+static uint64_t netprof_get_id_count(const Net_Profile *_Nullable profile, uint8_t id, Packet_Direction dir,
+                                     Tox_Netprof_Packet_Type type)
+{
+    if (profile == nullptr) {
+        return 0;
+    }
+
+    if (id == TOX_NETPROF_PACKET_ID_TCP_DATA && type != TOX_NETPROF_PACKET_TYPE_UDP) {
+        return netprof_get_packet_count_range(profile, id, UINT8_MAX, dir);
+    }
+
+    return netprof_get_packet_count_id(profile, id, dir);
+}
+
 uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type type, uint8_t id,
         Tox_Netprof_Direction direction)
 {
@@ -248,25 +262,25 @@ uint64_t tox_netprof_get_packet_id_count(const Tox *tox, Tox_Netprof_Packet_Type
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
+            count = netprof_get_id_count(tcp_c_profile, id, dir, type);
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
-            count = netprof_get_packet_count_id(tcp_s_profile, id, dir);
+            count = netprof_get_id_count(tcp_s_profile, id, dir, type);
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_TCP: {
-            const uint64_t tcp_c_count = netprof_get_packet_count_id(tcp_c_profile, id, dir);
-            const uint64_t tcp_s_count = netprof_get_packet_count_id(tcp_s_profile, id, dir);
+            const uint64_t tcp_c_count = netprof_get_id_count(tcp_c_profile, id, dir, type);
+            const uint64_t tcp_s_count = netprof_get_id_count(tcp_s_profile, id, dir, type);
             count = tcp_c_count + tcp_s_count;
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_UDP: {
             const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
-            count = netprof_get_packet_count_id(udp_profile, id, dir);
+            count = netprof_get_id_count(udp_profile, id, dir, type);
             break;
         }
 
@@ -330,6 +344,20 @@ uint64_t tox_netprof_get_packet_total_count(const Tox *tox, Tox_Netprof_Packet_T
     return count;
 }
 
+static uint64_t netprof_get_id_bytes(const Net_Profile *_Nullable profile, uint8_t id, Packet_Direction dir,
+                                     Tox_Netprof_Packet_Type type)
+{
+    if (profile == nullptr) {
+        return 0;
+    }
+
+    if (id == TOX_NETPROF_PACKET_ID_TCP_DATA && type != TOX_NETPROF_PACKET_TYPE_UDP) {
+        return netprof_get_bytes_range(profile, id, UINT8_MAX, dir);
+    }
+
+    return netprof_get_bytes_id(profile, id, dir);
+}
+
 uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type type, uint8_t id,
         Tox_Netprof_Direction direction)
 {
@@ -346,25 +374,25 @@ uint64_t tox_netprof_get_packet_id_bytes(const Tox *tox, Tox_Netprof_Packet_Type
 
     switch (type) {
         case TOX_NETPROF_PACKET_TYPE_TCP_CLIENT: {
-            bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
+            bytes = netprof_get_id_bytes(tcp_c_profile, id, dir, type);
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_TCP_SERVER: {
-            bytes = netprof_get_bytes_id(tcp_s_profile, id, dir);
+            bytes = netprof_get_id_bytes(tcp_s_profile, id, dir, type);
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_TCP: {
-            const uint64_t tcp_c_bytes = netprof_get_bytes_id(tcp_c_profile, id, dir);
-            const uint64_t tcp_s_bytes = netprof_get_bytes_id(tcp_s_profile, id, dir);
+            const uint64_t tcp_c_bytes = netprof_get_id_bytes(tcp_c_profile, id, dir, type);
+            const uint64_t tcp_s_bytes = netprof_get_id_bytes(tcp_s_profile, id, dir, type);
             bytes = tcp_c_bytes + tcp_s_bytes;
             break;
         }
 
         case TOX_NETPROF_PACKET_TYPE_UDP: {
             const Net_Profile *udp_profile = net_get_net_profile(tox->m->net);
-            bytes = netprof_get_bytes_id(udp_profile, id, dir);
+            bytes = netprof_get_id_bytes(udp_profile, id, dir, type);
             break;
         }
 

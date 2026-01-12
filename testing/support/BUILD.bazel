@@ -59,6 +59,7 @@ cc_library(
 
 cc_test(
     name = "fake_sockets_test",
+    size = "small",
     srcs = ["doubles/fake_sockets_test.cc"],
     deps = [
         ":support",
@@ -70,6 +71,7 @@ cc_test(
 
 cc_test(
     name = "fake_network_udp_test",
+    size = "small",
     srcs = ["doubles/fake_network_udp_test.cc"],
     deps = [
         ":support",
@@ -81,6 +83,7 @@ cc_test(
 
 cc_test(
     name = "fake_network_stack_test",
+    size = "small",
     srcs = ["doubles/fake_network_stack_test.cc"],
     deps = [
         ":support",
@@ -92,6 +95,7 @@ cc_test(
 
 cc_test(
     name = "network_universe_test",
+    size = "small",
     srcs = ["doubles/network_universe_test.cc"],
     deps = [
         ":support",
@@ -103,6 +107,7 @@ cc_test(
 
 cc_test(
     name = "bootstrap_scaling_test",
+    size = "small",
     srcs = ["bootstrap_scaling_test.cc"],
     deps = [
         ":support",
@@ -115,7 +120,6 @@ cc_test(
 
 cc_test(
     name = "tox_network_test",
-    timeout = "long",
     srcs = ["tox_network_test.cc"],
     deps = [
         ":support",

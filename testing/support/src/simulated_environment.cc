@@ -4,9 +4,9 @@
 
 namespace tox::test {
 
-SimulatedEnvironment::SimulatedEnvironment()
-    : sim_(std::make_unique<Simulation>())
-    , global_random_(std::make_unique<FakeRandom>(12345))
+SimulatedEnvironment::SimulatedEnvironment(uint64_t seed)
+    : sim_(std::make_unique<Simulation>(seed))
+    , global_random_(std::make_unique<FakeRandom>(seed))
     , global_memory_(std::make_unique<FakeMemory>())
 {
 }

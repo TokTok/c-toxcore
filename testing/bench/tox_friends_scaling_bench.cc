@@ -41,7 +41,7 @@ public:
         sim.reset();
 
         int num_friends = state.range(0);
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         main_node = sim->create_node();
         main_tox = main_node->create_tox();
 
@@ -85,7 +85,7 @@ public:
         sim.reset();
 
         int num_friends = state.range(0);
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(1);  // Low latency to encourage traffic
         sim->net().set_verbose(kVerbose);
 
@@ -211,7 +211,7 @@ struct ConnectedContext {
         main_node.reset();
         sim.reset();
 
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(5);
         main_node = sim->create_node();
         main_tox = main_node->create_tox();
@@ -249,7 +249,7 @@ struct GroupScalingContext {
         main_node.reset();
         sim.reset();
 
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         sim->net().set_latency(5);
         main_node = sim->create_node();
 

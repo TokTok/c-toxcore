@@ -192,8 +192,8 @@ void dump(std::vector<uint8_t> recording, const char *filename)
 
 void RecordBootstrap(const char *init, const char *bootstrap)
 {
-    SimulatedEnvironment env1;
-    SimulatedEnvironment env2;
+    SimulatedEnvironment env1{12345};
+    SimulatedEnvironment env2{12345};
 
     // Set deterministic seeds.
     std::minstd_rand rng1(4);

@@ -42,7 +42,7 @@ struct ScopedToxSystem {
 
 class SimulatedEnvironment : public Environment {
 public:
-    SimulatedEnvironment();
+    explicit SimulatedEnvironment(uint64_t seed);
     ~SimulatedEnvironment() override;
 
     NetworkSystem &network() override;

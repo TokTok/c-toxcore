@@ -102,7 +102,7 @@ using FriendConnNode = FriendConnTestNode<WrappedDHT>;
 
 class FriendConnectionTest : public ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
 };
 
 TEST_F(FriendConnectionTest, CreationAndDestruction)

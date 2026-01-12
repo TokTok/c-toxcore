@@ -381,7 +381,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     if (size == 0)
         return 0;
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     OnionClientFuzzer fuzzer(env);
     Fuzz_Data input(data, size);
     fuzzer.Run(input);
