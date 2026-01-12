@@ -105,11 +105,9 @@ const uint8_t *shared_key_cache_lookup(Shared_Key_Cache *cache, const uint8_t pu
 {
     // caching the time is not necessary, but calls to mono_time_get(...) are not free
     const uint64_t cur_time = mono_time_get(cache->mono_time);
-    // We can't use the first and last bytes because they are masked in curve25519. Selected 8 for good alignment.
-    const uint8_t bucket_idx = public_key[8];
+    // Use a better hash to distribute keys more evenly
+    const uint8_t bucket_idx = public_key[0] ^ public_key[1] ^ public_key[2] ^ public_key[3];
     Shared_Key *bucket_start = &cache->keys[bucket_idx * cache->keys_per_slot];
-
-    const uint8_t *found = nullptr;
 
     // Perform lookup
     for (size_t i = 0; i < cache->keys_per_slot; ++i) {
@@ -118,52 +116,54 @@ const uint8_t *shared_key_cache_lookup(Shared_Key_Cache *cache, const uint8_t pu
         }
 
         if (pk_equal(public_key, bucket_start[i].public_key)) {
-            found = bucket_start[i].shared_key;
             bucket_start[i].time_last_requested = cur_time;
-            break;
+            return bucket_start[i].shared_key;
         }
     }
 
-    // Perform housekeeping for this bucket
+    // Key not found. Perform housekeeping to clear timed out keys and find a slot.
+    uint64_t oldest_timestamp = UINT64_MAX;
+    size_t oldest_index = 0;
+    size_t empty_index = (size_t) -1;
+
     for (size_t i = 0; i < cache->keys_per_slot; ++i) {
         if (shared_key_is_empty(cache->log, &bucket_start[i])) {
+            if (empty_index == (size_t) -1) {
+                empty_index = i;
+            }
             continue;
         }
 
-        const bool timed_out = (bucket_start[i].time_last_requested + cache->timeout) < cur_time;
-        if (timed_out) {
+        if ((bucket_start[i].time_last_requested + cache->timeout) < cur_time) {
             shared_key_set_empty(cache->log, &bucket_start[i]);
-        }
-    }
-
-    if (found == nullptr) {
-        // Insert into cache
-
-        uint64_t oldest_timestamp = UINT64_MAX;
-        size_t oldest_index = 0;
-
-        /*
-         *  Find least recently used entry, unused entries are prioritised,
-         *  because their time_last_requested field is zeroed.
-         */
-        for (size_t i = 0; i < cache->keys_per_slot; ++i) {
-            if (bucket_start[i].time_last_requested < oldest_timestamp) {
-                oldest_timestamp = bucket_start[i].time_last_requested;
-                oldest_index = i;
+            if (empty_index == (size_t) -1) {
+                empty_index = i;
             }
+            continue;
         }
 
-        // Compute the shared key for the cache
-        if (encrypt_precompute(public_key, cache->self_secret_key, bucket_start[oldest_index].shared_key) != 0) {
-            // Don't put anything in the cache on error
-            return nullptr;
+        if (bucket_start[i].time_last_requested < oldest_timestamp) {
+            oldest_timestamp = bucket_start[i].time_last_requested;
+            oldest_index = i;
         }
-
-        // update cache entry
-        memcpy(bucket_start[oldest_index].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
-        bucket_start[oldest_index].time_last_requested = cur_time;
-        found = bucket_start[oldest_index].shared_key;
     }
 
-    return found;
+    // Use an empty slot if available, otherwise evict the oldest
+    size_t target_index;
+    if (empty_index != (size_t) -1) {
+        target_index = empty_index;
+    } else {
+        target_index = oldest_index;
+    }
+
+    // Compute the shared key for the cache
+    if (encrypt_precompute(public_key, cache->self_secret_key, bucket_start[target_index].shared_key) != 0) {
+        // Don't put anything in the cache on error
+        return nullptr;
+    }
+
+    // update cache entry
+    memcpy(bucket_start[target_index].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    bucket_start[target_index].time_last_requested = cur_time;
+    return bucket_start[target_index].shared_key;
 }

@@ -41,6 +41,10 @@
 #define ONION_DATA_REQUEST_MIN_SIZE (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
 #define MAX_DATA_REQUEST_SIZE (ONION_MAX_DATA_SIZE - ONION_DATA_REQUEST_MIN_SIZE)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct Onion_Announce Onion_Announce;
 
 /** These two are not public; they are for tests only! */
@@ -65,6 +69,16 @@ void onion_announce_entry_set_time(Onion_Announce *_Nonnull onion_a, uint32_t en
 int create_announce_request(const Memory *_Nonnull mem, const Random *_Nonnull rng, uint8_t *_Nonnull packet, uint16_t max_packet_length, const uint8_t *_Nonnull dest_client_id,
                             const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull secret_key, const uint8_t *_Nonnull ping_id, const uint8_t *_Nonnull client_id, const uint8_t *_Nonnull data_public_key,
                             uint64_t sendback_data);
+
+/** @brief Same as create_announce_request but uses a precomputed shared key for symmetric encryption.
+ *
+ * @param shared_key The shared key derived from the destination's public key and the sender's secret key.
+ */
+int create_announce_request_symmetric(const Memory *_Nonnull mem, const Random *_Nonnull rng, uint8_t *_Nonnull packet,
+                                      uint16_t max_packet_length, const uint8_t *_Nonnull shared_key,
+                                      const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull ping_id,
+                                      const uint8_t *_Nonnull client_id, const uint8_t *_Nonnull data_public_key,
+                                      uint64_t sendback_data);
 
 /** @brief Create an onion data request packet in packet of max_packet_length.
  *
@@ -128,4 +142,9 @@ Onion_Announce *_Nullable new_onion_announce(const Logger *_Nonnull log, const M
         Networking_Core *_Nonnull net);
 
 void kill_onion_announce(Onion_Announce *_Nullable onion_a);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
 #endif /* C_TOXCORE_TOXCORE_ONION_ANNOUNCE_H */

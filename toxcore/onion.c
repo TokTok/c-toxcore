@@ -33,7 +33,7 @@
 
 #define KEY_REFRESH_INTERVAL (2 * 60 * 60)
 
-// Settings for the shared key cache
+/* Settings for the shared key cache */
 #define MAX_KEYS_PER_SLOT 4
 #define KEYS_TIMEOUT 600
 

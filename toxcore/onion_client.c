@@ -53,6 +53,9 @@ typedef struct Onion_Node {
     uint8_t     pings_since_last_response;
 
     uint32_t    path_used;
+
+    uint8_t     shared_key[CRYPTO_SHARED_KEY_SIZE];
+    bool        has_shared_key;
 } Onion_Node;
 
 typedef struct Onion_Client_Paths {
@@ -611,7 +614,8 @@ static uint32_t check_sendback(Onion_Client *_Nonnull onion_c, const uint8_t *_N
 }
 
 static int client_send_announce_request(Onion_Client *_Nonnull onion_c, uint32_t num, const IP_Port *_Nonnull dest,
-                                        const uint8_t *_Nonnull dest_pubkey, const uint8_t *_Nullable ping_id, uint32_t pathnum)
+                                        const uint8_t *_Nonnull dest_pubkey, const uint8_t *_Nullable ping_id, uint32_t pathnum,
+                                        bool *_Nullable has_shared_key, uint8_t *_Nullable shared_key)
 {
     if (num > onion_c->num_friends) {
         LOGGER_TRACE(onion_c->logger, "not sending announce to out of bounds friend %u (num friends: %u)", num, onion_c->num_friends);
@@ -655,10 +659,21 @@ static int client_send_announce_request(Onion_Client *_Nonnull onion_c, uint32_t
         Onion_Friend *onion_friend = &onion_c->friends_list[num - 1];
 
         if (onion_friend->gc_data_length == 0) { // contact is a friend
-            len = create_announce_request(
-                      onion_c->mem, onion_c->rng, request, sizeof(request), dest_pubkey, onion_friend->temp_public_key,
-                      onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
-                      zero_ping_id, sendback);
+            if (has_shared_key != nullptr && shared_key != nullptr) {
+                if (!*has_shared_key) {
+                    encrypt_precompute(dest_pubkey, onion_friend->temp_secret_key, shared_key);
+                    *has_shared_key = true;
+                }
+                len = create_announce_request_symmetric(
+                          onion_c->mem, onion_c->rng, request, sizeof(request), shared_key, onion_friend->temp_public_key,
+                          ping_id, onion_friend->real_public_key,
+                          zero_ping_id, sendback);
+            } else {
+                len = create_announce_request(
+                          onion_c->mem, onion_c->rng, request, sizeof(request), dest_pubkey, onion_friend->temp_public_key,
+                          onion_friend->temp_secret_key, ping_id, onion_friend->real_public_key,
+                          zero_ping_id, sendback);
+            }
         } else { // contact is a gc
             onion_friend->is_groupchat = true;
 
@@ -836,6 +851,10 @@ static int client_add_to_list(Onion_Client *_Nonnull onion_c, uint32_t num, cons
         return 0;
     }
 
+    if (!stored) {
+        node_list[index].has_shared_key = false;
+    }
+
     memcpy(node_list[index].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     node_list[index].ip_port = *ip_port;
 
@@ -931,7 +950,7 @@ static int client_ping_nodes(Onion_Client *_Nonnull onion_c, uint32_t num, const
             }
 
             if (j == list_length && good_to_ping(onion_c->mono_time, last_pinged, last_pinged_index, nodes[i].public_key)) {
-                client_send_announce_request(onion_c, num, &nodes[i].ip_port, nodes[i].public_key, nullptr, -1);
+                client_send_announce_request(onion_c, num, &nodes[i].ip_port, nodes[i].public_key, nullptr, -1, nullptr, nullptr);
             }
         }
     }
@@ -1849,7 +1868,8 @@ static void do_friend(Onion_Client *_Nonnull onion_c, uint32_t friendnum)
         }
 
         if (client_send_announce_request(onion_c, friendnum + 1, &node_list[i].ip_port,
-                                         node_list[i].public_key, nullptr, -1) == 0) {
+                                         node_list[i].public_key, nullptr, -1,
+                                         &node_list[i].has_shared_key, node_list[i].shared_key) == 0) {
             node_list[i].last_pinged = tm;
             o_friend->time_last_pinged = tm;
             ++node_list[i].pings_since_last_response;
@@ -1884,7 +1904,7 @@ static void do_friend(Onion_Client *_Nonnull onion_c, uint32_t friendnum)
         for (uint16_t i = 0; i < n; ++i) {
             const uint32_t num = random_range_u32(onion_c->rng, num_nodes);
             client_send_announce_request(onion_c, friendnum + 1, &onion_c->path_nodes[num].ip_port,
-                                         onion_c->path_nodes[num].public_key, nullptr, -1);
+                                         onion_c->path_nodes[num].public_key, nullptr, -1, nullptr, nullptr);
         }
     }
 }
@@ -1990,7 +2010,8 @@ static void do_announce(Onion_Client *_Nonnull onion_c)
             }
 
             if (client_send_announce_request(onion_c, 0, &node_list[i].ip_port, node_list[i].public_key,
-                                             node_list[i].ping_id, path_to_use) == 0) {
+                                             node_list[i].ping_id, path_to_use,
+                                             &node_list[i].has_shared_key, node_list[i].shared_key) == 0) {
                 node_list[i].last_pinged = mono_time_get(onion_c->mono_time);
                 ++node_list[i].pings_since_last_response;
                 onion_c->last_announce = mono_time_get(onion_c->mono_time);
@@ -2035,7 +2056,7 @@ static void do_announce(Onion_Client *_Nonnull onion_c)
             const Node_format *target = &path_nodes[num];
 
             if (!key_list_contains(targets, targets_count, target->public_key)) {
-                client_send_announce_request(onion_c, 0, &target->ip_port, target->public_key, nullptr, -1);
+                client_send_announce_request(onion_c, 0, &target->ip_port, target->public_key, nullptr, -1, nullptr, nullptr);
 
                 targets[targets_count] = target->public_key;
                 ++targets_count;

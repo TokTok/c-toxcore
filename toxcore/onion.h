@@ -18,6 +18,10 @@
 #include "network.h"
 #include "shared_key_cache.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef int onion_recv_1_cb(void *_Nullable object, const IP_Port *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length);
 
 typedef struct Onion {
@@ -143,4 +147,9 @@ void set_callback_handle_recv_1(Onion *_Nonnull onion, onion_recv_1_cb *_Nullabl
 Onion *_Nullable new_onion(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, DHT *_Nonnull dht, Networking_Core *_Nonnull net);
 
 void kill_onion(Onion *_Nullable onion);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
 #endif /* C_TOXCORE_TOXCORE_ONION_H */

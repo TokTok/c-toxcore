@@ -135,6 +135,38 @@ int create_announce_request(const Memory *mem, const Random *rng, uint8_t *packe
     return ONION_ANNOUNCE_REQUEST_MIN_SIZE;
 }
 
+int create_announce_request_symmetric(const Memory *mem, const Random *rng, uint8_t *packet, uint16_t max_packet_length,
+                                      const uint8_t *shared_key,
+                                      const uint8_t *public_key, const uint8_t *ping_id, const uint8_t *client_id,
+                                      const uint8_t *data_public_key, uint64_t sendback_data)
+{
+    if (max_packet_length < ONION_ANNOUNCE_REQUEST_MIN_SIZE) {
+        return -1;
+    }
+
+    uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE +
+                                     ONION_ANNOUNCE_SENDBACK_DATA_LENGTH];
+    memcpy(plain, ping_id, ONION_PING_ID_SIZE);
+    memcpy(plain + ONION_PING_ID_SIZE, client_id, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE, data_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(plain + ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE, &sendback_data,
+           sizeof(sendback_data));
+
+    packet[0] = NET_PACKET_ANNOUNCE_REQUEST_OLD;
+    random_nonce(rng, packet + 1);
+
+    const int len = encrypt_data_symmetric(mem, shared_key, packet + 1, plain, sizeof(plain),
+                                           packet + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+
+    if ((uint32_t)len + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE != ONION_ANNOUNCE_REQUEST_MIN_SIZE) {
+        return -1;
+    }
+
+    memcpy(packet + 1 + CRYPTO_NONCE_SIZE, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+
+    return ONION_ANNOUNCE_REQUEST_MIN_SIZE;
+}
+
 /** @brief Create an onion data request packet in packet of max_packet_length.
  *
  * Recommended value for max_packet_length is ONION_ANNOUNCE_REQUEST_SIZE.

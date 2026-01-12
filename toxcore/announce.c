@@ -25,7 +25,7 @@
 #include "timed_auth.h"
 #include "util.h"
 
-// Settings for the shared key cache
+/* Settings for the shared key cache */
 #define MAX_KEYS_PER_SLOT 4
 #define KEYS_TIMEOUT 600
 

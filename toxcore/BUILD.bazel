@@ -1059,7 +1059,7 @@ cc_library(
 
 cc_test(
     name = "onion_client_test",
-    size = "small",
+    size = "medium",
     srcs = ["onion_client_test.cc"],
     deps = [
         ":DHT_test_util",
