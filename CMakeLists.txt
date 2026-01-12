@@ -386,6 +386,7 @@ else()
 endif()
 set(toxcore_PKGCONFIG_REQUIRES ${toxcore_PKGCONFIG_REQUIRES} libsodium)
 set(toxcore_API_HEADERS
+  ${toxcore_SOURCE_DIR}/tox/tox.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_log_level.h^tox
   ${toxcore_SOURCE_DIR}/toxcore/tox_options.h^tox)
@@ -423,6 +424,7 @@ if(BUILD_TOXAV)
     toxav/video.c
     toxav/video.h)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+    ${toxcore_SOURCE_DIR}/tox/toxav.h^toxav
     ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
 
   if(TARGET Opus::opus AND TARGET libvpx::libvpx)
@@ -448,6 +450,7 @@ set(toxcore_SOURCES ${toxcore_SOURCES}
   toxencryptsave/toxencryptsave.c
   toxencryptsave/toxencryptsave.h)
 set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
+  ${toxcore_SOURCE_DIR}/tox/toxencryptsave.h^tox
   ${toxcore_SOURCE_DIR}/toxencryptsave/toxencryptsave.h^tox)
 
 ################################################################################
@@ -531,8 +534,8 @@ endif()
 make_version_script(toxcore ${toxcore_API_HEADERS})
 
 # Generate pkg-config file, install library to "${CMAKE_INSTALL_LIBDIR}" and install headers to
-# "${CMAKE_INSTALL_INCLUDEDIR}/tox".
-install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/tox)
+# "${CMAKE_INSTALL_INCLUDEDIR}".
+install_module(toxcore DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_subdirectory(testing)
 
