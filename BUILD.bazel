@@ -18,6 +18,7 @@ genrule(
     outs = [
         "tox/toxav.h",
         "tox/tox.h",
+        "tox/tox_attributes.h",
         "tox/tox_dispatch.h",
         "tox/tox_events.h",
         "tox/tox_log_level.h",

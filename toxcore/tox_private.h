@@ -10,8 +10,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "attributes.h"
 #include "tox.h"
+#include "tox_attributes.h"
 #include "tox_options.h"
 
 #ifdef __cplusplus
