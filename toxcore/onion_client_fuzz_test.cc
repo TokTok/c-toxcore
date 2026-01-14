@@ -32,12 +32,12 @@ T consume_range(Fuzz_Data &input, T min, T max)
 // Minimal DHT wrapper for fuzzing
 class FuzzDHT {
 public:
-    FuzzDHT(SimulatedEnvironment &env, uint16_t port)
+    FuzzDHT(SimulatedEnvironment &env, std::uint16_t port)
         : node_(env.create_node(port))
         , logger_(logger_new(&node_->c_memory), [](Logger *l) { logger_kill(l); })
         , mono_time_(mono_time_new(
                          &node_->c_memory,
-                         [](void *ud) -> uint64_t {
+                         [](void *ud) -> std::uint64_t {
                              return static_cast<tox::test::FakeClock *>(ud)->current_time_ms();
                          },
                          &env.fake_clock()),
@@ -75,7 +75,7 @@ private:
 };
 
 const Net_Crypto_DHT_Funcs FuzzDHT::funcs = {
-    [](void *obj, const uint8_t *public_key) {
+    [](void *obj, const std::uint8_t *public_key) {
         return dht_get_shared_key_sent(static_cast<DHT *>(obj), public_key);
     },
     [](const void *obj) { return dht_get_self_public_key(static_cast<const DHT *>(obj)); },
@@ -104,7 +104,7 @@ public:
         // Register a handler for onion data to verify reception
         oniondata_registerhandler(
             onion_client_.get(), 0,
-            [](void *, const uint8_t *, const uint8_t *, uint16_t, void *) {
+            [](void *, const std::uint8_t *, const std::uint8_t *, std::uint16_t, void *) {
                 // Callback hit
                 return 0;
             },
@@ -124,7 +124,7 @@ public:
 private:
     void Action(Fuzz_Data &input)
     {
-        uint8_t op = input.consume_integral<uint8_t>();
+        std::uint8_t op = input.consume_integral<std::uint8_t>();
         switch (op % 12) {
         case 0:
             AddFriend(input);
@@ -167,15 +167,15 @@ private:
 
     void AddFriend(Fuzz_Data &input)
     {
-        uint8_t pk[CRYPTO_PUBLIC_KEY_SIZE];
-        uint8_t sk[CRYPTO_SECRET_KEY_SIZE];
+        std::uint8_t pk[CRYPTO_PUBLIC_KEY_SIZE];
+        std::uint8_t sk[CRYPTO_SECRET_KEY_SIZE];
         crypto_new_keypair(&dht_.node().c_random, pk, sk);
 
         int friend_num = onion_addfriend(onion_client_.get(), pk);
         if (friend_num != -1) {
             friends_.push_back(friend_num);
-            friend_keys_[friend_num] = {std::vector<uint8_t>(pk, pk + CRYPTO_PUBLIC_KEY_SIZE),
-                std::vector<uint8_t>(sk, sk + CRYPTO_SECRET_KEY_SIZE)};
+            friend_keys_[friend_num] = {std::vector<std::uint8_t>(pk, pk + CRYPTO_PUBLIC_KEY_SIZE),
+                std::vector<std::uint8_t>(sk, sk + CRYPTO_SECRET_KEY_SIZE)};
         }
     }
 
@@ -183,7 +183,7 @@ private:
     {
         if (friends_.empty())
             return;
-        size_t idx = consume_range<size_t>(input, 0, friends_.size() - 1);
+        std::size_t idx = consume_range<std::size_t>(input, 0, friends_.size() - 1);
         int friend_num = friends_[idx];
         onion_delfriend(onion_client_.get(), friend_num);
         friends_.erase(friends_.begin() + idx);
@@ -194,7 +194,7 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num = friends_[consume_range<size_t>(input, 0, friends_.size() - 1)];
+        int friend_num = friends_[consume_range<std::size_t>(input, 0, friends_.size() - 1)];
         bool online = input.consume_integral<bool>();
         onion_set_friend_online(onion_client_.get(), friend_num, online);
     }
@@ -203,8 +203,8 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num = friends_[consume_range<size_t>(input, 0, friends_.size() - 1)];
-        CONSUME_OR_RETURN(const uint8_t *pk, input, CRYPTO_PUBLIC_KEY_SIZE);
+        int friend_num = friends_[consume_range<std::size_t>(input, 0, friends_.size() - 1)];
+        CONSUME_OR_RETURN(const std::uint8_t *pk, input, CRYPTO_PUBLIC_KEY_SIZE);
         onion_set_friend_dht_pubkey(onion_client_.get(), friend_num, pk);
     }
 
@@ -212,8 +212,8 @@ private:
     {
         IP_Port ip_port;
         ip_init(&ip_port.ip, 1);
-        ip_port.port = input.consume_integral<uint16_t>();
-        CONSUME_OR_RETURN(const uint8_t *pk, input, CRYPTO_PUBLIC_KEY_SIZE);
+        ip_port.port = input.consume_integral<std::uint16_t>();
+        CONSUME_OR_RETURN(const std::uint8_t *pk, input, CRYPTO_PUBLIC_KEY_SIZE);
         onion_add_bs_path_node(onion_client_.get(), &ip_port, pk);
     }
 
@@ -222,30 +222,30 @@ private:
         if (input.remaining_bytes() < 1)
             return;
 
-        std::vector<uint8_t> packet;
-        uint8_t type = input.consume_integral<uint8_t>();
+        std::vector<std::uint8_t> packet;
+        std::uint8_t type = input.consume_integral<std::uint8_t>();
 
         if (type < 50) {
-            size_t size = consume_range<size_t>(input, 10, 500);
+            std::size_t size = consume_range<std::size_t>(input, 10, 500);
             if (input.remaining_bytes() >= size) {
-                const uint8_t *ptr = input.consume("ReceivePacket", size);
+                const std::uint8_t *ptr = input.consume("ReceivePacket", size);
                 if (ptr)
                     packet.assign(ptr, ptr + size);
             }
         } else if (type >= 50 && type < 150) {
             // Generate valid NET_PACKET_ANNOUNCE_RESPONSE
-            uint8_t secret_key[CRYPTO_SYMMETRIC_KEY_SIZE];
+            std::uint8_t secret_key[CRYPTO_SYMMETRIC_KEY_SIZE];
             onion_testonly_get_secret_symmetric_key(onion_client_.get(), secret_key);
 
-            uint8_t nonce[CRYPTO_NONCE_SIZE];
+            std::uint8_t nonce[CRYPTO_NONCE_SIZE];
             random_bytes(&dht_.node().c_random, nonce, sizeof(nonce));
 
-            size_t data_len = consume_range<size_t>(input, 1, 100);
-            std::vector<uint8_t> plaintext = input.consume_bytes(data_len);
+            std::size_t data_len = consume_range<std::size_t>(input, 1, 100);
+            std::vector<std::uint8_t> plaintext = input.consume_bytes(data_len);
             if (plaintext.empty())
                 plaintext = {1, 2, 3};  // fallback
 
-            std::vector<uint8_t> ciphertext(plaintext.size() + CRYPTO_MAC_SIZE);
+            std::vector<std::uint8_t> ciphertext(plaintext.size() + CRYPTO_MAC_SIZE);
             int len = encrypt_data_symmetric(&dht_.node().c_memory, secret_key, nonce,
                 plaintext.data(), plaintext.size(), ciphertext.data());
 
@@ -257,25 +257,25 @@ private:
 
         } else if (type >= 150 && !friends_.empty()) {
             // Valid onion data response injection
-            int friend_num = friends_[consume_range<size_t>(input, 0, friends_.size() - 1)];
+            int friend_num = friends_[consume_range<std::size_t>(input, 0, friends_.size() - 1)];
             const auto &keys = friend_keys_[friend_num];
 
-            uint8_t sender_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
-            uint8_t sender_temp_sk[CRYPTO_SECRET_KEY_SIZE];
+            std::uint8_t sender_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
+            std::uint8_t sender_temp_sk[CRYPTO_SECRET_KEY_SIZE];
             crypto_new_keypair(&dht_.node().c_random, sender_temp_pk, sender_temp_sk);
 
-            uint8_t nonce[CRYPTO_NONCE_SIZE];
+            std::uint8_t nonce[CRYPTO_NONCE_SIZE];
             random_bytes(&dht_.node().c_random, nonce, sizeof(nonce));
 
             // Inner packet - Let fuzzer choose type
-            uint8_t inner_type = input.consume_integral<uint8_t>();
-            std::vector<uint8_t> inner_data = {inner_type};
+            std::uint8_t inner_type = input.consume_integral<std::uint8_t>();
+            std::vector<std::uint8_t> inner_data = {inner_type};
 
-            size_t data_len = consume_range<size_t>(input, 1, 100);
-            std::vector<uint8_t> rand_data = input.consume_bytes(data_len);
+            std::size_t data_len = consume_range<std::size_t>(input, 1, 100);
+            std::vector<std::uint8_t> rand_data = input.consume_bytes(data_len);
             inner_data.insert(inner_data.end(), rand_data.begin(), rand_data.end());
 
-            std::vector<uint8_t> inner_ciphertext(inner_data.size() + CRYPTO_MAC_SIZE);
+            std::vector<std::uint8_t> inner_ciphertext(inner_data.size() + CRYPTO_MAC_SIZE);
             int len = encrypt_data(&dht_.node().c_memory, dht_get_self_public_key(dht_.get_dht()),
                 keys.second.data(), nonce, inner_data.data(), inner_data.size(),
                 inner_ciphertext.data());
@@ -283,15 +283,16 @@ private:
                 return;
 
             // Outer packet content: Sender Real PK + Inner Ciphertext
-            std::vector<uint8_t> outer_plaintext(CRYPTO_PUBLIC_KEY_SIZE + inner_ciphertext.size());
-            memcpy(outer_plaintext.data(), keys.first.data(), CRYPTO_PUBLIC_KEY_SIZE);
-            memcpy(outer_plaintext.data() + CRYPTO_PUBLIC_KEY_SIZE, inner_ciphertext.data(),
+            std::vector<std::uint8_t> outer_plaintext(
+                CRYPTO_PUBLIC_KEY_SIZE + inner_ciphertext.size());
+            std::memcpy(outer_plaintext.data(), keys.first.data(), CRYPTO_PUBLIC_KEY_SIZE);
+            std::memcpy(outer_plaintext.data() + CRYPTO_PUBLIC_KEY_SIZE, inner_ciphertext.data(),
                 inner_ciphertext.size());
 
-            uint8_t receiver_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
+            std::uint8_t receiver_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
             onion_testonly_get_temp_public_key(onion_client_.get(), receiver_temp_pk);
 
-            std::vector<uint8_t> outer_ciphertext(outer_plaintext.size() + CRYPTO_MAC_SIZE);
+            std::vector<std::uint8_t> outer_ciphertext(outer_plaintext.size() + CRYPTO_MAC_SIZE);
             len = encrypt_data(&dht_.node().c_memory, receiver_temp_pk, sender_temp_sk, nonce,
                 outer_plaintext.data(), outer_plaintext.size(), outer_ciphertext.data());
             if (len == -1)
@@ -318,7 +319,7 @@ private:
 
     void AdvanceTime(Fuzz_Data &input)
     {
-        uint32_t ms = input.consume_integral_in_range<uint32_t>(1, 10000);
+        std::uint32_t ms = input.consume_integral_in_range<std::uint32_t>(1, 10000);
         env_.fake_clock().advance(ms);
     }
 
@@ -326,11 +327,11 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num = friends_[consume_range<size_t>(input, 0, friends_.size() - 1)];
+        int friend_num = friends_[consume_range<std::size_t>(input, 0, friends_.size() - 1)];
 
-        uint16_t length = consume_range<uint16_t>(input, 1, 1024);
+        std::uint16_t length = consume_range<std::uint16_t>(input, 1, 1024);
         if (input.remaining_bytes() >= length) {
-            const uint8_t *ptr = input.consume("SendData", length);
+            const std::uint8_t *ptr = input.consume("SendData", length);
             if (ptr)
                 send_onion_data(onion_client_.get(), friend_num, ptr, length);
         }
@@ -340,7 +341,7 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num = friends_[consume_range<size_t>(input, 0, friends_.size() - 1)];
+        int friend_num = friends_[consume_range<std::size_t>(input, 0, friends_.size() - 1)];
         IP_Port ip_port;
         onion_getfriendip(onion_client_.get(), friend_num, &ip_port);
     }
@@ -357,11 +358,13 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num = friends_[input.consume_integral_in_range<size_t>(0, friends_.size() - 1)];
+        int friend_num
+            = friends_[input.consume_integral_in_range<std::size_t>(0, friends_.size() - 1)];
         // Just setting a dummy callback
         recv_tcp_relay_handler(
             onion_client_.get(), friend_num,
-            [](void *, uint32_t, const IP_Port *, const uint8_t *) { return 0; }, this, 0);
+            [](void *, std::uint32_t, const IP_Port *, const std::uint8_t *) { return 0; }, this,
+            0);
     }
 
     SimulatedEnvironment &env_;
@@ -370,13 +373,13 @@ private:
     std::unique_ptr<Net_Crypto, void (*)(Net_Crypto *)> net_crypto_;
     std::unique_ptr<Onion_Client, void (*)(Onion_Client *)> onion_client_;
     std::vector<int> friends_;
-    std::map<int, std::pair<std::vector<uint8_t>, std::vector<uint8_t>>> friend_keys_;
+    std::map<int, std::pair<std::vector<std::uint8_t>, std::vector<std::uint8_t>>> friend_keys_;
 };
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size)
 {
     if (size == 0)
         return 0;

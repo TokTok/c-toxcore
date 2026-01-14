@@ -19,12 +19,12 @@ std::pair<std::vector<Some_Type>, std::minstd_rand> random_vec(benchmark::State 
 {
     std::minstd_rand rng;
     // INT_MAX-1 so later we have room to add 1 larger element if needed.
-    std::uniform_int_distribution<uint32_t> dist{
-        std::numeric_limits<uint32_t>::min(), std::numeric_limits<uint32_t>::max() - 1};
+    std::uniform_int_distribution<std::uint32_t> dist{
+        std::numeric_limits<std::uint32_t>::min(), std::numeric_limits<std::uint32_t>::max() - 1};
 
     std::vector<Some_Type> vec(state.range(0));
     std::generate(std::begin(vec), std::end(vec), [&]() {
-        std::array<uint32_t, 8> compare_value;
+        std::array<std::uint32_t, 8> compare_value;
         std::generate(
             std::begin(compare_value), std::end(compare_value), [&]() { return dist(rng); });
         return Some_Type{nullptr, compare_value, "hello there"};

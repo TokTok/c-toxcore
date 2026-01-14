@@ -4,6 +4,8 @@
 
 #include <benchmark/benchmark.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 
@@ -45,11 +47,11 @@ public:
 
 BENCHMARK_DEFINE_F(RtpBench, SendData)(benchmark::State &state)
 {
-    size_t data_size = static_cast<size_t>(state.range(0));
-    std::vector<uint8_t> data(data_size, 0xAA);
+    std::size_t data_size = static_cast<std::size_t>(state.range(0));
+    std::vector<std::uint8_t> data(data_size, 0xAA);
 
     for (auto _ : state) {
-        rtp_send_data(log, session, data.data(), static_cast<uint32_t>(data.size()), false);
+        rtp_send_data(log, session, data.data(), static_cast<std::uint32_t>(data.size()), false);
         benchmark::DoNotOptimize(mock.captured_packets.back());
     }
 }
@@ -57,10 +59,10 @@ BENCHMARK_REGISTER_F(RtpBench, SendData)->Arg(100)->Arg(1000)->Arg(5000);
 
 BENCHMARK_DEFINE_F(RtpBench, ReceivePacket)(benchmark::State &state)
 {
-    size_t data_size = static_cast<size_t>(state.range(0));
-    std::vector<uint8_t> data(data_size, 0xAA);
-    rtp_send_data(log, session, data.data(), static_cast<uint32_t>(data.size()), false);
-    std::vector<uint8_t> packet = mock.captured_packets.back();
+    std::size_t data_size = static_cast<std::size_t>(state.range(0));
+    std::vector<std::uint8_t> data(data_size, 0xAA);
+    rtp_send_data(log, session, data.data(), static_cast<std::uint32_t>(data.size()), false);
+    std::vector<std::uint8_t> packet = mock.captured_packets.back();
 
     for (auto _ : state) {
         rtp_receive_packet(session, packet.data(), packet.size());

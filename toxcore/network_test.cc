@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstring>
+
 #include "network_test_util.hh"
 
 namespace {
@@ -106,7 +108,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
         << "b=" << b;
     EXPECT_EQ(  //
         ipport_cmp_handler(&a, &b, sizeof(IP_Port)),  //
-        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        cmp_val(std::memcmp(&a, &b, sizeof(IP_Port))))
         << "a=" << a << "\n"
         << "b=" << b;
 
@@ -119,7 +121,7 @@ TEST(IpportCmp, BehavesLikeMemcmp)
         << "b=" << b;
     EXPECT_EQ(  //
         ipport_cmp_handler(&a, &b, sizeof(IP_Port)),  //
-        cmp_val(memcmp(&a, &b, sizeof(IP_Port))))
+        cmp_val(std::memcmp(&a, &b, sizeof(IP_Port))))
         << "a=" << a << "\n"
         << "b=" << b;
 }

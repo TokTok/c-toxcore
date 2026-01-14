@@ -24,20 +24,20 @@ using tox::test::SimulatedEnvironment;
 template <typename T>
 using Ptr = std::unique_ptr<T, void (*)(T *)>;
 
-std::optional<std::tuple<IP_Port, uint8_t>> prepare(Fuzz_Data &input)
+std::optional<std::tuple<IP_Port, std::uint8_t>> prepare(Fuzz_Data &input)
 {
     IP_Port ipp;
     ip_init(&ipp.ip, true);
     ipp.port = net_htons(33445);
 
-    CONSUME_OR_RETURN_VAL(const uint8_t *iterations_packed, input, 1, std::nullopt);
-    uint8_t iterations = *iterations_packed;
+    CONSUME_OR_RETURN_VAL(const std::uint8_t *iterations_packed, input, 1, std::nullopt);
+    std::uint8_t iterations = *iterations_packed;
 
     return {{ipp, iterations}};
 }
 
 static constexpr Net_Crypto_DHT_Funcs dht_funcs = {
-    [](void *dht, const uint8_t *public_key) {
+    [](void *dht, const std::uint8_t *public_key) {
         return dht_get_shared_key_sent(static_cast<DHT *>(dht), public_key);
     },
     [](const void *dht) { return dht_get_self_public_key(static_cast<const DHT *>(dht)); },
@@ -105,7 +105,7 @@ void TestNetCrypto(Fuzz_Data &input)
         return;
     }
 
-    for (uint8_t i = 0; i < iterations; ++i) {
+    for (std::uint8_t i = 0; i < iterations; ++i) {
         networking_poll(net.get(), nullptr);
         do_dht(dht.get());
         do_net_crypto(net_crypto.get(), nullptr);
@@ -118,8 +118,8 @@ void TestNetCrypto(Fuzz_Data &input)
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size)
 {
     tox::test::fuzz_select_target<TestNetCrypto>(data, size);
     return 0;

@@ -19,13 +19,13 @@ namespace {
 using tox::test::SimulatedEnvironment;
 
 static void set_random_name_and_status_message(
-    Tox *tox, const Random *rng, uint8_t *name, uint8_t *status_message)
+    Tox *tox, const Random *rng, std::uint8_t *name, std::uint8_t *status_message)
 {
-    for (uint16_t i = 0; i < tox_max_name_length(); ++i) {
+    for (std::uint16_t i = 0; i < tox_max_name_length(); ++i) {
         name[i] = random_u08(rng);
     }
 
-    for (uint16_t i = 0; i < tox_max_status_message_length(); ++i) {
+    for (std::uint16_t i = 0; i < tox_max_status_message_length(); ++i) {
         status_message[i] = random_u08(rng);
     }
 }
@@ -75,7 +75,7 @@ TEST(Tox, BootstrapErrorCodes)
     ASSERT_NE(tox, nullptr);
 
     Tox_Err_Bootstrap err;
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk;
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> pk;
     tox_bootstrap(tox, "127.0.0.1", 0, pk.data(), &err);
     EXPECT_EQ(err, TOX_ERR_BOOTSTRAP_BAD_PORT);
 
@@ -92,7 +92,7 @@ TEST(Tox, OneTest)
     ASSERT_NE(options, nullptr);
 
     tox_options_set_log_callback(options,
-        [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
+        [](Tox *tox, Tox_Log_Level level, const char *file, std::uint32_t line, const char *func,
             const char *message, void *user_data) {
             fprintf(stderr, "[%c] %s:%u(%s): %s\n", tox_log_level_to_string(level)[0], file, line,
                 func, message);
@@ -102,11 +102,11 @@ TEST(Tox, OneTest)
     tox_options_set_start_port(options, 33545);
     tox_options_set_end_port(options, 33545 + 2000);
 
-    std::vector<uint8_t> name(tox_max_name_length());
-    std::vector<uint8_t> status_message(tox_max_status_message_length());
+    std::vector<std::uint8_t> name(tox_max_name_length());
+    std::vector<std::uint8_t> status_message(tox_max_status_message_length());
 
-    std::vector<uint8_t> name2(tox_max_name_length());
-    std::vector<uint8_t> status_message2(tox_max_status_message_length());
+    std::vector<std::uint8_t> name2(tox_max_name_length());
+    std::vector<std::uint8_t> status_message2(tox_max_status_message_length());
 
     auto node1 = env.create_node(33545);
     Tox_Options_Testing testing_opts1 = {};
@@ -126,16 +126,16 @@ TEST(Tox, OneTest)
     ASSERT_NE(tox2, nullptr);
     set_random_name_and_status_message(tox2, rng, name2.data(), status_message2.data());
 
-    std::array<uint8_t, TOX_ADDRESS_SIZE> address;
+    std::array<std::uint8_t, TOX_ADDRESS_SIZE> address;
     tox_self_get_address(tox1, address.data());
     Tox_Err_Friend_Add error;
-    uint32_t ret
-        = tox_friend_add(tox1, address.data(), reinterpret_cast<const uint8_t *>("m"), 1, &error);
+    std::uint32_t ret = tox_friend_add(
+        tox1, address.data(), reinterpret_cast<const std::uint8_t *>("m"), 1, &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_OWN_KEY) << "Adding own address worked.";
     EXPECT_EQ(ret, UINT32_MAX);
 
     tox_self_get_address(tox2, address.data());
-    std::vector<uint8_t> message(tox_max_friend_request_length() + 1);
+    std::vector<std::uint8_t> message(tox_max_friend_request_length() + 1);
     ret = tox_friend_add(tox1, address.data(), nullptr, 0, &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_NULL) << "Sending request with no message worked.";
     EXPECT_EQ(ret, UINT32_MAX);
@@ -147,7 +147,8 @@ TEST(Tox, OneTest)
     EXPECT_EQ(ret, UINT32_MAX);
 
     address[0]++;
-    ret = tox_friend_add(tox1, address.data(), reinterpret_cast<const uint8_t *>("m"), 1, &error);
+    ret = tox_friend_add(
+        tox1, address.data(), reinterpret_cast<const std::uint8_t *>("m"), 1, &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_BAD_CHECKSUM) << "Adding address with bad checksum worked.";
     EXPECT_EQ(ret, UINT32_MAX);
 
@@ -170,7 +171,7 @@ TEST(Tox, OneTest)
         << "Can't set status message of length " << tox_max_status_message_length();
 
     tox_self_get_address(tox1, address.data());
-    std::vector<uint8_t> data(tox_get_savedata_size(tox1));
+    std::vector<std::uint8_t> data(tox_get_savedata_size(tox1));
     tox_get_savedata(tox1, data.data());
 
     tox_kill(tox2);
@@ -185,22 +186,22 @@ TEST(Tox, OneTest)
     EXPECT_EQ(tox_self_get_status_message_size(tox2), status_message.size())
         << "Wrong status message size";
 
-    std::vector<uint8_t> name_loaded(tox_max_name_length());
+    std::vector<std::uint8_t> name_loaded(tox_max_name_length());
     tox_self_get_name(tox2, name_loaded.data());
     EXPECT_EQ(name, name_loaded) << "Wrong name.";
 
-    std::vector<uint8_t> status_message_loaded(tox_max_status_message_length());
+    std::vector<std::uint8_t> status_message_loaded(tox_max_status_message_length());
     tox_self_get_status_message(tox2, status_message_loaded.data());
     EXPECT_EQ(status_message, status_message_loaded) << "Wrong status message.";
 
-    std::array<uint8_t, TOX_ADDRESS_SIZE> address2;
+    std::array<std::uint8_t, TOX_ADDRESS_SIZE> address2;
     tox_self_get_address(tox2, address2.data());
     EXPECT_EQ(address2, address) << "Wrong address.";
-    std::vector<uint8_t> new_name(tox_max_name_length());
+    std::vector<std::uint8_t> new_name(tox_max_name_length());
     tox_self_get_name(tox2, new_name.data());
     EXPECT_EQ(name, new_name) << "Wrong name";
 
-    std::array<uint8_t, TOX_SECRET_KEY_SIZE> sk;
+    std::array<std::uint8_t, TOX_SECRET_KEY_SIZE> sk;
     tox_self_get_secret_key(tox2, sk.data());
     tox_kill(tox2);
 
@@ -210,12 +211,12 @@ TEST(Tox, OneTest)
     tox2 = tox_new_testing(options, &err_n, &testing_opts2, nullptr);
     ASSERT_EQ(err_n, TOX_ERR_NEW_OK) << "Load failed";
     tox_self_set_nospam(tox2, tox_self_get_nospam(tox1));
-    std::array<uint8_t, TOX_ADDRESS_SIZE> address3;
+    std::array<std::uint8_t, TOX_ADDRESS_SIZE> address3;
     tox_self_get_address(tox2, address3.data());
     EXPECT_EQ(address3, address) << "Wrong public key.";
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk;
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> pk;
     tox_self_get_public_key(tox2, pk.data());
-    std::array<uint8_t, TOX_PUBLIC_KEY_SIZE> pk_from_addr;
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> pk_from_addr;
     std::copy(address.begin(), address.begin() + TOX_PUBLIC_KEY_SIZE, pk_from_addr.begin());
     EXPECT_EQ(pk, pk_from_addr) << "Wrong public key.";
 

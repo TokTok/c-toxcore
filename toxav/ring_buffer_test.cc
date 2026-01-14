@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cstdint>
 #include <vector>
 
 namespace {
@@ -32,12 +33,12 @@ public:
         return res;
     }
 
-    uint16_t size() const { return rb_size(rb_); }
-    uint16_t data(T **dest) const
+    std::uint16_t size() const { return rb_size(rb_); }
+    std::uint16_t data(T **dest) const
     {
         std::vector<void *> vdest(size());
-        uint16_t res = rb_data(rb_, vdest.data());
-        for (uint16_t i = 0; i < size(); i++) {
+        std::uint16_t res = rb_data(rb_, vdest.data());
+        for (std::uint16_t i = 0; i < size(); i++) {
             dest[i] = static_cast<T *>(vdest.at(i));
         }
         return res;

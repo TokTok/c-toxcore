@@ -1,5 +1,7 @@
 #include "rtp.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <vector>
@@ -15,7 +17,8 @@ using tox::test::Fuzz_Data;
 
 struct MockSessionData { };
 
-static int mock_send_packet(void * /*user_data*/, const uint8_t * /*data*/, uint16_t /*length*/)
+static int mock_send_packet(
+    void * /*user_data*/, const std::uint8_t * /*data*/, std::uint16_t /*length*/)
 {
     return 0;
 }
@@ -34,7 +37,7 @@ void fuzz_rtp_receive(Fuzz_Data &input)
     };
     std::unique_ptr<Logger, LoggerDeleter> log(logger_new(mem));
 
-    auto time_cb = [](void *) -> uint64_t { return 0; };
+    auto time_cb = [](void *) -> std::uint64_t { return 0; };
     struct MonoTimeDeleter {
         const Memory *m;
         void operator()(Mono_Time *t) { mono_time_free(m, t); }
@@ -44,7 +47,7 @@ void fuzz_rtp_receive(Fuzz_Data &input)
 
     MockSessionData sd;
 
-    CONSUME1_OR_RETURN(uint8_t, payload_type_byte, input);
+    CONSUME1_OR_RETURN(std::uint8_t, payload_type_byte, input);
     int payload_type = (payload_type_byte % 2 == 0) ? RTP_TYPE_AUDIO : RTP_TYPE_VIDEO;
 
     struct RtpSessionDeleter {
@@ -57,7 +60,7 @@ void fuzz_rtp_receive(Fuzz_Data &input)
         RtpSessionDeleter{log.get()});
 
     while (!input.empty()) {
-        CONSUME1_OR_RETURN(uint16_t, len, input);
+        CONSUME1_OR_RETURN(std::uint16_t, len, input);
 
         if (input.size() < len) {
             len = input.size();
@@ -67,16 +70,16 @@ void fuzz_rtp_receive(Fuzz_Data &input)
             break;
         }
 
-        const uint8_t *pkt_data = input.consume(__func__, len);
+        const std::uint8_t *pkt_data = input.consume(__func__, len);
         rtp_receive_packet(session.get(), pkt_data, len);
     }
 }
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size);
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size)
 {
     Fuzz_Data input(data, size);
     fuzz_rtp_receive(input);

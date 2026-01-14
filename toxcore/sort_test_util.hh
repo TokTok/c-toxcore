@@ -6,6 +6,7 @@
 #define C_TOXCORE_TOXCORE_SORT_TEST_UTIL_H
 
 #include <array>
+#include <cstdint>
 
 #include "sort.h"
 
@@ -21,28 +22,28 @@ constexpr Sort_Funcs sort_funcs()
 
             return *a < *b;
         },
-        [](const void *arr, uint32_t index) -> const void * {
+        [](const void *arr, std::uint32_t index) -> const void * {
             const T *vec = static_cast<const T *>(arr);
             return &vec[index];
         },
-        [](void *arr, uint32_t index, const void *val) {
+        [](void *arr, std::uint32_t index, const void *val) {
             T *vec = static_cast<T *>(arr);
             const T *value = static_cast<const T *>(val);
             vec[index] = *value;
         },
-        [](void *arr, uint32_t index, uint32_t size) -> void * {
+        [](void *arr, std::uint32_t index, std::uint32_t size) -> void * {
             T *vec = static_cast<T *>(arr);
             return &vec[index];
         },
-        [](const void *object, uint32_t size) -> void * { return new T[size]; },
-        [](const void *object, void *arr, uint32_t size) { delete[] static_cast<T *>(arr); },
+        [](const void *object, std::uint32_t size) -> void * { return new T[size]; },
+        [](const void *object, void *arr, std::uint32_t size) { delete[] static_cast<T *>(arr); },
     };
 }
 
 // A realistic test case where we have a struct with some stuff and an expensive value we compare.
 struct Some_Type {
     const Tox_Memory *mem;
-    std::array<uint32_t, 8> compare_value;
+    std::array<std::uint32_t, 8> compare_value;
     const char *name;
 
     static const Sort_Funcs funcs;

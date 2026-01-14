@@ -4,6 +4,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 
 #include "../toxcore/logger.h"
@@ -38,31 +43,31 @@ TEST_F(AudioTest, EncodeDecodeLoop)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint32_t sampling_rate = 48000;
-    uint8_t channels = 1;
-    size_t sample_count = 960;  // 20ms at 48kHz
+    std::uint32_t sampling_rate = 48000;
+    std::uint8_t channels = 1;
+    std::size_t sample_count = 960;  // 20ms at 48kHz
 
     // Reconfigure to mono
     ASSERT_EQ(ac_reconfigure_encoder(ac, 48000, sampling_rate, channels), 0);
 
-    std::vector<int16_t> pcm(sample_count * channels);
-    for (size_t i = 0; i < pcm.size(); ++i) {
-        pcm[i] = static_cast<int16_t>(i * 10);
+    std::vector<std::int16_t> pcm(sample_count * channels);
+    for (std::size_t i = 0; i < pcm.size(); ++i) {
+        pcm[i] = static_cast<std::int16_t>(i * 10);
     }
 
-    std::vector<uint8_t> encoded(2000);
+    std::vector<std::uint8_t> encoded(2000);
     int encoded_size = ac_encode(ac, pcm.data(), sample_count, encoded.data(), encoded.size());
     ASSERT_GT(encoded_size, 0);
 
     // Prepare payload: 4 bytes sampling rate + Opus data
-    std::vector<uint8_t> payload(4 + static_cast<size_t>(encoded_size));
-    uint32_t net_sr = net_htonl(sampling_rate);
-    memcpy(payload.data(), &net_sr, 4);
-    memcpy(payload.data() + 4, encoded.data(), static_cast<size_t>(encoded_size));
+    std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+    std::uint32_t net_sr = net_htonl(sampling_rate);
+    std::memcpy(payload.data(), &net_sr, 4);
+    std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));
 
     // Send via RTP
     int rc = rtp_send_data(
-        log, send_rtp, payload.data(), static_cast<uint32_t>(payload.size()), false);
+        log, send_rtp, payload.data(), static_cast<std::uint32_t>(payload.size()), false);
     ASSERT_EQ(rc, 0);
 
     // Decode
@@ -92,10 +97,10 @@ TEST_F(AudioTest, EncodeDecodeRealistic)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint32_t sampling_rate = 48000;
-    uint8_t channels = 1;
-    size_t sample_count = 960;  // 20ms at 48kHz
-    uint32_t bitrate = 48000;
+    std::uint32_t sampling_rate = 48000;
+    std::uint8_t channels = 1;
+    std::size_t sample_count = 960;  // 20ms at 48kHz
+    std::uint32_t bitrate = 48000;
 
     ASSERT_EQ(ac_reconfigure_encoder(ac, bitrate, sampling_rate, channels), 0);
 
@@ -103,27 +108,28 @@ TEST_F(AudioTest, EncodeDecodeRealistic)
     double amplitude = 10000.0;
     const double pi = std::acos(-1.0);
 
-    std::vector<int16_t> all_sent;
-    std::vector<int16_t> all_recv;
+    std::vector<std::int16_t> all_sent;
+    std::vector<std::int16_t> all_recv;
 
     for (int frame = 0; frame < 50; ++frame) {
-        std::vector<int16_t> pcm(sample_count * channels);
-        for (size_t i = 0; i < sample_count; ++i) {
+        std::vector<std::int16_t> pcm(sample_count * channels);
+        for (std::size_t i = 0; i < sample_count; ++i) {
             double t = static_cast<double>(frame * sample_count + i) / sampling_rate;
-            pcm[i] = static_cast<int16_t>(std::sin(2.0 * pi * frequency * t) * amplitude);
+            pcm[i] = static_cast<std::int16_t>(std::sin(2.0 * pi * frequency * t) * amplitude);
         }
         all_sent.insert(all_sent.end(), pcm.begin(), pcm.end());
 
-        std::vector<uint8_t> encoded(2000);
+        std::vector<std::uint8_t> encoded(2000);
         int encoded_size = ac_encode(ac, pcm.data(), sample_count, encoded.data(), encoded.size());
         ASSERT_GT(encoded_size, 0);
 
-        std::vector<uint8_t> payload(4 + static_cast<size_t>(encoded_size));
-        uint32_t net_sr = net_htonl(sampling_rate);
-        memcpy(payload.data(), &net_sr, 4);
-        memcpy(payload.data() + 4, encoded.data(), static_cast<size_t>(encoded_size));
+        std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+        std::uint32_t net_sr = net_htonl(sampling_rate);
+        std::memcpy(payload.data(), &net_sr, 4);
+        std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));
 
-        rtp_send_data(log, send_rtp, payload.data(), static_cast<uint32_t>(payload.size()), false);
+        rtp_send_data(
+            log, send_rtp, payload.data(), static_cast<std::uint32_t>(payload.size()), false);
 
         ac_iterate(ac);
 
@@ -143,7 +149,7 @@ TEST_F(AudioTest, EncodeDecodeRealistic)
     for (int delay = 3000; delay < 3500; ++delay) {
         double mse = 0;
         int count = 0;
-        for (size_t i = 0; i < 2000; ++i) {  // Compare a decent chunk
+        for (std::size_t i = 0; i < 2000; ++i) {  // Compare a decent chunk
             if (i + delay < all_sent.size() && i < all_recv.size()) {
                 int diff = all_sent[i + delay] - all_recv[i];
                 mse += static_cast<double>(diff) * diff;
@@ -159,7 +165,7 @@ TEST_F(AudioTest, EncodeDecodeRealistic)
         }
     }
 
-    printf("Best audio delay found: %d samples, Min MSE: %f\n", best_delay, min_mse);
+    std::printf("Best audio delay found: %d samples, Min MSE: %f\n", best_delay, min_mse);
 
     // For 48kbps Opus, the MSE for a sine wave should be quite low once aligned.
     // 10M is about 20% of the signal power (50M), which is a safe threshold for verification.
@@ -183,42 +189,43 @@ TEST_F(AudioTest, EncodeDecodeSiren)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint32_t sampling_rate = 48000;
-    uint8_t channels = 1;
-    size_t sample_count = 960;  // 20ms at 48kHz
-    uint32_t bitrate = 64000;
+    std::uint32_t sampling_rate = 48000;
+    std::uint8_t channels = 1;
+    std::size_t sample_count = 960;  // 20ms at 48kHz
+    std::uint32_t bitrate = 64000;
 
     ASSERT_EQ(ac_reconfigure_encoder(ac, bitrate, sampling_rate, channels), 0);
 
     double amplitude = 10000.0;
     const double pi = std::acos(-1.0);
 
-    std::vector<int16_t> all_sent;
-    std::vector<int16_t> all_recv;
+    std::vector<std::int16_t> all_sent;
+    std::vector<std::int16_t> all_recv;
 
     // 1 second of audio (50 frames) is enough for a siren test
     for (int frame = 0; frame < 50; ++frame) {
-        std::vector<int16_t> pcm(sample_count * channels);
-        for (size_t i = 0; i < sample_count; ++i) {
+        std::vector<std::int16_t> pcm(sample_count * channels);
+        for (std::size_t i = 0; i < sample_count; ++i) {
             double t = static_cast<double>(frame * sample_count + i) / sampling_rate;
             // Linear frequency sweep from 50Hz to 440Hz over 1 second
             // f(t) = 50 + (440-50)/1 * t = 50 + 390t
             // phi(t) = 2*pi * integral(f(t)) = 2*pi * (50t + 195t^2)
             double phi = 2.0 * pi * (50.0 * t + 195.0 * t * t);
-            pcm[i] = static_cast<int16_t>(std::sin(phi) * amplitude);
+            pcm[i] = static_cast<std::int16_t>(std::sin(phi) * amplitude);
         }
         all_sent.insert(all_sent.end(), pcm.begin(), pcm.end());
 
-        std::vector<uint8_t> encoded(2000);
+        std::vector<std::uint8_t> encoded(2000);
         int encoded_size = ac_encode(ac, pcm.data(), sample_count, encoded.data(), encoded.size());
         ASSERT_GT(encoded_size, 0);
 
-        std::vector<uint8_t> payload(4 + static_cast<size_t>(encoded_size));
-        uint32_t net_sr = net_htonl(sampling_rate);
-        memcpy(payload.data(), &net_sr, 4);
-        memcpy(payload.data() + 4, encoded.data(), static_cast<size_t>(encoded_size));
+        std::vector<std::uint8_t> payload(4 + static_cast<std::size_t>(encoded_size));
+        std::uint32_t net_sr = net_htonl(sampling_rate);
+        std::memcpy(payload.data(), &net_sr, 4);
+        std::memcpy(payload.data() + 4, encoded.data(), static_cast<std::size_t>(encoded_size));
 
-        rtp_send_data(log, send_rtp, payload.data(), static_cast<uint32_t>(payload.size()), false);
+        rtp_send_data(
+            log, send_rtp, payload.data(), static_cast<std::uint32_t>(payload.size()), false);
 
         ac_iterate(ac);
 
@@ -229,14 +236,14 @@ TEST_F(AudioTest, EncodeDecodeSiren)
 
     ASSERT_FALSE(all_recv.empty());
 
-    auto calculate_mse_at = [&](int delay, size_t window) {
+    auto calculate_mse_at = [&](int delay, std::size_t window) {
         double mse = 0;
         int count = 0;
-        for (size_t i = 0; i < window; ++i) {
+        for (std::size_t i = 0; i < window; ++i) {
             int sent_idx = static_cast<int>(i) + delay;
-            if (sent_idx >= 0 && static_cast<size_t>(sent_idx) < all_sent.size()
+            if (sent_idx >= 0 && static_cast<std::size_t>(sent_idx) < all_sent.size()
                 && i < all_recv.size()) {
-                int diff = all_sent[static_cast<size_t>(sent_idx)] - all_recv[i];
+                int diff = all_sent[static_cast<std::size_t>(sent_idx)] - all_recv[i];
                 mse += static_cast<double>(diff) * diff;
                 count++;
             }
@@ -267,7 +274,7 @@ TEST_F(AudioTest, EncodeDecodeSiren)
         }
     }
 
-    printf("Best siren audio delay found: %d samples, Min MSE: %f\n", best_delay, min_mse);
+    std::printf("Best siren audio delay found: %d samples, Min MSE: %f\n", best_delay, min_mse);
 
     // For 64kbps Opus, the MSE for a siren wave should be reasonably low once aligned.
     EXPECT_LT(min_mse, 20000000.0);
@@ -287,11 +294,11 @@ TEST_F(AudioTest, ReconfigureEncoder)
     int rc = ac_reconfigure_encoder(ac, 32000, 24000, 2);
     ASSERT_EQ(rc, 0);
 
-    size_t sample_count = 480;  // 20ms at 24kHz
-    uint8_t channels = 2;
-    std::vector<int16_t> pcm(sample_count * channels, 0);
+    std::size_t sample_count = 480;  // 20ms at 24kHz
+    std::uint8_t channels = 2;
+    std::vector<std::int16_t> pcm(sample_count * channels, 0);
 
-    std::vector<uint8_t> encoded(1000);
+    std::vector<std::uint8_t> encoded(1000);
     int encoded_size = ac_encode(ac, pcm.data(), sample_count, encoded.data(), encoded.size());
     ASSERT_GT(encoded_size, 0);
 
@@ -324,9 +331,9 @@ TEST_F(AudioTest, QueueInvalidMessage)
         &rtp_mock, nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = audio_recv_rtp;
 
-    std::vector<uint8_t> dummy_video(100, 0);
+    std::vector<std::uint8_t> dummy_video(100, 0);
     int rc = rtp_send_data(
-        log, video_rtp, dummy_video.data(), static_cast<uint32_t>(dummy_video.size()), true);
+        log, video_rtp, dummy_video.data(), static_cast<std::uint32_t>(dummy_video.size()), true);
     ASSERT_EQ(rc, 0);
 
     // Iterate should NOT trigger callback because payload type was wrong
@@ -352,9 +359,9 @@ TEST_F(AudioTest, JitterBufferDuplicate)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
     ASSERT_EQ(rtp_mock.captured_packets.size(), 1u);
@@ -393,9 +400,9 @@ TEST_F(AudioTest, JitterBufferOutOfOrder)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     // Capture 3 packets
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
@@ -440,9 +447,9 @@ TEST_F(AudioTest, PacketLossConcealment)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     // Send packet 0 and deliver it immediately.
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
@@ -486,9 +493,9 @@ TEST_F(AudioTest, JitterBufferReset)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
     rtp_receive_packet(
@@ -531,12 +538,12 @@ TEST_F(AudioTest, DecoderReconfigureCooldown)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr_48 = net_htonl(48000);
-    uint32_t net_sr_24 = net_htonl(24000);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr_48 = net_htonl(48000);
+    std::uint32_t net_sr_24 = net_htonl(24000);
 
     // 1. Reconfigure to 24kHz. The initial sampling rate is 48kHz.
-    memcpy(dummy_data, &net_sr_24, 4);
+    std::memcpy(dummy_data, &net_sr_24, 4);
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
     rtp_receive_packet(
         recv_rtp, rtp_mock.captured_packets.back().data(), rtp_mock.captured_packets.back().size());
@@ -550,7 +557,7 @@ TEST_F(AudioTest, DecoderReconfigureCooldown)
     mono_time_update(mono_time);
 
     // 3. Attempt to reconfigure back to 48kHz.
-    memcpy(dummy_data, &net_sr_48, 4);
+    std::memcpy(dummy_data, &net_sr_48, 4);
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
     rtp_receive_packet(
         recv_rtp, rtp_mock.captured_packets.back().data(), rtp_mock.captured_packets.back().size());
@@ -592,9 +599,9 @@ TEST_F(AudioTest, QueueDummyMessage)
         &rtp_mock, nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = audio_recv_rtp;
 
-    std::vector<uint8_t> dummy_payload(100, 0);
-    int rc = rtp_send_data(
-        log, dummy_rtp, dummy_payload.data(), static_cast<uint32_t>(dummy_payload.size()), false);
+    std::vector<std::uint8_t> dummy_payload(100, 0);
+    int rc = rtp_send_data(log, dummy_rtp, dummy_payload.data(),
+        static_cast<std::uint32_t>(dummy_payload.size()), false);
     ASSERT_EQ(rc, 0);
 
     // Iterate should NOT trigger callback because it was a dummy packet
@@ -620,9 +627,9 @@ TEST_F(AudioTest, LatePacketReset)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     // 1. Send and process the first packet.
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);  // seq 0
@@ -633,14 +640,14 @@ TEST_F(AudioTest, LatePacketReset)
     data.sample_count = 0;
 
     // 2. Buffer another packet with a different sampling rate (24kHz) but don't process it yet.
-    uint32_t net_sr_24 = net_htonl(24000);
-    memcpy(dummy_data, &net_sr_24, 4);
+    std::uint32_t net_sr_24 = net_htonl(24000);
+    std::memcpy(dummy_data, &net_sr_24, 4);
     rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);  // seq 1
     rtp_receive_packet(
         recv_rtp, rtp_mock.captured_packets[1].data(), rtp_mock.captured_packets[1].size());
 
     // 3. Receive the late packet (seq 0) again.
-    // This triggers the bug: (uint32_t)(0 - 1) > 16, causing a full jitter buffer reset.
+    // This triggers the bug: (std::uint32_t)(0 - 1) > 16, causing a full jitter buffer reset.
     rtp_receive_packet(
         recv_rtp, rtp_mock.captured_packets[0].data(), rtp_mock.captured_packets[0].size());
 
@@ -672,9 +679,9 @@ TEST_F(AudioTest, InvalidSamplingRate)
     rtp_mock.recv_session = recv_rtp;
 
     // 1. Send a packet with an absurdly large sampling rate.
-    uint8_t malicious_data[100] = {0};
-    uint32_t net_sr = net_htonl(1000000000);  // 1 GHz
-    memcpy(malicious_data, &net_sr, 4);
+    std::uint8_t malicious_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(1000000000);  // 1 GHz
+    std::memcpy(malicious_data, &net_sr, 4);
     // Add some dummy Opus data so it's not too short
     malicious_data[4] = 0x08;
 
@@ -720,7 +727,7 @@ TEST_F(AudioTest, ShortPacket)
 
     // 1. Send a packet that is too short (only sampling rate, no Opus data).
     // The protocol requires 4 bytes SR + at least 1 byte Opus data.
-    uint8_t short_data[4] = {0, 0, 0xBB, 0x80};  // 48000
+    std::uint8_t short_data[4] = {0, 0, 0xBB, 0x80};  // 48000
 
     // rtp_send_data might not like 4 bytes if it expects more, but let's see.
     rtp_send_data(log, send_rtp, short_data, sizeof(short_data), false);
@@ -750,16 +757,16 @@ TEST_F(AudioTest, JitterBufferWrapAround)
         nullptr, nullptr, nullptr, ac, RtpMock::audio_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint8_t dummy_data[100] = {0};
-    uint32_t net_sr = net_htonl(48000);
-    memcpy(dummy_data, &net_sr, 4);
+    std::uint8_t dummy_data[100] = {0};
+    std::uint32_t net_sr = net_htonl(48000);
+    std::memcpy(dummy_data, &net_sr, 4);
 
     // Send enough packets to reach the sequence number wrap-around point (0xFFFF -> 0x0000).
     // We detect the current sequence number to minimize the number of iterations.
-    uint16_t seq = 0;
+    std::uint16_t seq = 0;
     {
         rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
-        const uint8_t *pkt = rtp_mock.captured_packets.back().data();
+        const std::uint8_t *pkt = rtp_mock.captured_packets.back().data();
         seq = (pkt[3] << 8) | pkt[4];
         rtp_receive_packet(recv_rtp, pkt, rtp_mock.captured_packets.back().size());
         rtp_mock.captured_packets.clear();
@@ -770,7 +777,7 @@ TEST_F(AudioTest, JitterBufferWrapAround)
     int to_send = (65532 - seq + 65536) % 65536;
     for (int i = 0; i < to_send; ++i) {
         rtp_send_data(log, send_rtp, dummy_data, sizeof(dummy_data), false);
-        const uint8_t *pkt = rtp_mock.captured_packets.back().data();
+        const std::uint8_t *pkt = rtp_mock.captured_packets.back().data();
         rtp_receive_packet(recv_rtp, pkt, rtp_mock.captured_packets.back().size());
         rtp_mock.captured_packets.clear();
         ac_iterate(ac);

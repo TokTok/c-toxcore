@@ -30,7 +30,7 @@ using namespace tox::test;
 template <typename DHTWrapper>
 class FriendConnTestNode {
 public:
-    FriendConnTestNode(SimulatedEnvironment &env, uint16_t port)
+    FriendConnTestNode(SimulatedEnvironment &env, std::uint16_t port)
         : dht_wrapper_(env, port)
         , net_profile_(netprof_new(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory),
               [mem = &dht_wrapper_.node().c_memory](Net_Profile *p) { netprof_kill(mem, p); })
@@ -40,8 +40,8 @@ public:
     {
         logger_callback_log(
             dht_wrapper_.logger(),
-            [](void *context, Logger_Level level, const char *file, uint32_t line, const char *func,
-                const char *message, void *userdata) {
+            [](void *context, Logger_Level level, const char *file, std::uint32_t line,
+                const char *func, const char *message, void *userdata) {
                 fprintf(stderr, "[%d] %s:%u: %s: %s\n", level, file, line, func, message);
             },
             nullptr, nullptr);
@@ -71,8 +71,11 @@ public:
     Onion_Client *get_onion_client() { return onion_client_.get(); }
     Net_Crypto *get_net_crypto() { return net_crypto_.get(); }
     DHT *get_dht() { return dht_wrapper_.get_dht(); }
-    const uint8_t *dht_public_key() const { return dht_wrapper_.dht_public_key(); }
-    const uint8_t *real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
+    const std::uint8_t *dht_public_key() const { return dht_wrapper_.dht_public_key(); }
+    const std::uint8_t *real_public_key() const
+    {
+        return nc_get_self_public_key(net_crypto_.get());
+    }
     const Random *get_random() { return &dht_wrapper_.node().c_random; }
 
     IP_Port get_ip_port() const { return dht_wrapper_.get_ip_port(); }
@@ -114,8 +117,8 @@ TEST_F(FriendConnectionTest, CreationAndDestruction)
 TEST_F(FriendConnectionTest, AddKillConnection)
 {
     FriendConnNode alice(env, 33445);
-    uint8_t friend_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t friend_sk[CRYPTO_SECRET_KEY_SIZE];
+    std::uint8_t friend_pk[CRYPTO_PUBLIC_KEY_SIZE];
+    std::uint8_t friend_sk[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(alice.get_random(), friend_pk, friend_sk);
 
     // Add Connection

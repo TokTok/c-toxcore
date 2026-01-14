@@ -27,7 +27,7 @@ using ::testing::PrintToString;
 using ::testing::UnorderedElementsAre;
 using namespace tox::test;
 
-using SecretKey = std::array<uint8_t, CRYPTO_SECRET_KEY_SIZE>;
+using SecretKey = std::array<std::uint8_t, CRYPTO_SECRET_KEY_SIZE>;
 
 struct KeyPair {
     PublicKey pk;
@@ -100,7 +100,7 @@ TEST(IdClosest, DistinctKeysCannotHaveTheSameDistance)
     PublicKey const pk1 = {0x00};
     PublicKey pk2 = {0x00};
 
-    for (uint8_t i = 1; i < 0xff; ++i) {
+    for (std::uint8_t i = 1; i < 0xff; ++i) {
         pk2[0] = i;
         EXPECT_NE(id_closest(pk0.data(), pk1.data(), pk2.data()), 0);
     }
@@ -287,18 +287,18 @@ TEST(Request, CreateAndParse)
     // Peers.
     const KeyPair sender(&c_rng);
     const KeyPair receiver(&c_rng);
-    const uint8_t sent_pkt_id = CRYPTO_PACKET_FRIEND_REQ;
+    const std::uint8_t sent_pkt_id = CRYPTO_PACKET_FRIEND_REQ;
 
     // Encoded packet.
-    std::array<uint8_t, MAX_CRYPTO_REQUEST_SIZE> packet;
+    std::array<std::uint8_t, MAX_CRYPTO_REQUEST_SIZE> packet;
 
     // Received components.
     PublicKey pk;
-    std::array<uint8_t, MAX_CRYPTO_REQUEST_SIZE> incoming;
-    uint8_t recvd_pkt_id;
+    std::array<std::uint8_t, MAX_CRYPTO_REQUEST_SIZE> incoming;
+    std::uint8_t recvd_pkt_id;
 
     // Request data: maximum payload is 918 bytes, so create a payload 1 byte larger than max.
-    std::vector<uint8_t> outgoing(919);
+    std::vector<std::uint8_t> outgoing(919);
     random_bytes(&c_rng, outgoing.data(), outgoing.size());
 
     EXPECT_LT(create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(),
@@ -330,7 +330,7 @@ TEST(Request, CreateAndParse)
         ASSERT_GE(recvd_length, 0);
 
         EXPECT_EQ(
-            std::vector<uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
+            std::vector<std::uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
 
         outgoing.pop_back();
     }
@@ -356,7 +356,7 @@ TEST(AnnounceNodes, SetAndTest)
     // Hook up simulation clock to mono_time
     mono_time_set_current_time_callback(
         mono_time,
-        [](void *user_data) -> uint64_t {
+        [](void *user_data) -> std::uint64_t {
             auto *clock = static_cast<FakeClock *>(user_data);
             return clock->current_time_ms();
         },
@@ -367,8 +367,8 @@ TEST(AnnounceNodes, SetAndTest)
     Ptr<DHT> dht(new_dht(log, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
     ASSERT_NE(dht, nullptr);
 
-    uint8_t pk_data[CRYPTO_PUBLIC_KEY_SIZE];
-    memcpy(pk_data, dht_get_self_public_key(dht.get()), sizeof(pk_data));
+    std::uint8_t pk_data[CRYPTO_PUBLIC_KEY_SIZE];
+    std::memcpy(pk_data, dht_get_self_public_key(dht.get()), sizeof(pk_data));
     PublicKey self_pk(to_array(pk_data));
 
     PublicKey pk1 = random_pk(&c_rng);

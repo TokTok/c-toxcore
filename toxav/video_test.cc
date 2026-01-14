@@ -3,7 +3,11 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
-#include <cmath>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 
 #include "../toxcore/logger.h"
@@ -38,21 +42,21 @@ TEST_F(VideoTest, EncodeDecodeLoop)
         nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint16_t width = 320;
-    uint16_t height = 240;
-    uint32_t bitrate = 500;
+    std::uint16_t width = 320;
+    std::uint16_t height = 240;
+    std::uint32_t bitrate = 500;
 
     ASSERT_EQ(vc_reconfigure_encoder(vc, bitrate, width, height, -1), 0);
 
-    std::vector<uint8_t> y(width * height, 128);
-    std::vector<uint8_t> u((width / 2) * (height / 2), 64);
-    std::vector<uint8_t> v((width / 2) * (height / 2), 192);
+    std::vector<std::uint8_t> y(width * height, 128);
+    std::vector<std::uint8_t> u((width / 2) * (height / 2), 64);
+    std::vector<std::uint8_t> v((width / 2) * (height / 2), 192);
 
     ASSERT_EQ(vc_encode(vc, width, height, y.data(), u.data(), v.data(), VC_EFLAG_FORCE_KF), 0);
     vc_increment_frame_counter(vc);
 
-    uint8_t *pkt_data;
-    uint32_t pkt_size;
+    std::uint8_t *pkt_data;
+    std::uint32_t pkt_size;
     bool is_keyframe;
 
     while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
@@ -85,16 +89,16 @@ TEST_F(VideoTest, EncodeDecodeSequence)
         nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint16_t width = 320;
-    uint16_t height = 240;
-    uint32_t bitrate = 2000;
+    std::uint16_t width = 320;
+    std::uint16_t height = 240;
+    std::uint32_t bitrate = 2000;
 
     ASSERT_EQ(vc_reconfigure_encoder(vc, bitrate, width, height, -1), 0);
 
     for (int i = 0; i < 20; ++i) {
-        std::vector<uint8_t> y(width * height);
-        std::vector<uint8_t> u((width / 2) * (height / 2));
-        std::vector<uint8_t> v((width / 2) * (height / 2));
+        std::vector<std::uint8_t> y(width * height);
+        std::vector<std::uint8_t> u((width / 2) * (height / 2));
+        std::vector<std::uint8_t> v((width / 2) * (height / 2));
 
         // Background
         std::fill(y.begin(), y.end(), 16);
@@ -116,8 +120,8 @@ TEST_F(VideoTest, EncodeDecodeSequence)
             0);
         vc_increment_frame_counter(vc);
 
-        uint8_t *pkt_data;
-        uint32_t pkt_size;
+        std::uint8_t *pkt_data;
+        std::uint32_t pkt_size;
         bool is_keyframe;
 
         while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
@@ -152,20 +156,20 @@ TEST_F(VideoTest, EncodeDecodeResolutionChange)
         nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = recv_rtp;
 
-    uint16_t widths[] = {320, 160, 480};
-    uint16_t heights[] = {240, 120, 360};
+    std::uint16_t widths[] = {320, 160, 480};
+    std::uint16_t heights[] = {240, 120, 360};
 
     for (int res = 0; res < 3; ++res) {
-        uint16_t width = widths[res];
-        uint16_t height = heights[res];
+        std::uint16_t width = widths[res];
+        std::uint16_t height = heights[res];
         ASSERT_EQ(vc_reconfigure_encoder(vc, 2000, width, height, -1), 0);
 
         for (int i = 0; i < 5; ++i) {
-            std::vector<uint8_t> y(width * height);
-            std::vector<uint8_t> u((width / 2) * (height / 2));
-            std::vector<uint8_t> v((width / 2) * (height / 2));
+            std::vector<std::uint8_t> y(width * height);
+            std::vector<std::uint8_t> u((width / 2) * (height / 2));
+            std::vector<std::uint8_t> v((width / 2) * (height / 2));
 
-            std::fill(y.begin(), y.end(), static_cast<uint8_t>((res * 50 + i * 10) % 256));
+            std::fill(y.begin(), y.end(), static_cast<std::uint8_t>((res * 50 + i * 10) % 256));
             std::fill(u.begin(), u.end(), 128);
             std::fill(v.begin(), v.end(), 128);
 
@@ -174,8 +178,8 @@ TEST_F(VideoTest, EncodeDecodeResolutionChange)
                 0);
             vc_increment_frame_counter(vc);
 
-            uint8_t *pkt_data;
-            uint32_t pkt_size;
+            std::uint8_t *pkt_data;
+            std::uint32_t pkt_size;
             bool is_keyframe;
 
             while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
@@ -199,11 +203,11 @@ TEST_F(VideoTest, EncodeDecodeResolutionChange)
 
 TEST_F(VideoTest, EncodeDecodeBitrateImpact)
 {
-    uint32_t bitrates[] = {100, 500, 2000};
+    std::uint32_t bitrates[] = {100, 500, 2000};
     double mses[3];
 
-    uint16_t width = 320;
-    uint16_t height = 240;
+    std::uint16_t width = 320;
+    std::uint16_t height = 240;
 
     for (int b = 0; b < 3; ++b) {
         VideoTestData data;
@@ -222,12 +226,12 @@ TEST_F(VideoTest, EncodeDecodeBitrateImpact)
         double total_mse = 0;
         int frames = 10;
         for (int i = 0; i < frames; ++i) {
-            std::vector<uint8_t> y(width * height);
-            std::vector<uint8_t> u((width / 2) * (height / 2));
-            std::vector<uint8_t> v((width / 2) * (height / 2));
+            std::vector<std::uint8_t> y(width * height);
+            std::vector<std::uint8_t> u((width / 2) * (height / 2));
+            std::vector<std::uint8_t> v((width / 2) * (height / 2));
 
-            for (size_t j = 0; j < y.size(); ++j)
-                y[j] = static_cast<uint8_t>((j + i * 10) % 256);
+            for (std::size_t j = 0; j < y.size(); ++j)
+                y[j] = static_cast<std::uint8_t>((j + i * 10) % 256);
             std::fill(u.begin(), u.end(), 128);
             std::fill(v.begin(), v.end(), 128);
 
@@ -236,8 +240,8 @@ TEST_F(VideoTest, EncodeDecodeBitrateImpact)
                 0);
             vc_increment_frame_counter(vc);
 
-            uint8_t *pkt_data;
-            uint32_t pkt_size;
+            std::uint8_t *pkt_data;
+            std::uint32_t pkt_size;
             bool is_keyframe;
 
             while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
@@ -260,7 +264,7 @@ TEST_F(VideoTest, EncodeDecodeBitrateImpact)
     EXPECT_GT(mses[0], mses[1]);
     EXPECT_GT(mses[1], mses[2]);
 
-    printf("MSE results: 100kbps: %f, 500kbps: %f, 2000kbps: %f\n", mses[0], mses[1], mses[2]);
+    std::printf("MSE results: 100kbps: %f, 500kbps: %f, 2000kbps: %f\n", mses[0], mses[1], mses[2]);
 }
 
 TEST_F(VideoTest, ReconfigureEncoder)
@@ -275,9 +279,9 @@ TEST_F(VideoTest, ReconfigureEncoder)
     // Change bitrate and resolution
     ASSERT_EQ(vc_reconfigure_encoder(vc, 1000, 640, 480, -1), 0);
 
-    std::vector<uint8_t> y(640 * 480, 128);
-    std::vector<uint8_t> u(320 * 240, 64);
-    std::vector<uint8_t> v(320 * 240, 192);
+    std::vector<std::uint8_t> y(640 * 480, 128);
+    std::vector<std::uint8_t> u(320 * 240, 64);
+    std::vector<std::uint8_t> v(320 * 240, 192);
 
     ASSERT_EQ(vc_encode(vc, 640, 480, y.data(), u.data(), v.data(), VC_EFLAG_NONE), 0);
 
@@ -310,9 +314,9 @@ TEST_F(VideoTest, QueueInvalidMessage)
         &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = video_recv_rtp;
 
-    std::vector<uint8_t> dummy_audio(100, 0);
+    std::vector<std::uint8_t> dummy_audio(100, 0);
     int rc = rtp_send_data(
-        log, audio_rtp, dummy_audio.data(), static_cast<uint32_t>(dummy_audio.size()), false);
+        log, audio_rtp, dummy_audio.data(), static_cast<std::uint32_t>(dummy_audio.size()), false);
     ASSERT_EQ(rc, 0);
 
     // Iterate should NOT trigger callback because payload type was wrong
@@ -357,9 +361,9 @@ TEST_F(VideoTest, LcfdAndSpecialPackets)
     // 1. Test lcfd update
     tm.t += 50;  // Advance time by 50ms
     mono_time_update(mono_time);
-    std::vector<uint8_t> dummy_frame(10, 0);
-    rtp_send_data(
-        log, video_recv_rtp, dummy_frame.data(), static_cast<uint32_t>(dummy_frame.size()), true);
+    std::vector<std::uint8_t> dummy_frame(10, 0);
+    rtp_send_data(log, video_recv_rtp, dummy_frame.data(),
+        static_cast<std::uint32_t>(dummy_frame.size()), true);
 
     // lcfd should be updated. Initial linfts was set at vc_new (tm.t=1000).
     // Now tm.t is 1050. t_lcfd = 1050 - 1000 = 50.
@@ -368,8 +372,8 @@ TEST_F(VideoTest, LcfdAndSpecialPackets)
     // 2. Test lcfd threshold (t_lcfd > 100 should be ignored)
     tm.t += 200;
     mono_time_update(mono_time);
-    rtp_send_data(
-        log, video_recv_rtp, dummy_frame.data(), static_cast<uint32_t>(dummy_frame.size()), true);
+    rtp_send_data(log, video_recv_rtp, dummy_frame.data(),
+        static_cast<std::uint32_t>(dummy_frame.size()), true);
     EXPECT_EQ(vc_get_lcfd(vc), 50u);  // Should still be 50
 
     // 3. Test dummy packet PT = (RTP_TYPE_VIDEO + 2) % 128
@@ -377,7 +381,7 @@ TEST_F(VideoTest, LcfdAndSpecialPackets)
         &rtp_mock, nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
     rtp_mock.recv_session = dummy_rtp;
     rtp_send_data(
-        log, dummy_rtp, dummy_frame.data(), static_cast<uint32_t>(dummy_frame.size()), false);
+        log, dummy_rtp, dummy_frame.data(), static_cast<std::uint32_t>(dummy_frame.size()), false);
     // Should return 0 but do nothing (logged as "Got dummy!")
 
     // 4. Test GetQueueMutex
@@ -395,11 +399,11 @@ TEST_F(VideoTest, MultiReconfigureEncode)
     ASSERT_NE(vc, nullptr);
 
     for (int i = 0; i < 5; ++i) {
-        uint16_t w = static_cast<uint16_t>(160 + (i * 16));
-        uint16_t h = static_cast<uint16_t>(120 + (i * 16));
-        std::vector<uint8_t> y(static_cast<size_t>(w) * h, 128);
-        std::vector<uint8_t> u((static_cast<size_t>(w) / 2) * (h / 2), 64);
-        std::vector<uint8_t> v((static_cast<size_t>(w) / 2) * (h / 2), 192);
+        std::uint16_t w = static_cast<std::uint16_t>(160 + (i * 16));
+        std::uint16_t h = static_cast<std::uint16_t>(120 + (i * 16));
+        std::vector<std::uint8_t> y(static_cast<std::size_t>(w) * h, 128);
+        std::vector<std::uint8_t> u((static_cast<std::size_t>(w) / 2) * (h / 2), 64);
+        std::vector<std::uint8_t> v((static_cast<std::size_t>(w) / 2) * (h / 2), 192);
 
         ASSERT_EQ(vc_reconfigure_encoder(vc, 1000, w, h, -1), 0);
         ASSERT_EQ(vc_encode(vc, w, h, y.data(), u.data(), v.data(), VC_EFLAG_NONE), 0);
@@ -419,9 +423,9 @@ TEST_F(VideoTest, ReconfigureFailDoS)
     ASSERT_EQ(vc_reconfigure_encoder(vc, 1000, 0, 0, -1), -1);
 
     // Attempt to encode. This is expected to crash because vc->encoder is destroyed.
-    std::vector<uint8_t> y(320 * 240, 128);
-    std::vector<uint8_t> u(160 * 120, 64);
-    std::vector<uint8_t> v(160 * 120, 192);
+    std::vector<std::uint8_t> y(320 * 240, 128);
+    std::vector<std::uint8_t> u(160 * 120, 64);
+    std::vector<std::uint8_t> v(160 * 120, 192);
     // This call will crash in the current unfixed code.
     vc_encode(vc, 320, 240, y.data(), u.data(), v.data(), VC_EFLAG_NONE);
 
@@ -440,31 +444,31 @@ TEST_F(VideoTest, LyingLengthOOB)
     rtp_mock.recv_session = recv_rtp;
 
     // Craft a malicious RTP packet
-    uint16_t payload_len = 10;
-    uint8_t packet[RTP_HEADER_SIZE + 11];  // +1 for Tox ID
-    memset(packet, 0, sizeof(packet));
+    std::uint16_t payload_len = 10;
+    std::uint8_t packet[RTP_HEADER_SIZE + 11];  // +1 for Tox ID
+    std::memset(packet, 0, sizeof(packet));
 
     // Tox ID
-    packet[0] = static_cast<uint8_t>(RTP_TYPE_VIDEO);
+    packet[0] = static_cast<std::uint8_t>(RTP_TYPE_VIDEO);
 
-    auto pack_u16 = [](uint8_t *p, uint16_t v) {
-        p[0] = static_cast<uint8_t>(v >> 8);
-        p[1] = static_cast<uint8_t>(v & 0xff);
+    auto pack_u16 = [](std::uint8_t *p, std::uint16_t v) {
+        p[0] = static_cast<std::uint8_t>(v >> 8);
+        p[1] = static_cast<std::uint8_t>(v & 0xff);
     };
-    auto pack_u32 = [](uint8_t *p, uint32_t v) {
-        p[0] = static_cast<uint8_t>(v >> 24);
-        p[1] = static_cast<uint8_t>((v >> 16) & 0xff);
-        p[2] = static_cast<uint8_t>((v >> 8) & 0xff);
-        p[3] = static_cast<uint8_t>(v & 0xff);
+    auto pack_u32 = [](std::uint8_t *p, std::uint32_t v) {
+        p[0] = static_cast<std::uint8_t>(v >> 24);
+        p[1] = static_cast<std::uint8_t>((v >> 16) & 0xff);
+        p[2] = static_cast<std::uint8_t>((v >> 8) & 0xff);
+        p[3] = static_cast<std::uint8_t>(v & 0xff);
     };
-    auto pack_u64 = [&](uint8_t *p, uint64_t v) {
-        pack_u32(p, static_cast<uint32_t>(v >> 32));
-        pack_u32(p + 4, static_cast<uint32_t>(v & 0xffffffff));
+    auto pack_u64 = [&](std::uint8_t *p, std::uint64_t v) {
+        pack_u32(p, static_cast<std::uint32_t>(v >> 32));
+        pack_u32(p + 4, static_cast<std::uint32_t>(v & 0xffffffff));
     };
 
     // RTP Header starts at packet[1]
     packet[1] = 2 << 6;  // ve = 2
-    packet[2] = static_cast<uint8_t>(RTP_TYPE_VIDEO % 128);
+    packet[2] = static_cast<std::uint8_t>(RTP_TYPE_VIDEO % 128);
 
     pack_u16(packet + 3, 1);  // sequnum
     pack_u32(packet + 5, 1000);  // timestamp

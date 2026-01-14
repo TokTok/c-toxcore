@@ -3,6 +3,8 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "../toxcore/logger.h"
@@ -13,17 +15,17 @@
 namespace {
 
 struct BwcTimeMock {
-    uint64_t t;
+    std::uint64_t t;
 };
 
-uint64_t bwc_mock_time_cb(void *ud) { return static_cast<BwcTimeMock *>(ud)->t; }
+std::uint64_t bwc_mock_time_cb(void *ud) { return static_cast<BwcTimeMock *>(ud)->t; }
 
 struct MockBwcData {
-    std::vector<std::vector<uint8_t>> sent_packets;
+    std::vector<std::vector<std::uint8_t>> sent_packets;
     std::vector<float> reported_losses;
-    uint32_t friend_number = 0;
+    std::uint32_t friend_number = 0;
 
-    static int send_packet(void *user_data, const uint8_t *data, uint16_t length)
+    static int send_packet(void *user_data, const std::uint8_t *data, std::uint16_t length)
     {
         auto *sd = static_cast<MockBwcData *>(user_data);
         if (sd->fail_send) {
@@ -34,7 +36,7 @@ struct MockBwcData {
     }
 
     static void loss_report(
-        BWController * /*bwc*/, uint32_t friend_number, float loss, void *user_data)
+        BWController * /*bwc*/, std::uint32_t friend_number, float loss, void *user_data)
     {
         auto *sd = static_cast<MockBwcData *>(user_data);
         sd->friend_number = friend_number;
@@ -79,7 +81,7 @@ TEST_F(BwcTest, BasicNewKill)
 TEST_F(BwcTest, SendUpdate)
 {
     MockBwcData sd;
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
     BWController *bwc = bwc_new(log, friend_number, MockBwcData::loss_report, &sd,
         MockBwcData::send_packet, &sd, mono_time);
     ASSERT_NE(bwc, nullptr);
@@ -107,7 +109,7 @@ TEST_F(BwcTest, SendUpdate)
     EXPECT_EQ(sd.sent_packets[0][0], BWC_PACKET_ID);
 
     // Packet contains lost (4 bytes) and recv (4 bytes)
-    uint32_t lost, recv;
+    std::uint32_t lost, recv;
     net_unpack_u32(sd.sent_packets[0].data() + 1, &lost);
     net_unpack_u32(sd.sent_packets[0].data() + 5, &recv);
 
@@ -120,12 +122,12 @@ TEST_F(BwcTest, SendUpdate)
 TEST_F(BwcTest, HandlePacket)
 {
     MockBwcData sd;
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
     BWController *bwc = bwc_new(log, friend_number, MockBwcData::loss_report, &sd,
         MockBwcData::send_packet, &sd, mono_time);
     ASSERT_NE(bwc, nullptr);
 
-    uint8_t packet[9];
+    std::uint8_t packet[9];
     packet[0] = BWC_PACKET_ID;
     net_pack_u32(packet + 1, 100);  // lost
     net_pack_u32(packet + 5, 900);  // recv
@@ -155,7 +157,7 @@ TEST_F(BwcTest, InvalidPacketSize)
     MockBwcData sd;
     BWController *bwc = bwc_new(
         log, 123, MockBwcData::loss_report, &sd, MockBwcData::send_packet, &sd, mono_time);
-    uint8_t packet[10] = {0};
+    std::uint8_t packet[10] = {0};
 
     // Correct size is 9
     bwc_handle_packet(bwc, packet, 8);
@@ -193,7 +195,7 @@ TEST_F(BwcTest, NullCallback)
     BWController *bwc
         = bwc_new(log, 123, nullptr, nullptr, MockBwcData::send_packet, &sd, mono_time);
 
-    uint8_t packet[9];
+    std::uint8_t packet[9];
     packet[0] = BWC_PACKET_ID;
     net_pack_u32(packet + 1, 100);  // lost
     net_pack_u32(packet + 5, 900);  // recv
@@ -213,7 +215,7 @@ TEST_F(BwcTest, ZeroLoss)
         log, 123, MockBwcData::loss_report, &sd, MockBwcData::send_packet, &sd, mono_time);
 
     // 1. Peer sends update with zero loss
-    uint8_t packet[9];
+    std::uint8_t packet[9];
     packet[0] = BWC_PACKET_ID;
     net_pack_u32(packet + 1, 0);  // lost
     net_pack_u32(packet + 5, 1000);  // recv
@@ -255,7 +257,7 @@ TEST_F(BwcTest, Overflow)
     bwc_add_recv(bwc, 1);
 
     ASSERT_EQ(sd.sent_packets.size(), 1);
-    uint32_t lost, recv;
+    std::uint32_t lost, recv;
     net_unpack_u32(sd.sent_packets[0].data() + 1, &lost);
     net_unpack_u32(sd.sent_packets[0].data() + 5, &recv);
 
@@ -324,7 +326,7 @@ TEST_F(BwcTest, RecvPlusLostOverflowBug)
     MockBwcData sd;
     BWController *bwc = bwc_new(
         log, 123, MockBwcData::loss_report, &sd, MockBwcData::send_packet, &sd, mono_time);
-    uint8_t packet[9];
+    std::uint8_t packet[9];
     packet[0] = BWC_PACKET_ID;
     net_pack_u32(packet + 1, 1);
     net_pack_u32(packet + 5, 0xFFFFFFFF);
@@ -342,7 +344,7 @@ TEST_F(BwcTest, RateLimitBypassBug)
         log, 123, MockBwcData::loss_report, &sd, MockBwcData::send_packet, &sd, mono_time);
     tm.t = 0xFFFFFFF0;
     mono_time_update(mono_time);
-    uint8_t packet[9];
+    std::uint8_t packet[9];
     packet[0] = BWC_PACKET_ID;
     net_pack_u32(packet + 1, 1);
     net_pack_u32(packet + 5, 100);

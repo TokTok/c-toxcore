@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "../toxcore/logger.h"
@@ -14,8 +16,8 @@
 namespace {
 
 struct MockMsi {
-    std::vector<std::vector<uint8_t>> sent_packets;
-    std::vector<uint32_t> sent_to_friends;
+    std::vector<std::vector<std::uint8_t>> sent_packets;
+    std::vector<std::uint32_t> sent_to_friends;
 
     struct CallbackStats {
         int invite = 0;
@@ -30,7 +32,7 @@ struct MockMsi {
     MSIError last_error = MSI_E_NONE;
 
     static int send_packet(
-        void *user_data, uint32_t friend_number, const uint8_t *data, size_t length)
+        void *user_data, std::uint32_t friend_number, const std::uint8_t *data, std::size_t length)
     {
         auto *self = static_cast<MockMsi *>(user_data);
         self->sent_packets.emplace_back(data, data + length);
@@ -122,8 +124,8 @@ TEST_F(MsiTest, BasicNewKill)
 TEST_F(MsiTest, Invite)
 {
     MSICall *call = nullptr;
-    uint32_t friend_number = 123;
-    uint8_t capabilities = MSI_CAP_S_AUDIO | MSI_CAP_R_AUDIO;
+    std::uint32_t friend_number = 123;
+    std::uint8_t capabilities = MSI_CAP_S_AUDIO | MSI_CAP_R_AUDIO;
 
     int rc = msi_invite(log, session, &call, friend_number, capabilities);
     ASSERT_EQ(rc, 0);
@@ -146,11 +148,11 @@ TEST_F(MsiTest, Invite)
 
 TEST_F(MsiTest, HandleIncomingInvite)
 {
-    uint32_t friend_number = 456;
-    uint8_t peer_caps = MSI_CAP_S_VIDEO | MSI_CAP_R_VIDEO;
+    std::uint32_t friend_number = 456;
+    std::uint8_t peer_caps = MSI_CAP_S_VIDEO | MSI_CAP_R_VIDEO;
 
     // Craft invite packet
-    uint8_t invite_pkt[] = {
+    std::uint8_t invite_pkt[] = {
         1, 1, 0,  // ID_REQUEST, len 1, REQU_INIT
         3, 1, peer_caps,  // ID_CAPABILITIES, len 1, caps
         0  // end
@@ -168,14 +170,14 @@ TEST_F(MsiTest, HandleIncomingInvite)
 TEST_F(MsiTest, Answer)
 {
     // 1. Receive invite first
-    uint32_t friend_number = 456;
-    uint8_t peer_caps = MSI_CAP_S_VIDEO | MSI_CAP_R_VIDEO;
-    uint8_t invite_pkt[] = {1, 1, 0, 3, 1, peer_caps, 0};
+    std::uint32_t friend_number = 456;
+    std::uint8_t peer_caps = MSI_CAP_S_VIDEO | MSI_CAP_R_VIDEO;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, peer_caps, 0};
     msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
     MSICall *call = mock.last_call;
 
     // 2. Answer it
-    uint8_t my_caps = MSI_CAP_S_AUDIO | MSI_CAP_R_AUDIO;
+    std::uint8_t my_caps = MSI_CAP_S_AUDIO | MSI_CAP_R_AUDIO;
     int rc = msi_answer(log, call, my_caps);
     ASSERT_EQ(rc, 0);
     EXPECT_EQ(call->state, MSI_CALL_ACTIVE);
@@ -206,14 +208,14 @@ TEST_F(MsiTest, Hangup)
 TEST_F(MsiTest, ChangeCapabilities)
 {
     // Setup active call
-    uint32_t friend_number = 123;
-    uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
+    std::uint32_t friend_number = 123;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
     MSICall *call = mock.last_call;
     msi_answer(log, call, 0);
     mock.sent_packets.clear();
 
-    uint8_t new_caps = MSI_CAP_S_VIDEO;
+    std::uint8_t new_caps = MSI_CAP_S_VIDEO;
     int rc = msi_change_capabilities(log, call, new_caps);
     ASSERT_EQ(rc, 0);
     EXPECT_EQ(call->self_capabilities, new_caps);
@@ -226,7 +228,7 @@ TEST_F(MsiTest, ChangeCapabilities)
 TEST_F(MsiTest, PeerTimeout)
 {
     MSICall *call = nullptr;
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
     msi_invite(log, session, &call, friend_number, 0);
 
     msi_call_timeout(session, log, friend_number);
@@ -236,12 +238,12 @@ TEST_F(MsiTest, PeerTimeout)
 
 TEST_F(MsiTest, RemoteHangup)
 {
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
     MSICall *call = nullptr;
     msi_invite(log, session, &call, friend_number, 0);
 
     // Craft pop packet
-    uint8_t pop_pkt[] = {1, 1, 2, 0};  // REQU_POP
+    std::uint8_t pop_pkt[] = {1, 1, 2, 0};  // REQU_POP
     msi_handle_packet(session, log, friend_number, pop_pkt, sizeof(pop_pkt));
 
     EXPECT_EQ(mock.stats.end, 1);
@@ -249,12 +251,12 @@ TEST_F(MsiTest, RemoteHangup)
 
 TEST_F(MsiTest, RemoteError)
 {
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
     MSICall *call = nullptr;
     msi_invite(log, session, &call, friend_number, 0);
 
     // Craft error packet (ID_ERROR = 2)
-    uint8_t error_pkt[] = {1, 1, 2, 2, 1, 1, 0};  // REQU_POP + MSI_E_INVALID_MESSAGE
+    std::uint8_t error_pkt[] = {1, 1, 2, 2, 1, 1, 0};  // REQU_POP + MSI_E_INVALID_MESSAGE
     msi_handle_packet(session, log, friend_number, error_pkt, sizeof(error_pkt));
 
     EXPECT_EQ(mock.stats.error, 1);
@@ -278,7 +280,7 @@ TEST_F(MsiTest, MultipleConcurrentCalls)
     msi_hangup(log, call1);
 
     // Call 2 should still be there
-    uint8_t pop_pkt[] = {1, 1, 2, 0};
+    std::uint8_t pop_pkt[] = {1, 1, 2, 0};
     msi_handle_packet(session, log, 2, pop_pkt, sizeof(pop_pkt));
     EXPECT_EQ(mock.stats.end, 1);
 }
@@ -288,8 +290,8 @@ TEST_F(MsiTest, RemoteAnswer)
     MSICall *call = nullptr;
     msi_invite(log, session, &call, 123, 0);
 
-    uint8_t peer_caps = MSI_CAP_S_AUDIO;
-    uint8_t push_pkt[] = {1, 1, 1, 3, 1, peer_caps, 0};  // REQU_PUSH + capabilities
+    std::uint8_t peer_caps = MSI_CAP_S_AUDIO;
+    std::uint8_t push_pkt[] = {1, 1, 1, 3, 1, peer_caps, 0};  // REQU_PUSH + capabilities
     msi_handle_packet(session, log, 123, push_pkt, sizeof(push_pkt));
 
     EXPECT_EQ(mock.stats.start, 1);
@@ -299,14 +301,14 @@ TEST_F(MsiTest, RemoteAnswer)
 
 TEST_F(MsiTest, RemoteCapabilitiesChange)
 {
-    uint32_t friend_number = 123;
-    uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
+    std::uint32_t friend_number = 123;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
     MSICall *call = mock.last_call;
     msi_answer(log, call, 0);
 
-    uint8_t new_caps = MSI_CAP_S_VIDEO;
-    uint8_t push_pkt[] = {1, 1, 1, 3, 1, new_caps, 0};  // REQU_PUSH + new capabilities
+    std::uint8_t new_caps = MSI_CAP_S_VIDEO;
+    std::uint8_t push_pkt[] = {1, 1, 1, 3, 1, new_caps, 0};  // REQU_PUSH + new capabilities
     msi_handle_packet(session, log, friend_number, push_pkt, sizeof(push_pkt));
 
     EXPECT_EQ(mock.stats.capabilities, 1);
@@ -315,8 +317,8 @@ TEST_F(MsiTest, RemoteCapabilitiesChange)
 
 TEST_F(MsiTest, FriendRecall)
 {
-    uint32_t friend_number = 123;
-    uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
+    std::uint32_t friend_number = 123;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
     MSICall *call = mock.last_call;
     msi_answer(log, call, 0);
@@ -348,30 +350,30 @@ TEST_F(MsiTest, GapInFriendNumbers)
 
 TEST_F(MsiTest, InvalidPackets)
 {
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
 
     // Empty packet
-    uint8_t empty = 0;
+    std::uint8_t empty = 0;
     msi_handle_packet(session, log, friend_number, &empty, 0);
 
     // Missing end byte
-    uint8_t no_end[] = {1, 1, 0};
+    std::uint8_t no_end[] = {1, 1, 0};
     msi_handle_packet(session, log, friend_number, no_end, sizeof(no_end));
 
     // Invalid ID
-    uint8_t invalid_id[] = {99, 1, 0, 0};
+    std::uint8_t invalid_id[] = {99, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, invalid_id, sizeof(invalid_id));
 
     // Invalid size (too large)
-    uint8_t invalid_size[] = {1, 10, 0, 0};
+    std::uint8_t invalid_size[] = {1, 10, 0, 0};
     msi_handle_packet(session, log, friend_number, invalid_size, sizeof(invalid_size));
 
     // Invalid size (mismatch)
-    uint8_t size_mismatch[] = {1, 2, 0, 0};
+    std::uint8_t size_mismatch[] = {1, 2, 0, 0};
     msi_handle_packet(session, log, friend_number, size_mismatch, sizeof(size_mismatch));
 
     // Missing request field
-    uint8_t no_request[] = {3, 1, 0, 0};
+    std::uint8_t no_request[] = {3, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, no_request, sizeof(no_request));
 }
 
@@ -387,7 +389,7 @@ TEST_F(MsiTest, CallbackFailure)
 
     MSISession *fail_session = msi_new(log, MockMsi::send_packet, &mock, &callbacks, &mock);
 
-    uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
     msi_handle_packet(fail_session, log, 123, invite_pkt, sizeof(invite_pkt));
 
     // Should have sent an error back
@@ -417,14 +419,14 @@ TEST_F(MsiTest, InvalidStates)
 
 TEST_F(MsiTest, StrayPackets)
 {
-    uint32_t friend_number = 123;
+    std::uint32_t friend_number = 123;
 
     // PUSH for non-existent call
-    uint8_t push_pkt[] = {1, 1, 1, 3, 1, 0, 0};
+    std::uint8_t push_pkt[] = {1, 1, 1, 3, 1, 0, 0};
     msi_handle_packet(session, log, friend_number, push_pkt, sizeof(push_pkt));
 
     // POP for non-existent call
-    uint8_t pop_pkt[] = {1, 1, 2, 0};
+    std::uint8_t pop_pkt[] = {1, 1, 2, 0};
     msi_handle_packet(session, log, friend_number, pop_pkt, sizeof(pop_pkt));
 
     // Error sent back for stray PUSH

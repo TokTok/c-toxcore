@@ -1,6 +1,7 @@
 #ifndef C_TOXCORE_TOXCORE_NETWORK_TEST_UTIL_H
 #define C_TOXCORE_TOXCORE_NETWORK_TEST_UTIL_H
 
+#include <cstdint>
 #include <iosfwd>
 
 #include "crypto_core.h"
@@ -14,11 +15,11 @@ struct Deleter<Networking_Core> : Function_Deleter<Networking_Core, kill_network
 IP_Port random_ip_port(const Random *rng);
 
 class increasing_ip_port {
-    uint8_t start_;
+    std::uint8_t start_;
     const Random *rng_;
 
 public:
-    explicit increasing_ip_port(uint8_t start, const Random *rng)
+    explicit increasing_ip_port(std::uint8_t start, const Random *rng)
         : start_(start)
         , rng_(rng)
     {

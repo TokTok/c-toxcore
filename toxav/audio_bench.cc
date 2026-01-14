@@ -5,6 +5,8 @@
 #include <benchmark/benchmark.h>
 
 #include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <vector>
 
@@ -28,9 +30,9 @@ public:
         mono_time = mono_time_new(mem, mock_time_cb, &tm);
         ac = ac_new(mono_time, log, 123, nullptr, nullptr);
 
-        sampling_rate = static_cast<uint32_t>(state.range(0));
-        channels = static_cast<uint8_t>(state.range(1));
-        uint32_t bitrate = (channels == 1) ? 32000 : 64000;
+        sampling_rate = static_cast<std::uint32_t>(state.range(0));
+        channels = static_cast<std::uint8_t>(state.range(1));
+        std::uint32_t bitrate = (channels == 1) ? 32000 : 64000;
 
         ac_reconfigure_encoder(ac, bitrate, sampling_rate, channels);
 
@@ -66,19 +68,19 @@ public:
     MockTime tm;
     ACSession *ac = nullptr;
     RtpMock rtp_mock;
-    uint32_t sampling_rate = 0;
-    uint8_t channels = 0;
-    size_t sample_count = 0;
-    std::vector<int16_t> pcm;
+    std::uint32_t sampling_rate = 0;
+    std::uint8_t channels = 0;
+    std::size_t sample_count = 0;
+    std::vector<std::int16_t> pcm;
 };
 
 // Benchmark encoding a sequence of silent audio frames.
 BENCHMARK_DEFINE_F(AudioBench, EncodeSilentSequence)(benchmark::State &state)
 {
-    std::vector<int16_t> silent_pcm(sample_count * channels);
+    std::vector<std::int16_t> silent_pcm(sample_count * channels);
     fill_silent_frame(channels, sample_count, silent_pcm);
 
-    std::vector<uint8_t> encoded(2000);
+    std::vector<std::uint8_t> encoded(2000);
 
     for (auto _ : state) {
         int encoded_size
@@ -97,13 +99,13 @@ BENCHMARK_DEFINE_F(AudioBench, EncodeSequence)(benchmark::State &state)
 {
     int frame_index = 0;
     const int num_prefilled = 50;
-    std::vector<std::vector<int16_t>> pcms(
-        num_prefilled, std::vector<int16_t>(sample_count * channels));
+    std::vector<std::vector<std::int16_t>> pcms(
+        num_prefilled, std::vector<std::int16_t>(sample_count * channels));
     for (int i = 0; i < num_prefilled; ++i) {
         fill_audio_frame(sampling_rate, channels, i, sample_count, pcms[i]);
     }
 
-    std::vector<uint8_t> encoded(2000);
+    std::vector<std::uint8_t> encoded(2000);
 
     for (auto _ : state) {
         int idx = frame_index % num_prefilled;
@@ -125,16 +127,16 @@ BENCHMARK_REGISTER_F(AudioBench, EncodeSequence)
 BENCHMARK_DEFINE_F(AudioBench, DecodeSequence)(benchmark::State &state)
 {
     const int num_frames = 50;
-    std::vector<std::vector<uint8_t>> encoded_frames(num_frames);
+    std::vector<std::vector<std::uint8_t>> encoded_frames(num_frames);
 
     // Pre-encode
-    std::vector<uint8_t> encoded_tmp(2000);
+    std::vector<std::uint8_t> encoded_tmp(2000);
     for (int i = 0; i < num_frames; ++i) {
         fill_audio_frame(sampling_rate, channels, i, sample_count, pcm);
         int size = ac_encode(ac, pcm.data(), sample_count, encoded_tmp.data(), encoded_tmp.size());
 
         encoded_frames[i].resize(4 + size);
-        uint32_t net_sr = net_htonl(sampling_rate);
+        std::uint32_t net_sr = net_htonl(sampling_rate);
         std::memcpy(encoded_frames[i].data(), &net_sr, 4);
         std::memcpy(encoded_frames[i].data() + 4, encoded_tmp.data(), size);
     }
@@ -143,7 +145,7 @@ BENCHMARK_DEFINE_F(AudioBench, DecodeSequence)(benchmark::State &state)
     for (auto _ : state) {
         int idx = frame_index % num_frames;
         rtp_send_data(log, rtp_mock.recv_session, encoded_frames[idx].data(),
-            static_cast<uint32_t>(encoded_frames[idx].size()), false);
+            static_cast<std::uint32_t>(encoded_frames[idx].size()), false);
         ac_iterate(ac);
         frame_index++;
     }
@@ -161,26 +163,26 @@ BENCHMARK_DEFINE_F(AudioBench, FullSequence)(benchmark::State &state)
 {
     int frame_index = 0;
     const int num_prefilled = 50;
-    std::vector<std::vector<int16_t>> pcms(
-        num_prefilled, std::vector<int16_t>(sample_count * channels));
+    std::vector<std::vector<std::int16_t>> pcms(
+        num_prefilled, std::vector<std::int16_t>(sample_count * channels));
     for (int i = 0; i < num_prefilled; ++i) {
         fill_audio_frame(sampling_rate, channels, i, sample_count, pcms[i]);
     }
 
-    std::vector<uint8_t> encoded_tmp(2000);
+    std::vector<std::uint8_t> encoded_tmp(2000);
 
     for (auto _ : state) {
         int idx = frame_index % num_prefilled;
         int size
             = ac_encode(ac, pcms[idx].data(), sample_count, encoded_tmp.data(), encoded_tmp.size());
 
-        std::vector<uint8_t> payload(4 + size);
-        uint32_t net_sr = net_htonl(sampling_rate);
+        std::vector<std::uint8_t> payload(4 + size);
+        std::uint32_t net_sr = net_htonl(sampling_rate);
         std::memcpy(payload.data(), &net_sr, 4);
         std::memcpy(payload.data() + 4, encoded_tmp.data(), size);
 
         rtp_send_data(log, rtp_mock.recv_session, payload.data(),
-            static_cast<uint32_t>(payload.size()), false);
+            static_cast<std::uint32_t>(payload.size()), false);
         ac_iterate(ac);
 
         frame_index++;

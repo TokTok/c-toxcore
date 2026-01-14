@@ -19,20 +19,20 @@ using tox::test::SimulatedEnvironment;
 void TestUnpack(Fuzz_Data data)
 {
     // 2 bytes: size of the events data
-    CONSUME_OR_RETURN(const uint8_t *events_size_bytes, data, sizeof(uint16_t));
-    uint16_t events_size;
-    std::memcpy(&events_size, events_size_bytes, sizeof(uint16_t));
+    CONSUME_OR_RETURN(const std::uint8_t *events_size_bytes, data, sizeof(std::uint16_t));
+    std::uint16_t events_size;
+    std::memcpy(&events_size, events_size_bytes, sizeof(std::uint16_t));
 
     // events_size bytes: events data (max 64K)
-    CONSUME_OR_RETURN(const uint8_t *events_data, data, events_size);
+    CONSUME_OR_RETURN(const std::uint8_t *events_data, data, events_size);
 
     if (data.empty()) {
-        // If there's no more input, no malloc failure paths can possibly be
+        // If there's no more input, no std::malloc failure paths can possibly be
         // tested, so we ignore this input.
         return;
     }
 
-    // rest of the fuzz data is input for malloc
+    // rest of the fuzz data is input for std::malloc
     SimulatedEnvironment env;
     auto node = env.create_node(33445);
     configure_fuzz_memory_source(env.fake_memory(), data);
@@ -83,7 +83,7 @@ void TestUnpack(Fuzz_Data data)
 
     Tox_Events *events = tox_events_load(&node->system, events_data, events_size);
     if (events) {
-        std::vector<uint8_t> packed(tox_events_bytes_size(events));
+        std::vector<std::uint8_t> packed(tox_events_bytes_size(events));
         tox_events_get_bytes(events, packed.data());
 
         tox_dispatch_invoke(dispatch, events, nullptr);
@@ -94,8 +94,8 @@ void TestUnpack(Fuzz_Data data)
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size)
 {
     TestUnpack(Fuzz_Data(data, size));
     return 0;

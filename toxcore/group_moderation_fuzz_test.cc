@@ -10,7 +10,7 @@ using tox::test::SimulatedEnvironment;
 
 void TestModListUnpack(Fuzz_Data &input)
 {
-    CONSUME1_OR_RETURN(const uint16_t, num_mods, input);
+    CONSUME1_OR_RETURN(const std::uint16_t, num_mods, input);
     SimulatedEnvironment env;
     auto c_mem = env.fake_memory().c_memory();
     Moderation mods{&c_mem};
@@ -22,21 +22,21 @@ void TestSanctionsListUnpack(Fuzz_Data &input)
 {
     Mod_Sanction sanctions[10];
     Mod_Sanction_Creds creds;
-    uint16_t processed_data_len;
+    std::uint16_t processed_data_len;
     sanctions_list_unpack(sanctions, &creds, 10, input.data(), input.size(), &processed_data_len);
 }
 
 void TestSanctionCredsUnpack(Fuzz_Data &input)
 {
-    CONSUME_OR_RETURN(const uint8_t *data, input, MOD_SANCTIONS_CREDS_SIZE);
+    CONSUME_OR_RETURN(const std::uint8_t *data, input, MOD_SANCTIONS_CREDS_SIZE);
     Mod_Sanction_Creds creds;
     sanctions_creds_unpack(&creds, data);
 }
 
 }  // namespace
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size);
+extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t *data, std::size_t size)
 {
     tox::test::fuzz_select_target<TestModListUnpack, TestSanctionsListUnpack,
         TestSanctionCredsUnpack>(data, size);

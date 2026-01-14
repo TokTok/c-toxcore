@@ -24,7 +24,7 @@ TEST(MergeSort, BehavesLikeStdSort)
     constexpr auto int_funcs = sort_funcs<int>();
 
     // Test with int arrays.
-    for (uint32_t i = 1; i < 500; ++i) {
+    for (std::uint32_t i = 1; i < 500; ++i) {
         std::vector<int> vec(i);
         std::generate(std::begin(vec), std::end(vec), [&]() { return dist(rng); });
 
@@ -55,7 +55,7 @@ TEST(MergeSort, WorksWithNonTrivialTypes)
     constexpr auto string_funcs = sort_funcs<std::string>();
 
     // Test with std::string arrays.
-    for (uint32_t i = 1; i < 500; ++i) {
+    for (std::uint32_t i = 1; i < 500; ++i) {
         std::vector<std::string> vec(i);
         std::generate(std::begin(vec), std::end(vec), [&]() { return std::to_string(dist(rng)); });
 

@@ -8,6 +8,7 @@ genrule(
     srcs = [
         "//c-toxcore/toxav:toxav.h",
         "//c-toxcore/toxcore:tox.h",
+        "//c-toxcore/toxcore:tox_attributes.h",
         "//c-toxcore/toxcore:tox_dispatch.h",
         "//c-toxcore/toxcore:tox_events.h",
         "//c-toxcore/toxcore:tox_log_level.h",
@@ -29,6 +30,7 @@ genrule(
     cmd = """
         cp $(location //c-toxcore/toxav:toxav.h) $(GENDIR)/c-toxcore/tox/toxav.h
         cp $(location //c-toxcore/toxcore:tox.h) $(GENDIR)/c-toxcore/tox/tox.h
+        cp $(location //c-toxcore/toxcore:tox_attributes.h) $(GENDIR)/c-toxcore/tox/tox_attributes.h
         cp $(location //c-toxcore/toxcore:tox_dispatch.h) $(GENDIR)/c-toxcore/tox/tox_dispatch.h
         cp $(location //c-toxcore/toxcore:tox_events.h) $(GENDIR)/c-toxcore/tox/tox_events.h
         cp $(location //c-toxcore/toxcore:tox_log_level.h) $(GENDIR)/c-toxcore/tox/tox_log_level.h

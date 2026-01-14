@@ -21,13 +21,13 @@ TEST(MonoTime, TimeIncreasesWhenAdvanced)
     setup_fake_clock(mono_time, env.fake_clock());
 
     mono_time_update(mono_time);
-    uint64_t const start = mono_time_get(mono_time);
+    std::uint64_t const start = mono_time_get(mono_time);
 
     // Advance 10 seconds to ensure we definitely cross second boundaries and see an increase
     env.fake_clock().advance(10000);
     mono_time_update(mono_time);
 
-    uint64_t const end = mono_time_get(mono_time);
+    std::uint64_t const end = mono_time_get(mono_time);
     EXPECT_GT(end, start);
     EXPECT_EQ(end, start + 10);
 
@@ -43,7 +43,7 @@ TEST(MonoTime, IsTimeout)
     setup_fake_clock(mono_time, env.fake_clock());
 
     mono_time_update(mono_time);  // Ensure start is consistent with fake clock
-    uint64_t const start = mono_time_get(mono_time);
+    std::uint64_t const start = mono_time_get(mono_time);
     EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 1));
 
     env.fake_clock().advance(2000);  // 2 seconds
@@ -63,7 +63,7 @@ TEST(MonoTime, IsTimeoutWithIntermediateUpdates)
     setup_fake_clock(mono_time, env.fake_clock());
 
     mono_time_update(mono_time);
-    uint64_t const start = mono_time_get(mono_time);
+    std::uint64_t const start = mono_time_get(mono_time);
     EXPECT_FALSE(mono_time_is_timeout(mono_time, start, 5));
 
     env.fake_clock().advance(100);
@@ -86,14 +86,15 @@ TEST(MonoTime, CustomTime)
     Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
 
-    uint64_t test_time = 123456;
+    std::uint64_t test_time = 123456;
     mono_time_set_current_time_callback(
-        mono_time, [](void *user_data) { return *static_cast<uint64_t *>(user_data); }, &test_time);
+        mono_time, [](void *user_data) { return *static_cast<std::uint64_t *>(user_data); },
+        &test_time);
     mono_time_update(mono_time);
 
     EXPECT_EQ(current_time_monotonic(mono_time), test_time);
 
-    uint64_t const start = mono_time_get(mono_time);
+    std::uint64_t const start = mono_time_get(mono_time);
 
     test_time += 7000;
     mono_time_update(mono_time);

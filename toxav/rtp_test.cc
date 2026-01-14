@@ -3,6 +3,10 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -17,23 +21,23 @@ struct MockSessionData {
     MockSessionData();
     ~MockSessionData();
 
-    std::vector<std::vector<uint8_t>> sent_packets;
-    std::vector<std::vector<uint8_t>> received_frames;
-    std::vector<uint16_t> received_frame_lengths;
-    std::vector<uint32_t> received_32bit_lengths;
-    std::vector<uint32_t> received_full_lengths;
-    std::vector<uint16_t> received_sequnums;
-    std::vector<uint8_t> received_pts;
-    std::vector<uint64_t> received_flags;
+    std::vector<std::vector<std::uint8_t>> sent_packets;
+    std::vector<std::vector<std::uint8_t>> received_frames;
+    std::vector<std::uint16_t> received_frame_lengths;
+    std::vector<std::uint32_t> received_32bit_lengths;
+    std::vector<std::uint32_t> received_full_lengths;
+    std::vector<std::uint16_t> received_sequnums;
+    std::vector<std::uint8_t> received_pts;
+    std::vector<std::uint64_t> received_flags;
 
-    uint32_t total_bytes_received = 0;
-    uint32_t total_bytes_lost = 0;
+    std::uint32_t total_bytes_received = 0;
+    std::uint32_t total_bytes_lost = 0;
 };
 
 MockSessionData::MockSessionData() = default;
 MockSessionData::~MockSessionData() = default;
 
-static int mock_send_packet(void *user_data, const uint8_t *data, uint16_t length)
+static int mock_send_packet(void *user_data, const std::uint8_t *data, std::uint16_t length)
 {
     auto *sd = static_cast<MockSessionData *>(user_data);
     sd->sent_packets.emplace_back(data, data + length);
@@ -47,15 +51,15 @@ static int mock_m_cb(const Mono_Time * /*mono_time*/, void *cs, RTPMessage *msg)
     sd->received_pts.push_back(rtp_message_pt(msg));
     sd->received_flags.push_back(rtp_message_flags(msg));
 
-    const uint8_t *data = rtp_message_data(msg);
-    uint32_t len = rtp_message_len(msg);
-    uint32_t full_len = rtp_message_data_length_full(msg);
+    const std::uint8_t *data = rtp_message_data(msg);
+    std::uint32_t len = rtp_message_len(msg);
+    std::uint32_t full_len = rtp_message_data_length_full(msg);
 
     // If full_len is not set (old protocol), use len
-    uint32_t actual_len = (full_len > 0) ? full_len : len;
+    std::uint32_t actual_len = (full_len > 0) ? full_len : len;
 
     sd->received_frames.emplace_back(data, data + actual_len);
-    sd->received_frame_lengths.push_back(static_cast<uint16_t>(len));
+    sd->received_frame_lengths.push_back(static_cast<std::uint16_t>(len));
     sd->received_32bit_lengths.push_back(len);
     sd->received_full_lengths.push_back(full_len);
     sd->received_sequnums.push_back(rtp_message_sequnum(msg));
@@ -64,13 +68,13 @@ static int mock_m_cb(const Mono_Time * /*mono_time*/, void *cs, RTPMessage *msg)
     return 0;
 }
 
-static void mock_add_recv(void *user_data, uint32_t bytes)
+static void mock_add_recv(void *user_data, std::uint32_t bytes)
 {
     auto *sd = static_cast<MockSessionData *>(user_data);
     sd->total_bytes_received += bytes;
 }
 
-static void mock_add_lost(void *user_data, uint32_t bytes)
+static void mock_add_lost(void *user_data, std::uint32_t bytes)
 {
     auto *sd = static_cast<MockSessionData *>(user_data);
     sd->total_bytes_lost += bytes;
@@ -104,7 +108,7 @@ TEST_F(RtpPublicTest, BasicAudioSendReceive)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
     ASSERT_NE(session, nullptr);
 
-    uint8_t data[] = "Hello RTP";
+    std::uint8_t data[] = "Hello RTP";
     rtp_send_data(log, session, data, sizeof(data), false);
 
     ASSERT_EQ(sd.sent_packets.size(), 1);
@@ -128,9 +132,9 @@ TEST_F(RtpPublicTest, LargeVideoFrameFragmentation)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
     // Frame larger than MAX_CRYPTO_DATA_SIZE
-    const uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 500;
-    std::vector<uint8_t> data(frame_size);
-    for (uint32_t i = 0; i < frame_size; ++i)
+    const std::uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 500;
+    std::vector<std::uint8_t> data(frame_size);
+    for (std::uint32_t i = 0; i < frame_size; ++i)
         data[i] = i & 0xFF;
 
     rtp_send_data(log, session, data.data(), frame_size, true);
@@ -158,8 +162,8 @@ TEST_F(RtpPublicTest, OutOfOrderVideoPackets)
     RTPSession *session = rtp_new(log, RTP_TYPE_VIDEO, mono_time, mock_send_packet, &sd,
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
-    const uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
-    std::vector<uint8_t> data(frame_size, 0x55);
+    const std::uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
+    std::vector<std::uint8_t> data(frame_size, 0x55);
     rtp_send_data(log, session, data.data(), frame_size, false);
 
     ASSERT_EQ(sd.sent_packets.size(), 2);
@@ -183,15 +187,15 @@ TEST_F(RtpPublicTest, HandlingInvalidPackets)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
     // Packet too short to even contain the Tox packet ID
-    uint8_t empty[1];
+    std::uint8_t empty[1];
     rtp_receive_packet(session, empty, 0);
 
     // Packet too short (less than RTP_HEADER_SIZE + 1)
-    uint8_t short_pkt[10] = {RTP_TYPE_AUDIO};
+    std::uint8_t short_pkt[10] = {RTP_TYPE_AUDIO};
     rtp_receive_packet(session, short_pkt, sizeof(short_pkt));
 
     // Wrong packet ID (Tox level)
-    uint8_t wrong_id[RTP_HEADER_SIZE + 10];
+    std::uint8_t wrong_id[RTP_HEADER_SIZE + 10];
     std::memset(wrong_id, 0, sizeof(wrong_id));
     wrong_id[0] = RTP_TYPE_VIDEO;  // Session expects AUDIO
     rtp_receive_packet(session, wrong_id, sizeof(wrong_id));
@@ -239,8 +243,8 @@ TEST_F(RtpPublicTest, LargeAudioFragmentationOldProtocol)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
     // Audio doesn't use RTP_LARGE_FRAME, so it uses the old 16-bit offset/length fields
-    const uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 500;
-    std::vector<uint8_t> data(frame_size, 0x44);
+    const std::uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 500;
+    std::vector<std::uint8_t> data(frame_size, 0x44);
 
     rtp_send_data(log, session, data.data(), frame_size, false);
 
@@ -263,17 +267,17 @@ TEST_F(RtpPublicTest, WorkBufferEvictionAndKeyframePreservation)
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
     struct TimeMock {
-        uint64_t t;
+        std::uint64_t t;
     } tm = {1000};
 
-    auto time_cb = [](void *ud) -> uint64_t { return static_cast<TimeMock *>(ud)->t; };
+    auto time_cb = [](void *ud) -> std::uint64_t { return static_cast<TimeMock *>(ud)->t; };
     mono_time_set_current_time_callback(mono_time, time_cb, &tm);
     mono_time_update(mono_time);
 
     // USED_RTP_WORKBUFFER_COUNT is 3.
     // 1. Start a keyframe (frame 0) but don't finish it.
-    const uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
-    std::vector<uint8_t> kf_data(frame_size, 0x11);
+    const std::uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
+    std::vector<std::uint8_t> kf_data(frame_size, 0x11);
     rtp_send_data(log, session, kf_data.data(), frame_size, true);
     rtp_receive_packet(session, sd.sent_packets[0].data(), sd.sent_packets[0].size());
     sd.sent_packets.clear();
@@ -282,7 +286,7 @@ TEST_F(RtpPublicTest, WorkBufferEvictionAndKeyframePreservation)
     for (int i = 0; i < 2; ++i) {
         tm.t += 1;
         mono_time_update(mono_time);
-        std::vector<uint8_t> if_data(frame_size, 0x20 + i);
+        std::vector<std::uint8_t> if_data(frame_size, 0x20 + i);
         rtp_send_data(log, session, if_data.data(), frame_size, false);
         rtp_receive_packet(session, sd.sent_packets[0].data(), sd.sent_packets[0].size());
         sd.sent_packets.clear();
@@ -297,7 +301,7 @@ TEST_F(RtpPublicTest, WorkBufferEvictionAndKeyframePreservation)
     // The new IF should be DROPPED because there's no space and slot 0 is a protected KF.
     tm.t += 1;
     mono_time_update(mono_time);
-    std::vector<uint8_t> if3_data(frame_size, 0x33);
+    std::vector<std::uint8_t> if3_data(frame_size, 0x33);
     rtp_send_data(log, session, if3_data.data(), frame_size, false);
     rtp_receive_packet(session, sd.sent_packets[0].data(), sd.sent_packets[0].size());
     sd.sent_packets.clear();
@@ -311,7 +315,7 @@ TEST_F(RtpPublicTest, WorkBufferEvictionAndKeyframePreservation)
 
     // 5. Start another frame (frame 4).
     // Now the old KF should be evicted and processed (sent to callback), making room.
-    std::vector<uint8_t> if4_data(frame_size, 0x44);
+    std::vector<std::uint8_t> if4_data(frame_size, 0x44);
     rtp_send_data(log, session, if4_data.data(), frame_size, false);
     rtp_receive_packet(session, sd.sent_packets[0].data(), sd.sent_packets[0].size());
 
@@ -328,7 +332,7 @@ TEST_F(RtpPublicTest, BwcReporting)
     RTPSession *session = rtp_new(log, RTP_TYPE_VIDEO, mono_time, mock_send_packet, &sd,
         mock_add_recv, mock_add_lost, &sd, &sd, mock_m_cb);
 
-    uint8_t data[] = "test";
+    std::uint8_t data[] = "test";
     // DISMISS_FIRST_LOST_VIDEO_PACKET_COUNT is 10.
     // Packets 1-9 are dismissed. Packet 10 is reported.
     for (int i = 0; i < 10; ++i) {
@@ -351,8 +355,8 @@ TEST_F(RtpPublicTest, OldProtocolEdgeCases)
         nullptr, nullptr, &sd, mock_m_cb);
 
     // 1. Multipart message interrupted by a newer message.
-    const uint32_t large_size = 5000;
-    std::vector<uint8_t> data(large_size, 0xAA);
+    const std::uint32_t large_size = 5000;
+    std::vector<std::uint8_t> data(large_size, 0xAA);
     rtp_send_data(log, session, data.data(), large_size, false);
 
     ASSERT_GE(sd.sent_packets.size(), 2);
@@ -361,7 +365,7 @@ TEST_F(RtpPublicTest, OldProtocolEdgeCases)
     EXPECT_EQ(sd.received_frames.size(), 0);
 
     // Send a second message (newer)
-    std::vector<uint8_t> data2 = {0x1, 0x2, 0x3};
+    std::vector<std::uint8_t> data2 = {0x1, 0x2, 0x3};
     rtp_send_data(log, session, data2.data(), data2.size(), false);
     // The second message is the last one in sent_packets.
     rtp_receive_packet(session, sd.sent_packets.back().data(), sd.sent_packets.back().size());
@@ -370,7 +374,7 @@ TEST_F(RtpPublicTest, OldProtocolEdgeCases)
     ASSERT_EQ(sd.received_frames.size(), 2);
     EXPECT_LT(sd.received_frame_lengths[0], large_size);
     EXPECT_EQ(sd.received_pts[0], RTP_TYPE_AUDIO % 128);
-    EXPECT_EQ(sd.received_frame_lengths[1], static_cast<uint16_t>(data2.size()));
+    EXPECT_EQ(sd.received_frame_lengths[1], static_cast<std::uint16_t>(data2.size()));
 
     // 2. Discarding old message part
     sd.received_frames.clear();
@@ -379,7 +383,7 @@ TEST_F(RtpPublicTest, OldProtocolEdgeCases)
     sd.received_pts.clear();
 
     // Send a very new message.
-    std::vector<uint8_t> data3 = {0xDE, 0xAD};
+    std::vector<std::uint8_t> data3 = {0xDE, 0xAD};
     rtp_send_data(log, session, data3.data(), data3.size(), false);
     rtp_receive_packet(session, sd.sent_packets.back().data(), sd.sent_packets.back().size());
     EXPECT_EQ(sd.received_frames.size(), 1);
@@ -399,13 +403,13 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
         nullptr, nullptr, &sd, mock_m_cb);
 
     // Get a valid packet to start with
-    uint8_t data[] = "test";
+    std::uint8_t data[] = "test";
     rtp_send_data(log, session, data, sizeof(data), false);
-    std::vector<uint8_t> valid_pkt = sd.sent_packets[0];
+    std::vector<std::uint8_t> valid_pkt = sd.sent_packets[0];
     sd.sent_packets.clear();
 
     // 1. RTPHeader packet type and Tox protocol packet type do not agree
-    std::vector<uint8_t> bad_pkt_1 = valid_pkt;
+    std::vector<std::uint8_t> bad_pkt_1 = valid_pkt;
     bad_pkt_1[0] = RTP_TYPE_AUDIO;  // Tox ID says AUDIO, but header (byte 2) still says VIDEO
     rtp_receive_packet(session, bad_pkt_1.data(), bad_pkt_1.size());
     EXPECT_EQ(sd.received_frames.size(), 0);
@@ -421,7 +425,7 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
     // 3. Invalid video packet: offset >= length
     // From rtp.c, offset_full is at byte 20 and data_length_full at byte 24 of the RTP header.
     // The RTP header starts at index 1 of the packet.
-    std::vector<uint8_t> bad_pkt_3 = valid_pkt;
+    std::vector<std::uint8_t> bad_pkt_3 = valid_pkt;
     // Set offset (bytes 21-24) to be equal to length (bytes 25-28)
     // For a small packet, both are usually 0 and sizeof(data) respectively.
     // Let's just make offset very large.
@@ -437,10 +441,10 @@ TEST_F(RtpPublicTest, MoreInvalidPackets)
         nullptr, nullptr, nullptr, &sd, mock_m_cb);
 
     rtp_send_data(log, session_audio2, data, sizeof(data), false);
-    std::vector<uint8_t> audio_pkt = sd.sent_packets[0];
+    std::vector<std::uint8_t> audio_pkt = sd.sent_packets[0];
     sd.sent_packets.clear();
 
-    std::vector<uint8_t> bad_pkt_4 = audio_pkt;
+    std::vector<std::uint8_t> bad_pkt_4 = audio_pkt;
     // Set offset_lower (byte 1 + 76) > data_length_lower (byte 1 + 78)
     bad_pkt_4[1 + 76] = 0x01;  // offset = 256
     bad_pkt_4[1 + 77] = 0x00;
@@ -461,20 +465,20 @@ TEST_F(RtpPublicTest, VideoJitterBufferEdgeCases)
         nullptr, nullptr, &sd, mock_m_cb);
 
     // Use a large frame size to force fragmentation and keep slots occupied
-    const uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
-    std::vector<uint8_t> data(frame_size, 0);
+    const std::uint32_t frame_size = MAX_CRYPTO_DATA_SIZE + 100;
+    std::vector<std::uint8_t> data(frame_size, 0);
 
     // Advancing time for subsequent frames
     struct TimeMock {
-        uint64_t t;
+        std::uint64_t t;
     } tm = {1000};
-    auto time_cb = [](void *ud) -> uint64_t { return static_cast<TimeMock *>(ud)->t; };
+    auto time_cb = [](void *ud) -> std::uint64_t { return static_cast<TimeMock *>(ud)->t; };
     mono_time_set_current_time_callback(mono_time, time_cb, &tm);
     mono_time_update(mono_time);
 
     // 1. Packet too old for work buffer
     rtp_send_data(log, session, data.data(), frame_size, false);  // Time 1000ms
-    std::vector<uint8_t> old_pkt = sd.sent_packets[0];
+    std::vector<std::uint8_t> old_pkt = sd.sent_packets[0];
     // Receive only first part to keep slot occupied
     rtp_receive_packet(session, sd.sent_packets[0].data(), sd.sent_packets[0].size());
     EXPECT_EQ(sd.received_frames.size(), 0);
@@ -501,7 +505,7 @@ TEST_F(RtpPublicTest, VideoJitterBufferEdgeCases)
         nullptr, &sd, mock_m_cb);
 
     // Fill slot 0 with an incomplete Keyframe
-    std::vector<uint8_t> kf_data(frame_size, 0x11);
+    std::vector<std::uint8_t> kf_data(frame_size, 0x11);
     tm.t = 3000;
     mono_time_update(mono_time);
     rtp_send_data(log, session, kf_data.data(), frame_size, true);
@@ -510,7 +514,7 @@ TEST_F(RtpPublicTest, VideoJitterBufferEdgeCases)
     sd.sent_packets.clear();
 
     // Now send a complete Interframe
-    std::vector<uint8_t> if_data(10, 0x22);
+    std::vector<std::uint8_t> if_data(10, 0x22);
     tm.t += 1;
     mono_time_update(mono_time);
     rtp_send_data(log, session, if_data.data(), if_data.size(), false);
@@ -531,9 +535,9 @@ TEST_F(RtpPublicTest, OldProtocolCorruption)
     // 1. Packet claiming a smaller length than its payload.
     // This triggers the condition that previously caused a DoS crash via
     // an assertion failure in new_message().
-    uint8_t data[10] = {0};
+    std::uint8_t data[10] = {0};
     rtp_send_data(log, session, data, sizeof(data), false);
-    std::vector<uint8_t> pkt = sd.sent_packets[0];
+    std::vector<std::uint8_t> pkt = sd.sent_packets[0];
     sd.sent_packets.clear();
 
     // Modify data_length_lower (byte 1 + 78) to be 2, while payload is 10.
@@ -545,8 +549,8 @@ TEST_F(RtpPublicTest, OldProtocolCorruption)
     EXPECT_EQ(sd.received_frames.size(), 0);
 
     // 2. Corruption check for an EXISTING multipart message.
-    const uint32_t multipart_size = 5000;
-    std::vector<uint8_t> multipart_data(multipart_size, 0xBB);
+    const std::uint32_t multipart_size = 5000;
+    std::vector<std::uint8_t> multipart_data(multipart_size, 0xBB);
     rtp_send_data(log, session, multipart_data.data(), multipart_size, false);
 
     // Receive the first part
@@ -554,7 +558,7 @@ TEST_F(RtpPublicTest, OldProtocolCorruption)
     EXPECT_EQ(sd.received_frames.size(), 0);
 
     // Now receive a corrupted second part that claims a weird offset
-    std::vector<uint8_t> corrupted_part = sd.sent_packets[1];
+    std::vector<std::uint8_t> corrupted_part = sd.sent_packets[1];
     // offset_lower is at byte 76. Set it beyond data_length_lower.
     corrupted_part[1 + 76] = 0xFF;
     corrupted_part[1 + 77] = 0xFF;
@@ -572,11 +576,11 @@ TEST_F(RtpPublicTest, HugeVideoFrameInternalLength)
     RTPSession *session = rtp_new(log, RTP_TYPE_VIDEO, mono_time, mock_send_packet, &sd, nullptr,
         nullptr, nullptr, &sd, mock_m_cb);
 
-    // Frame larger than 64KB (uint16_t max)
-    const uint32_t huge_frame_size = 65540;
-    std::vector<uint8_t> data(huge_frame_size);
-    for (uint32_t i = 0; i < huge_frame_size; ++i) {
-        data[i] = static_cast<uint8_t>(i & 0xFF);
+    // Frame larger than 64KB (std::uint16_t max)
+    const std::uint32_t huge_frame_size = 65540;
+    std::vector<std::uint8_t> data(huge_frame_size);
+    for (std::uint32_t i = 0; i < huge_frame_size; ++i) {
+        data[i] = static_cast<std::uint8_t>(i & 0xFF);
     }
 
     rtp_send_data(log, session, data.data(), huge_frame_size, false);
@@ -592,7 +596,7 @@ TEST_F(RtpPublicTest, HugeVideoFrameInternalLength)
     ASSERT_EQ(sd.received_frames.size(), 1);
     // This verifies that the internal 32-bit length is working correctly.
     // We cast huge_frame_size to 16-bit to show what it would have been if it truncated.
-    EXPECT_NE(static_cast<uint16_t>(sd.received_32bit_lengths[0]), huge_frame_size);
+    EXPECT_NE(static_cast<std::uint16_t>(sd.received_32bit_lengths[0]), huge_frame_size);
     EXPECT_EQ(sd.received_32bit_lengths[0], huge_frame_size);
     EXPECT_EQ(sd.received_full_lengths[0], huge_frame_size);
     EXPECT_EQ(sd.received_frames[0].size(), huge_frame_size);
@@ -609,10 +613,10 @@ TEST_F(RtpPublicTest, HeapBufferOverflowRaw)
 
     // Manually construct a malicious packet.
     // 1 byte ID + 80 bytes Header + 200 bytes Payload
-    const size_t header_size = 80;
-    const size_t payload_size = 200;
-    const size_t total_size = 1 + header_size + payload_size;
-    std::vector<uint8_t> pkt(total_size, 0);
+    const std::size_t header_size = 80;
+    const std::size_t payload_size = 200;
+    const std::size_t total_size = 1 + header_size + payload_size;
+    std::vector<std::uint8_t> pkt(total_size, 0);
 
     // 0: Packet ID
     pkt[0] = RTP_TYPE_VIDEO;
@@ -650,21 +654,21 @@ TEST_F(RtpPublicTest, HeapBufferOverflow)
         nullptr, nullptr, &sd, mock_m_cb);
 
     // Common parameters
-    uint16_t sequnum = 100;
-    uint32_t timestamp = 12345;
-    uint32_t ssrc = 0x11223344;
+    std::uint16_t sequnum = 100;
+    std::uint32_t timestamp = 12345;
+    std::uint32_t ssrc = 0x11223344;
 
     // --- Packet 1: Small allocation ---
     // data_length_full = 10
     // offset_full = 0
     // payload_len = 5
     {
-        uint8_t packet[100];
+        std::uint8_t packet[100];
         std::memset(packet, 0, sizeof(packet));
         packet[0] = RTP_TYPE_VIDEO;  // Tox Packet ID
 
         // RTP Header
-        uint8_t *h = &packet[1];
+        std::uint8_t *h = &packet[1];
         // Byte 0: VE=2 (0x80)
         h[0] = 0x80;
         // Byte 1: PT=0x41
@@ -720,11 +724,11 @@ TEST_F(RtpPublicTest, HeapBufferOverflow)
     // Memcpy to buf->data + 10. Buf was allocated with size 10. Writing 100
     // bytes to offset 10 -> Overflow.
     {
-        uint8_t packet[200];
+        std::uint8_t packet[200];
         std::memset(packet, 0, sizeof(packet));
         packet[0] = RTP_TYPE_VIDEO;
 
-        uint8_t *h = &packet[1];
+        std::uint8_t *h = &packet[1];
         h[0] = 0x80;
         h[1] = 0x41;
         h[2] = (sequnum >> 8) & 0xFF;
@@ -769,15 +773,15 @@ TEST_F(RtpPublicTest, AudioHeapBufferOverflow)
     RTPSession *session = rtp_new(log, RTP_TYPE_AUDIO, mono_time, mock_send_packet, &sd, nullptr,
         nullptr, nullptr, &sd, mock_m_cb);
 
-    uint16_t sequnum = 100;
-    uint32_t timestamp = 12345;
-    uint32_t ssrc = 0x11223344;
+    std::uint16_t sequnum = 100;
+    std::uint32_t timestamp = 12345;
+    std::uint32_t ssrc = 0x11223344;
 
-    uint8_t packet[200];
+    std::uint8_t packet[200];
     std::memset(packet, 0, sizeof(packet));
     packet[0] = RTP_TYPE_AUDIO;
 
-    uint8_t *h = &packet[1];
+    std::uint8_t *h = &packet[1];
     h[0] = 0x80;
     h[1] = 0x40;  // 64 (Audio)
     h[2] = (sequnum >> 8) & 0xFF;
@@ -816,21 +820,21 @@ TEST_F(RtpPublicTest, HeapBufferOverflowMultipartAudio)
     RTPSession *session = rtp_new(log, RTP_TYPE_AUDIO, mono_time, mock_send_packet, &sd, nullptr,
         nullptr, nullptr, &sd, mock_m_cb);
 
-    uint16_t sequnum = 200;
-    uint32_t timestamp = 67890;
-    uint32_t ssrc = 0x55667788;
-    uint16_t total_len = 100;
+    std::uint16_t sequnum = 200;
+    std::uint32_t timestamp = 67890;
+    std::uint32_t ssrc = 0x55667788;
+    std::uint16_t total_len = 100;
 
     // --- Packet 1: Allocate buffer ---
     // data_length_lower = 100
     // offset_lower = 0
     // payload_len = 10
     {
-        uint8_t packet[200];
+        std::uint8_t packet[200];
         std::memset(packet, 0, sizeof(packet));
         packet[0] = RTP_TYPE_AUDIO;
 
-        uint8_t *h = &packet[1];
+        std::uint8_t *h = &packet[1];
         h[0] = 0x80;
         h[1] = 0x40;  // Audio
         h[2] = (sequnum >> 8) & 0xFF;
@@ -865,11 +869,11 @@ TEST_F(RtpPublicTest, HeapBufferOverflowMultipartAudio)
     // Check 2: total (100) > offset (95). Safe.
     // Write: 95 + 10 = 105. Overflow.
     {
-        uint8_t packet[200];
+        std::uint8_t packet[200];
         std::memset(packet, 0, sizeof(packet));
         packet[0] = RTP_TYPE_AUDIO;
 
-        uint8_t *h = &packet[1];
+        std::uint8_t *h = &packet[1];
         h[0] = 0x80;
         h[1] = 0x40;
         h[2] = (sequnum >> 8) & 0xFF;
@@ -905,18 +909,18 @@ TEST_F(RtpPublicTest, HeapBufferOverflowLogRead)
     RTPSession *session = rtp_new(log, RTP_TYPE_VIDEO, mono_time, mock_send_packet, &sd, nullptr,
         nullptr, nullptr, &sd, mock_m_cb);
 
-    uint16_t sequnum = 123;
-    uint32_t timestamp = 99999;
-    uint32_t ssrc = 0x88776655;
+    std::uint16_t sequnum = 123;
+    std::uint32_t timestamp = 99999;
+    std::uint32_t ssrc = 0x88776655;
 
     // Packet with data_length_full = 1.
     // The logger tries to read data[0] and data[1].
     // data[1] will be out of bounds if only 1 byte is allocated.
-    uint8_t packet[100];
+    std::uint8_t packet[100];
     std::memset(packet, 0, sizeof(packet));
     packet[0] = RTP_TYPE_VIDEO;
 
-    uint8_t *h = &packet[1];
+    std::uint8_t *h = &packet[1];
     h[0] = 0x80;
     h[1] = 0x41;  // Video
     h[2] = (sequnum >> 8) & 0xFF;

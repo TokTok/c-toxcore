@@ -6,7 +6,7 @@ void setup_fake_clock(Mono_Time *mono_time, FakeClock &clock)
 {
     mono_time_set_current_time_callback(
         mono_time,
-        [](void *user_data) -> uint64_t {
+        [](void *user_data) -> std::uint64_t {
             return static_cast<FakeClock *>(user_data)->current_time_ms();
         },
         &clock);
