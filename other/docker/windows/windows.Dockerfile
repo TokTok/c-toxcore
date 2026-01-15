@@ -7,6 +7,7 @@ FROM debian:trixie-slim
 ARG VERSION_OPUS=1.4 \
     VERSION_SODIUM=1.0.19 \
     VERSION_VPX=1.14.0 \
+    VERSION_GTEST=1.17.0 \
     ENABLE_HASH_VERIFICATION=true \
  \
     SUPPORT_TEST=false \
@@ -21,14 +22,14 @@ ENV SUPPORT_TEST=${SUPPORT_TEST} \
     CROSS_COMPILE=${CROSS_COMPILE}
 
 WORKDIR /work
-COPY check_sha256.sh .
-COPY get_packages.sh .
+COPY other/docker/windows/check_sha256.sh .
+COPY other/docker/windows/get_packages.sh .
 RUN ./get_packages.sh
 
-COPY build_dependencies.sh .
+COPY other/docker/windows/build_dependencies.sh .
 RUN ./build_dependencies.sh
 
-COPY build_toxcore.sh .
+COPY other/docker/windows/build_toxcore.sh .
 
 ENV ENABLE_TEST=false \
     ALLOW_TEST_FAILURE=false \

@@ -30,6 +30,7 @@ struct TCP_Connections {
     const Random *_Nonnull rng;
     Mono_Time *_Nonnull mono_time;
     const Network *_Nonnull ns;
+    Ev *_Nonnull ev;
     DHT *_Nonnull dht;
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -955,7 +956,8 @@ static int reconnect_tcp_relay_connection(TCP_Connections *_Nonnull tcp_c, int t
     uint8_t relay_pk[CRYPTO_PUBLIC_KEY_SIZE];
     memcpy(relay_pk, tcp_con_public_key(tcp_con->connection), CRYPTO_PUBLIC_KEY_SIZE);
     kill_tcp_connection(tcp_con->connection);
-    tcp_con->connection = new_tcp_connection(tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ip_port, relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info,
+    tcp_con->connection = new_tcp_connection(tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, tcp_c->ev, &ip_port, relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key,
+                          &tcp_c->proxy_info,
                           tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
@@ -1046,7 +1048,7 @@ static int unsleep_tcp_relay_connection(TCP_Connections *_Nonnull tcp_c, int tcp
     }
 
     tcp_con->connection = new_tcp_connection(
-                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &tcp_con->ip_port,
+                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, tcp_c->ev, &tcp_con->ip_port,
                               tcp_con->relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info, tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
@@ -1339,7 +1341,7 @@ static int add_tcp_relay_instance(TCP_Connections *_Nonnull tcp_c, const IP_Port
     TCP_con *tcp_con = &tcp_c->tcp_connections[tcp_connections_number];
 
     tcp_con->connection = new_tcp_connection(
-                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, &ipp_copy,
+                              tcp_c->logger, tcp_c->mem, tcp_c->mono_time, tcp_c->rng, tcp_c->ns, tcp_c->ev, &ipp_copy,
                               relay_pk, tcp_c->self_public_key, tcp_c->self_secret_key, &tcp_c->proxy_info, tcp_c->net_profile);
 
     if (tcp_con->connection == nullptr) {
@@ -1619,13 +1621,14 @@ int set_tcp_onion_status(TCP_Connections *tcp_c, bool status)
  * Returns NULL on failure.
  */
 TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
-                                     Mono_Time *mono_time, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
+                                     Mono_Time *mono_time, Ev *ev, const uint8_t *secret_key, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
     assert(logger != nullptr);
     assert(mem != nullptr);
     assert(rng != nullptr);
     assert(ns != nullptr);
     assert(mono_time != nullptr);
+    assert(ev != nullptr);
 
     if (secret_key == nullptr) {
         return nullptr;
@@ -1643,6 +1646,7 @@ TCP_Connections *new_tcp_connections(const Logger *logger, const Memory *mem, co
     temp->rng = rng;
     temp->mono_time = mono_time;
     temp->ns = ns;
+    temp->ev = ev;
 
     memcpy(temp->self_secret_key, secret_key, CRYPTO_SECRET_KEY_SIZE);
     crypto_derive_public_key(temp->self_public_key, temp->self_secret_key);

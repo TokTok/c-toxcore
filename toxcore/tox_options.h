@@ -311,6 +311,15 @@ struct Tox_Options {
      * @private
      */
     char *owned_proxy_host;
+
+    /**
+     * @brief Timeout in milliseconds for tox_iterate and tox_events_iterate.
+     *
+     * 0: Non-blocking (default).
+     * Positive: Wait up to this many milliseconds for events.
+     * -1: Wait indefinitely.
+     */
+    int32_t experimental_iterate_timeout_ms;
 };
 #endif /* TOX_HIDE_DEPRECATED */
 
@@ -397,6 +406,10 @@ void tox_options_set_experimental_groups_persistence(
 bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
 
 void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experimental_disable_dns);
+
+int32_t tox_options_get_experimental_iterate_timeout_ms(const Tox_Options *options);
+
+void tox_options_set_experimental_iterate_timeout_ms(Tox_Options *options, int32_t experimental_iterate_timeout_ms);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.

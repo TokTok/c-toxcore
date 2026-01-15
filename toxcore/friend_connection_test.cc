@@ -42,9 +42,8 @@ public:
     {
         logger_callback_log(
             dht_wrapper_.logger(),
-            [](void *_Nullable context, Logger_Level level, const char *_Nonnull file,
-                std::uint32_t line, const char *_Nonnull func, const char *_Nonnull message,
-                void *_Nullable userdata) {
+            [](void *_Nullable context, Logger_Level level, const char *_Nonnull file, std::uint32_t line,
+                const char *_Nonnull func, const char *_Nonnull message, void *_Nullable userdata) {
                 fprintf(stderr, "[%d] %s:%u: %s: %s\n", level, file, line, func, message);
             },
             nullptr, nullptr);
@@ -52,36 +51,28 @@ public:
         // Setup NetCrypto
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
-            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(), dht_wrapper_.ev(),
+            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info, net_profile_.get()));
 
         new_keys(net_crypto_.get());
 
         // Setup Onion Client
-        onion_client_.reset(new_onion_client(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            &dht_wrapper_.node().c_random, dht_wrapper_.mono_time(), net_crypto_.get(),
-            dht_wrapper_.get_dht(), dht_wrapper_.networking()));
+        onion_client_.reset(
+            new_onion_client(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_random,
+                dht_wrapper_.mono_time(), net_crypto_.get(), dht_wrapper_.get_dht(), dht_wrapper_.networking()));
 
         // Setup Friend Connections
-        friend_connections_.reset(
-            new_friend_connections(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-                dht_wrapper_.mono_time(), &dht_wrapper_.node().c_network, onion_client_.get(),
-                dht_wrapper_.get_dht(), net_crypto_.get(), dht_wrapper_.networking(), true));
+        friend_connections_.reset(new_friend_connections(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
+            dht_wrapper_.mono_time(), &dht_wrapper_.node().c_network, onion_client_.get(), dht_wrapper_.get_dht(),
+            net_crypto_.get(), dht_wrapper_.networking(), true));
     }
 
-    Friend_Connections *_Nonnull get_friend_connections()
-    {
-        return REQUIRE_NOT_NULL(friend_connections_.get());
-    }
+    Friend_Connections *_Nonnull get_friend_connections() { return REQUIRE_NOT_NULL(friend_connections_.get()); }
     Onion_Client *_Nonnull get_onion_client() { return REQUIRE_NOT_NULL(onion_client_.get()); }
     Net_Crypto *_Nonnull get_net_crypto() { return REQUIRE_NOT_NULL(net_crypto_.get()); }
     DHT *_Nonnull get_dht() { return dht_wrapper_.get_dht(); }
     const std::uint8_t *dht_public_key() const { return dht_wrapper_.dht_public_key(); }
-    const std::uint8_t *real_public_key() const
-    {
-        return nc_get_self_public_key(net_crypto_.get());
-    }
+    const std::uint8_t *real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
     const Random *get_random() { return &dht_wrapper_.node().c_random; }
 
     IP_Port get_ip_port() const { return dht_wrapper_.get_ip_port(); }
@@ -132,8 +123,7 @@ TEST_F(FriendConnectionTest, AddKillConnection)
     EXPECT_NE(conn_id, -1);
 
     // Verify status (should be connecting or none initially, but ID is valid)
-    EXPECT_NE(
-        friend_con_connected(alice.get_friend_connections(), conn_id), FRIENDCONN_STATUS_NONE);
+    EXPECT_NE(friend_con_connected(alice.get_friend_connections(), conn_id), FRIENDCONN_STATUS_NONE);
 
     // Kill Connection
     EXPECT_EQ(kill_friend_connection(alice.get_friend_connections(), conn_id), 0);
@@ -145,8 +135,7 @@ TEST_F(FriendConnectionTest, ConnectTwoNodes)
     FriendConnNode bob(env, 33446);
 
     // Alice adds Bob as friend
-    int alice_conn_id
-        = new_friend_connection(alice.get_friend_connections(), bob.real_public_key());
+    int alice_conn_id = new_friend_connection(alice.get_friend_connections(), bob.real_public_key());
     ASSERT_NE(alice_conn_id, -1);
 
     // Bob adds Alice as friend
@@ -174,10 +163,8 @@ TEST_F(FriendConnectionTest, ConnectTwoNodes)
         bob.poll();
         env.advance_time(10);
 
-        if (friend_con_connected(alice.get_friend_connections(), alice_conn_id)
-                == FRIENDCONN_STATUS_CONNECTED
-            && friend_con_connected(bob.get_friend_connections(), bob_conn_id)
-                == FRIENDCONN_STATUS_CONNECTED) {
+        if (friend_con_connected(alice.get_friend_connections(), alice_conn_id) == FRIENDCONN_STATUS_CONNECTED
+            && friend_con_connected(bob.get_friend_connections(), bob_conn_id) == FRIENDCONN_STATUS_CONNECTED) {
             connected = true;
             break;
         }

@@ -88,8 +88,7 @@ public:
      * @param timeout_ms Maximum time to wait for the tick.
      * @return The new generation ID, or `last_gen` on timeout/stop.
      */
-    uint64_t wait_for_tick(
-        uint64_t last_gen, const std::atomic<bool> &stop_token, uint64_t timeout_ms = 10);
+    uint64_t wait_for_tick(uint64_t last_gen, const std::atomic<bool> &stop_token, uint64_t timeout_ms = 10);
 
     /**
      * @brief Signals that a runner has completed its work for the current tick.

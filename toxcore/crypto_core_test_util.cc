@@ -14,6 +14,13 @@ PublicKey random_pk(const Random *_Nonnull rng)
     return pk;
 }
 
+std::array<std::uint8_t, CRYPTO_SECRET_KEY_SIZE> random_sk(const Random *rng)
+{
+    std::array<std::uint8_t, CRYPTO_SECRET_KEY_SIZE> sk;
+    random_bytes(rng, sk.data(), sk.size());
+    return sk;
+}
+
 std::ostream &operator<<(std::ostream &out, PublicKey const &pk)
 {
     out << '"';

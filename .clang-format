@@ -1,5 +1,5 @@
 BasedOnStyle: WebKit
-ColumnLimit: 100
+ColumnLimit: 120
 PointerAlignment: Right
 SpacesBeforeTrailingComments: 2
 AlignConsecutiveMacros: true

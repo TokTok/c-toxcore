@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# When editing, make sure to update /other/docker/windows/Dockerfile and
+# When editing, make sure to update /other/docker/windows/windows.Dockerfile and
 # INSTALL.md to match.
 
 export VERSION_OPUS="1.4"

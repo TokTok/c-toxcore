@@ -102,6 +102,52 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "ev",
+    srcs = ["ev.c"],
+    hdrs = ["ev.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":net",
+    ],
+)
+
+cc_library(
+    name = "os_event",
+    srcs = ["os_event.c"],
+    hdrs = ["os_event.h"],
+    copts = select({
+        "//tools/config:linux": ["-DEV_USE_EPOLL=1"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":ccompat",
+        ":ev",
+        ":logger",
+        ":mem",
+        ":net",
+        ":os_network",
+    ],
+)
+
+cc_test(
+    name = "ev_test",
+    size = "small",
+    srcs = ["ev_test.cc"],
+    deps = [
+        ":ev",
+        ":net",
+        ":os_event",
+        ":os_memory",
+        ":os_network",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "mem_test",
     size = "small",
@@ -495,6 +541,7 @@ cc_library(
         ":bin_pack",
         ":ccompat",
         ":crypto_core",
+        ":ev",
         ":logger",
         ":mem",
         ":mono_time",
@@ -650,12 +697,14 @@ cc_library(
         ":attributes",
         ":crypto_core",
         ":crypto_core_test_util",
+        ":ev",
         ":logger",
         ":mono_time",
         ":net",
         ":net_crypto",
         ":network",
         ":network_test_util",
+        ":os_event",
         ":rng",
         ":test_util",
         "//c-toxcore/testing/support",
@@ -672,10 +721,12 @@ cc_test(
         ":attributes",
         ":crypto_core",
         ":crypto_core_test_util",
+        ":ev",
         ":logger",
         ":mono_time",
         ":network",
         ":network_test_util",
+        ":os_event",
         ":test_util",
         "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
@@ -751,7 +802,9 @@ cc_fuzz_test(
     srcs = ["forwarding_fuzz_test.cc"],
     corpus = ["//tools/toktok-fuzzer/corpus:forwarding_fuzz_test"],
     deps = [
+        ":ev",
         ":forwarding",
+        ":os_event",
         "//c-toxcore/testing/support",
     ],
 )
@@ -818,6 +871,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":crypto_core",
+        ":ev",
         ":forwarding",
         ":list",
         ":logger",
@@ -905,6 +959,7 @@ cc_test(
         ":mono_time",
         ":net_profile",
         ":network",
+        ":os_event",
         ":os_memory",
         ":rng",
         ":test_util",
@@ -995,9 +1050,11 @@ cc_fuzz_test(
         ":DHT",
         ":TCP_client",
         ":attributes",
+        ":ev",
         ":net_crypto",
         ":net_profile",
         ":network",
+        ":os_event",
         "//c-toxcore/testing/support",
     ],
 )
@@ -1173,10 +1230,12 @@ cc_fuzz_test(
     deps = [
         ":DHT",
         ":attributes",
+        ":ev",
         ":net_crypto",
         ":net_profile",
         ":network",
         ":onion_client",
+        ":os_event",
         ":test_util",
         "//c-toxcore/testing/support",
     ],
@@ -1313,6 +1372,7 @@ cc_library(
         ":ccompat",
         ":crypto_core",
         ":crypto_core_pack",
+        ":ev",
         ":forwarding",
         ":friend_connection",
         ":friend_requests",
@@ -1400,6 +1460,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":crypto_core",
+        ":ev",
         ":friend_requests",
         ":group",
         ":group_moderation",
@@ -1411,6 +1472,7 @@ cc_library(
         ":net_profile",
         ":network",
         ":onion_client",
+        ":os_event",
         ":os_memory",
         ":os_network",
         ":os_random",

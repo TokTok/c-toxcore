@@ -38,6 +38,7 @@ sh_test(
         "-Iexternal/opus/include",
         "-Ihs-tokstyle/include",
     ] + ["$(locations %s)" % f for f in CIMPLE_FILES] + [
+        "-Wno-strict-typedef",
         "+RTS",
         "-N4",
         "-RTS",

@@ -55,6 +55,19 @@
 #define MAX_KEYS_PER_SLOT 4
 #define KEYS_TIMEOUT 600
 
+typedef struct NAT {
+    /* true if currently hole punching */
+    bool        hole_punching;
+    uint32_t    punching_index;
+    uint32_t    tries;
+    uint32_t    punching_index2;
+
+    uint64_t    punching_timestamp;
+    uint64_t    recv_nat_ping_timestamp;
+    uint64_t    nat_ping_id;
+    uint64_t    nat_ping_timestamp;
+} NAT;
+
 typedef struct DHT_Friend_Callback {
     dht_ip_cb *_Nullable ip_callback;
     void *_Nullable data;

@@ -14,6 +14,7 @@
 #include "net_crypto.h"
 #include "net_profile.h"
 #include "network.h"
+#include "os_event.h"
 #include "test_util.hh"
 
 namespace {
@@ -37,13 +38,13 @@ public:
     FuzzDHT(SimulatedEnvironment &env, std::uint16_t port)
         : node_(env.create_node(port))
         , logger_(logger_new(&node_->c_memory), [](Logger *l) { logger_kill(l); })
-        , mono_time_(mono_time_new(
-                         &node_->c_memory,
-                         [](void *ud) -> std::uint64_t {
-                             return static_cast<tox::test::FakeClock *>(ud)->current_time_ms();
-                         },
-                         &env.fake_clock()),
+        , mono_time_(
+              mono_time_new(
+                  &node_->c_memory,
+                  [](void *ud) -> std::uint64_t { return static_cast<tox::test::FakeClock *>(ud)->current_time_ms(); },
+                  &env.fake_clock()),
               [mem = &node_->c_memory](Mono_Time *t) { mono_time_free(mem, t); })
+        , ev_(os_event_new(&node_->c_memory, logger_.get()), ev_kill)
         , networking_(nullptr, [](Networking_Core *n) { kill_networking(n); })
         , dht_(nullptr, [](DHT *d) { kill_dht(d); })
     {
@@ -51,18 +52,19 @@ public:
         ip_init(&ip, true);
         unsigned int error = 0;
         networking_.reset(new_networking_ex(
-            logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
+            logger_.get(), &node_->c_memory, &node_->c_network, ev_.get(), &ip, port, port + 1, &error));
         // In fuzzing we might ignore assert, but setup should succeed
         node_->endpoint = node_->node->get_primary_socket();
 
-        dht_.reset(new_dht(logger_.get(), &node_->c_memory, &node_->c_random, &node_->c_network,
-            mono_time_.get(), networking_.get(), true, true));
+        dht_.reset(new_dht(logger_.get(), &node_->c_memory, &node_->c_random, &node_->c_network, mono_time_.get(),
+            networking_.get(), true, true));
     }
 
     DHT *_Nonnull get_dht() { return REQUIRE_NOT_NULL(dht_.get()); }
     Networking_Core *_Nonnull networking() { return REQUIRE_NOT_NULL(networking_.get()); }
     Mono_Time *_Nonnull mono_time() { return REQUIRE_NOT_NULL(mono_time_.get()); }
     Logger *_Nonnull logger() { return REQUIRE_NOT_NULL(logger_.get()); }
+    Ev *_Nonnull ev() { return REQUIRE_NOT_NULL(ev_.get()); }
     tox::test::ScopedToxSystem &node() { return *node_; }
     FakeUdpSocket *_Nullable endpoint() { return node_->endpoint; }
 
@@ -72,6 +74,7 @@ private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
     std::unique_ptr<Logger, void (*)(Logger *)> logger_;
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time_;
+    std::unique_ptr<Ev, void (*)(Ev *)> ev_;
     std::unique_ptr<Networking_Core, void (*)(Networking_Core *)> networking_;
     std::unique_ptr<DHT, void (*)(DHT *)> dht_;
 };
@@ -95,13 +98,12 @@ public:
         , onion_client_(nullptr, [](Onion_Client *c) { kill_onion_client(c); })
     {
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
-        net_crypto_.reset(new_net_crypto(dht_.logger(), &dht_.node().c_memory,
-            &dht_.node().c_random, &dht_.node().c_network, dht_.mono_time(), dht_.networking(),
-            dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get()));
+        net_crypto_.reset(new_net_crypto(dht_.logger(), &dht_.node().c_memory, &dht_.node().c_random,
+            &dht_.node().c_network, dht_.mono_time(), dht_.ev(), dht_.networking(), dht_.get_dht(), &FuzzDHT::funcs,
+            &proxy_info, net_profile_.get()));
 
-        onion_client_.reset(
-            new_onion_client(dht_.logger(), &dht_.node().c_memory, &dht_.node().c_random,
-                dht_.mono_time(), net_crypto_.get(), dht_.get_dht(), dht_.networking()));
+        onion_client_.reset(new_onion_client(dht_.logger(), &dht_.node().c_memory, &dht_.node().c_random,
+            dht_.mono_time(), net_crypto_.get(), dht_.get_dht(), dht_.networking()));
 
         // Register a handler for onion data to verify reception
         oniondata_registerhandler(
@@ -248,8 +250,8 @@ private:
                 plaintext = {1, 2, 3};  // fallback
 
             std::vector<std::uint8_t> ciphertext(plaintext.size() + CRYPTO_MAC_SIZE);
-            int len = encrypt_data_symmetric(&dht_.node().c_memory, secret_key, nonce,
-                plaintext.data(), plaintext.size(), ciphertext.data());
+            int len = encrypt_data_symmetric(
+                &dht_.node().c_memory, secret_key, nonce, plaintext.data(), plaintext.size(), ciphertext.data());
 
             if (len != -1) {
                 packet.push_back(NET_PACKET_ANNOUNCE_RESPONSE);
@@ -278,25 +280,23 @@ private:
             inner_data.insert(inner_data.end(), rand_data.begin(), rand_data.end());
 
             std::vector<std::uint8_t> inner_ciphertext(inner_data.size() + CRYPTO_MAC_SIZE);
-            int len = encrypt_data(&dht_.node().c_memory, dht_get_self_public_key(dht_.get_dht()),
-                keys.second.data(), nonce, inner_data.data(), inner_data.size(),
-                inner_ciphertext.data());
+            int len = encrypt_data(&dht_.node().c_memory, dht_get_self_public_key(dht_.get_dht()), keys.second.data(),
+                nonce, inner_data.data(), inner_data.size(), inner_ciphertext.data());
             if (len == -1)
                 return;
 
             // Outer packet content: Sender Real PK + Inner Ciphertext
-            std::vector<std::uint8_t> outer_plaintext(
-                CRYPTO_PUBLIC_KEY_SIZE + inner_ciphertext.size());
+            std::vector<std::uint8_t> outer_plaintext(CRYPTO_PUBLIC_KEY_SIZE + inner_ciphertext.size());
             std::memcpy(outer_plaintext.data(), keys.first.data(), CRYPTO_PUBLIC_KEY_SIZE);
-            std::memcpy(outer_plaintext.data() + CRYPTO_PUBLIC_KEY_SIZE, inner_ciphertext.data(),
-                inner_ciphertext.size());
+            std::memcpy(
+                outer_plaintext.data() + CRYPTO_PUBLIC_KEY_SIZE, inner_ciphertext.data(), inner_ciphertext.size());
 
             std::uint8_t receiver_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
             onion_testonly_get_temp_public_key(onion_client_.get(), receiver_temp_pk);
 
             std::vector<std::uint8_t> outer_ciphertext(outer_plaintext.size() + CRYPTO_MAC_SIZE);
-            len = encrypt_data(&dht_.node().c_memory, receiver_temp_pk, sender_temp_sk, nonce,
-                outer_plaintext.data(), outer_plaintext.size(), outer_ciphertext.data());
+            len = encrypt_data(&dht_.node().c_memory, receiver_temp_pk, sender_temp_sk, nonce, outer_plaintext.data(),
+                outer_plaintext.size(), outer_ciphertext.data());
             if (len == -1)
                 return;
 
@@ -360,13 +360,11 @@ private:
     {
         if (friends_.empty())
             return;
-        int friend_num
-            = friends_[input.consume_integral_in_range<std::size_t>(0, friends_.size() - 1)];
+        int friend_num = friends_[input.consume_integral_in_range<std::size_t>(0, friends_.size() - 1)];
         // Just setting a dummy callback
         recv_tcp_relay_handler(
             onion_client_.get(), friend_num,
-            [](void *, std::uint32_t, const IP_Port *, const std::uint8_t *) { return 0; }, this,
-            0);
+            [](void *, std::uint32_t, const IP_Port *, const std::uint8_t *) { return 0; }, this, 0);
     }
 
     SimulatedEnvironment &env_;

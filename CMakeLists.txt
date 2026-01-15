@@ -29,7 +29,8 @@ endif()
 
 set_source_files_properties(
   toxcore/mono_time.c
-  toxcore/network.c
+  toxcore/os_event.c
+  toxcore/os_network.c
   toxcore/tox.c
   toxcore/util.c
   PROPERTIES SKIP_UNITY_BUILD_INCLUSION TRUE)
@@ -233,6 +234,8 @@ set(toxcore_SOURCES
   toxcore/crypto_core_pack.h
   toxcore/DHT.c
   toxcore/DHT.h
+  toxcore/ev.c
+  toxcore/ev.h
   toxcore/events/conference_connected.c
   toxcore/events/conference_invite.c
   toxcore/events/conference_message.c
@@ -324,6 +327,8 @@ set(toxcore_SOURCES
   toxcore/onion_client.c
   toxcore/onion_client.h
   toxcore/onion.h
+  toxcore/os_event.c
+  toxcore/os_event.h
   toxcore/os_memory.c
   toxcore/os_memory.h
   toxcore/os_network.c
@@ -571,6 +576,9 @@ function(unit_test subdir target)
   elseif(TARGET Threads::Threads)
     target_link_libraries(unit_${target}_test PRIVATE Threads::Threads)
   endif()
+  if(WIN32)
+    target_link_libraries(unit_${target}_test PRIVATE ws2_32)
+  endif()
   target_link_libraries(unit_${target}_test PRIVATE GTest::gtest GTest::gtest_main GTest::gmock)
   set_target_properties(unit_${target}_test PROPERTIES COMPILE_FLAGS "${TEST_CXX_FLAGS}")
   add_test(NAME ${target} COMMAND unit_${target}_test)
@@ -604,6 +612,7 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore DHT)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)
+  unit_test(toxcore ev)
   unit_test(toxcore group_announce)
   unit_test(toxcore group_moderation)
   unit_test(toxcore list)

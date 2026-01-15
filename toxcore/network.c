@@ -123,6 +123,7 @@ typedef struct Packet_Handler {
 struct Networking_Core {
     const Logger *_Nonnull log;
     const Memory *_Nonnull mem;
+    Ev *_Nonnull ev;
     Packet_Handler packethandlers[256];
     const Network *_Nonnull ns;
 
@@ -295,7 +296,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
 Networking_Core *new_networking_ex(
-    const Logger *log, const Memory *mem, const Network *ns, const IP *ip,
+    const Logger *log, const Memory *mem, const Network *ns, Ev *ev, const IP *ip,
     uint16_t port_from, uint16_t port_to, unsigned int *error)
 {
     /* If both from and to are 0, use default port range
@@ -342,6 +343,7 @@ Networking_Core *new_networking_ex(
     temp->ns = ns;
     temp->log = log;
     temp->mem = mem;
+    temp->ev = ev;
     temp->family = ip->family;
     temp->port = 0;
 
@@ -471,6 +473,8 @@ Networking_Core *new_networking_ex(
                 *error = 0;
             }
 
+            ev_add(ev, temp->sock, EV_READ, temp);
+
             return temp;
         }
 
@@ -497,7 +501,7 @@ Networking_Core *new_networking_ex(
     return nullptr;
 }
 
-Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns)
+Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns, Ev *ev)
 {
     /* this is the easiest way to completely disable UDP without changing too much code. */
     Networking_Core *net = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
@@ -509,6 +513,7 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
     net->ns = ns;
     net->log = log;
     net->mem = mem;
+    net->ev = ev;
 
     return net;
 }
@@ -522,6 +527,7 @@ void kill_networking(Networking_Core *net)
 
     if (!net_family_is_unspec(net->family)) {
         /* Socket is initialized, so we close it. */
+        ev_del(net->ev, net->sock);
         kill_sock(net->ns, net->sock);
     }
 

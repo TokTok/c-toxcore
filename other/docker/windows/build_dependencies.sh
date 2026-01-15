@@ -114,6 +114,21 @@ build() {
   make install
   cd ..
 
+  echo
+  echo "=== Building GTest $VERSION_GTEST $ARCH ==="
+  curl "${CURL_OPTIONS[@]}" "https://github.com/google/googletest/archive/refs/tags/v$VERSION_GTEST.tar.gz" -o "googletest-$VERSION_GTEST.tar.gz"
+  check_sha256 "65fab701d9829d38cb77c14acdc431d2108bfdbf8979e40eb8ae567edf10b27c" "googletest-$VERSION_GTEST.tar.gz"
+  tar -xf "googletest-$VERSION_GTEST.tar.gz"
+  cd "googletest-$VERSION_GTEST"
+  cmake \
+    -DCMAKE_TOOLCHAIN_FILE=../windows_toolchain.cmake \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX_DIR" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DBUILD_SHARED_LIBS=OFF \
+    -S . -B build
+  cmake --build build --target install --parallel "$(nproc)"
+  cd ..
+
   rm -rf /tmp/*
 }
 

@@ -66,6 +66,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/crypto_core.h \
                         ../toxcore/DHT.c \
                         ../toxcore/DHT.h \
+                        ../toxcore/ev.c \
+                        ../toxcore/ev.h \
                         ../toxcore/forwarding.c \
                         ../toxcore/forwarding.h \
                         ../toxcore/friend_connection.c \
@@ -115,6 +117,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion.c \
                         ../toxcore/onion.h \
+                        ../toxcore/os_event.c \
+                        ../toxcore/os_event.h \
                         ../toxcore/os_memory.c \
                         ../toxcore/os_memory.h \
                         ../toxcore/os_network.c \

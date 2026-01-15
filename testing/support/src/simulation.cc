@@ -5,6 +5,8 @@
 #include <iostream>
 #include <thread>
 
+#include "../../../toxcore/os_event.h"
+
 namespace tox::test {
 
 // --- Simulation ---
@@ -73,8 +75,7 @@ void Simulation::run_until(std::function<bool()> condition, uint64_t timeout_ms)
     }
 }
 
-Simulation::TickListenerId Simulation::register_tick_listener(
-    std::function<void(uint64_t)> listener)
+Simulation::TickListenerId Simulation::register_tick_listener(std::function<void(uint64_t)> listener)
 {
     std::lock_guard<std::mutex> lock(barrier_mutex_);
     TickListenerId id = next_listener_id_++;
@@ -114,13 +115,12 @@ void Simulation::unregister_runner()
     }
 }
 
-uint64_t Simulation::wait_for_tick(
-    uint64_t last_gen, const std::atomic<bool> &stop_token, uint64_t timeout_ms)
+uint64_t Simulation::wait_for_tick(uint64_t last_gen, const std::atomic<bool> &stop_token, uint64_t timeout_ms)
 {
     std::unique_lock<std::mutex> lock(barrier_mutex_);
     // Wait until generation increases (new tick started) OR we are stopped OR timeout
-    bool result = barrier_cv_.wait_for(lock, std::chrono::milliseconds(timeout_ms),
-        [&] { return current_generation_ > last_gen || stop_token; });
+    bool result = barrier_cv_.wait_for(
+        lock, std::chrono::milliseconds(timeout_ms), [&] { return current_generation_ > last_gen || stop_token; });
 
     if (stop_token)
         return last_gen;
@@ -133,8 +133,7 @@ void Simulation::tick_complete(uint32_t next_delay_ms)
 {
     // Atomic min reduction
     uint32_t current = next_step_min_.load(std::memory_order_relaxed);
-    while (
-        next_delay_ms < current && !next_step_min_.compare_exchange_weak(current, next_delay_ms)) {
+    while (next_delay_ms < current && !next_step_min_.compare_exchange_weak(current, next_delay_ms)) {
         // If exchange failed, current was updated to actual value, so loop checks again
     }
 
@@ -151,9 +150,8 @@ std::unique_ptr<SimulatedNode> Simulation::create_node()
     auto node = std::make_unique<SimulatedNode>(*this, ++node_count_);
     if (net_->is_verbose()) {
         uint32_t ip4 = net_ntohl(node->ip.ip.v4.uint32);
-        std::cerr << "[Simulation] Created node " << node_count_ << " with IP "
-                  << ((ip4 >> 24) & 0xFF) << "." << ((ip4 >> 16) & 0xFF) << "."
-                  << ((ip4 >> 8) & 0xFF) << "." << (ip4 & 0xFF) << std::endl;
+        std::cerr << "[Simulation] Created node " << node_count_ << " with IP " << ((ip4 >> 24) & 0xFF) << "."
+                  << ((ip4 >> 16) & 0xFF) << "." << ((ip4 >> 8) & 0xFF) << "." << (ip4 & 0xFF) << std::endl;
     }
     return node;
 }
@@ -181,8 +179,7 @@ MemorySystem &SimulatedNode::memory() { return *memory_; }
 
 SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable options)
 {
-    std::unique_ptr<Tox_Options, decltype(&tox_options_free)> default_options(
-        nullptr, tox_options_free);
+    std::unique_ptr<Tox_Options, decltype(&tox_options_free)> default_options(nullptr, tox_options_free);
 
     if (options == nullptr) {
         default_options.reset(tox_options_new(nullptr));
@@ -198,9 +195,9 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
     system.ns = &c_network;
     system.rng = &c_random;
     system.mem = &c_memory;
-    system.mono_time_callback = [](void *_Nullable user_data) -> uint64_t {
-        return static_cast<FakeClock *>(user_data)->current_time_ms();
-    };
+    system.ev = os_event_new(&c_memory, nullptr);
+    system.mono_time_callback
+        = [](void *_Nullable user_data) -> uint64_t { return static_cast<FakeClock *>(user_data)->current_time_ms(); };
     system.mono_time_user_data = &sim_.clock();
 
     opts_testing.operating_system = &system;
@@ -211,8 +208,7 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
     Tox *t = tox_new_testing(options, &err, &opts_testing, &err_testing);
 
     if (!t) {
-        std::cerr << "tox_new_testing failed: " << err << " (testing err: " << err_testing << ")"
-                  << std::endl;
+        std::cerr << "tox_new_testing failed: " << err << " (testing err: " << err_testing << ")" << std::endl;
         return nullptr;
     }
     return ToxPtr(t);

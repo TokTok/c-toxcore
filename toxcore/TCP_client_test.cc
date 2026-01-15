@@ -1,6 +1,7 @@
 // clang-format off
 #include "../testing/support/public/simulated_environment.hh"
 #include "TCP_client.h"
+#include "os_event.h"
 // clang-format on
 
 #include <gtest/gtest.h>
@@ -40,19 +41,15 @@ protected:
         return mt;
     }
 
-    static void log_cb(void *_Nullable context, Logger_Level level, const char *_Nonnull file,
-        std::uint32_t line, const char *_Nonnull func, const char *_Nonnull message,
-        void *_Nullable userdata)
+    static void log_cb(void *_Nullable context, Logger_Level level, const char *_Nonnull file, std::uint32_t line,
+        const char *_Nonnull func, const char *_Nonnull message, void *_Nullable userdata)
     {
         if (level > LOGGER_LEVEL_TRACE) {
             fprintf(stderr, "[%d] %s:%u %s: %s\n", level, file, line, func, message);
         }
     }
 
-    static void net_profile_deleter(Net_Profile *_Nullable p, const Memory *_Nonnull mem)
-    {
-        netprof_kill(mem, p);
-    }
+    static void net_profile_deleter(Net_Profile *_Nullable p, const Memory *_Nonnull mem) { netprof_kill(mem, p); }
 };
 
 TEST_F(TCPClientTest, ConnectsToRelay)
@@ -68,8 +65,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
     Mono_Time *client_time = create_mono_time(&client_node->c_memory);
 
     // 1. Setup Server Socket
-    Socket server_sock
-        = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    Socket server_sock = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
     ASSERT_TRUE(sock_valid(server_sock));
     ASSERT_TRUE(set_socket_nonblock(&server_node->c_network, server_sock));
     ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, net_family_ipv4(), 33445));
@@ -86,15 +82,16 @@ TEST_F(TCPClientTest, ConnectsToRelay)
     crypto_new_keypair(&client_node->c_random, client_pk, client_sk);
 
     Net_Profile *client_profile = netprof_new(client_log, &client_node->c_memory);
+    Ev *client_ev = os_event_new(&client_node->c_memory, client_log);
 
     // 2. Client connects to Server
     IP_Port server_ip_port;
     server_ip_port.ip = server_node->node->ip;
     server_ip_port.port = net_htons(33445);
 
-    TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,
-        client_time, &client_node->c_random, &client_node->c_network, &server_ip_port, server_pk,
-        client_pk, client_sk, nullptr, client_profile);
+    TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory, client_time,
+        &client_node->c_random, &client_node->c_network, client_ev, &server_ip_port, server_pk, client_pk, client_sk,
+        nullptr, client_profile);
     ASSERT_NE(client_conn, nullptr);
 
     // 3. Simulation Loop
@@ -119,8 +116,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
         if (sock_valid(accepted_sock)) {
             std::uint8_t buf[TCP_CLIENT_HANDSHAKE_SIZE];
             IP_Port remote = {{{0}}};
-            int len = net_recv(
-                &server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
+            int len = net_recv(&server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
 
             if (len > 0) {
                 fprintf(stderr, "Server received %d bytes\n", len);
@@ -136,13 +132,10 @@ TEST_F(TCPClientTest, ConnectsToRelay)
 
                 std::uint8_t plain[TCP_HANDSHAKE_PLAIN_SIZE];
                 const std::uint8_t *nonce_ptr = buf + CRYPTO_PUBLIC_KEY_SIZE;
-                const std::uint8_t *ciphertext_ptr
-                    = buf + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE;
+                const std::uint8_t *ciphertext_ptr = buf + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE;
 
-                int res = decrypt_data_symmetric(&server_node->c_memory, shared_key, nonce_ptr,
-                    ciphertext_ptr,
-                    TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
-                    plain);
+                int res = decrypt_data_symmetric(&server_node->c_memory, shared_key, nonce_ptr, ciphertext_ptr,
+                    TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE), plain);
 
                 if (res != TCP_HANDSHAKE_PLAIN_SIZE) {
                     fprintf(stderr, "Decryption failed: res=%d\n", res);
@@ -173,8 +166,8 @@ TEST_F(TCPClientTest, ConnectsToRelay)
                         response + CRYPTO_NONCE_SIZE  // dest
                     );
 
-                    net_send(&server_node->c_network, server_log, accepted_sock, response,
-                        sizeof(response), &remote, nullptr);
+                    net_send(&server_node->c_network, server_log, accepted_sock, response, sizeof(response), &remote,
+                        nullptr);
                 }
             }
         }
@@ -189,6 +182,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
 
     // Cleanup
     kill_tcp_connection(client_conn);
+    ev_kill(client_ev);
     net_profile_deleter(client_profile, &client_node->c_memory);
     kill_sock(&server_node->c_network, server_sock);
     if (sock_valid(accepted_sock))
@@ -211,8 +205,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
 
     Mono_Time *client_time = create_mono_time(&client_node->c_memory);
 
-    Socket server_sock
-        = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    Socket server_sock = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
     ASSERT_TRUE(sock_valid(server_sock));
     ASSERT_TRUE(set_socket_nonblock(&server_node->c_network, server_sock));
     ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, net_family_ipv4(), 33446));
@@ -227,14 +220,15 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
     crypto_new_keypair(&client_node->c_random, client_pk, client_sk);
 
     Net_Profile *client_profile = netprof_new(client_log, &client_node->c_memory);
+    Ev *client_ev = os_event_new(&client_node->c_memory, client_log);
 
     IP_Port server_ip_port;
     server_ip_port.ip = server_node->node->ip;
     server_ip_port.port = net_htons(33446);
 
-    TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,
-        client_time, &client_node->c_random, &client_node->c_network, &server_ip_port, server_pk,
-        client_pk, client_sk, nullptr, client_profile);
+    TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory, client_time,
+        &client_node->c_random, &client_node->c_network, client_ev, &server_ip_port, server_pk, client_pk, client_sk,
+        nullptr, client_profile);
     ASSERT_NE(client_conn, nullptr);
 
     bool connected = false;
@@ -251,13 +245,12 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
         std::uint16_t c_length = net_htons(length + CRYPTO_MAC_SIZE);
         std::memcpy(packet.data(), &c_length, sizeof(std::uint16_t));
 
-        encrypt_data_symmetric(&server_node->c_memory, shared_key, sent_nonce, data, length,
-            packet.data() + sizeof(std::uint16_t));
+        encrypt_data_symmetric(
+            &server_node->c_memory, shared_key, sent_nonce, data, length, packet.data() + sizeof(std::uint16_t));
         increment_nonce(sent_nonce);
 
         IP_Port remote = {{{0}}};
-        net_send(&server_node->c_network, server_log, accepted_sock, packet.data(), packet_size,
-            &remote, nullptr);
+        net_send(&server_node->c_network, server_log, accepted_sock, packet.data(), packet_size, &remote, nullptr);
     };
 
     while (env.clock().current_time_ms() - start_time < 5000) {
@@ -274,17 +267,14 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
         if (sock_valid(accepted_sock) && !connected) {
             std::uint8_t buf[TCP_CLIENT_HANDSHAKE_SIZE];
             IP_Port remote = {{{0}}};
-            int len = net_recv(
-                &server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
+            int len = net_recv(&server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
 
             if (len == TCP_CLIENT_HANDSHAKE_SIZE) {
                 encrypt_precompute(client_pk, server_sk, shared_key);
                 std::uint8_t plain[TCP_HANDSHAKE_PLAIN_SIZE];
-                if (decrypt_data_symmetric(&server_node->c_memory, shared_key,
-                        buf + CRYPTO_PUBLIC_KEY_SIZE,
+                if (decrypt_data_symmetric(&server_node->c_memory, shared_key, buf + CRYPTO_PUBLIC_KEY_SIZE,
                         buf + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE,
-                        TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE),
-                        plain)
+                        TCP_CLIENT_HANDSHAKE_SIZE - (CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE), plain)
                     == TCP_HANDSHAKE_PLAIN_SIZE) {
                     std::memcpy(recv_nonce, plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
 
@@ -305,10 +295,10 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
 
                     std::uint8_t response[TCP_SERVER_HANDSHAKE_SIZE];
                     std::memcpy(response, resp_nonce, CRYPTO_NONCE_SIZE);
-                    encrypt_data_symmetric(&server_node->c_memory, shared_key, resp_nonce,
-                        resp_plain, TCP_HANDSHAKE_PLAIN_SIZE, response + CRYPTO_NONCE_SIZE);
-                    net_send(&server_node->c_network, server_log, accepted_sock, response,
-                        sizeof(response), &remote, nullptr);
+                    encrypt_data_symmetric(&server_node->c_memory, shared_key, resp_nonce, resp_plain,
+                        TCP_HANDSHAKE_PLAIN_SIZE, response + CRYPTO_NONCE_SIZE);
+                    net_send(&server_node->c_network, server_log, accepted_sock, response, sizeof(response), &remote,
+                        nullptr);
 
                     // FIX: Update shared key using Client's Ephemeral PK and Server's Ephemeral SK
                     encrypt_precompute(plain, temp_sk, shared_key);
@@ -362,6 +352,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
 
     // Cleanup
     kill_tcp_connection(client_conn);
+    ev_kill(client_ev);
     net_profile_deleter(client_profile, &client_node->c_memory);
     kill_sock(&server_node->c_network, server_sock);
     if (sock_valid(accepted_sock))

@@ -32,6 +32,7 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "os_event.h"
 #include "state.h"
 #include "tox_log_level.h"
 #include "tox_options.h"
@@ -778,10 +779,26 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
     }
 
     tox->sys = *sys;
+    tox->experimental_iterate_timeout_ms = tox_options_get_experimental_iterate_timeout_ms(opts);
+
+    if (sys->ev != nullptr) {
+        tox->ev = sys->ev;
+    } else {
+        tox->ev = os_event_new(mem, tox->log);
+    }
+
+    if (tox->ev == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        logger_kill(tox->log);
+        mem_delete(mem, tox);
+        tox_options_free(default_options);
+        return nullptr;
+    }
 
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -801,6 +818,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
                 || !addr_resolve_or_parse_ip(ns, mem, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr, dns_enabled)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -814,6 +832,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
 
     if (temp_mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -827,6 +846,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
             mono_time_free(mem, tox->mono_time);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -840,6 +860,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         tox->mutex = nullptr;
     }
 
+    m_options.ev = tox->ev;
     tox_lock(tox);
 
     Messenger_Error m_error;
@@ -867,6 +888,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -887,6 +909,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -908,6 +931,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -1012,6 +1036,7 @@ void tox_kill(Tox *tox)
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     logger_kill(tox->log);
+    ev_kill(tox->ev);
     mono_time_free(tox->sys.mem, tox->mono_time);
     tox_unlock(tox);
 
@@ -1235,6 +1260,16 @@ void tox_iterate(Tox *tox, void *user_data)
 {
     assert(tox != nullptr);
     tox_lock(tox);
+
+    if (tox->experimental_iterate_timeout_ms != 0) {
+        Ev_Result results[32];
+        const int32_t n = ev_run(tox->ev, results, 32, tox->experimental_iterate_timeout_ms);
+
+        if (n > 0) {
+            /* Events occurred, but do_messenger will poll all sockets anyway. */
+            // TODO(iphydf): Optimize do_messenger to only process ready sockets.
+        }
+    }
 
     mono_time_update(tox->mono_time);
 

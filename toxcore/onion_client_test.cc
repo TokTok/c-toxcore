@@ -46,24 +46,22 @@ public:
         // Setup NetCrypto
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
-            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(), dht_wrapper_.ev(),
+            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info, net_profile_.get()));
 
         // Setup Onion Client
-        onion_client_.reset(new_onion_client(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            &dht_wrapper_.node().c_random, dht_wrapper_.mono_time(), net_crypto_.get(),
-            dht_wrapper_.get_dht(), dht_wrapper_.networking()));
+        onion_client_.reset(
+            new_onion_client(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_random,
+                dht_wrapper_.mono_time(), net_crypto_.get(), dht_wrapper_.get_dht(), dht_wrapper_.networking()));
 
         // Setup Onion Server
-        onion_server_.reset(new_onion(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            dht_wrapper_.mono_time(), &dht_wrapper_.node().c_random, dht_wrapper_.get_dht(),
-            dht_wrapper_.networking()));
+        onion_server_.reset(new_onion(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory, dht_wrapper_.mono_time(),
+            &dht_wrapper_.node().c_random, dht_wrapper_.get_dht(), dht_wrapper_.networking()));
 
         // Setup Onion Announce
-        onion_announce_.reset(new_onion_announce(dht_wrapper_.logger(),
-            &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_random, dht_wrapper_.mono_time(),
-            dht_wrapper_.get_dht(), dht_wrapper_.networking()));
+        onion_announce_.reset(
+            new_onion_announce(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_random,
+                dht_wrapper_.mono_time(), dht_wrapper_.get_dht(), dht_wrapper_.networking()));
     }
 
     Onion_Client *_Nonnull get_onion_client() { return REQUIRE_NOT_NULL(onion_client_.get()); }
@@ -71,19 +69,13 @@ public:
     DHT *_Nonnull get_dht() { return dht_wrapper_.get_dht(); }
     Logger *_Nonnull get_logger() { return dht_wrapper_.logger(); }
     const std::uint8_t *_Nonnull dht_public_key() const { return dht_wrapper_.dht_public_key(); }
-    const std::uint8_t *_Nonnull real_public_key() const
-    {
-        return nc_get_self_public_key(net_crypto_.get());
-    }
+    const std::uint8_t *_Nonnull real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
     const std::uint8_t *_Nonnull dht_secret_key() const { return dht_wrapper_.dht_secret_key(); }
     const Random *_Nonnull get_random() { return &dht_wrapper_.node().c_random; }
 
     IP_Port get_ip_port() const { return dht_wrapper_.get_ip_port(); }
     tox::test::ScopedToxSystem &node() { return dht_wrapper_.node(); }
-    Onion_Announce *_Nonnull get_onion_announce()
-    {
-        return REQUIRE_NOT_NULL(onion_announce_.get());
-    }
+    Onion_Announce *_Nonnull get_onion_announce() { return REQUIRE_NOT_NULL(onion_announce_.get()); }
 
     void poll(bool poll_onion = true)
     {
@@ -111,8 +103,8 @@ using OnionNode = OnionTestNode<WrappedDHT>;
 
 class OnionClientTest : public ::testing::Test {
 public:
-    static void print_log(void *context, Logger_Level level, const char *file, std::uint32_t line,
-        const char *func, const char *message, void *userdata)
+    static void print_log(void *context, Logger_Level level, const char *file, std::uint32_t line, const char *func,
+        const char *message, void *userdata)
     {
         if (level == LOGGER_LEVEL_TRACE)
             return;
@@ -176,8 +168,7 @@ TEST_F(OnionClientTest, FriendStatus)
     EXPECT_EQ(onion_set_friend_dht_pubkey(alice.get_onion_client(), friend_num, dht_key), 0);
 
     std::uint32_t lock_token;
-    EXPECT_EQ(
-        dht_addfriend(alice.get_dht(), dht_key, nullptr, nullptr, friend_num, &lock_token), 0);
+    EXPECT_EQ(dht_addfriend(alice.get_dht(), dht_key, nullptr, nullptr, friend_num, &lock_token), 0);
 
     // Set Online
     EXPECT_EQ(onion_set_friend_online(alice.get_onion_client(), friend_num, true), 0);
@@ -372,8 +363,7 @@ TEST_F(OnionClientTest, OOBReadInHandleAnnounceResponse)
         std::size_t req_enc_len = req_len - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
 
         std::vector<std::uint8_t> req_plain(req_enc_len - CRYPTO_MAC_SIZE);
-        int plen = decrypt_data(
-            mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
+        int plen = decrypt_data(mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
 
         if (plen <= 0)
             return;
@@ -431,8 +421,7 @@ TEST_F(OnionClientTest, OOBReadInHandleAnnounceResponse)
     // IF the vulnerability is present, the code accepts the packet and updates last_packet_recv.
     // We want the test to FAIL if vulnerability is present.
     // So we Assert that the packet was NOT accepted.
-    EXPECT_EQ(initial_recv_time, final_recv_time)
-        << "Vulnerability Present: Malformed packet was accepted!";
+    EXPECT_EQ(initial_recv_time, final_recv_time) << "Vulnerability Present: Malformed packet was accepted!";
 }
 
 TEST_F(OnionClientTest, DISABLED_IntegerOverflowNumFriends)
@@ -566,8 +555,7 @@ TEST_F(OnionClientTest, OnionAnnounceResponse_TooShort)
         std::size_t req_enc_len = req_len - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
 
         std::vector<std::uint8_t> req_plain(req_enc_len - CRYPTO_MAC_SIZE);
-        int plen = decrypt_data(
-            mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
+        int plen = decrypt_data(mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
 
         if (plen <= 0)
             return;
@@ -591,8 +579,7 @@ TEST_F(OnionClientTest, OnionAnnounceResponse_TooShort)
         std::vector<std::uint8_t> payload(33, 0);
 
         std::vector<std::uint8_t> ciphertext(payload.size() + CRYPTO_MAC_SIZE);
-        encrypt_data(
-            mem, alice_pk, bob_sk, resp_nonce, payload.data(), payload.size(), ciphertext.data());
+        encrypt_data(mem, alice_pk, bob_sk, resp_nonce, payload.data(), payload.size(), ciphertext.data());
 
         resp.insert(resp.end(), ciphertext.begin(), ciphertext.end());
 
@@ -647,58 +634,50 @@ TEST_F(OnionClientTest, SharedKeyCacheUseAfterFreeRegression)
     int total_decryption_failures = 0;
     std::set<std::vector<std::uint8_t>> seen_announcements;
 
-    auto observer
-        = [&](OnionNode *node, const std::vector<std::uint8_t> &data, const IP_Port &from) {
-              if (data.empty())
-                  return;
-              // If it's an onion packet, it will be handled by Onion server.
-              // We want to catch the final hop announce request.
-              if (data[0] == 0x83 || data[0] == 0x87) {
-                  // An announce request has 57 bytes of header and 120 bytes of ciphertext.
-                  // There's also RETURN_3 appended, but we don't need it for decryption.
-                  const std::size_t kHeaderSize = 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
-                  const std::size_t kCiphertextSize = 120;
+    auto observer = [&](OnionNode *node, const std::vector<std::uint8_t> &data, const IP_Port &from) {
+        if (data.empty())
+            return;
+        // If it's an onion packet, it will be handled by Onion server.
+        // We want to catch the final hop announce request.
+        if (data[0] == 0x83 || data[0] == 0x87) {
+            // An announce request has 57 bytes of header and 120 bytes of ciphertext.
+            // There's also RETURN_3 appended, but we don't need it for decryption.
+            const std::size_t kHeaderSize = 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+            const std::size_t kCiphertextSize = 120;
 
-                  if (data.size() < kHeaderSize + kCiphertextSize)
-                      return;
+            if (data.size() < kHeaderSize + kCiphertextSize)
+                return;
 
-                  const std::uint8_t *nonce = data.data() + 1;
-                  const std::uint8_t *sender_pk = data.data() + 1 + CRYPTO_NONCE_SIZE;
-                  const std::uint8_t *ciphertext = sender_pk + CRYPTO_PUBLIC_KEY_SIZE;
+            const std::uint8_t *nonce = data.data() + 1;
+            const std::uint8_t *sender_pk = data.data() + 1 + CRYPTO_NONCE_SIZE;
+            const std::uint8_t *ciphertext = sender_pk + CRYPTO_PUBLIC_KEY_SIZE;
 
-                  std::vector<std::uint8_t> plain(kCiphertextSize - CRYPTO_MAC_SIZE);
-                  int plen = decrypt_data(mem, sender_pk, node->dht_secret_key(), nonce, ciphertext,
-                      kCiphertextSize, plain.data());
+            std::vector<std::uint8_t> plain(kCiphertextSize - CRYPTO_MAC_SIZE);
+            int plen = decrypt_data(
+                mem, sender_pk, node->dht_secret_key(), nonce, ciphertext, kCiphertextSize, plain.data());
 
-                  if (plen > 0) {
-                      // The real PK (client_id) is in the payload at offset ONION_PING_ID_SIZE
-                      // (32).
-                      const std::uint8_t *real_pk = plain.data() + 32;
-                      seen_announcements.insert(
-                          std::vector<std::uint8_t>(real_pk, real_pk + CRYPTO_PUBLIC_KEY_SIZE));
-                  } else {
-                      total_decryption_failures++;
+            if (plen > 0) {
+                // The real PK (client_id) is in the payload at offset ONION_PING_ID_SIZE
+                // (32).
+                const std::uint8_t *real_pk = plain.data() + 32;
+                seen_announcements.insert(std::vector<std::uint8_t>(real_pk, real_pk + CRYPTO_PUBLIC_KEY_SIZE));
+            } else {
+                total_decryption_failures++;
 #if 0
                 fprintf(stderr, "Node %02x%02x... FAILED to decrypt announcement from %02x%02x... (size %zu)\n",
                        node->dht_public_key()[0], node->dht_public_key()[1], sender_pk[0],
                        sender_pk[1], data.size());
 #endif
-                  }
-              }
-          };
+            }
+        }
+    };
 
     bob.node().endpoint->set_recv_observer(
-        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-            observer(&bob, data, from);
-        });
+        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) { observer(&bob, data, from); });
     charlie.node().endpoint->set_recv_observer(
-        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-            observer(&charlie, data, from);
-        });
+        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) { observer(&charlie, data, from); });
     dave.node().endpoint->set_recv_observer(
-        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-            observer(&dave, data, from);
-        });
+        [&](const std::vector<std::uint8_t> &data, const IP_Port &from) { observer(&dave, data, from); });
 
     // Give Alice time to connect.
     for (int i = 0; i < 30; ++i) {
@@ -751,8 +730,7 @@ TEST_F(OnionClientTest, SharedKeyCacheUseAfterFreeRegression)
         if (seen_announcements.count(pk))
             found_count++;
     }
-    EXPECT_GE(found_count, kNumFriends / 2)
-        << "At least some friends should have been announced successfully.";
+    EXPECT_GE(found_count, kNumFriends / 2) << "At least some friends should have been announced successfully.";
 }
 
 TEST_F(OnionClientTest, SharedKeyReuseOnEviction)
@@ -821,8 +799,8 @@ TEST_F(OnionClientTest, SharedKeyReuseOnEviction)
             return;
 
         std::vector<std::uint8_t> plain(kCiphertextSize - CRYPTO_MAC_SIZE);
-        int plen = decrypt_data(mem, sender_pk, node->dht_secret_key(), nonce, ciphertext,
-            kCiphertextSize, plain.data());
+        int plen
+            = decrypt_data(mem, sender_pk, node->dht_secret_key(), nonce, ciphertext, kCiphertextSize, plain.data());
 
         if (plen > 0) {
             total_decrypted++;
@@ -833,9 +811,7 @@ TEST_F(OnionClientTest, SharedKeyReuseOnEviction)
 
     for (auto &n : nodes) {
         n->node().endpoint->set_recv_observer(
-            [&, ptr = n.get()](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-                observer(ptr, data);
-            });
+            [&, ptr = n.get()](const std::vector<std::uint8_t> &data, const IP_Port &from) { observer(ptr, data); });
     }
 
     // Run for a while to ensure many announcements are sent and some slots are reused.

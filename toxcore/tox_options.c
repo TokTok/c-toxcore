@@ -199,6 +199,16 @@ void tox_options_set_experimental_owned_data(
     options->experimental_owned_data = experimental_owned_data;
 }
 
+int32_t tox_options_get_experimental_iterate_timeout_ms(const Tox_Options *options)
+{
+    return options->experimental_iterate_timeout_ms;
+}
+
+void tox_options_set_experimental_iterate_timeout_ms(Tox_Options *options, int32_t experimental_iterate_timeout_ms)
+{
+    options->experimental_iterate_timeout_ms = experimental_iterate_timeout_ms;
+}
+
 const uint8_t *tox_options_get_savedata_data(const Tox_Options *options)
 {
     return options->savedata_data;
@@ -257,6 +267,7 @@ void tox_options_default(Tox_Options *options)
         tox_options_set_experimental_groups_persistence(options, false);
         tox_options_set_experimental_disable_dns(options, false);
         tox_options_set_experimental_owned_data(options, false);
+        tox_options_set_experimental_iterate_timeout_ms(options, 0);
     }
 }
 

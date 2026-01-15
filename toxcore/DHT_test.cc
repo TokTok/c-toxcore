@@ -17,6 +17,7 @@
 #include "mono_time.h"
 #include "network.h"
 #include "network_test_util.hh"
+#include "os_event.h"
 #include "test_util.hh"
 
 namespace {
@@ -159,10 +160,8 @@ TEST(AddToList, AddsFirstKeysInOrder)
     PublicKey const cmp_pk{0xff, 0xff, 0xff, 0xff};
 
     // Generate a bunch of other keys, sorted by distance from cmp_pk.
-    auto const keys
-        = sorted(array_of<20>(random_pk, &c_rng), [&cmp_pk](auto const &pk1, auto const &pk2) {
-              return id_closest(cmp_pk.data(), pk1.data(), pk2.data()) == 1;
-          });
+    auto const keys = sorted(array_of<20>(random_pk, &c_rng),
+        [&cmp_pk](auto const &pk1, auto const &pk2) { return id_closest(cmp_pk.data(), pk1.data(), pk2.data()) == 1; });
     auto const ips = array_of<20>(increasing_ip_port(0, &c_rng));
 
     std::vector<Node_format> nodes(4);
@@ -271,8 +270,7 @@ TEST(AddToList, KeepsKeysInOrder)
 
         // Add all of them.
         for (Node_format const &node : nodes) {
-            add_to_list(
-                node_list.data(), node_list.size(), node.public_key, &node.ip_port, cmp_pk.data());
+            add_to_list(node_list.data(), node_list.size(), node.public_key, &node.ip_port, cmp_pk.data());
             // Nodes should always be sorted.
             EXPECT_THAT(node_list, Eq(sorted(node_list, by_distance)));
         }
@@ -302,36 +300,35 @@ TEST(Request, CreateAndParse)
     std::vector<std::uint8_t> outgoing(919);
     random_bytes(&c_rng, outgoing.data(), outgoing.size());
 
-    EXPECT_LT(create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(),
-                  receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id),
+    EXPECT_LT(create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(), receiver.pk.data(),
+                  outgoing.data(), outgoing.size(), sent_pkt_id),
         0);
 
     // Pop one element so the payload is 918 bytes. Packing should now succeed.
     outgoing.pop_back();
 
-    const int max_sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(),
-        packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+    const int max_sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(),
+        receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
     ASSERT_GT(max_sent_length, 0);  // success.
 
     // Check that handle_request rejects packets larger than the maximum created packet size.
-    EXPECT_LT(handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(), pk.data(),
-                  incoming.data(), &recvd_pkt_id, packet.data(), max_sent_length + 1),
+    EXPECT_LT(handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(), pk.data(), incoming.data(), &recvd_pkt_id,
+                  packet.data(), max_sent_length + 1),
         0);
 
     // Now try all possible packet sizes from max (918) to 0.
     while (!outgoing.empty()) {
         // Pack:
-        const int sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(),
-            packet.data(), receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
+        const int sent_length = create_request(&c_mem, &c_rng, sender.pk.data(), sender.sk.data(), packet.data(),
+            receiver.pk.data(), outgoing.data(), outgoing.size(), sent_pkt_id);
         ASSERT_GT(sent_length, 0);
 
         // Unpack:
-        const int recvd_length = handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(),
-            pk.data(), incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
+        const int recvd_length = handle_request(&c_mem, receiver.pk.data(), receiver.sk.data(), pk.data(),
+            incoming.data(), &recvd_pkt_id, packet.data(), sent_length);
         ASSERT_GE(recvd_length, 0);
 
-        EXPECT_EQ(
-            std::vector<std::uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
+        EXPECT_EQ(std::vector<std::uint8_t>(incoming.begin(), incoming.begin() + recvd_length), outgoing);
 
         outgoing.pop_back();
     }
@@ -363,7 +360,8 @@ TEST(AnnounceNodes, SetAndTest)
         },
         &env.fake_clock());
 
-    Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct));
+    Ptr<Ev> ev(os_event_new(&c_mem, log));
+    Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct, ev.get()));
     ASSERT_NE(net, nullptr);
     Ptr<DHT> dht(new_dht(log, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
     ASSERT_NE(dht, nullptr);
@@ -390,12 +388,10 @@ TEST(AnnounceNodes, SetAndTest)
     EXPECT_TRUE(addto_lists(dht.get(), &ip_port, pk2.data()));
 
     Node_format nodes[MAX_SENT_NODES];
-    EXPECT_EQ(
-        0, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(0, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
     set_announce_node(dht.get(), pk1.data());
     set_announce_node(dht.get(), pk2.data());
-    EXPECT_EQ(
-        2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
 
     mono_time_free(&c_mem, mono_time);
     logger_kill(log);

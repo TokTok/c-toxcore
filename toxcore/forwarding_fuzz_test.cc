@@ -8,6 +8,8 @@
 #include "../testing/support/public/fuzz_data.hh"
 #include "../testing/support/public/fuzz_helpers.hh"
 #include "../testing/support/public/simulated_environment.hh"
+#include "ev.h"
+#include "os_event.h"
 
 namespace {
 
@@ -20,8 +22,7 @@ constexpr std::uint16_t SIZE_IP_PORT = SIZE_IP6 + sizeof(std::uint16_t);
 template <typename T>
 using Ptr = std::unique_ptr<T, void (*)(T *)>;
 
-std::optional<std::tuple<IP_Port, IP_Port, const std::uint8_t *, std::size_t>> prepare(
-    Fuzz_Data &input)
+std::optional<std::tuple<IP_Port, IP_Port, const std::uint8_t *, std::size_t>> prepare(Fuzz_Data &input)
 {
     CONSUME_OR_RETURN_VAL(const std::uint8_t *ipp_packed, input, SIZE_IP_PORT, std::nullopt);
     IP_Port ipp{};
@@ -32,8 +33,7 @@ std::optional<std::tuple<IP_Port, IP_Port, const std::uint8_t *, std::size_t>> p
     unpack_ip_port(&forwarder, forwarder_packed, SIZE_IP6, true);
 
     // 2 bytes: size of the request
-    CONSUME_OR_RETURN_VAL(
-        const std::uint8_t *data_size_bytes, input, sizeof(std::uint16_t), std::nullopt);
+    CONSUME_OR_RETURN_VAL(const std::uint8_t *data_size_bytes, input, sizeof(std::uint16_t), std::nullopt);
     std::uint16_t data_size;
     std::memcpy(&data_size, data_size_bytes, sizeof(std::uint16_t));
 
@@ -64,9 +64,13 @@ void TestSendForwardRequest(Fuzz_Data &input)
         return;
     }
 
-    const Ptr<Networking_Core> net(
-        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
-            ipp.port + 100, nullptr),
+    const Ptr<Ev> ev(os_event_new(&node->c_memory, logger.get()), ev_kill);
+    if (ev == nullptr) {
+        return;
+    }
+
+    const Ptr<Networking_Core> net(new_networking_ex(logger.get(), &node->c_memory, &node->c_network, ev.get(), &ipp.ip,
+                                       ipp.port, ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;
@@ -95,9 +99,13 @@ void TestForwardReply(Fuzz_Data &input)
         return;
     }
 
-    const Ptr<Networking_Core> net(
-        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
-            ipp.port + 100, nullptr),
+    const Ptr<Ev> ev(os_event_new(&node->c_memory, logger.get()), ev_kill);
+    if (ev == nullptr) {
+        return;
+    }
+
+    const Ptr<Networking_Core> net(new_networking_ex(logger.get(), &node->c_memory, &node->c_network, ev.get(), &ipp.ip,
+                                       ipp.port, ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;

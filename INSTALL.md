@@ -286,7 +286,7 @@ requirements are that you have Docker version of >= 1.9.0 and you are running
 64-bit system.
 
 The cross-compilation is fully automated by a parameterized
-[Dockerfile](/other/docker/windows/Dockerfile).
+[Dockerfile](/other/docker/windows/windows.Dockerfile).
 
 Install Docker
 
@@ -313,10 +313,10 @@ available to customize the building of the container image.
 Example of building a container image with options
 
 ```sh
-cd other/docker/windows
 docker build \
   --build-arg SUPPORT_TEST=true \
   -t toxcore \
+  -f other/docker/windows/windows.Dockerfile \
   .
 ```
 

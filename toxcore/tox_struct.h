@@ -8,6 +8,7 @@
 
 #include <pthread.h>
 
+#include "ev.h"
 #include "mono_time.h"
 #include "tox.h"
 #include "tox_options.h" // tox_log_cb
@@ -23,6 +24,9 @@ struct Tox {
     Mono_Time *_Nonnull mono_time;
     Tox_System sys;
     pthread_mutex_t *_Nullable mutex;
+
+    Ev *_Nullable ev;
+    int32_t experimental_iterate_timeout_ms;
 
     tox_log_cb *_Nullable log_callback;
     tox_self_connection_status_cb *_Nullable self_connection_status_callback;

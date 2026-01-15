@@ -138,7 +138,7 @@ jobs:
       - name: Build and store to local Docker daemon
         uses: docker/build-push-action@v5
         with:
-          context: other/docker/windows
+          file: other/docker/windows/windows.Dockerfile
           load: true
           tags: toxchat/windows:win${{ matrix.bits }}
           cache-from: type=registry,ref=toxchat/windows:win${{ matrix.bits }}
@@ -150,7 +150,7 @@ jobs:
         if: ${{ github.event_name == 'push' }}
         uses: docker/build-push-action@v5
         with:
-          context: other/docker/windows
+          file: other/docker/windows/windows.Dockerfile
           push: ${{ github.event_name == 'push' }}
           tags: toxchat/windows:win${{ matrix.bits }}
           build-args: |

@@ -41,9 +41,8 @@ public:
         // Setup Logger to stderr
         logger_callback_log(
             dht_wrapper_.logger(),
-            [](void *_Nullable context, Logger_Level level, const char *_Nonnull file,
-                std::uint32_t line, const char *_Nonnull func, const char *_Nonnull message,
-                void *_Nullable) {
+            [](void *_Nullable context, Logger_Level level, const char *_Nonnull file, std::uint32_t line,
+                const char *_Nonnull func, const char *_Nonnull message, void *_Nullable) {
                 auto *self = static_cast<TestNode *>(REQUIRE_NOT_NULL(context));
                 if (self->trace_enabled_ || level >= LOGGER_LEVEL_DEBUG) {
                     fprintf(stderr, "[%d] %s:%u %s: %s\n", level, file, line, func, message);
@@ -54,9 +53,8 @@ public:
         // 3. Setup NetCrypto
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
-            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
-            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(), dht_wrapper_.ev(),
+            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info, net_profile_.get()));
 
         // 4. Register Callbacks
         new_connection_handler(net_crypto_.get(), &TestNode::static_new_connection_cb, this);
@@ -64,10 +62,7 @@ public:
 
     Net_Crypto *_Nonnull get_net_crypto() { return REQUIRE_NOT_NULL(net_crypto_.get()); }
     const std::uint8_t *_Nonnull dht_public_key() const { return dht_wrapper_.dht_public_key(); }
-    const std::uint8_t *_Nonnull real_public_key() const
-    {
-        return nc_get_self_public_key(net_crypto_.get());
-    }
+    const std::uint8_t *_Nonnull real_public_key() const { return nc_get_self_public_key(net_crypto_.get()); }
     int dht_computation_count() const { return dht_wrapper_.dht_computation_count(); }
     const Memory *_Nonnull get_memory() const { return &dht_wrapper_.node().c_memory; }
 
@@ -85,8 +80,7 @@ public:
     template <typename OtherDHTWrapper>
     int connect_to(TestNode<OtherDHTWrapper> &other)
     {
-        int id = new_crypto_connection(
-            net_crypto_.get(), other.real_public_key(), other.dht_public_key());
+        int id = new_crypto_connection(net_crypto_.get(), other.real_public_key(), other.dht_public_key());
         if (id == -1)
             return -1;
 
@@ -154,10 +148,8 @@ private:
         if (id >= static_cast<int>(connections_.size()))
             connections_.resize(id + 1);
 
-        connection_status_handler(
-            net_crypto_.get(), id, &TestNode::static_connection_status_cb, this, id);
-        connection_data_handler(
-            net_crypto_.get(), id, &TestNode::static_connection_data_cb, this, id);
+        connection_status_handler(net_crypto_.get(), id, &TestNode::static_connection_status_cb, this, id);
+        connection_data_handler(net_crypto_.get(), id, &TestNode::static_connection_data_cb, this, id);
     }
 
     // -- Static Callbacks --
@@ -173,8 +165,7 @@ private:
         return id;  // Return ID on success
     }
 
-    static int static_connection_status_cb(
-        void *_Nonnull object, int id, bool status, void *_Nullable userdata)
+    static int static_connection_status_cb(void *_Nonnull object, int id, bool status, void *_Nullable userdata)
     {
         auto *self = static_cast<TestNode *>(object);
         if (id < static_cast<int>(self->connections_.size())) {
@@ -183,8 +174,8 @@ private:
         return 0;
     }
 
-    static int static_connection_data_cb(void *_Nonnull object, int id,
-        const std::uint8_t *_Nonnull data, std::uint16_t length, void *_Nullable userdata)
+    static int static_connection_data_cb(void *_Nonnull object, int id, const std::uint8_t *_Nonnull data,
+        std::uint16_t length, void *_Nullable userdata)
     {
         auto *self = static_cast<TestNode *>(object);
         if (id < static_cast<int>(self->connections_.size())) {
@@ -230,8 +221,7 @@ TEST_F(NetCryptoTest, EndToEndDataExchange)
         env.advance_time(10);  // 10ms steps
 
         bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
+        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1 && bob.is_connected(bob_conn_id)) {
             connected = true;
             break;
         }
@@ -321,8 +311,7 @@ TEST_F(NetCryptoTest, DataLossAndRetransmission)
         env.advance_time(10);
 
         bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
+        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1 && bob.is_connected(bob_conn_id)) {
             connected = true;
             break;
         }
@@ -333,8 +322,7 @@ TEST_F(NetCryptoTest, DataLossAndRetransmission)
     // NET_PACKET_CRYPTO_DATA is 0x1b
     // We want to drop the *first* data packet sent.
     env.simulation().net().add_filter([&](tox::test::Packet &p) {
-        if (!dropped && net_ntohs(p.to.port) == 33446 && p.data.size() > 0
-            && p.data[0] == NET_PACKET_CRYPTO_DATA) {
+        if (!dropped && net_ntohs(p.to.port) == 33446 && p.data.size() > 0 && p.data[0] == NET_PACKET_CRYPTO_DATA) {
             dropped = true;
             return false;  // Drop it
         }
@@ -434,8 +422,7 @@ TEST_F(NetCryptoTest, CookieRequestRateLimiting)
         send_packet();
     }
     int burst_computations = victim.dht_computation_count();
-    EXPECT_EQ(burst_computations - initial_computations, 10)
-        << "Should accept initial burst of 10 packets";
+    EXPECT_EQ(burst_computations - initial_computations, 10) << "Should accept initial burst of 10 packets";
 
     // 2. Verify Limit Reached: 11th packet should be dropped
     send_packet();
@@ -444,14 +431,12 @@ TEST_F(NetCryptoTest, CookieRequestRateLimiting)
     // 3. Partial Refill Check: Advance 80ms (total < 100ms since empty)
     env.advance_time(80);
     send_packet();
-    EXPECT_EQ(victim.dht_computation_count(), burst_computations)
-        << "Should drop packet before 100ms refill";
+    EXPECT_EQ(victim.dht_computation_count(), burst_computations) << "Should drop packet before 100ms refill";
 
     // 4. Full Refill Check: Advance to > 100ms
     env.advance_time(20);
     send_packet();
-    EXPECT_EQ(victim.dht_computation_count(), burst_computations + 1)
-        << "Should accept packet after 100ms refill";
+    EXPECT_EQ(victim.dht_computation_count(), burst_computations + 1) << "Should accept packet after 100ms refill";
 }
 
 TEST_F(NetCryptoTest, HandleRequestPacketOOB)
@@ -473,8 +458,7 @@ TEST_F(NetCryptoTest, HandleRequestPacketOOB)
         env.advance_time(10);
 
         bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
+        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1 && bob.is_connected(bob_conn_id)) {
             connected = true;
             break;
         }
@@ -495,8 +479,7 @@ TEST_F(NetCryptoTest, HandleRequestPacketOOB)
     std::uint8_t alice_recv_nonce[CRYPTO_NONCE_SIZE];
 
     // Retrieve secrets
-    nc_testonly_get_secrets(
-        alice.get_net_crypto(), alice_conn_id, shared_key, alice_sent_nonce, alice_recv_nonce);
+    nc_testonly_get_secrets(alice.get_net_crypto(), alice_conn_id, shared_key, alice_sent_nonce, alice_recv_nonce);
 
     // Use Alice's recv_nonce (which Bob uses to encrypt)
     std::uint8_t nonce[CRYPTO_NONCE_SIZE];
@@ -511,11 +494,10 @@ TEST_F(NetCryptoTest, HandleRequestPacketOOB)
     std::vector<std::uint8_t> malicious_packet(packet_size);
 
     malicious_packet[0] = NET_PACKET_CRYPTO_DATA;
-    std::memcpy(&malicious_packet[1], nonce + (CRYPTO_NONCE_SIZE - sizeof(std::uint16_t)),
-        sizeof(std::uint16_t));
+    std::memcpy(&malicious_packet[1], nonce + (CRYPTO_NONCE_SIZE - sizeof(std::uint16_t)), sizeof(std::uint16_t));
 
-    int len = encrypt_data_symmetric(
-        alice.get_memory(), shared_key, nonce, plaintext, plaintext_len, &malicious_packet[3]);
+    int len
+        = encrypt_data_symmetric(alice.get_memory(), shared_key, nonce, plaintext, plaintext_len, &malicious_packet[3]);
     ASSERT_EQ(len, plaintext_len + CRYPTO_MAC_SIZE);
 
     // 4. Inject the packet
@@ -551,8 +533,7 @@ TEST_F(NetCryptoTest, EndToEndDataExchange_RealDHT)
         env.advance_time(10);  // 10ms steps
 
         bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
+        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1 && bob.is_connected(bob_conn_id)) {
             connected = true;
             break;
         }
