@@ -20,7 +20,7 @@ using tox::test::SimulatedEnvironment;
 
 struct Announces : ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     Memory c_mem_;
     Mono_Time *_Nullable mono_time_ = nullptr;
     GC_Announces_List *_Nullable gca_ = nullptr;
@@ -124,7 +124,7 @@ TEST_F(Announces, AnnouncesGetAndCleanup)
 
 struct AnnouncesPack : ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     Memory c_mem_;
     std::vector<GC_Announce> announces_;
     Logger *logger_ = nullptr;

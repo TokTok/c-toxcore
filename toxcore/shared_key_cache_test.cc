@@ -23,7 +23,7 @@ class SharedKeyCacheTest : public ::testing::Test {
 protected:
     void SetUp() override
     {
-        sim = std::make_unique<Simulation>();
+        sim = std::make_unique<Simulation>(12345);
         node = sim->create_node();
         crypto_new_keypair(&node->c_random, alice_pk, alice_sk);
 

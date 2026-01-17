@@ -24,7 +24,7 @@ void TestUnpackAnnouncesList(Fuzz_Data &input)
     // TODO(iphydf): How do we know the packed size?
     CONSUME1_OR_RETURN(const std::uint16_t, packed_size, input);
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Logger *logger = logger_new(&c_mem);
     if (gca_unpack_announces_list(logger, input.data(), input.size(), announces.data(), max_count)
@@ -45,7 +45,7 @@ void TestUnpackPublicAnnounce(Fuzz_Data &input)
     // TODO(iphydf): How do we know the packed size?
     CONSUME1_OR_RETURN(const std::uint16_t, packed_size, input);
 
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Logger *logger = logger_new(&c_mem);
     if (gca_unpack_public_announce(logger, input.data(), input.size(), &public_announce) != -1) {
@@ -58,7 +58,7 @@ void TestUnpackPublicAnnounce(Fuzz_Data &input)
 
 void TestDoGca(Fuzz_Data &input)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     std::unique_ptr<Logger, void (*)(Logger *)> logger(logger_new(&c_mem), logger_kill);
 

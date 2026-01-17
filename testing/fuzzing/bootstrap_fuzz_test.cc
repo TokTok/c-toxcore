@@ -109,14 +109,14 @@ void setup_callbacks(Tox_Dispatch *dispatch)
 
 void TestBootstrap(Fuzz_Data &input)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     env.fake_clock().advance(1000000000);  // Match legacy behavior
     auto node = env.create_node(33445);
     configure_fuzz_memory_source(env.fake_memory(), input);
     configure_fuzz_packet_source(*node->endpoint, input);
 
     // Create a second null system for tox_events_equal check
-    SimulatedEnvironment null_env;
+    SimulatedEnvironment null_env{12345};
     auto null_node = null_env.create_node(0);  // Port 0 (unbound/irrelevant)
 
     Ptr<Tox_Options> opts(tox_options_new(nullptr), tox_options_free);

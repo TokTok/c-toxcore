@@ -119,6 +119,109 @@ namespace {
         EXPECT_EQ(sender_addr.port, net_htons(client.local_port()));
     }
 
+    TEST_F(FakeUdpSocketTest, QueueLimit)
+    {
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(9001);
+
+        ASSERT_EQ(server.bind(&server_addr), 0);
+
+        // Fill the queue
+        for (size_t i = 0; i < FakeUdpSocket::kMaxQueueSize; ++i) {
+            uint8_t data = static_cast<uint8_t>(i % 256);
+            ASSERT_EQ(client.sendto(&data, 1, &server_addr), 1);
+        }
+
+        universe.process_events(0);
+
+        // This packet should be dropped
+        uint8_t dropped_data = 0xFF;
+        ASSERT_EQ(client.sendto(&dropped_data, 1, &server_addr), 1);
+        universe.process_events(0);
+
+        // Verify we can read MaxQueueSize packets
+        for (size_t i = 0; i < FakeUdpSocket::kMaxQueueSize; ++i) {
+            uint8_t recv_buf[1];
+            IP_Port from;
+            ASSERT_EQ(server.recvfrom(recv_buf, 1, &from), 1);
+        }
+
+        // The queue should now be empty
+        uint8_t dummy[1];
+        IP_Port from;
+        EXPECT_EQ(server.recvfrom(dummy, 1, &from), -1);
+        EXPECT_EQ(errno, EWOULDBLOCK);
+    }
+
+    TEST_F(FakeTcpSocketTest, BacklogLimit)
+    {
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(8082);
+
+        ASSERT_EQ(server.bind(&server_addr), 0);
+        // Small backlog for testing
+        ASSERT_EQ(server.listen(2), 0);
+
+        // Client 1
+        FakeTcpSocket client1{universe};
+        client1.connect(&server_addr);
+        // Client 2
+        FakeTcpSocket client2{universe};
+        client2.connect(&server_addr);
+        // Client 3 (Should be dropped)
+        FakeTcpSocket client3{universe};
+        client3.connect(&server_addr);
+
+        universe.process_events(0);
+
+        // Accept first two
+        ASSERT_NE(server.accept(nullptr), nullptr);
+        ASSERT_NE(server.accept(nullptr), nullptr);
+
+        // Third should not be there
+        EXPECT_EQ(server.accept(nullptr), nullptr);
+        EXPECT_EQ(errno, EWOULDBLOCK);
+    }
+
+    TEST_F(FakeTcpSocketTest, BufferLimit)
+    {
+        IP_Port server_addr;
+        ip_init(&server_addr.ip, false);
+        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.port = net_htons(8083);
+
+        server.bind(&server_addr);
+        server.listen(5);
+        client.connect(&server_addr);
+
+        // Handshake
+        universe.process_events(0);  // SYN
+        universe.process_events(0);  // SYN-ACK
+        universe.process_events(0);  // ACK
+
+        auto accepted = server.accept(nullptr);
+        ASSERT_NE(accepted, nullptr);
+
+        // Fill buffer to just below limit
+        std::vector<uint8_t> large_data(FakeTcpSocket::kMaxBufferSize - 10, 'A');
+        ASSERT_EQ(client.send(large_data.data(), large_data.size()), large_data.size());
+        universe.process_events(0);
+
+        EXPECT_EQ(accepted->recv_buffer_size(), FakeTcpSocket::kMaxBufferSize - 10);
+
+        // Send 20 more bytes, total would exceed limit
+        uint8_t extra_data[20];
+        ASSERT_EQ(client.send(extra_data, 20), 20);
+        universe.process_events(0);
+
+        // Size should remain the same
+        EXPECT_EQ(accepted->recv_buffer_size(), FakeTcpSocket::kMaxBufferSize - 10);
+    }
+
 }  // namespace
 }  // namespace tox::test
 

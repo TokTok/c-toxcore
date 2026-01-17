@@ -204,6 +204,12 @@ int FakeUdpSocket::recvfrom(uint8_t *_Nonnull buf, size_t len, IP_Port *_Nonnull
 void FakeUdpSocket::push_packet(std::vector<uint8_t> data, IP_Port from)
 {
     std::lock_guard<std::mutex> lock(mutex_);
+    if (recv_queue_.size() >= kMaxQueueSize) {
+        if (universe_.is_verbose()) {
+            std::cerr << "[FakeUdpSocket] queue full, dropping packet" << std::endl;
+        }
+        return;
+    }
     if (universe_.is_verbose()) {
         Ip_Ntoa local_ip_str, from_ip_str;
         net_ip_ntoa(&ip_, &local_ip_str);
@@ -407,42 +413,36 @@ void FakeTcpSocket::handle_packet(const Packet &p)
                   << static_cast<int>(p.tcp_flags) << " State " << state_ << std::endl;
     }
 
-    if (state_ == LISTEN) {
-        if (p.tcp_flags & 0x02) {  // SYN
-            // Create new socket for connection
-            auto new_sock = std::make_unique<FakeTcpSocket>(universe_);
-            // Bind to ephemeral? No, it's accepted on the same port but distinct 4-tuple.
-            // In our simplified model, the new socket is not bound to the global map
-            // until accepted? Or effectively bound to the 4-tuple.
-            // For now, let's just create it and queue it.
-
-            new_sock->state_ = SYN_RECEIVED;
-            new_sock->remote_addr_ = p.from;
-            new_sock->local_port_ = local_port_;
-            new_sock->last_ack_ = p.seq + 1;
-            new_sock->next_seq_ = 1000;  // Random ISN
-
-            universe_.bind_tcp(ip_, local_port_, new_sock.get());
-
-            // Send SYN-ACK
-            Packet resp{};
-            resp.from = p.to;
-            resp.to = p.from;
-            resp.is_tcp = true;
-            resp.tcp_flags = 0x12;  // SYN | ACK
-            resp.seq = new_sock->next_seq_++;
-            resp.ack = new_sock->last_ack_;
-
-            universe_.send_packet(resp);
-
-            // In real TCP, we wait for ACK to move to ESTABLISHED and accept queue.
-            // Here we cheat and move to ESTABLISHED immediately or wait for ACK?
-            // Let's wait for ACK.
-            // But where do we store this half-open socket?
-            // For simplicity: auto-transition to ESTABLISHED and queue it.
-            new_sock->state_ = ESTABLISHED;
-            pending_connections_.push_back(std::move(new_sock));
+    if (state_ == LISTEN && (p.tcp_flags & 0x02)) {  // SYN
+        size_t effective_backlog
+            = std::clamp(static_cast<size_t>(backlog_), size_t{1}, kMaxBacklog);
+        if (pending_connections_.size() >= effective_backlog) {
+            return;
         }
+        // Create new socket for connection
+        auto new_sock = std::make_unique<FakeTcpSocket>(universe_);
+
+        new_sock->state_ = SYN_RECEIVED;
+        new_sock->remote_addr_ = p.from;
+        new_sock->local_port_ = local_port_;
+        new_sock->last_ack_ = p.seq + 1;
+        new_sock->next_seq_ = 1000;  // Random ISN
+
+        universe_.bind_tcp(ip_, local_port_, new_sock.get());
+
+        // Send SYN-ACK
+        Packet resp{};
+        resp.from = p.to;
+        resp.to = p.from;
+        resp.is_tcp = true;
+        resp.tcp_flags = 0x12;  // SYN | ACK
+        resp.seq = new_sock->next_seq_++;
+        resp.ack = new_sock->last_ack_;
+
+        universe_.send_packet(resp);
+
+        new_sock->state_ = ESTABLISHED;
+        pending_connections_.push_back(std::move(new_sock));
     } else if (state_ == SYN_SENT) {
         if ((p.tcp_flags & 0x12) == 0x12) {  // SYN | ACK
             state_ = ESTABLISHED;
@@ -471,7 +471,7 @@ void FakeTcpSocket::handle_packet(const Packet &p)
             ack.seq = next_seq_;
             ack.ack = p.seq + 1;  // Consume FIN
             universe_.send_packet(ack);
-        } else if (!p.data.empty()) {
+        } else if (!p.data.empty() && recv_buffer_.size() + p.data.size() <= kMaxBufferSize) {
             recv_buffer_.insert(recv_buffer_.end(), p.data.begin(), p.data.end());
             last_ack_ += p.data.size();
             // Should send ACK?

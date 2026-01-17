@@ -13,7 +13,7 @@ namespace {
 
 TEST(SimulatedEnvironment, ProducesNonNullNetwork)
 {
-    tox::test::SimulatedEnvironment env;
+    tox::test::SimulatedEnvironment env{12345};
     auto node = env.create_node(0);
     struct Network net = node->c_network;
     EXPECT_NE(net.funcs, nullptr);

@@ -15,7 +15,7 @@ using tox::test::SimulatedEnvironment;
 
 TEST(MonoTime, TimeIncreasesWhenAdvanced)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
@@ -37,7 +37,7 @@ TEST(MonoTime, TimeIncreasesWhenAdvanced)
 
 TEST(MonoTime, IsTimeout)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
@@ -57,7 +57,7 @@ TEST(MonoTime, IsTimeout)
 
 TEST(MonoTime, IsTimeoutWithIntermediateUpdates)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);
@@ -82,7 +82,7 @@ TEST(MonoTime, IsTimeoutWithIntermediateUpdates)
 
 TEST(MonoTime, CustomTime)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     Mono_Time *mono_time = mono_time_new(&c_mem, nullptr, nullptr);
     ASSERT_NE(mono_time, nullptr);

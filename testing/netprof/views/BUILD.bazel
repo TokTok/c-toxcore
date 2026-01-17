@@ -1,0 +1,229 @@
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
+
+package(default_visibility = ["//c-toxcore/testing/netprof:__subpackages__"])
+
+cc_library(
+    name = "focusable",
+    srcs = ["focusable.cc"],
+    hdrs = ["focusable.hh"],
+    deps = ["@ftxui//:component"],
+)
+
+cc_library(
+    name = "hud",
+    srcs = ["hud.cc"],
+    hdrs = ["hud.hh"],
+    deps = [
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
+    name = "topology",
+    srcs = ["topology.cc"],
+    hdrs = ["topology.hh"],
+    deps = [
+        ":focusable",
+        "//c-toxcore/testing/netprof:model",
+        "//c-toxcore/testing/netprof:model_utils",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_library(
+    name = "dht_topology",
+    srcs = ["dht_topology.cc"],
+    hdrs = ["dht_topology.hh"],
+    deps = [
+        ":focusable",
+        "//c-toxcore/testing/netprof:constants",
+        "//c-toxcore/testing/netprof:model",
+        "//c-toxcore/testing/netprof:model_utils",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_library(
+    name = "inspector",
+    srcs = ["inspector.cc"],
+    hdrs = ["inspector.hh"],
+    deps = [
+        ":focusable",
+        "//c-toxcore/testing/netprof:model",
+        "//c-toxcore/testing/netprof:model_utils",
+        "//c-toxcore/testing/netprof:packet_utils",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+        "@ftxui//:screen",
+    ],
+)
+
+cc_library(
+    name = "event_log",
+    srcs = ["event_log.cc"],
+    hdrs = ["event_log.hh"],
+    deps = [
+        ":focusable",
+        "//c-toxcore/testing/netprof:constants",
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
+    name = "command_log",
+    srcs = ["command_log.cc"],
+    hdrs = ["command_log.hh"],
+    deps = [
+        ":focusable",
+        "//c-toxcore/testing/netprof:constants",
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
+    name = "bottom_bar",
+    srcs = ["bottom_bar.cc"],
+    hdrs = ["bottom_bar.hh"],
+    deps = [
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+        "@ftxui//:dom",
+    ],
+)
+
+cc_library(
+    name = "dht_filter",
+    srcs = ["dht_filter.cc"],
+    hdrs = ["dht_filter.hh"],
+    deps = [
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+    ],
+)
+
+cc_library(
+    name = "command_palette",
+    srcs = ["command_palette.cc"],
+    hdrs = ["command_palette.hh"],
+    deps = [
+        "//c-toxcore/testing/netprof:model",
+        "@ftxui//:component",
+    ],
+)
+
+cc_library(
+    name = "views",
+    hdrs = [
+        "bottom_bar.hh",
+        "command_log.hh",
+        "command_palette.hh",
+        "dht_filter.hh",
+        "dht_topology.hh",
+        "event_log.hh",
+        "hud.hh",
+        "inspector.hh",
+        "topology.hh",
+    ],
+    deps = [
+        ":bottom_bar",
+        ":command_log",
+        ":command_palette",
+        ":dht_filter",
+        ":dht_topology",
+        ":event_log",
+        ":hud",
+        ":inspector",
+        ":topology",
+    ],
+)
+
+cc_test(
+    name = "inspector_test",
+    srcs = ["inspector_test.cc"],
+    deps = [
+        ":inspector",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "topology_test",
+    srcs = ["topology_test.cc"],
+    deps = [
+        ":topology",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "hud_test",
+    srcs = ["hud_test.cc"],
+    deps = [
+        ":hud",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "command_palette_test",
+    srcs = ["command_palette_test.cc"],
+    deps = [
+        ":command_palette",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "event_log_test",
+    srcs = ["event_log_test.cc"],
+    deps = [
+        ":event_log",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "command_log_test",
+    srcs = ["command_log_test.cc"],
+    deps = [
+        ":command_log",
+        ":event_log",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dht_filter_test",
+    srcs = ["dht_filter_test.cc"],
+    deps = [
+        ":dht_filter",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "dht_topology_test",
+    srcs = ["dht_topology_test.cc"],
+    deps = [
+        ":dht_topology",
+        "//c-toxcore/testing/netprof:ui_test_support",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

@@ -32,8 +32,8 @@ void TestUnpack(Fuzz_Data data)
         return;
     }
 
-    // rest of the fuzz data is input for std::malloc
-    SimulatedEnvironment env;
+    // rest of the fuzz data is input for malloc
+    SimulatedEnvironment env{12345};
     auto node = env.create_node(33445);
     configure_fuzz_memory_source(env.fake_memory(), data);
 

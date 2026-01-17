@@ -41,3 +41,7 @@ endif()
 
 add_subdirectory(bench)
 add_subdirectory(support)
+
+if(BUILD_NETPROF)
+  add_subdirectory(netprof)
+endif()

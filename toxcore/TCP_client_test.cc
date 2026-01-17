@@ -25,7 +25,7 @@ using namespace tox::test;
 
 class TCPClientTest : public ::testing::Test {
 protected:
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
 
     Mono_Time *_Nonnull create_mono_time(const Memory *_Nonnull mem)
     {

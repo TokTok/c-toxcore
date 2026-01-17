@@ -16,7 +16,7 @@ namespace {
 
     class BootstrapScalingTest : public ::testing::Test {
     protected:
-        Simulation sim;
+        Simulation sim{12345};
     };
 
     TEST_F(BootstrapScalingTest, TwentyNodes)

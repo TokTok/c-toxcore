@@ -24,7 +24,7 @@ using tox::test::SimulatedEnvironment;
 
 TEST(PkEqual, TwoRandomIdsAreNotEqual)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto &rng = env.fake_random();
 
     std::uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
@@ -38,7 +38,7 @@ TEST(PkEqual, TwoRandomIdsAreNotEqual)
 
 TEST(PkEqual, IdCopyMakesKeysEqual)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto &rng = env.fake_random();
 
     std::uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE];
@@ -53,7 +53,7 @@ TEST(PkEqual, IdCopyMakesKeysEqual)
 
 TEST(CryptoCore, EncryptLargeData)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_mem = env.fake_memory().c_memory();
     auto c_rng = env.fake_random().c_random();
 
@@ -105,7 +105,7 @@ TEST(CryptoCore, IncrementNonceNumber)
 
 TEST(CryptoCore, Signatures)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().c_random();
 
     Extended_Public_Key pk;
@@ -130,7 +130,7 @@ TEST(CryptoCore, Signatures)
 
 TEST(CryptoCore, Hmac)
 {
-    SimulatedEnvironment env;
+    SimulatedEnvironment env{12345};
     auto c_rng = env.fake_random().c_random();
 
     HmacKey sk;
