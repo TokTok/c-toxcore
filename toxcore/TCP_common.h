@@ -18,6 +18,10 @@
 #include "network.h"
 #include "rng.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct TCP_Priority_List TCP_Priority_List;
 struct TCP_Priority_List {
     TCP_Priority_List *_Nullable next;
@@ -113,5 +117,9 @@ int read_tcp_packet(const Logger *_Nonnull logger, const Memory *_Nonnull mem, c
  */
 int read_packet_tcp_secure_connection(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, Socket sock, uint16_t *_Nonnull next_packet_length,
                                       const uint8_t *_Nonnull shared_key, uint8_t *_Nonnull recv_nonce, uint8_t *_Nonnull data, uint16_t max_len, const IP_Port *_Nonnull ip_port);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_TCP_COMMON_H */

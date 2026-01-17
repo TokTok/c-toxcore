@@ -552,6 +552,8 @@ if(UNITTEST)
     toxcore/mono_time_test_util.hh
     toxcore/network_test_util.cc
     toxcore/network_test_util.hh
+    toxcore/sort_test_util.cc
+    toxcore/sort_test_util.hh
     toxcore/test_util.cc
     toxcore/test_util.hh)
 endif()
@@ -602,17 +604,26 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   endif()
 
   unit_test(toxcore DHT)
+  unit_test(toxcore TCP_client)
+  unit_test(toxcore TCP_common)
+  unit_test(toxcore TCP_connection)
   unit_test(toxcore bin_pack)
   unit_test(toxcore crypto_core)
+  unit_test(toxcore friend_connection)
   unit_test(toxcore group_announce)
   unit_test(toxcore group_moderation)
   unit_test(toxcore list)
   unit_test(toxcore mem)
   unit_test(toxcore mono_time)
+  unit_test(toxcore net_crypto)
+  unit_test(toxcore network)
+  unit_test(toxcore onion_client)
   unit_test(toxcore ping_array)
   unit_test(toxcore shared_key_cache)
+  unit_test(toxcore sort)
   unit_test(toxcore test_util)
   unit_test(toxcore tox)
+  unit_test(toxcore tox_events)
   unit_test(toxcore util)
 endif()
 
