@@ -5,6 +5,8 @@
 #include <iostream>
 #include <thread>
 
+#include "../doubles/fake_event.hh"
+
 namespace tox::test {
 
 // --- LogFilter ---
@@ -312,6 +314,8 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
     system.ns = &c_network;
     system.rng = &c_random;
     system.mem = &c_memory;
+    system.ev_new_callback = FakeEvent::tox_ev_new;
+    system.ev_new_user_data = network_.get();
     system.mono_time_callback = [](void *_Nullable user_data) -> uint64_t {
         return static_cast<FakeClock *>(user_data)->current_time_ms();
     };

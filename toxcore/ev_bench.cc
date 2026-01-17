@@ -33,9 +33,13 @@ public:
 
     void TearDown(const ::benchmark::State &state) override
     {
+        for (Ev_Watch *watch : watches) {
+            ev_del(ev, watch);
+        }
         for (std::size_t i = 0; i < sockets_r.size(); ++i) {
             close_pair(sockets_r[i], sockets_w[i]);
         }
+        watches.clear();
         sockets_r.clear();
         sockets_w.clear();
         ev_kill(ev);
@@ -47,7 +51,7 @@ public:
     Ev *ev = nullptr;
     std::vector<Socket> sockets_r;
     std::vector<Socket> sockets_w;
-    int tag = 1;
+    std::vector<Ev_Watch *> watches;
     std::string setup_error;
 };
 
@@ -70,10 +74,12 @@ public:
             }
             sockets_r.push_back(r);
             sockets_w.push_back(w);
-            if (!ev_add(ev, r, EV_READ, &tag)) {
+            Ev_Watch *watch = ev_add(ev, r, EV_READ, nullptr, nullptr, 0);
+            if (watch == nullptr) {
                 setup_error = "Failed to add socket to event loop";
                 return;
             }
+            watches.push_back(watch);
         }
     }
 };
@@ -86,7 +92,6 @@ BENCHMARK_DEFINE_F(EvBenchSocketsFixture, EventLoopRun)(benchmark::State &state)
     }
     // Sockets are already created in SetUp.
 
-    Ev_Result results[1];
     char buf = 'x';
 
     // We trigger the last socket
@@ -96,7 +101,7 @@ BENCHMARK_DEFINE_F(EvBenchSocketsFixture, EventLoopRun)(benchmark::State &state)
     }
 
     for (auto _ : state) {
-        int32_t n = ev_run(ev, results, 1, 100);
+        int32_t n = ev_run(ev, 100);
         if (n != 1) {
             state.SkipWithError("ev_run did not return event");
             break;
@@ -130,12 +135,11 @@ BENCHMARK_DEFINE_F(EvBenchSocketsFixture, EventLoopMultipleActive)(benchmark::St
         }
     }
 
-    std::vector<Ev_Result> results(num_active);
-
     for (auto _ : state) {
-        int32_t n = ev_run(ev, results.data(), num_active, 100);
-        if (n != num_active) {
-            state.SkipWithError("ev_run did not return expected number of events");
+        // One run handles a bounded number of ready sockets; the rest stay ready.
+        int32_t n = ev_run(ev, 100);
+        if (n <= 0) {
+            state.SkipWithError("ev_run did not return any events");
             break;
         }
     }

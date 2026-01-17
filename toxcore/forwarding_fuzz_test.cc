@@ -6,9 +6,11 @@
 #include <memory>
 #include <optional>
 
+#include "../testing/support/doubles/fake_event.hh"
 #include "../testing/support/public/fuzz_data.hh"
 #include "../testing/support/public/fuzz_helpers.hh"
 #include "../testing/support/public/simulated_environment.hh"
+#include "ev.h"
 
 namespace {
 
@@ -65,9 +67,15 @@ void TestSendForwardRequest(Fuzz_Data &input)
         return;
     }
 
+    const Ptr<Ev> ev(
+        tox::test::FakeEvent::create(node->node->fake_network(), &node->c_memory), ev_kill);
+    if (ev == nullptr) {
+        return;
+    }
+
     const Ptr<Networking_Core> net(
-        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
-            ipp.port + 100, nullptr),
+        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, ev.get(), &ipp.ip,
+            ipp.port, ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;
@@ -96,9 +104,15 @@ void TestForwardReply(Fuzz_Data &input)
         return;
     }
 
+    const Ptr<Ev> ev(
+        tox::test::FakeEvent::create(node->node->fake_network(), &node->c_memory), ev_kill);
+    if (ev == nullptr) {
+        return;
+    }
+
     const Ptr<Networking_Core> net(
-        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
-            ipp.port + 100, nullptr),
+        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, ev.get(), &ipp.ip,
+            ipp.port, ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;

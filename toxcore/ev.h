@@ -9,119 +9,115 @@
 #include <stdint.h>
 
 #include "attributes.h"
+#include "mem.h"
 #include "net.h"  // For Socket
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * @brief An event loop: waits for sockets to become ready and calls their
+ *   handlers.
+ */
 typedef struct Ev Ev;
 
-/**
- * @brief Event types to monitor.
- */
+/** @brief A watched socket. */
+typedef struct Ev_Watch Ev_Watch;
+
+/** @brief Event types to monitor. */
 typedef uint8_t Ev_Events;
 
-#define EV_READ  (1 << 0)
-#define EV_WRITE (1 << 1)
-#define EV_ERROR (1 << 2)
+#define EV_READ  (1U << 0)
+#define EV_WRITE (1U << 1)
+#define EV_ERROR (1U << 2)
 
 /**
- * @brief Result of a triggered event.
+ * @brief How many sockets one event loop watches at most: enough for a TCP
+ *   relay's connections, and as many again for everything else.
  */
-typedef struct Ev_Result {
-    Socket sock;
-    Ev_Events events;
-    void *_Nullable data;
-} Ev_Result;
+#define EV_MAX_WATCHES 65536
 
 /**
- * @brief Add a socket to the monitored set.
+ * @brief Handles the events of a ready socket.
  *
- * This is called by `ev_add` to register a socket for event monitoring.
- *
- * @param self Backend-specific state.
- * @param sock The socket to monitor.
- * @param events Bitmask of events to monitor (EV_READ, EV_WRITE).
- * @param data User context pointer to be returned in Ev_Result.
- *
- * @return true on success, false if the socket is already registered or on error.
+ * @param obj The object passed to `ev_add`.
+ * @param key The key the socket was added or last modified with.
+ * @param events The events that occurred. EV_ERROR is reported even if not
+ *   asked for.
  */
-typedef bool ev_add_cb(void *_Nullable self, Socket sock, Ev_Events events, void *_Nullable data);
+typedef void ev_handler_cb(void *_Nullable obj, uint32_t key, Ev_Events events);
 
 /**
- * @brief Modify a registered socket's monitoring parameters.
+ * @brief Starts watching a socket.
  *
- * This is called by `ev_mod` to change the events or user data for a socket
- * that is already being monitored.
+ * @param handler Called by `ev_run` when the socket is ready. Without one, a
+ *   ready socket only ends the wait.
  *
- * @param self Backend-specific state.
- * @param sock The socket to modify.
- * @param events New bitmask of events to monitor.
- * @param data New user context pointer.
- *
- * @return true on success, false if the socket is not found or on error.
+ * @return The watch, to pass to `ev_mod` and `ev_del`, or null on failure.
+ *   Delete it with `ev_del` before closing the socket.
  */
-typedef bool ev_mod_cb(void *_Nullable self, Socket sock, Ev_Events events, void *_Nullable data);
+Ev_Watch *_Nullable ev_add(Ev *_Nonnull ev, Socket sock, Ev_Events events, ev_handler_cb *_Nullable handler,
+                           void *_Nullable obj, uint32_t key);
+
+/** @brief Changes the events and key of a watch. */
+bool ev_mod(Ev *_Nonnull ev, Ev_Watch *_Nonnull watch, Ev_Events events, uint32_t key);
+
+/** @brief Stops watching a socket. Can be called from a handler. */
+void ev_del(Ev *_Nonnull ev, Ev_Watch *_Nullable watch);
 
 /**
- * @brief Remove a socket from the monitored set.
+ * @brief Waits for sockets to become ready and calls their handlers.
  *
- * This is called by `ev_del` to stop monitoring a socket.
+ * @param timeout_ms How long to wait: 0 doesn't wait, -1 waits until a socket
+ *   is ready.
  *
- * @param self Backend-specific state.
- * @param sock The socket to remove.
+ * Handles every socket that is ready, each at least once. One whose handler
+ * leaves it ready may be handled again in the same call.
  *
- * @return true on success, false if the socket is not found.
+ * @return The number of times a socket was found ready, or -1 on error.
  */
-typedef bool ev_del_cb(void *_Nullable self, Socket sock);
+int32_t ev_run(Ev *_Nonnull ev, int32_t timeout_ms);
+
+/** @brief Frees the event loop. All its watches must have been deleted. */
+void ev_kill(Ev *_Nullable ev);
+
+/*
+ * The interface for event loop backends.
+ */
+
+typedef bool ev_add_cb(void *_Nullable self, Ev_Watch *_Nonnull watch, Socket sock, Ev_Events events);
+typedef bool ev_mod_cb(void *_Nullable self, Ev_Watch *_Nonnull watch, Socket sock, Ev_Events events);
+typedef void ev_del_cb(void *_Nullable self, Ev_Watch *_Nonnull watch, Socket sock);
 
 /**
- * @brief Wait for events on registered sockets.
+ * @brief Waits up to `timeout_ms` and reports at most `max_ready` ready
+ *   watches, with the events of `ready[i]` in `ready_events[i]`.
  *
- * This is called by `ev_run`. It blocks until at least one event occurs,
- * the timeout expires, or `ev_break` is called.
+ * When more are ready, the next call must go on with the others, so that
+ * repeated calls get to all of them.
  *
- * @param self Backend-specific state.
- * @param results Array to be populated with triggered events.
- * @param max_results Maximum number of results to store in the array.
- * @param timeout_ms Maximum time to wait in milliseconds. 0 for non-blocking,
- *                   -1 for infinite wait.
- *
- * @return Number of events stored in `results`, 0 on timeout, or -1 on error.
+ * @return The number of ready watches, or -1 on error.
  */
-typedef int32_t ev_run_cb(void *_Nullable self, Ev_Result results[_Nonnull], uint32_t max_results, int32_t timeout_ms);
+typedef int32_t ev_wait_cb(void *_Nullable self, Ev_Watch *_Nonnull ready[_Nonnull], Ev_Events ready_events[_Nonnull],
+                           uint32_t max_ready, int32_t timeout_ms);
+typedef void ev_kill_cb(void *_Nullable self);
 
-/** @brief Cleanup the event loop and free the Ev object. */
-typedef void ev_kill_cb(Ev *_Nonnull ev);
-
-/**
- * @brief Virtual function table for Ev.
- */
+/** @brief The functions an event loop backend implements. */
 typedef struct Ev_Funcs {
     ev_add_cb *_Nonnull add_callback;
     ev_mod_cb *_Nonnull mod_callback;
     ev_del_cb *_Nonnull del_callback;
-    ev_run_cb *_Nonnull run_callback;
+    ev_wait_cb *_Nonnull wait_callback;
     ev_kill_cb *_Nonnull kill_callback;
 } Ev_Funcs;
 
-/**
- * @brief The Event Loop object.
- */
-struct Ev {
-    const Ev_Funcs *_Nonnull funcs;
-    void *_Nullable user_data;
-};
+/** @brief Creates an event loop on a backend, which `ev_kill` frees with its kill callback. */
+Ev *_Nullable ev_new(const Memory *_Nonnull mem, const Ev_Funcs *_Nonnull funcs, void *_Nullable self);
 
-/**
- * @brief Wrapper functions.
- */
-bool ev_add(Ev *_Nonnull ev, Socket sock, Ev_Events events, void *_Nullable data);
-bool ev_mod(Ev *_Nonnull ev, Socket sock, Ev_Events events, void *_Nullable data);
-bool ev_del(Ev *_Nonnull ev, Socket sock);
-int32_t ev_run(Ev *_Nonnull ev, Ev_Result results[_Nonnull], uint32_t max_results, int32_t timeout_ms);
-void ev_kill(Ev *_Nullable ev);
+/** @brief A number the backend keeps for a watch, e.g. its index in the backend's arrays. */
+uint32_t ev_watch_backend_index(const Ev_Watch *_Nonnull watch);
+void ev_watch_set_backend_index(Ev_Watch *_Nonnull watch, uint32_t index);
 
 #ifdef __cplusplus
 } /* extern "C" */

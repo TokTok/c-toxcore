@@ -34,6 +34,7 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "os_event.h"
 #include "state.h"
 #include "tox_event.h"
 #include "tox_events.h"
@@ -612,9 +613,22 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
 
     tox->sys = *sys;
 
+    tox->ev = sys->ev_new_callback != nullptr
+              ? sys->ev_new_callback(sys->ev_new_user_data, mem, tox->log)
+              : os_event_new(mem, tox->log);
+
+    if (tox->ev == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        logger_kill(tox->log);
+        mem_delete(mem, tox);
+        tox_options_free(default_options);
+        return nullptr;
+    }
+
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -634,6 +648,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
                 || !addr_resolve_or_parse_ip(ns, mem, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr, dns_enabled)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -647,6 +662,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
 
     if (temp_mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -660,6 +676,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
             mono_time_free(mem, tox->mono_time);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -673,6 +690,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         tox->mutex = nullptr;
     }
 
+    m_options.ev = tox->ev;
     tox_lock(tox);
 
     Messenger_Error m_error;
@@ -700,6 +718,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -720,6 +739,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -741,6 +761,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -845,6 +866,7 @@ void tox_kill(Tox *_Nullable tox)
     LOGGER_ASSERT(tox->m->log, tox->toxav_object == nullptr, "Attempted to kill tox while toxav is still alive");
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
+    ev_kill(tox->ev);
     logger_kill(tox->log);
     mono_time_free(tox->sys.mem, tox->mono_time);
     tox_unlock(tox);
@@ -924,15 +946,21 @@ static int32_t resolve_bootstrap_node(Tox *_Nullable tox, const char *_Nullable 
     }
 
     const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, host, root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
+    IP_Port *ips = *root;
+
+    if (count > 0) {
+        Ip_Ntoa buf;
+        LOGGER_DEBUG(tox->m->log, "net_getipport resolved '%s' to %s (count=%d)", host, net_ip_ntoa(&ips[0].ip, &buf), count);
+    }
 
     if (count < 1) {
         LOGGER_DEBUG(tox->m->log, "could not resolve bootstrap node '%s'", host);
-        net_freeipport(tox->sys.mem, *root);
+        net_freeipport(tox->sys.mem, ips);
         SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_BAD_HOST);
         return -1;
     }
 
-    assert(*root != nullptr);
+    assert(ips != nullptr);
     return count;
 }
 
@@ -1066,8 +1094,14 @@ uint32_t tox_iteration_interval(const Tox *_Nonnull tox)
     return ret;
 }
 
-Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, Tox_Err_Events_Iterate *_Nullable error)
+Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, const Tox_Iterate_Options *_Nullable options, Tox_Err_Events_Iterate *_Nullable error)
 {
+    // The handlers need the current time too. After a wait, it has moved on again.
+    mono_time_update(tox->mono_time);
+
+    // Handles the sockets that have handlers (the TCP server's); do_messenger polls the others.
+    ev_run(tox->ev, tox_iterate_options_get_iterate_timeout_ms(options));
+
     mono_time_update(tox->mono_time);
 
     Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, tox->sys.mem, nullptr};
@@ -1087,7 +1121,7 @@ void tox_iterate_with_options(Tox *_Nonnull tox, const Tox_Iterate_Options *_Nul
     assert(tox != nullptr);
     tox_lock(tox);
 
-    Tox_Events *events = tox_iterate_internal(tox, nullptr);
+    Tox_Events *events = tox_iterate_internal(tox, options, nullptr);
 
     if (events != nullptr) {
         tox_events_dispatch(tox, events, user_data);
@@ -4752,6 +4786,7 @@ const Tox_System *tox_get_system(const Tox *tox)
 
 struct Tox_Iterate_Options {
     bool fail_hard;
+    int32_t iterate_timeout_ms;
 };
 
 Tox_Iterate_Options *tox_iterate_options_new(Tox_Err_Iterate_Options_New *error)
@@ -4761,6 +4796,7 @@ Tox_Iterate_Options *tox_iterate_options_new(Tox_Err_Iterate_Options_New *error)
 
     if (options != nullptr) {
         options->fail_hard = false;
+        options->iterate_timeout_ms = 0;
 
         SET_ERROR_PARAMETER(error, TOX_ERR_ITERATE_OPTIONS_NEW_OK);
 
@@ -4787,4 +4823,16 @@ void tox_iterate_options_set_fail_hard(Tox_Iterate_Options *options, bool fail_h
 bool tox_iterate_options_get_fail_hard(const Tox_Iterate_Options *options)
 {
     return options == nullptr ? false : options->fail_hard;
+}
+
+void tox_iterate_options_set_iterate_timeout_ms(Tox_Iterate_Options *options, int32_t iterate_timeout_ms)
+{
+    if (options != nullptr) {
+        options->iterate_timeout_ms = iterate_timeout_ms;
+    }
+}
+
+int32_t tox_iterate_options_get_iterate_timeout_ms(const Tox_Iterate_Options *options)
+{
+    return options == nullptr ? 0 : options->iterate_timeout_ms;
 }

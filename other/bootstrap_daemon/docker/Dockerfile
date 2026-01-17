@@ -42,7 +42,7 @@ RUN if [ -f other/bootstrap_daemon/docker/release.patch ] && [ -s other/bootstra
 
 RUN CC=clang cmake -B_build -H. \
   -GNinja \
-  -DCMAKE_C_FLAGS="-DTCP_SERVER_USE_EPOLL -fsanitize=alignment,return,returns-nonnull-attribute,vla-bound,unreachable,float-cast-overflow,null -fsanitize-trap=all -fstack-protector-all" \
+  -DCMAKE_C_FLAGS="-DEV_USE_EPOLL -fsanitize=alignment,return,returns-nonnull-attribute,vla-bound,unreachable,float-cast-overflow,null -fsanitize-trap=all -fstack-protector-all" \
   -DCMAKE_UNITY_BUILD=ON \
   -DCMAKE_BUILD_TYPE=Release \
   -DFULLY_STATIC=ON \

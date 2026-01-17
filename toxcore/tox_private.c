@@ -44,6 +44,8 @@ Tox_System tox_default_system(void)
         os_random(),
         os_network(),
         os_memory(),
+        nullptr,  // ev_new_callback
+        nullptr,  // ev_new_user_data
     };
     return sys;
 }

@@ -205,33 +205,87 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
     return 1;
 }
 
-/** @brief Read length bytes from socket.
+void tcp_free_recv_partial(TCP_Connection *con)
+{
+    if (con->recv_partial == nullptr) {
+        return;
+    }
+
+    mem_delete(con->mem, con->recv_partial);
+    con->recv_partial = nullptr;
+    con->recv_partial_length = 0;
+    con->recv_partial_wanted = 0;
+}
+
+/** @brief Read length bytes from the connection's socket.
+ *
+ * Takes what has arrived out of the socket even when that's less than length,
+ * and keeps it in the connection, so the socket is only readable again when
+ * more arrives. Until all of it is there, each call must ask for the same
+ * length.
  *
  * return length on success
- * return -1 on failure/no data in buffer.
+ * return -1 on failure/not enough data yet.
  */
-int read_tcp_packet(
-    const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port)
+int read_tcp_packet(const Logger *logger, TCP_Connection *con, uint8_t *data, uint16_t length)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    const uint16_t count = net_socket_data_recv_buffer(con->ns, con->sock);
 
-    if (count < length) {
-        if (count != 0) {
-            // Only log when there are some bytes available, as empty buffer
-            // is a very common case and this spams our logs.
-            LOGGER_TRACE(logger, "recv buffer has %d bytes, but requested %d bytes", count, length);
+    if (con->recv_partial == nullptr) {
+        if (count >= length) {
+            const int len = net_recv(con->ns, logger, con->sock, data, length, &con->ip_port);
+
+            if (len != length) {
+                LOGGER_ERROR(logger, "FAIL recv packet");
+                return -1;
+            }
+
+            return len;
         }
+
+        if (count == 0) {
+            return -1;
+        }
+
+        // Left in the socket, these bytes would keep it readable until the rest arrives.
+        uint8_t *partial = (uint8_t *)mem_balloc(con->mem, length);
+
+        if (partial == nullptr) {
+            return -1;
+        }
+
+        con->recv_partial = partial;
+        con->recv_partial_length = 0;
+        con->recv_partial_wanted = length;
+    }
+
+    if (con->recv_partial_wanted != length) {
+        LOGGER_ERROR(logger, "asked for %d bytes while waiting for the rest of %d", length, con->recv_partial_wanted);
         return -1;
     }
 
-    const int len = net_recv(ns, logger, sock, data, length, ip_port);
+    const uint16_t missing = length - con->recv_partial_length;
+    const uint16_t take = count < missing ? count : missing;
 
-    if (len != length) {
-        LOGGER_ERROR(logger, "FAIL recv packet");
+    if (take > 0) {
+        const int len = net_recv(con->ns, logger, con->sock, con->recv_partial + con->recv_partial_length, take, &con->ip_port);
+
+        if (len != take) {
+            LOGGER_ERROR(logger, "FAIL recv packet");
+            return -1;
+        }
+
+        con->recv_partial_length += take;
+    }
+
+    if (con->recv_partial_length < length) {
+        LOGGER_TRACE(logger, "have %d of the %d bytes asked for", con->recv_partial_length, length);
         return -1;
     }
 
-    return len;
+    memcpy(data, con->recv_partial, length);
+    tcp_free_recv_partial(con);
+    return length;
 }
 
 /** @brief Read the next two bytes in TCP stream then convert them to
@@ -241,31 +295,23 @@ int read_tcp_packet(
  * return 0 if nothing has been read from socket.
  * return -1 on failure.
  */
-static uint16_t read_tcp_length(const Logger *_Nonnull logger, const Network *_Nonnull ns, Socket sock, const IP_Port *_Nonnull ip_port)
+static uint16_t read_tcp_length(const Logger *_Nonnull logger, TCP_Connection *_Nonnull con)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    uint8_t length_buf[sizeof(uint16_t)];
 
-    if (count >= sizeof(uint16_t)) {
-        uint8_t length_buf[sizeof(uint16_t)];
-        const int len = net_recv(ns, logger, sock, length_buf, sizeof(length_buf), ip_port);
-
-        if (len != sizeof(uint16_t)) {
-            LOGGER_ERROR(logger, "FAIL recv packet");
-            return 0;
-        }
-
-        uint16_t length;
-        net_unpack_u16(length_buf, &length);
-
-        if (length > MAX_PACKET_SIZE) {
-            LOGGER_ERROR(logger, "TCP packet too large: %d > %d", length, MAX_PACKET_SIZE);
-            return -1;
-        }
-
-        return length;
+    if (read_tcp_packet(logger, con, length_buf, sizeof(length_buf)) == -1) {
+        return 0;
     }
 
-    return 0;
+    uint16_t length;
+    net_unpack_u16(length_buf, &length);
+
+    if (length > MAX_PACKET_SIZE) {
+        LOGGER_ERROR(logger, "TCP packet too large: %d > %d", length, MAX_PACKET_SIZE);
+        return -1;
+    }
+
+    return length;
 }
 
 /**
@@ -274,13 +320,11 @@ static uint16_t read_tcp_length(const Logger *_Nonnull logger, const Network *_N
  * @retval -1 on failure (connection must be killed).
  */
 int read_packet_tcp_secure_connection(
-    const Logger *logger, const Memory *mem, const Network *ns,
-    Socket sock, uint16_t *next_packet_length,
-    const uint8_t *shared_key, uint8_t *recv_nonce, uint8_t *data,
-    uint16_t max_len, const IP_Port *ip_port)
+    const Logger *logger, TCP_Connection *con, uint16_t *next_packet_length,
+    uint8_t *recv_nonce, uint8_t *data, uint16_t max_len)
 {
     if (*next_packet_length == 0) {
-        const uint16_t len = read_tcp_length(logger, ns, sock, ip_port);
+        const uint16_t len = read_tcp_length(logger, con);
 
         if (len == (uint16_t) -1) {
             return -1;
@@ -299,7 +343,7 @@ int read_packet_tcp_secure_connection(
     }
 
     VLA(uint8_t, data_encrypted, (int) *next_packet_length);
-    const int len_packet = read_tcp_packet(logger, mem, ns, sock, data_encrypted, *next_packet_length, ip_port);
+    const int len_packet = read_tcp_packet(logger, con, data_encrypted, *next_packet_length);
 
     if (len_packet == -1) {
         return 0;
@@ -313,7 +357,7 @@ int read_packet_tcp_secure_connection(
 
     *next_packet_length = 0;
 
-    const int len = decrypt_data_symmetric(mem, shared_key, recv_nonce, data_encrypted, len_packet, data);
+    const int len = decrypt_data_symmetric(con->mem, con->shared_key, recv_nonce, data_encrypted, len_packet, data);
 
     if (len + CRYPTO_MAC_SIZE != len_packet) {
         LOGGER_ERROR(logger, "decrypted length %d does not match expected length %d", len + CRYPTO_MAC_SIZE, len_packet);

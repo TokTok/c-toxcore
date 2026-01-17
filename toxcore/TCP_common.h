@@ -88,6 +88,11 @@ typedef struct TCP_Connection {
     TCP_Priority_List *_Nullable priority_queue_end;
     uint32_t priority_queue_length;
 
+    /* The start of the data `read_tcp_packet` was last asked for, while the rest hasn't arrived. */
+    uint8_t *_Nullable recv_partial; // _Owned
+    uint16_t recv_partial_length;
+    uint16_t recv_partial_wanted;
+
     // This is a shared pointer to the parent's respective Net_Profile object
     // (either TCP_Server for TCP server packets or TCP_Connections for TCP client packets).
     Net_Profile *_Nullable net_profile;
@@ -112,21 +117,28 @@ int send_pending_data(const Logger *_Nonnull logger, TCP_Connection *_Nonnull co
  */
 int write_packet_tcp_secure_connection(const Logger *_Nonnull logger, TCP_Connection *_Nonnull con, const uint8_t *_Nonnull data, uint16_t length, bool priority);
 
-/** @brief Read length bytes from socket.
+/** @brief Read length bytes from the connection's socket.
+ *
+ * Takes what has arrived out of the socket even when that's less than length,
+ * and keeps it in the connection, so the socket is only readable again when
+ * more arrives. Until all of it is there, each call must ask for the same
+ * length.
  *
  * return length on success
- * return -1 on failure/no data in buffer.
+ * return -1 on failure/not enough data yet.
  */
-int read_tcp_packet(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, Socket sock, uint8_t *_Nonnull data, uint16_t length,
-                    const IP_Port *_Nonnull ip_port);
+int read_tcp_packet(const Logger *_Nonnull logger, TCP_Connection *_Nonnull con, uint8_t *_Nonnull data, uint16_t length);
+
+/** @brief Free the data `read_tcp_packet` keeps for a packet that hasn't fully arrived. */
+void tcp_free_recv_partial(TCP_Connection *_Nonnull con);
 
 /**
  * @return length of received packet on success.
  * @retval 0 if could not read any packet.
  * @retval -1 on failure (connection must be killed).
  */
-int read_packet_tcp_secure_connection(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, Socket sock, uint16_t *_Nonnull next_packet_length,
-                                      const uint8_t *_Nonnull shared_key, uint8_t *_Nonnull recv_nonce, uint8_t *_Nonnull data, uint16_t max_len, const IP_Port *_Nonnull ip_port);
+int read_packet_tcp_secure_connection(const Logger *_Nonnull logger, TCP_Connection *_Nonnull con, uint16_t *_Nonnull next_packet_length,
+                                      uint8_t *_Nonnull recv_nonce, uint8_t *_Nonnull data, uint16_t max_len);
 
 #ifdef __cplusplus
 } /* extern "C" */

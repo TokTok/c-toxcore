@@ -33,6 +33,8 @@ typedef struct TCP_Client_Conn {
 
 struct TCP_Client_Connection {
     TCP_Connection con;
+    Ev *_Nonnull ev;
+    Ev_Watch *_Nullable watch;
     TCP_Client_Status status;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* our public key */
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* public key of the server */
@@ -163,13 +165,12 @@ static int proxy_http_generate_connection_request(TCP_Client_Connection *_Nonnul
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-static int proxy_http_read_connection_response(const Logger *_Nonnull logger, const TCP_Client_Connection *_Nonnull tcp_conn)
+static int proxy_http_read_connection_response(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull tcp_conn)
 {
     const char success[] = "200";
     uint8_t data[16]; // draining works the best if the length is a power of 2
 
-    const TCP_Connection *con0 = &tcp_conn->con;
-    const int ret = read_tcp_packet(logger, con0->mem, con0->ns, con0->sock, data, sizeof(data) - 1, &con0->ip_port);
+    const int ret = read_tcp_packet(logger, &tcp_conn->con, data, sizeof(data) - 1);
 
     if (ret == -1) {
         return 0;
@@ -184,10 +185,8 @@ static int proxy_http_read_connection_response(const Logger *_Nonnull logger, co
         while (data_left > 0) {
             uint8_t temp_data[16];
             const uint16_t temp_data_size = min_u16(data_left, sizeof(temp_data));
-            const TCP_Connection *con = &tcp_conn->con;
 
-            if (read_tcp_packet(logger, con->mem, con->ns, con->sock, temp_data, temp_data_size,
-                                &con->ip_port) == -1) {
+            if (read_tcp_packet(logger, &tcp_conn->con, temp_data, temp_data_size) == -1) {
                 LOGGER_ERROR(logger, "failed to drain TCP data (but ignoring failure)");
                 return 1;
             }
@@ -227,11 +226,10 @@ static void proxy_socks5_generate_greetings(TCP_Client_Connection *_Nonnull tcp_
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-static int socks5_read_handshake_response(const Logger *_Nonnull logger, const TCP_Client_Connection *_Nonnull tcp_conn)
+static int socks5_read_handshake_response(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull tcp_conn)
 {
     uint8_t data[2];
-    const TCP_Connection *con = &tcp_conn->con;
-    const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+    const int ret = read_tcp_packet(logger, &tcp_conn->con, data, sizeof(data));
 
     if (ret == -1) {
         return 0;
@@ -275,12 +273,11 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *_Non
  * @retval 0 if no data received.
  * @retval -1 on failure (connection refused).
  */
-static int proxy_socks5_read_connection_response(const Logger *_Nonnull logger, const TCP_Client_Connection *_Nonnull tcp_conn)
+static int proxy_socks5_read_connection_response(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull tcp_conn)
 {
     if (net_family_is_ipv4(tcp_conn->ip_port.ip.family)) {
         uint8_t data[4 + sizeof(IP4) + sizeof(uint16_t)];
-        const TCP_Connection *con = &tcp_conn->con;
-        const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+        const int ret = read_tcp_packet(logger, &tcp_conn->con, data, sizeof(data));
 
         if (ret == -1) {
             return 0;
@@ -291,8 +288,7 @@ static int proxy_socks5_read_connection_response(const Logger *_Nonnull logger, 
         }
     } else {
         uint8_t data[4 + sizeof(IP6) + sizeof(uint16_t)];
-        const TCP_Connection *con = &tcp_conn->con;
-        const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+        const int ret = read_tcp_packet(logger, &tcp_conn->con, data, sizeof(data));
 
         if (ret == -1) {
             return 0;
@@ -594,7 +590,7 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 
 /** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *new_tcp_connection(
-    const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
+    const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns, Ev *ev,
     const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
     const TCP_Proxy_Info *proxy_info, Net_Profile *net_profile)
 {
@@ -603,6 +599,7 @@ TCP_Client_Connection *new_tcp_connection(
     assert(mono_time != nullptr);
     assert(rng != nullptr);
     assert(ns != nullptr);
+    assert(ev != nullptr);
 
     if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
         LOGGER_ERROR(logger, "Invalid IP family: %d", ip_port->ip.family.value);
@@ -662,6 +659,7 @@ TCP_Client_Connection *new_tcp_connection(
     temp->con.sock = sock;
     temp->con.ip_port = *ip_port;
     temp->con.net_profile = net_profile;
+    temp->ev = ev;
     memcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key);
@@ -696,6 +694,14 @@ TCP_Client_Connection *new_tcp_connection(
     }
 
     temp->kill_at = mono_time_get(mono_time) + TCP_CONNECTION_TIMEOUT;
+
+    temp->watch = ev_add(ev, sock, EV_READ, nullptr, nullptr, 0);
+
+    if (temp->watch == nullptr) {
+        LOGGER_ERROR(logger, "Failed to watch the TCP socket");
+        kill_tcp_connection(temp);
+        return nullptr;
+    }
 
     return temp;
 }
@@ -896,8 +902,7 @@ static int handle_tcp_client_packet(const Logger *_Nonnull logger, TCP_Client_Co
 static bool tcp_process_packet(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull conn, void *_Nullable userdata)
 {
     uint8_t packet[MAX_PACKET_SIZE];
-    const int len = read_packet_tcp_secure_connection(logger, conn->con.mem, conn->con.ns, conn->con.sock, &conn->next_packet_length, conn->con.shared_key, conn->recv_nonce, packet, sizeof(packet),
-                    &conn->ip_port);
+    const int len = read_packet_tcp_secure_connection(logger, &conn->con, &conn->next_packet_length, conn->recv_nonce, packet, sizeof(packet));
 
     if (len == 0) {
         return false;
@@ -1012,8 +1017,7 @@ void do_tcp_connection(const Logger *logger, const Mono_Time *mono_time,
 
     if (tcp_connection->status == TCP_CLIENT_UNCONFIRMED) {
         uint8_t data[TCP_SERVER_HANDSHAKE_SIZE];
-        const TCP_Connection *con = &tcp_connection->con;
-        const int len = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
+        const int len = read_tcp_packet(logger, &tcp_connection->con, data, sizeof(data));
 
         if (sizeof(data) == len) {
             if (handle_handshake(tcp_connection, data) == 0) {
@@ -1044,7 +1048,9 @@ void kill_tcp_connection(TCP_Client_Connection *tcp_connection)
 
     const Memory *mem = tcp_connection->con.mem;
 
+    ev_del(tcp_connection->ev, tcp_connection->watch);
     wipe_priority_list(tcp_connection->con.mem, tcp_connection->con.priority_queue_start);
+    tcp_free_recv_partial(&tcp_connection->con);
     kill_sock(tcp_connection->con.ns, tcp_connection->con.sock);
     crypto_memzero(tcp_connection, sizeof(TCP_Client_Connection));
     mem_delete(mem, tcp_connection);

@@ -9,6 +9,7 @@
 #include "mono_time.h"
 #include "net.h"
 #include "network.h"
+#include "os_event.h"
 #include "os_memory.h"
 #include "os_network.h"
 #include "os_random.h"
@@ -55,6 +56,7 @@ TEST(TCPServer, SurvivesSameKeyReconnectWithPendingData)
 
     Logger *logger = logger_new(mem);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Ev *ev = os_event_new(mem, logger);
 
     IP_Port relay;
     relay.ip.family = net_family_ipv4();
@@ -63,7 +65,7 @@ TEST(TCPServer, SurvivesSameKeyReconnectWithPendingData)
 
     auto confirm = [&](const uint8_t *pk, const uint8_t *sk) -> TCP_Client_Connection * {
         TCP_Client_Connection *c = new_tcp_connection(
-            logger, mem, mono_time, rng, ns, &relay, relay_pk, pk, sk, nullptr, nullptr);
+            logger, mem, mono_time, rng, ns, ev, &relay, relay_pk, pk, sk, nullptr, nullptr);
         sleep_ms(50);
         for (int i = 0; i < 30 && tcp_con_status(c) != TCP_CLIENT_CONFIRMED; ++i) {
             mono_time_update(mono_time);
@@ -102,7 +104,7 @@ TEST(TCPServer, SurvivesSameKeyReconnectWithPendingData)
 
     // Confirm B without letting the relay handle its confirming packet yet.
     TCP_Client_Connection *b = new_tcp_connection(
-        logger, mem, mono_time, rng, ns, &relay, relay_pk, key_pk, key_sk, nullptr, nullptr);
+        logger, mem, mono_time, rng, ns, ev, &relay, relay_pk, key_pk, key_sk, nullptr, nullptr);
     ASSERT_NE(b, nullptr);
     sleep_ms(50);
     mono_time_update(mono_time);
@@ -129,6 +131,7 @@ TEST(TCPServer, SurvivesSameKeyReconnectWithPendingData)
     kill_tcp_connection(a);
     kill_tcp_connection(b);
     kill_tcp_connection(mid);
+    ev_kill(ev);
     logger_kill(logger);
     mono_time_free(mem, mono_time);
     tox_kill(tox);

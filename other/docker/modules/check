@@ -298,7 +298,7 @@ def main() -> None:
                 "-Wall",
                 "-Werror",
                 "-Wno-missing-braces",
-                "-DTCP_SERVER_USE_EPOLL",
+                "-DEV_USE_EPOLL",
                 "-D_XOPEN_SOURCE=600",
                 "-D_GNU_SOURCE",
                 std,

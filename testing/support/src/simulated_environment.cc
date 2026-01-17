@@ -2,6 +2,8 @@
 
 #include <iostream>
 
+#include "../doubles/fake_event.hh"
+
 namespace tox::test {
 
 SimulatedEnvironment::SimulatedEnvironment(uint64_t seed)
@@ -62,6 +64,8 @@ std::unique_ptr<ScopedToxSystem> SimulatedEnvironment::create_node(uint16_t port
     scoped->system.mem = &scoped->c_memory;
     scoped->system.ns = &scoped->c_network;
     scoped->system.rng = &scoped->c_random;
+    scoped->system.ev_new_callback = FakeEvent::tox_ev_new;
+    scoped->system.ev_new_user_data = &scoped->node->fake_network();
 
     scoped->system.mono_time_user_data = &sim_->clock();
     scoped->system.mono_time_callback = [](void *_Nullable user_data) -> uint64_t {

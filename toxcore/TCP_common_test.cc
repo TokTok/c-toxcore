@@ -3,8 +3,13 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <cstring>
 
+#include "../testing/support/doubles/fake_memory.hh"
+#include "../testing/support/doubles/fake_network_stack.hh"
+#include "../testing/support/doubles/network_universe.hh"
 #include "logger.h"
+#include "network.h"
 #include "os_memory.h"
 #include "os_random.h"
 
@@ -156,6 +161,79 @@ TEST(TCP_common, PriorityQueueIsBoundedUntilDrained)
     EXPECT_EQ(write_packet_tcp_secure_connection(logger, &con, data, sizeof(data), true), 1);
 
     wipe_priority_list(con.mem, con.priority_queue_start);
+    logger_kill(logger);
+}
+
+// Bytes left in the socket would keep it readable, and an event loop that waits for readable
+// sockets would never wait again until the rest of the packet arrived.
+TEST(TCP_common, TakesTheStartOfAPacketOutOfTheSocket)
+{
+    tox::test::NetworkUniverse universe;
+    IP ip;
+    ip_init(&ip, false);
+    ip.ip.v4.uint32 = net_htonl(0x7F000001);
+    tox::test::FakeNetworkStack net_stack{universe, ip};
+    Network ns = net_stack.c_network();
+    tox::test::FakeMemory memory;
+    Memory mem = memory.c_memory();
+    Logger *logger = logger_new(&mem);
+    ASSERT_NE(logger, nullptr);
+
+    IP_Port server_addr;
+    server_addr.ip = ip;
+    server_addr.port = net_htons(8080);
+    const Socket server = net_socket(&ns, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    ASSERT_EQ(net_stack.bind(server, &server_addr), 0);
+    ASSERT_EQ(net_stack.listen(server, 1), 0);
+    const Socket sender = net_socket(&ns, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    net_stack.connect(sender, &server_addr);
+    for (int i = 0; i < 3; ++i) {
+        universe.process_events(0);
+    }
+
+    TCP_Connection con = {nullptr};
+    con.mem = &mem;
+    con.ns = &ns;
+    con.sock = net_stack.accept(server);
+    con.ip_port = server_addr;
+
+    const uint8_t packet[] = {1, 2, 3, 4, 5, 6, 7, 8};
+    uint8_t received[sizeof(packet)] = {0};
+
+    // Nothing has arrived: nothing to keep.
+    EXPECT_EQ(read_tcp_packet(logger, &con, received, sizeof(received)), -1);
+    EXPECT_EQ(con.recv_partial, nullptr);
+
+    ASSERT_EQ(net_stack.send(sender, packet, 3), 3);
+    universe.process_events(0);
+    ASSERT_EQ(net_socket_data_recv_buffer(&ns, con.sock), 3);
+
+    EXPECT_EQ(read_tcp_packet(logger, &con, received, sizeof(received)), -1);
+    EXPECT_EQ(net_socket_data_recv_buffer(&ns, con.sock), 0);
+
+    // The bytes of the next packet stay in the socket until it's asked for.
+    const uint8_t next[] = {9, 10};
+    ASSERT_EQ(net_stack.send(sender, packet + 3, sizeof(packet) - 3),
+        static_cast<int>(sizeof(packet) - 3));
+    ASSERT_EQ(net_stack.send(sender, next, sizeof(next)), static_cast<int>(sizeof(next)));
+    universe.process_events(0);
+
+    EXPECT_EQ(read_tcp_packet(logger, &con, received, sizeof(received)),
+        static_cast<int>(sizeof(received)));
+    EXPECT_EQ(std::memcmp(received, packet, sizeof(packet)), 0);
+    EXPECT_EQ(net_socket_data_recv_buffer(&ns, con.sock), sizeof(next));
+    EXPECT_EQ(con.recv_partial, nullptr);
+
+    // A connection that is closed while it waits for the rest frees what it kept.
+    uint8_t never[4];
+    EXPECT_EQ(read_tcp_packet(logger, &con, never, sizeof(never)), -1);
+    EXPECT_NE(con.recv_partial, nullptr);
+    tcp_free_recv_partial(&con);
+    EXPECT_EQ(con.recv_partial, nullptr);
+
+    net_stack.close(con.sock);
+    net_stack.close(sender);
+    net_stack.close(server);
     logger_kill(logger);
 }
 

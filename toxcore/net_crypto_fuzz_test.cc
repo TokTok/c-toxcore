@@ -7,12 +7,14 @@
 #include <memory>
 #include <optional>
 
+#include "../testing/support/doubles/fake_event.hh"
 #include "../testing/support/public/fuzz_data.hh"
 #include "../testing/support/public/fuzz_helpers.hh"
 #include "../testing/support/public/simulated_environment.hh"
 #include "DHT.h"
 #include "TCP_client.h"
 #include "attributes.h"
+#include "ev.h"
 #include "net_profile.h"
 #include "network.h"
 
@@ -64,9 +66,15 @@ void TestNetCrypto(Fuzz_Data &input)
         return;
     }
 
+    const Ptr<Ev> ev(
+        tox::test::FakeEvent::create(node->node->fake_network(), &node->c_memory), ev_kill);
+    if (ev == nullptr) {
+        return;
+    }
+
     const Ptr<Networking_Core> net(
-        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, &ipp.ip, ipp.port,
-            ipp.port + 100, nullptr),
+        new_networking_ex(logger.get(), &node->c_memory, &node->c_network, ev.get(), &ipp.ip,
+            ipp.port, ipp.port + 100, nullptr),
         kill_networking);
     if (net == nullptr) {
         return;
@@ -102,7 +110,7 @@ void TestNetCrypto(Fuzz_Data &input)
 
     const Ptr<Net_Crypto> net_crypto(
         new_net_crypto(logger.get(), &node->c_memory, &node->c_random, &node->c_network,
-            mono_time.get(), net.get(), dht.get(), &dht_funcs, &proxy_info, tcp_np),
+            mono_time.get(), ev.get(), net.get(), dht.get(), &dht_funcs, &proxy_info, tcp_np),
         kill_net_crypto);
     if (net_crypto == nullptr) {
         netprof_kill(&node->c_memory, tcp_np);
