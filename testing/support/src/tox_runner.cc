@@ -109,7 +109,7 @@ void ToxRunner::loop()
 
             // Run Tox Events
             Tox_Err_Events_Iterate err;
-            Tox_Events *events = tox_events_iterate(tox_.get(), false, &err);
+            Tox_Events *events = tox_events_iterate(tox_.get(), nullptr, &err);
             if (events) {
                 events_queue_.push(ToxEventsPtr(events));
             }

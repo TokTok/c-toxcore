@@ -275,11 +275,15 @@ void RecordBootstrap(const char *init, const char *bootstrap)
         Tox_Err_Events_Iterate error_iterate;
         Tox_Events *events;
 
-        events = tox_events_iterate(tox1, true, &error_iterate);
+        std::unique_ptr<Tox_Events_Iterate_Options, void (*)(Tox_Events_Iterate_Options *)> iterate_opts(
+            tox_events_iterate_options_new(nullptr), tox_events_iterate_options_free);
+        tox_events_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
+        events = tox_events_iterate(tox1, iterate_opts.get(), &error_iterate);
         tox_dispatch_invoke(dispatch, events, &state1);
         tox_events_free(events);
 
-        events = tox_events_iterate(tox2, true, &error_iterate);
+        events = tox_events_iterate(tox2, iterate_opts.get(), &error_iterate);
         tox_dispatch_invoke(dispatch, events, &state2);
         tox_events_free(events);
 

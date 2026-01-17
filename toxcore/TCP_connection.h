@@ -272,6 +272,7 @@ uint32_t tcp_copy_connected_relays_index(const TCP_Connections *_Nonnull tcp_c, 
  * Returns NULL on failure.
  */
 TCP_Connections *_Nullable new_tcp_connections(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time,
+        Ev *_Nonnull ev,
         const uint8_t *_Nonnull secret_key, const TCP_Proxy_Info *_Nonnull proxy_info, Net_Profile *_Nonnull tcp_np);
 
 int kill_tcp_relay_connection(TCP_Connections *_Nonnull tcp_c, int tcp_connections_number);

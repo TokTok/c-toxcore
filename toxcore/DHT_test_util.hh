@@ -12,10 +12,12 @@
 #include "DHT.h"
 #include "attributes.h"
 #include "crypto_core.h"
+#include "ev.h"
 #include "logger.h"
 #include "mono_time.h"
 #include "net.h"
 #include "net_crypto.h"
+#include "os_event.h"
 #include "rng.h"
 #include "test_util.hh"
 
@@ -26,6 +28,9 @@ struct ScopedToxSystem;
 
 template <>
 struct Deleter<DHT> : Function_Deleter<DHT, kill_dht> { };
+
+template <>
+struct Deleter<Ev> : Function_Deleter<Ev, ev_kill> { };
 
 bool operator==(Node_format const &a, Node_format const &b);
 
@@ -71,6 +76,7 @@ public:
     Networking_Core *_Nonnull networking() { return networking_.get(); }
     Mono_Time *_Nonnull mono_time() { return mono_time_.get(); }
     Logger *_Nonnull logger() { return logger_.get(); }
+    Ev *_Nonnull ev() { return ev_.get(); }
 
     ~WrappedMockDHT();
 
@@ -80,6 +86,7 @@ private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
     std::unique_ptr<Logger, void (*_Nonnull)(Logger *_Nullable)> logger_;
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *_Nullable)>> mono_time_;
+    std::unique_ptr<Ev, void (*_Nonnull)(Ev *_Nullable)> ev_;
     std::unique_ptr<Networking_Core, void (*_Nonnull)(Networking_Core *_Nullable)> networking_;
     MockDHT dht_;
 };
@@ -104,6 +111,7 @@ public:
     Networking_Core *_Nonnull networking() { return networking_.get(); }
     Mono_Time *_Nonnull mono_time() { return mono_time_.get(); }
     Logger *_Nonnull logger() { return logger_.get(); }
+    Ev *_Nonnull ev() { return ev_.get(); }
 
     ~WrappedDHT();
 
@@ -113,6 +121,7 @@ private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
     std::unique_ptr<Logger, void (*_Nonnull)(Logger *_Nullable)> logger_;
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *_Nullable)>> mono_time_;
+    std::unique_ptr<Ev, void (*_Nonnull)(Ev *_Nullable)> ev_;
     std::unique_ptr<Networking_Core, void (*_Nonnull)(Networking_Core *_Nullable)> networking_;
     std::unique_ptr<DHT, void (*_Nonnull)(DHT *_Nullable)> dht_;
 };

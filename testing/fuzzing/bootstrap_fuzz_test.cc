@@ -196,10 +196,13 @@ void TestBootstrap(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
+    Ptr<Tox_Events_Iterate_Options> iterate_opts(tox_events_iterate_options_new(nullptr), tox_events_iterate_options_free);
+    tox_events_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
     size_t input_size = input.size();
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events = tox_events_iterate(tox, iterate_opts.get(), &error_iterate);
         assert(tox_events_equal(&null_node->system, events, events));
 
         tox_dispatch_invoke(dispatch, events, tox);

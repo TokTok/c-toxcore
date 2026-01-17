@@ -32,6 +32,7 @@
 #include "net_crypto.h"
 #include "network.h"
 #include "onion_client.h"
+#include "os_event.h"
 #include "state.h"
 #include "tox_log_level.h"
 #include "tox_options.h"
@@ -779,9 +780,24 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
 
     tox->sys = *sys;
 
+    if (sys->ev != nullptr) {
+        tox->ev = sys->ev;
+    } else {
+        tox->ev = os_event_new(mem, tox->log);
+    }
+
+    if (tox->ev == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        logger_kill(tox->log);
+        mem_delete(mem, tox);
+        tox_options_free(default_options);
+        return nullptr;
+    }
+
     if (m_options.proxy_info.proxy_type != TCP_PROXY_NONE) {
         if (tox_options_get_proxy_port(opts) == 0) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_PORT);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -801,6 +817,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
                 || !addr_resolve_or_parse_ip(ns, mem, proxy_host, &m_options.proxy_info.ip_port.ip, nullptr, dns_enabled)) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
             // TODO(irungentoo): TOX_ERR_NEW_PROXY_NOT_FOUND if domain.
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -814,6 +831,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
 
     if (temp_mono_time == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -827,6 +845,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         if (mutex == nullptr) {
             SET_ERROR_PARAMETER(error, TOX_ERR_NEW_MALLOC);
             mono_time_free(mem, tox->mono_time);
+            ev_kill(tox->ev);
             logger_kill(tox->log);
             mem_delete(mem, tox);
             tox_options_free(default_options);
@@ -840,6 +859,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         tox->mutex = nullptr;
     }
 
+    m_options.ev = tox->ev;
     tox_lock(tox);
 
     Messenger_Error m_error;
@@ -867,6 +887,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
         tox_options_free(default_options);
@@ -887,6 +908,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -908,6 +930,7 @@ static Tox *tox_new_system(const struct Tox_Options *_Nullable options, Tox_Err_
         }
 
         mem_delete(mem, tox->mutex);
+        ev_kill(tox->ev);
         logger_kill(tox->log);
         mem_delete(mem, tox);
 
@@ -1012,6 +1035,7 @@ void tox_kill(Tox *tox)
     kill_groupchats(tox->m->conferences_object);
     kill_messenger(tox->m);
     logger_kill(tox->log);
+    ev_kill(tox->ev);
     mono_time_free(tox->sys.mem, tox->mono_time);
     tox_unlock(tox);
 
@@ -1089,15 +1113,21 @@ static int32_t resolve_bootstrap_node(Tox *_Nullable tox, const char *_Nullable 
     }
 
     const int32_t count = net_getipport(tox->sys.ns, tox->sys.mem, host, root, TOX_SOCK_DGRAM, tox->m->options.dns_enabled);
+    IP_Port *ips = *root;
+
+    if (count > 0) {
+        Ip_Ntoa buf;
+        LOGGER_DEBUG(tox->m->log, "net_getipport resolved '%s' to %s (count=%d)", host, net_ip_ntoa(&ips[0].ip, &buf), count);
+    }
 
     if (count < 1) {
         LOGGER_DEBUG(tox->m->log, "could not resolve bootstrap node '%s'", host);
-        net_freeipport(tox->sys.mem, *root);
+        net_freeipport(tox->sys.mem, ips);
         SET_ERROR_PARAMETER(error, TOX_ERR_BOOTSTRAP_BAD_HOST);
         return -1;
     }
 
-    assert(*root != nullptr);
+    assert(ips != nullptr);
     return count;
 }
 
@@ -1231,10 +1261,20 @@ uint32_t tox_iteration_interval(const Tox *tox)
     return ret;
 }
 
-void tox_iterate(Tox *tox, void *user_data)
+void tox_iterate_with_timeout(Tox *tox, void *user_data, int32_t iterate_timeout_ms)
 {
     assert(tox != nullptr);
     tox_lock(tox);
+
+    if (iterate_timeout_ms != 0) {
+        Ev_Result results[32];
+        const int32_t n = ev_run(tox->ev, results, 32, iterate_timeout_ms);
+
+        if (n > 0) {
+            /* Events occurred, but do_messenger will poll all sockets anyway. */
+            // TODO(iphydf): Optimize do_messenger to only process ready sockets.
+        }
+    }
 
     mono_time_update(tox->mono_time);
 
@@ -1243,6 +1283,11 @@ void tox_iterate(Tox *tox, void *user_data)
     do_groupchats(tox->m->conferences_object, &tox_data);
 
     tox_unlock(tox);
+}
+
+void tox_iterate(Tox *tox, void *user_data)
+{
+    tox_iterate_with_timeout(tox, user_data, 0);
 }
 
 void tox_self_get_address(const Tox *tox, Tox_Address address)

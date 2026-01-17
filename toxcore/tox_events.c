@@ -5,6 +5,7 @@
 #include "tox_events.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "attributes.h"
@@ -88,15 +89,80 @@ const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
     return &events->events[index];
 }
 
-Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
+struct Tox_Events_Iterate_Options {
+    bool fail_hard;
+    int32_t iterate_timeout_ms;
+};
+
+Tox_Events_Iterate_Options *tox_events_iterate_options_new(Tox_Err_Events_Iterate *error)
+{
+    Tox_Events_Iterate_Options *options = (Tox_Events_Iterate_Options *)calloc(1, sizeof(Tox_Events_Iterate_Options));
+
+    if (options != nullptr) {
+        options->fail_hard = false;
+        options->iterate_timeout_ms = 0;
+
+        if (error != nullptr) {
+            *error = TOX_ERR_EVENTS_ITERATE_OK;
+        }
+
+        return options;
+    }
+
+    if (error != nullptr) {
+        *error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+
+    return nullptr;
+}
+
+void tox_events_iterate_options_free(Tox_Events_Iterate_Options *options)
+{
+    free(options);
+}
+
+void tox_events_iterate_options_set_fail_hard(Tox_Events_Iterate_Options *options, bool fail_hard)
+{
+    if (options == nullptr) {
+        return;
+    }
+
+    options->fail_hard = fail_hard;
+}
+
+bool tox_events_iterate_options_get_fail_hard(const Tox_Events_Iterate_Options *options)
+{
+    return options == nullptr ? false : options->fail_hard;
+}
+
+void tox_events_iterate_options_set_iterate_timeout_ms(Tox_Events_Iterate_Options *options, int32_t iterate_timeout_ms)
+{
+    if (options == nullptr) {
+        return;
+    }
+
+    options->iterate_timeout_ms = iterate_timeout_ms;
+}
+
+int32_t tox_events_iterate_options_get_iterate_timeout_ms(const Tox_Events_Iterate_Options *options)
+{
+    return options == nullptr ? 0 : options->iterate_timeout_ms;
+}
+
+Tox_Events *tox_events_iterate(Tox *tox, const Tox_Events_Iterate_Options *options, Tox_Err_Events_Iterate *error)
 {
     const Tox_System *sys = tox_get_system(tox);
-    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem};
-    tox_iterate(tox, &state);
+    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem, nullptr};
+
+    int32_t timeout_ms = tox_events_iterate_options_get_iterate_timeout_ms(options);
+
+    tox_iterate_with_timeout(tox, &state, timeout_ms);
 
     if (error != nullptr) {
         *error = state.error;
     }
+
+    const bool fail_hard = tox_events_iterate_options_get_fail_hard(options);
 
     if (fail_hard && state.error != TOX_ERR_EVENTS_ITERATE_OK) {
         tox_events_free(state.events);

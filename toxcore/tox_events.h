@@ -551,24 +551,74 @@ typedef enum Tox_Err_Events_Iterate {
 } Tox_Err_Events_Iterate;
 
 /**
+ * Options for tox_events_iterate.
+ */
+typedef struct Tox_Events_Iterate_Options Tox_Events_Iterate_Options;
+
+/**
+ * Allocates a new Tox_Events_Iterate_Options object and initializes it with
+ * default values.
+ *
+ * Default values:
+ * - fail_hard: false
+ * - iterate_timeout_ms: -2 (meaning use the default from Tox_Options)
+ *
+ * @param error An error code. Will be set to OK on success.
+ * @return A new options object or NULL on failure.
+ */
+Tox_Events_Iterate_Options *_Nullable tox_events_iterate_options_new(Tox_Err_Events_Iterate *_Nullable error);
+
+/**
+ * Frees the options object.
+ */
+void tox_events_iterate_options_free(Tox_Events_Iterate_Options *_Nullable options);
+
+/**
+ * Set whether to drop all events when any allocation fails.
+ */
+void tox_events_iterate_options_set_fail_hard(Tox_Events_Iterate_Options *_Nonnull options, bool fail_hard);
+
+/**
+ * Get whether to drop all events when any allocation fails.
+ */
+bool tox_events_iterate_options_get_fail_hard(const Tox_Events_Iterate_Options *_Nonnull options);
+
+/**
+ * Set the timeout in milliseconds for the iteration.
+ *
+ * 0: Non-blocking (default).
+ * Positive: Wait up to this many milliseconds for events.
+ * -1: Wait indefinitely.
+ */
+void tox_events_iterate_options_set_iterate_timeout_ms(Tox_Events_Iterate_Options *_Nonnull options, int32_t iterate_timeout_ms);
+
+/**
+ * Get the timeout in milliseconds for the iteration.
+ */
+int32_t tox_events_iterate_options_get_iterate_timeout_ms(const Tox_Events_Iterate_Options *_Nonnull options);
+
+/**
  * Run a single `tox_iterate` iteration and record all the events.
  *
  * If allocation of the top level events object fails, this returns NULL.
  * Otherwise it returns an object with the recorded events in it. If an
  * allocation fails while recording events, some events may be dropped.
  *
- * If @p fail_hard is `true`, any failure will result in NULL, so all recorded
- * events will be dropped.
+ * If `fail_hard` in @p options is `true`, any failure will result in NULL, so
+ * all recorded events will be dropped.
  *
  * The result must be freed using `tox_events_free`.
  *
  * @param tox The Tox instance to iterate on.
- * @param fail_hard Drop all events when any allocation fails.
+ * @param options Options for the iteration. If NULL, default options are used.
  * @param error An error code. Will be set to OK on success.
  *
  * @return the recorded events structure.
  */
-Tox_Events *_Nullable tox_events_iterate(Tox *_Nonnull tox, bool fail_hard, Tox_Err_Events_Iterate *_Nullable error);
+Tox_Events *_Nullable tox_events_iterate(
+    Tox *_Nonnull tox,
+    const Tox_Events_Iterate_Options *_Nullable options,
+    Tox_Err_Events_Iterate *_Nullable error);
 
 /**
  * Frees all memory associated with the events structure.

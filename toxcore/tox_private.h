@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ev.h"
 #include "tox.h"
 #include "tox_attributes.h"
 #include "tox_options.h"
@@ -30,6 +31,7 @@ typedef struct Tox_System {
     const Random *_Nullable rng;
     const Network *_Nullable ns;
     const Memory *_Nullable mem;
+    Ev *_Nullable ev; // _Owned
 } Tox_System;
 
 Tox_System tox_default_system(void);
@@ -49,6 +51,11 @@ Tox *_Nullable tox_new_testing(const Tox_Options *_Nonnull options, Tox_Err_New 
 
 void tox_lock(const Tox *_Nonnull tox);
 void tox_unlock(const Tox *_Nonnull tox);
+
+/**
+ * Run a single tox_iterate iteration with a custom timeout.
+ */
+void tox_iterate_with_timeout(Tox *_Nonnull tox, void *_Nullable user_data, int32_t iterate_timeout_ms);
 
 /**
  * Set the callback for the `friend_lossy_packet` event for a specific packet

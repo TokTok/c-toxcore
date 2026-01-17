@@ -14,6 +14,7 @@
 #include "net_crypto.h"
 #include "net_profile.h"
 #include "network.h"
+#include "os_event.h"
 #include "test_util.hh"
 
 namespace {
@@ -44,14 +45,15 @@ public:
                          },
                          &env.fake_clock()),
               [mem = &node_->c_memory](Mono_Time *t) { mono_time_free(mem, t); })
+        , ev_(os_event_new(&node_->c_memory, logger_.get()), ev_kill)
         , networking_(nullptr, [](Networking_Core *n) { kill_networking(n); })
         , dht_(nullptr, [](DHT *d) { kill_dht(d); })
     {
         IP ip;
         ip_init(&ip, true);
         unsigned int error = 0;
-        networking_.reset(new_networking_ex(
-            logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
+        networking_.reset(new_networking_ex(logger_.get(), &node_->c_memory, &node_->c_network,
+            ev_.get(), &ip, port, port + 1, &error));
         // In fuzzing we might ignore assert, but setup should succeed
         node_->endpoint = node_->node->get_primary_socket();
 
@@ -63,6 +65,7 @@ public:
     Networking_Core *_Nonnull networking() { return REQUIRE_NOT_NULL(networking_.get()); }
     Mono_Time *_Nonnull mono_time() { return REQUIRE_NOT_NULL(mono_time_.get()); }
     Logger *_Nonnull logger() { return REQUIRE_NOT_NULL(logger_.get()); }
+    Ev *_Nonnull ev() { return REQUIRE_NOT_NULL(ev_.get()); }
     tox::test::ScopedToxSystem &node() { return *node_; }
     FakeUdpSocket *_Nullable endpoint() { return node_->endpoint; }
 
@@ -72,6 +75,7 @@ private:
     std::unique_ptr<tox::test::ScopedToxSystem> node_;
     std::unique_ptr<Logger, void (*)(Logger *)> logger_;
     std::unique_ptr<Mono_Time, std::function<void(Mono_Time *)>> mono_time_;
+    std::unique_ptr<Ev, void (*)(Ev *)> ev_;
     std::unique_ptr<Networking_Core, void (*)(Networking_Core *)> networking_;
     std::unique_ptr<DHT, void (*)(DHT *)> dht_;
 };
@@ -96,8 +100,8 @@ public:
     {
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_.logger(), &dht_.node().c_memory,
-            &dht_.node().c_random, &dht_.node().c_network, dht_.mono_time(), dht_.networking(),
-            dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get()));
+            &dht_.node().c_random, &dht_.node().c_network, dht_.mono_time(), dht_.ev(),
+            dht_.networking(), dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get()));
 
         onion_client_.reset(
             new_onion_client(dht_.logger(), &dht_.node().c_memory, &dht_.node().c_random,

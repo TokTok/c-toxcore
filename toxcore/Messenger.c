@@ -3422,6 +3422,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->mem = mem;
     m->rng = rng;
     m->ns = ns;
+    m->ev = options->ev;
     m->forwarding = nullptr;
     m->announce = nullptr;
     m->tcp_server = nullptr;
@@ -3443,11 +3444,11 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
 
     Networking_Core *net;
     if (options->udp_disabled) {
-        net = new_networking_no_udp(m->log, m->mem, m->ns);
+        net = new_networking_no_udp(m->log, m->mem, m->ns, m->ev);
     } else {
         IP ip;
         ip_init(&ip, options->ipv6enabled);
-        net = new_networking_ex(m->log, m->mem, m->ns, &ip, options->port_range[0], options->port_range[1], &net_err);
+        net = new_networking_ex(m->log, m->mem, m->ns, m->ev, &ip, options->port_range[0], options->port_range[1], &net_err);
     }
 
     if (net == nullptr) {
@@ -3483,7 +3484,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
     m->tcp_np = tcp_np;
 
-    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
+    Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->ev, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
 
     if (net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
@@ -3575,7 +3576,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->group_handler = group_handler;
 
     if (options->tcp_server_port != 0) {
-        m->tcp_server = new_tcp_server(m->log, m->mem, m->rng, m->ns, options->ipv6enabled, 1,
+        m->tcp_server = new_tcp_server(m->log, m->mem, m->rng, m->ns, m->ev, options->ipv6enabled, 1,
                                        &options->tcp_server_port, dht_get_self_secret_key(m->dht),
                                        m->onion, m->forwarding);
 
