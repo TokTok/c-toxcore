@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -56,6 +57,12 @@ static bool tox_event_group_invite_set_invite_data(Tox_Event_Group_Invite *_Nonn
         return true;
     }
 
+    if (invite_data_length == 0) {
+        group_invite->invite_data = nullptr;
+        group_invite->invite_data_length = 0;
+        return true;
+    }
+
     uint8_t *invite_data_copy = (uint8_t *)mem_balloc(mem, invite_data_length);
 
     if (invite_data_copy == nullptr) {
@@ -90,6 +97,12 @@ static bool tox_event_group_invite_set_group_name(Tox_Event_Group_Invite *_Nonnu
 
     if (group_name == nullptr) {
         assert(group_name_length == 0);
+        return true;
+    }
+
+    if (group_name_length == 0) {
+        group_invite->group_name = nullptr;
+        group_invite->group_name_length = 0;
         return true;
     }
 
@@ -175,7 +188,7 @@ Tox_Event_Group_Invite *tox_event_group_invite_new(const Memory *mem)
 void tox_event_group_invite_free(Tox_Event_Group_Invite *group_invite, const Memory *mem)
 {
     if (group_invite != nullptr) {
-        tox_event_group_invite_destruct((Tox_Event_Group_Invite * _Nonnull)group_invite, mem);
+        tox_event_group_invite_destruct(group_invite, mem);
     }
     mem_delete(mem, group_invite);
 }
@@ -236,17 +249,34 @@ static Tox_Event_Group_Invite *tox_event_group_invite_alloc(Tox_Events_State *_N
  *****************************************************/
 
 void tox_events_handle_group_invite(
-    Tox *tox, uint32_t friend_number, const uint8_t *invite_data, size_t invite_data_length, const uint8_t *group_name, size_t group_name_length,
-    void *user_data)
+    uint32_t friend_number,
+    const uint8_t *invite_data, size_t invite_data_length,
+    const uint8_t *group_name, size_t group_name_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Invite *group_invite = tox_event_group_invite_alloc(state);
+    Tox_Event_Group_Invite *group_invite = tox_event_group_invite_alloc(tox_events_alloc(state));
 
     if (group_invite == nullptr) {
         return;
     }
 
     tox_event_group_invite_set_friend_number(group_invite, friend_number);
-    tox_event_group_invite_set_invite_data(group_invite, state->mem, invite_data, invite_data_length);
-    tox_event_group_invite_set_group_name(group_invite, state->mem, group_name, group_name_length);
+    if (!tox_event_group_invite_set_invite_data(group_invite, state->mem, invite_data, invite_data_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+    if (!tox_event_group_invite_set_group_name(group_invite, state->mem, group_name, group_name_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_group_invite_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_invite_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Invite *ev = event->data.group_invite;
+    tox_unlock(tox);
+    tox->group_invite_callback(tox, ev->friend_number, ev->invite_data, ev->invite_data_length, ev->group_name, ev->group_name_length, user_data);
+    tox_lock(tox);
 }

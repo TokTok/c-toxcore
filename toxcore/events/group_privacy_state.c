@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -107,7 +108,7 @@ Tox_Event_Group_Privacy_State *tox_event_group_privacy_state_new(const Memory *m
 void tox_event_group_privacy_state_free(Tox_Event_Group_Privacy_State *group_privacy_state, const Memory *mem)
 {
     if (group_privacy_state != nullptr) {
-        tox_event_group_privacy_state_destruct((Tox_Event_Group_Privacy_State * _Nonnull)group_privacy_state, mem);
+        tox_event_group_privacy_state_destruct(group_privacy_state, mem);
     }
     mem_delete(mem, group_privacy_state);
 }
@@ -168,11 +169,11 @@ static Tox_Event_Group_Privacy_State *tox_event_group_privacy_state_alloc(Tox_Ev
  *****************************************************/
 
 void tox_events_handle_group_privacy_state(
-    Tox *tox, uint32_t group_number, Tox_Group_Privacy_State privacy_state,
-    void *user_data)
+    uint32_t group_number,
+    Tox_Group_Privacy_State privacy_state,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Privacy_State *group_privacy_state = tox_event_group_privacy_state_alloc(state);
+    Tox_Event_Group_Privacy_State *group_privacy_state = tox_event_group_privacy_state_alloc(tox_events_alloc(state));
 
     if (group_privacy_state == nullptr) {
         return;
@@ -180,4 +181,16 @@ void tox_events_handle_group_privacy_state(
 
     tox_event_group_privacy_state_set_group_number(group_privacy_state, group_number);
     tox_event_group_privacy_state_set_privacy_state(group_privacy_state, privacy_state);
+}
+
+void tox_events_handle_group_privacy_state_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_privacy_state_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Privacy_State *ev = event->data.group_privacy_state;
+    tox_unlock(tox);
+    tox->group_privacy_state_callback(tox, ev->group_number, ev->privacy_state, user_data);
+    tox_lock(tox);
 }

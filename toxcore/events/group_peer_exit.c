@@ -16,6 +16,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -82,6 +83,12 @@ static bool tox_event_group_peer_exit_set_name(Tox_Event_Group_Peer_Exit *_Nonnu
         return true;
     }
 
+    if (name_length == 0) {
+        group_peer_exit->name = nullptr;
+        group_peer_exit->name_length = 0;
+        return true;
+    }
+
     uint8_t *name_copy = (uint8_t *)mem_balloc(mem, name_length);
 
     if (name_copy == nullptr) {
@@ -116,6 +123,12 @@ static bool tox_event_group_peer_exit_set_part_message(Tox_Event_Group_Peer_Exit
 
     if (part_message == nullptr) {
         assert(part_message_length == 0);
+        return true;
+    }
+
+    if (part_message_length == 0) {
+        group_peer_exit->part_message = nullptr;
+        group_peer_exit->part_message_length = 0;
         return true;
     }
 
@@ -205,7 +218,7 @@ Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_new(const Memory *mem)
 void tox_event_group_peer_exit_free(Tox_Event_Group_Peer_Exit *group_peer_exit, const Memory *mem)
 {
     if (group_peer_exit != nullptr) {
-        tox_event_group_peer_exit_destruct((Tox_Event_Group_Peer_Exit * _Nonnull)group_peer_exit, mem);
+        tox_event_group_peer_exit_destruct(group_peer_exit, mem);
     }
     mem_delete(mem, group_peer_exit);
 }
@@ -266,11 +279,14 @@ static Tox_Event_Group_Peer_Exit *tox_event_group_peer_exit_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_peer_exit(
-    Tox *tox, uint32_t group_number, uint32_t peer_id, Tox_Group_Exit_Type exit_type, const uint8_t *name, size_t name_length, const uint8_t *part_message, size_t part_message_length,
-    void *user_data)
+    uint32_t group_number,
+    uint32_t peer_id,
+    Tox_Group_Exit_Type exit_type,
+    const uint8_t *name, size_t name_length,
+    const uint8_t *part_message, size_t part_message_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Peer_Exit *group_peer_exit = tox_event_group_peer_exit_alloc(state);
+    Tox_Event_Group_Peer_Exit *group_peer_exit = tox_event_group_peer_exit_alloc(tox_events_alloc(state));
 
     if (group_peer_exit == nullptr) {
         return;
@@ -279,6 +295,22 @@ void tox_events_handle_group_peer_exit(
     tox_event_group_peer_exit_set_group_number(group_peer_exit, group_number);
     tox_event_group_peer_exit_set_peer_id(group_peer_exit, peer_id);
     tox_event_group_peer_exit_set_exit_type(group_peer_exit, exit_type);
-    tox_event_group_peer_exit_set_name(group_peer_exit, state->mem, name, name_length);
-    tox_event_group_peer_exit_set_part_message(group_peer_exit, state->mem, part_message, part_message_length);
+    if (!tox_event_group_peer_exit_set_name(group_peer_exit, state->mem, name, name_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+    if (!tox_event_group_peer_exit_set_part_message(group_peer_exit, state->mem, part_message, part_message_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_group_peer_exit_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_peer_exit_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Exit *ev = event->data.group_peer_exit;
+    tox_unlock(tox);
+    tox->group_peer_exit_callback(tox, ev->group_number, ev->peer_id, ev->exit_type, ev->name, ev->name_length, ev->part_message, ev->part_message_length, user_data);
+    tox_lock(tox);
 }

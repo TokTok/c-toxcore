@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -86,7 +87,7 @@ Tox_Event_Conference_Connected *tox_event_conference_connected_new(const Memory 
 void tox_event_conference_connected_free(Tox_Event_Conference_Connected *conference_connected, const Memory *mem)
 {
     if (conference_connected != nullptr) {
-        tox_event_conference_connected_destruct((Tox_Event_Conference_Connected * _Nonnull)conference_connected, mem);
+        tox_event_conference_connected_destruct(conference_connected, mem);
     }
     mem_delete(mem, conference_connected);
 }
@@ -147,15 +148,26 @@ static Tox_Event_Conference_Connected *tox_event_conference_connected_alloc(Tox_
  *****************************************************/
 
 void tox_events_handle_conference_connected(
-    Tox *tox, uint32_t conference_number,
-    void *user_data)
+    uint32_t conference_number,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Connected *conference_connected = tox_event_conference_connected_alloc(state);
+    Tox_Event_Conference_Connected *conference_connected = tox_event_conference_connected_alloc(tox_events_alloc(state));
 
     if (conference_connected == nullptr) {
         return;
     }
 
     tox_event_conference_connected_set_conference_number(conference_connected, conference_number);
+}
+
+void tox_events_handle_conference_connected_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->conference_connected_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Connected *ev = event->data.conference_connected;
+    tox_unlock(tox);
+    tox->conference_connected_callback(tox, ev->conference_number, user_data);
+    tox_lock(tox);
 }

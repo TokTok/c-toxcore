@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -107,7 +108,7 @@ Tox_Event_Group_Topic_Lock *tox_event_group_topic_lock_new(const Memory *mem)
 void tox_event_group_topic_lock_free(Tox_Event_Group_Topic_Lock *group_topic_lock, const Memory *mem)
 {
     if (group_topic_lock != nullptr) {
-        tox_event_group_topic_lock_destruct((Tox_Event_Group_Topic_Lock * _Nonnull)group_topic_lock, mem);
+        tox_event_group_topic_lock_destruct(group_topic_lock, mem);
     }
     mem_delete(mem, group_topic_lock);
 }
@@ -168,11 +169,11 @@ static Tox_Event_Group_Topic_Lock *tox_event_group_topic_lock_alloc(Tox_Events_S
  *****************************************************/
 
 void tox_events_handle_group_topic_lock(
-    Tox *tox, uint32_t group_number, Tox_Group_Topic_Lock topic_lock,
-    void *user_data)
+    uint32_t group_number,
+    Tox_Group_Topic_Lock topic_lock,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Topic_Lock *group_topic_lock = tox_event_group_topic_lock_alloc(state);
+    Tox_Event_Group_Topic_Lock *group_topic_lock = tox_event_group_topic_lock_alloc(tox_events_alloc(state));
 
     if (group_topic_lock == nullptr) {
         return;
@@ -180,4 +181,16 @@ void tox_events_handle_group_topic_lock(
 
     tox_event_group_topic_lock_set_group_number(group_topic_lock, group_number);
     tox_event_group_topic_lock_set_topic_lock(group_topic_lock, topic_lock);
+}
+
+void tox_events_handle_group_topic_lock_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_topic_lock_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Topic_Lock *ev = event->data.group_topic_lock;
+    tox_unlock(tox);
+    tox->group_topic_lock_callback(tox, ev->group_number, ev->topic_lock, user_data);
+    tox_lock(tox);
 }

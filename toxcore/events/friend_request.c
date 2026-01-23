@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -52,6 +53,12 @@ static bool tox_event_friend_request_set_message(Tox_Event_Friend_Request *_Nonn
 
     if (message == nullptr) {
         assert(message_length == 0);
+        return true;
+    }
+
+    if (message_length == 0) {
+        friend_request->message = nullptr;
+        friend_request->message_length = 0;
         return true;
     }
 
@@ -136,7 +143,7 @@ Tox_Event_Friend_Request *tox_event_friend_request_new(const Memory *mem)
 void tox_event_friend_request_free(Tox_Event_Friend_Request *friend_request, const Memory *mem)
 {
     if (friend_request != nullptr) {
-        tox_event_friend_request_destruct((Tox_Event_Friend_Request * _Nonnull)friend_request, mem);
+        tox_event_friend_request_destruct(friend_request, mem);
     }
     mem_delete(mem, friend_request);
 }
@@ -197,16 +204,30 @@ static Tox_Event_Friend_Request *tox_event_friend_request_alloc(Tox_Events_State
  *****************************************************/
 
 void tox_events_handle_friend_request(
-    Tox *tox, const uint8_t *public_key, const uint8_t *message, size_t length,
-    void *user_data)
+    const uint8_t *public_key,
+    const uint8_t *message, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Friend_Request *friend_request = tox_event_friend_request_alloc(state);
+    Tox_Event_Friend_Request *friend_request = tox_event_friend_request_alloc(tox_events_alloc(state));
 
     if (friend_request == nullptr) {
         return;
     }
 
     tox_event_friend_request_set_public_key(friend_request, public_key);
-    tox_event_friend_request_set_message(friend_request, state->mem, message, length);
+    if (!tox_event_friend_request_set_message(friend_request, state->mem, message, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_friend_request_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->friend_request_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Request *ev = event->data.friend_request;
+    tox_unlock(tox);
+    tox->friend_request_callback(tox, ev->public_key, ev->message, ev->message_length, user_data);
+    tox_lock(tox);
 }

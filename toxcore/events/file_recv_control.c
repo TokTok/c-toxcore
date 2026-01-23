@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -121,7 +122,7 @@ Tox_Event_File_Recv_Control *tox_event_file_recv_control_new(const Memory *mem)
 void tox_event_file_recv_control_free(Tox_Event_File_Recv_Control *file_recv_control, const Memory *mem)
 {
     if (file_recv_control != nullptr) {
-        tox_event_file_recv_control_destruct((Tox_Event_File_Recv_Control * _Nonnull)file_recv_control, mem);
+        tox_event_file_recv_control_destruct(file_recv_control, mem);
     }
     mem_delete(mem, file_recv_control);
 }
@@ -182,11 +183,12 @@ static Tox_Event_File_Recv_Control *tox_event_file_recv_control_alloc(Tox_Events
  *****************************************************/
 
 void tox_events_handle_file_recv_control(
-    Tox *tox, uint32_t friend_number, uint32_t file_number, Tox_File_Control control,
-    void *user_data)
+    uint32_t friend_number,
+    uint32_t file_number,
+    Tox_File_Control control,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_File_Recv_Control *file_recv_control = tox_event_file_recv_control_alloc(state);
+    Tox_Event_File_Recv_Control *file_recv_control = tox_event_file_recv_control_alloc(tox_events_alloc(state));
 
     if (file_recv_control == nullptr) {
         return;
@@ -195,4 +197,16 @@ void tox_events_handle_file_recv_control(
     tox_event_file_recv_control_set_friend_number(file_recv_control, friend_number);
     tox_event_file_recv_control_set_file_number(file_recv_control, file_number);
     tox_event_file_recv_control_set_control(file_recv_control, control);
+}
+
+void tox_events_handle_file_recv_control_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->file_recv_control_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_File_Recv_Control *ev = event->data.file_recv_control;
+    tox_unlock(tox);
+    tox->file_recv_control_callback(tox, ev->friend_number, ev->file_number, ev->control, user_data);
+    tox_lock(tox);
 }

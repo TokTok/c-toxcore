@@ -359,7 +359,7 @@ Tox_Group_Mod_Event tox_event_group_moderation_get_mod_type(
 typedef struct Tox_Event_Dht_Nodes_Response Tox_Event_Dht_Nodes_Response;
 const uint8_t *_Nonnull tox_event_dht_nodes_response_get_public_key(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
-const uint8_t *_Nonnull tox_event_dht_nodes_response_get_ip(
+const char *_Nonnull tox_event_dht_nodes_response_get_ip(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
 uint32_t tox_event_dht_nodes_response_get_ip_length(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
@@ -524,15 +524,7 @@ typedef struct Tox_Events Tox_Events;
 uint32_t tox_events_get_size(const Tox_Events *_Nullable events);
 const Tox_Event *_Nullable tox_events_get(const Tox_Events *_Nullable events, uint32_t index);
 
-/**
- * Initialise the events recording system.
- *
- * All callbacks will be set to handlers inside the events recording system.
- * After this function returns, no user-defined event handlers will be
- * invoked. If the client sets their own handlers after calling this function,
- * the events associated with that handler will not be recorded.
- */
-void tox_events_init(Tox *_Nonnull tox);
+void tox_events_dispatch(Tox *_Nonnull tox, void *_Nullable user_data, Tox_Events *_Nullable events);
 
 typedef enum Tox_Err_Events_Iterate {
     /**

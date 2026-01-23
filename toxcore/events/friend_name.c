@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -51,6 +52,12 @@ static bool tox_event_friend_name_set_name(Tox_Event_Friend_Name *_Nonnull frien
 
     if (name == nullptr) {
         assert(name_length == 0);
+        return true;
+    }
+
+    if (name_length == 0) {
+        friend_name->name = nullptr;
+        friend_name->name_length = 0;
         return true;
     }
 
@@ -133,7 +140,7 @@ Tox_Event_Friend_Name *tox_event_friend_name_new(const Memory *mem)
 void tox_event_friend_name_free(Tox_Event_Friend_Name *friend_name, const Memory *mem)
 {
     if (friend_name != nullptr) {
-        tox_event_friend_name_destruct((Tox_Event_Friend_Name * _Nonnull)friend_name, mem);
+        tox_event_friend_name_destruct(friend_name, mem);
     }
     mem_delete(mem, friend_name);
 }
@@ -194,16 +201,30 @@ static Tox_Event_Friend_Name *tox_event_friend_name_alloc(Tox_Events_State *_Non
  *****************************************************/
 
 void tox_events_handle_friend_name(
-    Tox *tox, uint32_t friend_number, const uint8_t *name, size_t length,
-    void *user_data)
+    uint32_t friend_number,
+    const uint8_t *name, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Friend_Name *friend_name = tox_event_friend_name_alloc(state);
+    Tox_Event_Friend_Name *friend_name = tox_event_friend_name_alloc(tox_events_alloc(state));
 
     if (friend_name == nullptr) {
         return;
     }
 
     tox_event_friend_name_set_friend_number(friend_name, friend_number);
-    tox_event_friend_name_set_name(friend_name, state->mem, name, length);
+    if (!tox_event_friend_name_set_name(friend_name, state->mem, name, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_friend_name_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->friend_name_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Name *ev = event->data.friend_name;
+    tox_unlock(tox);
+    tox->friend_name_callback(tox, ev->friend_number, ev->name, ev->name_length, user_data);
+    tox_lock(tox);
 }

@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -105,7 +106,7 @@ Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_new(const Memory *mem)
 void tox_event_group_peer_limit_free(Tox_Event_Group_Peer_Limit *group_peer_limit, const Memory *mem)
 {
     if (group_peer_limit != nullptr) {
-        tox_event_group_peer_limit_destruct((Tox_Event_Group_Peer_Limit * _Nonnull)group_peer_limit, mem);
+        tox_event_group_peer_limit_destruct(group_peer_limit, mem);
     }
     mem_delete(mem, group_peer_limit);
 }
@@ -166,11 +167,11 @@ static Tox_Event_Group_Peer_Limit *tox_event_group_peer_limit_alloc(Tox_Events_S
  *****************************************************/
 
 void tox_events_handle_group_peer_limit(
-    Tox *tox, uint32_t group_number, uint32_t peer_limit,
-    void *user_data)
+    uint32_t group_number,
+    uint32_t peer_limit,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Peer_Limit *group_peer_limit = tox_event_group_peer_limit_alloc(state);
+    Tox_Event_Group_Peer_Limit *group_peer_limit = tox_event_group_peer_limit_alloc(tox_events_alloc(state));
 
     if (group_peer_limit == nullptr) {
         return;
@@ -178,4 +179,16 @@ void tox_events_handle_group_peer_limit(
 
     tox_event_group_peer_limit_set_group_number(group_peer_limit, group_number);
     tox_event_group_peer_limit_set_peer_limit(group_peer_limit, peer_limit);
+}
+
+void tox_events_handle_group_peer_limit_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_peer_limit_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Limit *ev = event->data.group_peer_limit;
+    tox_unlock(tox);
+    tox->group_peer_limit_callback(tox, ev->group_number, ev->peer_limit, user_data);
+    tox_lock(tox);
 }

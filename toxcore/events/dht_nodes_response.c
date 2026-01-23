@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -24,7 +25,7 @@
 
 struct Tox_Event_Dht_Nodes_Response {
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
-    uint8_t *ip;
+    char *ip;
     uint32_t ip_length;
     uint16_t port;
 };
@@ -42,7 +43,7 @@ const uint8_t *tox_event_dht_nodes_response_get_public_key(const Tox_Event_Dht_N
 }
 
 static bool tox_event_dht_nodes_response_set_ip(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response,
-        const Memory *_Nonnull mem, const uint8_t *_Nullable ip, uint32_t ip_length)
+        const Memory *_Nonnull mem, const char *_Nullable ip, uint32_t ip_length)
 {
     assert(dht_nodes_response != nullptr);
     if (dht_nodes_response->ip != nullptr) {
@@ -56,7 +57,11 @@ static bool tox_event_dht_nodes_response_set_ip(Tox_Event_Dht_Nodes_Response *_N
         return true;
     }
 
-    uint8_t *ip_copy = (uint8_t *)mem_balloc(mem, ip_length + 1);
+    if (ip_length == UINT32_MAX) {
+        return false;
+    }
+
+    char *ip_copy = (char *)mem_balloc(mem, ip_length + 1);
 
     if (ip_copy == nullptr) {
         return false;
@@ -73,7 +78,7 @@ uint32_t tox_event_dht_nodes_response_get_ip_length(const Tox_Event_Dht_Nodes_Re
     assert(dht_nodes_response != nullptr);
     return dht_nodes_response->ip_length;
 }
-const uint8_t *tox_event_dht_nodes_response_get_ip(const Tox_Event_Dht_Nodes_Response *dht_nodes_response)
+const char *tox_event_dht_nodes_response_get_ip(const Tox_Event_Dht_Nodes_Response *dht_nodes_response)
 {
     assert(dht_nodes_response != nullptr);
     return dht_nodes_response->ip;
@@ -108,7 +113,7 @@ bool tox_event_dht_nodes_response_pack(
 {
     return bin_pack_array(bp, 3)
            && bin_pack_bin(bp, event->public_key, TOX_PUBLIC_KEY_SIZE)
-           && bin_pack_bin(bp, event->ip, event->ip_length)
+           && bin_pack_str(bp, event->ip, event->ip_length)
            && bin_pack_u16(bp, event->port);
 }
 
@@ -120,7 +125,7 @@ static bool tox_event_dht_nodes_response_unpack_into(Tox_Event_Dht_Nodes_Respons
     }
 
     return bin_unpack_bin_fixed(bu, event->public_key, TOX_PUBLIC_KEY_SIZE)
-           && bin_unpack_bin(bu, &event->ip, &event->ip_length)
+           && bin_unpack_str(bu, &event->ip, &event->ip_length)
            && bin_unpack_u16(bu, &event->port);
 }
 
@@ -151,7 +156,7 @@ Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_new(const Memory *mem
 void tox_event_dht_nodes_response_free(Tox_Event_Dht_Nodes_Response *dht_nodes_response, const Memory *mem)
 {
     if (dht_nodes_response != nullptr) {
-        tox_event_dht_nodes_response_destruct((Tox_Event_Dht_Nodes_Response * _Nonnull)dht_nodes_response, mem);
+        tox_event_dht_nodes_response_destruct(dht_nodes_response, mem);
     }
     mem_delete(mem, dht_nodes_response);
 }
@@ -212,17 +217,32 @@ static Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_alloc(Tox_Even
  *****************************************************/
 
 void tox_events_handle_dht_nodes_response(
-    Tox *tox, const uint8_t *public_key, const char *ip, uint32_t ip_length, uint16_t port,
-    void *user_data)
+    const uint8_t *public_key,
+    const char *ip, uint32_t ip_length,
+    uint16_t port,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_alloc(state);
+    Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_alloc(tox_events_alloc(state));
 
     if (dht_nodes_response == nullptr) {
         return;
     }
 
     tox_event_dht_nodes_response_set_public_key(dht_nodes_response, public_key);
-    tox_event_dht_nodes_response_set_ip(dht_nodes_response, state->mem, (const uint8_t *)ip, ip_length);
+    if (!tox_event_dht_nodes_response_set_ip(dht_nodes_response, state->mem, ip, ip_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
     tox_event_dht_nodes_response_set_port(dht_nodes_response, port);
+}
+
+void tox_events_handle_dht_nodes_response_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->dht_nodes_response_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Dht_Nodes_Response *ev = event->data.dht_nodes_response;
+    tox_unlock(tox);
+    tox->dht_nodes_response_callback(tox, ev->public_key, (const char *)ev->ip, ev->ip_length, ev->port, user_data);
+    tox_lock(tox);
 }

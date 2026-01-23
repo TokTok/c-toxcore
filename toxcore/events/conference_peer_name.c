@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -63,6 +64,12 @@ static bool tox_event_conference_peer_name_set_name(Tox_Event_Conference_Peer_Na
 
     if (name == nullptr) {
         assert(name_length == 0);
+        return true;
+    }
+
+    if (name_length == 0) {
+        conference_peer_name->name = nullptr;
+        conference_peer_name->name_length = 0;
         return true;
     }
 
@@ -147,7 +154,7 @@ Tox_Event_Conference_Peer_Name *tox_event_conference_peer_name_new(const Memory 
 void tox_event_conference_peer_name_free(Tox_Event_Conference_Peer_Name *conference_peer_name, const Memory *mem)
 {
     if (conference_peer_name != nullptr) {
-        tox_event_conference_peer_name_destruct((Tox_Event_Conference_Peer_Name * _Nonnull)conference_peer_name, mem);
+        tox_event_conference_peer_name_destruct(conference_peer_name, mem);
     }
     mem_delete(mem, conference_peer_name);
 }
@@ -208,11 +215,12 @@ static Tox_Event_Conference_Peer_Name *tox_event_conference_peer_name_alloc(Tox_
  *****************************************************/
 
 void tox_events_handle_conference_peer_name(
-    Tox *tox, uint32_t conference_number, uint32_t peer_number, const uint8_t *name, size_t length,
-    void *user_data)
+    uint32_t conference_number,
+    uint32_t peer_number,
+    const uint8_t *name, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Peer_Name *conference_peer_name = tox_event_conference_peer_name_alloc(state);
+    Tox_Event_Conference_Peer_Name *conference_peer_name = tox_event_conference_peer_name_alloc(tox_events_alloc(state));
 
     if (conference_peer_name == nullptr) {
         return;
@@ -220,5 +228,19 @@ void tox_events_handle_conference_peer_name(
 
     tox_event_conference_peer_name_set_conference_number(conference_peer_name, conference_number);
     tox_event_conference_peer_name_set_peer_number(conference_peer_name, peer_number);
-    tox_event_conference_peer_name_set_name(conference_peer_name, state->mem, name, length);
+    if (!tox_event_conference_peer_name_set_name(conference_peer_name, state->mem, name, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_conference_peer_name_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->conference_peer_name_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Peer_Name *ev = event->data.conference_peer_name;
+    tox_unlock(tox);
+    tox->conference_peer_name_callback(tox, ev->conference_number, ev->peer_number, ev->name, ev->name_length, user_data);
+    tox_lock(tox);
 }

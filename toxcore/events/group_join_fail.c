@@ -15,6 +15,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -107,7 +108,7 @@ Tox_Event_Group_Join_Fail *tox_event_group_join_fail_new(const Memory *mem)
 void tox_event_group_join_fail_free(Tox_Event_Group_Join_Fail *group_join_fail, const Memory *mem)
 {
     if (group_join_fail != nullptr) {
-        tox_event_group_join_fail_destruct((Tox_Event_Group_Join_Fail * _Nonnull)group_join_fail, mem);
+        tox_event_group_join_fail_destruct(group_join_fail, mem);
     }
     mem_delete(mem, group_join_fail);
 }
@@ -168,11 +169,11 @@ static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_join_fail(
-    Tox *tox, uint32_t group_number, Tox_Group_Join_Fail fail_type,
-    void *user_data)
+    uint32_t group_number,
+    Tox_Group_Join_Fail fail_type,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(state);
+    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(tox_events_alloc(state));
 
     if (group_join_fail == nullptr) {
         return;
@@ -180,4 +181,16 @@ void tox_events_handle_group_join_fail(
 
     tox_event_group_join_fail_set_group_number(group_join_fail, group_number);
     tox_event_group_join_fail_set_fail_type(group_join_fail, fail_type);
+}
+
+void tox_events_handle_group_join_fail_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_join_fail_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Join_Fail *ev = event->data.group_join_fail;
+    tox_unlock(tox);
+    tox->group_join_fail_callback(tox, ev->group_number, ev->fail_type, user_data);
+    tox_lock(tox);
 }

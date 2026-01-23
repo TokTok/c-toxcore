@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -86,7 +87,7 @@ Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_changed_n
 void tox_event_conference_peer_list_changed_free(Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed, const Memory *mem)
 {
     if (conference_peer_list_changed != nullptr) {
-        tox_event_conference_peer_list_changed_destruct((Tox_Event_Conference_Peer_List_Changed * _Nonnull)conference_peer_list_changed, mem);
+        tox_event_conference_peer_list_changed_destruct(conference_peer_list_changed, mem);
     }
     mem_delete(mem, conference_peer_list_changed);
 }
@@ -147,15 +148,26 @@ static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_ch
  *****************************************************/
 
 void tox_events_handle_conference_peer_list_changed(
-    Tox *tox, uint32_t conference_number,
-    void *user_data)
+    uint32_t conference_number,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_event_conference_peer_list_changed_alloc(state);
+    Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_event_conference_peer_list_changed_alloc(tox_events_alloc(state));
 
     if (conference_peer_list_changed == nullptr) {
         return;
     }
 
     tox_event_conference_peer_list_changed_set_conference_number(conference_peer_list_changed, conference_number);
+}
+
+void tox_events_handle_conference_peer_list_changed_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->conference_peer_list_changed_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Peer_List_Changed *ev = event->data.conference_peer_list_changed;
+    tox_unlock(tox);
+    tox->conference_peer_list_changed_callback(tox, ev->conference_number, user_data);
+    tox_lock(tox);
 }

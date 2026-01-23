@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -63,6 +64,12 @@ static bool tox_event_group_custom_private_packet_set_data(Tox_Event_Group_Custo
 
     if (data == nullptr) {
         assert(data_length == 0);
+        return true;
+    }
+
+    if (data_length == 0) {
+        group_custom_private_packet->data = nullptr;
+        group_custom_private_packet->data_length = 0;
         return true;
     }
 
@@ -147,7 +154,7 @@ Tox_Event_Group_Custom_Private_Packet *tox_event_group_custom_private_packet_new
 void tox_event_group_custom_private_packet_free(Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet, const Memory *mem)
 {
     if (group_custom_private_packet != nullptr) {
-        tox_event_group_custom_private_packet_destruct((Tox_Event_Group_Custom_Private_Packet * _Nonnull)group_custom_private_packet, mem);
+        tox_event_group_custom_private_packet_destruct(group_custom_private_packet, mem);
     }
     mem_delete(mem, group_custom_private_packet);
 }
@@ -208,11 +215,12 @@ static Tox_Event_Group_Custom_Private_Packet *tox_event_group_custom_private_pac
  *****************************************************/
 
 void tox_events_handle_group_custom_private_packet(
-    Tox *tox, uint32_t group_number, uint32_t peer_id, const uint8_t *data, size_t data_length,
-    void *user_data)
+    uint32_t group_number,
+    uint32_t peer_id,
+    const uint8_t *data, size_t data_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = tox_event_group_custom_private_packet_alloc(state);
+    Tox_Event_Group_Custom_Private_Packet *group_custom_private_packet = tox_event_group_custom_private_packet_alloc(tox_events_alloc(state));
 
     if (group_custom_private_packet == nullptr) {
         return;
@@ -220,5 +228,19 @@ void tox_events_handle_group_custom_private_packet(
 
     tox_event_group_custom_private_packet_set_group_number(group_custom_private_packet, group_number);
     tox_event_group_custom_private_packet_set_peer_id(group_custom_private_packet, peer_id);
-    tox_event_group_custom_private_packet_set_data(group_custom_private_packet, state->mem, data, data_length);
+    if (!tox_event_group_custom_private_packet_set_data(group_custom_private_packet, state->mem, data, data_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_group_custom_private_packet_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_custom_private_packet_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Custom_Private_Packet *ev = event->data.group_custom_private_packet;
+    tox_unlock(tox);
+    tox->group_custom_private_packet_callback(tox, ev->group_number, ev->peer_id, ev->data, ev->data_length, user_data);
+    tox_lock(tox);
 }

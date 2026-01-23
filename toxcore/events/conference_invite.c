@@ -16,6 +16,7 @@
 #include "../tox_event.h"
 #include "../tox_events.h"
 #include "../tox_pack.h"
+#include "../tox_struct.h"
 #include "../tox_unpack.h"
 
 /*****************************************************
@@ -65,6 +66,12 @@ static bool tox_event_conference_invite_set_cookie(Tox_Event_Conference_Invite *
 
     if (cookie == nullptr) {
         assert(cookie_length == 0);
+        return true;
+    }
+
+    if (cookie_length == 0) {
+        conference_invite->cookie = nullptr;
+        conference_invite->cookie_length = 0;
         return true;
     }
 
@@ -149,7 +156,7 @@ Tox_Event_Conference_Invite *tox_event_conference_invite_new(const Memory *mem)
 void tox_event_conference_invite_free(Tox_Event_Conference_Invite *conference_invite, const Memory *mem)
 {
     if (conference_invite != nullptr) {
-        tox_event_conference_invite_destruct((Tox_Event_Conference_Invite * _Nonnull)conference_invite, mem);
+        tox_event_conference_invite_destruct(conference_invite, mem);
     }
     mem_delete(mem, conference_invite);
 }
@@ -210,11 +217,12 @@ static Tox_Event_Conference_Invite *tox_event_conference_invite_alloc(Tox_Events
  *****************************************************/
 
 void tox_events_handle_conference_invite(
-    Tox *tox, uint32_t friend_number, Tox_Conference_Type type, const uint8_t *cookie, size_t length,
-    void *user_data)
+    uint32_t friend_number,
+    Tox_Conference_Type type,
+    const uint8_t *cookie, size_t length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Invite *conference_invite = tox_event_conference_invite_alloc(state);
+    Tox_Event_Conference_Invite *conference_invite = tox_event_conference_invite_alloc(tox_events_alloc(state));
 
     if (conference_invite == nullptr) {
         return;
@@ -222,5 +230,19 @@ void tox_events_handle_conference_invite(
 
     tox_event_conference_invite_set_friend_number(conference_invite, friend_number);
     tox_event_conference_invite_set_type(conference_invite, type);
-    tox_event_conference_invite_set_cookie(conference_invite, state->mem, cookie, length);
+    if (!tox_event_conference_invite_set_cookie(conference_invite, state->mem, cookie, length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_conference_invite_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->conference_invite_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Invite *ev = event->data.conference_invite;
+    tox_unlock(tox);
+    tox->conference_invite_callback(tox, ev->friend_number, ev->type, ev->cookie, ev->cookie_length, user_data);
+    tox_lock(tox);
 }

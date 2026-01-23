@@ -4,13 +4,14 @@
 // this file can be used to generate event.c files
 // requires c++17
 
+#include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <string>
-#include <algorithm>
-#include <vector>
-#include <variant>
 #include <map>
+#include <string>
+#include <variant>
+#include <vector>
 
 std::string str_tolower(std::string s) {
     std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c){ return std::tolower(c); });
@@ -168,6 +169,7 @@ std::string zero_initializer_for_type(const std::string& type) {
 
 void generate_event_impl(const std::string& event_name, const std::vector<EventType>& event_types) {
     const std::string event_name_l = str_tolower(event_name);
+    const std::string event_name_u = str_toupper(event_name);
     std::string file_name = output_folder + "/" + event_name_l + ".c";
 
     std::ofstream f(file_name);
@@ -218,11 +220,20 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h")";
+
     if (need_tox_unpack_h) {
         f << R"(
-#include "../tox_pack.h"
+#include "../tox_pack.h")";
+    }
+
+    f << R"(
+#include "../tox_struct.h")";
+
+    if (need_tox_unpack_h) {
+        f << R"(
 #include "../tox_unpack.h")";
     }
+
     f << R"(
 
 /*****************************************************
@@ -242,7 +253,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "    " << t.type << " " << t.name << ";\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "    " << "uint8_t" << " *" << t.name_data << ";\n";
+                    f << "    " << t.type_c_arg << " *" << t.name_data << ";\n";
                     f << "    " << "uint32_t" << " " << t.name_length << ";\n";
                 },
                 [&](const EventTypeByteArray& t) {
@@ -279,7 +290,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << " " << t.type << " " << t.name << ")\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "\n        const Memory *_Nonnull mem, const uint8_t *_Nullable " << t.name_data << ", uint32_t " << t.name_length << ")\n";
+                    f << "\n        const Memory *_Nonnull mem, const " << t.type_c_arg << " *_Nullable " << t.name_data << ", uint32_t " << t.name_length << ")\n";
                 },
                 [&](const EventTypeByteArray& t) {
                     f << " const uint8_t " << t.name << "[" << t.length_constant << "])\n";
@@ -294,28 +305,41 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "    " << event_name_l << "->" << t.name << " = " << t.name << ";\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n";
-                    f << "        mem_delete(mem, " << event_name_l << "->" << t.name_data << ");\n";
-                    f << "        " << event_name_l << "->" << t.name_data << " = nullptr;\n";
-                    f << "        " << event_name_l << "->" << t.name_length << " = 0;\n";
-                    f << "    }\n\n";
-                    f << "    if (" << t.name_data << " == nullptr) {\n";
-                    f << "        assert(" << t.name_length << " == 0);\n";
-                    f << "        return true;\n    }\n\n";
+                    f << "    if (" << event_name_l << "->" << t.name_data << " != nullptr) {\n"
+                         "        mem_delete(mem, " << event_name_l << "->" << t.name_data << ");\n"
+                         "        " << event_name_l << "->" << t.name_data << " = nullptr;\n"
+                         "        " << event_name_l << "->" << t.name_length << " = 0;\n"
+                         "    }\n\n"
+                         "    if (" << t.name_data << " == nullptr) {\n"
+                         "        assert(" << t.name_length << " == 0);\n"
+                         "        return true;\n"
+                         "    }\n\n";
+
                     if (t.null_terminated) {
-                        f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)mem_balloc(mem, " << t.name_length << " + 1);\n\n";
+                        f << "    if (" << t.name_length << " == UINT32_MAX) {\n"
+                             "        return false;\n"
+                             "    }\n\n";
                     } else {
-                        f << "    uint8_t *" << t.name_data << "_copy = (uint8_t *)mem_balloc(mem, " << t.name_length << ");\n\n";
+                        f << "    if (" << t.name_length << " == 0) {\n"
+                             "        " << event_name_l << "->" << t.name_data << " = nullptr;\n"
+                             "        " << event_name_l << "->" << t.name_length << " = 0;\n"
+                             "        return true;\n"
+                             "    }\n\n";
                     }
-                    f << "    if (" << t.name_data << "_copy == nullptr) {\n";
-                    f << "        return false;\n    }\n\n";
-                    f << "    memcpy(" << t.name_data << "_copy, " << t.name_data << ", " << t.name_length << ");\n";
+
+                    f << "    " << t.type_c_arg << " *" << t.name_data << "_copy = (" << t.type_c_arg << " *)mem_balloc(mem, " << t.name_length << (t.null_terminated ? " + 1" : "") << ");\n\n"
+                         "    if (" << t.name_data << "_copy == nullptr) {\n"
+                         "        return false;\n"
+                         "    }\n\n"
+                         "    memcpy(" << t.name_data << "_copy, " << t.name_data << ", " << t.name_length << ");\n";
+
                     if (t.null_terminated) {
                         f << "    " << t.name_data << "_copy[" << t.name_length << "] = 0;\n";
                     }
-                    f << "    " << event_name_l << "->" << t.name_data << " = " << t.name_data << "_copy;\n";
-                    f << "    " << event_name_l << "->" << t.name_length << " = " << t.name_length << ";\n";
-                    f << "    return true;\n";
+
+                    f << "    " << event_name_l << "->" << t.name_data << " = " << t.name_data << "_copy;\n"
+                         "    " << event_name_l << "->" << t.name_length << " = " << t.name_length << ";\n"
+                         "    return true;\n";
                 },
                 [&](const EventTypeByteArray& t) {
                     f << "    memcpy(" << event_name_l << "->" << t.name << ", " << t.name << ", " << t.length_constant << ");\n";
@@ -342,7 +366,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "(const Tox_Event_" << event_name << " *" << event_name_l << ")\n";
                     f << "{\n    assert(" << event_name_l << " != nullptr);\n";
                     f << "    return " << event_name_l << "->" << t.name_length << ";\n}\n";
-                    f << "const uint8_t *tox_event_" << event_name_l << "_get_" << t.name_data;
+                    f << "const " << t.type_c_arg << " *tox_event_" << event_name_l << "_get_" << t.name_data;
                     f << "(const Tox_Event_" << event_name << " *" << event_name_l << ")\n";
                     f << "{\n    assert(" << event_name_l << " != nullptr);\n";
                     f << "    return " << event_name_l << "->" << t.name_data << ";\n}\n\n";
@@ -435,7 +459,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     }
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "bin_pack_bin(bp, event->" << t.name_data << ", event->" << t.name_length << ")";
+                    if (t.type_c_arg == "char") {
+                        f << "bin_pack_str(bp, event->" << t.name_data << ", event->" << t.name_length << ")";
+                    } else {
+                        f << "bin_pack_bin(bp, event->" << t.name_data << ", event->" << t.name_length << ")";
+                    }
                 },
                 [&](const EventTypeByteArray& t) {
                     f << "bin_pack_bin(bp, event->" << t.name << ", " << t.length_constant << ")";
@@ -471,7 +499,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     }
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "bin_unpack_bin(bu, &event->" << t.name_data << ", &event->" << t.name_length << ")";
+                    if (t.type_c_arg == "char") {
+                        f << "bin_unpack_str(bu, &event->" << t.name_data << ", &event->" << t.name_length << ")";
+                    } else {
+                        f << "bin_unpack_bin(bu, &event->" << t.name_data << ", &event->" << t.name_length << ")";
+                    }
                 },
                 [&](const EventTypeByteArray& t) {
                     f << "bin_unpack_bin_fixed(bu, event->" << t.name << ", " << t.length_constant << ")";
@@ -493,7 +525,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 )";
 
     f << "const Tox_Event_" << event_name << " *tox_event_get_" << event_name_l << "(const Tox_Event *event)\n{\n";
-    f << "    return event->type == TOX_EVENT_" << str_toupper(event_name) << " ? event->data." << event_name_l << " : nullptr;\n}\n\n";
+    f << "    return event->type == TOX_EVENT_" << event_name_u << " ? event->data." << event_name_l << " : nullptr;\n}\n\n";
 
     // new
     f << "Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_new(const Memory *mem)\n{\n";
@@ -506,7 +538,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     // free
     f << "void tox_event_" << event_name_l << "_free(Tox_Event_" << event_name << " *" << event_name_l << ", const Memory *mem)\n{\n";
     f << "    if (" << event_name_l << " != nullptr) {\n";
-    f << "        tox_event_" << event_name_l << "_destruct((Tox_Event_" << event_name << " * _Nonnull)" << event_name_l << ", mem);\n    }\n";
+    f << "        tox_event_" << event_name_l << "_destruct(" << event_name_l << ", mem);\n    }\n";
     f << "    mem_delete(mem, " << event_name_l << ");\n}\n\n";
 
     // add
@@ -515,7 +547,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    if (" << event_name_l << " == nullptr) {\n";
     f << "        return nullptr;\n    }\n\n";
     f << "    Tox_Event event;\n";
-    f << "    event.type = TOX_EVENT_" << str_toupper(event_name) << ";\n";
+    f << "    event.type = TOX_EVENT_" << event_name_u << ";\n";
     f << "    event.data." << event_name_l << " = " << event_name_l << ";\n\n";
     f << "    if (!tox_events_add(events, &event)) {\n";
     f << "        tox_event_" << event_name_l << "_free(" << event_name_l << ", mem);\n";
@@ -550,28 +582,31 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
 )";
     f << "void tox_events_handle_" << event_name_l << "(\n";
-    f << "    Tox *tox";
+    bool first_arg = true;
 
     for (const auto& t : event_types) {
+        if (!first_arg) f << ",\n";
+        f << "    ";
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
-                    f << ", " << (t.cb_type.empty() ? t.type : t.cb_type) << " " << t.name;
+                    f << (t.cb_type.empty() ? t.type : t.cb_type) << " " << t.name;
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << ", const " << t.type_c_arg << " *" << t.name_data << ", " << t.type_length_cb << " " << t.name_length_cb;
+                    f << "const " << t.type_c_arg << " *" << t.name_data << ", " << t.type_length_cb << " " << t.name_length_cb;
                 },
                 [&](const EventTypeByteArray& t) {
-                    f << ", const uint8_t *" << t.name;
+                    f << "const uint8_t *" << t.name;
                 }
             },
             t
         );
+        first_arg = false;
     }
 
-    f << ",\n    void *user_data)\n{\n";
-    f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
-    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(state);\n\n";
+    if (!first_arg) f << ",\n    ";
+    f << "Tox_Events_State *state)\n{\n";
+    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(tox_events_alloc(state));\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n        return;\n    }\n\n";
 
     for (const auto& t : event_types) {
@@ -581,11 +616,10 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << "    tox_event_" << event_name_l << "_set_" << t.name << "(" << event_name_l << ", " << t.name << ");\n";
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "    tox_event_" << event_name_l << "_set_" << t.name_data << "(" << event_name_l << ", state->mem, ";
-                    if (t.type_c_arg != "uint8_t") {
-                        f << "(const uint8_t *)";
-                    }
-                    f << t.name_data << ", " << t.name_length_cb << ");\n";
+                    f << "    if (!tox_event_" << event_name_l << "_set_" << t.name_data << "(" << event_name_l << ", state->mem, ";
+                    f << t.name_data << ", " << t.name_length_cb << ")) {\n";
+                    f << "        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;\n";
+                    f << "    }\n";
                 },
                 [&](const EventTypeByteArray& t) {
                     f << "    tox_event_" << event_name_l << "_set_" << t.name << "(" << event_name_l << ", " << t.name << ");\n";
@@ -593,6 +627,46 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             },
             t
         );
+    }
+    f << "}\n";
+
+    f << "\nvoid tox_events_handle_" << event_name_l << "_dispatch(Tox *tox, void *user_data, const Tox_Event *event)\n{\n";
+    if (event_name_l == "friend_lossy_packet" || event_name_l == "friend_lossless_packet") {
+        f << "    const Tox_Event_" << event_name << " *ev = event->data." << event_name_l << ";\n";
+        f << "    if (ev->data_length > 0 && tox->" << event_name_l << "_callback_per_pktid[ev->data[0]] != nullptr) {\n";
+        f << "        tox_unlock(tox);\n";
+        f << "        tox->" << event_name_l << "_callback_per_pktid[ev->data[0]](tox, ev->friend_number, ev->data, ev->data_length, user_data);\n";
+        f << "        tox_lock(tox);\n";
+        f << "    }\n";
+    } else {
+        f << "    if (tox->" << event_name_l << "_callback == nullptr) {\n        return;\n    }\n\n";
+        f << "    const Tox_Event_" << event_name << " *ev = event->data." << event_name_l << ";\n";
+        f << "    tox_unlock(tox);\n";
+        f << "    tox->" << event_name_l << "_callback(tox, ";
+        first_arg = true;
+        for (const auto& t : event_types) {
+            if (!first_arg) f << ", ";
+            std::visit(
+                overloaded{
+                    [&](const EventTypeTrivial& t) {
+                        f << "ev->" << t.name;
+                    },
+                    [&](const EventTypeByteRange& t) {
+                        if (t.type_c_arg != "uint8_t") {
+                            f << "(const " << t.type_c_arg << " *)";
+                        }
+                        f << "ev->" << t.name_data << ", ev->" << t.name_length;
+                    },
+                    [&](const EventTypeByteArray& t) {
+                        f << "ev->" << t.name;
+                    }
+                },
+                t
+            );
+            first_arg = false;
+        }
+        f << ", user_data);\n";
+        f << "    tox_lock(tox);\n";
     }
     f << "}\n";
 }

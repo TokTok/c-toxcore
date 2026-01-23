@@ -14,6 +14,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -105,7 +106,7 @@ Tox_Event_Group_Peer_Join *tox_event_group_peer_join_new(const Memory *mem)
 void tox_event_group_peer_join_free(Tox_Event_Group_Peer_Join *group_peer_join, const Memory *mem)
 {
     if (group_peer_join != nullptr) {
-        tox_event_group_peer_join_destruct((Tox_Event_Group_Peer_Join * _Nonnull)group_peer_join, mem);
+        tox_event_group_peer_join_destruct(group_peer_join, mem);
     }
     mem_delete(mem, group_peer_join);
 }
@@ -166,11 +167,11 @@ static Tox_Event_Group_Peer_Join *tox_event_group_peer_join_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_peer_join(
-    Tox *tox, uint32_t group_number, uint32_t peer_id,
-    void *user_data)
+    uint32_t group_number,
+    uint32_t peer_id,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Peer_Join *group_peer_join = tox_event_group_peer_join_alloc(state);
+    Tox_Event_Group_Peer_Join *group_peer_join = tox_event_group_peer_join_alloc(tox_events_alloc(state));
 
     if (group_peer_join == nullptr) {
         return;
@@ -178,4 +179,16 @@ void tox_events_handle_group_peer_join(
 
     tox_event_group_peer_join_set_group_number(group_peer_join, group_number);
     tox_event_group_peer_join_set_peer_id(group_peer_join, peer_id);
+}
+
+void tox_events_handle_group_peer_join_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->group_peer_join_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Join *ev = event->data.group_peer_join;
+    tox_unlock(tox);
+    tox->group_peer_join_callback(tox, ev->group_number, ev->peer_id, user_data);
+    tox_lock(tox);
 }

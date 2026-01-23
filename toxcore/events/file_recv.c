@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_struct.h"
 
 /*****************************************************
  *
@@ -87,6 +88,12 @@ static bool tox_event_file_recv_set_filename(Tox_Event_File_Recv *_Nonnull file_
 
     if (filename == nullptr) {
         assert(filename_length == 0);
+        return true;
+    }
+
+    if (filename_length == 0) {
+        file_recv->filename = nullptr;
+        file_recv->filename_length = 0;
         return true;
     }
 
@@ -175,7 +182,7 @@ Tox_Event_File_Recv *tox_event_file_recv_new(const Memory *mem)
 void tox_event_file_recv_free(Tox_Event_File_Recv *file_recv, const Memory *mem)
 {
     if (file_recv != nullptr) {
-        tox_event_file_recv_destruct((Tox_Event_File_Recv * _Nonnull)file_recv, mem);
+        tox_event_file_recv_destruct(file_recv, mem);
     }
     mem_delete(mem, file_recv);
 }
@@ -236,11 +243,14 @@ static Tox_Event_File_Recv *tox_event_file_recv_alloc(Tox_Events_State *_Nonnull
  *****************************************************/
 
 void tox_events_handle_file_recv(
-    Tox *tox, uint32_t friend_number, uint32_t file_number, uint32_t kind, uint64_t file_size, const uint8_t *filename, size_t filename_length,
-    void *user_data)
+    uint32_t friend_number,
+    uint32_t file_number,
+    uint32_t kind,
+    uint64_t file_size,
+    const uint8_t *filename, size_t filename_length,
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_File_Recv *file_recv = tox_event_file_recv_alloc(state);
+    Tox_Event_File_Recv *file_recv = tox_event_file_recv_alloc(tox_events_alloc(state));
 
     if (file_recv == nullptr) {
         return;
@@ -250,5 +260,19 @@ void tox_events_handle_file_recv(
     tox_event_file_recv_set_file_number(file_recv, file_number);
     tox_event_file_recv_set_kind(file_recv, kind);
     tox_event_file_recv_set_file_size(file_recv, file_size);
-    tox_event_file_recv_set_filename(file_recv, state->mem, filename, filename_length);
+    if (!tox_event_file_recv_set_filename(file_recv, state->mem, filename, filename_length)) {
+        state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+    }
+}
+
+void tox_events_handle_file_recv_dispatch(Tox *tox, void *user_data, const Tox_Event *event)
+{
+    if (tox->file_recv_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_File_Recv *ev = event->data.file_recv;
+    tox_unlock(tox);
+    tox->file_recv_callback(tox, ev->friend_number, ev->file_number, ev->kind, ev->file_size, ev->filename, ev->filename_length, user_data);
+    tox_lock(tox);
 }
