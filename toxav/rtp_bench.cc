@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2025 The TokTok team.
+ * Copyright ©2025-2026 The TokTok team.
  */
 
 #include <benchmark/benchmark.h>

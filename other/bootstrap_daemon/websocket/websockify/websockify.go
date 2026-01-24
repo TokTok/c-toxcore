@@ -10,7 +10,7 @@
 // - Support both websocket and regular GET requests on /.
 // - Write logs in the standard Tox format.
 //
-// Copyright 2022-2025 The TokTok team.
+// Copyright 2022-2026 The TokTok team.
 // Copyright 2021 Michael.liu.
 // See LICENSE for licensing conditions.
 

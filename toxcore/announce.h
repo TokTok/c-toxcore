@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-or-later
- * Copyright © 2020-2025 The TokTok team.
+ * Copyright © 2020-2026 The TokTok team.
  */
 
 #ifndef C_TOXCORE_TOXCORE_ANNOUNCE_H
