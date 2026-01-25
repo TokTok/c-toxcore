@@ -234,3 +234,15 @@ void tox_events_handle_conference_title(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_conference_title_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->conference_title_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Title *ev = event->data.conference_title;
+    tox_unlock(tox);
+    tox->conference_title_callback(tox, ev->conference_number, ev->peer_number, ev->title, ev->title_length, user_data);
+    tox_lock(tox);
+}

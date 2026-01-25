@@ -571,6 +571,16 @@ typedef enum Tox_Err_Events_Iterate {
 Tox_Events *_Nullable tox_events_iterate(Tox *_Nonnull tox, bool fail_hard, Tox_Err_Events_Iterate *_Nullable error);
 
 /**
+ * Dispatch all events in the events object to the registered callbacks in the
+ * Tox instance.
+ *
+ * @param tox The Tox instance to dispatch to.
+ * @param events The events object to dispatch.
+ * @param user_data The user data to pass to the callbacks.
+ */
+void tox_events_dispatch(Tox *_Nonnull tox, Tox_Events *_Nullable events, void *_Nullable user_data);
+
+/**
  * Frees all memory associated with the events structure.
  *
  * All pointers into this object and its sub-objects, including byte buffers,

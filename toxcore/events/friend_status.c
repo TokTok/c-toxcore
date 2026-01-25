@@ -184,3 +184,15 @@ void tox_events_handle_friend_status(
     tox_event_friend_status_set_friend_number(friend_status, friend_number);
     tox_event_friend_status_set_status(friend_status, status);
 }
+
+void tox_events_handle_friend_status_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->friend_status_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Status *ev = event->data.friend_status;
+    tox_unlock(tox);
+    tox->friend_status_callback(tox, ev->friend_number, ev->status, user_data);
+    tox_lock(tox);
+}

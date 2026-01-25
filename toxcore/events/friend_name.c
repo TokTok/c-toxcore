@@ -218,3 +218,15 @@ void tox_events_handle_friend_name(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_friend_name_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->friend_name_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Name *ev = event->data.friend_name;
+    tox_unlock(tox);
+    tox->friend_name_callback(tox, ev->friend_number, ev->name, ev->name_length, user_data);
+    tox_lock(tox);
+}

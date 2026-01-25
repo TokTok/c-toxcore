@@ -221,3 +221,15 @@ void tox_events_handle_friend_request(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_friend_request_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->friend_request_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Request *ev = event->data.friend_request;
+    tox_unlock(tox);
+    tox->friend_request_callback(tox, ev->public_key, ev->message, ev->message_length, user_data);
+    tox_lock(tox);
+}

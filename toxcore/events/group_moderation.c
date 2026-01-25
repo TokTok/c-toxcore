@@ -216,3 +216,15 @@ void tox_events_handle_group_moderation(
     tox_event_group_moderation_set_target_peer_id(group_moderation, target_peer_id);
     tox_event_group_moderation_set_mod_type(group_moderation, mod_type);
 }
+
+void tox_events_handle_group_moderation_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_moderation_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Moderation *ev = event->data.group_moderation;
+    tox_unlock(tox);
+    tox->group_moderation_callback(tox, ev->group_number, ev->source_peer_id, ev->target_peer_id, ev->mod_type, user_data);
+    tox_lock(tox);
+}

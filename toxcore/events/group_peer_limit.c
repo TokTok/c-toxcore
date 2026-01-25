@@ -182,3 +182,15 @@ void tox_events_handle_group_peer_limit(
     tox_event_group_peer_limit_set_group_number(group_peer_limit, group_number);
     tox_event_group_peer_limit_set_peer_limit(group_peer_limit, peer_limit);
 }
+
+void tox_events_handle_group_peer_limit_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_peer_limit_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Limit *ev = event->data.group_peer_limit;
+    tox_unlock(tox);
+    tox->group_peer_limit_callback(tox, ev->group_number, ev->peer_limit, user_data);
+    tox_lock(tox);
+}

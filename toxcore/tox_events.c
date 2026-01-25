@@ -177,6 +177,225 @@ Tox_Events *tox_events_load(const Tox_System *sys, const uint8_t *bytes, uint32_
     return events;
 }
 
+void tox_events_dispatch(Tox *tox, Tox_Events *events, void *user_data)
+{
+    if (events == nullptr) {
+        return;
+    }
+
+    const uint32_t size = tox_events_get_size(events);
+
+    for (uint32_t i = 0; i < size; ++i) {
+        const Tox_Event *event = tox_events_get(events, i);
+        const Tox_Event_Type type = tox_event_get_type(event);
+
+        switch (type) {
+            case TOX_EVENT_SELF_CONNECTION_STATUS: {
+                tox_events_handle_self_connection_status_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_REQUEST: {
+                tox_events_handle_friend_request_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_CONNECTION_STATUS: {
+                tox_events_handle_friend_connection_status_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_LOSSY_PACKET: {
+                tox_events_handle_friend_lossy_packet_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_LOSSLESS_PACKET: {
+                tox_events_handle_friend_lossless_packet_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_NAME: {
+                tox_events_handle_friend_name_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_STATUS: {
+                tox_events_handle_friend_status_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_STATUS_MESSAGE: {
+                tox_events_handle_friend_status_message_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_MESSAGE: {
+                tox_events_handle_friend_message_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_READ_RECEIPT: {
+                tox_events_handle_friend_read_receipt_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FRIEND_TYPING: {
+                tox_events_handle_friend_typing_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FILE_CHUNK_REQUEST: {
+                tox_events_handle_file_chunk_request_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FILE_RECV: {
+                tox_events_handle_file_recv_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FILE_RECV_CHUNK: {
+                tox_events_handle_file_recv_chunk_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_FILE_RECV_CONTROL: {
+                tox_events_handle_file_recv_control_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_INVITE: {
+                tox_events_handle_conference_invite_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_CONNECTED: {
+                tox_events_handle_conference_connected_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_PEER_LIST_CHANGED: {
+                tox_events_handle_conference_peer_list_changed_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_PEER_NAME: {
+                tox_events_handle_conference_peer_name_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_TITLE: {
+                tox_events_handle_conference_title_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_CONFERENCE_MESSAGE: {
+                tox_events_handle_conference_message_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PEER_NAME: {
+                tox_events_handle_group_peer_name_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PEER_STATUS: {
+                tox_events_handle_group_peer_status_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_TOPIC: {
+                tox_events_handle_group_topic_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PRIVACY_STATE: {
+                tox_events_handle_group_privacy_state_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_VOICE_STATE: {
+                tox_events_handle_group_voice_state_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_TOPIC_LOCK: {
+                tox_events_handle_group_topic_lock_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PEER_LIMIT: {
+                tox_events_handle_group_peer_limit_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PASSWORD: {
+                tox_events_handle_group_password_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_MESSAGE: {
+                tox_events_handle_group_message_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PRIVATE_MESSAGE: {
+                tox_events_handle_group_private_message_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_CUSTOM_PACKET: {
+                tox_events_handle_group_custom_packet_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_CUSTOM_PRIVATE_PACKET: {
+                tox_events_handle_group_custom_private_packet_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_INVITE: {
+                tox_events_handle_group_invite_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PEER_JOIN: {
+                tox_events_handle_group_peer_join_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_PEER_EXIT: {
+                tox_events_handle_group_peer_exit_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_SELF_JOIN: {
+                tox_events_handle_group_self_join_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_JOIN_FAIL: {
+                tox_events_handle_group_join_fail_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_GROUP_MODERATION: {
+                tox_events_handle_group_moderation_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_DHT_NODES_RESPONSE: {
+                tox_events_handle_dht_nodes_response_dispatch(tox, event, user_data);
+                break;
+            }
+
+            case TOX_EVENT_INVALID:
+                break;
+        }
+    }
+}
+
 bool tox_events_equal(const Tox_System *sys, const Tox_Events *a, const Tox_Events *b)
 {
     assert(sys != nullptr);

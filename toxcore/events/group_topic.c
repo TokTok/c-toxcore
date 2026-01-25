@@ -234,3 +234,15 @@ void tox_events_handle_group_topic(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_group_topic_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_topic_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Topic *ev = event->data.group_topic;
+    tox_unlock(tox);
+    tox->group_topic_callback(tox, ev->group_number, ev->peer_id, ev->topic, ev->topic_length, user_data);
+    tox_lock(tox);
+}

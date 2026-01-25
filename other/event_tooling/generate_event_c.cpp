@@ -627,6 +627,46 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
         );
     }
     f << "}\n";
+
+    f << "\nvoid tox_events_handle_" << event_name_l << "_dispatch(Tox *tox, const Tox_Event *event, void *user_data)\n{\n";
+    if (event_name_l == "friend_lossy_packet" || event_name_l == "friend_lossless_packet") {
+        f << "    const Tox_Event_" << event_name << " *ev = event->data." << event_name_l << ";\n";
+        f << "    if (ev->data_length > 0 && tox->" << event_name_l << "_callback_per_pktid[ev->data[0]] != nullptr) {\n";
+        f << "        tox_unlock(tox);\n";
+        f << "        tox->" << event_name_l << "_callback_per_pktid[ev->data[0]](tox, ev->friend_number, ev->data, ev->data_length, user_data);\n";
+        f << "        tox_lock(tox);\n";
+        f << "    }\n";
+    } else {
+        f << "    if (tox->" << event_name_l << "_callback == nullptr) {\n        return;\n    }\n\n";
+        f << "    const Tox_Event_" << event_name << " *ev = event->data." << event_name_l << ";\n";
+        f << "    tox_unlock(tox);\n";
+        f << "    tox->" << event_name_l << "_callback(tox, ";
+        bool first_arg = true;
+        for (const auto& t : event_types) {
+            if (!first_arg) f << ", ";
+            std::visit(
+                overloaded{
+                    [&](const EventTypeTrivial& t) {
+                        f << "ev->" << t.name;
+                    },
+                    [&](const EventTypeByteRange& t) {
+                        if (t.type_c_arg != "uint8_t") {
+                            f << "(const " << t.type_c_arg << " *)";
+                        }
+                        f << "ev->" << t.name_data << ", ev->" << t.name_length;
+                    },
+                    [&](const EventTypeByteArray& t) {
+                        f << "ev->" << t.name;
+                    }
+                },
+                t
+            );
+            first_arg = false;
+        }
+        f << ", user_data);\n";
+        f << "    tox_lock(tox);\n";
+    }
+    f << "}\n";
 }
 
 // c++ generate_event_c.cpp -std=c++17 && ./a.out Friend_Lossy_Packet && diff --color ../../toxcore/events/friend_lossy_packet.c out/friend_lossy_packet.c

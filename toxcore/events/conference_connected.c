@@ -161,3 +161,15 @@ void tox_events_handle_conference_connected(
 
     tox_event_conference_connected_set_conference_number(conference_connected, conference_number);
 }
+
+void tox_events_handle_conference_connected_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->conference_connected_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Connected *ev = event->data.conference_connected;
+    tox_unlock(tox);
+    tox->conference_connected_callback(tox, ev->conference_number, user_data);
+    tox_lock(tox);
+}

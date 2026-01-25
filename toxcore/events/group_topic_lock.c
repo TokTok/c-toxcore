@@ -184,3 +184,15 @@ void tox_events_handle_group_topic_lock(
     tox_event_group_topic_lock_set_group_number(group_topic_lock, group_number);
     tox_event_group_topic_lock_set_topic_lock(group_topic_lock, topic_lock);
 }
+
+void tox_events_handle_group_topic_lock_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_topic_lock_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Topic_Lock *ev = event->data.group_topic_lock;
+    tox_unlock(tox);
+    tox->group_topic_lock_callback(tox, ev->group_number, ev->topic_lock, user_data);
+    tox_lock(tox);
+}

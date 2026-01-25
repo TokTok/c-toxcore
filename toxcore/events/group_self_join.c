@@ -161,3 +161,15 @@ void tox_events_handle_group_self_join(
 
     tox_event_group_self_join_set_group_number(group_self_join, group_number);
 }
+
+void tox_events_handle_group_self_join_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_self_join_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Self_Join *ev = event->data.group_self_join;
+    tox_unlock(tox);
+    tox->group_self_join_callback(tox, ev->group_number, user_data);
+    tox_lock(tox);
+}

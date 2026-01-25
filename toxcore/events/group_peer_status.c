@@ -200,3 +200,15 @@ void tox_events_handle_group_peer_status(
     tox_event_group_peer_status_set_peer_id(group_peer_status, peer_id);
     tox_event_group_peer_status_set_status(group_peer_status, status);
 }
+
+void tox_events_handle_group_peer_status_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_peer_status_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Status *ev = event->data.group_peer_status;
+    tox_unlock(tox);
+    tox->group_peer_status_callback(tox, ev->group_number, ev->peer_id, ev->status, user_data);
+    tox_lock(tox);
+}

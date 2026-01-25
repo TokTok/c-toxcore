@@ -184,3 +184,15 @@ void tox_events_handle_group_voice_state(
     tox_event_group_voice_state_set_group_number(group_voice_state, group_number);
     tox_event_group_voice_state_set_voice_state(group_voice_state, voice_state);
 }
+
+void tox_events_handle_group_voice_state_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_voice_state_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Voice_State *ev = event->data.group_voice_state;
+    tox_unlock(tox);
+    tox->group_voice_state_callback(tox, ev->group_number, ev->voice_state, user_data);
+    tox_lock(tox);
+}

@@ -182,3 +182,15 @@ void tox_events_handle_friend_read_receipt(
     tox_event_friend_read_receipt_set_friend_number(friend_read_receipt, friend_number);
     tox_event_friend_read_receipt_set_message_id(friend_read_receipt, message_id);
 }
+
+void tox_events_handle_friend_read_receipt_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->friend_read_receipt_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Friend_Read_Receipt *ev = event->data.friend_read_receipt;
+    tox_unlock(tox);
+    tox->friend_read_receipt_callback(tox, ev->friend_number, ev->message_id, user_data);
+    tox_lock(tox);
+}

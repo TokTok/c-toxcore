@@ -182,3 +182,15 @@ void tox_events_handle_group_peer_join(
     tox_event_group_peer_join_set_group_number(group_peer_join, group_number);
     tox_event_group_peer_join_set_peer_id(group_peer_join, peer_id);
 }
+
+void tox_events_handle_group_peer_join_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_peer_join_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Peer_Join *ev = event->data.group_peer_join;
+    tox_unlock(tox);
+    tox->group_peer_join_callback(tox, ev->group_number, ev->peer_id, user_data);
+    tox_lock(tox);
+}

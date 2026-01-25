@@ -252,3 +252,15 @@ void tox_events_handle_conference_message(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_conference_message_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->conference_message_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Conference_Message *ev = event->data.conference_message;
+    tox_unlock(tox);
+    tox->conference_message_callback(tox, ev->conference_number, ev->peer_number, ev->type, ev->message, ev->message_length, user_data);
+    tox_lock(tox);
+}

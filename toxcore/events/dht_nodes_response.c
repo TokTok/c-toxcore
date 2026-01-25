@@ -236,3 +236,15 @@ void tox_events_handle_dht_nodes_response(
     }
     tox_event_dht_nodes_response_set_port(dht_nodes_response, port);
 }
+
+void tox_events_handle_dht_nodes_response_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->dht_nodes_response_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Dht_Nodes_Response *ev = event->data.dht_nodes_response;
+    tox_unlock(tox);
+    tox->dht_nodes_response_callback(tox, ev->public_key, (const char *)ev->ip, ev->ip_length, ev->port, user_data);
+    tox_lock(tox);
+}

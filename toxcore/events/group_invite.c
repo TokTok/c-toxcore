@@ -270,3 +270,15 @@ void tox_events_handle_group_invite(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_group_invite_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->group_invite_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_Group_Invite *ev = event->data.group_invite;
+    tox_unlock(tox);
+    tox->group_invite_callback(tox, ev->friend_number, ev->invite_data, ev->invite_data_length, ev->group_name, ev->group_name_length, user_data);
+    tox_lock(tox);
+}

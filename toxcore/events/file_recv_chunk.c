@@ -250,3 +250,15 @@ void tox_events_handle_file_recv_chunk(
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
     }
 }
+
+void tox_events_handle_file_recv_chunk_dispatch(Tox *tox, const Tox_Event *event, void *user_data)
+{
+    if (tox->file_recv_chunk_callback == nullptr) {
+        return;
+    }
+
+    const Tox_Event_File_Recv_Chunk *ev = event->data.file_recv_chunk;
+    tox_unlock(tox);
+    tox->file_recv_chunk_callback(tox, ev->friend_number, ev->file_number, ev->position, ev->data, ev->data_length, user_data);
+    tox_lock(tox);
+}
