@@ -229,15 +229,13 @@ static Tox_Event_File_Recv_Chunk *tox_event_file_recv_chunk_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_file_recv_chunk(
-    Tox *tox,
     uint32_t friend_number,
     uint32_t file_number,
     uint64_t position,
     const uint8_t *data, size_t length,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_File_Recv_Chunk *file_recv_chunk = tox_event_file_recv_chunk_alloc(state);
+    Tox_Event_File_Recv_Chunk *file_recv_chunk = tox_event_file_recv_chunk_alloc(tox_events_alloc(state));
 
     if (file_recv_chunk == nullptr) {
         return;

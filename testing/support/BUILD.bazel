@@ -46,13 +46,13 @@ cc_library(
     }),
     visibility = ["//visibility:public"],
     deps = [
+        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:mem",
         "//c-toxcore/toxcore:net",
         "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:rng",
         "//c-toxcore/toxcore:tox",
-        "//c-toxcore/toxcore:tox_events",
         "//c-toxcore/toxcore:tox_options",
         "@psocket",
     ],
@@ -118,6 +118,7 @@ cc_test(
     srcs = ["bootstrap_scaling_test.cc"],
     deps = [
         ":support",
+        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:tox",
         "@com_google_googletest//:gtest",
@@ -141,6 +142,7 @@ cc_test(
     srcs = ["tox_network_test.cc"],
     deps = [
         ":support",
+        "//c-toxcore/toxcore",
         "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:network",
         "//c-toxcore/toxcore:tox",
