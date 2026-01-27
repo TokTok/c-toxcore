@@ -543,6 +543,22 @@ static OpusEncoder *create_audio_encoder(const Logger *log, uint32_t bit_rate, u
         goto FAILURE;
     }
 
+    /* Enable Discontinuous Transmission (DTX) to reduce CPU and bandwidth during silence */
+    status = opus_encoder_ctl(rc, OPUS_SET_DTX(1));
+
+    if (status != OPUS_OK) {
+        LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
+        goto FAILURE;
+    }
+
+    /* Signal the encoder that the input is primarily voice */
+    status = opus_encoder_ctl(rc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+
+    if (status != OPUS_OK) {
+        LOGGER_ERROR(log, "Error while setting encoder ctl: %s", opus_strerror(status));
+        goto FAILURE;
+    }
+
     return rc;
 
 FAILURE:
