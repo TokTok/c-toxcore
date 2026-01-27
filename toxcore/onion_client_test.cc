@@ -47,8 +47,8 @@ public:
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
-            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            dht_wrapper_.ev(), dht_wrapper_.networking(), dht_wrapper_.get_dht(),
+            &DHTWrapper::funcs, &proxy_info, net_profile_.get()));
 
         // Setup Onion Client
         onion_client_.reset(new_onion_client(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
@@ -121,6 +121,107 @@ public:
 
 protected:
     SimulatedEnvironment env;
+
+    void InterceptAndRespondMaliciously(const std::vector<std::uint8_t> &data, const IP_Port &from,
+        bool &triggered, const std::uint8_t *bob_sk, const Memory *mem, FakeUdpSocket *bob_socket,
+        const Random *alice_random)
+    {
+        if (triggered)
+            return;
+        if (data.size() < 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
+            return;
+
+        if (data[0] != NET_PACKET_ONION_SEND_INITIAL)
+            return;
+
+        std::uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
+        std::uint8_t nonce[CRYPTO_NONCE_SIZE];
+        std::memcpy(nonce, data.data() + 1, CRYPTO_NONCE_SIZE);
+        const std::uint8_t *ephem_pk = data.data() + 1 + CRYPTO_NONCE_SIZE;
+
+        encrypt_precompute(ephem_pk, bob_sk, shared_key);
+
+        std::vector<std::uint8_t> decrypted1(
+            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE));
+        int dlen = decrypt_data_symmetric(mem, shared_key, nonce,
+            data.data() + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
+            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), decrypted1.data());
+        if (dlen <= 0)
+            return;
+
+        std::size_t offset = SIZE_IPPORT + CRYPTO_PUBLIC_KEY_SIZE;
+        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
+            return;
+        ephem_pk = decrypted1.data() + SIZE_IPPORT;
+
+        encrypt_precompute(ephem_pk, bob_sk, shared_key);
+
+        std::vector<std::uint8_t> decrypted2(dlen - offset - CRYPTO_MAC_SIZE);
+        dlen = decrypt_data_symmetric(
+            mem, shared_key, nonce, decrypted1.data() + offset, dlen - offset, decrypted2.data());
+        if (dlen <= 0)
+            return;
+
+        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
+            return;
+        ephem_pk = decrypted2.data() + SIZE_IPPORT;
+        encrypt_precompute(ephem_pk, bob_sk, shared_key);
+
+        std::vector<std::uint8_t> decrypted3(dlen - offset - CRYPTO_MAC_SIZE);
+        dlen = decrypt_data_symmetric(
+            mem, shared_key, nonce, decrypted2.data() + offset, dlen - offset, decrypted3.data());
+        if (dlen <= 0)
+            return;
+
+        std::size_t data_offset = SIZE_IPPORT;
+        if (static_cast<std::size_t>(dlen) <= data_offset)
+            return;
+        std::uint8_t *req = decrypted3.data() + data_offset;
+        std::size_t req_len = dlen - data_offset;
+
+        if (req[0] != 0x87 && req[0] != 0x83)
+            return;
+
+        std::uint8_t req_nonce[CRYPTO_NONCE_SIZE];
+        std::memcpy(req_nonce, req + 1, CRYPTO_NONCE_SIZE);
+        std::uint8_t alice_pk[CRYPTO_PUBLIC_KEY_SIZE];
+        std::memcpy(alice_pk, req + 1 + CRYPTO_NONCE_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
+
+        std::uint8_t *req_enc = req + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
+        std::size_t req_enc_len = req_len - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+
+        std::vector<std::uint8_t> req_plain(req_enc_len - CRYPTO_MAC_SIZE);
+        int plen = decrypt_data(
+            mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
+
+        if (plen <= 0)
+            return;
+
+        std::size_t sendback_offset = 32 + 32 + 32;
+        if (static_cast<std::size_t>(plen) < sendback_offset + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH)
+            return;
+        std::uint8_t *sendback = req_plain.data() + sendback_offset;
+        std::size_t sendback_len = ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
+
+        std::vector<std::uint8_t> resp;
+        resp.push_back(NET_PACKET_ANNOUNCE_RESPONSE);
+        resp.insert(resp.end(), sendback, sendback + sendback_len);
+
+        std::uint8_t resp_nonce[CRYPTO_NONCE_SIZE];
+        random_nonce(alice_random, resp_nonce);
+        resp.insert(resp.end(), resp_nonce, resp_nonce + CRYPTO_NONCE_SIZE);
+
+        std::vector<std::uint8_t> payload(33, 0);
+
+        std::vector<std::uint8_t> ciphertext(payload.size() + CRYPTO_MAC_SIZE);
+        encrypt_data(
+            mem, alice_pk, bob_sk, resp_nonce, payload.data(), payload.size(), ciphertext.data());
+
+        resp.insert(resp.end(), ciphertext.begin(), ciphertext.end());
+
+        bob_socket->sendto(resp.data(), resp.size(), &from);
+        triggered = true;
+    }
 };
 
 TEST_F(OnionClientTest, CreationAndDestruction)
@@ -302,110 +403,8 @@ TEST_F(OnionClientTest, OOBReadInHandleAnnounceResponse)
     // Observer
     bool triggered = false;
     bob_socket->set_recv_observer([&](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-        if (triggered)
-            return;
-        if (data.size() < 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
-            return;
-
-        // Layer 1
-        if (data[0] != NET_PACKET_ONION_SEND_INITIAL)
-            return;
-
-        std::uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
-        std::uint8_t nonce[CRYPTO_NONCE_SIZE];
-        std::memcpy(nonce, data.data() + 1, CRYPTO_NONCE_SIZE);
-        const std::uint8_t *ephem_pk = data.data() + 1 + CRYPTO_NONCE_SIZE;
-
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted1(
-            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE));
-        int dlen = decrypt_data_symmetric(mem, shared_key, nonce,
-            data.data() + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
-            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), decrypted1.data());
-        if (dlen <= 0)
-            return;
-
-        // Decrypted 1: [IP] [PK] [Encrypted 2]
-        std::size_t offset = SIZE_IPPORT + CRYPTO_PUBLIC_KEY_SIZE;
-        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
-            return;
-        ephem_pk = decrypted1.data() + SIZE_IPPORT;
-
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted2(dlen - offset - CRYPTO_MAC_SIZE);
-        dlen = decrypt_data_symmetric(
-            mem, shared_key, nonce, decrypted1.data() + offset, dlen - offset, decrypted2.data());
-        if (dlen <= 0)
-            return;
-
-        // Decrypted 2: [IP] [PK] [Encrypted 3]
-        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
-            return;
-        ephem_pk = decrypted2.data() + SIZE_IPPORT;
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted3(dlen - offset - CRYPTO_MAC_SIZE);
-        dlen = decrypt_data_symmetric(
-            mem, shared_key, nonce, decrypted2.data() + offset, dlen - offset, decrypted3.data());
-        if (dlen <= 0)
-            return;
-
-        // Decrypted 3: [IP] [Data]
-        std::size_t data_offset = SIZE_IPPORT;
-        if (static_cast<std::size_t>(dlen) <= data_offset)
-            return;
-        std::uint8_t *req = decrypted3.data() + data_offset;
-        std::size_t req_len = dlen - data_offset;
-
-        // Announce Request: [131] [Nonce] [Alice PK] [Encrypted]
-        if (req[0] != 0x87 && req[0] != 0x83)
-            return;
-
-        std::uint8_t req_nonce[CRYPTO_NONCE_SIZE];
-        std::memcpy(req_nonce, req + 1, CRYPTO_NONCE_SIZE);
-        std::uint8_t alice_pk[CRYPTO_PUBLIC_KEY_SIZE];
-        std::memcpy(alice_pk, req + 1 + CRYPTO_NONCE_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
-
-        std::uint8_t *req_enc = req + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
-        std::size_t req_enc_len = req_len - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
-
-        std::vector<std::uint8_t> req_plain(req_enc_len - CRYPTO_MAC_SIZE);
-        int plen = decrypt_data(
-            mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
-
-        if (plen <= 0)
-            return;
-
-        // Payload: [Ping ID (32)] [Search ID (32)] [Data PK (32)] [Sendback (Rest)]
-        std::size_t sendback_offset = 32 + 32 + 32;
-        if (static_cast<std::size_t>(plen) < sendback_offset + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH)
-            return;
-        std::uint8_t *sendback = req_plain.data() + sendback_offset;
-        std::size_t sendback_len = ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
-
-        // Construct Malicious Response
-        std::vector<std::uint8_t> resp;
-        resp.push_back(NET_PACKET_ANNOUNCE_RESPONSE);
-        resp.insert(resp.end(), sendback, sendback + sendback_len);
-
-        std::uint8_t resp_nonce[CRYPTO_NONCE_SIZE];
-        random_nonce(alice.get_random(), resp_nonce);
-        resp.insert(resp.end(), resp_nonce, resp_nonce + CRYPTO_NONCE_SIZE);
-
-        // Encrypted Payload: [is_stored (1)] [ping_id (32)]
-        // Total 33 bytes. OMIT count.
-        std::vector<std::uint8_t> payload(33, 0);
-
-        std::vector<std::uint8_t> ciphertext(33 + CRYPTO_MAC_SIZE);
-        encrypt_data(mem, alice_pk, bob_sk, resp_nonce, payload.data(), 33, ciphertext.data());
-
-        resp.insert(resp.end(), ciphertext.begin(), ciphertext.end());
-
-        // Send to Alice
-        bob_socket->sendto(resp.data(), resp.size(), &from);
-        triggered = true;
+        InterceptAndRespondMaliciously(
+            data, from, triggered, bob_sk, mem, bob_socket, alice.get_random());
     });
 
     // Run simulation
@@ -501,103 +500,8 @@ TEST_F(OnionClientTest, OnionAnnounceResponse_TooShort)
     const Memory *mem = &mem_struct;
 
     bob_socket->set_recv_observer([&](const std::vector<std::uint8_t> &data, const IP_Port &from) {
-        if (triggered)
-            return;
-        if (data.size() < 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE)
-            return;
-
-        if (data[0] != NET_PACKET_ONION_SEND_INITIAL)
-            return;
-
-        std::uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
-        std::uint8_t nonce[CRYPTO_NONCE_SIZE];
-        std::memcpy(nonce, data.data() + 1, CRYPTO_NONCE_SIZE);
-        const std::uint8_t *ephem_pk = data.data() + 1 + CRYPTO_NONCE_SIZE;
-
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted1(
-            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_MAC_SIZE));
-        int dlen = decrypt_data_symmetric(mem, shared_key, nonce,
-            data.data() + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE,
-            data.size() - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE), decrypted1.data());
-        if (dlen <= 0)
-            return;
-
-        std::size_t offset = SIZE_IPPORT + CRYPTO_PUBLIC_KEY_SIZE;
-        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
-            return;
-        ephem_pk = decrypted1.data() + SIZE_IPPORT;
-
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted2(dlen - offset - CRYPTO_MAC_SIZE);
-        dlen = decrypt_data_symmetric(
-            mem, shared_key, nonce, decrypted1.data() + offset, dlen - offset, decrypted2.data());
-        if (dlen <= 0)
-            return;
-
-        if (static_cast<std::size_t>(dlen) <= offset + CRYPTO_MAC_SIZE)
-            return;
-        ephem_pk = decrypted2.data() + SIZE_IPPORT;
-        encrypt_precompute(ephem_pk, bob_sk, shared_key);
-
-        std::vector<std::uint8_t> decrypted3(dlen - offset - CRYPTO_MAC_SIZE);
-        dlen = decrypt_data_symmetric(
-            mem, shared_key, nonce, decrypted2.data() + offset, dlen - offset, decrypted3.data());
-        if (dlen <= 0)
-            return;
-
-        std::size_t data_offset = SIZE_IPPORT;
-        if (static_cast<std::size_t>(dlen) <= data_offset)
-            return;
-        std::uint8_t *req = decrypted3.data() + data_offset;
-        std::size_t req_len = dlen - data_offset;
-
-        if (req[0] != 0x87 && req[0] != 0x83)
-            return;
-
-        std::uint8_t req_nonce[CRYPTO_NONCE_SIZE];
-        std::memcpy(req_nonce, req + 1, CRYPTO_NONCE_SIZE);
-        std::uint8_t alice_pk[CRYPTO_PUBLIC_KEY_SIZE];
-        std::memcpy(alice_pk, req + 1 + CRYPTO_NONCE_SIZE, CRYPTO_PUBLIC_KEY_SIZE);
-
-        std::uint8_t *req_enc = req + 1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE;
-        std::size_t req_enc_len = req_len - (1 + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
-
-        std::vector<std::uint8_t> req_plain(req_enc_len - CRYPTO_MAC_SIZE);
-        int plen = decrypt_data(
-            mem, alice_pk, bob_sk, req_nonce, req_enc, req_enc_len, req_plain.data());
-
-        if (plen <= 0)
-            return;
-
-        std::size_t sendback_offset = 32 + 32 + 32;
-        if (static_cast<std::size_t>(plen) < sendback_offset + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH)
-            return;
-        std::uint8_t *sendback = req_plain.data() + sendback_offset;
-        std::size_t sendback_len = ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
-
-        std::vector<std::uint8_t> resp;
-        resp.push_back(NET_PACKET_ANNOUNCE_RESPONSE);
-        resp.insert(resp.end(), sendback, sendback + sendback_len);
-
-        std::uint8_t resp_nonce[CRYPTO_NONCE_SIZE];
-        random_nonce(alice.get_random(), resp_nonce);
-        resp.insert(resp.end(), resp_nonce, resp_nonce + CRYPTO_NONCE_SIZE);
-
-        // PAYLOAD SIZE 33 (1 + 32)
-        // This is exactly what triggers the missing byte read for nodes_count
-        std::vector<std::uint8_t> payload(33, 0);
-
-        std::vector<std::uint8_t> ciphertext(payload.size() + CRYPTO_MAC_SIZE);
-        encrypt_data(
-            mem, alice_pk, bob_sk, resp_nonce, payload.data(), payload.size(), ciphertext.data());
-
-        resp.insert(resp.end(), ciphertext.begin(), ciphertext.end());
-
-        bob_socket->sendto(resp.data(), resp.size(), &from);
-        triggered = true;
+        InterceptAndRespondMaliciously(
+            data, from, triggered, bob_sk, mem, bob_socket, alice.get_random());
     });
 
     for (int i = 0; i < 200; ++i) {

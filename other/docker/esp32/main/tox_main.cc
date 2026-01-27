@@ -10,6 +10,7 @@
 #include "../../../../toxcore/ccompat.h"
 #include "../../../../toxcore/tox.h"
 #include "../../../../toxcore/tox_events.h"
+#include "../../../../toxcore/tox_private.h"
 
 static const char *color(int index)
 {
@@ -87,10 +88,14 @@ void tox_main()
 
     printf("bootstrapping and connecting 2 toxes\n");
 
+    std::unique_ptr<Tox_Iterate_Options, void (*)(Tox_Iterate_Options *)>
+        iterate_opts(tox_iterate_options_new(nullptr), tox_iterate_options_free);
+    tox_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
     while (tox_self_get_connection_status(tox1.get()) == TOX_CONNECTION_NONE
         || tox_self_get_connection_status(tox0.get()) == TOX_CONNECTION_NONE) {
-        tox_events_free(tox_events_iterate(tox0.get(), true, nullptr));
-        tox_events_free(tox_events_iterate(tox1.get(), true, nullptr));
+        tox_events_free(tox_events_iterate(tox0.get(), iterate_opts.get(), nullptr));
+        tox_events_free(tox_events_iterate(tox1.get(), iterate_opts.get(), nullptr));
 
         usleep(tox_iteration_interval(tox0.get()) * 1000);
         usleep(250);  // a bit less noise in the log

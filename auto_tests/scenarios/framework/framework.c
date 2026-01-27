@@ -332,7 +332,7 @@ void tox_scenario_yield(ToxNode *self)
     // 1. Poll Tox (Strictly in the node's thread), only if not offline
     if (!tox_node_is_offline(self)) {
         Tox_Err_Events_Iterate ev_err;
-        Tox_Events *events = tox_events_iterate(self->tox, false, &ev_err);
+        Tox_Events *events = tox_events_iterate(self->tox, nullptr, &ev_err);
         if (events != nullptr) {
             uint32_t size = tox_events_get_size(events);
             for (uint32_t j = 0; j < size; ++j) {
@@ -480,7 +480,7 @@ static void *node_thread_wrapper(void *arg)
 
         // Poll Tox even when script is "finished"
         Tox_Err_Events_Iterate ev_err;
-        Tox_Events *events = tox_events_iterate(node->tox, false, &ev_err);
+        Tox_Events *events = tox_events_iterate(node->tox, nullptr, &ev_err);
         if (events != nullptr) {
             tox_dispatch_invoke(node->dispatch, events, node);
             tox_events_free(events);

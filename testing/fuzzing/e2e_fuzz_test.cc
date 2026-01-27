@@ -12,6 +12,7 @@
 #include "../../toxcore/tox.h"
 #include "../../toxcore/tox_dispatch.h"
 #include "../../toxcore/tox_events.h"
+#include "../../toxcore/tox_private.h"
 #include "../support/public/fuzz_data.hh"
 #include "../support/public/fuzz_helpers.hh"
 #include "../support/public/simulated_environment.hh"
@@ -208,12 +209,16 @@ void TestEndToEnd(Fuzz_Data &input)
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
 
+    Ptr<Tox_Iterate_Options> iterate_opts(
+        tox_iterate_options_new(nullptr), tox_iterate_options_free);
+    tox_iterate_options_set_fail_hard(iterate_opts.get(), true);
+
     // MIN_ITERATION_INTERVAL = 20
     const uint8_t MIN_ITERATION_INTERVAL = 20;
 
     while (!input.empty()) {
         Tox_Err_Events_Iterate error_iterate;
-        Tox_Events *events = tox_events_iterate(tox, true, &error_iterate);
+        Tox_Events *events = tox_events_iterate(tox, iterate_opts.get(), &error_iterate);
         assert(tox_events_equal(&null_node->system, events, events));
         tox_dispatch_invoke(dispatch, events, tox);
         tox_events_free(events);
