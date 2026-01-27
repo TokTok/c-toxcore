@@ -41,9 +41,9 @@ int ns_connect(const Network *ns, Socket sock, const IP_Port *addr)
     return ns->funcs->connect(ns->obj, sock, addr);
 }
 
-int ns_recvbuf(const Network *ns, Socket sock)
+int ns_recvbuf(const Network *ns, Socket sock, uint16_t length)
 {
-    return ns->funcs->recvbuf(ns->obj, sock);
+    return ns->funcs->recvbuf(ns->obj, sock, length);
 }
 
 int ns_recv(const Network *ns, Socket sock, uint8_t *buf, size_t len)

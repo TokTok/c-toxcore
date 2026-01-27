@@ -206,7 +206,7 @@ int write_packet_tcp_secure_connection(const Logger *logger, TCP_Connection *con
 int read_tcp_packet(
     const Logger *logger, const Memory *mem, const Network *ns, Socket sock, uint8_t *data, uint16_t length, const IP_Port *ip_port)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    const uint16_t count = net_socket_data_recv_buffer(ns, sock, length);
 
     if (count < length) {
         if (count != 0) {
@@ -236,7 +236,7 @@ int read_tcp_packet(
  */
 static uint16_t read_tcp_length(const Logger *_Nonnull logger, const Network *_Nonnull ns, Socket sock, const IP_Port *_Nonnull ip_port)
 {
-    const uint16_t count = net_socket_data_recv_buffer(ns, sock);
+    const uint16_t count = net_socket_data_recv_buffer(ns, sock, sizeof(uint16_t));
 
     if (count >= sizeof(uint16_t)) {
         uint8_t length_buf[sizeof(uint16_t)];

@@ -132,7 +132,7 @@ Socket net_accept(const Network *_Nonnull ns, Socket sock);
  * return the size of data in the tcp recv buffer.
  * return 0 on failure.
  */
-uint16_t net_socket_data_recv_buffer(const Network *_Nonnull ns, Socket sock);
+uint16_t net_socket_data_recv_buffer(const Network *_Nonnull ns, Socket sock, uint16_t length);
 
 /** Does the IP6 struct a contain an IPv4 address in an IPv6 one? */
 bool ipv6_ipv4_in_v6(const IP6 *_Nonnull a);

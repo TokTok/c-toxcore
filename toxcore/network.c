@@ -151,7 +151,7 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
 {
     IP_Port ipp_copy = *ip_port;
 
-    if (net_family_is_unspec(ip_port->ip.family)) {
+    if (net_family_is_unspec(ipp_copy.ip.family)) {
         // TODO(iphydf): Make this an error. Currently this fails sometimes when
         // called from DHT.c:do_ping_and_sendnode_requests.
         return -1;
@@ -219,7 +219,7 @@ int sendpacket(const Networking_Core *net, const IP_Port *ip_port, const uint8_t
  */
 static int receivepacket(const Network *_Nonnull ns, const Logger *_Nonnull log, Socket sock, IP_Port *_Nonnull ip_port, uint8_t *_Nonnull data, uint32_t *_Nonnull length)
 {
-    memset(ip_port, 0, sizeof(IP_Port));
+    ipport_reset(ip_port);
     *length = 0;
 
     const int fail_or_len = ns_recvfrom(ns, sock, data, MAX_UDP_PACKET_SIZE, ip_port);
@@ -643,13 +643,25 @@ void ip_reset(IP *ip)
 static const IP_Port empty_ip_port = {{{0}}};
 
 /** nulls out ip_port */
-void ipport_reset(IP_Port *ipport)
+void ipport_reset(IP_Port *_Nonnull ipport)
 {
     if (ipport == nullptr) {
         return;
     }
 
+#ifdef RANDOM_PADDING
+    // Leave padding bytes as uninitialized data. This should not matter, because we
+    // then set all the actual fields to 0.
+    IP_Port empty;
+    empty.ip.family.value = 0;
+    empty.ip.ip.v6.uint64[0] = 0;
+    empty.ip.ip.v6.uint64[1] = 0;
+    empty.port = 0;
+
+    *ipport = empty;
+#else
     *ipport = empty_ip_port;
+#endif /* RANDOM_PADDING */
 }
 
 /** nulls out ip, sets family according to flag */
@@ -758,7 +770,7 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
         Ip_Ntoa ip_str;
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
         // doing that, and turn this into an error.
-        LOGGER_TRACE(logger, "cannot pack invalid IP: %s", net_ip_ntoa(&ip_port->ip, &ip_str));
+        LOGGER_DEBUG(logger, "cannot pack invalid IP: %s", net_ip_ntoa(&ip_port->ip, &ip_str));
         return false;
     }
 
@@ -778,6 +790,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     const uint32_t size = bin_pack_obj_size(bin_pack_ip_port_handler, ip_port, logger);
 
     if (size > length) {
+        LOGGER_ERROR(logger, "not enough space for packed IP: %u but need %u", length, size);
         return -1;
     }
 
@@ -1154,9 +1167,9 @@ Socket net_socket(const Network *ns, Family domain, int type, int protocol)
     return ns_socket(ns, domain.value, type, protocol);
 }
 
-uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock)
+uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock, uint16_t length)
 {
-    const int count = ns_recvbuf(ns, sock);
+    const int count = ns_recvbuf(ns, sock, length);
     return (uint16_t)max_s32(0, min_s32(count, UINT16_MAX));
 }
 
