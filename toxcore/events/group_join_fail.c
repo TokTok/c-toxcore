@@ -169,13 +169,11 @@ static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_join_fail(
-    Tox *tox,
     uint32_t group_number,
     Tox_Group_Join_Fail fail_type,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(state);
+    Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(tox_events_alloc(state));
 
     if (group_join_fail == nullptr) {
         return;
