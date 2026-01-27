@@ -55,8 +55,8 @@ public:
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
-            dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
-            net_profile_.get()));
+            dht_wrapper_.ev(), dht_wrapper_.networking(), dht_wrapper_.get_dht(),
+            &DHTWrapper::funcs, &proxy_info, net_profile_.get()));
 
         // 4. Register Callbacks
         new_connection_handler(net_crypto_.get(), &TestNode::static_new_connection_cb, this);
@@ -208,6 +208,55 @@ using RealDHTNode = TestNode<WrappedDHT>;
 class NetCryptoTest : public ::testing::Test {
 protected:
     SimulatedEnvironment env;
+
+    template <typename Node>
+    void RunEndToEndDataExchange(Node &alice, Node &bob)
+    {
+        // 1. Alice initiates connection to Bob
+        int alice_conn_id = alice.connect_to(bob);
+        ASSERT_NE(alice_conn_id, -1);
+
+        // 2. Run simulation until connected
+        auto start = env.clock().current_time_ms();
+        int bob_conn_id = -1;
+        bool connected = false;
+
+        while ((env.clock().current_time_ms() - start) < 5000) {
+            alice.poll();
+            bob.poll();
+            env.advance_time(10);  // 10ms steps
+
+            bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
+            if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
+                && bob.is_connected(bob_conn_id)) {
+                connected = true;
+                break;
+            }
+        }
+
+        ASSERT_TRUE(connected) << "Failed to establish connection within timeout";
+
+        // 3. Exchange Data
+        // Packet ID must be in custom range (160+)
+        std::vector<std::uint8_t> message = {160, 'H', 'e', 'l', 'l', 'o'};
+
+        EXPECT_TRUE(alice.send_data(alice_conn_id, message));
+
+        start = env.clock().current_time_ms();
+        bool data_received = false;
+        while ((env.clock().current_time_ms() - start) < 1000) {
+            alice.poll();
+            bob.poll();
+            env.advance_time(10);
+
+            if (bob.get_last_received_data(bob_conn_id) == message) {
+                data_received = true;
+                break;
+            }
+        }
+
+        EXPECT_TRUE(data_received) << "Bob did not receive the correct data";
+    }
 };
 
 TEST_F(NetCryptoTest, EndToEndDataExchange)
@@ -215,50 +264,7 @@ TEST_F(NetCryptoTest, EndToEndDataExchange)
     NetCryptoNode alice(env, 33445);
     NetCryptoNode bob(env, 33446);
 
-    // 1. Alice initiates connection to Bob
-    int alice_conn_id = alice.connect_to(bob);
-    ASSERT_NE(alice_conn_id, -1);
-
-    // 2. Run simulation until connected
-    auto start = env.clock().current_time_ms();
-    int bob_conn_id = -1;
-    bool connected = false;
-
-    while ((env.clock().current_time_ms() - start) < 5000) {
-        alice.poll();
-        bob.poll();
-        env.advance_time(10);  // 10ms steps
-
-        bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
-            connected = true;
-            break;
-        }
-    }
-
-    ASSERT_TRUE(connected) << "Failed to establish connection within timeout";
-
-    // 3. Exchange Data
-    // Packet ID must be in custom range (160+)
-    std::vector<std::uint8_t> message = {160, 'H', 'e', 'l', 'l', 'o'};
-
-    EXPECT_TRUE(alice.send_data(alice_conn_id, message));
-
-    start = env.clock().current_time_ms();
-    bool data_received = false;
-    while ((env.clock().current_time_ms() - start) < 1000) {
-        alice.poll();
-        bob.poll();
-        env.advance_time(10);
-
-        if (bob.get_last_received_data(bob_conn_id) == message) {
-            data_received = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(data_received) << "Bob did not receive the correct data";
+    RunEndToEndDataExchange(alice, bob);
 }
 
 TEST_F(NetCryptoTest, ConnectionTimeout)
@@ -536,50 +542,7 @@ TEST_F(NetCryptoTest, EndToEndDataExchange_RealDHT)
     RealDHTNode alice(env, 33445);
     RealDHTNode bob(env, 33446);
 
-    // 1. Alice initiates connection to Bob
-    int alice_conn_id = alice.connect_to(bob);
-    ASSERT_NE(alice_conn_id, -1);
-
-    // 2. Run simulation until connected
-    auto start = env.clock().current_time_ms();
-    int bob_conn_id = -1;
-    bool connected = false;
-
-    while ((env.clock().current_time_ms() - start) < 5000) {
-        alice.poll();
-        bob.poll();
-        env.advance_time(10);  // 10ms steps
-
-        bob_conn_id = bob.get_connection_id_by_pk(alice.real_public_key());
-        if (alice.is_connected(alice_conn_id) && bob_conn_id != -1
-            && bob.is_connected(bob_conn_id)) {
-            connected = true;
-            break;
-        }
-    }
-
-    ASSERT_TRUE(connected) << "Failed to establish connection within timeout";
-
-    // 3. Exchange Data
-    // Packet ID must be in custom range (160+)
-    std::vector<std::uint8_t> message = {160, 'H', 'e', 'l', 'l', 'o'};
-
-    EXPECT_TRUE(alice.send_data(alice_conn_id, message));
-
-    start = env.clock().current_time_ms();
-    bool data_received = false;
-    while ((env.clock().current_time_ms() - start) < 1000) {
-        alice.poll();
-        bob.poll();
-        env.advance_time(10);
-
-        if (bob.get_last_received_data(bob_conn_id) == message) {
-            data_received = true;
-            break;
-        }
-    }
-
-    EXPECT_TRUE(data_received) << "Bob did not receive the correct data";
+    RunEndToEndDataExchange(alice, bob);
 }
 
 }  // namespace

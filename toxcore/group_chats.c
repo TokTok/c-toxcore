@@ -7259,7 +7259,7 @@ static bool init_gc_tcp_connection(const GC_Session *_Nonnull c, GC_Chat *_Nonnu
 {
     const Messenger *m = c->messenger;
 
-    TCP_Connections *tcp_conn = new_tcp_connections(chat->log, chat->mem, chat->rng, m->ns, chat->mono_time, chat->self_secret_key.enc,
+    TCP_Connections *tcp_conn = new_tcp_connections(chat->log, chat->mem, chat->rng, m->ns, chat->mono_time, m->ev, chat->self_secret_key.enc,
                                 &m->options.proxy_info, c->tcp_np);
 
     if (tcp_conn == nullptr) {

@@ -10,6 +10,7 @@
 #include "../toxcore/net_crypto.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
+#include "../toxcore/os_event.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -96,6 +97,7 @@ static bool all_returned(Test_Data *test_data)
 typedef struct Forwarding_Subtox {
     Logger *log;
     Mono_Time *mono_time;
+    Ev *ev;
     Networking_Core *net;
     Net_Profile *tcp_np;
     DHT *dht;
@@ -118,12 +120,13 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     ck_assert(subtox->log != nullptr);
     logger_callback_log(subtox->log, print_debug_logger, nullptr, index);
     subtox->mono_time = mono_time_new(mem, nullptr, nullptr);
+    subtox->ev = os_event_new(mem, subtox->log);
 
     if (no_udp) {
-        subtox->net = new_networking_no_udp(subtox->log, mem, ns);
+        subtox->net = new_networking_no_udp(subtox->log, mem, ns, subtox->ev);
     } else {
         const IP ip = get_loopback();
-        subtox->net = new_networking_ex(subtox->log, mem, ns, &ip, port, port, nullptr);
+        subtox->net = new_networking_ex(subtox->log, mem, ns, subtox->ev, &ip, port, port, nullptr);
     }
 
     subtox->dht = new_dht(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, true, true);
@@ -132,7 +135,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     ck_assert(subtox->tcp_np != nullptr);
 
     const TCP_Proxy_Info inf = {{{{0}}}};
-    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, subtox->dht, &auto_test_dht_funcs, &inf, subtox->tcp_np);
+    subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->ev, subtox->net, subtox->dht, &auto_test_dht_funcs, &inf, subtox->tcp_np);
 
     subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht, subtox->net);
     ck_assert(subtox->forwarding != nullptr);
@@ -151,6 +154,7 @@ static void kill_forwarding_subtox(const Memory *mem, Forwarding_Subtox *subtox)
     netprof_kill(mem, subtox->tcp_np);
     kill_dht(subtox->dht);
     kill_networking(subtox->net);
+    ev_kill(subtox->ev);
     mono_time_free(mem, subtox->mono_time);
     logger_kill(subtox->log);
     free(subtox);

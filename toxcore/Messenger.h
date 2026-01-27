@@ -19,6 +19,7 @@
 #include "announce.h"
 #include "attributes.h"
 #include "crypto_core.h"
+#include "ev.h"
 #include "forwarding.h"
 #include "friend_connection.h"
 #include "friend_requests.h"
@@ -91,6 +92,8 @@ typedef struct Messenger_Options {
     uint8_t state_plugins_length;
 
     bool dns_enabled;
+
+    Ev *_Nonnull ev;
 } Messenger_Options;
 
 struct Receipts {
@@ -248,6 +251,7 @@ struct Messenger {
     const Memory *_Nonnull mem;
     const Random *_Nonnull rng;
     const Network *_Nonnull ns;
+    Ev *_Nonnull ev;
 
     Networking_Core *_Nonnull net;
     Net_Crypto *_Nonnull net_crypto;
