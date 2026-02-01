@@ -22023,7 +22023,7 @@ static uint32_t foreach_ip_port(const DHT *dht, const DHT_Friend *dht_friend,
 
             /* If ip is not zero and node is good. */
             if (!ip_isset(&assoc->ret_ip_port.ip)
-                    && !mono_time_is_timeout(dht->mono_time, assoc->ret_timestamp, BAD_NODE_TIMEOUT)) {
+                    || mono_time_is_timeout(dht->mono_time, assoc->ret_timestamp, BAD_NODE_TIMEOUT)) {
                 continue;
             }
 
