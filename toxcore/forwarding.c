@@ -343,8 +343,8 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *_Nullable new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
-                                     Networking_Core *net)
+Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
+                           Networking_Core *net)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;

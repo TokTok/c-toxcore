@@ -482,7 +482,7 @@ static int client_send_disconnect_notification(const Logger *_Nonnull logger, TC
  * @retval 0 if could not send packet.
  * @retval -1 on failure (connection must be killed).
  */
-static int tcp_send_ping_request(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull con)
+static int tcp_send_ping_request(const Logger *logger, TCP_Client_Connection *con)
 {
     if (con->ping_request_id == 0) {
         return 1;
@@ -505,7 +505,7 @@ static int tcp_send_ping_request(const Logger *_Nonnull logger, TCP_Client_Conne
  * @retval 0 if could not send packet.
  * @retval -1 on failure (connection must be killed).
  */
-static int tcp_send_ping_response(const Logger *_Nonnull logger, TCP_Client_Connection *_Nonnull con)
+static int tcp_send_ping_response(const Logger *logger, TCP_Client_Connection *con)
 {
     if (con->ping_response_id == 0) {
         return 1;
@@ -596,7 +596,7 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 TCP_Client_Connection *new_tcp_connection(
     const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
     const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
-    const TCP_Proxy_Info *proxy_info, Net_Profile *_Nullable net_profile)
+    const TCP_Proxy_Info *proxy_info, Net_Profile *net_profile)
 {
     assert(logger != nullptr);
     assert(mem != nullptr);

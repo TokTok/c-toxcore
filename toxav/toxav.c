@@ -1310,7 +1310,7 @@ static void callback_bwc(BWController *bwc, Tox_Friend_Number friend_number, flo
     pthread_mutex_unlock(call->av->mutex);
 }
 
-static int callback_invite(void *_Nonnull object, MSICall *_Nonnull call)
+static int callback_invite(void *object, MSICall *call)
 {
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
@@ -1349,7 +1349,7 @@ static void handle_call_error(ToxAV *toxav, MSICall *call)
     }
 }
 
-static int callback_start(void *_Nonnull object, MSICall *_Nonnull call)
+static int callback_start(void *object, MSICall *call)
 {
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
@@ -1378,7 +1378,7 @@ static int callback_start(void *_Nonnull object, MSICall *_Nonnull call)
     return 0;
 }
 
-static int callback_end(void *_Nonnull object, MSICall *_Nonnull call)
+static int callback_end(void *object, MSICall *call)
 {
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
@@ -1394,7 +1394,7 @@ static int callback_end(void *_Nonnull object, MSICall *_Nonnull call)
     return 0;
 }
 
-static int callback_error(void *_Nonnull object, MSICall *_Nonnull call)
+static int callback_error(void *object, MSICall *call)
 {
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
@@ -1405,7 +1405,7 @@ static int callback_error(void *_Nonnull object, MSICall *_Nonnull call)
     return 0;
 }
 
-static int callback_capabilities(void *_Nonnull object, MSICall *_Nonnull call)
+static int callback_capabilities(void *object, MSICall *call)
 {
     ToxAV *toxav = (ToxAV *)object;
     pthread_mutex_lock(toxav->mutex);
@@ -1447,7 +1447,7 @@ static bool video_bit_rate_invalid(uint32_t bit_rate)
     return bit_rate > 1000000;
 }
 
-static bool invoke_call_state_callback(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint32_t state)
+static bool invoke_call_state_callback(ToxAV *av, Tox_Friend_Number friend_number, uint32_t state)
 {
     if (av->scb != nullptr) {
         av->scb(av, friend_number, state, av->scb_user_data);
@@ -1458,7 +1458,7 @@ static bool invoke_call_state_callback(ToxAV *_Nonnull av, Tox_Friend_Number fri
     return true;
 }
 
-static ToxAVCall *_Nullable call_new(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Err_Call *_Nullable error)
+static ToxAVCall *call_new(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Err_Call *error)
 {
     /* Assumes mutex locked */
     Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
@@ -1553,7 +1553,7 @@ RETURN:
     return call;
 }
 
-static ToxAVCall *_Nullable call_remove(ToxAVCall *_Nullable call)
+static ToxAVCall *call_remove(ToxAVCall *call)
 {
     if (call == nullptr) {
         return nullptr;
@@ -1603,7 +1603,7 @@ CLEAR:
     return nullptr;
 }
 
-static bool call_prepare_transmission(ToxAVCall *_Nullable call)
+static bool call_prepare_transmission(ToxAVCall *call)
 {
     /* Assumes mutex locked */
 
@@ -1694,7 +1694,7 @@ FAILURE_2:
     return false;
 }
 
-static void call_kill_transmission(ToxAVCall *_Nullable call)
+static void call_kill_transmission(ToxAVCall *call)
 {
     if (call == nullptr || !call->active) {
         return;

@@ -12,7 +12,7 @@
 #include "ccompat.h"
 #include "crypto_core.h"
 
-bool pack_extended_public_key(const Extended_Public_Key *_Nonnull key, Bin_Pack *_Nonnull bp)
+bool pack_extended_public_key(const Extended_Public_Key *key, Bin_Pack *bp)
 {
     uint8_t ext_key[EXT_PUBLIC_KEY_SIZE];
     static_assert(sizeof(ext_key) == sizeof(key->enc) + sizeof(key->sig),
@@ -23,7 +23,7 @@ bool pack_extended_public_key(const Extended_Public_Key *_Nonnull key, Bin_Pack 
     return bin_pack_bin(bp, ext_key, sizeof(ext_key));
 }
 
-bool pack_extended_secret_key(const Extended_Secret_Key *_Nonnull key, Bin_Pack *_Nonnull bp)
+bool pack_extended_secret_key(const Extended_Secret_Key *key, Bin_Pack *bp)
 {
     uint8_t ext_key[EXT_SECRET_KEY_SIZE];
     static_assert(sizeof(ext_key) == sizeof(key->enc) + sizeof(key->sig),
@@ -36,7 +36,7 @@ bool pack_extended_secret_key(const Extended_Secret_Key *_Nonnull key, Bin_Pack 
     return result;
 }
 
-bool unpack_extended_public_key(Extended_Public_Key *_Nonnull key, Bin_Unpack *_Nonnull bu)
+bool unpack_extended_public_key(Extended_Public_Key *key, Bin_Unpack *bu)
 {
     uint8_t ext_key[EXT_PUBLIC_KEY_SIZE];
 
@@ -50,7 +50,7 @@ bool unpack_extended_public_key(Extended_Public_Key *_Nonnull key, Bin_Unpack *_
     return true;
 }
 
-bool unpack_extended_secret_key(Extended_Secret_Key *_Nonnull key, Bin_Unpack *_Nonnull bu)
+bool unpack_extended_secret_key(Extended_Secret_Key *key, Bin_Unpack *bu)
 {
     uint8_t ext_key[EXT_SECRET_KEY_SIZE];
 
