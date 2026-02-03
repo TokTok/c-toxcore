@@ -24,28 +24,28 @@
 #include "network.h"
 #include "util.h"
 
-static int compare_signatures(const void *a, const void *b)
+static int compare_signatures(const void *_Nonnull a, const void *_Nonnull b)
 {
     const uint8_t *sig_a = (const uint8_t *)a;
     const uint8_t *sig_b = (const uint8_t *)b;
     return memcmp(sig_a, sig_b, SIGNATURE_SIZE);
 }
 
-static int compare_sig_pks(const void *a, const void *b)
+static int compare_sig_pks(const void *_Nonnull a, const void *_Nonnull b)
 {
     const uint8_t *pk_a = (const uint8_t *)a;
     const uint8_t *pk_b = (const uint8_t *)b;
     return memcmp(pk_a, pk_b, SIG_PUBLIC_KEY_SIZE);
 }
 
-static int compare_sanctions(const void *a, const void *b)
+static int compare_sanctions(const void *_Nonnull a, const void *_Nonnull b)
 {
     const Mod_Sanction *sa = (const Mod_Sanction *)a;
     const Mod_Sanction *sb = (const Mod_Sanction *)b;
     return memcmp(sa->signature, sb->signature, SIGNATURE_SIZE);
 }
 
-static int compare_mod_pointers(const void *a, const void *b)
+static int compare_mod_pointers(const void *_Nonnull a, const void *_Nonnull b)
 {
     const uint8_t *const *mod_a = (const uint8_t *const *)a;
     const uint8_t *const *mod_b = (const uint8_t *const *)b;
@@ -656,7 +656,7 @@ static bool sanctions_apply_new(Moderation *_Nonnull moderation, Mod_Sanction *_
 /** @brief Returns a copy of the sanctions list. The caller is responsible for freeing the
  * memory returned by this function.
  */
-static Mod_Sanction *sanctions_list_copy(const Memory *_Nonnull mem, const Mod_Sanction *_Nonnull sanctions, uint16_t num_sanctions)
+static Mod_Sanction *_Nullable sanctions_list_copy(const Memory *_Nonnull mem, const Mod_Sanction *_Nonnull sanctions, uint16_t num_sanctions)
 {
     Mod_Sanction *copy = (Mod_Sanction *)mem_valloc(mem, num_sanctions, sizeof(Mod_Sanction));
 
@@ -833,7 +833,7 @@ bool sanctions_list_add_entry(Moderation *moderation, const Mod_Sanction *sancti
  *
  * Returns true on success.
  */
-static bool sanctions_list_sign_entry(const Moderation *moderation, Mod_Sanction *sanction)
+static bool sanctions_list_sign_entry(const Moderation *_Nonnull moderation, Mod_Sanction *_Nonnull sanction)
 {
     uint8_t packed_data[MOD_SANCTION_PACKED_SIZE];
     const int packed_len = sanctions_list_pack(packed_data, sizeof(packed_data), sanction, 1, nullptr);

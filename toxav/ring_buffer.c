@@ -13,7 +13,7 @@ struct RingBuffer {
     uint16_t size; /* Max size */
     uint16_t start;
     uint16_t end;
-    void   **data;
+    void *_Nullable *_Nonnull data;
 };
 
 bool rb_full(const RingBuffer *b)

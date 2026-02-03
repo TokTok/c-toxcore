@@ -161,7 +161,7 @@ void tox_event_friend_message_free(Tox_Event_Friend_Message *friend_message, con
     mem_delete(mem, friend_message);
 }
 
-static Tox_Event_Friend_Message *tox_events_add_friend_message(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Friend_Message *_Nullable tox_events_add_friend_message(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Friend_Message *const friend_message = tox_event_friend_message_new(mem);
 
@@ -194,7 +194,7 @@ bool tox_event_friend_message_unpack(
     return tox_event_friend_message_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Message *tox_event_friend_message_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Friend_Message *_Nullable tox_event_friend_message_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -217,11 +217,11 @@ static Tox_Event_Friend_Message *tox_event_friend_message_alloc(Tox_Events_State
  *****************************************************/
 
 void tox_events_handle_friend_message(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t friend_number,
     Tox_Message_Type type,
-    const uint8_t *message, size_t length,
-    void *user_data)
+    const uint8_t *_Nullable message, size_t length,
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Friend_Message *friend_message = tox_event_friend_message_alloc(state);

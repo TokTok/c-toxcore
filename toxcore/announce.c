@@ -113,12 +113,12 @@ uint16_t announce_get_bucketnum(const uint8_t *base, const uint8_t *pk)
            truncate_pk_at_index(pk, index + 1, ANNOUNCE_BUCKET_PREFIX_LENGTH);
 }
 
-static Announce_Entry *bucket_of_key(Announcements *_Nonnull announce, const uint8_t *_Nonnull pk)
+static Announce_Entry *_Nonnull bucket_of_key(Announcements *_Nonnull announce, const uint8_t *_Nonnull pk)
 {
     return &announce->entries[announce_get_bucketnum(announce->public_key, pk) * ANNOUNCE_BUCKET_SIZE];
 }
 
-static Announce_Entry *get_stored(Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
+static Announce_Entry *_Nullable get_stored(Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
 {
     Announce_Entry *const bucket = bucket_of_key(announce, data_public_key);
 
@@ -135,12 +135,12 @@ static Announce_Entry *get_stored(Announcements *_Nonnull announce, const uint8_
     return nullptr;
 }
 
-static const Announce_Entry *bucket_of_key_const(const Announcements *_Nonnull announce, const uint8_t *_Nonnull pk)
+static const Announce_Entry *_Nonnull bucket_of_key_const(const Announcements *_Nonnull announce, const uint8_t *_Nonnull pk)
 {
     return &announce->entries[announce_get_bucketnum(announce->public_key, pk) * ANNOUNCE_BUCKET_SIZE];
 }
 
-static const Announce_Entry *get_stored_const(const Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
+static const Announce_Entry *_Nullable get_stored_const(const Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
 {
     const Announce_Entry *const bucket = bucket_of_key_const(announce, data_public_key);
 
@@ -179,7 +179,7 @@ bool announce_on_stored(const Announcements *announce, const uint8_t *data_publi
  * of greatest 2-adic distance greater than that of the key bucket if one
  * exists, else nullptr.
  */
-static Announce_Entry *find_entry_slot(Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
+static Announce_Entry *_Nullable find_entry_slot(Announcements *_Nonnull announce, const uint8_t *_Nonnull data_public_key)
 {
     Announce_Entry *const bucket = bucket_of_key(announce, data_public_key);
 

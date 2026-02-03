@@ -28,8 +28,8 @@ static_assert(GCA_ANNOUNCE_MAX_SIZE <= ONION_MAX_EXTRA_DATA_SIZE,
               "GC_Announce does not fit into the onion packet extra data");
 
 static pack_extra_data_cb pack_group_announces;
-static int pack_group_announces(void *_Nonnull object, const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, uint8_t num_nodes,
-                                uint8_t *_Nonnull plain, uint16_t plain_size, uint8_t *_Nonnull response, uint16_t response_size, uint16_t offset)
+static int pack_group_announces(void *object, const Logger *logger, const Memory *mem, const Mono_Time *mono_time, uint8_t num_nodes,
+                                uint8_t *plain, uint16_t plain_size, uint8_t *response, uint16_t response_size, uint16_t offset)
 {
     GC_Announces_List *gc_announces_list = (GC_Announces_List *)object;
     GC_Public_Announce public_announce;

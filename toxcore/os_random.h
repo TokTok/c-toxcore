@@ -17,7 +17,7 @@ extern const Random os_random_obj;
  *
  * Uses libsodium's CSPRNG (on Linux, `/dev/urandom`).
  */
-const Random *os_random(void);
+const Random *_Nullable os_random(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

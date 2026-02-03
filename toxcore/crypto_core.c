@@ -89,7 +89,7 @@ const uint8_t *get_chat_id(const Extended_Public_Key *key)
 }
 
 #if !defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-static uint8_t *crypto_malloc(const Memory *_Nonnull mem, size_t bytes)
+static uint8_t *_Nullable crypto_malloc(const Memory *_Nonnull mem, size_t bytes)
 {
     uint8_t *ptr = (uint8_t *)mem_balloc(mem, bytes);
 

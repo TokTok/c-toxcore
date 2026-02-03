@@ -113,7 +113,7 @@ void tox_event_group_topic_lock_free(Tox_Event_Group_Topic_Lock *group_topic_loc
     mem_delete(mem, group_topic_lock);
 }
 
-static Tox_Event_Group_Topic_Lock *tox_events_add_group_topic_lock(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Group_Topic_Lock *_Nullable tox_events_add_group_topic_lock(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Group_Topic_Lock *const group_topic_lock = tox_event_group_topic_lock_new(mem);
 
@@ -146,7 +146,7 @@ bool tox_event_group_topic_lock_unpack(
     return tox_event_group_topic_lock_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Topic_Lock *tox_event_group_topic_lock_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Group_Topic_Lock *_Nullable tox_event_group_topic_lock_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -169,10 +169,10 @@ static Tox_Event_Group_Topic_Lock *tox_event_group_topic_lock_alloc(Tox_Events_S
  *****************************************************/
 
 void tox_events_handle_group_topic_lock(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t group_number,
     Tox_Group_Topic_Lock topic_lock,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Group_Topic_Lock *group_topic_lock = tox_event_group_topic_lock_alloc(state);

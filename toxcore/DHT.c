@@ -912,7 +912,7 @@ static bool client_data_less_handler(const void *_Nonnull object, const void *_N
     return client_data_cmp(cmp, entry1, entry2) < 0;
 }
 
-static const void *client_data_get_handler(const void *_Nonnull arr, uint32_t index)
+static const void *_Nonnull client_data_get_handler(const void *_Nonnull arr, uint32_t index)
 {
     const Client_data *entries = (const Client_data *)arr;
     return &entries[index];
@@ -925,13 +925,13 @@ static void client_data_set_handler(void *_Nonnull arr, uint32_t index, const vo
     entries[index] = *entry;
 }
 
-static void *client_data_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
+static void *_Nonnull client_data_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
 {
     Client_data *entries = (Client_data *)arr;
     return &entries[index];
 }
 
-static void *client_data_alloc_handler(const void *_Nonnull object, uint32_t size)
+static void *_Nullable client_data_alloc_handler(const void *_Nonnull object, uint32_t size)
 {
     const Client_data_Cmp *cmp = (const Client_data_Cmp *)object;
     Client_data *tmp = (Client_data *)mem_valloc(cmp->mem, size, sizeof(Client_data));

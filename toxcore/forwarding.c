@@ -27,14 +27,14 @@ struct Forwarding {
 
     uint8_t hmac_key[CRYPTO_HMAC_KEY_SIZE];
 
-    forward_reply_cb *forward_reply_callback;
-    void *forward_reply_callback_object;
+    forward_reply_cb *_Nullable forward_reply_callback;
+    void *_Nullable forward_reply_callback_object;
 
-    forwarded_request_cb *forwarded_request_callback;
-    void *forwarded_request_callback_object;
+    forwarded_request_cb *_Nullable forwarded_request_callback;
+    void *_Nullable forwarded_request_callback_object;
 
-    forwarded_response_cb *forwarded_response_callback;
-    void *forwarded_response_callback_object;
+    forwarded_response_cb *_Nullable forwarded_response_callback;
+    void *_Nullable forwarded_response_callback_object;
 };
 
 #define SENDBACK_TIMEOUT 3600
@@ -343,8 +343,8 @@ void set_callback_forward_reply(Forwarding *forwarding, forward_reply_cb *functi
     forwarding->forward_reply_callback_object = object;
 }
 
-Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
-                           Networking_Core *net)
+Forwarding *new_forwarding(const Logger *log, const Memory *mem, const Random *rng,
+                           const Mono_Time *mono_time, DHT *dht, Networking_Core *net)
 {
     if (log == nullptr || mono_time == nullptr || dht == nullptr) {
         return nullptr;

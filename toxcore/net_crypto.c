@@ -137,7 +137,7 @@ struct Net_Crypto {
     const Random *_Nonnull rng;
     Mono_Time *_Nonnull mono_time;
     const Network *_Nonnull ns;
-    Networking_Core *net;
+    Networking_Core *_Nonnull net;
 
     void *_Nonnull dht;
     const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs;
@@ -592,7 +592,7 @@ static bool handle_crypto_handshake(const Net_Crypto *_Nonnull c, uint8_t *_Nonn
     return true;
 }
 
-static Crypto_Connection *get_crypto_connection(const Net_Crypto *_Nonnull c, int crypt_connection_id)
+static Crypto_Connection *_Nullable get_crypto_connection(const Net_Crypto *_Nonnull c, int crypt_connection_id)
 {
     if (!crypt_connection_id_is_valid(c, crypt_connection_id)) {
         return nullptr;

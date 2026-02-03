@@ -33,15 +33,15 @@ typedef struct BWCCycle {
 
 typedef struct BWCRcvPkt {
     uint32_t packet_length_array[BWC_AVG_PKT_COUNT];
-    RingBuffer *rb;
+    RingBuffer *_Nonnull rb;
 } BWCRcvPkt;
 
 struct BWController {
-    bwc_loss_report_cb *mcb;
-    void *mcb_user_data;
-    bwc_send_packet_cb *send_packet;
-    void *send_packet_user_data;
-    const Logger *log;
+    bwc_loss_report_cb *_Nullable mcb;
+    void *_Nullable mcb_user_data;
+    bwc_send_packet_cb *_Nullable send_packet;
+    void *_Nullable send_packet_user_data;
+    const Logger *_Nonnull log;
     uint32_t friend_number;
 
     BWCCycle cycle;
@@ -49,7 +49,7 @@ struct BWController {
     BWCRcvPkt rcvpkt; /* To calculate average received packet (this means split parts, not the full message!) */
 
     uint32_t packet_loss_counted_cycles;
-    Mono_Time *bwc_mono_time;
+    Mono_Time *_Nonnull bwc_mono_time;
     bool bwc_receive_active; /* if this is set to false then incoming bwc packets will not be processed by bwc_handle_data() */
 };
 
