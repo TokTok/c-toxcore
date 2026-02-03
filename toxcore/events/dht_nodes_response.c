@@ -161,7 +161,7 @@ void tox_event_dht_nodes_response_free(Tox_Event_Dht_Nodes_Response *dht_nodes_r
     mem_delete(mem, dht_nodes_response);
 }
 
-static Tox_Event_Dht_Nodes_Response *tox_events_add_dht_nodes_response(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Dht_Nodes_Response *_Nullable tox_events_add_dht_nodes_response(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Dht_Nodes_Response *const dht_nodes_response = tox_event_dht_nodes_response_new(mem);
 
@@ -194,7 +194,7 @@ bool tox_event_dht_nodes_response_unpack(
     return tox_event_dht_nodes_response_unpack_into(*event, bu);
 }
 
-static Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Dht_Nodes_Response *_Nullable tox_event_dht_nodes_response_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -217,11 +217,11 @@ static Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_alloc(Tox_Even
  *****************************************************/
 
 void tox_events_handle_dht_nodes_response(
-    Tox *tox,
+    Tox * tox,
     const uint8_t *public_key,
     const char *ip, uint32_t ip_length,
     uint16_t port,
-    void *user_data)
+    void * user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_alloc(state);

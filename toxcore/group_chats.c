@@ -235,7 +235,7 @@ bool gc_peer_number_is_valid(const GC_Chat *chat, int peer_number)
     return peer_number >= 0 && peer_number < (int)chat->numpeers;
 }
 
-static GC_Peer *get_gc_peer(const GC_Chat *_Nonnull chat, int peer_number)
+static GC_Peer *_Nullable get_gc_peer(const GC_Chat *_Nonnull chat, int peer_number)
 {
     if (!gc_peer_number_is_valid(chat, peer_number)) {
         return nullptr;
@@ -550,7 +550,7 @@ static bool validate_password(const GC_Chat *_Nonnull chat, const uint8_t *_Nonn
  *
  * `id` must be at least ENC_PUBLIC_KEY_SIZE bytes in length.
  */
-static GC_Chat *get_chat_by_id(const GC_Session *_Nonnull c, const uint8_t *_Nonnull id)
+static GC_Chat *_Nullable get_chat_by_id(const GC_Session *_Nonnull c, const uint8_t *_Nonnull id)
 {
     if (c == nullptr) {
         return nullptr;
@@ -669,7 +669,7 @@ static bool gc_get_enc_pk_from_sig_pk(const GC_Chat *_Nonnull chat, uint8_t *_No
     return false;
 }
 
-static GC_Connection *random_gc_connection(const GC_Chat *_Nonnull chat)
+static GC_Connection *_Nullable random_gc_connection(const GC_Chat *_Nonnull chat)
 {
     if (chat->numpeers <= 1) {
         return nullptr;

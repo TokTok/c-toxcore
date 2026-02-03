@@ -35,7 +35,7 @@ static uint32_t data_1(uint16_t buflen, const uint8_t *_Nonnull buffer)
     return data;
 }
 
-static const char *net_packet_type_name(Net_Packet_Type type)
+static const char *_Nonnull net_packet_type_name(Net_Packet_Type type)
 {
     switch (type) {
         case NET_PACKET_PING_REQUEST:

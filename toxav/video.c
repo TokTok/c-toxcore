@@ -4,6 +4,8 @@
  */
 #include "video.h"
 
+#include "../toxcore/attributes.h"
+
 #include <vpx/vpx_decoder.h>
 #include <vpx/vpx_encoder.h>
 #include <vpx/vpx_image.h>
@@ -33,7 +35,7 @@ struct VCSession {
 
     /* decoding */
     vpx_codec_ctx_t decoder[1];
-    struct RingBuffer *vbuf_raw; /* Un-decoded data */
+    struct RingBuffer *_Nonnull vbuf_raw; /* Un-decoded data */
 
     uint64_t linfts; /* Last received frame time stamp */
     uint32_t lcfd; /* Last calculated frame duration for incoming video payload */
@@ -41,12 +43,12 @@ struct VCSession {
     uint32_t friend_number;
 
     /* Video frame receive callback */
-    vc_video_receive_frame_cb *vcb;
-    void *user_data;
+    vc_video_receive_frame_cb *_Nullable vcb;
+    void *_Nullable user_data;
 
-    pthread_mutex_t *queue_mutex;
-    const Logger *log;
-    const Memory *mem;
+    pthread_mutex_t *_Nonnull queue_mutex;
+    const Logger *_Nonnull log;
+    const Memory *_Nonnull mem;
 
     vpx_codec_iter_t iter;
 };

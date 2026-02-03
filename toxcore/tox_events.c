@@ -74,7 +74,7 @@ uint32_t tox_events_get_size(const Tox_Events *events)
     return events == nullptr ? 0 : events->events_size;
 }
 
-static const Tox_Event *tox_events_get_events(const Tox_Events *_Nullable events)
+static const Tox_Event *_Nullable tox_events_get_events(const Tox_Events *_Nullable events)
 {
     return events == nullptr ? nullptr : events->events;
 }

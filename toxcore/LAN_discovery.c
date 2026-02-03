@@ -45,7 +45,7 @@
 #define MAX_INTERFACES 16
 
 struct Broadcast_Info {
-    const Memory *mem;
+    const Memory *_Nonnull mem;
 
     uint32_t count;
     IP ips[MAX_INTERFACES];
@@ -53,7 +53,7 @@ struct Broadcast_Info {
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
 
-static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
+static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
@@ -125,7 +125,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Ne
 
 static bool ip4_is_local(const IP4 *_Nonnull ip4);
 
-static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
+static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 
@@ -219,7 +219,7 @@ static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Ne
 
 #else // TODO(irungentoo): Other platforms?
 
-static Broadcast_Info *fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
+static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem, const Network *_Nonnull ns)
 {
     Broadcast_Info *broadcast = (Broadcast_Info *)mem_alloc(mem, sizeof(Broadcast_Info));
 

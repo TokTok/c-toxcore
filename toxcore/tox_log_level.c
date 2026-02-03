@@ -4,7 +4,9 @@
  */
 #include "tox_log_level.h"
 
-const char *tox_log_level_to_string(Tox_Log_Level value)
+#include "attributes.h"
+
+const char *_Nonnull tox_log_level_to_string(Tox_Log_Level value)
 {
     switch (value) {
         case TOX_LOG_LEVEL_TRACE:

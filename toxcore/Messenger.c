@@ -1723,7 +1723,7 @@ static void break_files(const Messenger *m, int32_t friendnumber)
     }
 }
 
-static struct File_Transfers *get_file_transfer(bool outbound, uint8_t filenumber, uint32_t *_Nonnull real_filenumber, Friend *_Nonnull sender)
+static struct File_Transfers *_Nullable get_file_transfer(bool outbound, uint8_t filenumber, uint32_t *_Nonnull real_filenumber, Friend *_Nonnull sender)
 {
     struct File_Transfers *ft;
 
@@ -2426,7 +2426,7 @@ static void m_connection_status_callback(Messenger *_Nonnull m, void *_Nullable 
 
 #define IDSTRING_LEN (CRYPTO_PUBLIC_KEY_SIZE * 2 + 1)
 /** id_str should be of length at least IDSTRING_LEN */
-static char *id_to_string(const uint8_t *_Nonnull pk, char *_Nonnull id_str, size_t length)
+static char *_Nonnull id_to_string(const uint8_t *_Nonnull pk, char *_Nonnull id_str, size_t length)
 {
     if (length < IDSTRING_LEN) {
         snprintf(id_str, length, "Bad buf length");
@@ -2741,7 +2741,7 @@ static uint32_t friend_size(void)
     return data;
 }
 
-static uint8_t *friend_save(const struct Saved_Friend *_Nonnull temp, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull friend_save(const struct Saved_Friend *_Nonnull temp, uint8_t *_Nonnull data)
 {
 #define VALUE_MEMBER(data, name)           \
     do {                                   \
@@ -2777,7 +2777,7 @@ static uint8_t *friend_save(const struct Saved_Friend *_Nonnull temp, uint8_t *_
     return data;
 }
 
-static const uint8_t *friend_load(struct Saved_Friend *_Nonnull temp, const uint8_t *_Nonnull data)
+static const uint8_t *_Nonnull friend_load(struct Saved_Friend *_Nonnull temp, const uint8_t *_Nonnull data)
 {
 #define VALUE_MEMBER(data, name)           \
     do {                                   \
@@ -2915,7 +2915,7 @@ static State_Load_Status load_nospam_keys(Messenger *_Nonnull m, const uint8_t *
     return STATE_LOAD_STATUS_CONTINUE;
 }
 
-static uint8_t *save_nospam_keys(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_nospam_keys(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_NOSPAMKEYS);
     static_assert(sizeof(get_nospam(m->fr)) == sizeof(uint32_t), "nospam doesn't fit in a 32 bit int");
@@ -2933,7 +2933,7 @@ static uint32_t m_dht_size(const Messenger *_Nonnull m)
     return dht_size(m->dht);
 }
 
-static uint8_t *save_dht(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_dht(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_DHT);
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_DHT);
@@ -2954,7 +2954,7 @@ static uint32_t saved_friendslist_size(const Messenger *_Nonnull m)
     return count_friendlist(m) * friend_size();
 }
 
-static uint8_t *friends_list_save(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull friends_list_save(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_FRIENDS);
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_FRIENDS);
@@ -3076,7 +3076,7 @@ static uint32_t saved_groups_size(const Messenger *_Nonnull m)
     return bin_pack_obj_size(pack_groupchats_handler, session, m->log);
 }
 
-static uint8_t *groups_save(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull groups_save(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const GC_Session *c = m->group_handler;
 
@@ -3149,7 +3149,7 @@ static uint32_t name_size(const Messenger *_Nonnull m)
     return m->name_length;
 }
 
-static uint8_t *save_name(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_name(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_NAME);
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_NAME);
@@ -3173,7 +3173,7 @@ static uint32_t status_message_size(const Messenger *_Nonnull m)
     return m->statusmessage_length;
 }
 
-static uint8_t *save_status_message(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_status_message(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_STATUSMESSAGE);
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_STATUSMESSAGE);
@@ -3197,7 +3197,7 @@ static uint32_t status_size(const Messenger *_Nonnull m)
     return 1;
 }
 
-static uint8_t *save_status(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_status(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     const uint32_t len = m_plugin_size(m, STATE_TYPE_STATUS);
     data = state_write_section_header(data, STATE_COOKIE_TYPE, len, STATE_TYPE_STATUS);
@@ -3221,7 +3221,7 @@ static uint32_t tcp_relay_size(const Messenger *_Nonnull m)
     return NUM_SAVED_TCP_RELAYS * packed_node_size(net_family_tcp_ipv6());
 }
 
-static uint8_t *save_tcp_relays(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_tcp_relays(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     Node_format relays[NUM_SAVED_TCP_RELAYS] = {{{0}}};
     uint8_t *temp_data = data;
@@ -3268,7 +3268,7 @@ static uint32_t path_node_size(const Messenger *_Nonnull m)
     return NUM_SAVED_PATH_NODES * packed_node_size(net_family_tcp_ipv6());
 }
 
-static uint8_t *save_path_nodes(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_path_nodes(const Messenger *_Nonnull m, uint8_t *_Nonnull data)
 {
     Node_format nodes[NUM_SAVED_PATH_NODES] = {{{0}}};
     uint8_t *temp_data = data;
@@ -3386,7 +3386,7 @@ uint32_t copy_friendlist(const Messenger *m, uint32_t *out_list, uint32_t list_s
 
 static fr_friend_request_cb m_handle_friend_request;
 static void m_handle_friend_request(
-    void *_Nonnull object, const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull message, size_t length, void *_Nullable user_data)
+    void *object, const uint8_t *public_key, const uint8_t *message, size_t length, void *user_data)
 {
     Messenger *m = (Messenger *)object;
     assert(m != nullptr);

@@ -11,6 +11,7 @@ exports_files(
 cc_library(
     name = "public_api",
     hdrs = ["toxav.h"],
+    deps = ["//c-toxcore/toxcore:attributes"],
 )
 
 cc_library(
@@ -129,6 +130,7 @@ cc_library(
     deps = [
         ":ring_buffer",
         ":rtp",
+        "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
@@ -179,6 +181,7 @@ cc_library(
     deps = [
         ":ring_buffer",
         ":rtp",
+        "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:logger",
         "//c-toxcore/toxcore:mono_time",
@@ -295,6 +298,7 @@ cc_library(
         ":rtp",
         ":video",
         "//c-toxcore/toxcore:Messenger",
+        "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:group",
         "//c-toxcore/toxcore:logger",

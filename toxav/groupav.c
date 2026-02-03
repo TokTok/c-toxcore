@@ -19,11 +19,11 @@
 typedef struct Group_Audio_Packet {
     uint16_t sequnum;
     uint16_t length;
-    uint8_t *data;
+    uint8_t *_Nonnull data;
 } Group_Audio_Packet;
 
 typedef struct Group_JitterBuffer {
-    Group_Audio_Packet **queue;
+    Group_Audio_Packet *_Nullable *_Nonnull queue;
     uint32_t size;
     uint32_t capacity;
     uint16_t bottom;
@@ -161,10 +161,10 @@ static Group_Audio_Packet *_Nullable dequeue(Group_JitterBuffer *_Nonnull q, int
 }
 
 typedef struct Group_AV {
-    const Logger *log;
-    Tox *tox;
-    Group_Chats *g_c;
-    OpusEncoder *audio_encoder;
+    const Logger *_Nonnull log;
+    Tox *_Nonnull tox;
+    Group_Chats *_Nonnull g_c;
+    OpusEncoder *_Nullable audio_encoder;
 
     unsigned int audio_channels;
     unsigned int audio_sample_rate;
@@ -172,15 +172,15 @@ typedef struct Group_AV {
 
     uint16_t audio_sequnum;
 
-    audio_data_cb *audio_data;
-    void *userdata;
+    audio_data_cb *_Nullable audio_data;
+    void *_Nullable userdata;
 } Group_AV;
 
 typedef struct Group_Peer_AV {
-    const Mono_Time *mono_time;
-    Group_JitterBuffer *buffer;
+    const Mono_Time *_Nonnull mono_time;
+    Group_JitterBuffer *_Nonnull buffer;
 
-    OpusDecoder *audio_decoder;
+    OpusDecoder *_Nullable audio_decoder;
     int decoder_channels;
     unsigned int last_packet_samples;
 } Group_Peer_AV;

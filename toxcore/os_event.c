@@ -36,7 +36,7 @@
 #define IOCTL_AFD_POLL 0x00012024
 
 typedef struct AFD_Poll_Handle_Info {
-    void *handle;
+    void *_Nullable handle;
     unsigned long events;
     uint32_t status;
 } AFD_Poll_Handle_Info;
@@ -63,13 +63,13 @@ typedef enum Afd_Poll {
 typedef struct OS_Ev_Registration {
     Socket sock;
     Ev_Events events;
-    void *data;
+    void *_Nullable data;
 } OS_Ev_Registration;
 
 typedef struct OS_Ev {
-    const Memory *mem;
-    const Logger *log;
-    OS_Ev_Registration **regs;
+    const Memory *_Nonnull mem;
+    const Logger *_Nonnull log;
+    OS_Ev_Registration **_Nonnull regs;
     uint32_t regs_count;
     uint32_t regs_capacity;
 
@@ -87,7 +87,8 @@ typedef struct OS_Ev {
 #endif /* EV_USE_EPOLL */
 } OS_Ev;
 
-static OS_Ev_Registration *os_ev_prepare_add(OS_Ev *os_ev, Socket sock, Ev_Events events, void *data)
+static OS_Ev_Registration *_Nullable os_ev_prepare_add(OS_Ev *_Nonnull os_ev, Socket sock, Ev_Events events,
+                                                       void *_Nullable data)
 {
     for (uint32_t i = 0; i < os_ev->regs_count; ++i) {
         if (net_socket_to_native(os_ev->regs[i]->sock) == net_socket_to_native(sock)) {
@@ -166,7 +167,7 @@ static Ev_Events epoll_to_events(uint32_t e)
     return events;
 }
 
-static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_add(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -192,7 +193,7 @@ static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
     return true;
 }
 
-static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_mod(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -221,7 +222,7 @@ static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
     return false;
 }
 
-static bool os_ev_del(void *self, Socket sock)
+static bool os_ev_del(void *_Nonnull self, Socket sock)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -244,7 +245,7 @@ static bool os_ev_del(void *self, Socket sock)
     return false;
 }
 
-static int32_t os_ev_run(void *self, Ev_Result *results, uint32_t max_results, int32_t timeout_ms)
+static int32_t os_ev_run(void *_Nonnull self, Ev_Result *_Nonnull results, uint32_t max_results, int32_t timeout_ms)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -328,7 +329,7 @@ static Ev_Events afd_to_events(uint32_t e)
     return events;
 }
 
-static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_add(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -349,7 +350,7 @@ static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
     return true;
 }
 
-static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_mod(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -371,7 +372,7 @@ static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
     return false;
 }
 
-static bool os_ev_del(void *self, Socket sock)
+static bool os_ev_del(void *_Nonnull self, Socket sock)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -394,7 +395,7 @@ static bool os_ev_del(void *self, Socket sock)
     return false;
 }
 
-static int32_t os_ev_run(void *self, Ev_Result *results, uint32_t max_results, int32_t timeout_ms)
+static int32_t os_ev_run(void *_Nonnull self, Ev_Result *_Nonnull results, uint32_t max_results, int32_t timeout_ms)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
     if (os_ev->regs_count == 0) {
@@ -448,7 +449,7 @@ static int32_t os_ev_run(void *self, Ev_Result *results, uint32_t max_results, i
 
 #else  // POLL
 
-static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_add(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -464,7 +465,7 @@ static bool os_ev_add(void *self, Socket sock, Ev_Events events, void *data)
     return true;
 }
 
-static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
+static bool os_ev_mod(void *_Nonnull self, Socket sock, Ev_Events events, void *_Nullable data)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -482,7 +483,7 @@ static bool os_ev_mod(void *self, Socket sock, Ev_Events events, void *data)
     return false;
 }
 
-static bool os_ev_del(void *self, Socket sock)
+static bool os_ev_del(void *_Nonnull self, Socket sock)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -501,7 +502,7 @@ static bool os_ev_del(void *self, Socket sock)
     return false;
 }
 
-static int32_t os_ev_run(void *self, Ev_Result *results, uint32_t max_results, int32_t timeout_ms)
+static int32_t os_ev_run(void *_Nonnull self, Ev_Result *_Nonnull results, uint32_t max_results, int32_t timeout_ms)
 {
     OS_Ev *os_ev = (OS_Ev *)self;
 
@@ -579,7 +580,7 @@ static int32_t os_ev_run(void *self, Ev_Result *results, uint32_t max_results, i
 
 #endif /* EV_USE_EPOLL */
 
-static void os_ev_kill(Ev *ev)
+static void os_ev_kill(Ev *_Nullable ev)
 {
     if (ev == nullptr) {
         return;
