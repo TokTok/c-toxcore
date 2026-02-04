@@ -9,7 +9,7 @@
 #define PEER_NICK_LEN (sizeof(PEER_NICK) - 1)
 
 typedef struct {
-    uint32_t group_number;
+    Tox_Group_Number group_number;
     uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
 } GroupState;
 
@@ -26,6 +26,19 @@ static void script(ToxNode *self, void *ctx)
     Tox_Err_Group_State_Query err_query;
     ck_assert(tox_group_get_chat_id(tox, state->group_number, state->chat_id, &err_query));
     ck_assert_int_eq(err_query, TOX_ERR_GROUP_STATE_QUERY_OK);
+
+    {
+        // Test tox_group_get_chatlist
+        uint32_t num_groups = tox_group_get_number_groups(tox);
+        ck_assert_uint_eq(num_groups, 1);
+
+        Tox_Group_Number chatlist[1];
+        tox_group_get_chatlist(tox, chatlist);
+        ck_assert_uint_eq(chatlist[0], state->group_number);
+
+        // Test with NULL (should not crash)
+        tox_group_get_chatlist(tox, NULL);
+    }
 
     {
         // Test tox_group_by_id
@@ -55,6 +68,17 @@ static void script(ToxNode *self, void *ctx)
     ck_assert_int_eq(err_query, TOX_ERR_GROUP_STATE_QUERY_OK);
 
     {
+        uint32_t num_groups = tox_group_get_number_groups(tox);
+        ck_assert_uint_eq(num_groups, 2);
+
+        Tox_Group_Number chatlist[2];
+        tox_group_get_chatlist(tox, chatlist);
+        // Groups are added in order of their index in the array
+        ck_assert_uint_eq(chatlist[0], state->group_number);
+        ck_assert_uint_eq(chatlist[1], group2);
+    }
+
+    {
         Tox_Err_Group_By_Id err_by_id;
         ck_assert_uint_eq(tox_group_by_id(tox, state->chat_id, &err_by_id), state->group_number);
         ck_assert_int_eq(err_by_id, TOX_ERR_GROUP_BY_ID_OK);
@@ -69,6 +93,15 @@ static void script(ToxNode *self, void *ctx)
 
     // Yield to allow the group to be actually deleted
     tox_scenario_yield(self);
+
+    {
+        uint32_t num_groups = tox_group_get_number_groups(tox);
+        ck_assert_uint_eq(num_groups, 1);
+
+        Tox_Group_Number chatlist[1];
+        tox_group_get_chatlist(tox, chatlist);
+        ck_assert_uint_eq(chatlist[0], group2);
+    }
 
     {
         // After leaving, it should not be found

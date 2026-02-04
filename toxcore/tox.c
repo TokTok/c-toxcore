@@ -3838,6 +3838,17 @@ uint32_t tox_group_get_number_groups(const Tox *tox)
     return ret;
 }
 
+void tox_group_get_chatlist(const Tox *tox, Tox_Group_Number chatlist[])
+{
+    assert(tox != nullptr);
+
+    if (chatlist != nullptr) {
+        tox_lock(tox);
+        gc_get_chatlist(tox->m->group_handler, chatlist);
+        tox_unlock(tox);
+    }
+}
+
 Tox_Group_Privacy_State tox_group_get_privacy_state(const Tox *tox, uint32_t group_number,
         Tox_Err_Group_State_Query *error)
 {
