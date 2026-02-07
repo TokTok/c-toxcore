@@ -282,7 +282,7 @@ static IP broadcast_ip(Family family_socket, Family family_broadcast)
     return ip;
 }
 
-static bool ip4_is_local(const IP4 *_Nonnull ip4)
+static bool ip4_is_local(const IP4 *ip4)
 {
     /* Loopback. */
     return ip4->uint8[0] == 127;

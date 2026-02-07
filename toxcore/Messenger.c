@@ -1980,7 +1980,7 @@ static void check_friend_request_timed_out(Messenger *_Nonnull m, uint32_t frien
     }
 }
 
-static int m_handle_status(void *_Nonnull object, int friendcon_id, bool status, void *_Nullable userdata)
+static int m_handle_status(void *object, int friendcon_id, bool status, void *userdata)
 {
     Messenger *m = (Messenger *)object;
     if (status) { /* Went online. */
@@ -2300,7 +2300,7 @@ static int m_handle_packet_invite_groupchat(Messenger *_Nonnull m, const int fri
     return 0;
 }
 
-static int m_handle_packet(void *_Nonnull object, int friendcon_id, const uint8_t *_Nonnull data, uint16_t length, void *_Nullable userdata)
+static int m_handle_packet(void *object, int friendcon_id, const uint8_t *data, uint16_t length, void *userdata)
 {
     Messenger *m = (Messenger *)object;
     if (length == 0) {
