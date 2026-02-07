@@ -31,7 +31,7 @@ public:
     int connect(Socket sock, const IP_Port *_Nonnull addr) override;
     int send(Socket sock, const uint8_t *_Nonnull buf, size_t len) override;
     int recv(Socket sock, uint8_t *_Nonnull buf, size_t len) override;
-    int recvbuf(Socket sock) override;
+    int recvbuf(Socket sock, uint16_t length) override;
 
     int socket_nonblock(Socket sock, bool nonblock) override;
     int getsockopt(Socket sock, int level, int optname, void *_Nonnull optval,

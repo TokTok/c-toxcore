@@ -388,7 +388,7 @@ static int sys_connect(void *_Nullable obj, Socket sock, const IP_Port *_Nonnull
     return connect(net_socket_to_native(sock), (const struct sockaddr *)&naddr.addr, (socklen_t)naddr.size);
 }
 
-static int sys_recvbuf(void *_Nullable obj, Socket sock)
+static int sys_recvbuf(void *_Nullable obj, Socket sock, uint16_t length)
 {
 #ifdef OS_WIN32
     u_long count = 0;
