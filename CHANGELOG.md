@@ -57,20 +57,23 @@ If you have not yet upgraded to the previous release (0.2.20), you absolutely sh
 #### Bug Fixes
 
 - forgot an enum in the nodes request rename see https://github.com/TokTok/c-toxcore/pull/2860 ([9324a974](https://github.com/TokTok/c-toxcore/commit/9324a974d473641a90a750e5117108b3c672010e))
+- ip to string function not accepting tcp families ([26a991ed](https://github.com/TokTok/c-toxcore/commit/26a991ed2beeb52750258bf43406f039838f439a))
+- run `do_gca` also in bootstrap nodes ([9f723f89](https://github.com/TokTok/c-toxcore/commit/9f723f891d3761d317eaaafa82ece42f5a1b0e96))
+- Don't crash on malloc failures in `bin_unpack.` ([edb4dfc4](https://github.com/TokTok/c-toxcore/commit/edb4dfc4869bdd1d1048c88842f9e1ae8bcd3c85))
+- Fake broadcast address for 127.x.x.x ([d9b8fa60](https://github.com/TokTok/c-toxcore/commit/d9b8fa6098de6c074038b6664d2572627540b148))
+- Avoid `memcpy`-ing structs into onion ping id data. ([3cfe41c7](https://github.com/TokTok/c-toxcore/commit/3cfe41c758791ac1a9006ee2241a4fbd8c16db7a))
+- Add more information on why the frame was not sent. ([e32ac001](https://github.com/TokTok/c-toxcore/commit/e32ac0019388a5eaaaa91fcf84c1650c8a87f9c5))
+- Allow TCP connections to fail `connect` calls. ([ab887003](https://github.com/TokTok/c-toxcore/commit/ab8870036879e766111d6c854408fdee6018f5ed))
+- Allow peers to reconnect to group chats using a password ([fc065060](https://github.com/TokTok/c-toxcore/commit/fc0650601c163f9e035de2fce3cc58fab1ad9615))
+- reduce memory usage in group chats by 75% Significantly reduced the memory usage of groups since all message slots are preallocated for every peer for send and receive buffers of buffer size (hundreds of MiB peak when save contained alot of peers to try to connect to) ([11ab1d2a](https://github.com/TokTok/c-toxcore/commit/11ab1d2a7232eee19b51ce126ccce267d6578903))
+- friend requests with very long messages are no longer dropped ([93aafd78](https://github.com/TokTok/c-toxcore/commit/93aafd78c1ff74ed994426cbe07f031795923d3c))
+- windows use of REUSEADDR ([0ac23cee](https://github.com/TokTok/c-toxcore/commit/0ac23cee035cd1b66d81d2603b2464426a32fce7))
 - **bazel:**
   - one more fuzz target that needs netprof ([1d4cc783](https://github.com/TokTok/c-toxcore/commit/1d4cc783b142cbfc77a639a4034fa7a79555e5c2))
   - make `net_prof` visible to its consumers ([066aafbf](https://github.com/TokTok/c-toxcore/commit/066aafbfcdf5cbe4176e6a7e0ba58033a6576378))
   - missing dep for `auto_tests` ([9dcc2f53](https://github.com/TokTok/c-toxcore/commit/9dcc2f530d67696a162275c07ceb4ddf2199fa72))
   - missing dep for fuzz target ([741ac5f5](https://github.com/TokTok/c-toxcore/commit/741ac5f5e65e54c0b2e2542e95d28ea529fcc200))
 - **ngc:** dont double every message, if we are not directly connected but we and the other peer would support direct. ([219773bf](https://github.com/TokTok/c-toxcore/commit/219773bff599c3f23ccc20080c8cfa1b29a1117b))
-
-<a name="v0.2.21-rc.1"></a>
-
-## v0.2.21-rc.1 (2025-02-24)
-
-### Release notes
-
-Pre-release for toxcore. Primarily, we now have an experimental network profiling callback.
 
 #### Features
 
@@ -84,20 +87,6 @@ Pre-release for toxcore. Primarily, we now have an experimental network profilin
 #### Performance
 
 - Use stack allocation for strerror rendering. ([f1991aaa](https://github.com/TokTok/c-toxcore/commit/f1991aaa02978a3cb866826d2a5f24ac1e2fdd16))
-
-#### Bug Fixes
-
-- ip to string function not accepting tcp families ([26a991ed](https://github.com/TokTok/c-toxcore/commit/26a991ed2beeb52750258bf43406f039838f439a))
-- run `do_gca` also in bootstrap nodes ([9f723f89](https://github.com/TokTok/c-toxcore/commit/9f723f891d3761d317eaaafa82ece42f5a1b0e96))
-- Don't crash on malloc failures in `bin_unpack.` ([edb4dfc4](https://github.com/TokTok/c-toxcore/commit/edb4dfc4869bdd1d1048c88842f9e1ae8bcd3c85))
-- Fake broadcast address for 127.x.x.x ([d9b8fa60](https://github.com/TokTok/c-toxcore/commit/d9b8fa6098de6c074038b6664d2572627540b148))
-- Avoid `memcpy`-ing structs into onion ping id data. ([3cfe41c7](https://github.com/TokTok/c-toxcore/commit/3cfe41c758791ac1a9006ee2241a4fbd8c16db7a))
-- Add more information on why the frame was not sent. ([e32ac001](https://github.com/TokTok/c-toxcore/commit/e32ac0019388a5eaaaa91fcf84c1650c8a87f9c5))
-- Allow TCP connections to fail `connect` calls. ([ab887003](https://github.com/TokTok/c-toxcore/commit/ab8870036879e766111d6c854408fdee6018f5ed))
-- Allow peers to reconnect to group chats using a password ([fc065060](https://github.com/TokTok/c-toxcore/commit/fc0650601c163f9e035de2fce3cc58fab1ad9615))
-- reduce memory usage in group chats by 75% Significantly reduced the memory usage of groups since all message slots are preallocated for every peer for send and receive buffers of buffer size (hundreds of MiB peak when save contained alot of peers to try to connect to) ([11ab1d2a](https://github.com/TokTok/c-toxcore/commit/11ab1d2a7232eee19b51ce126ccce267d6578903))
-- friend requests with very long messages are no longer dropped ([93aafd78](https://github.com/TokTok/c-toxcore/commit/93aafd78c1ff74ed994426cbe07f031795923d3c))
-- windows use of REUSEADDR ([0ac23cee](https://github.com/TokTok/c-toxcore/commit/0ac23cee035cd1b66d81d2603b2464426a32fce7))
 
 <a name="v0.2.20"></a>
 

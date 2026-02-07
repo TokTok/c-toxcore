@@ -108,11 +108,24 @@ static void common_init(ToxNode *self, ModState *state)
 
 static void wait_for_peer_role(ToxNode *self, uint32_t peer_idx, Tox_Group_Role expected_role)
 {
-    const ToxNode *peer = tox_scenario_get_node(tox_node_get_scenario(self), peer_idx);
-    const ModState *peer_view = (const ModState *)tox_node_get_peer_ctx(peer);
+    ModState *state = (ModState *)tox_node_get_script_ctx(self);
+    tox_node_log(self, "Waiting to see Peer %u with role %s", peer_idx, tox_group_role_to_string(expected_role));
 
-    tox_node_log(self, "Waiting for Peer %u to have role %s", peer_idx, tox_group_role_to_string(expected_role));
-    WAIT_UNTIL(peer_view->self_role == expected_role);
+    while (tox_scenario_is_running(self)) {
+        uint32_t peer_id = state->peer_ids[peer_idx];
+
+        if (peer_id != UINT32_MAX) {
+            Tox_Err_Group_Peer_Query err;
+            Tox_Group_Role role = tox_group_peer_get_role(tox_node_get_tox(self), state->group_number, peer_id, &err);
+
+            if (err == TOX_ERR_GROUP_PEER_QUERY_OK && role == expected_role) {
+                break;
+            }
+        }
+
+        tox_scenario_yield(self);
+    }
+
     tox_node_log(self, "Peer %u now has role %s", peer_idx, tox_group_role_to_string(expected_role));
 }
 
@@ -133,7 +146,6 @@ static void founder_script(ToxNode *self, void *ctx)
     state->chat_id_ready = true;
 
     // Barrier 1: Wait for all peers to join and be seen by everyone
-    tox_scenario_barrier_wait(self);
     WAIT_UNTIL(state->peer_count == NUM_PEERS - 1);
     tox_node_log(self, "All peers joined");
 
@@ -143,60 +155,56 @@ static void founder_script(ToxNode *self, void *ctx)
     }
     tox_node_log(self, "All peer IDs identified");
 
-    tox_scenario_barrier_wait(self); // Sync point after everyone sees everyone
+    tox_scenario_barrier_wait(self); // Barrier 1: Everyone sees everyone
 
     // Barrier 2: Peer 1 becomes Moderator
     tox_group_set_role(tox, state->group_number, state->peer_ids[1], TOX_GROUP_ROLE_MODERATOR, nullptr);
-    for (int i = 0; i < NUM_PEERS; ++i) {
-        wait_for_peer_role(self, 1, TOX_GROUP_ROLE_MODERATOR);
-    }
-    tox_scenario_barrier_wait(self);
+    wait_for_peer_role(self, 1, TOX_GROUP_ROLE_MODERATOR);
+    tox_scenario_barrier_wait(self); // Barrier 2: Everyone sees Peer 1 as Moderator
 
     // Barrier 3: Peer 2 and 3 become Observer
     tox_group_set_role(tox, state->group_number, state->peer_ids[2], TOX_GROUP_ROLE_OBSERVER, nullptr);
     tox_group_set_role(tox, state->group_number, state->peer_ids[3], TOX_GROUP_ROLE_OBSERVER, nullptr);
-    for (int i = 0; i < NUM_PEERS; ++i) {
-        wait_for_peer_role(self, 2, TOX_GROUP_ROLE_OBSERVER);
-        wait_for_peer_role(self, 3, TOX_GROUP_ROLE_OBSERVER);
-    }
-    tox_scenario_barrier_wait(self);
+    wait_for_peer_role(self, 2, TOX_GROUP_ROLE_OBSERVER);
+    wait_for_peer_role(self, 3, TOX_GROUP_ROLE_OBSERVER);
+    tox_scenario_barrier_wait(self); // Barrier 3: Everyone sees Peer 2/3 as Observers
 
     // Barrier 4: Voice State tests
     tox_node_log(self, "Setting voice state to MODERATOR");
     tox_group_set_voice_state(tox, state->group_number, TOX_GROUP_VOICE_STATE_MODERATOR, nullptr);
-    tox_scenario_barrier_wait(self); // Phase 1 set
-    tox_scenario_barrier_wait(self); // Phase 1 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 1 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 1 done
 
     tox_node_log(self, "Setting voice state to FOUNDER");
     tox_group_set_voice_state(tox, state->group_number, TOX_GROUP_VOICE_STATE_FOUNDER, nullptr);
-    tox_scenario_barrier_wait(self); // Phase 2 set
-    tox_scenario_barrier_wait(self); // Phase 2 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 2 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 2 done
 
     tox_node_log(self, "Setting voice state to ALL");
     tox_group_set_voice_state(tox, state->group_number, TOX_GROUP_VOICE_STATE_ALL, nullptr);
-    tox_scenario_barrier_wait(self); // Phase 3 set
-    tox_scenario_barrier_wait(self); // Phase 3 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 3 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 3 done
 
     // Barrier 5: Peer 1 (Mod) promotes Peer 2 back to User
-    tox_scenario_barrier_wait(self);
     wait_for_peer_role(self, 2, TOX_GROUP_ROLE_USER);
+    tox_scenario_barrier_wait(self); // Barrier 5: Everyone sees Peer 2 as User
 
     // Barrier 6: Founder promotes Peer 3 to Moderator
     tox_group_set_role(tox, state->group_number, state->peer_ids[3], TOX_GROUP_ROLE_MODERATOR, nullptr);
     wait_for_peer_role(self, 3, TOX_GROUP_ROLE_MODERATOR);
-    tox_scenario_barrier_wait(self);
+    tox_scenario_barrier_wait(self); // Barrier 6: Everyone sees Peer 3 as Moderator
 
     // Barrier 7: Moderator (Peer 1) attempts to kick/demote Founder (should fail)
-    tox_scenario_barrier_wait(self);
+    tox_scenario_barrier_wait(self); // Barrier 7: Founder wait
 
     // Barrier 8: Founder kicks Moderator (Peer 1)
     tox_group_kick_peer(tox, state->group_number, state->peer_ids[1], nullptr);
-    tox_scenario_barrier_wait(self);
+    tox_scenario_barrier_wait(self); // Barrier 8: Founder wait
 
     // Barrier 9: Founder demotes Moderator (Peer 3) to User
     tox_group_set_role(tox, state->group_number, state->peer_ids[3], TOX_GROUP_ROLE_USER, nullptr);
     wait_for_peer_role(self, 3, TOX_GROUP_ROLE_USER);
-    tox_scenario_barrier_wait(self);
+    tox_scenario_barrier_wait(self); // Barrier 9: Founder wait
 
     tox_scenario_barrier_wait(self); // Done
 }
@@ -229,27 +237,27 @@ static void peer_script(ToxNode *self, void *ctx)
     uint32_t self_id = tox_group_self_get_peer_id(tox, state->group_number, nullptr);
     state->peer_ids[tox_node_get_index(self)] = self_id;
 
-    tox_scenario_barrier_wait(self); // Barrier 1: Joined
-
+    // Barrier 1: Joined
     // Wait until we know all peer IDs
     for (uint32_t i = 0; i < NUM_PEERS; ++i) {
         if (tox_node_get_index(self) != i) {
             WAIT_UNTIL(state->peer_ids[i] != UINT32_MAX);
         }
     }
+    tox_scenario_barrier_wait(self); // Barrier 1: Everyone sees everyone
 
-    tox_scenario_barrier_wait(self); // Sync point after everyone sees everyone
-
-    tox_scenario_barrier_wait(self); // Barrier 2: Peer 1 Moderator
+    // Barrier 2: Peer 1 Moderator
     wait_for_peer_role(self, 1, TOX_GROUP_ROLE_MODERATOR);
+    tox_scenario_barrier_wait(self); // Barrier 2: Everyone sees Peer 1 as Moderator
 
-    tox_scenario_barrier_wait(self); // Barrier 3: Peer 2/3 Observer
+    // Barrier 3: Peer 2/3 Observer
     wait_for_peer_role(self, 2, TOX_GROUP_ROLE_OBSERVER);
     wait_for_peer_role(self, 3, TOX_GROUP_ROLE_OBSERVER);
+    tox_scenario_barrier_wait(self); // Barrier 3: Everyone sees Peer 2/3 as Observers
 
     // Barrier 4: Voice State tests
     // Sub-phase 1: MODERATOR
-    tox_scenario_barrier_wait(self); // Phase 1 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 1 set
     WAIT_UNTIL(state->voice_state == TOX_GROUP_VOICE_STATE_MODERATOR);
     Tox_Err_Group_Send_Message err_msg;
     tox_group_send_message(tox, state->group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)"hello", 5, &err_msg);
@@ -264,10 +272,10 @@ static void peer_script(ToxNode *self, void *ctx)
         }
         ck_assert(err_msg == TOX_ERR_GROUP_SEND_MESSAGE_PERMISSIONS);
     }
-    tox_scenario_barrier_wait(self); // Phase 1 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 1 done
 
     // Sub-phase 2: FOUNDER
-    tox_scenario_barrier_wait(self); // Phase 2 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 2 set
     WAIT_UNTIL(state->voice_state == TOX_GROUP_VOICE_STATE_FOUNDER);
     tox_group_send_message(tox, state->group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)"hello", 5, &err_msg);
     if (state->self_role == TOX_GROUP_ROLE_FOUNDER) {
@@ -275,10 +283,10 @@ static void peer_script(ToxNode *self, void *ctx)
     } else {
         ck_assert(err_msg == TOX_ERR_GROUP_SEND_MESSAGE_PERMISSIONS);
     }
-    tox_scenario_barrier_wait(self); // Phase 2 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 2 done
 
     // Sub-phase 3: ALL
-    tox_scenario_barrier_wait(self); // Phase 3 set
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 3 set
     WAIT_UNTIL(state->voice_state == TOX_GROUP_VOICE_STATE_ALL);
     tox_group_send_message(tox, state->group_number, TOX_MESSAGE_TYPE_NORMAL, (const uint8_t *)"hello", 5, &err_msg);
     if (state->self_role == TOX_GROUP_ROLE_OBSERVER) {
@@ -286,19 +294,19 @@ static void peer_script(ToxNode *self, void *ctx)
     } else {
         ck_assert(err_msg == TOX_ERR_GROUP_SEND_MESSAGE_OK);
     }
-    tox_scenario_barrier_wait(self); // Phase 3 done
+    tox_scenario_barrier_wait(self); // Barrier 4 Phase 3 done
 
     // Barrier 5: Peer 1 (Mod) promotes Peer 2 back to User
     if (tox_node_get_index(self) == 1) { // Peer 1
         uint32_t peer2_id = state->peer_ids[2];
         tox_group_set_role(tox, state->group_number, peer2_id, TOX_GROUP_ROLE_USER, nullptr);
     }
-    tox_scenario_barrier_wait(self);
     wait_for_peer_role(self, 2, TOX_GROUP_ROLE_USER);
+    tox_scenario_barrier_wait(self); // Barrier 5: Everyone sees Peer 2 as User
 
     // Barrier 6: Founder promotes Peer 3 to Moderator
-    tox_scenario_barrier_wait(self);
     wait_for_peer_role(self, 3, TOX_GROUP_ROLE_MODERATOR);
+    tox_scenario_barrier_wait(self); // Barrier 6: Everyone sees Peer 3 as Moderator
 
     // Barrier 7: Moderator (Peer 1) attempts to kick/demote Founder (should fail)
     if (tox_node_get_index(self) == 1) {
@@ -311,18 +319,19 @@ static void peer_script(ToxNode *self, void *ctx)
         tox_group_set_role(tox, state->group_number, founder_peer_id, TOX_GROUP_ROLE_USER, &err_role);
         ck_assert(err_role != TOX_ERR_GROUP_SET_ROLE_OK);
     }
-    tox_scenario_barrier_wait(self);
+    tox_scenario_barrier_wait(self); // Barrier 7: Everyone wait
 
     // Barrier 8: Founder kicks Moderator (Peer 1)
-    tox_scenario_barrier_wait(self);
     if (tox_node_get_index(self) == 1) {
         WAIT_UNTIL(state->kicked);
+        tox_scenario_barrier_wait(self); // Barrier 8: Peer 1 reached (it's kicked)
         return; // Exit script
     }
+    tox_scenario_barrier_wait(self); // Barrier 8: Everyone else reached
 
     // Barrier 9: Founder demotes Moderator (Peer 3) to User
-    tox_scenario_barrier_wait(self);
     wait_for_peer_role(self, 3, TOX_GROUP_ROLE_USER);
+    tox_scenario_barrier_wait(self); // Barrier 9: Everyone sees Peer 3 as User
 
     tox_scenario_barrier_wait(self); // Done
 }
