@@ -4077,6 +4077,17 @@ Tox_Group_Number tox_group_by_id(
 uint32_t tox_group_get_number_groups(const Tox *tox);
 
 /**
+ * Copy a list of valid group numbers into the array chatlist.
+ *
+ * The array must be large enough to hold the number of groups returned by the
+ * `tox_group_get_number_groups` function.
+ *
+ * @param chatlist A valid memory region large enough to store the group list.
+ *   If this parameter is NULL, this function has no effect.
+ */
+void tox_group_get_chatlist(const Tox *tox, Tox_Group_Number chatlist[]);
+
+/**
  * Return the privacy state of the group designated by the given group number.
  * If group number is invalid, the return value is unspecified.
  *

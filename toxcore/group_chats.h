@@ -655,6 +655,9 @@ bool gc_group_is_valid(const GC_Chat *_Nonnull chat);
 /** @brief Returns the number of active groups in `c`. */
 uint32_t gc_count_groups(const GC_Session *_Nonnull c);
 
+/** @brief Copy a list of valid group numbers into the array chatlist. */
+uint32_t gc_get_chatlist(const GC_Session *_Nonnull c, uint32_t *_Nonnull chatlist);
+
 /** @brief Returns true if peer_number exists */
 bool gc_peer_number_is_valid(const GC_Chat *_Nonnull chat, int peer_number);
 
