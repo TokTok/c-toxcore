@@ -103,6 +103,45 @@ cc_library(
 )
 
 cc_library(
+    name = "clock",
+    srcs = ["clock.c"],
+    hdrs = ["clock.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+    ],
+)
+
+cc_library(
+    name = "os_clock",
+    srcs = ["os_clock.c"],
+    hdrs = ["os_clock.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":clock",
+    ],
+)
+
+cc_library(
+    name = "mono_clock",
+    srcs = ["mono_clock.c"],
+    hdrs = ["mono_clock.h"],
+    visibility = ["//c-toxcore:__subpackages__"],
+    deps = [
+        ":attributes",
+        ":ccompat",
+        ":clock",
+        ":mem",
+        ":os_clock",
+        ":util",
+        "@pthread",
+    ],
+)
+
+cc_library(
     name = "ev",
     srcs = ["ev.c"],
     hdrs = ["ev.h"],
@@ -432,6 +471,8 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":mem",
+        ":mono_clock",
+        ":os_clock",
         ":util",
         "@pthread",
     ],
@@ -1503,12 +1544,14 @@ cc_library(
         ":group_moderation",
         ":logger",
         ":mem",
+        ":mono_clock",
         ":mono_time",
         ":net",
         ":net_crypto",
         ":net_profile",
         ":network",
         ":onion_client",
+        ":os_clock",
         ":os_event",
         ":os_memory",
         ":os_network",
