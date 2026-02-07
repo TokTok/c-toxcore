@@ -26,6 +26,7 @@
 #include "../toxcore/network.h"
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
+#include "../toxcore/os_event.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
 #include "../toxcore/tox.h"
@@ -157,9 +158,10 @@ int main(int argc, char *argv[])
     }
 
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Ev *ev = os_event_new(mem, logger);
     const uint16_t start_port = PORT;
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
-    Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
+    Networking_Core *net = new_networking_ex(logger, mem, ns, ev, &ip, start_port, end_port, nullptr);
     DHT *dht = new_dht(logger, mem, rng, ns, mono_time, net, true, true);
     Onion *onion = new_onion(logger, mem, mono_time, rng, dht, net);
     Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht, net);
@@ -189,7 +191,7 @@ int main(int argc, char *argv[])
 #ifdef TCP_RELAY_ENABLED
 #define NUM_PORTS 3
     const uint16_t ports[NUM_PORTS] = {443, 3389, PORT};
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, ipv6enabled, NUM_PORTS, ports, dht_get_self_secret_key(dht), onion, forwarding);
+    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, ev, ipv6enabled, NUM_PORTS, ports, dht_get_self_secret_key(dht), onion, forwarding);
 
     if (tcp_s == nullptr) {
         printf("TCP server failed to initialize.\n");

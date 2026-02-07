@@ -137,7 +137,8 @@ struct Net_Crypto {
     const Random *_Nonnull rng;
     Mono_Time *_Nonnull mono_time;
     const Network *_Nonnull ns;
-    Networking_Core *net;
+    Ev *_Nonnull ev;
+    Networking_Core *_Nonnull net;
 
     void *_Nonnull dht;
     const Net_Crypto_DHT_Funcs *_Nonnull dht_funcs;
@@ -2961,7 +2962,7 @@ void load_secret_key(Net_Crypto *c, const uint8_t *sk)
  * Sets all the global connection variables to their default values.
  */
 Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
-                           Mono_Time *mono_time, Networking_Core *net, void *dht, const Net_Crypto_DHT_Funcs *dht_funcs, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
+                           Mono_Time *mono_time, Ev *ev, Networking_Core *net, void *dht, const Net_Crypto_DHT_Funcs *dht_funcs, const TCP_Proxy_Info *proxy_info, Net_Profile *tcp_np)
 {
     if (dht == nullptr || dht_funcs == nullptr || dht_funcs->get_shared_key_sent == nullptr || dht_funcs->get_self_public_key == nullptr || dht_funcs->get_self_secret_key == nullptr) {
         return nullptr;
@@ -2978,12 +2979,13 @@ Net_Crypto *new_net_crypto(const Logger *log, const Memory *mem, const Random *r
     temp->rng = rng;
     temp->mono_time = mono_time;
     temp->ns = ns;
+    temp->ev = ev;
     temp->net = net;
 
     temp->dht = dht;
     temp->dht_funcs = dht_funcs;
 
-    TCP_Connections *const tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, dht_funcs->get_self_secret_key(dht), proxy_info, tcp_np);
+    TCP_Connections *const tcp_c = new_tcp_connections(log, mem, rng, ns, mono_time, ev, dht_funcs->get_self_secret_key(dht), proxy_info, tcp_np);
 
     if (tcp_c == nullptr) {
         mem_delete(mem, temp);

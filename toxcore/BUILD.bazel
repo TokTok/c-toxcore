@@ -1007,6 +1007,32 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "TCP_server_test",
+    size = "small",
+    srcs = ["TCP_server_test.cc"],
+    deps = [
+        ":TCP_client",
+        ":TCP_common",
+        ":TCP_server",
+        ":attributes",
+        ":crypto_core",
+        ":logger",
+        ":mono_time",
+        ":network",
+        ":os_event",
+        ":os_memory",
+        ":os_network",
+        ":os_random",
+        ":rng",
+        ":test_util",
+        ":util",
+        "//c-toxcore/testing/support",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "net_crypto",
     srcs = ["net_crypto.c"],

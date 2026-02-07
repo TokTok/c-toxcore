@@ -1,20 +1,16 @@
 #include "DHT_test_util.hh"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
-#include <iomanip>
 #include <ostream>
 
 #include "../testing/support/public/simulated_environment.hh"
-#include "DHT.h"
 #include "crypto_core.h"
 #include "crypto_core_test_util.hh"
-#include "network.h"
 #include "network_test_util.hh"
-
-using tox::test::FakeClock;
-
-// --- Mock DHT Implementation ---
+#include "os_event.h"
+#include "test_util.hh"
 
 MockDHT::MockDHT(const Random *_Nonnull rng)
 {
@@ -23,20 +19,19 @@ MockDHT::MockDHT(const Random *_Nonnull rng)
 
 const std::uint8_t *_Nullable MockDHT::get_shared_key(const std::uint8_t *_Nonnull pk)
 {
-    std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE> pk_arr;
-    std::copy(pk, pk + CRYPTO_PUBLIC_KEY_SIZE, pk_arr.begin());
-    auto it = shared_keys.find(pk_arr);
-    if (it != shared_keys.end()) {
-        return it->second.data();
+    std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE> pk_array;
+    std::copy(pk, pk + pk_array.size(), pk_array.begin());
+
+    auto it = shared_keys.find(pk_array);
+
+    if (it == shared_keys.end()) {
+        std::array<std::uint8_t, CRYPTO_SHARED_KEY_SIZE> shared_key;
+        encrypt_precompute(pk, self_secret_key, shared_key.data());
+        it = shared_keys.emplace(pk_array, shared_key).first;
+        ++computation_count;
     }
 
-    ++computation_count;
-
-    // Compute new shared key
-    std::array<std::uint8_t, CRYPTO_SHARED_KEY_SIZE> sk;
-    encrypt_precompute(pk, self_secret_key, sk.data());
-    shared_keys[pk_arr] = sk;
-    return shared_keys[pk_arr].data();
+    return it->second.data();
 }
 
 const Net_Crypto_DHT_Funcs MockDHT::funcs = {
@@ -59,6 +54,7 @@ WrappedMockDHT::WrappedMockDHT(tox::test::SimulatedEnvironment &env, std::uint16
                      },
                      &env.fake_clock()),
           [mem = &node_->c_memory](Mono_Time *t) { mono_time_free(mem, t); })
+    , ev_(os_event_new(&node_->c_memory, logger_.get()), ev_kill)
     , networking_(nullptr, [](Networking_Core *n) { kill_networking(n); })
     , dht_(&node_->c_random)
 {
@@ -66,8 +62,8 @@ WrappedMockDHT::WrappedMockDHT(tox::test::SimulatedEnvironment &env, std::uint16
     IP ip;
     ip_init(&ip, false);
     unsigned int error = 0;
-    networking_.reset(new_networking_ex(
-        logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
+    networking_.reset(new_networking_ex(logger_.get(), &node_->c_memory, &node_->c_network,
+        ev_.get(), &ip, port, port + 1, &error));
     assert(error == 0);
 
     node_->endpoint = node_->node->get_primary_socket();
@@ -101,10 +97,11 @@ WrappedDHT::WrappedDHT(tox::test::SimulatedEnvironment &env, std::uint16_t port)
     , mono_time_(mono_time_new(
                      &node_->c_memory,
                      [](void *_Nullable ud) -> std::uint64_t {
-                         return static_cast<FakeClock *>(ud)->current_time_ms();
+                         return static_cast<tox::test::FakeClock *>(ud)->current_time_ms();
                      },
                      &env.fake_clock()),
           [mem = &node_->c_memory](Mono_Time *t) { mono_time_free(mem, t); })
+    , ev_(os_event_new(&node_->c_memory, logger_.get()), ev_kill)
     , networking_(nullptr, [](Networking_Core *n) { kill_networking(n); })
     , dht_(nullptr, [](DHT *d) { kill_dht(d); })
 {
@@ -112,8 +109,8 @@ WrappedDHT::WrappedDHT(tox::test::SimulatedEnvironment &env, std::uint16_t port)
     IP ip;
     ip_init(&ip, false);
     unsigned int error = 0;
-    networking_.reset(new_networking_ex(
-        logger_.get(), &node_->c_memory, &node_->c_network, &ip, port, port + 1, &error));
+    networking_.reset(new_networking_ex(logger_.get(), &node_->c_memory, &node_->c_network,
+        ev_.get(), &ip, port, port + 1, &error));
     assert(error == 0);
 
     node_->endpoint = node_->node->get_primary_socket();

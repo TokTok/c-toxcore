@@ -273,13 +273,13 @@ static const char *inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnu
     return buf;
 }
 
-static int inet_pton4(const char *_Nonnull addrString, struct in_addr *_Nonnull addrbuf)
+static int inet_pton4(const char *_Nonnull addr_string, struct in_addr *_Nonnull addrbuf)
 {
     struct sockaddr_in saddr = {0};
 
     INT len = sizeof(saddr);
 
-    if (WSAStringToAddressA((LPSTR)addrString, AF_INET, nullptr, (LPSOCKADDR)&saddr, &len)) {
+    if (WSAStringToAddressA((LPSTR)addr_string, AF_INET, nullptr, (LPSOCKADDR)&saddr, &len)) {
         return 0;
     }
 
@@ -288,13 +288,13 @@ static int inet_pton4(const char *_Nonnull addrString, struct in_addr *_Nonnull 
     return 1;
 }
 
-static int inet_pton6(const char *_Nonnull addrString, struct in6_addr *_Nonnull addrbuf)
+static int inet_pton6(const char *_Nonnull addr_string, struct in6_addr *_Nonnull addrbuf)
 {
     struct sockaddr_in6 saddr = {0};
 
     INT len = sizeof(saddr);
 
-    if (WSAStringToAddressA((LPSTR)addrString, AF_INET6, nullptr, (LPSOCKADDR)&saddr, &len)) {
+    if (WSAStringToAddressA((LPSTR)addr_string, AF_INET6, nullptr, (LPSOCKADDR)&saddr, &len)) {
         return 0;
     }
 

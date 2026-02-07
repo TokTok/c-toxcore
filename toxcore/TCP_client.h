@@ -63,7 +63,7 @@ void tcp_con_set_custom_uint(TCP_Client_Connection *_Nonnull con, uint32_t value
 
 /** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *_Nullable new_tcp_connection(
-    const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, const Network *_Nonnull ns,
+    const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, const Network *_Nonnull ns, Ev *_Nonnull ev,
     const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull public_key, const uint8_t *_Nonnull self_public_key, const uint8_t *_Nonnull self_secret_key,
     const TCP_Proxy_Info *_Nullable proxy_info, Net_Profile *_Nullable net_profile);
 /** Run the TCP connection */

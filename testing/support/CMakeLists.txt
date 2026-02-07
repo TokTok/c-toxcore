@@ -3,6 +3,7 @@ if(NOT UNITTEST)
 endif()
 
 set(support_SOURCES
+  doubles/fake_event.cc
   doubles/fake_network_stack.cc
   doubles/fake_sockets.cc
   doubles/network_universe.cc
@@ -19,6 +20,7 @@ set(support_SOURCES
   src/simulation.cc
   src/tox_network.cc
   src/tox_runner.cc
+  doubles/fake_event.hh
   doubles/fake_clock.hh
   doubles/fake_memory.hh
   doubles/fake_network_stack.hh
@@ -68,6 +70,7 @@ if(TARGET GTest::gtest_main)
   endfunction()
 
   support_test(fake_sockets_test doubles/fake_sockets_test.cc)
+  support_test(fake_event_test doubles/fake_event_test.cc)
   support_test(fake_network_stack_test doubles/fake_network_stack_test.cc)
   support_test(fake_network_udp_test doubles/fake_network_udp_test.cc)
   support_test(fake_network_tcp_test doubles/fake_network_tcp_test.cc)

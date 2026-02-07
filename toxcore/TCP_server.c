@@ -31,12 +31,15 @@
 #include "network.h"
 #include "onion.h"
 
-#ifdef TCP_SERVER_USE_EPOLL
 #define TCP_SOCKET_LISTENING 0
 #define TCP_SOCKET_INCOMING 1
 #define TCP_SOCKET_UNCONFIRMED 2
 #define TCP_SOCKET_CONFIRMED 3
-#endif /* TCP_SERVER_USE_EPOLL */
+
+typedef struct TCP_Server_Event_Data {
+    uint8_t type;
+    uint32_t index;
+} TCP_Server_Event_Data;
 
 typedef struct TCP_Secure_Conn {
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
@@ -59,7 +62,11 @@ typedef struct TCP_Secure_Connection {
 
     uint64_t last_pinged;
     uint64_t ping_id;
+
+    TCP_Server_Event_Data event_data;
 } TCP_Secure_Connection;
+
+static void kill_tcp_secure_connection(Ev *_Nullable ev, TCP_Secure_Connection *_Nullable con);
 
 static const TCP_Secure_Connection empty_tcp_secure_connection = {{nullptr}};
 
@@ -68,6 +75,7 @@ struct TCP_Server {
     const Memory *_Nonnull mem;
     const Random *_Nonnull rng;
     const Network *_Nonnull ns;
+    Ev *_Nonnull ev;
     Onion *_Nullable onion;
     Forwarding *_Nullable forwarding;
 
@@ -77,6 +85,7 @@ struct TCP_Server {
 #endif /* TCP_SERVER_USE_EPOLL */
     Socket *_Nullable socks_listening;
     unsigned int num_listening_socks;
+    TCP_Server_Event_Data *_Nullable listening_event_data;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t secret_key[CRYPTO_SECRET_KEY_SIZE];
@@ -143,6 +152,15 @@ static int alloc_new_connections(TCP_Server *_Nonnull tcp_server, uint32_t num)
         new_connections[old_size + i] = empty_tcp_secure_connection;
     }
 
+    if (new_connections != tcp_server->accepted_connection_array) {
+        for (uint32_t i = 0; i < old_size; ++i) {
+            TCP_Secure_Connection *con = &new_connections[i];
+            if (con->status != TCP_STATUS_NO_STATUS) {
+                ev_mod(tcp_server->ev, con->con.sock, EV_READ, &con->event_data);
+            }
+        }
+    }
+
     tcp_server->accepted_connection_array = new_connections;
     tcp_server->size_accepted_connections = new_size;
     return 0;
@@ -169,7 +187,7 @@ static void free_accepted_connection_array(TCP_Server *_Nonnull tcp_server)
     }
 
     for (uint32_t i = 0; i < tcp_server->size_accepted_connections; ++i) {
-        wipe_secure_connection(&tcp_server->accepted_connection_array[i]);
+        kill_tcp_secure_connection(tcp_server->ev, &tcp_server->accepted_connection_array[i]);
     }
 
     mem_delete(tcp_server->mem, tcp_server->accepted_connection_array);
@@ -268,10 +286,14 @@ static int del_accepted(TCP_Server *_Nonnull tcp_server, int index)
 }
 
 /** Kill a TCP_Secure_Connection */
-static void kill_tcp_secure_connection(TCP_Secure_Connection *_Nullable con)
+static void kill_tcp_secure_connection(Ev *_Nullable ev, TCP_Secure_Connection *_Nullable con)
 {
-    if (con == nullptr) {
+    if (con == nullptr || con->status == 0) {
         return;
+    }
+
+    if (ev != nullptr) {
+        ev_del(ev, con->con.sock);
     }
 
     kill_sock(con->con.ns, con->con.sock);
@@ -296,6 +318,7 @@ static int kill_accepted(TCP_Server *tcp_server, int index)
     }
 
     const Socket sock = tcp_server->accepted_connection_array[index].con.sock;
+    ev_del(tcp_server->ev, sock);
 
     if (del_accepted(tcp_server, index) != 0) {
         return -1;
@@ -663,6 +686,12 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
         return -1;
     }
 
+    Tcp_Packet type;
+    const char *type_name = tcp_packet_from_int(data[0], &type) ? tcp_packet_type_to_string(type) : "<invalid Tcp_Packet>";
+
+    LOGGER_TRACE(tcp_server->logger, "Received TCP packet for connection %u of type %s (%u) and length %u.", con_id,
+                 type_name, data[0], length);
+
     TCP_Secure_Connection *const con = &tcp_server->accepted_connection_array[con_id];
     netprof_record_packet(con->con.net_profile, data[0], length, PACKET_DIRECTION_RECV);
 
@@ -839,9 +868,14 @@ static int confirm_tcp_connection(TCP_Server *_Nonnull tcp_server, const Mono_Ti
 
     if (index == -1) {
         LOGGER_DEBUG(tcp_server->logger, "dropping connection %u: not accepted", (unsigned int)con->identifier);
-        kill_tcp_secure_connection(con);
+        kill_tcp_secure_connection(tcp_server->ev, con);
         return -1;
     }
+
+    TCP_Secure_Connection *conn_accepted = &tcp_server->accepted_connection_array[index];
+    conn_accepted->event_data.type = TCP_SOCKET_CONFIRMED;
+    conn_accepted->event_data.index = index;
+    ev_mod(tcp_server->ev, conn_accepted->con.sock, EV_READ, &conn_accepted->event_data);
 
     wipe_secure_connection(con);
 
@@ -881,7 +915,7 @@ static int accept_connection(TCP_Server *_Nonnull tcp_server, Socket sock)
 
     if (conn->status != TCP_STATUS_NO_STATUS) {
         LOGGER_DEBUG(tcp_server->logger, "connection %d dropped before accepting", index);
-        kill_tcp_secure_connection(conn);
+        kill_tcp_secure_connection(tcp_server->ev, conn);
     }
 
     conn->status = TCP_STATUS_CONNECTED;
@@ -890,6 +924,10 @@ static int accept_connection(TCP_Server *_Nonnull tcp_server, Socket sock)
     conn->con.rng = tcp_server->rng;
     conn->con.sock = sock;
     conn->next_packet_length = 0;
+
+    conn->event_data.type = TCP_SOCKET_INCOMING;
+    conn->event_data.index = index;
+    ev_add(tcp_server->ev, sock, EV_READ, &conn->event_data);
 
     ++tcp_server->incoming_connection_queue_index;
     return index;
@@ -929,7 +967,7 @@ static Socket new_listening_tcp_socket(const Logger *_Nonnull logger, const Memo
 }
 
 TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns,
-                           bool ipv6_enabled, uint16_t num_sockets,
+                           Ev *ev, bool ipv6_enabled, uint16_t num_sockets,
                            const uint16_t *ports, const uint8_t *secret_key, Onion *onion, Forwarding *forwarding)
 {
     if (num_sockets == 0 || ports == nullptr) {
@@ -961,6 +999,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     temp->mem = mem;
     temp->ns = ns;
     temp->rng = rng;
+    temp->ev = ev;
 
     Socket *socks_listening = (Socket *)mem_valloc(mem, num_sockets, sizeof(Socket));
 
@@ -973,6 +1012,19 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
 
     temp->socks_listening = socks_listening;
 
+    TCP_Server_Event_Data *listening_event_data = (TCP_Server_Event_Data *)mem_valloc(mem, num_sockets,
+            sizeof(TCP_Server_Event_Data));
+
+    if (listening_event_data == nullptr) {
+        LOGGER_ERROR(logger, "event data allocation failed");
+        netprof_kill(mem, temp->net_profile);
+        mem_delete(mem, socks_listening);
+        mem_delete(mem, temp);
+        return nullptr;
+    }
+
+    temp->listening_event_data = listening_event_data;
+
 #ifdef TCP_SERVER_USE_EPOLL
     temp->efd = epoll_create1(EPOLL_CLOEXEC);
 
@@ -980,10 +1032,10 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
         LOGGER_ERROR(logger, "epoll initialisation failed");
         netprof_kill(mem, temp->net_profile);
         mem_delete(mem, socks_listening);
+        mem_delete(mem, listening_event_data);
         mem_delete(mem, temp);
         return nullptr;
     }
-
 #endif /* TCP_SERVER_USE_EPOLL */
 
     const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
@@ -995,16 +1047,21 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
             continue;
         }
 
+        temp->listening_event_data[temp->num_listening_socks].type = TCP_SOCKET_LISTENING;
+        temp->listening_event_data[temp->num_listening_socks].index = i;
+        ev_add(ev, sock, EV_READ, &temp->listening_event_data[temp->num_listening_socks]);
+
 #ifdef TCP_SERVER_USE_EPOLL
-        struct epoll_event ev;
+        struct epoll_event ev_epoll;
 
-        ev.events = EPOLLIN | EPOLLET;
-        ev.data.u64 = net_socket_to_native(sock) | ((uint64_t)TCP_SOCKET_LISTENING << 32);
+        ev_epoll.events = EPOLLIN | EPOLLET;
+        ev_epoll.data.u64 = net_socket_to_native(sock) | ((uint64_t)TCP_SOCKET_LISTENING << 32);
 
-        if (epoll_ctl(temp->efd, EPOLL_CTL_ADD, net_socket_to_native(sock), &ev) == -1) {
+        if (epoll_ctl(temp->efd, EPOLL_CTL_ADD, net_socket_to_native(sock), &ev_epoll) == -1) {
+            ev_del(ev, sock);
+            kill_sock(ns, sock);
             continue;
         }
-
 #endif /* TCP_SERVER_USE_EPOLL */
 
         temp->socks_listening[temp->num_listening_socks] = sock;
@@ -1014,6 +1071,7 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
     if (temp->num_listening_socks == 0) {
         netprof_kill(mem, temp->net_profile);
         mem_delete(mem, temp->socks_listening);
+        mem_delete(mem, temp->listening_event_data);
         mem_delete(mem, temp);
         return nullptr;
     }
@@ -1066,7 +1124,7 @@ static int do_incoming(TCP_Server *_Nonnull tcp_server, uint32_t i)
 
     if (ret == -1) {
         LOGGER_TRACE(tcp_server->logger, "incoming connection %u dropped due to failed handshake", i);
-        kill_tcp_secure_connection(conn);
+        kill_tcp_secure_connection(tcp_server->ev, conn);
         return -1;
     }
 
@@ -1080,11 +1138,15 @@ static int do_incoming(TCP_Server *_Nonnull tcp_server, uint32_t i)
 
     if (conn_new->status != TCP_STATUS_NO_STATUS) {
         LOGGER_ERROR(tcp_server->logger, "incoming connection %u would overwrite existing", i);
-        kill_tcp_secure_connection(conn_new);
+        kill_tcp_secure_connection(tcp_server->ev, conn_new);
     }
 
     move_secure_connection(conn_new, conn_old);
     ++tcp_server->unconfirmed_connection_queue_index;
+
+    conn_new->event_data.type = TCP_SOCKET_UNCONFIRMED;
+    conn_new->event_data.index = index_new;
+    ev_mod(tcp_server->ev, conn_new->con.sock, EV_READ, &conn_new->event_data);
 
     return index_new;
 }
@@ -1108,7 +1170,7 @@ static int do_unconfirmed(TCP_Server *_Nonnull tcp_server, const Mono_Time *_Non
     }
 
     if (len == -1) {
-        kill_tcp_secure_connection(conn);
+        kill_tcp_secure_connection(tcp_server->ev, conn);
         return -1;
     }
 
@@ -1244,13 +1306,13 @@ static bool tcp_epoll_process(TCP_Server *_Nonnull tcp_server, const Mono_Time *
 
                 case TCP_SOCKET_INCOMING: {
                     LOGGER_TRACE(tcp_server->logger, "incoming connection %d dropped", index);
-                    kill_tcp_secure_connection(&tcp_server->incoming_connection_queue[index]);
+                    kill_tcp_secure_connection(tcp_server->ev, &tcp_server->incoming_connection_queue[index]);
                     break;
                 }
 
                 case TCP_SOCKET_UNCONFIRMED: {
                     LOGGER_TRACE(tcp_server->logger, "unconfirmed connection %d dropped", index);
-                    kill_tcp_secure_connection(&tcp_server->unconfirmed_connection_queue[index]);
+                    kill_tcp_secure_connection(tcp_server->ev, &tcp_server->unconfirmed_connection_queue[index]);
                     break;
                 }
 
@@ -1284,15 +1346,15 @@ static bool tcp_epoll_process(TCP_Server *_Nonnull tcp_server, const Mono_Time *
                         continue;
                     }
 
-                    struct epoll_event ev;
+                    struct epoll_event ev_epoll;
 
-                    ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+                    ev_epoll.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
 
-                    ev.data.u64 = net_socket_to_native(sock_new) | ((uint64_t)TCP_SOCKET_INCOMING << 32) | ((uint64_t)index_new << 40);
+                    ev_epoll.data.u64 = net_socket_to_native(sock_new) | ((uint64_t)TCP_SOCKET_INCOMING << 32) | ((uint64_t)index_new << 40);
 
-                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_ADD, net_socket_to_native(sock_new), &ev) == -1) {
+                    if (epoll_ctl(tcp_server->efd, EPOLL_CTL_ADD, net_socket_to_native(sock_new), &ev_epoll) == -1) {
                         LOGGER_DEBUG(tcp_server->logger, "new connection %d was dropped due to epoll error %d", index, net_error());
-                        kill_tcp_secure_connection(&tcp_server->incoming_connection_queue[index_new]);
+                        kill_tcp_secure_connection(tcp_server->ev, &tcp_server->incoming_connection_queue[index_new]);
                         continue;
                     }
                 }
@@ -1310,7 +1372,7 @@ static bool tcp_epoll_process(TCP_Server *_Nonnull tcp_server, const Mono_Time *
 
                     if (epoll_ctl(tcp_server->efd, EPOLL_CTL_MOD, net_socket_to_native(sock), &events[n]) == -1) {
                         LOGGER_DEBUG(tcp_server->logger, "incoming connection %d was dropped due to epoll error %d", index, net_error());
-                        kill_tcp_secure_connection(&tcp_server->unconfirmed_connection_queue[index_new]);
+                        kill_tcp_secure_connection(tcp_server->ev, &tcp_server->unconfirmed_connection_queue[index_new]);
                         break;
                     }
                 }
@@ -1377,8 +1439,11 @@ void kill_tcp_server(TCP_Server *tcp_server)
     }
 
     for (uint32_t i = 0; i < tcp_server->num_listening_socks; ++i) {
+        ev_del(tcp_server->ev, tcp_server->socks_listening[i]);
         kill_sock(tcp_server->ns, tcp_server->socks_listening[i]);
     }
+
+    mem_delete(tcp_server->mem, tcp_server->listening_event_data);
 
     if (tcp_server->onion != nullptr) {
         set_callback_handle_recv_1(tcp_server->onion, nullptr, nullptr);
@@ -1395,8 +1460,8 @@ void kill_tcp_server(TCP_Server *tcp_server)
 #endif /* TCP_SERVER_USE_EPOLL */
 
     for (uint32_t i = 0; i < MAX_INCOMING_CONNECTIONS; ++i) {
-        wipe_secure_connection(&tcp_server->incoming_connection_queue[i]);
-        wipe_secure_connection(&tcp_server->unconfirmed_connection_queue[i]);
+        kill_tcp_secure_connection(tcp_server->ev, &tcp_server->incoming_connection_queue[i]);
+        kill_tcp_secure_connection(tcp_server->ev, &tcp_server->unconfirmed_connection_queue[i]);
     }
 
     free_accepted_connection_array(tcp_server);

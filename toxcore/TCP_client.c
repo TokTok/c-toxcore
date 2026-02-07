@@ -33,6 +33,7 @@ typedef struct TCP_Client_Conn {
 
 struct TCP_Client_Connection {
     TCP_Connection con;
+    Ev *_Nonnull ev;
     TCP_Client_Status status;
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* our public key */
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* public key of the server */
@@ -594,7 +595,7 @@ void forwarding_handler(TCP_Client_Connection *con, forwarded_response_cb *forwa
 
 /** Create new TCP connection to ip_port/public_key */
 TCP_Client_Connection *new_tcp_connection(
-    const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns,
+    const Logger *logger, const Memory *mem, const Mono_Time *mono_time, const Random *rng, const Network *ns, Ev *ev,
     const IP_Port *ip_port, const uint8_t *public_key, const uint8_t *self_public_key, const uint8_t *self_secret_key,
     const TCP_Proxy_Info *proxy_info, Net_Profile *_Nullable net_profile)
 {
@@ -603,6 +604,7 @@ TCP_Client_Connection *new_tcp_connection(
     assert(mono_time != nullptr);
     assert(rng != nullptr);
     assert(ns != nullptr);
+    assert(ev != nullptr);
 
     if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
         LOGGER_ERROR(logger, "Invalid IP family: %d", ip_port->ip.family.value);
@@ -662,11 +664,14 @@ TCP_Client_Connection *new_tcp_connection(
     temp->con.sock = sock;
     temp->con.ip_port = *ip_port;
     temp->con.net_profile = net_profile;
+    temp->ev = ev;
     memcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
     encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key);
     temp->ip_port = *ip_port;
     temp->proxy_info = *proxy_info;
+
+    ev_add(ev, sock, EV_READ, temp);
 
     switch (proxy_info->proxy_type) {
         case TCP_PROXY_HTTP: {
@@ -1044,6 +1049,7 @@ void kill_tcp_connection(TCP_Client_Connection *tcp_connection)
 
     const Memory *mem = tcp_connection->con.mem;
 
+    ev_del(tcp_connection->ev, tcp_connection->con.sock);
     wipe_priority_list(tcp_connection->con.mem, tcp_connection->con.priority_queue_start);
     kill_sock(tcp_connection->con.ns, tcp_connection->con.sock);
     crypto_memzero(tcp_connection, sizeof(TCP_Client_Connection));
