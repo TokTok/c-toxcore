@@ -215,14 +215,12 @@ static Tox_Event_Conference_Peer_Name *tox_event_conference_peer_name_alloc(Tox_
  *****************************************************/
 
 void tox_events_handle_conference_peer_name(
-    Tox *tox,
     uint32_t conference_number,
     uint32_t peer_number,
     const uint8_t *name, size_t length,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Peer_Name *conference_peer_name = tox_event_conference_peer_name_alloc(state);
+    Tox_Event_Conference_Peer_Name *conference_peer_name = tox_event_conference_peer_name_alloc(tox_events_alloc(state));
 
     if (conference_peer_name == nullptr) {
         return;

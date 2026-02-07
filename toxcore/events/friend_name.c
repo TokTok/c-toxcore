@@ -201,13 +201,11 @@ static Tox_Event_Friend_Name *tox_event_friend_name_alloc(Tox_Events_State *_Non
  *****************************************************/
 
 void tox_events_handle_friend_name(
-    Tox *tox,
     uint32_t friend_number,
     const uint8_t *name, size_t length,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Friend_Name *friend_name = tox_event_friend_name_alloc(state);
+    Tox_Event_Friend_Name *friend_name = tox_event_friend_name_alloc(tox_events_alloc(state));
 
     if (friend_name == nullptr) {
         return;
