@@ -47,6 +47,50 @@ typedef enum Tox_Err_New_Testing {
 
 Tox *_Nullable tox_new_testing(const Tox_Options *_Nonnull options, Tox_Err_New *_Nullable error, const Tox_Options_Testing *_Nonnull testing, Tox_Err_New_Testing *_Nullable testing_error);
 
+typedef enum Tox_Err_Iterate_Options_New {
+    TOX_ERR_ITERATE_OPTIONS_NEW_OK,
+    TOX_ERR_ITERATE_OPTIONS_NEW_MALLOC,
+} Tox_Err_Iterate_Options_New;
+
+typedef struct Tox_Iterate_Options Tox_Iterate_Options;
+
+/**
+ * Allocates a new Tox_Iterate_Options object and initializes it with
+ * default values.
+ *
+ * Default values:
+ * - fail_hard: false
+ *
+ * @param error An error code. Will be set to OK on success.
+ * @return A new options object or NULL on failure.
+ */
+Tox_Iterate_Options *_Nullable tox_iterate_options_new(Tox_Err_Iterate_Options_New *_Nullable error);
+
+/**
+ * Frees the options object.
+ */
+void tox_iterate_options_free(Tox_Iterate_Options *_Nullable options);
+
+/**
+ * Set whether to drop all events when any allocation fails.
+ *
+ * This only applies when using tox_events_iterate.
+ */
+void tox_iterate_options_set_fail_hard(Tox_Iterate_Options *_Nonnull options, bool fail_hard);
+
+/**
+ * Get whether to drop all events when any allocation fails.
+ */
+bool tox_iterate_options_get_fail_hard(const Tox_Iterate_Options *_Nullable options);
+
+/**
+ * Run a single tox_iterate iteration with custom options.
+ */
+void tox_iterate_with_options(
+    Tox *_Nonnull tox,
+    const Tox_Iterate_Options *_Nullable options,
+    void *_Nullable user_data);
+
 void tox_lock(const Tox *_Nonnull tox);
 void tox_unlock(const Tox *_Nonnull tox);
 

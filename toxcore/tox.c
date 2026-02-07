@@ -13,6 +13,7 @@
 #include "tox.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "DHT.h"
@@ -1231,7 +1232,7 @@ uint32_t tox_iteration_interval(const Tox *tox)
     return ret;
 }
 
-void tox_iterate(Tox *tox, void *user_data)
+void tox_iterate_with_options(Tox *tox, const Tox_Iterate_Options *options, void *user_data)
 {
     assert(tox != nullptr);
     tox_lock(tox);
@@ -1243,6 +1244,11 @@ void tox_iterate(Tox *tox, void *user_data)
     do_groupchats(tox->m->conferences_object, &tox_data);
 
     tox_unlock(tox);
+}
+
+void tox_iterate(Tox *tox, void *user_data)
+{
+    tox_iterate_with_options(tox, nullptr, user_data);
 }
 
 void tox_self_get_address(const Tox *tox, Tox_Address address)
@@ -4727,4 +4733,43 @@ const Tox_System *tox_get_system(const Tox *tox)
 {
     assert(tox != nullptr);
     return &tox->sys;
+}
+
+struct Tox_Iterate_Options {
+    bool fail_hard;
+};
+
+Tox_Iterate_Options *tox_iterate_options_new(Tox_Err_Iterate_Options_New *error)
+{
+    // cppcheck-suppress misra-c2012-21.3
+    Tox_Iterate_Options *options = (Tox_Iterate_Options *)calloc(1, sizeof(Tox_Iterate_Options));
+
+    if (options != nullptr) {
+        options->fail_hard = false;
+
+        SET_ERROR_PARAMETER(error, TOX_ERR_ITERATE_OPTIONS_NEW_OK);
+
+        return options;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_ITERATE_OPTIONS_NEW_MALLOC);
+    return nullptr;
+}
+
+void tox_iterate_options_free(Tox_Iterate_Options *options)
+{
+    // cppcheck-suppress misra-c2012-21.3
+    free(options);
+}
+
+void tox_iterate_options_set_fail_hard(Tox_Iterate_Options *options, bool fail_hard)
+{
+    if (options != nullptr) {
+        options->fail_hard = fail_hard;
+    }
+}
+
+bool tox_iterate_options_get_fail_hard(const Tox_Iterate_Options *options)
+{
+    return options == nullptr ? false : options->fail_hard;
 }
