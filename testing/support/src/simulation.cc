@@ -5,6 +5,9 @@
 #include <iostream>
 #include <thread>
 
+#include "../../../toxcore/os_event.h"
+#include "../doubles/fake_event.hh"
+
 namespace tox::test {
 
 // --- LogFilter ---
@@ -307,6 +310,9 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
     system.ns = &c_network;
     system.rng = &c_random;
     system.mem = &c_memory;
+    // We hand over ownership of FakeEvent to Tox (it will call ev_kill -> kill_callback -> delete)
+    auto *fake_ev = new FakeEvent(*network_);
+    system.ev = fake_ev->c_event();
     system.mono_time_callback = [](void *_Nullable user_data) -> uint64_t {
         return static_cast<FakeClock *>(user_data)->current_time_ms();
     };

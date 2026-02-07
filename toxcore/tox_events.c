@@ -5,6 +5,7 @@
 #include "tox_events.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "attributes.h"
@@ -88,15 +89,18 @@ const Tox_Event *tox_events_get(const Tox_Events *events, uint32_t index)
     return &events->events[index];
 }
 
-Tox_Events *tox_events_iterate(Tox *tox, bool fail_hard, Tox_Err_Events_Iterate *error)
+Tox_Events *tox_events_iterate(Tox *tox, const Tox_Iterate_Options *options, Tox_Err_Events_Iterate *error)
 {
     const Tox_System *sys = tox_get_system(tox);
-    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem};
-    tox_iterate(tox, &state);
+    Tox_Events_State state = {TOX_ERR_EVENTS_ITERATE_OK, sys->mem, nullptr};
+
+    tox_iterate_with_timeout(tox, &state, options);
 
     if (error != nullptr) {
         *error = state.error;
     }
+
+    const bool fail_hard = tox_iterate_options_get_fail_hard(options);
 
     if (fail_hard && state.error != TOX_ERR_EVENTS_ITERATE_OK) {
         tox_events_free(state.events);
