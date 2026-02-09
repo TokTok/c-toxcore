@@ -40,6 +40,7 @@
 #include "../../../toxcore/network.h"
 #include "../../../toxcore/onion.h"
 #include "../../../toxcore/onion_announce.h"
+#include "../../../toxcore/os_event.h"
 #include "../../../toxcore/os_memory.h"
 #include "../../../toxcore/os_random.h"
 
@@ -298,15 +299,16 @@ int main(int argc, char *argv[])
 
     logger_callback_log(logger, toxcore_logger_callback, nullptr, nullptr);
 
+    Ev *ev = os_event_new(mem, logger);
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
-    Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
+    Networking_Core *net = new_networking_ex(logger, mem, ns, ev, &ip, start_port, end_port, nullptr);
 
     if (net == nullptr) {
         if (enable_ipv6 && enable_ipv4_fallback) {
             LOG_WRITE(LOG_LEVEL_WARNING, "Couldn't initialize IPv6 networking. Falling back to using IPv4.\n");
             enable_ipv6 = false;
             ip_init(&ip, enable_ipv6);
-            net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
+            net = new_networking_ex(logger, mem, ns, ev, &ip, start_port, end_port, nullptr);
 
             if (net == nullptr) {
                 LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't fallback to IPv4. Exiting.\n");
@@ -494,7 +496,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        tcp_server = new_tcp_server(logger, mem, rng, ns, enable_ipv6,
+        tcp_server = new_tcp_server(logger, mem, rng, ns, ev, enable_ipv6,
                                     tcp_relay_port_count, tcp_relay_ports,
                                     dht_get_self_secret_key(dht), onion, forwarding);
 
@@ -639,6 +641,7 @@ int main(int argc, char *argv[])
     kill_dht(dht);
     mono_time_free(mem, mono_time);
     kill_networking(net);
+    ev_kill(ev);
     logger_kill(logger);
 
     return 0;

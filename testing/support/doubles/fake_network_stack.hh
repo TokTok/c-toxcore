@@ -14,7 +14,11 @@
 
 namespace tox::test {
 
+class FakeEvent;
+
 class FakeNetworkStack : public NetworkSystem {
+    friend class FakeEvent;
+
 public:
     explicit FakeNetworkStack(NetworkUniverse &universe, const IP &node_ip);
     ~FakeNetworkStack() override;

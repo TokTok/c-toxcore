@@ -17,6 +17,7 @@
 #include "mono_time.h"
 #include "network.h"
 #include "network_test_util.hh"
+#include "os_event.h"
 #include "test_util.hh"
 
 namespace {
@@ -363,7 +364,8 @@ TEST(AnnounceNodes, SetAndTest)
         },
         &env.fake_clock());
 
-    Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct));
+    Ptr<Ev> ev(os_event_new(&c_mem, log));
+    Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct, ev.get()));
     ASSERT_NE(net, nullptr);
     Ptr<DHT> dht(new_dht(log, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
     ASSERT_NE(dht, nullptr);

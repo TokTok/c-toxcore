@@ -123,6 +123,7 @@ typedef struct Packet_Handler {
 struct Networking_Core {
     const Logger *_Nonnull log;
     const Memory *_Nonnull mem;
+    Ev *_Nonnull ev;
     Packet_Handler packethandlers[256];
     const Network *_Nonnull ns;
 
@@ -154,13 +155,16 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
     if (net_family_is_unspec(ip_port->ip.family)) {
         // TODO(iphydf): Make this an error. Currently this fails sometimes when
         // called from DHT.c:do_ping_and_sendnode_requests.
+        LOGGER_WARNING(net->log, "Failed to send packet because the target address family is unspecified (length %u).",
+                       packet.length);
         return -1;
     }
 
     if (net_family_is_unspec(net->family)) { /* Socket not initialized */
         // TODO(iphydf): Make this an error. Currently, the onion client calls
         // this via DHT nodes requests.
-        LOGGER_WARNING(net->log, "attempted to send message of length %u on uninitialised socket", packet.length);
+        LOGGER_WARNING(net->log, "Failed to send packet on an uninitialised socket (length %u, family %s, port %u, socket %d).",
+                       packet.length, net_family_to_string(net->family), net_ntohs(net->port), net_socket_to_native(net->sock));
         return -1;
     }
 
@@ -295,7 +299,7 @@ void networking_poll(const Networking_Core *net, void *userdata)
  * If error is non NULL it is set to 0 if no issues, 1 if socket related error, 2 if other.
  */
 Networking_Core *new_networking_ex(
-    const Logger *log, const Memory *mem, const Network *ns, const IP *ip,
+    const Logger *log, const Memory *mem, const Network *ns, Ev *ev, const IP *ip,
     uint16_t port_from, uint16_t port_to, unsigned int *error)
 {
     /* If both from and to are 0, use default port range
@@ -318,6 +322,8 @@ Networking_Core *new_networking_ex(
     if (error != nullptr) {
         *error = 2;
     }
+
+    LOGGER_DEBUG(log, "Creating networking core for address family %s.", net_family_to_string(ip->family));
 
     /* maybe check for invalid IPs like 224+.x.y.z? if there is any IP set ever */
     if (!net_family_is_ipv4(ip->family) && !net_family_is_ipv6(ip->family)) {
@@ -342,6 +348,7 @@ Networking_Core *new_networking_ex(
     temp->ns = ns;
     temp->log = log;
     temp->mem = mem;
+    temp->ev = ev;
     temp->family = ip->family;
     temp->port = 0;
 
@@ -471,6 +478,8 @@ Networking_Core *new_networking_ex(
                 *error = 0;
             }
 
+            ev_add(ev, temp->sock, EV_READ, temp);
+
             return temp;
         }
 
@@ -497,8 +506,9 @@ Networking_Core *new_networking_ex(
     return nullptr;
 }
 
-Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns)
+Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, const Network *ns, Ev *ev)
 {
+    LOGGER_DEBUG(log, "Creating networking core with UDP disabled.");
     /* this is the easiest way to completely disable UDP without changing too much code. */
     Networking_Core *net = (Networking_Core *)mem_alloc(mem, sizeof(Networking_Core));
 
@@ -509,6 +519,11 @@ Networking_Core *new_networking_no_udp(const Logger *log, const Memory *mem, con
     net->ns = ns;
     net->log = log;
     net->mem = mem;
+    net->ev = ev;
+    net->family = net_family_unspec();
+    net->port = 0;
+    net->sock = net_invalid_socket();
+    net->udp_net_profile = nullptr;
 
     return net;
 }
@@ -522,6 +537,7 @@ void kill_networking(Networking_Core *net)
 
     if (!net_family_is_unspec(net->family)) {
         /* Socket is initialized, so we close it. */
+        ev_del(net->ev, net->sock);
         kill_sock(net->ns, net->sock);
     }
 

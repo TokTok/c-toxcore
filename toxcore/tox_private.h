@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "ev.h"
 #include "tox.h"
 #include "tox_attributes.h"
 #include "tox_options.h"
@@ -30,6 +31,7 @@ typedef struct Tox_System {
     const Random *_Nullable rng;
     const Network *_Nullable ns;
     const Memory *_Nullable mem;
+    Ev *_Nullable ev; // _Owned
 } Tox_System;
 
 Tox_System tox_default_system(void);

@@ -14,6 +14,7 @@
 
 #include "attributes.h"
 #include "crypto_core.h"
+#include "ev.h"
 #include "forwarding.h"
 #include "logger.h"
 #include "mem.h"
@@ -48,7 +49,7 @@ size_t tcp_server_listen_count(const TCP_Server *_Nonnull tcp_server);
 
 /** Create new TCP server instance. */
 TCP_Server *_Nullable new_tcp_server(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns,
-                                     bool ipv6_enabled, uint16_t num_sockets, const uint16_t *_Nonnull ports,
+                                     Ev *_Nonnull ev, bool ipv6_enabled, uint16_t num_sockets, const uint16_t *_Nonnull ports,
                                      const uint8_t *_Nonnull secret_key, Onion *_Nullable onion, Forwarding *_Nullable forwarding);
 /** Run the TCP_server */
 void do_tcp_server(TCP_Server *_Nonnull tcp_server, const Mono_Time *_Nonnull mono_time);
