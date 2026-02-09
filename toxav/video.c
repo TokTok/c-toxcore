@@ -93,12 +93,14 @@ static vpx_codec_iface_t *_Nonnull video_codec_encoder_interface(void)
 #define VPX_MAX_DECODER_THREADS 4
 #define VIDEO_VP8_DECODER_POST_PROCESSING_ENABLED 0
 
-static void vc_init_encoder_cfg(const Logger *_Nonnull log, vpx_codec_enc_cfg_t *_Nonnull cfg, int16_t kf_max_dist)
+static vpx_codec_err_t vc_init_encoder_cfg(const Logger *_Nonnull log, vpx_codec_enc_cfg_t *_Nonnull cfg,
+        int16_t kf_max_dist)
 {
     const vpx_codec_err_t rc = vpx_codec_enc_config_default(video_codec_encoder_interface(), cfg, 0);
 
     if (rc != VPX_CODEC_OK) {
         LOGGER_ERROR(log, "vc_init_encoder_cfg:Failed to get config: %s", vpx_codec_err_to_string(rc));
+        return rc;
     }
 
     /* Target bandwidth to use for this stream, in kilobits per second */
@@ -160,6 +162,8 @@ static void vc_init_encoder_cfg(const Logger *_Nonnull log, vpx_codec_enc_cfg_t 
     cfg->rc_buf_optimal_sz = 600;
     cfg->rc_buf_sz = 1000;
 #endif /* 0 */
+
+    return VPX_CODEC_OK;
 }
 
 VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_time, uint32_t friend_number,
@@ -173,7 +177,7 @@ VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_ti
     vpx_codec_err_t rc;
 
     if (vc == nullptr) {
-        LOGGER_WARNING(log, "Allocation failed! Application might misbehave!");
+        LOGGER_ERROR(log, "Allocation failed! Application might misbehave!");
         return nullptr;
     }
 
@@ -181,13 +185,13 @@ VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_ti
 
     vc->queue_mutex = (pthread_mutex_t *)mem_alloc(mem, sizeof(pthread_mutex_t));
     if (vc->queue_mutex == nullptr) {
-        LOGGER_WARNING(log, "Allocation failed! Application might misbehave!");
+        LOGGER_ERROR(log, "Allocation failed! Application might misbehave!");
         free(vc);
         return nullptr;
     }
 
     if (create_recursive_mutex(vc->queue_mutex) != 0) {
-        LOGGER_WARNING(log, "Failed to create recursive mutex!");
+        LOGGER_ERROR(log, "Failed to create recursive mutex!");
         mem_delete(mem, vc->queue_mutex);
         free(vc);
         return nullptr;
@@ -198,6 +202,7 @@ VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_ti
     vc->vbuf_raw = rb_new(VIDEO_DECODE_BUFFER_SIZE);
 
     if (vc->vbuf_raw == nullptr) {
+        LOGGER_ERROR(log, "Failed to create ring buffer!");
         goto BASE_CLEANUP;
     }
 
@@ -218,12 +223,17 @@ VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_ti
                             VPX_CODEC_USE_FRAME_THREADING | VPX_CODEC_USE_POSTPROC);
 
     if (rc == VPX_CODEC_INCAPABLE) {
-        LOGGER_WARNING(log, "Postproc not supported by this decoder (0)");
+        LOGGER_WARNING(log, "Postproc not supported by this decoder, trying without (0)");
         rc = vpx_codec_dec_init(vc->decoder, video_codec_decoder_interface(), &dec_cfg, VPX_CODEC_USE_FRAME_THREADING);
     }
 
+    if (rc == VPX_CODEC_INCAPABLE) {
+        LOGGER_WARNING(log, "Threading not supported by this decoder, trying without (0)");
+        rc = vpx_codec_dec_init(vc->decoder, video_codec_decoder_interface(), &dec_cfg, 0);
+    }
+
     if (rc != VPX_CODEC_OK) {
-        LOGGER_ERROR(log, "Init video_decoder failed: %s", vpx_codec_err_to_string(rc));
+        LOGGER_ERROR(log, "Init video_decoder failed (rc=%d): %s", (int)rc, vpx_codec_err_to_string(rc));
         goto BASE_CLEANUP;
     }
 
@@ -250,13 +260,23 @@ VCSession *vc_new(const Memory *mem, const Logger *log, const Mono_Time *mono_ti
     /* Set encoder to some initial values
      */
     vpx_codec_enc_cfg_t cfg;
-    vc_init_encoder_cfg(log, &cfg, 1);
+    rc = vc_init_encoder_cfg(log, &cfg, 1);
+
+    if (rc != VPX_CODEC_OK) {
+        LOGGER_ERROR(log, "Failed to initialize encoder config (rc=%d): %s", (int)rc, vpx_codec_err_to_string(rc));
+        goto BASE_CLEANUP_1;
+    }
 
     LOGGER_DEBUG(log, "Using VP8 codec for encoder (0.1)");
     rc = vpx_codec_enc_init(vc->encoder, video_codec_encoder_interface(), &cfg, VPX_CODEC_USE_FRAME_THREADING);
 
+    if (rc == VPX_CODEC_INCAPABLE) {
+        LOGGER_WARNING(log, "Threading not supported by this encoder, trying without (0.1)");
+        rc = vpx_codec_enc_init(vc->encoder, video_codec_encoder_interface(), &cfg, 0);
+    }
+
     if (rc != VPX_CODEC_OK) {
-        LOGGER_ERROR(log, "Failed to initialize encoder: %s", vpx_codec_err_to_string(rc));
+        LOGGER_ERROR(log, "Failed to initialize encoder (rc=%d): %s", (int)rc, vpx_codec_err_to_string(rc));
         goto BASE_CLEANUP_1;
     }
 
@@ -474,7 +494,13 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
          */
         LOGGER_DEBUG(vc->log, "Have to reinitialize vpx encoder on session %p", (void *)vc);
         vpx_codec_enc_cfg_t  cfg;
-        vc_init_encoder_cfg(vc->log, &cfg, kf_max_dist);
+        vpx_codec_err_t rc = vc_init_encoder_cfg(vc->log, &cfg, kf_max_dist);
+
+        if (rc != VPX_CODEC_OK) {
+            LOGGER_ERROR(vc->log, "Failed to initialize encoder config: %s", vpx_codec_err_to_string(rc));
+            return -1;
+        }
+
         cfg.rc_target_bitrate = bit_rate;
         cfg.g_w = width;
         cfg.g_h = height;
@@ -482,7 +508,12 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
         /* Atomic reconfiguration: Initialize new encoder first */
         vpx_codec_ctx_t new_encoder;
         LOGGER_DEBUG(vc->log, "Using VP8 codec for encoder");
-        vpx_codec_err_t rc = vpx_codec_enc_init(&new_encoder, video_codec_encoder_interface(), &cfg, VPX_CODEC_USE_FRAME_THREADING);
+        rc = vpx_codec_enc_init(&new_encoder, video_codec_encoder_interface(), &cfg, VPX_CODEC_USE_FRAME_THREADING);
+
+        if (rc == VPX_CODEC_INCAPABLE) {
+            LOGGER_WARNING(vc->log, "Threading not supported by this encoder, trying without");
+            rc = vpx_codec_enc_init(&new_encoder, video_codec_encoder_interface(), &cfg, 0);
+        }
 
         if (rc != VPX_CODEC_OK) {
             LOGGER_ERROR(vc->log, "Failed to initialize encoder: %s", vpx_codec_err_to_string(rc));

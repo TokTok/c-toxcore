@@ -6,8 +6,40 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <iostream>
 
 #include "../toxcore/os_memory.h"
+
+static void test_log_cb(void *context, Logger_Level level, const char *file, uint32_t line,
+    const char *func, const char *message, void *userdata)
+{
+    const char *level_str = "UNKNOWN";
+
+    switch (level) {
+    case LOGGER_LEVEL_TRACE:
+        level_str = "TRACE";
+        break;
+
+    case LOGGER_LEVEL_DEBUG:
+        level_str = "DEBUG";
+        break;
+
+    case LOGGER_LEVEL_INFO:
+        level_str = "INFO";
+        break;
+
+    case LOGGER_LEVEL_WARNING:
+        level_str = "WARNING";
+        break;
+
+    case LOGGER_LEVEL_ERROR:
+        level_str = "ERROR";
+        break;
+    }
+
+    std::cerr << "[" << level_str << "] " << file << ":" << line << " " << func << ": " << message
+              << "\n";
+}
 
 // Mock Time
 std::uint64_t mock_time_cb(void *_Nullable ud) { return static_cast<MockTime *>(ud)->t; }
@@ -168,6 +200,7 @@ void AvTest::SetUp()
 {
     mem = os_memory();
     log = logger_new(mem);
+    logger_callback_log(log, test_log_cb, nullptr, nullptr);
     tm.t = 1000;
     mono_time = mono_time_new(mem, mock_time_cb, &tm);
     mono_time_update(mono_time);
