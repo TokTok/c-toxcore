@@ -583,10 +583,9 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
 )";
     f << "void tox_events_handle_" << event_name_l << "(\n";
-    f << "    Tox *tox";
 
     for (const auto& t : event_types) {
-        f << ",\n    ";
+        f << "    ";
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
@@ -601,11 +600,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             },
             t
         );
+        f << ",\n";
     }
 
-    f << ",\n    void *user_data)\n{\n";
-    f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
-    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(state);\n\n";
+    f << "    Tox_Events_State *state)\n{\n";
+    f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(tox_events_alloc(state));\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n        return;\n    }\n\n";
 
     for (const auto& t : event_types) {

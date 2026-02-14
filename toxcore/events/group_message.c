@@ -245,16 +245,14 @@ static Tox_Event_Group_Message *tox_event_group_message_alloc(Tox_Events_State *
  *****************************************************/
 
 void tox_events_handle_group_message(
-    Tox *tox,
     uint32_t group_number,
     uint32_t peer_id,
     Tox_Message_Type message_type,
     const uint8_t *message, size_t message_length,
     uint32_t message_id,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Message *group_message = tox_event_group_message_alloc(state);
+    Tox_Event_Group_Message *group_message = tox_event_group_message_alloc(tox_events_alloc(state));
 
     if (group_message == nullptr) {
         return;
