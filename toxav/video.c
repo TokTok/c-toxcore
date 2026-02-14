@@ -547,20 +547,30 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
         vc->raw_encoder_frame_allocated = false;
     }
 
-    if (!vc->raw_encoder_frame_allocated) {
-        if (vpx_img_alloc(&vc->raw_encoder_frame, VPX_IMG_FMT_I420, width, height, 1) == nullptr) {
-            LOGGER_ERROR(vc->log, "Could not allocate image for frame");
-            return -1;
+    vpx_image_t *img = nullptr;
+    vpx_image_t img_wrapped;
+    if (vpx_img_wrap(&img_wrapped, VPX_IMG_FMT_I420, width, height, 1, (uint8_t *)y) != nullptr) {
+        img = &img_wrapped;
+        // vpx_img_wrap assumes contigues memory, so we fix that
+        img->planes[VPX_PLANE_U] = (uint8_t *)u;
+        img->planes[VPX_PLANE_V] = (uint8_t *)v;
+    } else {
+        // call to wrap failed, falling back to copy
+        if (!vc->raw_encoder_frame_allocated) {
+            if (vpx_img_alloc(&vc->raw_encoder_frame, VPX_IMG_FMT_I420, width, height, 1) == nullptr) {
+                LOGGER_ERROR(vc->log, "Could not allocate image for frame");
+                return -1;
+            }
+
+            vc->raw_encoder_frame_allocated = true;
         }
 
-        vc->raw_encoder_frame_allocated = true;
+        img = &vc->raw_encoder_frame;
+
+        memcpy(img->planes[VPX_PLANE_Y], y, (size_t)width * height);
+        memcpy(img->planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
+        memcpy(img->planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
     }
-
-    vpx_image_t *img = &vc->raw_encoder_frame;
-
-    memcpy(img->planes[VPX_PLANE_Y], y, (size_t)width * height);
-    memcpy(img->planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
-    memcpy(img->planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
 
     int vpx_flags = 0;
 
