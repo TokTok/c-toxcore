@@ -111,7 +111,7 @@ void tox_event_group_peer_join_free(Tox_Event_Group_Peer_Join *group_peer_join, 
     mem_delete(mem, group_peer_join);
 }
 
-static Tox_Event_Group_Peer_Join *tox_events_add_group_peer_join(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Group_Peer_Join *_Nullable tox_events_add_group_peer_join(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Group_Peer_Join *const group_peer_join = tox_event_group_peer_join_new(mem);
 
@@ -144,7 +144,7 @@ bool tox_event_group_peer_join_unpack(
     return tox_event_group_peer_join_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Peer_Join *tox_event_group_peer_join_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Group_Peer_Join *_Nullable tox_event_group_peer_join_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -167,10 +167,10 @@ static Tox_Event_Group_Peer_Join *tox_event_group_peer_join_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_peer_join(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t group_number,
     uint32_t peer_id,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Group_Peer_Join *group_peer_join = tox_event_group_peer_join_alloc(state);

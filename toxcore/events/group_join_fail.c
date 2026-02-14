@@ -113,7 +113,7 @@ void tox_event_group_join_fail_free(Tox_Event_Group_Join_Fail *group_join_fail, 
     mem_delete(mem, group_join_fail);
 }
 
-static Tox_Event_Group_Join_Fail *tox_events_add_group_join_fail(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Group_Join_Fail *_Nullable tox_events_add_group_join_fail(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Group_Join_Fail *const group_join_fail = tox_event_group_join_fail_new(mem);
 
@@ -146,7 +146,7 @@ bool tox_event_group_join_fail_unpack(
     return tox_event_group_join_fail_unpack_into(*event, bu);
 }
 
-static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Group_Join_Fail *_Nullable tox_event_group_join_fail_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -169,10 +169,10 @@ static Tox_Event_Group_Join_Fail *tox_event_group_join_fail_alloc(Tox_Events_Sta
  *****************************************************/
 
 void tox_events_handle_group_join_fail(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t group_number,
     Tox_Group_Join_Fail fail_type,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Group_Join_Fail *group_join_fail = tox_event_group_join_fail_alloc(state);

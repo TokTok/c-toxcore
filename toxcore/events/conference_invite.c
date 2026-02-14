@@ -161,7 +161,7 @@ void tox_event_conference_invite_free(Tox_Event_Conference_Invite *conference_in
     mem_delete(mem, conference_invite);
 }
 
-static Tox_Event_Conference_Invite *tox_events_add_conference_invite(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Conference_Invite *_Nullable tox_events_add_conference_invite(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Conference_Invite *const conference_invite = tox_event_conference_invite_new(mem);
 
@@ -194,7 +194,7 @@ bool tox_event_conference_invite_unpack(
     return tox_event_conference_invite_unpack_into(*event, bu);
 }
 
-static Tox_Event_Conference_Invite *tox_event_conference_invite_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Conference_Invite *_Nullable tox_event_conference_invite_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -217,11 +217,11 @@ static Tox_Event_Conference_Invite *tox_event_conference_invite_alloc(Tox_Events
  *****************************************************/
 
 void tox_events_handle_conference_invite(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t friend_number,
     Tox_Conference_Type type,
-    const uint8_t *cookie, size_t length,
-    void *user_data)
+    const uint8_t *_Nullable cookie, size_t length,
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Conference_Invite *conference_invite = tox_event_conference_invite_alloc(state);

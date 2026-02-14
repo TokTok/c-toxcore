@@ -104,7 +104,7 @@ struct RTPWorkBuffer {
     /**
      * The message currently being assembled.
      */
-    struct RTPMessage *buf;
+    struct RTPMessage *_Nullable buf;
 };
 
 struct RTPWorkBufferList {
@@ -121,22 +121,22 @@ struct RTPSession {
     uint16_t rsequnum;     /* Receiving sequence number */
     uint32_t rtimestamp;
     uint32_t ssrc; //  this seems to be unused!?
-    struct RTPMessage *mp; /* Expected parted message */
-    struct RTPWorkBufferList *work_buffer_list;
+    struct RTPMessage *_Nullable mp; /* Expected parted message */
+    struct RTPWorkBufferList *_Nonnull work_buffer_list;
     uint8_t  first_packets_counter; /* dismiss first few lost video packets */
-    const Logger *log;
-    Mono_Time *mono_time;
+    const Logger *_Nonnull log;
+    Mono_Time *_Nonnull mono_time;
     bool rtp_receive_active; /* if this is set to false then incoming rtp packets will not be processed by rtp_receive_packet() */
 
-    rtp_send_packet_cb *send_packet;
-    void *send_packet_user_data;
+    rtp_send_packet_cb *_Nullable send_packet;
+    void *_Nullable send_packet_user_data;
 
-    rtp_add_recv_cb *add_recv;
-    rtp_add_lost_cb *add_lost;
-    void *bwc_user_data;
+    rtp_add_recv_cb *_Nullable add_recv;
+    rtp_add_lost_cb *_Nullable add_lost;
+    void *_Nullable bwc_user_data;
 
-    void *cs;
-    rtp_m_cb *mcb;
+    void *_Nonnull cs;
+    rtp_m_cb *_Nonnull mcb;
 };
 
 const uint8_t *rtp_message_data(const RTPMessage *msg)
@@ -852,10 +852,10 @@ static uint32_t rtp_random_u32(void)
     return randombytes_random();
 }
 
-RTPSession *_Nullable rtp_new(const Logger *_Nonnull log, int payload_type, Mono_Time *_Nonnull mono_time,
-                              rtp_send_packet_cb *_Nullable send_packet, void *_Nullable send_packet_user_data,
-                              rtp_add_recv_cb *_Nullable add_recv, rtp_add_lost_cb *_Nullable add_lost, void *_Nullable bwc_user_data,
-                              void *_Nonnull cs, rtp_m_cb *_Nonnull mcb)
+RTPSession *rtp_new(const Logger *log, int payload_type, Mono_Time *mono_time,
+                    rtp_send_packet_cb *send_packet, void *send_packet_user_data,
+                    rtp_add_recv_cb *add_recv, rtp_add_lost_cb *add_lost, void *bwc_user_data,
+                    void *cs, rtp_m_cb *mcb)
 {
     assert(mcb != nullptr);
     assert(cs != nullptr);
@@ -901,7 +901,7 @@ RTPSession *_Nullable rtp_new(const Logger *_Nonnull log, int payload_type, Mono
     return session;
 }
 
-void rtp_kill(const Logger *_Nonnull log, RTPSession *_Nullable session)
+void rtp_kill(const Logger *log, RTPSession *session)
 {
     if (session == nullptr) {
         LOGGER_WARNING(log, "No session");
@@ -922,14 +922,14 @@ void rtp_kill(const Logger *_Nonnull log, RTPSession *_Nullable session)
     free(session);
 }
 
-void rtp_allow_receiving_mark(RTPSession *_Nullable session)
+void rtp_allow_receiving_mark(RTPSession *session)
 {
     if (session != nullptr) {
         session->rtp_receive_active = true;
     }
 }
 
-void rtp_stop_receiving_mark(RTPSession *_Nullable session)
+void rtp_stop_receiving_mark(RTPSession *session)
 {
     if (session != nullptr) {
         session->rtp_receive_active = false;

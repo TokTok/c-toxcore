@@ -282,9 +282,9 @@ static int in_entries(const Onion_Announce *_Nonnull onion_a, const uint8_t *_No
 }
 
 typedef struct Onion_Announce_Entry_Cmp {
-    const Memory *mem;
-    const Mono_Time *mono_time;
-    const uint8_t *comp_public_key;
+    const Memory *_Nonnull mem;
+    const Mono_Time *_Nonnull mono_time;
+    const uint8_t *_Nonnull comp_public_key;
 } Onion_Announce_Entry_Cmp;
 
 static int onion_announce_entry_cmp(const Onion_Announce_Entry_Cmp *_Nonnull cmp, const Onion_Announce_Entry *_Nonnull entry1, const Onion_Announce_Entry *_Nonnull entry2)
@@ -326,7 +326,7 @@ static bool onion_announce_entry_less_handler(const void *_Nonnull object, const
     return onion_announce_entry_cmp(cmp, entry1, entry2) < 0;
 }
 
-static const void *onion_announce_entry_get_handler(const void *_Nonnull arr, uint32_t index)
+static const void *_Nonnull onion_announce_entry_get_handler(const void *_Nonnull arr, uint32_t index)
 {
     const Onion_Announce_Entry *entries = (const Onion_Announce_Entry *)arr;
     return &entries[index];
@@ -339,13 +339,13 @@ static void onion_announce_entry_set_handler(void *_Nonnull arr, uint32_t index,
     entries[index] = *entry;
 }
 
-static void *onion_announce_entry_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
+static void *_Nonnull onion_announce_entry_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
 {
     Onion_Announce_Entry *entries = (Onion_Announce_Entry *)arr;
     return &entries[index];
 }
 
-static void *onion_announce_entry_alloc_handler(const void *_Nonnull object, uint32_t size)
+static void *_Nullable onion_announce_entry_alloc_handler(const void *_Nonnull object, uint32_t size)
 {
     const Onion_Announce_Entry_Cmp *cmp = (const Onion_Announce_Entry_Cmp *)object;
     Onion_Announce_Entry *tmp = (Onion_Announce_Entry *)mem_valloc(cmp->mem, size, sizeof(Onion_Announce_Entry));

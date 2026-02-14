@@ -12,6 +12,7 @@
 
 #include "rtp.h"
 
+#include "../toxcore/attributes.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mono_time.h"
@@ -20,33 +21,33 @@
 
 
 struct ACSession {
-    Mono_Time *mono_time;
-    const Logger *log;
+    Mono_Time *_Nonnull mono_time;
+    const Logger *_Nonnull log;
 
     /* encoding */
-    OpusEncoder *encoder;
+    OpusEncoder *_Nullable encoder;
     uint32_t le_sample_rate; /* Last encoder sample rate */
     uint8_t le_channel_count; /* Last encoder channel count */
     uint32_t le_bit_rate; /* Last encoder bit rate */
 
     /* decoding */
-    OpusDecoder *decoder;
+    OpusDecoder *_Nullable decoder;
     uint8_t lp_channel_count; /* Last packet channel count */
     uint32_t lp_sampling_rate; /* Last packet sample rate */
     uint32_t lp_frame_duration; /* Last packet frame duration */
     uint32_t ld_sample_rate; /* Last decoder sample rate */
     uint8_t ld_channel_count; /* Last decoder channel count */
     uint64_t ldrts; /* Last decoder reconfiguration time stamp */
-    void *j_buf;
+    void *_Nullable j_buf;
 
     pthread_mutex_t queue_mutex[1];
 
-    int16_t *decode_buffer;
+    int16_t *_Nullable decode_buffer;
 
     uint32_t friend_number;
     /* Audio frame receive callback */
-    ac_audio_receive_frame_cb *acb;
-    void *user_data;
+    ac_audio_receive_frame_cb *_Nullable acb;
+    void *_Nullable user_data;
 };
 
 
@@ -327,7 +328,7 @@ int ac_encode(ACSession *ac, const int16_t *pcm, size_t sample_count, uint8_t *d
 }
 
 struct JitterBuffer {
-    struct RTPMessage **queue;
+    struct RTPMessage *_Nullable *_Nonnull queue;
     uint32_t size;
     uint32_t capacity;
     uint16_t bottom;

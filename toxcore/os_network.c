@@ -157,7 +157,7 @@ typedef struct Network_Addr {
     size_t size;
 } Network_Addr;
 
-static void ip_port_to_network_addr(const IP_Port *ip_port, Network_Addr *addr)
+static void ip_port_to_network_addr(const IP_Port *_Nonnull ip_port, Network_Addr *_Nonnull addr)
 {
     addr->size = 0;
     if (net_family_is_ipv4(ip_port->ip.family)) {
@@ -177,7 +177,7 @@ static void ip_port_to_network_addr(const IP_Port *ip_port, Network_Addr *addr)
     }
 }
 
-static bool network_addr_to_ip_port(const Network_Addr *addr, IP_Port *ip_port)
+static bool network_addr_to_ip_port(const Network_Addr *_Nonnull addr, IP_Port *_Nonnull ip_port)
 {
     if (addr->addr.ss_family == AF_INET) {
         const struct sockaddr_in *addr_in = (const struct sockaddr_in *)&addr->addr;
@@ -207,12 +207,12 @@ static bool should_ignore_connect_error(int err)
     return err == EWOULDBLOCK || err == EINPROGRESS;
 }
 
-static const char *inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
+static const char *_Nullable inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     return inet_ntop(AF_INET, addr, buf, bufsize);
 }
 
-static const char *inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
+static const char *_Nullable inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     return inet_ntop(AF_INET6, addr, buf, bufsize);
 }
@@ -241,7 +241,7 @@ static bool should_ignore_connect_error(int err)
     return err == WSAEWOULDBLOCK || err == WSAEINPROGRESS;
 }
 
-static const char *inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
+static const char *_Nullable inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     struct sockaddr_in saddr = {0};
 
@@ -257,7 +257,7 @@ static const char *inet_ntop4(const struct in_addr *_Nonnull addr, char *_Nonnul
     return buf;
 }
 
-static const char *inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
+static const char *_Nullable inet_ntop6(const struct in6_addr *_Nonnull addr, char *_Nonnull buf, size_t bufsize)
 {
     struct sockaddr_in6 saddr = {0};
 
@@ -750,7 +750,7 @@ char *net_strerror(int error, Net_Strerror *buf)
 }
 #else
 #if defined(_GNU_SOURCE) && defined(__GLIBC__)
-static const char *net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
+static const char *_Nonnull net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
 {
     const char *retstr = strerror_r(error, tmp, tmp_size);
 
@@ -761,7 +761,7 @@ static const char *net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size
     return retstr;
 }
 #else
-static const char *net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
+static const char *_Nonnull net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
 {
     const int fmt_error = strerror_r(error, tmp, tmp_size);
 

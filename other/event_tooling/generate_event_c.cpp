@@ -168,7 +168,7 @@ std::string zero_initializer_for_type(const std::string& type) {
     }
 }
 
-void generate_event_impl(const std::string& event_name, const std::vector<EventType>& event_types) {
+void generate_event_impl(const std::string& event_name, const std::vector<EventType>& event_types, bool is_public = true) {
     const std::string event_name_l = str_tolower(event_name);
     const std::string event_name_u = str_toupper(event_name);
     std::string file_name = output_folder + "/" + event_name_l + ".c";
@@ -543,7 +543,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    mem_delete(mem, " << event_name_l << ");\n}\n\n";
 
     // add
-    f << "static Tox_Event_" << event_name << " *tox_events_add_" << event_name_l << "(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)\n{\n";
+    f << "static Tox_Event_" << event_name << " *_Nullable tox_events_add_" << event_name_l << "(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)\n{\n";
     f << "    Tox_Event_" << event_name << " *const " << event_name_l << " = tox_event_" << event_name_l << "_new(mem);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n";
     f << "        return nullptr;\n    }\n\n";
@@ -552,8 +552,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    event.data." << event_name_l << " = " << event_name_l << ";\n\n";
     f << "    if (!tox_events_add(events, &event)) {\n";
     f << "        tox_event_" << event_name_l << "_free(" << event_name_l << ", mem);\n";
-    f << "        return nullptr;\n";
-    f << "    }\n";
+    f << "        return nullptr;\n    }\n";
     f << "    return " << event_name_l << ";\n}\n\n";
 
     // unpack
@@ -566,7 +565,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
     f << "    return tox_event_" << event_name_l << "_unpack_into(*event, bu);\n}\n\n";
 
     // alloc
-    f << "static Tox_Event_" << event_name << " *tox_event_" << event_name_l << "_alloc(Tox_Events_State *_Nonnull state)\n{\n";
+    f << "static Tox_Event_" << event_name << " *_Nullable tox_event_" << event_name_l << "_alloc(Tox_Events_State *_Nonnull state)\n{\n";
     f << "    if (state->events == nullptr) {\n        return nullptr;\n    }\n\n";
     f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_events_add_" << event_name_l << "(state->events, state->mem);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n";
@@ -583,7 +582,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
 )";
     f << "void tox_events_handle_" << event_name_l << "(\n";
-    f << "    Tox *tox";
+    f << "    Tox " << (is_public ? "*_Nonnull " : "*") << "tox";
 
     for (const auto& t : event_types) {
         f << ",\n    ";
@@ -593,17 +592,17 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
                     f << (t.cb_type.empty() ? t.type : t.cb_type) << " " << t.name;
                 },
                 [&](const EventTypeByteRange& t) {
-                    f << "const " << t.type_c_arg << " *" << t.name_data << ", " << t.type_length_cb << " " << t.name_length_cb;
+                    f << "const " << t.type_c_arg << " " << (is_public ? "*_Nullable " : "*") << t.name_data << ", " << t.type_length_cb << " " << t.name_length_cb;
                 },
                 [&](const EventTypeByteArray& t) {
-                    f << "const uint8_t *" << t.name;
+                    f << "const uint8_t " << (is_public ? "*_Nonnull " : "*") << t.name;
                 }
             },
             t
         );
     }
 
-    f << ",\n    void *user_data)\n{\n";
+    f << ",\n    void " << (is_public ? "*_Nullable " : "*") << "user_data)\n{\n";
     f << "    Tox_Events_State *state = tox_events_alloc(user_data);\n";
     f << "    Tox_Event_" << event_name << " *" << event_name_l << " = tox_event_" << event_name_l << "_alloc(state);\n\n";
     f << "    if (" << event_name_l << " == nullptr) {\n        return;\n    }\n\n";
@@ -988,11 +987,11 @@ int main(int argc, char** argv) {
 
     if (argc < 2) {
         for (const auto& [event, event_types] : event_defs) {
-            generate_event_impl(event, event_types);
+            generate_event_impl(event, event_types, event != "Dht_Nodes_Response");
         }
     } else {
         if (event_defs.count(argv[1])) {
-            generate_event_impl(argv[1], event_defs[argv[1]]);
+            generate_event_impl(argv[1], event_defs[argv[1]], std::string(argv[1]) != "Dht_Nodes_Response");
         } else {
             std::cerr << "error: unknown event " << argv[1] << "\n";
             return 1;

@@ -13,7 +13,7 @@ extern "C" {
 
 extern const Memory os_memory_obj;
 
-const Memory *os_memory(void);
+const Memory *_Nonnull os_memory(void);
 
 #ifdef __cplusplus
 } /* extern "C" */

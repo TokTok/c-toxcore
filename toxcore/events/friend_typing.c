@@ -111,7 +111,7 @@ void tox_event_friend_typing_free(Tox_Event_Friend_Typing *friend_typing, const 
     mem_delete(mem, friend_typing);
 }
 
-static Tox_Event_Friend_Typing *tox_events_add_friend_typing(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Friend_Typing *_Nullable tox_events_add_friend_typing(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Friend_Typing *const friend_typing = tox_event_friend_typing_new(mem);
 
@@ -144,7 +144,7 @@ bool tox_event_friend_typing_unpack(
     return tox_event_friend_typing_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Friend_Typing *_Nullable tox_event_friend_typing_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -167,10 +167,10 @@ static Tox_Event_Friend_Typing *tox_event_friend_typing_alloc(Tox_Events_State *
  *****************************************************/
 
 void tox_events_handle_friend_typing(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t friend_number,
     bool typing,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Friend_Typing *friend_typing = tox_event_friend_typing_alloc(state);

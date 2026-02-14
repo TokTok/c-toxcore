@@ -682,9 +682,9 @@ static int client_send_announce_request(Onion_Client *_Nonnull onion_c, uint32_t
 }
 
 typedef struct Onion_Node_Cmp {
-    const Memory *mem;
-    const Mono_Time *mono_time;
-    const uint8_t *comp_public_key;
+    const Memory *_Nonnull mem;
+    const Mono_Time *_Nonnull mono_time;
+    const uint8_t *_Nonnull comp_public_key;
 } Onion_Node_Cmp;
 
 static int onion_node_cmp(const Onion_Node_Cmp *_Nonnull cmp, const Onion_Node *_Nonnull entry1, const Onion_Node *_Nonnull entry2)
@@ -726,7 +726,7 @@ static bool onion_node_less_handler(const void *_Nonnull object, const void *_No
     return onion_node_cmp(cmp, entry1, entry2) < 0;
 }
 
-static const void *onion_node_get_handler(const void *_Nonnull arr, uint32_t index)
+static const void *_Nonnull onion_node_get_handler(const void *_Nonnull arr, uint32_t index)
 {
     const Onion_Node *entries = (const Onion_Node *)arr;
     return &entries[index];
@@ -739,13 +739,13 @@ static void onion_node_set_handler(void *_Nonnull arr, uint32_t index, const voi
     entries[index] = *entry;
 }
 
-static void *onion_node_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
+static void *_Nonnull onion_node_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
 {
     Onion_Node *entries = (Onion_Node *)arr;
     return &entries[index];
 }
 
-static void *onion_node_alloc_handler(const void *_Nonnull object, uint32_t size)
+static void *_Nullable onion_node_alloc_handler(const void *_Nonnull object, uint32_t size)
 {
     const Onion_Node_Cmp *cmp = (const Onion_Node_Cmp *)object;
     Onion_Node *tmp = (Onion_Node *)mem_valloc(cmp->mem, size, sizeof(Onion_Node));

@@ -79,9 +79,6 @@ TEST(Tox, BootstrapErrorCodes)
     tox_bootstrap(tox, "127.0.0.1", 0, pk.data(), &err);
     EXPECT_EQ(err, TOX_ERR_BOOTSTRAP_BAD_PORT);
 
-    tox_bootstrap(tox, nullptr, 33445, pk.data(), &err);
-    EXPECT_EQ(err, TOX_ERR_BOOTSTRAP_NULL);
-
     tox_kill(tox);
 }
 
@@ -135,9 +132,6 @@ TEST(Tox, OneTest)
 
     tox_self_get_address(tox2, address.data());
     std::vector<std::uint8_t> message(tox_max_friend_request_length() + 1);
-    ret = tox_friend_add(tox1, address.data(), nullptr, 0, &error);
-    EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_NULL) << "Sending request with no message worked.";
-    EXPECT_EQ(ret, UINT32_MAX);
     ret = tox_friend_add(tox1, address.data(), message.data(), 0, &error);
     EXPECT_EQ(error, TOX_ERR_FRIEND_ADD_NO_MESSAGE) << "Sending request with no message worked.";
     EXPECT_EQ(ret, UINT32_MAX);

@@ -113,7 +113,7 @@ void tox_event_friend_connection_status_free(Tox_Event_Friend_Connection_Status 
     mem_delete(mem, friend_connection_status);
 }
 
-static Tox_Event_Friend_Connection_Status *tox_events_add_friend_connection_status(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Friend_Connection_Status *_Nullable tox_events_add_friend_connection_status(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Friend_Connection_Status *const friend_connection_status = tox_event_friend_connection_status_new(mem);
 
@@ -146,7 +146,7 @@ bool tox_event_friend_connection_status_unpack(
     return tox_event_friend_connection_status_unpack_into(*event, bu);
 }
 
-static Tox_Event_Friend_Connection_Status *tox_event_friend_connection_status_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Friend_Connection_Status *_Nullable tox_event_friend_connection_status_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -169,10 +169,10 @@ static Tox_Event_Friend_Connection_Status *tox_event_friend_connection_status_al
  *****************************************************/
 
 void tox_events_handle_friend_connection_status(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t friend_number,
     Tox_Connection connection_status,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Friend_Connection_Status *friend_connection_status = tox_event_friend_connection_status_alloc(state);

@@ -56,7 +56,7 @@ struct Tox_Dispatch {
     tox_events_dht_nodes_response_cb *_Nullable dht_nodes_response_callback;
 };
 
-Tox_Dispatch *tox_dispatch_new(Tox_Err_Dispatch_New *error)
+Tox_Dispatch *_Nullable tox_dispatch_new(Tox_Err_Dispatch_New *_Nullable error)
 {
     Tox_Dispatch *dispatch = (Tox_Dispatch *)calloc(1, sizeof(Tox_Dispatch));
 
@@ -79,208 +79,208 @@ Tox_Dispatch *tox_dispatch_new(Tox_Err_Dispatch_New *error)
     return dispatch;
 }
 
-void tox_dispatch_free(Tox_Dispatch *dispatch)
+void tox_dispatch_free(Tox_Dispatch *_Nullable dispatch)
 {
     free(dispatch);
 }
 
 void tox_events_callback_conference_connected(
-    Tox_Dispatch *dispatch, tox_events_conference_connected_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_connected_cb *_Nullable callback)
 {
     dispatch->conference_connected_callback = callback;
 }
 void tox_events_callback_conference_invite(
-    Tox_Dispatch *dispatch, tox_events_conference_invite_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_invite_cb *_Nullable callback)
 {
     dispatch->conference_invite_callback = callback;
 }
 void tox_events_callback_conference_message(
-    Tox_Dispatch *dispatch, tox_events_conference_message_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_message_cb *_Nullable callback)
 {
     dispatch->conference_message_callback = callback;
 }
 void tox_events_callback_conference_peer_list_changed(
-    Tox_Dispatch *dispatch, tox_events_conference_peer_list_changed_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_peer_list_changed_cb *_Nullable callback)
 {
     dispatch->conference_peer_list_changed_callback = callback;
 }
 void tox_events_callback_conference_peer_name(
-    Tox_Dispatch *dispatch, tox_events_conference_peer_name_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_peer_name_cb *_Nullable callback)
 {
     dispatch->conference_peer_name_callback = callback;
 }
 void tox_events_callback_conference_title(
-    Tox_Dispatch *dispatch, tox_events_conference_title_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_conference_title_cb *_Nullable callback)
 {
     dispatch->conference_title_callback = callback;
 }
 void tox_events_callback_file_chunk_request(
-    Tox_Dispatch *dispatch, tox_events_file_chunk_request_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_file_chunk_request_cb *_Nullable callback)
 {
     dispatch->file_chunk_request_callback = callback;
 }
 void tox_events_callback_file_recv(
-    Tox_Dispatch *dispatch, tox_events_file_recv_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_file_recv_cb *_Nullable callback)
 {
     dispatch->file_recv_callback = callback;
 }
 void tox_events_callback_file_recv_chunk(
-    Tox_Dispatch *dispatch, tox_events_file_recv_chunk_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_file_recv_chunk_cb *_Nullable callback)
 {
     dispatch->file_recv_chunk_callback = callback;
 }
 void tox_events_callback_file_recv_control(
-    Tox_Dispatch *dispatch, tox_events_file_recv_control_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_file_recv_control_cb *_Nullable callback)
 {
     dispatch->file_recv_control_callback = callback;
 }
 void tox_events_callback_friend_connection_status(
-    Tox_Dispatch *dispatch, tox_events_friend_connection_status_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_connection_status_cb *_Nullable callback)
 {
     dispatch->friend_connection_status_callback = callback;
 }
 void tox_events_callback_friend_lossless_packet(
-    Tox_Dispatch *dispatch, tox_events_friend_lossless_packet_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_lossless_packet_cb *_Nullable callback)
 {
     dispatch->friend_lossless_packet_callback = callback;
 }
 void tox_events_callback_friend_lossy_packet(
-    Tox_Dispatch *dispatch, tox_events_friend_lossy_packet_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_lossy_packet_cb *_Nullable callback)
 {
     dispatch->friend_lossy_packet_callback = callback;
 }
 void tox_events_callback_friend_message(
-    Tox_Dispatch *dispatch, tox_events_friend_message_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_message_cb *_Nullable callback)
 {
     dispatch->friend_message_callback = callback;
 }
 void tox_events_callback_friend_name(
-    Tox_Dispatch *dispatch, tox_events_friend_name_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_name_cb *_Nullable callback)
 {
     dispatch->friend_name_callback = callback;
 }
 void tox_events_callback_friend_read_receipt(
-    Tox_Dispatch *dispatch, tox_events_friend_read_receipt_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_read_receipt_cb *_Nullable callback)
 {
     dispatch->friend_read_receipt_callback = callback;
 }
 void tox_events_callback_friend_request(
-    Tox_Dispatch *dispatch, tox_events_friend_request_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_request_cb *_Nullable callback)
 {
     dispatch->friend_request_callback = callback;
 }
 void tox_events_callback_friend_status(
-    Tox_Dispatch *dispatch, tox_events_friend_status_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_status_cb *_Nullable callback)
 {
     dispatch->friend_status_callback = callback;
 }
 void tox_events_callback_friend_status_message(
-    Tox_Dispatch *dispatch, tox_events_friend_status_message_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_status_message_cb *_Nullable callback)
 {
     dispatch->friend_status_message_callback = callback;
 }
 void tox_events_callback_friend_typing(
-    Tox_Dispatch *dispatch, tox_events_friend_typing_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_friend_typing_cb *_Nullable callback)
 {
     dispatch->friend_typing_callback = callback;
 }
 void tox_events_callback_self_connection_status(
-    Tox_Dispatch *dispatch, tox_events_self_connection_status_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_self_connection_status_cb *_Nullable callback)
 {
     dispatch->self_connection_status_callback = callback;
 }
 void tox_events_callback_group_peer_name(
-    Tox_Dispatch *dispatch, tox_events_group_peer_name_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_peer_name_cb *_Nullable callback)
 {
     dispatch->group_peer_name_callback = callback;
 }
 void tox_events_callback_group_peer_status(
-    Tox_Dispatch *dispatch, tox_events_group_peer_status_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_peer_status_cb *_Nullable callback)
 {
     dispatch->group_peer_status_callback = callback;
 }
 void tox_events_callback_group_topic(
-    Tox_Dispatch *dispatch, tox_events_group_topic_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_topic_cb *_Nullable callback)
 {
     dispatch->group_topic_callback = callback;
 }
 void tox_events_callback_group_privacy_state(
-    Tox_Dispatch *dispatch, tox_events_group_privacy_state_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_privacy_state_cb *_Nullable callback)
 {
     dispatch->group_privacy_state_callback = callback;
 }
 void tox_events_callback_group_voice_state(
-    Tox_Dispatch *dispatch, tox_events_group_voice_state_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_voice_state_cb *_Nullable callback)
 {
     dispatch->group_voice_state_callback = callback;
 }
 void tox_events_callback_group_topic_lock(
-    Tox_Dispatch *dispatch, tox_events_group_topic_lock_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_topic_lock_cb *_Nullable callback)
 {
     dispatch->group_topic_lock_callback = callback;
 }
 void tox_events_callback_group_peer_limit(
-    Tox_Dispatch *dispatch, tox_events_group_peer_limit_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_peer_limit_cb *_Nullable callback)
 {
     dispatch->group_peer_limit_callback = callback;
 }
 void tox_events_callback_group_password(
-    Tox_Dispatch *dispatch, tox_events_group_password_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_password_cb *_Nullable callback)
 {
     dispatch->group_password_callback = callback;
 }
 void tox_events_callback_group_message(
-    Tox_Dispatch *dispatch, tox_events_group_message_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_message_cb *_Nullable callback)
 {
     dispatch->group_message_callback = callback;
 }
 void tox_events_callback_group_private_message(
-    Tox_Dispatch *dispatch, tox_events_group_private_message_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_private_message_cb *_Nullable callback)
 {
     dispatch->group_private_message_callback = callback;
 }
 void tox_events_callback_group_custom_packet(
-    Tox_Dispatch *dispatch, tox_events_group_custom_packet_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_custom_packet_cb *_Nullable callback)
 {
     dispatch->group_custom_packet_callback = callback;
 }
 void tox_events_callback_group_custom_private_packet(
-    Tox_Dispatch *dispatch, tox_events_group_custom_private_packet_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_custom_private_packet_cb *_Nullable callback)
 {
     dispatch->group_custom_private_packet_callback = callback;
 }
 void tox_events_callback_group_invite(
-    Tox_Dispatch *dispatch, tox_events_group_invite_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_invite_cb *_Nullable callback)
 {
     dispatch->group_invite_callback = callback;
 }
 void tox_events_callback_group_peer_join(
-    Tox_Dispatch *dispatch, tox_events_group_peer_join_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_peer_join_cb *_Nullable callback)
 {
     dispatch->group_peer_join_callback = callback;
 }
 void tox_events_callback_group_peer_exit(
-    Tox_Dispatch *dispatch, tox_events_group_peer_exit_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_peer_exit_cb *_Nullable callback)
 {
     dispatch->group_peer_exit_callback = callback;
 }
 void tox_events_callback_group_self_join(
-    Tox_Dispatch *dispatch, tox_events_group_self_join_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_self_join_cb *_Nullable callback)
 {
     dispatch->group_self_join_callback = callback;
 }
 void tox_events_callback_group_join_fail(
-    Tox_Dispatch *dispatch, tox_events_group_join_fail_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_join_fail_cb *_Nullable callback)
 {
     dispatch->group_join_fail_callback = callback;
 }
 void tox_events_callback_group_moderation(
-    Tox_Dispatch *dispatch, tox_events_group_moderation_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_group_moderation_cb *_Nullable callback)
 {
     dispatch->group_moderation_callback = callback;
 }
 void tox_events_callback_dht_nodes_response(
-    Tox_Dispatch *dispatch, tox_events_dht_nodes_response_cb *callback)
+    Tox_Dispatch *_Nonnull dispatch, tox_events_dht_nodes_response_cb *_Nullable callback)
 {
     dispatch->dht_nodes_response_callback = callback;
 }
@@ -614,7 +614,8 @@ static void tox_dispatch_invoke_event(const Tox_Dispatch *_Nonnull dispatch, con
     }
 }
 
-void tox_dispatch_invoke(const Tox_Dispatch *dispatch, const Tox_Events *events, void *user_data)
+void tox_dispatch_invoke(const Tox_Dispatch *_Nonnull dispatch, const Tox_Events *_Nonnull events,
+                         void *_Nullable user_data)
 {
     const uint32_t size = tox_events_get_size(events);
     for (uint32_t i = 0; i < size; ++i) {

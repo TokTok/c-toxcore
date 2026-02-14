@@ -53,11 +53,6 @@ static void script(ToxNode *self, void *ctx)
         group_number = tox_group_by_id(tox, invalid_chat_id, &err_by_id);
         ck_assert_int_eq(err_by_id, TOX_ERR_GROUP_BY_ID_NOT_FOUND);
         ck_assert_uint_eq(group_number, UINT32_MAX);
-
-        // Test tox_group_by_id with NULL ID
-        group_number = tox_group_by_id(tox, NULL, &err_by_id);
-        ck_assert_int_eq(err_by_id, TOX_ERR_GROUP_BY_ID_NULL);
-        ck_assert_uint_eq(group_number, UINT32_MAX);
     }
 
     // Create another group to ensure it works with multiple groups

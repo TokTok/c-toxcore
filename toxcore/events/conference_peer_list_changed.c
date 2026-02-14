@@ -92,7 +92,7 @@ void tox_event_conference_peer_list_changed_free(Tox_Event_Conference_Peer_List_
     mem_delete(mem, conference_peer_list_changed);
 }
 
-static Tox_Event_Conference_Peer_List_Changed *tox_events_add_conference_peer_list_changed(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Conference_Peer_List_Changed *_Nullable tox_events_add_conference_peer_list_changed(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Conference_Peer_List_Changed *const conference_peer_list_changed = tox_event_conference_peer_list_changed_new(mem);
 
@@ -125,7 +125,7 @@ bool tox_event_conference_peer_list_changed_unpack(
     return tox_event_conference_peer_list_changed_unpack_into(*event, bu);
 }
 
-static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_changed_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Conference_Peer_List_Changed *_Nullable tox_event_conference_peer_list_changed_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -148,9 +148,9 @@ static Tox_Event_Conference_Peer_List_Changed *tox_event_conference_peer_list_ch
  *****************************************************/
 
 void tox_events_handle_conference_peer_list_changed(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t conference_number,
-    void *user_data)
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Conference_Peer_List_Changed *conference_peer_list_changed = tox_event_conference_peer_list_changed_alloc(state);

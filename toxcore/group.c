@@ -329,7 +329,7 @@ static bool wipe_group_chat(Group_Chats *_Nonnull g_c, uint32_t groupnumber)
     return true;
 }
 
-static Group_c *get_group_c(const Group_Chats *_Nonnull g_c, uint32_t groupnumber)
+static Group_c *_Nullable get_group_c(const Group_Chats *_Nonnull g_c, uint32_t groupnumber)
 {
     if (!is_groupnumber_valid(g_c, groupnumber)) {
         return nullptr;
@@ -931,7 +931,7 @@ static bool group_peer_less_handler(const void *_Nonnull object, const void *_No
     return cmp_uint(pb->last_active, pa->last_active) < 0;
 }
 
-static const void *group_peer_get_handler(const void *_Nonnull arr, uint32_t index)
+static const void *_Nonnull group_peer_get_handler(const void *_Nonnull arr, uint32_t index)
 {
     const Group_Peer *entries = (const Group_Peer *)arr;
     return &entries[index];
@@ -944,13 +944,13 @@ static void group_peer_set_handler(void *_Nonnull arr, uint32_t index, const voi
     entries[index] = *entry;
 }
 
-static void *group_peer_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
+static void *_Nonnull group_peer_subarr_handler(void *_Nonnull arr, uint32_t index, uint32_t size)
 {
     Group_Peer *entries = (Group_Peer *)arr;
     return &entries[index];
 }
 
-static void *group_peer_alloc_handler(const void *_Nonnull object, uint32_t size)
+static void *_Nullable group_peer_alloc_handler(const void *_Nonnull object, uint32_t size)
 {
     const Memory *mem = (const Memory *)object;
     Group_Peer *tmp = (Group_Peer *)mem_valloc(mem, size, sizeof(Group_Peer));
@@ -1372,7 +1372,7 @@ bool del_groupchat(Group_Chats *g_c, uint32_t groupnumber, bool leave_permanentl
     return wipe_group_chat(g_c, groupnumber);
 }
 
-static const Group_Peer *peer_in_list(const Group_c *_Nonnull g, uint32_t peernumber, bool frozen)
+static const Group_Peer *_Nullable peer_in_list(const Group_c *_Nonnull g, uint32_t peernumber, bool frozen)
 {
     const Group_Peer *list = frozen ? g->frozen : g->group;
     const uint32_t num = frozen ? g->numfrozen : g->numpeers;
@@ -2732,7 +2732,7 @@ int send_group_lossy_packet(const Group_Chats *g_c, uint32_t groupnumber, const 
     return 0;
 }
 
-static Message_Info *find_message_slot_or_reject(uint32_t message_number, uint8_t message_id, Group_Peer *_Nonnull peer)
+static Message_Info *_Nullable find_message_slot_or_reject(uint32_t message_number, uint8_t message_id, Group_Peer *_Nonnull peer)
 {
     const bool ignore_older = message_id == GROUP_MESSAGE_NAME_ID || message_id == GROUP_MESSAGE_TITLE_ID;
 
@@ -3359,7 +3359,7 @@ static uint32_t saved_peer_size(const Group_Peer *_Nonnull peer)
     return SAVED_PEER_SIZE_CONSTANT + peer->nick_len;
 }
 
-static uint8_t *save_peer(const Group_Peer *_Nonnull peer, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_peer(const Group_Peer *_Nonnull peer, uint8_t *_Nonnull data)
 {
     memcpy(data, peer->real_pk, CRYPTO_PUBLIC_KEY_SIZE);
     data += CRYPTO_PUBLIC_KEY_SIZE;
@@ -3410,7 +3410,7 @@ static uint32_t saved_conf_size(const Group_c *_Nonnull g)
 #define SAVE_OFFSET_MESSAGE_NUMBER (1 << 16)
 #define SAVE_OFFSET_LOSSY_MESSAGE_NUMBER (1 << 13)
 
-static uint8_t *save_conf(const Group_c *_Nonnull g, uint8_t *_Nonnull data)
+static uint8_t *_Nonnull save_conf(const Group_c *_Nonnull g, uint8_t *_Nonnull data)
 {
     *data = g->type;
     ++data;

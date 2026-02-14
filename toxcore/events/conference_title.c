@@ -159,7 +159,7 @@ void tox_event_conference_title_free(Tox_Event_Conference_Title *conference_titl
     mem_delete(mem, conference_title);
 }
 
-static Tox_Event_Conference_Title *tox_events_add_conference_title(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_Conference_Title *_Nullable tox_events_add_conference_title(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_Conference_Title *const conference_title = tox_event_conference_title_new(mem);
 
@@ -192,7 +192,7 @@ bool tox_event_conference_title_unpack(
     return tox_event_conference_title_unpack_into(*event, bu);
 }
 
-static Tox_Event_Conference_Title *tox_event_conference_title_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_Conference_Title *_Nullable tox_event_conference_title_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -215,11 +215,11 @@ static Tox_Event_Conference_Title *tox_event_conference_title_alloc(Tox_Events_S
  *****************************************************/
 
 void tox_events_handle_conference_title(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t conference_number,
     uint32_t peer_number,
-    const uint8_t *title, size_t length,
-    void *user_data)
+    const uint8_t *_Nullable title, size_t length,
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_Conference_Title *conference_title = tox_event_conference_title_alloc(state);

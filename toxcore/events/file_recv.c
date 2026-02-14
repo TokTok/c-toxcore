@@ -187,7 +187,7 @@ void tox_event_file_recv_free(Tox_Event_File_Recv *file_recv, const Memory *mem)
     mem_delete(mem, file_recv);
 }
 
-static Tox_Event_File_Recv *tox_events_add_file_recv(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
+static Tox_Event_File_Recv *_Nullable tox_events_add_file_recv(Tox_Events *_Nonnull events, const Memory *_Nonnull mem)
 {
     Tox_Event_File_Recv *const file_recv = tox_event_file_recv_new(mem);
 
@@ -220,7 +220,7 @@ bool tox_event_file_recv_unpack(
     return tox_event_file_recv_unpack_into(*event, bu);
 }
 
-static Tox_Event_File_Recv *tox_event_file_recv_alloc(Tox_Events_State *_Nonnull state)
+static Tox_Event_File_Recv *_Nullable tox_event_file_recv_alloc(Tox_Events_State *_Nonnull state)
 {
     if (state->events == nullptr) {
         return nullptr;
@@ -243,13 +243,13 @@ static Tox_Event_File_Recv *tox_event_file_recv_alloc(Tox_Events_State *_Nonnull
  *****************************************************/
 
 void tox_events_handle_file_recv(
-    Tox *tox,
+    Tox *_Nonnull tox,
     uint32_t friend_number,
     uint32_t file_number,
     uint32_t kind,
     uint64_t file_size,
-    const uint8_t *filename, size_t filename_length,
-    void *user_data)
+    const uint8_t *_Nullable filename, size_t filename_length,
+    void *_Nullable user_data)
 {
     Tox_Events_State *state = tox_events_alloc(user_data);
     Tox_Event_File_Recv *file_recv = tox_event_file_recv_alloc(state);

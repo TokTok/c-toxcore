@@ -10,8 +10,8 @@
 #include "logger.h"
 
 /** state load/save */
-int state_load(const Logger *_Nonnull log, state_load_cb *_Nonnull state_load_callback, void *_Nonnull outer,
-               const uint8_t *_Nonnull data, uint32_t length, uint16_t cookie_inner)
+int state_load(const Logger *log, state_load_cb *state_load_callback, void *outer,
+               const uint8_t *data, uint32_t length, uint16_t cookie_inner)
 {
     if (state_load_callback == nullptr || data == nullptr) {
         LOGGER_ERROR(log, "state_load() called with invalid args.");
@@ -70,7 +70,7 @@ int state_load(const Logger *_Nonnull log, state_load_cb *_Nonnull state_load_ca
     return 0;
 }
 
-uint8_t *_Nonnull state_write_section_header(uint8_t *_Nonnull data, uint16_t cookie_type, uint32_t len, uint32_t section_type)
+uint8_t *state_write_section_header(uint8_t *data, uint16_t cookie_type, uint32_t len, uint32_t section_type)
 {
     host_to_lendian_bytes32(data, len);
     data += sizeof(uint32_t);
@@ -93,7 +93,7 @@ uint16_t host_to_lendian16(uint16_t host)
     return lendian_to_host16(host);
 }
 
-void host_to_lendian_bytes64(uint8_t *_Nonnull dest, uint64_t num)
+void host_to_lendian_bytes64(uint8_t *dest, uint64_t num)
 {
 #ifdef WORDS_BIGENDIAN
     num = ((num << 8) & 0xFF00FF00FF00FF00) | ((num >> 8) & 0xFF00FF00FF00FF);
@@ -103,7 +103,7 @@ void host_to_lendian_bytes64(uint8_t *_Nonnull dest, uint64_t num)
     memcpy(dest, &num, sizeof(uint64_t));
 }
 
-void lendian_bytes_to_host64(uint64_t *_Nonnull dest, const uint8_t *_Nonnull lendian)
+void lendian_bytes_to_host64(uint64_t *dest, const uint8_t *lendian)
 {
     uint64_t d;
     memcpy(&d, lendian, sizeof(uint64_t));
@@ -115,7 +115,7 @@ void lendian_bytes_to_host64(uint64_t *_Nonnull dest, const uint8_t *_Nonnull le
     *dest = d;
 }
 
-void host_to_lendian_bytes32(uint8_t *_Nonnull dest, uint32_t num)
+void host_to_lendian_bytes32(uint8_t *dest, uint32_t num)
 {
 #ifdef WORDS_BIGENDIAN
     num = ((num << 8) & 0xFF00FF00) | ((num >> 8) & 0xFF00FF);
@@ -124,7 +124,7 @@ void host_to_lendian_bytes32(uint8_t *_Nonnull dest, uint32_t num)
     memcpy(dest, &num, sizeof(uint32_t));
 }
 
-void lendian_bytes_to_host32(uint32_t *_Nonnull dest, const uint8_t *_Nonnull lendian)
+void lendian_bytes_to_host32(uint32_t *dest, const uint8_t *lendian)
 {
     uint32_t d;
     memcpy(&d, lendian, sizeof(uint32_t));
@@ -135,7 +135,7 @@ void lendian_bytes_to_host32(uint32_t *_Nonnull dest, const uint8_t *_Nonnull le
     *dest = d;
 }
 
-void host_to_lendian_bytes16(uint8_t *_Nonnull dest, uint16_t num)
+void host_to_lendian_bytes16(uint8_t *dest, uint16_t num)
 {
 #ifdef WORDS_BIGENDIAN
     num = (num << 8) | (num >> 8);
@@ -143,7 +143,7 @@ void host_to_lendian_bytes16(uint8_t *_Nonnull dest, uint16_t num)
     memcpy(dest, &num, sizeof(uint16_t));
 }
 
-void lendian_bytes_to_host16(uint16_t *_Nonnull dest, const uint8_t *_Nonnull lendian)
+void lendian_bytes_to_host16(uint16_t *dest, const uint8_t *lendian)
 {
     uint16_t d;
     memcpy(&d, lendian, sizeof(uint16_t));
