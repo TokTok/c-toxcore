@@ -1,0 +1,272 @@
+{
+    "connections": [
+        {
+            "from": 1,
+            "tcp": false,
+            "to": 2
+        },
+        {
+            "from": 1,
+            "tcp": false,
+            "to": 3
+        },
+        {
+            "from": 3,
+            "tcp": false,
+            "to": 19
+        },
+        {
+            "from": 2,
+            "tcp": false,
+            "to": 10
+        },
+        {
+            "from": 10,
+            "tcp": false,
+            "to": 15
+        },
+        {
+            "from": 10,
+            "tcp": false,
+            "to": 22
+        },
+        {
+            "from": 10,
+            "tcp": false,
+            "to": 12
+        },
+        {
+            "from": 10,
+            "tcp": false,
+            "to": 1
+        },
+        {
+            "from": 10,
+            "tcp": false,
+            "to": 19
+        },
+        {
+            "from": 1,
+            "tcp": false,
+            "to": 5
+        },
+        {
+            "from": 1,
+            "tcp": false,
+            "to": 5
+        },
+        {
+            "from": 13,
+            "tcp": false,
+            "to": 5
+        },
+        {
+            "from": 13,
+            "tcp": false,
+            "to": 14
+        },
+        {
+            "from": 13,
+            "tcp": false,
+            "to": 6
+        },
+        {
+            "from": 6,
+            "tcp": false,
+            "to": 17
+        },
+        {
+            "from": 9,
+            "tcp": false,
+            "to": 17
+        },
+        {
+            "from": 11,
+            "tcp": false,
+            "to": 4
+        },
+        {
+            "from": 11,
+            "tcp": false,
+            "to": 21
+        }
+    ],
+    "nodes": [
+        {
+            "id": 1,
+            "name": "Alice",
+            "pos": [
+                20.0,
+                50.0
+            ]
+        },
+        {
+            "id": 2,
+            "name": "Bob",
+            "pos": [
+                80.0,
+                50.0
+            ]
+        },
+        {
+            "id": 3,
+            "name": "Charlie",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 4,
+            "name": "Dave",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 5,
+            "name": "Eve",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 6,
+            "name": "Frank",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 7,
+            "name": "Grace",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 8,
+            "name": "Heidi",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 9,
+            "name": "Ivan",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 10,
+            "name": "Judy",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 11,
+            "name": "Kevin",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 12,
+            "name": "Linda",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 13,
+            "name": "Mike",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 14,
+            "name": "Nancy",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 15,
+            "name": "Oscar",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 16,
+            "name": "Peggy",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 17,
+            "name": "Quentin",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 18,
+            "name": "Rose",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 19,
+            "name": "Steve",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 20,
+            "name": "Trent",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 21,
+            "name": "Ursula",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        },
+        {
+            "id": 22,
+            "name": "Victor",
+            "pos": [
+                -1.0,
+                -1.0
+            ]
+        }
+    ]
+}

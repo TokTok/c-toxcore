@@ -24,11 +24,24 @@
  *****************************************************/
 
 struct Tox_Event_Dht_Nodes_Response {
+    uint8_t responder_public_key[TOX_PUBLIC_KEY_SIZE];
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
     char *_Nullable ip;
     uint32_t ip_length;
     uint16_t port;
 };
+
+static bool tox_event_dht_nodes_response_set_responder_public_key(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response, const uint8_t responder_public_key[TOX_PUBLIC_KEY_SIZE])
+{
+    assert(dht_nodes_response != nullptr);
+    memcpy(dht_nodes_response->responder_public_key, responder_public_key, TOX_PUBLIC_KEY_SIZE);
+    return true;
+}
+const uint8_t *tox_event_dht_nodes_response_get_responder_public_key(const Tox_Event_Dht_Nodes_Response *dht_nodes_response)
+{
+    assert(dht_nodes_response != nullptr);
+    return dht_nodes_response->responder_public_key;
+}
 
 static bool tox_event_dht_nodes_response_set_public_key(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE])
 {
@@ -111,7 +124,8 @@ static void tox_event_dht_nodes_response_destruct(Tox_Event_Dht_Nodes_Response *
 bool tox_event_dht_nodes_response_pack(
     const Tox_Event_Dht_Nodes_Response *event, Bin_Pack *bp)
 {
-    return bin_pack_array(bp, 3)
+    return bin_pack_array(bp, 4)
+           && bin_pack_bin(bp, event->responder_public_key, TOX_PUBLIC_KEY_SIZE)
            && bin_pack_bin(bp, event->public_key, TOX_PUBLIC_KEY_SIZE)
            && bin_pack_str(bp, event->ip, event->ip_length)
            && bin_pack_u16(bp, event->port);
@@ -120,11 +134,12 @@ bool tox_event_dht_nodes_response_pack(
 static bool tox_event_dht_nodes_response_unpack_into(Tox_Event_Dht_Nodes_Response *_Nonnull event, Bin_Unpack *_Nonnull bu)
 {
     assert(event != nullptr);
-    if (!bin_unpack_array_fixed(bu, 3, nullptr)) {
+    if (!bin_unpack_array_fixed(bu, 4, nullptr)) {
         return false;
     }
 
-    return bin_unpack_bin_fixed(bu, event->public_key, TOX_PUBLIC_KEY_SIZE)
+    return bin_unpack_bin_fixed(bu, event->responder_public_key, TOX_PUBLIC_KEY_SIZE)
+           && bin_unpack_bin_fixed(bu, event->public_key, TOX_PUBLIC_KEY_SIZE)
            && bin_unpack_str(bu, &event->ip, &event->ip_length)
            && bin_unpack_u16(bu, &event->port);
 }
@@ -218,6 +233,7 @@ static Tox_Event_Dht_Nodes_Response *tox_event_dht_nodes_response_alloc(Tox_Even
 
 void tox_events_handle_dht_nodes_response(
     Tox *tox,
+    const uint8_t *responder_public_key,
     const uint8_t *public_key,
     const char *ip, uint32_t ip_length,
     uint16_t port,
@@ -230,6 +246,7 @@ void tox_events_handle_dht_nodes_response(
         return;
     }
 
+    tox_event_dht_nodes_response_set_responder_public_key(dht_nodes_response, responder_public_key);
     tox_event_dht_nodes_response_set_public_key(dht_nodes_response, public_key);
     if (!tox_event_dht_nodes_response_set_ip(dht_nodes_response, state->mem, ip, ip_length)) {
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
@@ -244,6 +261,7 @@ void tox_events_handle_dht_nodes_response_dispatch(Tox *tox, const Tox_Event_Dht
     }
 
     tox_unlock(tox);
-    tox->dht_nodes_response_callback(tox, event->public_key, (const char *)event->ip, event->ip_length, event->port, user_data);
+    tox->dht_nodes_response_callback(tox, event->responder_public_key, event->public_key, (const char *)event->ip,
+                                     event->ip_length, event->port, user_data);
     tox_lock(tox);
 }

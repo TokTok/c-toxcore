@@ -721,6 +721,7 @@ int main(int argc, char** argv) {
         {
             "Dht_Nodes_Response",
             {
+                EventTypeByteArray{"responder_public_key", "TOX_PUBLIC_KEY_SIZE"},
                 EventTypeByteArray{"public_key", "TOX_PUBLIC_KEY_SIZE"},
                 EventTypeByteRange{"ip", "ip_length", "ip_length", "char", "uint32_t", true},
                 EventTypeTrivial{"uint16_t", "port"},

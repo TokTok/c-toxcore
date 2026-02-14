@@ -1520,7 +1520,7 @@ static int handle_nodes_response(void *_Nonnull object, const IP_Port *_Nonnull 
             returnedip_ports(dht, &plain_nodes[i].ip_port, plain_nodes[i].public_key, packet + 1);
 
             if (dht->nodes_response_callback != nullptr) {
-                dht->nodes_response_callback(dht, &plain_nodes[i], userdata);
+                dht->nodes_response_callback(dht, packet + 1, &plain_nodes[i], userdata);
             }
         }
     }
