@@ -215,14 +215,12 @@ static Tox_Event_Group_Custom_Packet *tox_event_group_custom_packet_alloc(Tox_Ev
  *****************************************************/
 
 void tox_events_handle_group_custom_packet(
-    Tox *tox,
     uint32_t group_number,
     uint32_t peer_id,
     const uint8_t *data, size_t data_length,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Group_Custom_Packet *group_custom_packet = tox_event_group_custom_packet_alloc(state);
+    Tox_Event_Group_Custom_Packet *group_custom_packet = tox_event_group_custom_packet_alloc(tox_events_alloc(state));
 
     if (group_custom_packet == nullptr) {
         return;

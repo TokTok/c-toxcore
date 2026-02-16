@@ -231,15 +231,13 @@ static Tox_Event_Conference_Message *tox_event_conference_message_alloc(Tox_Even
  *****************************************************/
 
 void tox_events_handle_conference_message(
-    Tox *tox,
     uint32_t conference_number,
     uint32_t peer_number,
     Tox_Message_Type type,
     const uint8_t *message, size_t length,
-    void *user_data)
+    Tox_Events_State *state)
 {
-    Tox_Events_State *state = tox_events_alloc(user_data);
-    Tox_Event_Conference_Message *conference_message = tox_event_conference_message_alloc(state);
+    Tox_Event_Conference_Message *conference_message = tox_event_conference_message_alloc(tox_events_alloc(state));
 
     if (conference_message == nullptr) {
         return;
