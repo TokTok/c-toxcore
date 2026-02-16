@@ -138,13 +138,14 @@ uint32_t tox_dht_node_ip_string_size(void);
 uint32_t tox_dht_node_public_key_size(void);
 
 /**
+ * @param responder_public_key The public key of the node that sent the response.
  * @param public_key The node's public key.
  * @param ip The node's IP address, represented as a NUL-terminated C string.
  * @param port The node's port.
  */
 typedef void tox_dht_nodes_response_cb(
-    Tox *_Nonnull tox, const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint32_t ip_length,
-    uint16_t port, void *_Nullable user_data);
+    Tox *_Nonnull tox, const uint8_t *_Nonnull responder_public_key, const uint8_t *_Nonnull public_key,
+    const char *_Nonnull ip, uint32_t ip_length, uint16_t port, void *_Nullable user_data);
 
 /**
  * Set the callback for the `dht_nodes_response` event. Pass NULL to unset.
@@ -292,6 +293,16 @@ typedef enum Tox_Netprof_Packet_Id {
      * TCP onion response packet.
      */
     TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE   = 0x09,
+
+    /**
+     * TCP forward request packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_FORWARD_REQUEST  = 0x0a,
+
+    /**
+     * TCP forwarding packet.
+     */
+    TOX_NETPROF_PACKET_ID_TCP_FORWARDING       = 0x0b,
 
     /**
      * TCP data packet.

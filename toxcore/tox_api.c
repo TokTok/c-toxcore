@@ -1558,6 +1558,10 @@ const char *tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value)
             return "TOX_NETPROF_PACKET_ID_TCP_ONION_REQUEST";
         case TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE:
             return "TOX_NETPROF_PACKET_ID_TCP_ONION_RESPONSE";
+        case TOX_NETPROF_PACKET_ID_TCP_FORWARD_REQUEST:
+            return "TOX_NETPROF_PACKET_ID_TCP_FORWARD_REQUEST";
+        case TOX_NETPROF_PACKET_ID_TCP_FORWARDING:
+            return "TOX_NETPROF_PACKET_ID_TCP_FORWARDING";
         case TOX_NETPROF_PACKET_ID_TCP_DATA:
             return "TOX_NETPROF_PACKET_ID_TCP_DATA";
         case TOX_NETPROF_PACKET_ID_COOKIE_REQUEST:

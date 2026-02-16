@@ -39,3 +39,7 @@ endif()
 if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/support")
   add_subdirectory(support)
 endif()
+
+if(BUILD_NETPROF)
+  add_subdirectory(netprof)
+endif()

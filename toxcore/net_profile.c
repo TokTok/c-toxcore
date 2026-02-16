@@ -16,8 +16,6 @@
 
 #include "ccompat.h"
 
-#define NETPROF_TCP_DATA_PACKET_ID 0x10
-
 typedef struct Net_Profile {
     uint64_t packets_recv[NET_PROF_MAX_PACKET_IDS];
     uint64_t packets_sent[NET_PROF_MAX_PACKET_IDS];
@@ -32,9 +30,11 @@ typedef struct Net_Profile {
     uint64_t total_bytes_sent;
 } Net_Profile;
 
-/** Returns the number of sent or received packets for all ID's between `start_id` and `end_id`. */
-static uint64_t netprof_get_packet_count_id_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
-        Packet_Direction dir)
+/**
+ * Returns the number of sent or received packets for the given ID range.
+ */
+uint64_t netprof_get_packet_count_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
+                                        Packet_Direction dir)
 {
     if (profile == nullptr) {
         return 0;
@@ -50,9 +50,11 @@ static uint64_t netprof_get_packet_count_id_range(const Net_Profile *_Nullable p
     return count;
 }
 
-/** Returns the number of sent or received bytes for all ID's between `start_id` and `end_id`. */
-static uint64_t netprof_get_bytes_id_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
-        Packet_Direction dir)
+/**
+ * Returns the number of bytes sent or received for the given ID range.
+ */
+uint64_t netprof_get_bytes_range(const Net_Profile *_Nullable profile, uint8_t start_id, uint8_t end_id,
+                                 Packet_Direction dir)
 {
     if (profile == nullptr) {
         return 0;
@@ -95,11 +97,6 @@ uint64_t netprof_get_packet_count_id(const Net_Profile *profile, uint8_t id, Pac
         return 0;
     }
 
-    // Special case - TCP data packets can have any ID between 0x10 and 0xff
-    if (id == NETPROF_TCP_DATA_PACKET_ID) {
-        return netprof_get_packet_count_id_range(profile, id, UINT8_MAX, dir);
-    }
-
     return dir == PACKET_DIRECTION_SEND ? profile->packets_sent[id] : profile->packets_recv[id];
 }
 
@@ -116,11 +113,6 @@ uint64_t netprof_get_bytes_id(const Net_Profile *profile, uint8_t id, Packet_Dir
 {
     if (profile == nullptr) {
         return 0;
-    }
-
-    // Special case - TCP data packets can have any ID between 0x10 and 0xff
-    if (id == NETPROF_TCP_DATA_PACKET_ID) {
-        return netprof_get_bytes_id_range(profile, id, 0xff, dir);
     }
 
     return dir == PACKET_DIRECTION_SEND ? profile->bytes_sent[id] : profile->bytes_recv[id];

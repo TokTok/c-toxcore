@@ -10,6 +10,8 @@ CPPFLAGS+=("-Iother")
 CPPFLAGS+=("-Iother/bootstrap_daemon/src")
 CPPFLAGS+=("-Iother/fun")
 CPPFLAGS+=("-Itesting")
+CPPFLAGS+=("-Itesting/netprof")
+CPPFLAGS+=("-Itesting/netprof/views")
 CPPFLAGS+=("-Itesting/fuzzing")
 CPPFLAGS+=("-Itesting/support")
 CPPFLAGS+=("-Itesting/support/doubles")
@@ -61,6 +63,7 @@ COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './_build/*'"
 COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './other/docker/*'"
 COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './super_donators/*'"
 COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './testing/fuzzing/*'"
+COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './testing/netprof/*'"
 COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './third_party/cmp/examples/*'"
 COMMON_EXCLUDES="$COMMON_EXCLUDES -and -not -wholename './third_party/cmp/test/*'"
 
