@@ -956,9 +956,9 @@ static int handle_announce_response(void *_Nonnull object, const IP_Port *_Nonnu
                                     void *_Nullable userdata)
 {
     Onion_Client *onion_c = (Onion_Client *)object;
-    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > ONION_ANNOUNCE_RESPONSE_MAX_SIZE) {
+    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > GCA_ANNOUNCE_RESPONSE_MAX_SIZE) {
         LOGGER_TRACE(onion_c->logger, "invalid announce response length: %u (min: %u, max: %u)",
-                     length, (unsigned int)ONION_ANNOUNCE_RESPONSE_MIN_SIZE, (unsigned int)ONION_ANNOUNCE_RESPONSE_MAX_SIZE);
+                     length, (unsigned int)ONION_ANNOUNCE_RESPONSE_MIN_SIZE, (unsigned int)GCA_ANNOUNCE_RESPONSE_MAX_SIZE);
         return 1;
     }
 
@@ -971,7 +971,7 @@ static int handle_announce_response(void *_Nonnull object, const IP_Port *_Nonnu
         return 1;
     }
 
-    uint8_t plain[1 + ONION_PING_ID_SIZE + ONION_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
+    uint8_t plain[1 + ONION_PING_ID_SIZE + GCA_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
     const uint32_t plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
     int len;
     const uint16_t nonce_start = 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH;
