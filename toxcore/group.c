@@ -442,73 +442,83 @@ static bool add_to_closest(Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk,
         return false;
     }
 
-    unsigned int index = DESIRED_CLOSEST;
-
     for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
         if (g->closest_peers[i].active && pk_equal(real_pk, g->closest_peers[i].real_pk)) {
             return true;
         }
     }
 
-    for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
-        if (!g->closest_peers[i].active) {
-            index = i;
+    uint8_t cur_real_pk[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t cur_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
+    memcpy(cur_real_pk, real_pk, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(cur_temp_pk, temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
+
+    bool added = false;
+
+    while (true) {
+        unsigned int index = DESIRED_CLOSEST;
+
+        for (unsigned int i = 0; i < DESIRED_CLOSEST; ++i) {
+            if (!g->closest_peers[i].active) {
+                index = i;
+                break;
+            }
+        }
+
+        if (index == DESIRED_CLOSEST) {
+            uint64_t comp_val = calculate_comp_value(g->real_pk, cur_real_pk);
+            uint64_t comp_d = 0;
+
+            for (unsigned int i = 0; i < (DESIRED_CLOSEST / 2); ++i) {
+                const uint64_t comp = calculate_comp_value(g->real_pk, g->closest_peers[i].real_pk);
+
+                if (comp > comp_val && comp > comp_d) {
+                    index = i;
+                    comp_d = comp;
+                }
+            }
+
+            comp_val = calculate_comp_value(cur_real_pk, g->real_pk);
+
+            for (unsigned int i = DESIRED_CLOSEST / 2; i < DESIRED_CLOSEST; ++i) {
+                const uint64_t comp = calculate_comp_value(g->closest_peers[i].real_pk, g->real_pk);
+
+                if (comp > comp_val && comp > comp_d) {
+                    index = i;
+                    comp_d = comp;
+                }
+            }
+        }
+
+        if (index == DESIRED_CLOSEST) {
             break;
         }
-    }
 
-    if (index == DESIRED_CLOSEST) {
-        uint64_t comp_val = calculate_comp_value(g->real_pk, real_pk);
-        uint64_t comp_d = 0;
+        if (g->closest_peers[index].active) {
+            uint8_t tmp[CRYPTO_PUBLIC_KEY_SIZE];
+            memcpy(tmp, g->closest_peers[index].real_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(g->closest_peers[index].real_pk, cur_real_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(cur_real_pk, tmp, CRYPTO_PUBLIC_KEY_SIZE);
 
-        for (unsigned int i = 0; i < (DESIRED_CLOSEST / 2); ++i) {
-            const uint64_t comp = calculate_comp_value(g->real_pk, g->closest_peers[i].real_pk);
-
-            if (comp > comp_val && comp > comp_d) {
-                index = i;
-                comp_d = comp;
-            }
+            memcpy(tmp, g->closest_peers[index].temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(g->closest_peers[index].temp_pk, cur_temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(cur_temp_pk, tmp, CRYPTO_PUBLIC_KEY_SIZE);
+        } else {
+            g->closest_peers[index].active = true;
+            memcpy(g->closest_peers[index].real_pk, cur_real_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(g->closest_peers[index].temp_pk, cur_temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
+            added = true;
+            break;
         }
 
-        comp_val = calculate_comp_value(real_pk, g->real_pk);
-
-        for (unsigned int i = DESIRED_CLOSEST / 2; i < DESIRED_CLOSEST; ++i) {
-            const uint64_t comp = calculate_comp_value(g->closest_peers[i].real_pk, g->real_pk);
-
-            if (comp > comp_val && comp > comp_d) {
-                index = i;
-                comp_d = comp;
-            }
-        }
+        added = true;
     }
 
-    if (index == DESIRED_CLOSEST) {
-        return false;
-    }
-
-    uint8_t old_real_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t old_temp_pk[CRYPTO_PUBLIC_KEY_SIZE];
-    bool old = false;
-
-    if (g->closest_peers[index].active) {
-        memcpy(old_real_pk, g->closest_peers[index].real_pk, CRYPTO_PUBLIC_KEY_SIZE);
-        memcpy(old_temp_pk, g->closest_peers[index].temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
-        old = true;
-    }
-
-    g->closest_peers[index].active = true;
-    memcpy(g->closest_peers[index].real_pk, real_pk, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(g->closest_peers[index].temp_pk, temp_pk, CRYPTO_PUBLIC_KEY_SIZE);
-
-    if (old) {
-        add_to_closest(g, old_real_pk, old_temp_pk);
-    }
-
-    if (g->changed == GROUPCHAT_CLOSEST_CHANGE_NONE) {
+    if (added && g->changed == GROUPCHAT_CLOSEST_CHANGE_NONE) {
         g->changed = GROUPCHAT_CLOSEST_CHANGE_ADDED;
     }
 
-    return true;
+    return added;
 }
 
 static bool pk_in_closest_peers(const Group_c *_Nonnull g, const uint8_t *_Nonnull real_pk)
