@@ -21,6 +21,7 @@ struct Tox {
     struct Logger *_Nonnull log;
     struct Messenger *_Nonnull m;
     Mono_Time *_Nonnull mono_time;
+    Mono_Clock *_Nonnull mono_clock;
     Tox_System sys;
     pthread_mutex_t *_Nullable mutex;
 
