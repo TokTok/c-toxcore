@@ -3044,7 +3044,7 @@ static int lossy_packet_not_received(const Group_c *_Nonnull g, int peer_index, 
     const uint16_t top_distance = message_number - g->group[peer_index].top_lossy_number;
 
     if (top_distance >= MAX_LOSSY_COUNT) {
-        crypto_memzero(g->group[peer_index].recv_lossy, sizeof(g->group[peer_index].recv_lossy));
+        memset(g->group[peer_index].recv_lossy, 0, sizeof(g->group[peer_index].recv_lossy));
     } else {  // top_distance < MAX_LOSSY_COUNT
         for (unsigned int i = g->group[peer_index].bottom_lossy_number;
                 i != g->group[peer_index].bottom_lossy_number + top_distance;

@@ -67,6 +67,30 @@ typedef enum Tox_Savedata_Type {
 const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
 
 /**
+ * @brief Handshake mode for crypto connections.
+ */
+typedef enum Tox_Handshake_Mode {
+    /**
+     * Only use the Noise IK handshake. Connections with peers that
+     * do not support Noise will fail.
+     */
+    TOX_HANDSHAKE_MODE_NOISE_ONLY,
+
+    /**
+     * Prefer Noise IK, but fall back to the legacy handshake when the
+     * peer does not support Noise. This is the default.
+     */
+    TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY,
+
+    /**
+     * Only use the legacy handshake. Noise is completely disabled.
+     */
+    TOX_HANDSHAKE_MODE_LEGACY_ONLY,
+} Tox_Handshake_Mode;
+
+const char *tox_handshake_mode_to_string(Tox_Handshake_Mode value);
+
+/**
  * @brief This event is triggered when Tox logs an internal message.
  *
  * This is mostly useful for debugging. This callback can be called from any
@@ -267,6 +291,16 @@ struct Tox_Options {
     bool experimental_groups_persistence;
 
     /**
+     * @brief Handshake mode for crypto connections.
+     *
+     * Controls whether Noise IK, legacy, or both handshake protocols
+     * are used when establishing encrypted connections with peers.
+     *
+     * Default: TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY.
+     */
+    Tox_Handshake_Mode handshake_mode;
+
+    /**
      * @brief Disable DNS hostname resolution.
      *
      * Hostnames or IP addresses are passed to the bootstrap/add_tcp_relay
@@ -393,6 +427,10 @@ bool tox_options_get_experimental_groups_persistence(const Tox_Options *options)
 
 void tox_options_set_experimental_groups_persistence(
     Tox_Options *options, bool experimental_groups_persistence);
+
+Tox_Handshake_Mode tox_options_get_handshake_mode(const Tox_Options *options);
+
+void tox_options_set_handshake_mode(Tox_Options *options, Tox_Handshake_Mode handshake_mode);
 
 bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
 
