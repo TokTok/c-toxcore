@@ -20,6 +20,11 @@ else
   DOCKERFILES="$SCRIPT_DIR/dockerfiles"
 fi
 
+if [ "$SYSTEM-$ARCH" == "ios-armv7" ] || [ "$SYSTEM-$ARCH" == "ios-armv7s" ]; then
+  sed -i 's/IOS_MINIMUM_SUPPORTED_VERSION=15.0/IOS_MINIMUM_SUPPORTED_VERSION=10.0/g' "$DOCKERFILES/qtox/build_utils.sh"
+  cat "$DOCKERFILES/qtox/build_utils.sh"
+fi
+
 for dep in sodium opus vpx; do
   mkdir -p "external/$dep"
   pushd "external/$dep"
