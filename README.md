@@ -201,3 +201,71 @@ This project uses various tools supporting Static Application Security Testing:
   A static analyzer for C, C++, C#, and Java code.
 - [tokstyle](https://github.com/TokTok/hs-tokstyle): A style checker for TokTok
   C projects.
+
+## Acknowledgments
+
+This project uses a number of excellent tools and services that are either free,
+have a free tier, or are free for open source, which we would like to
+acknowledge and give our thanks to:
+
+- [GitHub](https://github.com) - source code hosting, issue tracking, code
+  collaboration and release hosting
+- [Reviewable](https://www.reviewable.io) - enhanced code review experience
+- [Docker](https://www.docker.com) - reproducible test and build environment and
+  container hosting
+- [Azure Pipelines](https://azure.microsoft.com/en-us/products/devops/pipelines),
+  [CircleCI](https://circleci.com),
+  [Cirrus CI](https://cirrus-ci.org),
+  [GitHub Actions](https://github.com/features/actions) -
+  continuous integration (CI) making sure our code builds and passes the tests
+  across different platforms and configurations
+- [clang-tidy](https://clang.llvm.org/extra/clang-tidy),
+  [clang-analyzer](https://clang-analyzer.llvm.org),
+  [CodeQL](https://codeql.github.com),
+  [Coverity Scan](https://scan.coverity.com),
+  [cppcheck](https://cppcheck.sourceforge.io),
+  [cpplint](https://github.com/cpplint/cpplint),
+  [Goblint](https://goblint.in.tum.de),
+  [Infer](https://fbinfer.com),
+  [PVS-Studio](https://pvs-studio.com),
+  [Sparse](https://sparse.docs.kernel.org) -
+  linters and static code analysis tools making sure out code remains as
+  bug-free as possible
+- [Clang ASan (AddressSanitizer)](https://clang.llvm.org/docs/AddressSanitizer.html),
+  [Clang MSan (MemorySanitizer)](https://clang.llvm.org/docs/MemorySanitizer.html),
+  [Clang TSan (ThreadSanitizer)](https://clang.llvm.org/docs/ThreadSanitizer.html),
+  [Clang UBSan (UndefinedBehaviorSanitizer)](https://clang.llvm.org/docs/UndefinedBehaviorSanitizer.html) -
+  dynamic code analysis tools making sure out code remains as bug-free as
+  possible
+- [AFLplusplus](https://aflplus.plus),
+  [ClusterFuzzLite](https://google.github.io/clusterfuzzlite) -
+  continuous fuzz testing for detecting crashes and vulnerabilities
+- [Codacy](https://www.codacy.com),
+  [CodeFactor](https://www.codefactor.io),
+  [Sonar](https://www.sonarsource.com) -
+  code quality, security and maintainability review and metrics
+- [CompCert](https://compcert.org),
+  [slimcc](https://github.com/fuhsnn/slimcc),
+  [tcc](https://bellard.org/tcc) -
+  alternative and formally verified compilers used for portability and
+  correctness testing
+- [mingw-w64](https://www.mingw-w64.org),
+  [Wine](https://www.winehq.org) -
+  Windows cross-compilation and testing
+- [astyle](https://astyle.sourceforge.net),
+  [clang-format](https://clang.llvm.org/docs/ClangFormat.html),
+  [Restyled](https://restyled.io) -
+  automated code formatting
+- [Codecov](https://about.codecov.io) - code coverage reporting
+- [Dependabot](https://github.com/dependabot) - automated dependency updates
+- [doxygen](https://www.doxygen.nl/),
+  [Netify](https://www.netlify.com) -
+  documentation generation and hosting
+
+## Sponsors
+
+Special thanks to our current sponsors:
+
+- <a href="https://www.digitalocean.com"><img alt="DigitalOcean logo" src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="151px"></a>&emsp;
+  is sponsoring server hosting for $400 for one year. DigitalOcean has sponsored
+  us every year since 2015.
