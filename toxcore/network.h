@@ -302,6 +302,13 @@ typedef struct Net_Packet {
 } Net_Packet;
 
 /**
+ * Check for the situation when socket TOX_AF_INET, but target IP NOT.
+ *
+ * @return true if socket does not support IPv6, while address is IPv6, false if socket is compatible with address.
+ */
+bool net_check_socket_ip_is_incompatible(const Networking_Core *_Nonnull net, IP_Port port);
+
+/**
  * Function to send a network packet to a given IP/port.
  */
 int net_send_packet(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, Net_Packet packet);

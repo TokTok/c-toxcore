@@ -1295,6 +1295,12 @@ bool dht_send_nodes_request(DHT *dht, const IP_Port *ip_port, const uint8_t *pub
     memcpy(receiver.public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     receiver.ip_port = *ip_port;
 
+    /* Avoid warning message when IPv6 is disabled and node address is IPv6. */
+    const IP_Port ipp_copy = *ip_port;
+    if (net_check_socket_ip_is_incompatible(dht->net, ipp_copy)) {
+        return false;
+    }
+
     if (pack_nodes(dht->log, plain_message, sizeof(plain_message), &receiver, 1) == -1) {
         return false;
     }

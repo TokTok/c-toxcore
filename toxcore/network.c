@@ -147,6 +147,11 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
+bool net_check_socket_ip_is_incompatible(const Networking_Core *net, const IP_Port port)
+{
+    return net_family_is_ipv4(net->family) && !net_family_is_ipv4(port.ip.family);
+}
+
 int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Packet packet)
 {
     IP_Port ipp_copy = *ip_port;
@@ -165,7 +170,7 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
     }
 
     /* socket TOX_AF_INET, but target IP NOT: can't send */
-    if (net_family_is_ipv4(net->family) && !net_family_is_ipv4(ipp_copy.ip.family)) {
+    if (net_check_socket_ip_is_incompatible(net, ipp_copy)) {
         // TODO(iphydf): Make this an error. Occasionally we try to send to an
         // all-zero ip_port.
         Ip_Ntoa ip_str;
