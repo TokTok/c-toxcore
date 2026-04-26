@@ -197,7 +197,7 @@ jobs:
         with:
           python-version: 3.12
       - name: Install mypy
-        run: pip install mypy
+        run: pip install mypy==1.20.1
       - name: Run mypy
         run: |
           (find . -name "*.py" -and -not -name "conanfile.py"; grep -lR '^#!.*python') \
