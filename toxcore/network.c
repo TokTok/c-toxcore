@@ -147,6 +147,22 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
+bool net_socket_family_compatible(const Networking_Core *net, const IP_Port *ip_port, bool log_warning)
+{
+    if (!net_family_is_ipv4(net->family) || net_family_is_ipv4(ip_port->ip.family)) {
+        return true;
+    }
+    Ip_Ntoa ip_str;
+    if (log_warning) {
+        LOGGER_WARNING(net->log, "attempted to send message with network family %d (probably IPv6) on IPv4 socket (%s)",
+                       ip_port->ip.family.value, net_ip_ntoa(&ip_port->ip, &ip_str));
+    } else {
+        LOGGER_TRACE(net->log, "attempted to send message with network family %d (probably IPv6) on IPv4 socket (%s)",
+                     ip_port->ip.family.value, net_ip_ntoa(&ip_port->ip, &ip_str));
+    }
+    return false;
+}
+
 int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Packet packet)
 {
     IP_Port ipp_copy = *ip_port;
@@ -165,12 +181,9 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
     }
 
     /* socket TOX_AF_INET, but target IP NOT: can't send */
-    if (net_family_is_ipv4(net->family) && !net_family_is_ipv4(ipp_copy.ip.family)) {
+    if (!net_socket_family_compatible(net, ip_port, true)) {
         // TODO(iphydf): Make this an error. Occasionally we try to send to an
         // all-zero ip_port.
-        Ip_Ntoa ip_str;
-        LOGGER_WARNING(net->log, "attempted to send message with network family %d (probably IPv6) on IPv4 socket (%s)",
-                       ipp_copy.ip.family.value, net_ip_ntoa(&ipp_copy.ip, &ip_str));
         return -1;
     }
 

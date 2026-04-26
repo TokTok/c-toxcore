@@ -930,6 +930,10 @@ static int client_ping_nodes(Onion_Client *_Nonnull onion_c, uint32_t num, const
                 }
             }
 
+            if (!net_socket_family_compatible(onion_c->net, &nodes[i].ip_port, false)) {
+                continue;
+            }
+
             if (j == list_length && good_to_ping(onion_c->mono_time, last_pinged, last_pinged_index, nodes[i].public_key)) {
                 client_send_announce_request(onion_c, num, &nodes[i].ip_port, nodes[i].public_key, nullptr, -1);
             }

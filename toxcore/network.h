@@ -302,6 +302,14 @@ typedef struct Net_Packet {
 } Net_Packet;
 
 /**
+ * Check for the situation when socket TOX_AF_INET, but target IP is not. And log the error.
+ * This function can be used for UDP sockets only.
+ *
+ * @return true if socket if socket is compatible with address.
+ */
+bool net_socket_family_compatible(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, bool log_warning);
+
+/**
  * Function to send a network packet to a given IP/port.
  */
 int net_send_packet(const Networking_Core *_Nonnull net, const IP_Port *_Nonnull ip_port, Net_Packet packet);

@@ -376,6 +376,11 @@ int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const I
         return 1;
     }
 
+    /* Avoid warning message when IPv6 is disabled and node address is IPv6. */
+    if (!net_socket_family_compatible(onion->net, &send_to, false)) {
+        return 1;
+    }
+
     uint8_t ip_port[SIZE_IPPORT];
     ipport_pack(ip_port, source);
 
@@ -438,6 +443,11 @@ static int handle_send_1(void *_Nonnull object, const IP_Port *_Nonnull source, 
     IP_Port send_to;
 
     if (ipport_unpack(&send_to, plain, len, false) == -1) {
+        return 1;
+    }
+
+    /* Avoid warning message when IPv6 is disabled and node address is IPv6. */
+    if (!net_socket_family_compatible(onion->net, &send_to, false)) {
         return 1;
     }
 
@@ -512,6 +522,11 @@ static int handle_send_2(void *_Nonnull object, const IP_Port *_Nonnull source, 
     IP_Port send_to;
 
     if (ipport_unpack(&send_to, plain, len, false) == -1) {
+        return 1;
+    }
+
+    /* Avoid warning message when IPv6 is disabled and node address is IPv6. */
+    if (!net_socket_family_compatible(onion->net, &send_to, false)) {
         return 1;
     }
 
