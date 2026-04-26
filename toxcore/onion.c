@@ -532,6 +532,11 @@ static int handle_send_2(void *_Nonnull object, const IP_Port *_Nonnull source, 
 
     data_len += RETURN_3;
 
+    /* Avoid warning message when IPv6 is disabled and node address is IPv6. */
+    if (net_check_socket_ip_is_incompatible(onion->net, &send_to)) {
+        return 1;
+    }
+
     if ((uint32_t)sendpacket(onion->net, &send_to, data, data_len) != data_len) {
         return 1;
     }
