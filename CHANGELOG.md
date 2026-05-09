@@ -1,3 +1,22 @@
+<a name="v0.2.23-rc.1"></a>
+
+## v0.2.23-rc.1 (2026-05-09)
+
+### Release notes
+
+This release mostly focuses on fixes, but also brings some new apis.
+
+#### Bug Fixes
+
+- **av:** Fix Use-After-Free when peer goes offline. ([dbb65223](https://github.com/TokTok/c-toxcore/commit/dbb652239a228c7536ac473856bee42b6e3698c2))
+- **dht:** Suppress the warning about IPv6 nodes when IPv6 is turned off ([71c354bf](https://github.com/TokTok/c-toxcore/commit/71c354bfea8720f0fbdc40d3c67290799a64df51))
+- **test:** fix mypy failure ([8016a502](https://github.com/TokTok/c-toxcore/commit/8016a5023bffb85ac0386ed14f57c96cb29e79ea))
+
+#### Features
+
+- Add `Tox_Iterate_Options` for granular control over `tox_iterate`. ([10975240](https://github.com/TokTok/c-toxcore/commit/109752403e3a9bc4f9d1a72a5da40441bbcfa95c))
+- Add a function to get the list of valid group chat numbers. ([8f37a2f1](https://github.com/TokTok/c-toxcore/commit/8f37a2f17aa4e77d91f80953b89c7b7bd39034f4))
+
 <a name="v0.2.22"></a>
 
 ## v0.2.22 (2026-02-07)
