@@ -13,6 +13,17 @@
 static_assert(GCA_ANNOUNCE_MAX_SIZE <= ONION_MAX_EXTRA_DATA_SIZE,
               "GC_Announce does not fit into the onion packet extra data");
 
+/**
+ * GCA responses are larger than ONION_ANNOUNCE_RESPONSE_MAX_SIZE because they
+ * include both the full packed-node list AND the GCA announce list.
+ * handle_announce_request_common must therefore allocate its output buffer
+ * dynamically (sized from the actual plaintext length), never from the old
+ * constant.
+ */
+static_assert(GCA_ANNOUNCE_RESPONSE_MAX_SIZE > ONION_ANNOUNCE_RESPONSE_MAX_SIZE,
+              "GCA_ANNOUNCE_RESPONSE_MAX_SIZE must exceed ONION_ANNOUNCE_RESPONSE_MAX_SIZE; data[] in handle_announce_request_common must be dynamically sized");
+
+
 static pack_extra_data_cb pack_group_announces;
 non_null()
 static int pack_group_announces(void *object, const Logger *logger, const Mono_Time *mono_time,
@@ -62,7 +73,7 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
 
 void gca_onion_init(GC_Announces_List *group_announce, Onion_Announce *onion_a)
 {
-    onion_announce_extra_data_callback(onion_a, GCA_MAX_SENT_ANNOUNCES * sizeof(GC_Announce), pack_group_announces,
+    onion_announce_extra_data_callback(onion_a, GCA_MAX_SENT_ANNOUNCES * GCA_ANNOUNCE_MAX_SIZE, pack_group_announces,
                                        group_announce);
 }
 

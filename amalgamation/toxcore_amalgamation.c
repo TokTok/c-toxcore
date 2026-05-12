@@ -4677,6 +4677,18 @@ void kill_onion_announce(Onion_Announce *onion_a);
 #define C_TOXCORE_TOXCORE_GROUP_ONION_ANNOUNCE_H
 
 
+/**
+ * Maximum size of an announce response packet when the GCA extra-data callback
+ * is active.
+ *
+ * The 1 here is the `num_nodes` byte (`want_node_count=true`).
+ */
+#define GCA_ANNOUNCE_RESPONSE_MAX_SIZE \
+    (ONION_ANNOUNCE_RESPONSE_MIN_SIZE \
+     + 1 \
+     + MAX_SENT_NODES * PACKED_NODE_SIZE_IP6 \
+     + GCA_MAX_SENT_ANNOUNCES * GCA_ANNOUNCE_MAX_SIZE)
+
 non_null()
 void gca_onion_init(GC_Announces_List *group_announce, Onion_Announce *onion_a);
 
@@ -39116,6 +39128,17 @@ void sanctions_list_cleanup(Moderation *moderation)
 static_assert(GCA_ANNOUNCE_MAX_SIZE <= ONION_MAX_EXTRA_DATA_SIZE,
               "GC_Announce does not fit into the onion packet extra data");
 
+/**
+ * GCA responses are larger than ONION_ANNOUNCE_RESPONSE_MAX_SIZE because they
+ * include both the full packed-node list AND the GCA announce list.
+ * handle_announce_request_common must therefore allocate its output buffer
+ * dynamically (sized from the actual plaintext length), never from the old
+ * constant.
+ */
+static_assert(GCA_ANNOUNCE_RESPONSE_MAX_SIZE > ONION_ANNOUNCE_RESPONSE_MAX_SIZE,
+              "GCA_ANNOUNCE_RESPONSE_MAX_SIZE must exceed ONION_ANNOUNCE_RESPONSE_MAX_SIZE; data[] in handle_announce_request_common must be dynamically sized");
+
+
 static pack_extra_data_cb pack_group_announces;
 non_null()
 static int pack_group_announces(void *object, const Logger *logger, const Mono_Time *mono_time,
@@ -39165,7 +39188,7 @@ static int pack_group_announces(void *object, const Logger *logger, const Mono_T
 
 void gca_onion_init(GC_Announces_List *group_announce, Onion_Announce *onion_a)
 {
-    onion_announce_extra_data_callback(onion_a, GCA_MAX_SENT_ANNOUNCES * sizeof(GC_Announce), pack_group_announces,
+    onion_announce_extra_data_callback(onion_a, GCA_MAX_SENT_ANNOUNCES * GCA_ANNOUNCE_MAX_SIZE, pack_group_announces,
                                        group_announce);
 }
 
@@ -51080,12 +51103,28 @@ static int handle_announce_request_common(
 
     offset += extra_size;
 
-    uint8_t data[ONION_ANNOUNCE_RESPONSE_MAX_SIZE];
+    /* Allocate the output buffer to exactly fit the ciphertext we are about
+     * to produce.  Using a fixed constant here would be wrong: when the GCA
+     * extra-data callback is active, offset can exceed
+     * ONION_ANNOUNCE_RESPONSE_MAX_SIZE - 33, overflowing any static buffer
+     * sized from that constant. */
+    const uint16_t data_size = (uint16_t)(
+                                   1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE
+                                   + offset + CRYPTO_MAC_SIZE);
+    uint8_t *data = (uint8_t *)malloc(data_size);
+
+    if (data == nullptr) {
+        free(response);
+        free(plain);
+        return 1;
+    }
+
     const int len = encrypt_data_symmetric(shared_key, nonce, response, offset,
                                            data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE);
 
     if (len != offset + CRYPTO_MAC_SIZE) {
         LOGGER_ERROR(onion_a->log, "Failed to encrypt announce response");
+        free(data);
         free(response);
         free(plain);
         return 1;
@@ -51099,11 +51138,13 @@ static int handle_announce_request_common(
     if (send_onion_response(onion_a->net, source, data,
                             1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE + len,
                             packet + (length - ONION_RETURN_3)) == -1) {
+        free(data);
         free(response);
         free(plain);
         return 1;
     }
 
+    free(data);
     free(response);
     free(plain);
     return 0;
@@ -52900,7 +52941,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
 {
     Onion_Client *onion_c = (Onion_Client *)object;
 
-    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > ONION_ANNOUNCE_RESPONSE_MAX_SIZE) {
+    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > GCA_ANNOUNCE_RESPONSE_MAX_SIZE) {
         return 1;
     }
 
@@ -52913,7 +52954,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
         return 1;
     }
 
-    uint8_t plain[1 + ONION_PING_ID_SIZE + ONION_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
+    uint8_t plain[1 + ONION_PING_ID_SIZE + GCA_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
     const int plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
     int len;
 

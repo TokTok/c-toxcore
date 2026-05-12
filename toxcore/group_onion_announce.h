@@ -9,6 +9,18 @@
 #include "group_announce.h"
 #include "onion_announce.h"
 
+/**
+ * Maximum size of an announce response packet when the GCA extra-data callback
+ * is active.
+ *
+ * The 1 here is the `num_nodes` byte (`want_node_count=true`).
+ */
+#define GCA_ANNOUNCE_RESPONSE_MAX_SIZE \
+    (ONION_ANNOUNCE_RESPONSE_MIN_SIZE \
+     + 1 \
+     + MAX_SENT_NODES * PACKED_NODE_SIZE_IP6 \
+     + GCA_MAX_SENT_ANNOUNCES * GCA_ANNOUNCE_MAX_SIZE)
+
 non_null()
 void gca_onion_init(GC_Announces_List *group_announce, Onion_Announce *onion_a);
 

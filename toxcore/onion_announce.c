@@ -530,12 +530,28 @@ static int handle_announce_request_common(
 
     offset += extra_size;
 
-    uint8_t data[ONION_ANNOUNCE_RESPONSE_MAX_SIZE];
+    /* Allocate the output buffer to exactly fit the ciphertext we are about
+     * to produce.  Using a fixed constant here would be wrong: when the GCA
+     * extra-data callback is active, offset can exceed
+     * ONION_ANNOUNCE_RESPONSE_MAX_SIZE - 33, overflowing any static buffer
+     * sized from that constant. */
+    const uint16_t data_size = (uint16_t)(
+                                   1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE
+                                   + offset + CRYPTO_MAC_SIZE);
+    uint8_t *data = (uint8_t *)malloc(data_size);
+
+    if (data == nullptr) {
+        free(response);
+        free(plain);
+        return 1;
+    }
+
     const int len = encrypt_data_symmetric(shared_key, nonce, response, offset,
                                            data + 1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE);
 
     if (len != offset + CRYPTO_MAC_SIZE) {
         LOGGER_ERROR(onion_a->log, "Failed to encrypt announce response");
+        free(data);
         free(response);
         free(plain);
         return 1;
@@ -549,11 +565,13 @@ static int handle_announce_request_common(
     if (send_onion_response(onion_a->net, source, data,
                             1 + ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + CRYPTO_NONCE_SIZE + len,
                             packet + (length - ONION_RETURN_3)) == -1) {
+        free(data);
         free(response);
         free(plain);
         return 1;
     }
 
+    free(data);
     free(response);
     free(plain);
     return 0;

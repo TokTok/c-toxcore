@@ -933,7 +933,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
 {
     Onion_Client *onion_c = (Onion_Client *)object;
 
-    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > ONION_ANNOUNCE_RESPONSE_MAX_SIZE) {
+    if (length < ONION_ANNOUNCE_RESPONSE_MIN_SIZE || length > GCA_ANNOUNCE_RESPONSE_MAX_SIZE) {
         return 1;
     }
 
@@ -946,7 +946,7 @@ static int handle_announce_response(void *object, const IP_Port *source, const u
         return 1;
     }
 
-    uint8_t plain[1 + ONION_PING_ID_SIZE + ONION_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
+    uint8_t plain[1 + ONION_PING_ID_SIZE + GCA_ANNOUNCE_RESPONSE_MAX_SIZE - ONION_ANNOUNCE_RESPONSE_MIN_SIZE];
     const int plain_size = 1 + ONION_PING_ID_SIZE + length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
     int len;
 
