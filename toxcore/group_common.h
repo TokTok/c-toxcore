@@ -24,6 +24,10 @@
 #include "net_profile.h"
 #include "network.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAX_GC_PART_MESSAGE_SIZE 128
 #define MAX_GC_NICK_SIZE 128
 #define MAX_GC_TOPIC_SIZE 512
@@ -428,4 +432,9 @@ int unpack_gc_saved_peers(GC_Chat *_Nonnull chat, const uint8_t *_Nonnull data, 
  * Return -1 if buffer is too small.
  */
 int pack_gc_saved_peers(const GC_Chat *_Nonnull chat, uint8_t *_Nonnull data, uint16_t length, uint16_t *_Nullable processed);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
+
 #endif /* C_TOXCORE_TOXCORE_GROUP_COMMON_H */
