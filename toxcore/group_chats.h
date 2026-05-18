@@ -25,6 +25,10 @@
 #include "mem.h"
 #include "network.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define GC_PING_TIMEOUT 12
 #define GC_SEND_IP_PORT_INTERVAL (GC_PING_TIMEOUT * 5)
 #define GC_CONFIRMED_PEER_TIMEOUT (GC_PING_TIMEOUT * 4 + 10)
@@ -719,5 +723,9 @@ GC_Chat *_Nullable gc_get_group_by_public_key(const GC_Session *_Nonnull c, cons
  * Returns -1 on failure.
  */
 int gc_add_peers_from_announces(GC_Chat *_Nonnull chat, const GC_Announce *_Nonnull announces, uint8_t gc_announces_count);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* C_TOXCORE_TOXCORE_GROUP_CHATS_H */
