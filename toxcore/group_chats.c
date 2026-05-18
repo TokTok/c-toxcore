@@ -479,7 +479,7 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length)
     uint16_t count = 0;
     uint16_t unpacked_len = 0;
 
-    for (size_t i = 0; unpacked_len < length; ++i) {
+    for (size_t i = 0; unpacked_len < length && i < GC_MAX_SAVED_PEERS; ++i) {
         GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
         const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len, false);
