@@ -319,6 +319,11 @@ typedef enum Tox_Netprof_Packet_Id {
     TOX_NETPROF_PACKET_ID_CRYPTO_DATA          = 0x1b,
 
     /**
+     * Noise IK handshake packet.
+     */
+    TOX_NETPROF_PACKET_ID_CRYPTO_NOISE_HS     = 0x1c,
+
+    /**
      * Encrypted data packet.
      */
     TOX_NETPROF_PACKET_ID_CRYPTO               = 0x20,

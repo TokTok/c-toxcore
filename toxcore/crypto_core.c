@@ -28,6 +28,8 @@ static_assert(CRYPTO_MAC_SIZE == crypto_box_MACBYTES,
               "CRYPTO_MAC_SIZE should be equal to crypto_box_MACBYTES");
 static_assert(CRYPTO_NONCE_SIZE == crypto_box_NONCEBYTES,
               "CRYPTO_NONCE_SIZE should be equal to crypto_box_NONCEBYTES");
+static_assert(CRYPTO_NOISE_NONCE_SIZE == crypto_stream_chacha20_ietf_NONCEBYTES,
+              "CRYPTO_NOISE_NONCE_SIZE should be equal to crypto_stream_chacha20_ietf_NONCEBYTES");
 static_assert(CRYPTO_HMAC_SIZE == crypto_auth_BYTES,
               "CRYPTO_HMAC_SIZE should be equal to crypto_auth_BYTES");
 static_assert(CRYPTO_HMAC_KEY_SIZE == crypto_auth_KEYBYTES,
@@ -45,6 +47,12 @@ static_assert(CRYPTO_SIGN_PUBLIC_KEY_SIZE == crypto_sign_PUBLICKEYBYTES,
               "CRYPTO_SIGN_PUBLIC_KEY_SIZE should be equal to crypto_sign_PUBLICKEYBYTES");
 static_assert(CRYPTO_SIGN_SECRET_KEY_SIZE == crypto_sign_SECRETKEYBYTES,
               "CRYPTO_SIGN_SECRET_KEY_SIZE should be equal to crypto_sign_SECRETKEYBYTES");
+
+
+static_assert(CRYPTO_MAC_SIZE == crypto_aead_chacha20poly1305_IETF_ABYTES,
+              "CRYPTO_MAC_SIZE should be equal to crypto_aead_chacha20poly1305_IETF_ABYTES");
+static_assert(CRYPTO_SHARED_KEY_SIZE == CRYPTO_SYMMETRIC_KEY_SIZE,
+              "CRYPTO_SHARED_KEY_SIZE should be equal to CRYPTO_SYMMETRIC_KEY_SIZE");
 
 bool create_extended_keypair(Extended_Public_Key *pk, Extended_Secret_Key *sk, const Random *rng)
 {
@@ -235,7 +243,7 @@ int32_t encrypt_data_symmetric(const Memory *mem,
                                const uint8_t nonce[CRYPTO_NONCE_SIZE],
                                const uint8_t *plain, size_t length, uint8_t *encrypted)
 {
-    if (length == 0 || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
+    if (length == 0 || length >= INT32_MAX - crypto_box_MACBYTES || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
         return -1;
     }
 
@@ -280,7 +288,6 @@ int32_t encrypt_data_symmetric(const Memory *mem,
     crypto_free(mem, temp_plain, size_temp_plain);
     crypto_free(mem, temp_encrypted, size_temp_encrypted);
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-    assert(length < INT32_MAX - crypto_box_MACBYTES);
     return (int32_t)(length + crypto_box_MACBYTES);
 }
 
@@ -289,13 +296,12 @@ int32_t decrypt_data_symmetric(const Memory *mem,
                                const uint8_t nonce[CRYPTO_NONCE_SIZE],
                                const uint8_t *encrypted, size_t length, uint8_t *plain)
 {
-    if (length <= crypto_box_BOXZEROBYTES || shared_key == nullptr || nonce == nullptr || encrypted == nullptr
+    if (length <= crypto_box_BOXZEROBYTES || length >= INT32_MAX || shared_key == nullptr || nonce == nullptr || encrypted == nullptr
             || plain == nullptr) {
         return -1;
     }
 
 #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
-    assert(length >= crypto_box_MACBYTES);
     memcpy(plain, encrypted, length - crypto_box_MACBYTES);  // Don't encrypt anything
 #else
 
@@ -332,8 +338,6 @@ int32_t decrypt_data_symmetric(const Memory *mem,
     crypto_free(mem, temp_plain, size_temp_plain);
     crypto_free(mem, temp_encrypted, size_temp_encrypted);
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-    assert(length > crypto_box_MACBYTES);
-    assert(length < INT32_MAX);
     return (int32_t)(length - crypto_box_MACBYTES);
 }
 
@@ -373,10 +377,7 @@ int32_t decrypt_data(const Memory *mem,
 
 void increment_nonce(uint8_t nonce[CRYPTO_NONCE_SIZE])
 {
-    /* TODO(irungentoo): use `increment_nonce_number(nonce, 1)` or
-     * sodium_increment (change to little endian).
-     *
-     * NOTE don't use breaks inside this loop.
+    /* NOTE don't use breaks inside this loop.
      * In particular, make sure, as far as possible,
      * that loop bounds and their potential underflow or overflow
      * are independent of user-controlled input (you may have heard of the Heartbleed bug).
@@ -488,3 +489,92 @@ void random_bytes(const Random *rng, uint8_t *bytes, size_t length)
 {
     rng_bytes(rng, bytes, length);
 }
+
+// Necessary functions for Noise, cf. https://noiseprotocol.org/noise.html (Revision 34)
+
+int32_t encrypt_data_symmetric_aead(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[CRYPTO_NOISE_NONCE_SIZE],
+                                    const uint8_t *plain, size_t plain_length, uint8_t *encrypted,
+                                    const uint8_t *ad, size_t ad_length)
+{
+    if (plain_length == 0 || plain_length >= INT32_MAX - crypto_aead_chacha20poly1305_IETF_ABYTES
+            || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
+        return -1;
+    }
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(encrypted, plain, plain_length);
+    memzero(encrypted + plain_length, crypto_aead_chacha20poly1305_IETF_ABYTES);
+#else
+    if (crypto_aead_chacha20poly1305_ietf_encrypt(encrypted, nullptr, plain, plain_length,
+            ad, ad_length, nullptr, nonce, shared_key) != 0) {
+        return -1;
+    }
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+
+    return (int32_t)(plain_length + crypto_aead_chacha20poly1305_IETF_ABYTES);
+}
+
+int32_t decrypt_data_symmetric_aead(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[CRYPTO_NOISE_NONCE_SIZE],
+                                    const uint8_t *encrypted, size_t encrypted_length, uint8_t *plain,
+                                    const uint8_t *ad, size_t ad_length)
+{
+    if (encrypted_length <= crypto_aead_chacha20poly1305_IETF_ABYTES || encrypted_length >= INT32_MAX
+            || shared_key == nullptr || nonce == nullptr || encrypted == nullptr || plain == nullptr) {
+        return -1;
+    }
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(plain, encrypted, encrypted_length - crypto_aead_chacha20poly1305_IETF_ABYTES);
+#else
+    if (crypto_aead_chacha20poly1305_ietf_decrypt(plain, nullptr, nullptr, encrypted,
+            encrypted_length, ad, ad_length, nonce, shared_key) != 0) {
+        return -1;
+    }
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+
+    return (int32_t)(encrypted_length - crypto_aead_chacha20poly1305_IETF_ABYTES);
+}
+
+int32_t encrypt_data_symmetric_xaead(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[CRYPTO_NONCE_SIZE],
+                                     const uint8_t *plain, size_t plain_length, uint8_t *encrypted,
+                                     const uint8_t *ad, size_t ad_length)
+{
+    if (plain_length == 0 || plain_length >= INT32_MAX - crypto_aead_xchacha20poly1305_ietf_ABYTES
+            || shared_key == nullptr || nonce == nullptr || plain == nullptr || encrypted == nullptr) {
+        return -1;
+    }
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(encrypted, plain, plain_length);
+    memzero(encrypted + plain_length, crypto_aead_xchacha20poly1305_ietf_ABYTES);
+#else
+    if (crypto_aead_xchacha20poly1305_ietf_encrypt(encrypted, nullptr, plain, plain_length,
+            ad, ad_length, nullptr, nonce, shared_key) != 0) {
+        return -1;
+    }
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+
+    return (int32_t)(plain_length + crypto_aead_xchacha20poly1305_ietf_ABYTES);
+}
+
+int32_t decrypt_data_symmetric_xaead(const uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE], const uint8_t nonce[CRYPTO_NONCE_SIZE],
+                                     const uint8_t *encrypted, size_t encrypted_length, uint8_t *plain,
+                                     const uint8_t *ad, size_t ad_length)
+{
+    if (encrypted_length <= crypto_aead_xchacha20poly1305_ietf_ABYTES || encrypted_length >= INT32_MAX
+            || shared_key == nullptr || nonce == nullptr || encrypted == nullptr || plain == nullptr) {
+        return -1;
+    }
+
+#ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+    memcpy(plain, encrypted, encrypted_length - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+#else
+    if (crypto_aead_xchacha20poly1305_ietf_decrypt(plain, nullptr, nullptr, encrypted,
+            encrypted_length, ad, ad_length, nonce, shared_key) != 0) {
+        return -1;
+    }
+#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
+
+    return (int32_t)(encrypted_length - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+}
+

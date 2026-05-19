@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 
     ToxScenarioStatus res = tox_scenario_run(s);
     if (res != TOX_SCENARIO_DONE) {
-        fprintf(stderr, "Scenario failed with status %d\n", res);
+        fprintf(stderr, "Scenario failed with status %u\n", res);
         return 1;
     }
 

@@ -189,6 +189,21 @@ const char *_Nonnull tox_savedata_type_to_string(Tox_Savedata_Type value)
 
     return "<invalid Tox_Savedata_Type>";
 }
+const char *_Nonnull tox_handshake_mode_to_string(Tox_Handshake_Mode value)
+{
+    switch (value) {
+        case TOX_HANDSHAKE_MODE_NOISE_ONLY:
+            return "TOX_HANDSHAKE_MODE_NOISE_ONLY";
+
+        case TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY:
+            return "TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY";
+
+        case TOX_HANDSHAKE_MODE_LEGACY_ONLY:
+            return "TOX_HANDSHAKE_MODE_LEGACY_ONLY";
+    }
+
+    return "<invalid Tox_Handshake_Mode>";
+}
 const char *_Nonnull tox_err_options_new_to_string(Tox_Err_Options_New value)
 {
     switch (value) {
@@ -1569,6 +1584,8 @@ const char *tox_netprof_packet_id_to_string(Tox_Netprof_Packet_Id value)
             return "TOX_NETPROF_PACKET_ID_CRYPTO_HS";
         case TOX_NETPROF_PACKET_ID_CRYPTO_DATA:
             return "TOX_NETPROF_PACKET_ID_CRYPTO_DATA";
+        case TOX_NETPROF_PACKET_ID_CRYPTO_NOISE_HS:
+            return "TOX_NETPROF_PACKET_ID_CRYPTO_NOISE_HS";
         case TOX_NETPROF_PACKET_ID_CRYPTO:
             return "TOX_NETPROF_PACKET_ID_CRYPTO";
         case TOX_NETPROF_PACKET_ID_LAN_DISCOVERY:

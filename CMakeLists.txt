@@ -243,6 +243,8 @@ set(toxcore_SOURCES
   toxcore/ccompat.h
   toxcore/crypto_core.c
   toxcore/crypto_core.h
+  toxcore/noise.c
+  toxcore/noise.h
   toxcore/crypto_core_pack.c
   toxcore/crypto_core_pack.h
   toxcore/DHT.c
@@ -639,6 +641,7 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore mem)
   unit_test(toxcore mono_time)
   unit_test(toxcore net_crypto)
+  unit_test(toxcore noise)
   unit_test(toxcore network)
   unit_test(toxcore onion_client)
   unit_test(toxcore ping_array)

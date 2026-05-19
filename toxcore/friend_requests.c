@@ -113,7 +113,7 @@ int remove_request_received(Friend_Requests *fr, const uint8_t *real_pk)
 {
     for (uint32_t i = 0; i < MAX_RECEIVED_STORED; ++i) {
         if (pk_equal(fr->received.requests[i], real_pk)) {
-            crypto_memzero(fr->received.requests[i], CRYPTO_PUBLIC_KEY_SIZE);
+            memset(fr->received.requests[i], 0, CRYPTO_PUBLIC_KEY_SIZE);
             return 0;
         }
     }
