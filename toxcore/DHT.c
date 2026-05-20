@@ -2795,27 +2795,24 @@ static State_Load_Status dht_load_state_callback(void *_Nonnull outer, const uin
                 break;
             }
 
-            mem_delete(dht->mem, dht->loaded_nodes_list);
-
-            // Copy to loaded_clients_list
+            // TODO(Green-Sky): This allocates 130KiB, might be worth reducing or retrying with smaller, partial allocations.
             Node_format *nodes = (Node_format *)mem_valloc(dht->mem, MAX_SAVED_DHT_NODES, sizeof(Node_format));
 
             if (nodes == nullptr) {
                 LOGGER_ERROR(dht->log, "could not allocate %u nodes", (unsigned int)MAX_SAVED_DHT_NODES);
-                dht->loaded_num_nodes = 0;
                 break;
             }
 
             const int num = unpack_nodes(nodes, MAX_SAVED_DHT_NODES, nullptr, data, length, false);
 
-            if (num < 0) {
-                // Unpack error happened, we ignore it.
-                dht->loaded_num_nodes = 0;
+            if (num <= 0) {
+                // Unpack error happened or list was empty, we ignore it.
+                mem_delete(dht->mem, nodes);
             } else {
+                mem_delete(dht->mem, dht->loaded_nodes_list);
                 dht->loaded_num_nodes = num;
+                dht->loaded_nodes_list = nodes;
             }
-
-            dht->loaded_nodes_list = nodes;
 
             break;
         }

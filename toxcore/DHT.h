@@ -366,7 +366,7 @@ bool dht_bootstrap(DHT *_Nonnull dht, const IP_Port *_Nonnull ip_port, const uin
  */
 bool dht_bootstrap_from_address(DHT *_Nonnull dht, const char *_Nonnull address, bool ipv6enabled, bool dns_enabled, uint16_t port, const uint8_t *_Nonnull public_key);
 
-/** @brief Start sending packets after DHT loaded_friends_list and loaded_clients_list are set.
+/** @brief Start sending packets after DHT loaded_nodes_list is set.
  *
  * @retval 0 if successful
  * @retval -1 otherwise
