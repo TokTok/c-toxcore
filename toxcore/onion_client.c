@@ -103,7 +103,7 @@ struct Onion_Friend {
     void *_Nullable dht_pk_callback_object;
     uint32_t dht_pk_callback_number;
 
-    uint8_t  gc_data[GCA_MAX_DATA_LENGTH];
+    uint8_t  gc_data[GCA_PUBLIC_ANNOUNCE_MAX_SIZE];
     uint8_t  gc_public_key[ENC_PUBLIC_KEY_SIZE];
     uint16_t gc_data_length;
     bool     is_groupchat;
@@ -195,6 +195,7 @@ void onion_friend_set_gc_public_key(Onion_Friend *const onion_friend, const uint
 void onion_friend_set_gc_data(Onion_Friend *const onion_friend, const uint8_t *gc_data, uint16_t gc_data_length)
 {
     if (gc_data_length > 0 && gc_data != nullptr) {
+        assert(gc_data_length <= GCA_PUBLIC_ANNOUNCE_MAX_SIZE);
         memcpy(onion_friend->gc_data, gc_data, gc_data_length);
     }
 

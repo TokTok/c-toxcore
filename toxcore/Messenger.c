@@ -2474,8 +2474,8 @@ static bool self_announce_group(const Messenger *_Nonnull m, GC_Chat *_Nonnull c
     memcpy(announce.base_announce.peer_public_key, chat->self_public_key.enc, ENC_PUBLIC_KEY_SIZE);
     memcpy(announce.chat_public_key, get_chat_id(&chat->chat_public_key), ENC_PUBLIC_KEY_SIZE);
 
-    uint8_t gc_data[GCA_MAX_DATA_LENGTH];
-    const int length = gca_pack_public_announce(m->log, gc_data, GCA_MAX_DATA_LENGTH, &announce);
+    uint8_t gc_data[GCA_PUBLIC_ANNOUNCE_MAX_SIZE];
+    const int length = gca_pack_public_announce(m->log, gc_data, sizeof(gc_data), &announce);
 
     if (length <= 0) {
         onion_friend_set_gc_data(onion_friend, nullptr, 0);

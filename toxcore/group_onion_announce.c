@@ -99,9 +99,9 @@ int create_gca_announce_request(
     }
 
     uint8_t plain[ONION_PING_ID_SIZE + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_PUBLIC_KEY_SIZE +
-                                     ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + GCA_ANNOUNCE_MAX_SIZE];
+                                     ONION_ANNOUNCE_SENDBACK_DATA_LENGTH + GCA_PUBLIC_ANNOUNCE_MAX_SIZE];
     uint8_t *position_in_plain = plain;
-    const size_t encrypted_size = sizeof(plain) - GCA_ANNOUNCE_MAX_SIZE + gc_data_length;
+    const size_t encrypted_size = sizeof(plain) - GCA_PUBLIC_ANNOUNCE_MAX_SIZE + gc_data_length;
 
     memcpy(plain, ping_id, ONION_PING_ID_SIZE);
     position_in_plain += ONION_PING_ID_SIZE;
