@@ -51,8 +51,6 @@
 
 #define MAX_PATH_NODES 32
 
-#define GCA_MAX_DATA_LENGTH GCA_PUBLIC_ANNOUNCE_MAX_SIZE
-
 /**
  * If no announce response packets are received within this interval tox will
  * be considered offline. We give time for a node to be pinged often enough

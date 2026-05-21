@@ -35,7 +35,7 @@ extern "C" {
 #define GCA_MAX_SENT_ANNOUNCES 4
 
 /* Maximum size of an announce. */
-#define GCA_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + 1 + 1 + (PACKED_NODE_SIZE_IP6 * 2))
+#define GCA_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + 1 + 1 + (1 + SIZE_IP6 + sizeof(uint16_t)) + PACKED_NODE_SIZE_IP6)
 
 /* Maximum size of a public announce. */
 #define GCA_PUBLIC_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + GCA_ANNOUNCE_MAX_SIZE)
