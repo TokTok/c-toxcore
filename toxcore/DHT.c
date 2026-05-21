@@ -1906,7 +1906,7 @@ int route_packet(const DHT *dht, const uint8_t *public_key, const uint8_t *packe
 
 /** @brief Puts all the different ips returned by the nodes for a friend_num into array ip_portlist.
  *
- * ip_portlist must be at least MAX_FRIEND_CLIENTS big.
+ * @param ip_portlist must be at least MAX_FRIEND_CLIENTS big.
  *
  * @return the number of ips returned.
  * @retval 0 if we are connected to friend or if no ips were found.
