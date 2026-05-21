@@ -247,7 +247,6 @@ static int32_t m_add_friend_contact_norequest(Messenger *_Nonnull m, const uint8
  *
  * @param address is the address of the friend (returned by getaddress of the friend
  *   you wish to add) it must be FRIEND_ADDRESS_SIZE bytes.
- *   TODO(irungentoo): add checksum.
  * @param data is the data.
  * @param length is the length.
  *

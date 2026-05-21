@@ -336,7 +336,6 @@ void getaddress(const Messenger *_Nonnull m, uint8_t *_Nonnull address);
  *
  * @param address is the address of the friend (returned by getaddress of the friend
  *   you wish to add) it must be FRIEND_ADDRESS_SIZE bytes.
- *   TODO(irungentoo): add checksum.
  * @param data is the data.
  * @param length is the length.
  *
