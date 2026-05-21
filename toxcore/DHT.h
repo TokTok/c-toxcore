@@ -384,9 +384,9 @@ int route_packet(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, co
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Net_Packet *_Nonnull packet);
 

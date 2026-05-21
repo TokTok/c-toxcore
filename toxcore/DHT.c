@@ -2051,9 +2051,9 @@ static bool send_packet_to_friend(const DHT *_Nonnull dht, const IP_Port *_Nonnu
 
 /**
  * Send the following packet to everyone who tells us they are connected to friend_id.
+ * Only works if more than (MAX_FRIEND_CLIENTS / 4) return an ip for friend.
  *
- * @return ip for friend.
- * @return number of nodes the packet was sent to. (Only works if more than (MAX_FRIEND_CLIENTS / 4).
+ * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *dht, const uint8_t *friend_id, const Net_Packet *packet)
 {
