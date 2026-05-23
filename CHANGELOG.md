@@ -1,3 +1,18 @@
+<a name="v0.2.23-rc.2"></a>
+
+## v0.2.23-rc.2 (2026-05-23)
+
+### Release notes
+
+Another candidate.
+
+#### Bug Fixes
+
+- limit number of saved group peers when loading from disk And add `unpack_gc_saved_peers` bounds test. ([de31d805](https://github.com/TokTok/c-toxcore/commit/de31d80571ed2e8520db41a88c3354545ba16d9a))
+- wrong comment in group code ([147dbe11](https://github.com/TokTok/c-toxcore/commit/147dbe11d1b077a8861bcbff6a96247e31b083b2))
+- **gca:** announce max sizes where 32bytes too large ([5080b21c](https://github.com/TokTok/c-toxcore/commit/5080b21ca5fe2404cba70139fc3cf19dd3992127))
+- **onion:** Size GCA announce response buffer to actual content length. ([23853004](https://github.com/TokTok/c-toxcore/commit/23853004d933cadb53439353c1d156f2db856755))
+
 <a name="v0.2.23-rc.1"></a>
 
 ## v0.2.23-rc.1 (2026-05-14)
