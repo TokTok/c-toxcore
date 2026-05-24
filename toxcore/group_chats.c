@@ -8374,35 +8374,68 @@ static bool gc_handle_announce_response_callback(Onion_Client *onion_c, uint32_t
     return added_peers >= 0;
 }
 
-/** @brief Adds TCP relays from `announce` to the TCP relays list for `gconn`.
+/** @brief Adds TCP relays to the TCP relays list for `gconn`.
  *
  * Returns the number of relays successfully added.
  */
-static uint32_t add_gc_tcp_relays_from_announce(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const GC_Announce *_Nonnull announce)
+static uint32_t gc_add_tcp_relays(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const Node_format *_Nonnull tcp_relays, uint8_t tcp_relays_count)
 {
     uint32_t added_relays = 0;
 
-    for (uint8_t j = 0; j < announce->tcp_relays_count; ++j) {
+    for (uint8_t j = 0; j < tcp_relays_count; ++j) {
         const int add_tcp_result = add_tcp_relay_connection(chat->tcp_conn, gconn->tcp_connection_num,
-                                   &announce->tcp_relays[j].ip_port,
-                                   announce->tcp_relays[j].public_key);
+                                   &tcp_relays[j].ip_port,
+                                   tcp_relays[j].public_key);
 
         if (add_tcp_result == -1) {
             continue;
         }
 
-        if (gcc_save_tcp_relay(chat->rng, gconn, &announce->tcp_relays[j]) == -1) {
+        if (gcc_save_tcp_relay(chat->rng, gconn, &tcp_relays[j]) == -1) {
             continue;
         }
 
         if (added_relays == 0) {
-            memcpy(gconn->oob_relay_pk, announce->tcp_relays[j].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+            memcpy(gconn->oob_relay_pk, tcp_relays[j].public_key, CRYPTO_PUBLIC_KEY_SIZE);
         }
 
         ++added_relays;
     }
 
     return added_relays;
+}
+
+int gc_add_peer(GC_Chat *chat, const uint8_t peer_public_key[ENC_PUBLIC_KEY_SIZE], const IP_Port *_Nullable ip_port, const Node_format *_Nullable tcp_relays, uint8_t tcp_relays_count)
+{
+    if (chat == nullptr || (ip_port == nullptr && (tcp_relays == nullptr || tcp_relays_count == 0))) {
+        return -1;
+    }
+
+    const int peer_number = peer_add(chat, ip_port, peer_public_key);
+
+    if (peer_number < 0) {
+        return -2;
+    }
+
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return -3;
+    }
+
+    const uint32_t added_tcp_relays = gc_add_tcp_relays(chat, gconn, tcp_relays, tcp_relays_count);
+
+    if (ip_port == nullptr && added_tcp_relays == 0) {
+        return -4;
+    }
+
+    gconn->pending_handshake_type = HS_INVITE_REQUEST;
+
+    if (ip_port == nullptr) {
+        gconn->is_oob_handshake = true;
+    }
+
+    return 0;
 }
 
 int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uint8_t gc_announces_count)
@@ -8434,7 +8467,7 @@ int gc_add_peers_from_announces(GC_Chat *chat, const GC_Announce *announces, uin
             continue;
         }
 
-        const uint32_t added_tcp_relays = add_gc_tcp_relays_from_announce(chat, gconn, announce);
+        const uint32_t added_tcp_relays = gc_add_tcp_relays(chat, gconn, announce->tcp_relays, announce->tcp_relays_count);
 
         if (!ip_port_set && added_tcp_relays == 0) {
             LOGGER_ERROR(chat->log, "Got invalid announcement: %u relays, IPP set: %d",
