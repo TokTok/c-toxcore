@@ -249,7 +249,9 @@ void tox_events_handle_conference_message(
     tox_event_conference_message_set_peer_number(conference_message, peer_number);
     tox_event_conference_message_set_type(conference_message, type);
     if (!tox_event_conference_message_set_message(conference_message, state->mem, message, length)) {
+        tox_event_conference_message_free(conference_message, state->mem);
         state->error = TOX_ERR_EVENTS_ITERATE_MALLOC;
+        return;
     }
 }
 
