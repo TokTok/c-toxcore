@@ -70,6 +70,26 @@ TEST(CryptoCore, EncryptLargeData)
         &c_mem, pk.data(), sk.data(), nonce.data(), plain.data(), plain.size(), encrypted.data());
 }
 
+TEST(CryptoCore, EncryptPrecomputeFailsForAllZeroPublicKey)
+{
+    SimulatedEnvironment env{12345};
+    auto c_rng = env.fake_random().c_random();
+
+    PublicKey pk;
+    SecretKey sk;
+    crypto_new_keypair(&c_rng, pk.data(), sk.data());
+
+    // Any peer can send this key, and its shared key with anyone is all zeroes.
+    const PublicKey zero_pk{};
+    std::array<std::uint8_t, CRYPTO_SHARED_KEY_SIZE> shared_key;
+    shared_key.fill(0xAA);
+    const auto before = shared_key;
+
+    EXPECT_EQ(encrypt_precompute(zero_pk.data(), sk.data(), shared_key.data()), -1);
+    // Callers that fail on this keep what they had, so it mustn't change.
+    EXPECT_EQ(shared_key, before);
+}
+
 TEST(CryptoCore, IncrementNonce)
 {
     Nonce nonce{};

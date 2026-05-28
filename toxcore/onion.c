@@ -18,6 +18,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
 #include "shared_key_cache.h"
 #include "util.h"
@@ -109,8 +110,8 @@ static int ipport_unpack(IP_Port *_Nonnull target, const uint8_t *_Nonnull data,
  *
  * new_path must be an empty memory location of at least Onion_Path size.
  *
- * return -1 on failure.
- * return 0 on success.
+ * @retval -1 on failure.
+ * @retval 0 on success.
  */
 int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes)
 {
@@ -118,29 +119,47 @@ int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, c
         return -1;
     }
 
-    encrypt_precompute(nodes[0].public_key, dht_get_self_secret_key(dht), new_path->shared_key1);
-    memcpy(new_path->public_key1, dht_get_self_public_key(dht), CRYPTO_PUBLIC_KEY_SIZE);
+    Onion_Path temp_path;
+
+    // If the first hop is a tcp-relay, pubkey and sharedkey are never written or read, so we ignore the error.
+    // TODO(Green-Sky): refactor how tcp-relay onions work, maybe do a separate 2 hop onion path function.
+    if (encrypt_precompute(nodes[0].public_key, dht_get_self_secret_key(dht), temp_path.shared_key1) != 0 &&
+            !net_family_is_tcp_server(nodes[0].ip_port.ip.family)) {
+        return -1;
+    }
+    memcpy(temp_path.public_key1, dht_get_self_public_key(dht), CRYPTO_PUBLIC_KEY_SIZE);
 
     uint8_t random_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t random_secret_key[CRYPTO_SECRET_KEY_SIZE];
 
     crypto_new_keypair(rng, random_public_key, random_secret_key);
-    encrypt_precompute(nodes[1].public_key, random_secret_key, new_path->shared_key2);
-    memcpy(new_path->public_key2, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    if (encrypt_precompute(nodes[1].public_key, random_secret_key, temp_path.shared_key2) != 0) {
+        crypto_memzero(random_secret_key, sizeof(random_secret_key));
+        return -1;
+    }
+    memcpy(temp_path.public_key2, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     crypto_new_keypair(rng, random_public_key, random_secret_key);
-    encrypt_precompute(nodes[2].public_key, random_secret_key, new_path->shared_key3);
-    memcpy(new_path->public_key3, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    if (encrypt_precompute(nodes[2].public_key, random_secret_key, temp_path.shared_key3) != 0) {
+        crypto_memzero(random_secret_key, sizeof(random_secret_key));
+        return -1;
+    }
+    memcpy(temp_path.public_key3, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     crypto_memzero(random_secret_key, sizeof(random_secret_key));
 
-    new_path->ip_port1 = nodes[0].ip_port;
-    new_path->ip_port2 = nodes[1].ip_port;
-    new_path->ip_port3 = nodes[2].ip_port;
+    temp_path.ip_port1 = nodes[0].ip_port;
+    temp_path.ip_port2 = nodes[1].ip_port;
+    temp_path.ip_port3 = nodes[2].ip_port;
 
-    memcpy(new_path->node_public_key1, nodes[0].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(new_path->node_public_key2, nodes[1].public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    memcpy(new_path->node_public_key3, nodes[2].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(temp_path.node_public_key1, nodes[0].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(temp_path.node_public_key2, nodes[1].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    memcpy(temp_path.node_public_key3, nodes[2].public_key, CRYPTO_PUBLIC_KEY_SIZE);
+
+    // TODO(Green-Sky): factor out of Onion_Path
+    temp_path.path_num = 0;
+
+    *new_path = temp_path;
 
     return 0;
 }
