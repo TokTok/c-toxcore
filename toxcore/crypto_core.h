@@ -342,6 +342,9 @@ int32_t decrypt_data(const Memory *_Nonnull mem, const uint8_t public_key[_Nonnu
  * Use if this is not a one-time communication. `encrypt_precompute` does the
  * shared-key generation once so it does not have to be performed on every
  * encrypt/decrypt.
+ * When it fails, it either does not touch @p shared_key, or it was zeroed-out.
+ *
+ * @retval 0 on success.
  */
 int32_t encrypt_precompute(const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const uint8_t secret_key[_Nonnull CRYPTO_SECRET_KEY_SIZE],
                            uint8_t shared_key[_Nonnull CRYPTO_SHARED_KEY_SIZE]);
