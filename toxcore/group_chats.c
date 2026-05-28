@@ -4002,10 +4002,10 @@ static int handle_gc_topic(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat,
 
 /** @brief Handles a key exchange packet.
  *
- * Return 0 if packet is handled correctly.
- * Return -1 if length is invalid.
- * Return -2 if we fail to create a new session keypair.
- * Return -3 if response packet fails to send.
+ * @retval 0 if packet is handled correctly.
+ * @retval -1 if length is invalid.
+ * @retval -2 if we failed to create a new session shared key.
+ * @retval -3 if response packet fails to send.
  */
 static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nullable data, uint16_t length)
 {
@@ -4025,7 +4025,10 @@ static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_
         }
 
         // now that we have response we can compute our new shared key and begin using it
-        gcc_make_session_shared_key(gconn, sender_public_session_key);
+        if (!gcc_make_session_shared_key(gconn, sender_public_session_key)) {
+            LOGGER_WARNING(chat->log, "failed generating session shared key with peer %u", gconn->public_key_hash);
+            return -2;
+        }
 
         gconn->pending_key_rotation_request = false;
 
@@ -4049,6 +4052,12 @@ static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_
 
     create_gc_session_keypair(chat->log, chat->rng, new_session_pk, new_session_keys->secret_key);
 
+    // equivalent to gcc_make_session_shared_key()
+    if (encrypt_precompute(sender_public_session_key, new_session_keys->secret_key, new_session_keys->shared_key) != 0) {
+        mem_delete(chat->secure_mem, new_session_keys);
+        return -2;
+    }
+
     memcpy(response + 1, new_session_pk, ENC_PUBLIC_KEY_SIZE);
 
     if (!send_lossless_group_packet(chat, gconn, response, sizeof(response), GP_KEY_ROTATION)) {
@@ -4056,12 +4065,10 @@ static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_
         return -3;
     }
 
-    // save new keys and compute new shared key AFTER sending response packet with old key
+    // save new keys AFTER sending response packet with old key
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     mem_delete(chat->secure_mem, gconn->session_keys);
     gconn->session_keys = new_session_keys;
-
-    gcc_make_session_shared_key(gconn, sender_public_session_key);
 
     gconn->last_key_rotation = mono_time_get(chat->mono_time);
 
@@ -5712,7 +5719,9 @@ static int handle_gc_handshake_response(const GC_Chat *_Nonnull chat, const IP_P
 
     const uint8_t *sender_session_pk = data;
 
-    gcc_make_session_shared_key(gconn, sender_session_pk);
+    if (!gcc_make_session_shared_key(gconn, sender_session_pk)) {
+        return -1;
+    }
 
     const uint8_t *sig_pk = data + ENC_PUBLIC_KEY_SIZE;
 
@@ -5872,7 +5881,11 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
 
     const uint8_t *sender_session_pk = data;
 
-    gcc_make_session_shared_key(gconn, sender_session_pk);
+    if (!gcc_make_session_shared_key(gconn, sender_session_pk)) {
+        LOGGER_WARNING(chat->log, "Session shared key generation failed.");
+        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
+        return -1;
+    }
 
     if (!validate_sig_pk(gconn->addr.public_key.enc, public_sig_key)) {
         LOGGER_ERROR(chat->log, "Signature key did not match encryption key.");
@@ -5887,8 +5900,8 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
     set_sig_pk(&gconn->addr.public_key, public_sig_key);
 
     if (join_type == HJ_PUBLIC && !is_public_chat(chat)) {
-        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
         LOGGER_DEBUG(chat->log, "Ignoring invalid invite request");
+        gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
         return -1;
     }
 
