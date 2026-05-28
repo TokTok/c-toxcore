@@ -348,7 +348,9 @@ int32_t encrypt_data(const Memory *mem,
     }
 
     uint8_t k[crypto_box_BEFORENMBYTES];
-    encrypt_precompute(public_key, secret_key, k);
+    if (encrypt_precompute(public_key, secret_key, k) != 0) {
+        return -1;
+    }
     const int ret = encrypt_data_symmetric(mem, k, nonce, plain, length, encrypted);
     crypto_memzero(k, sizeof(k));
     return ret;
@@ -365,7 +367,9 @@ int32_t decrypt_data(const Memory *mem,
     }
 
     uint8_t k[crypto_box_BEFORENMBYTES];
-    encrypt_precompute(public_key, secret_key, k);
+    if (encrypt_precompute(public_key, secret_key, k) != 0) {
+        return -1;
+    }
     const int ret = decrypt_data_symmetric(mem, k, nonce, encrypted, length, plain);
     crypto_memzero(k, sizeof(k));
     return ret;
