@@ -1,30 +1,29 @@
-<a name="v0.2.23-rc.2"></a>
+<a name="v0.2.23"></a>
 
-## v0.2.23-rc.2 (2026-05-23)
+## v0.2.23 (2026-06-03)
 
 ### Release notes
 
-Another candidate.
+This release fixes a critical bug, other bug fixes and some small features and test improvements.
+
+The critical bug was discovered during a manual audit performed by iphy. You can find more on the issue at https://github.com/TokTok/c-toxcore/security/advisories/GHSA-42vg-9mg3-399f .
+
+Other bug fixes where applied all over the codebase and should result in an even more stable core experience.
+
+A minor noteworthy feature that was added is a function to get a list of group chats, further improving ngc quality of life.
+
+As always, none of the public facing apis (tox.h/toxav.h/toxencryptsave.h/etc) where modified or removed, which should make this update seamless.
 
 #### Bug Fixes
 
 - limit number of saved group peers when loading from disk And add `unpack_gc_saved_peers` bounds test. ([de31d805](https://github.com/TokTok/c-toxcore/commit/de31d80571ed2e8520db41a88c3354545ba16d9a))
 - wrong comment in group code ([147dbe11](https://github.com/TokTok/c-toxcore/commit/147dbe11d1b077a8861bcbff6a96247e31b083b2))
+- **DHT:**
+  - refactor memory handling of loaded dht state Previous code could double-free if more than one dht states per tox-file and a following allocation fails. ([6e959f36](https://github.com/TokTok/c-toxcore/commit/6e959f36734f8baacba60c2e7dbe7d2f5f3f8164))
+  - Suppress the warning about IPv6 nodes when IPv6 is turned off ([71c354bf](https://github.com/TokTok/c-toxcore/commit/71c354bfea8720f0fbdc40d3c67290799a64df51))
+- **av:** Fix Use-After-Free when peer goes offline. ([dbb65223](https://github.com/TokTok/c-toxcore/commit/dbb652239a228c7536ac473856bee42b6e3698c2))
 - **gca:** announce max sizes where 32bytes too large ([5080b21c](https://github.com/TokTok/c-toxcore/commit/5080b21ca5fe2404cba70139fc3cf19dd3992127))
 - **onion:** Size GCA announce response buffer to actual content length. ([23853004](https://github.com/TokTok/c-toxcore/commit/23853004d933cadb53439353c1d156f2db856755))
-
-<a name="v0.2.23-rc.1"></a>
-
-## v0.2.23-rc.1 (2026-05-14)
-
-### Release notes
-
-This release mostly focuses on fixes, but also brings some new apis.
-
-#### Bug Fixes
-
-- **av:** Fix Use-After-Free when peer goes offline. ([dbb65223](https://github.com/TokTok/c-toxcore/commit/dbb652239a228c7536ac473856bee42b6e3698c2))
-- **dht:** Suppress the warning about IPv6 nodes when IPv6 is turned off ([71c354bf](https://github.com/TokTok/c-toxcore/commit/71c354bfea8720f0fbdc40d3c67290799a64df51))
 - **test:** fix mypy failure ([8016a502](https://github.com/TokTok/c-toxcore/commit/8016a5023bffb85ac0386ed14f57c96cb29e79ea))
 
 #### Features
