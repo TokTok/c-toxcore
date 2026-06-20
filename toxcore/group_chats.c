@@ -3042,10 +3042,11 @@ static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull ch
     }
 
     if (unpack_ret == 1) {
-        return 0;
+        // validation failed
+        return -2;
     }
 
-    // unpack/validation failed: handle error
+    // unpack failed: handle error
 
     if (chat->shared_state.version == 0) {
         chat->connection_state = CS_CONNECTING;
