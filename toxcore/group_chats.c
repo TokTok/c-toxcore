@@ -3013,7 +3013,7 @@ static int validate_unpack_mod_list(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
  *
  * Return 0 if packet is handled correctly.
  * Return -1 if packet has invalid size.
- * Return -2 if packet contained invalid data or validation failed.
+ * Return -2 if packet contained invalid data.
  */
 static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, const uint8_t *_Nullable data, uint16_t length, void *_Nullable userdata)
 {
@@ -3042,10 +3042,11 @@ static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull ch
     }
 
     if (unpack_ret == 1) {
+        // ignore bad hash
         return 0;
     }
 
-    // unpack/validation failed: handle error
+    // unpack failed: handle error
 
     if (chat->shared_state.version == 0) {
         chat->connection_state = CS_CONNECTING;
