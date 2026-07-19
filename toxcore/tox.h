@@ -4400,7 +4400,8 @@ const char *tox_err_group_send_private_message_to_string(Tox_Err_Group_Send_Priv
  *   containing the message text.
  * @param length Length of the message to be sent.
  *
- * @return true on success.
+ * @return The message_id of this message. If this function has an error, the
+ *   returned message ID value will be undefined.
  */
 Tox_Group_Message_Id tox_group_send_private_message(
     const Tox *tox, Tox_Group_Number group_number, Tox_Group_Peer_Number peer_id, Tox_Message_Type message_type,
