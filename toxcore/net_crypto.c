@@ -646,12 +646,10 @@ static int add_ip_port_connection(Net_Crypto *_Nonnull c, int crypt_connection_i
  */
 static IP_Port return_ip_port_connection(const Net_Crypto *_Nonnull c, int crypt_connection_id)
 {
-    const IP_Port empty = {{{0}}};
-
     const Crypto_Connection *conn = get_crypto_connection(c, crypt_connection_id);
 
     if (conn == nullptr) {
-        return empty;
+        return (IP_Port){{{0}}};
     }
 
     const uint64_t current_time = mono_time_get(c->mono_time);
@@ -693,7 +691,7 @@ static IP_Port return_ip_port_connection(const Net_Crypto *_Nonnull c, int crypt
         return conn->ip_portv4;
     }
 
-    return empty;
+    return (IP_Port){{{0}}};
 }
 
 /** @brief Sends a packet to the peer using the fastest route.

@@ -2199,10 +2199,9 @@ static int handle_nat_ping(void *_Nonnull object, const IP_Port *_Nonnull source
  */
 static IP nat_commonip(const IP_Port *_Nonnull ip_portlist, uint16_t len, uint16_t min_num)
 {
-    IP zero;
-    ip_reset(&zero);
-
     if (len > MAX_FRIEND_CLIENTS) {
+        IP zero;
+        ip_reset(&zero);
         return zero;
     }
 
@@ -2220,6 +2219,8 @@ static IP nat_commonip(const IP_Port *_Nonnull ip_portlist, uint16_t len, uint16
         }
     }
 
+    IP zero;
+    ip_reset(&zero);
     return zero;
 }
 
