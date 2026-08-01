@@ -26,6 +26,8 @@ add_flag -Werror
 add_c_flag -Wno-c11-extensions
 add_c_flag -Wno-pre-c11-compat
 
+add_flag -Wno-nrvo
+
 cmake -GNinja -B_build -H. \
   -DCMAKE_C_FLAGS="$C_FLAGS" \
   -DCMAKE_CXX_FLAGS="$CXX_FLAGS" \
