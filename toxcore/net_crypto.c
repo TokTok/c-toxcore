@@ -1698,7 +1698,9 @@ static int handle_packet_crypto_hs(const Net_Crypto *_Nonnull c, int crypt_conne
     }
 
     if (pk_equal(dht_public_key, conn->dht_public_key)) {
-        encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key);
+        if (encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key) != 0) {
+            return -1;
+        }
 
         if (conn->status == CRYPTO_CONN_COOKIE_REQUESTING) {
             if (create_send_handshake(c, crypt_connection_id, cookie, dht_public_key) != 0) {
@@ -1977,7 +1979,10 @@ static int handle_new_connection_handshake(Net_Crypto *_Nonnull c, const IP_Port
 
             memcpy(conn->recv_nonce, n_c.recv_nonce, CRYPTO_NONCE_SIZE);
             memcpy(conn->peersessionpublic_key, n_c.peersessionpublic_key, CRYPTO_PUBLIC_KEY_SIZE);
-            encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key);
+            if (encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key) != 0) {
+                mem_delete(c->mem, n_c.cookie);
+                return -1;
+            }
 
             crypto_connection_add_source(c, crypt_connection_id, source);
 
@@ -2035,7 +2040,11 @@ int accept_crypto_connection(Net_Crypto *c, const New_Connection *n_c)
     memcpy(conn->peersessionpublic_key, n_c->peersessionpublic_key, CRYPTO_PUBLIC_KEY_SIZE);
     random_nonce(c->rng, conn->sent_nonce);
     crypto_new_keypair(c->rng, conn->sessionpublic_key, conn->sessionsecret_key);
-    encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key);
+    if (encrypt_precompute(conn->peersessionpublic_key, conn->sessionsecret_key, conn->shared_key) != 0) {
+        kill_tcp_connection_to(c->tcp_c, conn->connection_number_tcp);
+        wipe_crypto_connection(c, crypt_connection_id);
+        return -1;
+    }
     conn->status = CRYPTO_CONN_NOT_CONFIRMED;
 
     if (create_send_handshake(c, crypt_connection_id, n_c->cookie, n_c->dht_public_key) != 0) {

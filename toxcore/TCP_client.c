@@ -347,9 +347,9 @@ static int handle_handshake(TCP_Client_Connection *_Nonnull tcp_conn, const uint
     }
 
     memcpy(tcp_conn->recv_nonce, plain + CRYPTO_PUBLIC_KEY_SIZE, CRYPTO_NONCE_SIZE);
-    encrypt_precompute(plain, tcp_conn->temp_secret_key, tcp_conn->con.shared_key);
+    const int ret = encrypt_precompute(plain, tcp_conn->temp_secret_key, tcp_conn->con.shared_key);
     crypto_memzero(tcp_conn->temp_secret_key, CRYPTO_SECRET_KEY_SIZE);
-    return 0;
+    return ret;
 }
 
 /**
@@ -664,7 +664,12 @@ TCP_Client_Connection *new_tcp_connection(
     temp->con.net_profile = net_profile;
     memcpy(temp->public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(temp->self_public_key, self_public_key, CRYPTO_PUBLIC_KEY_SIZE);
-    encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key);
+    if (encrypt_precompute(temp->public_key, self_secret_key, temp->con.shared_key) != 0) {
+        LOGGER_WARNING(logger, "Failed to precompute shared key.");
+        mem_delete(mem, temp);
+        kill_sock(ns, sock);
+        return nullptr;
+    }
     temp->ip_port = *ip_port;
     temp->proxy_info = *proxy_info;
 
@@ -686,8 +691,8 @@ TCP_Client_Connection *new_tcp_connection(
 
             if (generate_handshake(temp) == -1) {
                 LOGGER_ERROR(logger, "Failed to generate handshake");
-                kill_sock(ns, sock);
                 mem_delete(mem, temp);
+                kill_sock(ns, sock);
                 return nullptr;
             }
 

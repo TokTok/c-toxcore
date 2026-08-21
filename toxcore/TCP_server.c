@@ -322,7 +322,10 @@ static int handle_tcp_handshake(const Logger *_Nonnull logger, TCP_Secure_Connec
     }
 
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
-    encrypt_precompute(data, self_secret_key, shared_key);
+    if (encrypt_precompute(data, self_secret_key, shared_key) != 0) {
+        LOGGER_ERROR(logger, "invalid TCP handshake, shared key pre-computation failed");
+        return -1;
+    }
     uint8_t plain[TCP_HANDSHAKE_PLAIN_SIZE];
     int len = decrypt_data_symmetric(con->con.mem, shared_key, data + CRYPTO_PUBLIC_KEY_SIZE,
                                      data + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE, TCP_HANDSHAKE_PLAIN_SIZE + CRYPTO_MAC_SIZE, plain);
@@ -359,7 +362,12 @@ static int handle_tcp_handshake(const Logger *_Nonnull logger, TCP_Secure_Connec
         return -1;
     }
 
-    encrypt_precompute(plain, temp_secret_key, con->con.shared_key);
+    if (encrypt_precompute(plain, temp_secret_key, con->con.shared_key) != 0) {
+        LOGGER_ERROR(logger, "invalid TCP handshake, session shared key precomputation failed");
+        crypto_memzero(shared_key, sizeof(shared_key));
+        return -1;
+    }
+
     con->status = TCP_STATUS_UNCONFIRMED;
 
     crypto_memzero(shared_key, sizeof(shared_key));
