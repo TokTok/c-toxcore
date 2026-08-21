@@ -4792,6 +4792,76 @@ typedef void tox_group_invite_cb(
  */
 void tox_callback_group_invite(Tox *tox, tox_group_invite_cb *callback);
 
+typedef enum Tox_Err_Group_Peer_Add {
+
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_PEER_ADD_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_PEER_ADD_GROUP_NOT_FOUND,
+
+    /**
+     * The group is currently disconnected.
+     */
+    TOX_ERR_GROUP_PEER_ADD_DISCONNECTED,
+
+    /**
+     * One or more of the input parameters are invalid (e.g., host is NULL but peer_key is not).
+     */
+    TOX_ERR_GROUP_PEER_ADD_BAD_HOST,
+
+    /**
+     * The peer already exists in the group.
+     */
+    TOX_ERR_GROUP_PEER_ADD_PEERS_EXIST,
+
+    /**
+     * Internal failure (e.g., memory allocation).
+     */
+    TOX_ERR_GROUP_PEER_ADD_INTERNAL_FAILURE,
+
+} Tox_Err_Group_Peer_Add;
+
+const char *tox_err_group_peer_add_to_string(Tox_Err_Group_Peer_Add value);
+
+/**
+ * Add a peer to group.
+ *
+ * This function is used to manually add a peer to a group.
+ * Toxcore usually gets this information from an friend invite or from the DHT.
+ * But sometimes those fail or are not an option, so the data can be delivered
+ * via auxillary means.
+ *
+ * @param group_number The group number of the group this peer is participating in.
+ * @param host The hostname or IP address (IPv4 or IPv6) of the peer.
+ *   Must be at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
+ * @param port The port on the host on which the peer is listening.
+ * @param peer_key The group peer public key.
+ * @param relays_host The hostname or IP address (IPv4 or IPv6) of the TCP relay.
+ *   Must be at most TOX_MAX_HOSTNAME_LENGTH chars, including the NUL byte.
+ * @param relays_port The port on the host on which the TCP relay is listening.
+ * @param relays_public_key The DHT public key of the TCP relay
+ *   (TOX_DHT_ID_SIZE bytes).
+ * @param relays_length The length of the relay arrays. Can't be larger than 4.
+ *
+ * @return true on success.
+ */
+bool tox_group_peer_add(
+    const Tox *tox, Tox_Group_Number group_number,
+
+    const char *host, uint16_t port,
+    const Tox_Group_Peer_Public_Key peer_key,
+
+    const char *relays_host[], const uint16_t relays_port[],
+    const Tox_Group_Peer_Public_Key relays_key[],
+    size_t relays_size,
+    Tox_Err_Group_Peer_Add *error
+);
+
 /**
  * @param group_number The group number of the group in which a new peer has
  *   joined.
