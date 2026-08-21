@@ -299,6 +299,7 @@ int read_packet_tcp_secure_connection(
     }
 
     if (len_packet != *next_packet_length) {
+        // TODO(Green-Sky): this is probably unrecoverable
         LOGGER_WARNING(logger, "invalid packet length: %d, expected %d", len_packet, *next_packet_length);
         return 0;
     }
