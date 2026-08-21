@@ -1519,13 +1519,17 @@ static int handle_nodes_response(void *_Nonnull object, const IP_Port *_Nonnull 
         return 0;
     }
 
+    Node_format src_node;
+    memcpy(src_node.public_key, packet + 1, CRYPTO_PUBLIC_KEY_SIZE);
+    src_node.ip_port = *source;
+
     for (uint32_t i = 0; i < num_nodes; ++i) {
         if (ipport_isset(&plain_nodes[i].ip_port)) {
             ping_node_from_nodes_response_ok(dht, plain_nodes[i].public_key, &plain_nodes[i].ip_port);
             returnedip_ports(dht, &plain_nodes[i].ip_port, plain_nodes[i].public_key, packet + 1);
 
             if (dht->nodes_response_callback != nullptr) {
-                dht->nodes_response_callback(dht, &plain_nodes[i], userdata);
+                dht->nodes_response_callback(dht, &src_node, &plain_nodes[i], userdata);
             }
         }
     }

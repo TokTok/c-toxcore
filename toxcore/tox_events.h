@@ -359,6 +359,14 @@ Tox_Group_Mod_Event tox_event_group_moderation_get_mod_type(
     const Tox_Event_Group_Moderation *_Nonnull group_moderation);
 
 typedef struct Tox_Event_Dht_Nodes_Response Tox_Event_Dht_Nodes_Response;
+const uint8_t *_Nonnull tox_event_dht_nodes_response_get_src_public_key(
+    const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
+const char *_Nullable tox_event_dht_nodes_response_get_src_ip(
+    const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
+uint32_t tox_event_dht_nodes_response_get_src_ip_length(
+    const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
+uint16_t tox_event_dht_nodes_response_get_src_port(
+    const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
 const uint8_t *_Nonnull tox_event_dht_nodes_response_get_public_key(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
 const char *_Nullable tox_event_dht_nodes_response_get_ip(
