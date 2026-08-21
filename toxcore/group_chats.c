@@ -6004,6 +6004,9 @@ static bool handle_gc_packet_fragment(const GC_Session *_Nonnull c, GC_Chat *_No
         return false;
     }
 
+    // realloc might have moved it
+    gconn = get_gc_connection(chat, peer_number);
+
     if (frag_ret == 0) {
         gc_send_message_ack(chat, gconn, message_id, GR_ACK_RECV);
     }
@@ -6075,6 +6078,9 @@ static bool handle_gc_lossless_packet(const GC_Session *_Nonnull c, GC_Chat *_No
     }
 
     const int lossless_ret = gcc_handle_received_message(chat->log, chat->mem, chat->mono_time, gconn, data, (uint16_t) len, packet_type, message_id, direct_conn);
+
+    // realloc might have moved it
+    gconn = get_gc_connection(chat, peer_number);
 
     if (packet_type == GP_INVITE_REQUEST && !gconn->handshaked) {  // Both peers sent request at same time
         mem_delete(chat->mem, data);
