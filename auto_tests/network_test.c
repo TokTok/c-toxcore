@@ -159,12 +159,48 @@ static void test_ip_equal(void)
     ck_assert_msg(res == 0, "ip_equal( {TOX_AF_INET6, ::1}, {TOX_AF_INET6, ::2} ): expected result 0, got %d.", res);
 }
 
+static void test_unpack_ip_port_bounds(void)
+{
+    IP_Port ipp;
+    ipport_reset(&ipp);
+
+    /* 1. Zero-length buffer */
+    const uint8_t dummy_v4[7] = {TOX_AF_INET, 192, 168, 1, 1, 0x12, 0x34};
+    ck_assert_int_eq(unpack_ip_port(&ipp, dummy_v4, 0, false), -1);
+
+    /* 2. Truncated IPv4 buffer (1 to 6 bytes) */
+    for (uint16_t len = 1; len < (uint16_t)sizeof(dummy_v4); ++len) {
+        ck_assert_int_eq(unpack_ip_port(&ipp, dummy_v4, len, false), -1);
+    }
+
+    /* 3. Valid IPv4 buffer (7 bytes) */
+    ck_assert_int_eq(unpack_ip_port(&ipp, dummy_v4, sizeof(dummy_v4), false), (int)sizeof(dummy_v4));
+    ck_assert(net_family_is_ipv4(ipp.ip.family));
+
+    /* 4. Truncated IPv6 buffer (1 to 18 bytes) */
+    uint8_t dummy_v6[19];
+    memset(dummy_v6, 0, sizeof(dummy_v6));
+    dummy_v6[0] = TOX_AF_INET6;
+    for (uint16_t len = 1; len < (uint16_t)sizeof(dummy_v6); ++len) {
+        ck_assert_int_eq(unpack_ip_port(&ipp, dummy_v6, len, false), -1);
+    }
+
+    /* 5. Valid IPv6 buffer (19 bytes) */
+    ck_assert_int_eq(unpack_ip_port(&ipp, dummy_v6, sizeof(dummy_v6), false), (int)sizeof(dummy_v6));
+    ck_assert(net_family_is_ipv6(ipp.ip.family));
+
+    /* 6. Unknown address family */
+    const uint8_t invalid_family[7] = {0xFF, 1, 2, 3, 4, 5, 6};
+    ck_assert_int_eq(unpack_ip_port(&ipp, invalid_family, sizeof(invalid_family), false), -1);
+}
+
 int main(void)
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
 
     test_addr_resolv_localhost();
     test_ip_equal();
+    test_unpack_ip_port_bounds();
 
     return 0;
 }

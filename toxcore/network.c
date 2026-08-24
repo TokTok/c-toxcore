@@ -804,7 +804,7 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
 
 int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled)
 {
-    if (data == nullptr) {
+    if (data == nullptr || length == 0 || ip_port == nullptr) {
         return -1;
     }
 
