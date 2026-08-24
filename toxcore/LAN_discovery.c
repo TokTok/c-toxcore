@@ -90,22 +90,25 @@ static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem
         IP_ADAPTER_INFO *adapter = adapter_info;
 
         while (adapter != nullptr) {
-            IP gateway = {0};
+            IP if_ip = {0};
             IP subnet_mask = {0};
 
             if (addr_parse_ip(adapter->IpAddressList.IpMask.String, &subnet_mask)
-                    && addr_parse_ip(adapter->GatewayList.IpAddress.String, &gateway)) {
-                if (net_family_is_ipv4(gateway.family) && net_family_is_ipv4(subnet_mask.family)) {
-                    IP *ip = &broadcast->ips[broadcast->count];
-                    ip->family = net_family_ipv4();
-                    const uint32_t gateway_ip = net_ntohl(gateway.ip.v4.uint32);
-                    const uint32_t subnet_ip = net_ntohl(subnet_mask.ip.v4.uint32);
-                    const uint32_t broadcast_ip = gateway_ip + ~subnet_ip - 1;
-                    ip->ip.v4.uint32 = net_htonl(broadcast_ip);
-                    ++broadcast->count;
+                    && addr_parse_ip(adapter->IpAddressList.IpAddress.String, &if_ip)) {
+                if (net_family_is_ipv4(if_ip.family) && net_family_is_ipv4(subnet_mask.family)) {
+                    const uint32_t ip4 = net_ntohl(if_ip.ip.v4.uint32);
+                    const uint32_t mask = net_ntohl(subnet_mask.ip.v4.uint32);
 
-                    if (broadcast->count >= MAX_INTERFACES) {
-                        break;
+                    if (ip4 != 0 && mask != 0) {
+                        IP *ip = &broadcast->ips[broadcast->count];
+                        ip->family = net_family_ipv4();
+                        const uint32_t broadcast_ip = (ip4 & mask) | ~mask;
+                        ip->ip.v4.uint32 = net_htonl(broadcast_ip);
+                        ++broadcast->count;
+
+                        if (broadcast->count >= MAX_INTERFACES) {
+                            break;
+                        }
                     }
                 }
             }
