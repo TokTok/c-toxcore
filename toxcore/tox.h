@@ -1142,7 +1142,9 @@ const char *tox_err_friend_query_to_string(Tox_Err_Friend_Query value);
 /**
  * @brief Return the length of the friend's name.
  *
- * If the friend number is invalid, the return value is unspecified.
+ * If the friend number is invalid, the return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  *
  * The return value is equal to the `length` argument received by the last
  * `friend_name` callback.
@@ -2370,7 +2372,9 @@ uint32_t tox_conference_peer_count(
 /**
  * @brief Return the length of the peer's name.
  *
- * Return value is unspecified on failure.
+ * Return value is SIZE_MAX on failure.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  */
 size_t tox_conference_peer_get_name_size(
     const Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number,
@@ -2424,7 +2428,9 @@ uint32_t tox_conference_offline_peer_count(
 /**
  * @brief Return the length of the offline peer's name.
  *
- * Return value is unspecified on failure.
+ * Return value is SIZE_MAX on failure.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  */
 size_t tox_conference_offline_peer_get_name_size(
     const Tox *tox, Tox_Conference_Number conference_number,
@@ -2680,7 +2686,9 @@ const char *tox_err_conference_title_to_string(Tox_Err_Conference_Title value);
 /**
  * @brief Return the length of the conference title.
  *
- * Return value is unspecified on failure.
+ * Return value is SIZE_MAX on failure.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  *
  * The return value is equal to the `length` argument received by the last
  * `conference_title` callback.
@@ -3624,6 +3632,10 @@ bool tox_group_self_set_name(
  * If no nickname was set before calling this function, the name is empty,
  * and this function returns 0.
  *
+ * If the group number is invalid, the return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
+ *
  * @see threading for concurrency implications.
  */
 size_t tox_group_self_get_name_size(const Tox *tox, Tox_Group_Number group_number, Tox_Err_Group_Self_Query *error);
@@ -3749,7 +3761,9 @@ const char *tox_err_group_peer_query_to_string(Tox_Err_Group_Peer_Query value);
 
 /**
  * Return the length of the peer's name. If the group number or ID is invalid,
- * the return value is unspecified.
+ * the return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  *
  * @param group_number The group number of the group we wish to query.
  * @param peer_id The ID of the peer whose name length we want to retrieve.
@@ -3960,7 +3974,9 @@ bool tox_group_set_topic(
 
 /**
  * Return the length of the group topic. If the group number is invalid, the
- * return value is unspecified.
+ * return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  *
  * The return value is equal to the `length` argument received by the last
  * `group_topic` callback.
@@ -4007,7 +4023,9 @@ void tox_callback_group_topic(Tox *tox, tox_group_topic_cb *callback);
 
 /**
  * Return the length of the group name. If the group number is invalid, the
- * return value is unspecified.
+ * return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  */
 size_t tox_group_get_name_size(const Tox *tox, Tox_Group_Number group_number, Tox_Err_Group_State_Query *error);
 
@@ -4210,7 +4228,9 @@ void tox_callback_group_peer_limit(Tox *tox, tox_group_peer_limit_cb *callback);
 
 /**
  * Return the length of the group password. If the group number is invalid, the
- * return value is unspecified.
+ * return value is SIZE_MAX.
+ * Check the `error` parameter before using the return value as an
+ * allocation size.
  */
 size_t tox_group_get_password_size(const Tox *tox, Tox_Group_Number group_number, Tox_Err_Group_State_Query *error);
 
