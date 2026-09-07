@@ -717,6 +717,16 @@ int handle_gc_invite_confirmed_packet(const GC_Session *_Nonnull c, int friend_n
  */
 GC_Chat *_Nullable gc_get_group_by_public_key(const GC_Session *_Nonnull c, const uint8_t *_Nonnull public_key);
 
+/** @brief Attempts to add a peer to our peer list and initiate an invite request.
+ *
+ * Returns 0 on success.
+ * Returns -1 if invalid input.
+ * Returns -2 if peer already exists.
+ * Returns -3 on internal failure.
+ * Returns -4 if `ip_port` not set and no relays could be added.
+ */
+int gc_add_peer(GC_Chat *chat, const uint8_t peer_public_key[ENC_PUBLIC_KEY_SIZE], const IP_Port *_Nullable ip_port, const Node_format *_Nullable tcp_relays, uint8_t tcp_relays_count);
+
 /** @brief Attempts to add peers from `announces` to our peer list and initiate an invite request.
  *
  * Returns the number of peers added on success.
