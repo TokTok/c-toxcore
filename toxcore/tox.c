@@ -326,19 +326,25 @@ static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conf
 }
 
 static dht_nodes_response_cb tox_dht_nodes_response_handler;
-static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *node, void *user_data)
+static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *_Nonnull src_node,
+        const Node_format *node, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
     if (tox_data->tox->dht_nodes_response_callback == nullptr) {
         return;
     }
 
+    Ip_Ntoa src_ip_str;
+    net_ip_ntoa(&src_node->ip_port.ip, &src_ip_str);
+
     Ip_Ntoa ip_str;
     net_ip_ntoa(&node->ip_port.ip, &ip_str);
 
     tox_unlock(tox_data->tox);
     tox_data->tox->dht_nodes_response_callback(
-        tox_data->tox, node->public_key, ip_str.buf, ip_str.length, net_ntohs(node->ip_port.port),
+        tox_data->tox,
+        src_node->public_key, src_ip_str.buf, src_ip_str.length, net_ntohs(src_node->ip_port.port),
+        node->public_key, ip_str.buf, ip_str.length, net_ntohs(node->ip_port.port),
         tox_data->user_data);
     tox_lock(tox_data->tox);
 }
