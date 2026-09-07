@@ -8,6 +8,7 @@
  */
 #include "TCP_server.h"
 
+#include <assert.h>
 #include <string.h>
 #if !defined(_WIN32) && !defined(__WIN32__) && !defined (WIN32)
 #include <sys/ioctl.h>
@@ -282,8 +283,8 @@ static int rm_connection_index(TCP_Server *_Nonnull tcp_server, TCP_Secure_Conne
 
 /** @brief Kill an accepted TCP_Secure_Connection
  *
- * return -1 on failure.
- * return 0 on success.
+ * @retval -1 on failure.
+ * @retval 0 on success.
  */
 static int kill_accepted(TCP_Server *tcp_server, int index)
 {
@@ -431,7 +432,7 @@ static int handle_tcp_routing_req(TCP_Server *_Nonnull tcp_server, uint32_t con_
     uint32_t index = -1;
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[con_id];
 
-    /* If person tries to cennect to himself we deny the request*/
+    /* If peer tries to connect to itself we deny the request. */
     if (pk_equal(con->public_key, public_key)) {
         if (send_routing_response(tcp_server->logger, con, 0, public_key) == -1) {
             return -1;
@@ -663,6 +664,7 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
         return -1;
     }
 
+    assert(con_id < tcp_server->size_accepted_connections);
     TCP_Secure_Connection *const con = &tcp_server->accepted_connection_array[con_id];
     netprof_record_packet(con->con.net_profile, data[0], length, PACKET_DIRECTION_RECV);
 
@@ -1117,6 +1119,7 @@ static int do_unconfirmed(TCP_Server *_Nonnull tcp_server, const Mono_Time *_Non
 
 static bool tcp_process_secure_packet(TCP_Server *_Nonnull tcp_server, uint32_t i)
 {
+    assert(i < tcp_server->size_accepted_connections);
     TCP_Secure_Connection *const conn = &tcp_server->accepted_connection_array[i];
 
     uint8_t packet[MAX_PACKET_SIZE];
