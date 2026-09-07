@@ -371,6 +371,69 @@ uint32_t tox_max_hostname_length(void);
  */
 
 /**
+ * @brief Experiment IDs to control (incompatible) changes dynamically.
+ *
+ * Experiments are changes in toxcore that can be configured by client
+ * code. These are used to make incompatible changes to toxcore between
+ * API/ABI-breaking releases, so clients can already test some functionality
+ * that may break or be removed again on the next patch release. Compatible
+ * changes may still be rolled out using experiments, and the flag can be
+ * flipped to default to a different value (e.g. true for bool) on the next
+ * patch release. Clients can explicitly revert them again if desired.
+ *
+ * All experiment flags must have an explicit number in this enum. When
+ * removing an experiment flag, the gap it leaves can not be reused. Removal
+ * of an experiment flag is an API breaking change, so it can only be done in
+ * API-breaking releases. Changing the default value of an experiment may or
+ * may not be an API- or ABI-breaking change.
+ *
+ * @see TOX_VERSION_IS_API_COMPATIBLE for what an API-breaking release is.
+ *
+ * Next ID: 3
+ */
+typedef enum Tox_Experiment_Type {
+
+    /**
+     * Not a valid experiment ID. Not used to designate any experiment.
+     */
+    TOX_EXPERIMENT_INVALID = 0,
+
+    /**
+     * Make public API functions thread-safe using a per-instance lock.
+     *
+     * Type: bool
+     * Default: disabled
+     */
+    TOX_EXPERIMENT_THREAD_SAFETY = 1,
+
+    /**
+     * Enable saving DHT-based group chats to Tox save data (via `tox_get_savedata`).
+     * This format will change in the future, so don't rely on it.
+     *
+     * As an alternative, clients can save the group chat ID in client-owned
+     * savedata. Then, when the client starts, it can use `tox_group_join`
+     * with the saved chat ID to recreate the group chat.
+     *
+     * Type: bool
+     * Default: disabled
+     */
+    TOX_EXPERIMENT_GROUPS_PERSISTENCE = 2,
+
+} Tox_Experiment_Type;
+
+const char *tox_experiment_type_to_string(Tox_Experiment_Type value);
+
+/**
+ * @brief Opaque container for an experiment value.
+ *
+ * Can have different types (e.g. bool). See The Tox_Experiment_Type enum above
+ * to see which experiment has which type.
+ *
+ * @private
+ */
+typedef struct Tox_Experiment Tox_Experiment;
+
+/**
  * @brief Represents the possible statuses a client can have.
  */
 typedef enum Tox_User_Status {
