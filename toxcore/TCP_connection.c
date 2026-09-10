@@ -782,6 +782,16 @@ int set_tcp_connection_to_status(const TCP_Connections *tcp_c, int connections_n
                 if (tcp_con->status == TCP_CONN_SLEEPING) {
                     tcp_con->unsleep = true;
                 }
+
+                /* Going to sleep (below) counted this connection's online slots as
+                 * sleepers on the relay; waking must take them back, or every
+                 * sleep-wake-sleep cycle leaves a phantom sleeper behind and
+                 * `lock_count == sleep_count` can hold while an awake connection
+                 * is still online on the relay, which do_tcp_conns then puts to
+                 * sleep under it. */
+                if (con_to->connections[i].status == TCP_CONNECTIONS_STATUS_ONLINE && tcp_con->sleep_count > 0) {
+                    --tcp_con->sleep_count;
+                }
             }
         }
 
