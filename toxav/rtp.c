@@ -526,6 +526,11 @@ static void update_bwc_values(RTPSession *_Nonnull session, const struct RTPMess
 static int handle_video_packet(const Logger *_Nonnull log, RTPSession *_Nonnull session, const struct RTPHeader *_Nonnull header,
                                const uint8_t *_Nonnull incoming_data, uint16_t incoming_data_length)
 {
+    if (incoming_data_length == 0) {
+        // video always has a payload, ignore
+        return -1;
+    }
+
     // Full frame length in bytes. The frame may be split into multiple packets,
     // but this value is the complete assembled frame size.
     const uint32_t full_frame_length = header->data_length_full;
@@ -634,7 +639,7 @@ void rtp_receive_packet(RTPSession *session, const uint8_t *data, size_t length)
     // Get the packet type.
     const uint8_t packet_type = data[0];
     const uint8_t *payload = &data[1];
-    // TODO(Zoff): is this ok?
+    assert(length - 1 < UINT16_MAX);
     const uint16_t payload_size = (uint16_t)length - 1;
 
     // Unpack the header.
