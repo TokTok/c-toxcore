@@ -246,6 +246,8 @@ static int8_t get_slot(const Logger *_Nonnull log, struct RTPWorkBufferList *_No
         for (uint8_t i = 0; i < wkbl->next_free_entry; ++i) {
             const struct RTPWorkBuffer *slot = &wkbl->work_buffer[i];
 
+            assert(slot->buf != nullptr);
+
             if ((slot->buf->header.sequnum == header->sequnum) && (slot->buf->header.timestamp == header->timestamp)) {
                 // Sequence number and timestamp match, so this slot belongs to
                 // the same frame.
@@ -416,14 +418,13 @@ static bool fill_data_into_slot(const Logger *_Nonnull log, struct RTPWorkBuffer
     // We're either filling the data into an existing slot, or in a new one that
     // is the next free entry.
     assert(slot_id <= wkbl->next_free_entry);
+    assert(slot_id < USED_RTP_WORKBUFFER_COUNT);
     struct RTPWorkBuffer *const slot = &wkbl->work_buffer[slot_id];
 
     assert(header != nullptr);
     assert(is_keyframe == (bool)((header->flags & RTP_KEY_FRAME) != 0));
 
-    if (slot->received_len == 0) {
-        assert(slot->buf == nullptr);
-
+    if (slot->buf == nullptr) {
         if (header->data_length_full > MAX_RTP_FRAME_SIZE) {
             LOGGER_WARNING(log, "RTP frame too large: %u > %u", (unsigned)header->data_length_full, (unsigned)MAX_RTP_FRAME_SIZE);
             return false;
