@@ -84,8 +84,8 @@ TEST_F(Announces, AnnouncesCanTimeOut)
     do_gca(mono_time_, gca_);
     ASSERT_NE(gca_->root_announces, nullptr);
 
-    // 29 seconds later, still there
-    advance_clock(29000);
+    // 59 seconds later, still there
+    advance_clock(59000);
     do_gca(mono_time_, gca_);
     ASSERT_NE(gca_->root_announces, nullptr);
 

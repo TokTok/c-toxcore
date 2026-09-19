@@ -16,6 +16,12 @@
 #include "mono_time.h"
 #include "network.h"
 
+/* How long we save a peer's announce before we consider it stale and remove it. */
+#define GCA_ANNOUNCE_SAVE_TIMEOUT 60
+
+/* How often we run do_gca() */
+#define GCA_DO_GCA_TIMEOUT 1
+
 /**
  * Removes `announces` from `gc_announces_list`.
  */
@@ -433,12 +439,6 @@ void kill_gca(GC_Announces_List *announces_list)
 
     mem_delete(announces_list->mem, announces_list);
 }
-
-/* How long we save a peer's announce before we consider it stale and remove it. */
-#define GCA_ANNOUNCE_SAVE_TIMEOUT 30
-
-/* How often we run do_gca() */
-#define GCA_DO_GCA_TIMEOUT 1
 
 void do_gca(const Mono_Time *mono_time, GC_Announces_List *gc_announces_list)
 {
