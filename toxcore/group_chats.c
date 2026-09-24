@@ -7082,17 +7082,20 @@ static void do_gc_tcp(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, void
 /*
  * Returns how often in seconds we refresh our group announcement to the DHT.
  */
+#define SELF_GC_ANNOUNCE_TIMEOUT (GCA_ANNOUNCE_SAVE_TIMEOUT - 10)
+#define MAX_SELF_GC_ANNOUNCE_INTERVAL (60 * 60)  // force a refresh after one hour
 static uint16_t get_gc_self_announce_refresh_interval(const GC_Chat *_Nonnull chat)
 {
     if (chat->numpeers <= 1) {
-        return GCA_ANNOUNCE_SAVE_TIMEOUT;
+        return SELF_GC_ANNOUNCE_TIMEOUT;
     }
 
     // Slightly randomize interval each call to ensure that the group doesn't get stuck
     // with a bad case scenario where every or most peers in the group announce at the
     // same time indefinitely.
-    const int increment = random_u16(chat->rng) % 2 == 0 ? 5 : -5;
-    return chat->numpeers * GCA_ANNOUNCE_SAVE_TIMEOUT + increment;
+    const int rand_increment = random_u16(chat->rng) % 2 == 0 ? 5 : -5;
+    const uint16_t interval = chat->numpeers * SELF_GC_ANNOUNCE_TIMEOUT + rand_increment;
+    return min_u16(MAX_SELF_GC_ANNOUNCE_INTERVAL, interval);
 }
 
 /**
@@ -7116,7 +7119,6 @@ static void do_self_connection(const GC_Session *_Nonnull c, GC_Chat *_Nonnull c
             ((udp_change || !tcp_relay_is_valid(chat->tcp_conn, chat->announced_tcp_relay_pk))
              || mono_time_is_timeout(chat->mono_time, chat->last_time_self_announce, refresh_interval))) {
         chat->update_self_announces = true;
-        LOGGER_WARNING(chat->log, "interval: %d", refresh_interval);
     }
 
     chat->self_udp_status = (Self_UDP_Status) self_udp_status;
