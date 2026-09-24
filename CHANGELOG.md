@@ -1,3 +1,21 @@
+<a name="v0.2.24-rc.1"></a>
+
+## v0.2.24-rc.1 (2026-09-24)
+
+### Release notes
+
+fixes and fixes
+
+#### Bug Fixes
+
+- We now make sure to validate signature keys during handshake ([76b90299](https://github.com/TokTok/c-toxcore/commit/76b9029950f553f580f914509232522a05b06644))
+- disable nrvo clang warning for osx ci ([efb938b1](https://github.com/TokTok/c-toxcore/commit/efb938b1e6d802241eb77e109b5be282ee079541))
+- `handle_gc_mod_list()` return values in docs ([1d79022f](https://github.com/TokTok/c-toxcore/commit/1d79022fb4e56dffe0bbd075d47e00f7a0b62ab3))
+- **LAN_discovery:** use interface IP and bitwise masking on Windows ([b940c22a](https://github.com/TokTok/c-toxcore/commit/b940c22a8ab9381f180f879091bf7d60106be71d))
+- **crypto:** correct assertion message in `pack_extended_public_key` ([d07f10bf](https://github.com/TokTok/c-toxcore/commit/d07f10bf38fd3e8a7f81f5c6330b4d481fc33a56))
+- **events:** memory leak when event field alloc fails ([daddc7fb](https://github.com/TokTok/c-toxcore/commit/daddc7fb6be7247afe0c0f9e89bc8c54e0346f64))
+- **network:** check buffer length before reading family in `unpack_ip_port` ([02daf255](https://github.com/TokTok/c-toxcore/commit/02daf25560e2b9978fa0666948614b286b71ca9b))
+
 <a name="v0.2.23"></a>
 
 ## v0.2.23 (2026-06-03)
