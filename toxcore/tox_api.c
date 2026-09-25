@@ -1281,6 +1281,30 @@ const char *_Nonnull tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_
 
     return "<invalid Tox_Err_Group_Invite_Accept>";
 }
+const char *_Nonnull tox_err_group_peer_add_to_string(Tox_Err_Group_Peer_Add value)
+{
+    switch (value) {
+        case TOX_ERR_GROUP_PEER_ADD_OK:
+            return "TOX_ERR_GROUP_PEER_ADD_OK";
+
+        case TOX_ERR_GROUP_PEER_ADD_GROUP_NOT_FOUND:
+            return "TOX_ERR_GROUP_PEER_ADD_GROUP_NOT_FOUND";
+
+        case TOX_ERR_GROUP_PEER_ADD_DISCONNECTED:
+            return "TOX_ERR_GROUP_PEER_ADD_DISCONNECTED";
+
+        case TOX_ERR_GROUP_PEER_ADD_BAD_HOST:
+            return "TOX_ERR_GROUP_PEER_ADD_BAD_HOST";
+
+        case TOX_ERR_GROUP_PEER_ADD_PEERS_EXIST:
+            return "TOX_ERR_GROUP_PEER_ADD_PEERS_EXIST";
+
+        case TOX_ERR_GROUP_PEER_ADD_INTERNAL_FAILURE:
+            return "TOX_ERR_GROUP_PEER_ADD_INTERNAL_FAILURE";
+    }
+
+    return "<invalid Tox_Err_Group_Peer_Add>";
+}
 const char *_Nonnull tox_group_exit_type_to_string(Tox_Group_Exit_Type value)
 {
     switch (value) {
