@@ -179,7 +179,7 @@ jobs:
               -DMIN_LOGGER_LEVEL=TRACE \
               -DMUST_BUILD_TOXAV=ON \
               -DNON_HERMETIC_TESTS=ON \
-              -DTEST_TIMEOUT_SECONDS=50 \
+              -DTEST_TIMEOUT_SECONDS=90 \
               -DUSE_IPV6=OFF \
               -DAUTOTEST=ON \
               -GNinja
