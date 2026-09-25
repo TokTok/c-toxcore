@@ -40,6 +40,9 @@ extern "C" {
 /* Maximum size of a public announce. */
 #define GCA_PUBLIC_ANNOUNCE_MAX_SIZE (ENC_PUBLIC_KEY_SIZE + GCA_ANNOUNCE_MAX_SIZE)
 
+/* How long we save a peer's announce before we consider it stale and remove it. */
+#define GCA_ANNOUNCE_SAVE_TIMEOUT 60
+
 typedef struct GC_Announce GC_Announce;
 typedef struct GC_Peer_Announce GC_Peer_Announce;
 typedef struct GC_Announces GC_Announces;

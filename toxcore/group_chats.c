@@ -107,6 +107,9 @@
 /* The value the topic lock is set to when the topic lock is enabled. */
 #define GC_TOPIC_LOCK_ENABLED 0
 
+/* Force refresh a DHT announcement for the group if we haven't refreshed after this interval */
+#define GC_MAX_SELF_ANNOUNCE_INTERVAL (60 * 60)
+
 static_assert(GCC_BUFFER_SIZE <= UINT16_MAX,
               "GCC_BUFFER_SIZE must be <= UINT16_MAX)");
 
@@ -7079,12 +7082,28 @@ static void do_gc_tcp(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, void
     }
 }
 
+/*
+ * Returns how often in seconds we refresh our group announcement to the DHT.
+ */
+#define SELF_GC_ANNOUNCE_TIMEOUT (GCA_ANNOUNCE_SAVE_TIMEOUT - 10)
+static uint16_t get_gc_self_announce_refresh_interval(const GC_Chat *_Nonnull chat)
+{
+    if (chat->numpeers <= 1) {
+        return SELF_GC_ANNOUNCE_TIMEOUT;
+    }
+
+    // Slightly randomize interval each call to ensure that the group doesn't get stuck
+    // with a bad case scenario where every or most peers in the group announce at the
+    // same time indefinitely.
+    const int rand_increment = random_u16(chat->rng) % 2 == 0 ? 5 : -5;
+    const uint16_t interval = chat->numpeers * SELF_GC_ANNOUNCE_TIMEOUT + rand_increment;
+    return min_u16(GC_MAX_SELF_ANNOUNCE_INTERVAL, interval);
+}
+
 /**
- * Updates our TCP and UDP connection status and flags a new announcement if our connection has
- * changed and we have either a UDP or TCP connection.
+ * Updates our TCP and UDP connection status and flags a new announcement if we need one.
  */
 #define GC_SELF_CONNECTION_CHECK_INTERVAL 5  // how often in seconds we should run this function
-#define GC_SELF_REFRESH_ANNOUNCE_INTERVAL (60 * 20)  // how often in seconds we force refresh our group announcement
 static void do_self_connection(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat)
 {
     if (!mono_time_is_timeout(chat->mono_time, chat->last_self_announce_check, GC_SELF_CONNECTION_CHECK_INTERVAL)) {
@@ -7093,13 +7112,14 @@ static void do_self_connection(const GC_Session *_Nonnull c, GC_Chat *_Nonnull c
 
     const unsigned int self_udp_status = ipport_self_copy(c->messenger->dht, &chat->self_ip_port);
     const bool udp_change = (chat->self_udp_status != self_udp_status) && (self_udp_status != SELF_UDP_STATUS_NONE);
+    const uint16_t refresh_interval = get_gc_self_announce_refresh_interval(chat);
 
     // We flag a group announce if our UDP status has changed since last run, or if our last announced TCP
     // relay is no longer valid. Additionally, we will always flag an announce in the specified interval
     // regardless of the prior conditions. Private groups are never announced.
     if (is_public_chat(chat) &&
             ((udp_change || !tcp_relay_is_valid(chat->tcp_conn, chat->announced_tcp_relay_pk))
-             || mono_time_is_timeout(chat->mono_time, chat->last_time_self_announce, GC_SELF_REFRESH_ANNOUNCE_INTERVAL))) {
+             || mono_time_is_timeout(chat->mono_time, chat->last_time_self_announce, refresh_interval))) {
         chat->update_self_announces = true;
     }
 
