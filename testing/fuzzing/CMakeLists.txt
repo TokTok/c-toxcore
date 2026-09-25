@@ -19,8 +19,7 @@ function(fuzz_test target source_dir)
 endfunction()
 
 fuzz_test(bootstrap        .)  # Fuzzes the bootstrap process
-# TODO(iphydf): Fix this in the cmake build.
-# fuzz_test(e2e              .)  # Fuzzes an end-to-end connection
+fuzz_test(e2e              .)  # Fuzzes an end-to-end connection
 fuzz_test(toxsave          .)  # Fuzzes tox_new and tox_get_savedata
 
 fuzz_test(DHT              ../../toxcore)
