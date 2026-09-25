@@ -114,8 +114,10 @@ void gcc_resend_packets(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gc
  *
  * Puts the result in the shared session key buffer for `gconn`, which must have room for
  * CRYPTO_SHARED_KEY_SIZE bytes. This resulting shared key should be treated as a secret key.
+ *
+ * @return True on success.
  */
-void gcc_make_session_shared_key(GC_Connection *_Nonnull gconn, const uint8_t *_Nonnull sender_pk);
+bool gcc_make_session_shared_key(GC_Connection *_Nonnull gconn, const uint8_t *_Nonnull sender_pk);
 
 /** @brief Return true if we have a direct connection with `gconn`. */
 bool gcc_conn_is_direct(const Mono_Time *_Nonnull mono_time, const GC_Connection *_Nonnull gconn);
