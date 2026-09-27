@@ -745,6 +745,7 @@ static void handle_init(const Logger *log, MSICall *call, const MSIMessage *msg)
 
     if (!try_handle_init(log, call, msg)) {
         send_error(log, call->session, call->friend_number, call->error);
+        invoke_callback(log, call, MSI_ON_ERROR);
         kill_call(log, call);
     }
 }
@@ -802,6 +803,7 @@ static void handle_push(const Logger *log, MSICall *call, const MSIMessage *msg)
 
 FAILURE:
     send_error(log, call->session, call->friend_number, call->error);
+    invoke_callback(log, call, MSI_ON_ERROR);
     kill_call(log, call);
 }
 
