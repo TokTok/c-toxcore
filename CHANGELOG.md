@@ -1,3 +1,17 @@
+<a name="v0.2.24-rc.2"></a>
+
+## v0.2.24-rc.2 (2026-09-30)
+
+### Release notes
+
+fixes and fixes
+
+#### Bug Fixes
+
+- Align group announcement interval with cleanup interval. ([9696e90d](https://github.com/TokTok/c-toxcore/commit/9696e90df654829c7a4550229a87d7dabf3c7ce6))
+- **msi:** invoke error callback on init and push failure paths ([39bd5c6d](https://github.com/TokTok/c-toxcore/commit/39bd5c6d7905aaf7d020a15fb2420fe6e0e008de))
+- **rtp:** wrong slot used check could lead to oob Header only frames, with no payload can still occupy a slot. ([56a8d289](https://github.com/TokTok/c-toxcore/commit/56a8d2899ff368932c337e03357e866ef556d4b9))
+
 <a name="v0.2.24-rc.1"></a>
 
 ## v0.2.24-rc.1 (2026-09-25)
