@@ -204,8 +204,6 @@ void TestEndToEnd(Fuzz_Data &input)
     assert(error_new == TOX_ERR_NEW_OK);
     assert(error_new_testing == TOX_ERR_NEW_TESTING_OK);
 
-    tox_events_init(tox);
-
     Tox_Dispatch *dispatch = tox_dispatch_new(nullptr);
     assert(dispatch != nullptr);
     setup_callbacks(dispatch);
