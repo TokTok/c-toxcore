@@ -2923,7 +2923,7 @@ uint16_t tox_self_get_udp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nulla
 {
     assert(tox != nullptr);
     tox_lock(tox);
-    const uint16_t port = tox->m == nullptr || tox->m->net == nullptr ? 0 : net_htons(net_port(tox->m->net));
+    const uint16_t port = tox->m == nullptr || tox->m->net == nullptr ? 0 : net_ntohs(net_port(tox->m->net));
     tox_unlock(tox);
 
     if (port == 0) {
@@ -4345,6 +4345,103 @@ uint32_t tox_group_invite_accept(Tox *_Nonnull tox, uint32_t friend_number, cons
     LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
 
     return UINT32_MAX;
+}
+
+bool tox_group_peer_add(
+    const Tox *tox, Tox_Group_Number group_number,
+
+    const char *host, uint16_t port,
+    const Tox_Group_Peer_Public_Key peer_key,
+
+    const char *relays_host[], const uint16_t relays_port[],
+    const Tox_Group_Peer_Public_Key relays_key[],
+    size_t relays_size,
+    Tox_Err_Group_Peer_Add *error
+)
+{
+    assert(tox != nullptr);
+
+    if ((host == nullptr || port == 0 || peer_key == nullptr) && (relays_host == nullptr || relays_port == nullptr || relays_key == nullptr || relays_size == 0)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_BAD_HOST);
+        return false;
+    }
+
+    if (peer_key != nullptr && (port == 0 || host == nullptr)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_BAD_HOST);
+        return false;
+    }
+
+    tox_lock(tox);
+    GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        //SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_GROUP_NOT_FOUND);
+        tox_unlock(tox);
+        return false;
+    }
+
+    if (chat->connection_state == CS_DISCONNECTED) {
+        //SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_DISCONNECTED);
+        tox_unlock(tox);
+        return false;
+    }
+
+    IP_Port peer_ip_port_store;
+    IP_Port* peer_ip_port;
+    if (peer_key != nullptr) {
+        ip_init(&peer_ip_port_store.ip, tox->m->options.ipv6enabled);
+        peer_ip_port_store.port = net_htons(port);
+
+        if (!addr_resolve_or_parse_ip(/*chat->net->ns*/ tox->m->ns, chat->mem, host, &peer_ip_port_store.ip, nullptr, tox->m->options.dns_enabled)) {
+            //SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
+            tox_unlock(tox);
+            return false;
+        }
+        peer_ip_port = &peer_ip_port_store;
+    }
+
+    Node_format resolved_relays[4] = {};
+    size_t resolved_relays_counter = 0;
+    for (size_t i = 0; i < relays_size && resolved_relays_counter < 4; i++) {
+        ip_init(&resolved_relays[resolved_relays_counter].ip_port.ip, tox->m->options.ipv6enabled);
+        resolved_relays[resolved_relays_counter].ip_port.port = net_htons(relays_port[i]);
+
+        memcpy(resolved_relays[resolved_relays_counter].public_key, relays_key[i], CRYPTO_PUBLIC_KEY_SIZE);
+
+        if (!addr_resolve_or_parse_ip(/*chat->net->ns*/ tox->m->ns, chat->mem, relays_host[i], &resolved_relays[resolved_relays_counter].ip_port.ip, nullptr, tox->m->options.dns_enabled)) {
+            //SET_ERROR_PARAMETER(error, TOX_ERR_NEW_PROXY_BAD_HOST);
+            // set error but dont fail yet, might have gotten A valid tcp relay and/or direct ipport
+            // gc_add_peer -1 and -4 handles this case
+        } else {
+            resolved_relays_counter++;
+        }
+    }
+
+    const int ret = gc_add_peer(chat, peer_key, peer_ip_port, resolved_relays, resolved_relays_counter);
+    tox_unlock(tox);
+
+    switch (ret) {
+        case 0:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_OK);
+            return true;
+        case -1:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_BAD_HOST);
+            return false;
+        case -2:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_PEERS_EXIST);
+            return false;
+        case -3:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_INTERNAL_FAILURE);
+            return false;
+        case -4:
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_BAD_HOST);
+            return false;
+    }
+
+    /* can't happen */
+    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_PEER_ADD_INTERNAL_FAILURE);
+    return false;
 }
 
 bool tox_group_set_password(Tox *_Nonnull tox, uint32_t group_number, const uint8_t *_Nullable password, size_t length,

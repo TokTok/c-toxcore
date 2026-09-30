@@ -416,6 +416,7 @@ typedef struct GC_Session {
  * Return -2 if a peer with public_key is already in our peerlist.
  */
 int peer_add(GC_Chat *_Nonnull chat, const IP_Port *_Nullable ipp, const uint8_t *_Nonnull public_key);
+
 /** @brief Unpacks saved peers from `data` of size `length` into `chat`.
  *
  * Returns the number of unpacked peers on success.
