@@ -89,8 +89,8 @@ typedef struct Onion_Path {
  *
  * new_path must be an empty memory location of at least Onion_Path size.
  *
- * return -1 on failure.
- * return 0 on success.
+ * @retval -1 on failure.
+ * @retval 0 on success.
  */
 int create_onion_path(const Random *_Nonnull rng, const DHT *_Nonnull dht, Onion_Path *_Nonnull new_path, const Node_format *_Nonnull nodes);
 
