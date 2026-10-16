@@ -60,6 +60,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/bin_unpack.h \
                         ../toxcore/ccompat.c \
                         ../toxcore/ccompat.h \
+                        ../toxcore/clock.c \
+                        ../toxcore/clock.h \
                         ../toxcore/crypto_core_pack.c \
                         ../toxcore/crypto_core_pack.h \
                         ../toxcore/crypto_core.c \
@@ -99,6 +101,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/mem.h \
                         ../toxcore/Messenger.c \
                         ../toxcore/Messenger.h \
+                        ../toxcore/mono_clock.c \
+                        ../toxcore/mono_clock.h \
                         ../toxcore/mono_time.c \
                         ../toxcore/mono_time.h \
                         ../toxcore/net_crypto.c \
@@ -117,6 +121,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/onion_client.h \
                         ../toxcore/onion.c \
                         ../toxcore/onion.h \
+                        ../toxcore/os_clock.c \
+                        ../toxcore/os_clock.h \
                         ../toxcore/os_event.c \
                         ../toxcore/os_event.h \
                         ../toxcore/os_memory.c \
