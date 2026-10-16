@@ -20,7 +20,9 @@ libtoxav_la_SOURCES = ../toxav/rtp.h \
                     ../toxav/ring_buffer.c \
                     ../toxav/toxav.h \
                     ../toxav/toxav.c \
-                    ../toxav/toxav_old.c
+                    ../toxav/toxav_compat.c \
+                    ../toxav/toxav_old.c \
+                    ../toxav/toxav_private.h
 
 libtoxav_la_CFLAGS = -I../toxcore \
                     -I../toxav \
