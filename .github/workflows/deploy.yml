@@ -268,6 +268,56 @@ jobs:
           replacesArtifacts: true
           artifacts: "toxcore-nightly-android-${{ matrix.arch }}.tar.gz,toxcore-nightly-android-${{ matrix.arch }}.tar.gz.sha256"
 
+  build-windows:
+    name: Windows
+    needs: [prepare]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Run build
+        run: other/deploy/windows.sh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: toxcore-windows-x86_64
+          path: toxcore-windows-x86_64
+          if-no-files-found: error
+      - name: Get tag name for release file name
+        if: contains(github.ref, 'refs/tags/v')
+        id: get_version
+        run: |
+          VERSION="$(echo "$GITHUB_REF" | cut -d / -f 3)"
+          echo "release_tarball=toxcore-$VERSION-windows-x86_64.tar.gz" >>$GITHUB_OUTPUT
+      - name: Create tarball for release upload
+        if: contains(github.ref, 'refs/tags/v')
+        run: |
+          tar zcf "${{ steps.get_version.outputs.release_tarball }}" toxcore-windows-x86_64
+          sha256sum "${{ steps.get_version.outputs.release_tarball }}" >"${{ steps.get_version.outputs.release_tarball }}.sha256"
+      - name: Upload to versioned release
+        if: contains(github.ref, 'refs/tags/v')
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          draft: true
+          artifacts: "${{ steps.get_version.outputs.release_tarball }},${{ steps.get_version.outputs.release_tarball }}.sha256"
+      - name: Create tarball for nightly upload
+        run: |
+          tar zcf toxcore-nightly-windows-x86_64.tar.gz toxcore-windows-x86_64
+          sha256sum toxcore-nightly-windows-x86_64.tar.gz >toxcore-nightly-windows-x86_64.tar.gz.sha256
+      - name: Upload to nightly release
+        uses: ncipollo/release-action@v1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        with:
+          allowUpdates: true
+          tag: nightly
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          prerelease: true
+          replacesArtifacts: true
+          artifacts: "toxcore-nightly-windows-x86_64.tar.gz,toxcore-nightly-windows-x86_64.tar.gz.sha256"
+
   build-wasm:
     name: WebAssembly
     needs: [prepare]
