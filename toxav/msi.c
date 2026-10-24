@@ -882,7 +882,13 @@ void msi_handle_packet(MSISession *session, const Logger *log, uint32_t friend_n
 
     if (call == nullptr) {
         if (msg.request.value != REQU_INIT) {
-            send_error(log, session, friend_number, MSI_E_STRAY_MESSAGE);
+            /* A pop for a call we ended too needs no answer: when both ends
+             * hang up at once, answering would bounce errors between them
+             * forever, each ending the next call it meets. */
+            if (msg.request.value != REQU_POP) {
+                send_error(log, session, friend_number, MSI_E_STRAY_MESSAGE);
+            }
+
             pthread_mutex_unlock(session->mutex);
             return;
         }
