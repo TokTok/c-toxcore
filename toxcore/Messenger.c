@@ -2634,8 +2634,8 @@ void do_messenger(Messenger *m, void *userdata)
             if (msgfptr != nullptr) {
                 char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];
                 bytes_to_string(msgfptr->real_pk, CRYPTO_PUBLIC_KEY_SIZE, id_str, sizeof(id_str));
-                LOGGER_TRACE(m->log, "F[%2d:%2u] <%s> %s",
-                             dht2m[friend_idx], friend_idx, msgfptr->name,
+                LOGGER_TRACE(m->log, "F[%2d:%2u] <%.*s> %s",
+                             dht2m[friend_idx], friend_idx, msgfptr->name_length, msgfptr->name,
                              id_str);
             } else {
                 char id_str[TOX_BYTES_TO_STRING_BUF_SIZE];

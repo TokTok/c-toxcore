@@ -756,9 +756,11 @@ static const char *_Nonnull net_strerror_r(int error, char *_Nonnull tmp, size_t
 
     if (errno != 0) {
         snprintf(tmp, tmp_size, "error %d (strerror_r failed with errno %d)", error, errno);
+    } else if (retstr != tmp) {
+        snprintf(tmp, tmp_size, "%s", retstr);
     }
 
-    return retstr;
+    return tmp;
 }
 #else
 static const char *_Nonnull net_strerror_r(int error, char *_Nonnull tmp, size_t tmp_size)
