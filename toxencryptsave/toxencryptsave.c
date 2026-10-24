@@ -178,6 +178,7 @@ Tox_Pass_Key *_Nullable tox_pass_key_derive_with_salt(
                 crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE) != 0) {
         /* out of memory most likely */
         SET_ERROR_PARAMETER(error, TOX_ERR_KEY_DERIVATION_FAILED);
+        crypto_memzero(passkey, crypto_hash_sha256_BYTES); /* wipe plaintext pw */
         return nullptr;
     }
 
