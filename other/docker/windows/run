@@ -23,4 +23,5 @@ docker run \
   -v /tmp/c-toxcore-build:/prefix \
   -t \
   --rm \
+  --security-opt seccomp=unconfined \
   toxchat/c-toxcore:windows

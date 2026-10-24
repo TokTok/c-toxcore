@@ -94,6 +94,10 @@ build() {
   cp -a other/fun/*.exe "$RESULT_PREFIX_DIR/bin/"
 
   if [ "$ENABLE_TEST" = "true" ]; then
+    if [ "$ALLOW_TEST_FAILURE" = "true" ]; then
+      set +e
+    fi
+
     rm -rf /root/.wine
 
     # setup wine
@@ -113,10 +117,8 @@ build() {
       cd -
     )"\;"$(winepath -w /usr/"$WINDOWS_TOOLCHAIN"/lib/)"
 
-    if [ "$ALLOW_TEST_FAILURE" = "true" ]; then
-      set +e
-    fi
     cmake --build . --target test -- ARGS="-j50"
+
     if [ "$ALLOW_TEST_FAILURE" = "true" ]; then
       set -e
     fi

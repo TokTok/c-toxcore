@@ -66,6 +66,7 @@ RUN source .github/scripts/flags-coverage.sh \
  && cmake --build _build --parallel 8 --target install
 
 WORKDIR /work/_build
+ENV LLVM_PROFILE_FILE=/work/_build/cov/%p_%m.profraw
 RUN /work/other/proxy/proxy_server \
  & (ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6 || \
     ctest -j50 --output-on-failure --rerun-failed --repeat until-pass:6)
@@ -78,7 +79,7 @@ RUN clang-17 -fuse-ld=lld -fPIC -shared -O2 -g3 -Wall -I/usr/lib/llvm-17/include
 WORKDIR /work/_build
 COPY other/docker/coverage/run_mallocfail /usr/local/bin/
 RUN ["run_mallocfail", "--ctest=1", "--jobs=8"]
-RUN llvm-profdata-17 merge -sparse $(find . -name "*.profraw") -o toxcore.profdata
+RUN llvm-profdata-17 merge -sparse --failure-mode=all $(find . -name "*.profraw" -size +0c) -o toxcore.profdata
 RUN llvm-cov-17 show -format=text -instr-profile=toxcore.profdata -sources $(cmake --build . --target help | grep -o '[^:]*_test:' | grep -o '[^:]*' | xargs -n1 find . -type f -name | awk '{print "-object "$1}') > coverage.txt
 RUN llvm-cov-17 show -format=html -instr-profile=toxcore.profdata -sources $(cmake --build . --target help | grep -o '[^:]*_test:' | grep -o '[^:]*' | xargs -n1 find . -type f -name | awk '{print "-object "$1}') -output-dir=html
 

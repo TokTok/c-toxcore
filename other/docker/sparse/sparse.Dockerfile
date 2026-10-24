@@ -21,7 +21,12 @@ RUN apt-get update && \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /work/smatch
-RUN git clone --depth=1 --branch 1.74 https://repo.or.cz/smatch.git /work/smatch
+# repo.or.cz is unreliable, so try the github mirror first.
+RUN cd /work && for url in https://github.com/error27/smatch.git https://repo.or.cz/smatch.git; do \
+      rm -rf /work/smatch; \
+      git clone --depth=1 --branch 1.74 "$url" /work/smatch && break; \
+    done; \
+    test -e /work/smatch/Makefile
 COPY other/docker/sparse/local.mk /work/smatch/local.mk
 RUN make install -j4 PREFIX=/usr/local
 
