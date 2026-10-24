@@ -18,6 +18,7 @@
 #include "logger.h"
 #include "mem.h"
 #include "mono_time.h"
+#include "net.h"
 #include "network.h"
 #include "shared_key_cache.h"
 #include "util.h"
@@ -109,8 +110,8 @@ static int ipport_unpack(IP_Port *_Nonnull target, const uint8_t *_Nonnull data,
  *
  * new_path must be an empty memory location of at least Onion_Path size.
  *
- * return -1 on failure.
- * return 0 on success.
+ * @retval -1 on failure.
+ * @retval 0 on success.
  */
 int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, const Node_format *nodes)
 {
@@ -118,18 +119,28 @@ int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, c
         return -1;
     }
 
-    encrypt_precompute(nodes[0].public_key, dht_get_self_secret_key(dht), new_path->shared_key1);
-    memcpy(new_path->public_key1, dht_get_self_public_key(dht), CRYPTO_PUBLIC_KEY_SIZE);
+    if (!net_family_is_tcp_server(nodes[0].ip_port.ip.family)) {
+        // If the first hop is a tcp-relay, pubkey and sharedkey are never written or read.
+
+        if (encrypt_precompute(nodes[0].public_key, dht_get_self_secret_key(dht), new_path->shared_key1) != 0) {
+            return -1;
+        }
+        memcpy(new_path->public_key1, dht_get_self_public_key(dht), CRYPTO_PUBLIC_KEY_SIZE);
+    }
 
     uint8_t random_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t random_secret_key[CRYPTO_SECRET_KEY_SIZE];
 
     crypto_new_keypair(rng, random_public_key, random_secret_key);
-    encrypt_precompute(nodes[1].public_key, random_secret_key, new_path->shared_key2);
+    if (encrypt_precompute(nodes[1].public_key, random_secret_key, new_path->shared_key2) != 0) {
+        return -1;
+    }
     memcpy(new_path->public_key2, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     crypto_new_keypair(rng, random_public_key, random_secret_key);
-    encrypt_precompute(nodes[2].public_key, random_secret_key, new_path->shared_key3);
+    if (encrypt_precompute(nodes[2].public_key, random_secret_key, new_path->shared_key3) != 0) {
+        return -1;
+    }
     memcpy(new_path->public_key3, random_public_key, CRYPTO_PUBLIC_KEY_SIZE);
 
     crypto_memzero(random_secret_key, sizeof(random_secret_key));
