@@ -27,5 +27,6 @@ docker run \
   -v "$PWD/result:/prefix" \
   --rm \
   -t \
+  --security-opt seccomp=unconfined \
   --pull never \
   "toxchat/windows:$WINDOWS_ARCH"

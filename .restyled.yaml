@@ -12,16 +12,24 @@ restylers:
       include:
         - "**/*.c"
         - "**/*.h"
-  - autopep8
-  - black
+  - autopep8:
+      image: restyled/restyler-autopep8:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - black:
+      image: restyled/restyler-black:5f451c6f0eaf66f7358cea647af09c3df27b76fd
   - clang-format:
       image: restyled/restyler-clang-format:v16.0.6
       include:
         - "**/*.cc"
         - "**/*.hh"
-  - prettier-markdown
-  - prettier-yaml
-  - reorder-python-imports
-  - shellharden
-  - shfmt
-  - yapf
+  - prettier-markdown:
+      image: restyled/restyler-prettier:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - prettier-yaml:
+      image: restyled/restyler-prettier:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - reorder-python-imports:
+      image: restyled/restyler-reorder-python-imports:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - shellharden:
+      image: restyled/restyler-shellharden:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - shfmt:
+      image: restyled/restyler-shfmt:5f451c6f0eaf66f7358cea647af09c3df27b76fd
+  - yapf:
+      image: restyled/restyler-yapf:5f451c6f0eaf66f7358cea647af09c3df27b76fd
