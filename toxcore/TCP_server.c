@@ -607,6 +607,10 @@ static int handle_onion_recv_1(void *_Nonnull object, const IP_Port *_Nonnull de
 
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[index];
 
+    if (1 + length + CRYPTO_MAC_SIZE > MAX_PACKET_SIZE) {
+        return 1;
+    }
+
     const uint16_t packet_size = 1 + length;
     VLA(uint8_t, packet, packet_size);
     memcpy(packet + 1, data, length);
@@ -643,6 +647,10 @@ static bool handle_forward_reply_tcp(void *_Nonnull object, const uint8_t *_Nonn
     TCP_Secure_Connection *con = &tcp_server->accepted_connection_array[con_id];
 
     if (con->identifier != identifier) {
+        return false;
+    }
+
+    if (1 + length + CRYPTO_MAC_SIZE > MAX_PACKET_SIZE) {
         return false;
     }
 
