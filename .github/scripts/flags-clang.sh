@@ -6,6 +6,8 @@
 add_flag -Wall
 add_flag -Wextra
 add_flag -Weverything
+# tokstyle's doc tags.
+add_flag -fcomment-block-commands=thread,guarded_by,requires
 
 # Disable specific warning flags for both C and C++.
 

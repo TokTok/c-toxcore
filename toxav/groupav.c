@@ -268,6 +268,7 @@ static void group_av_peer_new(void *_Nonnull object, Tox_Conference_Number confe
     peer_av->buffer = create_queue(GROUP_JBUF_SIZE);
 
     if (group_peer_set_object(group_av->g_c, conference_number, peer_number, peer_av) == -1) {
+        terminate_queue(peer_av->buffer);
         free(peer_av);
     }
 }

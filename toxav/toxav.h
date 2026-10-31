@@ -43,6 +43,10 @@
  * fail if mutexes are held by Tox thread in which case they will set SYNC
  * error code.
  *
+ * toxav_audio_send_frame and toxav_video_send_frame don't send packets: the
+ * iterate functions do. So with toxav_new_custom, frames can be encoded on
+ * another thread without the IO callbacks being called there.
+ *
  * @subsection av_multi_threading Separate audio and video threads
  *
  * ToxAV supports either a single thread for audio and video or decoding and
@@ -102,6 +106,98 @@ typedef uint32_t Tox_Conference_Peer_Number;
 typedef struct ToxAV ToxAV;
 #endif /* TOXAV_DEFINED */
 
+/**
+ * @brief Function type for sending a lossy packet (UDP-like) to a friend.
+ *
+ * Called from the iterate functions, not the frame send functions.
+ *
+ * @param friend_number The destination friend number.
+ * @param data The packet data.
+ * @param length The packet length.
+ * @param user_data The user data passed to toxav_new_custom.
+ * @return true on success, false on failure.
+ */
+typedef bool toxav_send_lossy_cb(Tox_Friend_Number friend_number, const uint8_t *data, size_t length, void *user_data);
+
+/**
+ * @brief Function type for sending a lossless packet (TCP-like) to a friend.
+ *
+ * @param friend_number The destination friend number.
+ * @param data The packet data.
+ * @param length The packet length.
+ * @param user_data The user data passed to toxav_new_custom.
+ * @return true on success, false on failure.
+ */
+typedef bool toxav_send_lossless_cb(Tox_Friend_Number friend_number, const uint8_t *data, size_t length, void *user_data);
+
+/**
+ * @brief Function type for checking if a friend exists.
+ *
+ * @param friend_number The friend number to check.
+ * @param user_data The user data passed to toxav_new_custom.
+ * @return true if the friend exists, false otherwise.
+ */
+typedef bool toxav_friend_exists_cb(Tox_Friend_Number friend_number, void *user_data);
+
+/**
+ * @brief Function type for checking if a friend is connected.
+ *
+ * @param friend_number The friend number to check.
+ * @param user_data The user data passed to toxav_new_custom.
+ * @return true if the friend is connected, false otherwise.
+ */
+typedef bool toxav_friend_connected_cb(Tox_Friend_Number friend_number, void *user_data);
+
+/**
+ * @brief Function type for providing the current time in milliseconds.
+ *
+ * @param user_data The user data passed to toxav_new_custom.
+ * @return The current monotonic time in milliseconds.
+ *
+ * @thread any
+ */
+typedef uint64_t toxav_time_cb(void *user_data);
+
+/**
+ * @brief Opaque structure to hold ToxAV IO callbacks.
+ */
+typedef struct ToxAV_IO ToxAV_IO;
+
+/**
+ * @brief Create a new ToxAV_IO structure.
+ */
+ToxAV_IO *toxav_io_new(void);
+
+/**
+ * @brief Release the ToxAV_IO structure.
+ */
+void toxav_io_kill(ToxAV_IO *io);
+
+/**
+ * @brief Set the callback for sending lossy packets.
+ */
+void toxav_io_callback_send_lossy(ToxAV_IO *io, toxav_send_lossy_cb *function);
+
+/**
+ * @brief Set the callback for sending lossless packets.
+ */
+void toxav_io_callback_send_lossless(ToxAV_IO *io, toxav_send_lossless_cb *function);
+
+/**
+ * @brief Set the callback for checking if a friend exists.
+ */
+void toxav_io_callback_friend_exists(ToxAV_IO *io, toxav_friend_exists_cb *function);
+
+/**
+ * @brief Set the callback for checking if a friend is connected.
+ */
+void toxav_io_callback_friend_connected(ToxAV_IO *io, toxav_friend_connected_cb *function);
+
+/**
+ * @brief Set the callback for providing the current time.
+ */
+void toxav_io_callback_time_current(ToxAV_IO *io, toxav_time_cb *function);
+
 /** @{
  * @brief Creation and destruction
  */
@@ -137,6 +233,35 @@ typedef enum Toxav_Err_New {
 ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error);
 
 /**
+ * @brief Create a new ToxAV instance with a custom IO interface.
+ *
+ * This decouples ToxAV from the Tox instance, allowing it to be used with
+ * alternative networking stacks or for testing.
+ *
+ * @param io The interface object containing callback settings.
+ * @param user_data An opaque pointer passed back to all IO callbacks.
+ * @param[out] error Error code.
+ */
+ToxAV *toxav_new_custom(const ToxAV_IO *io, void *user_data, Toxav_Err_New *error);
+
+/**
+ * @brief Feed a received packet (lossy or lossless) into ToxAV.
+ *
+ * The packet type is determined by the first byte of the data (the packet ID).
+ * Supported IDs:
+ * - 69 (0x45): MSI (Call Signaling)
+ * - 192 (0xC0): RTP Audio
+ * - 193 (0xC1): RTP Video
+ * - 196 (0xC4): Bandwidth Controller
+ *
+ * @param av The ToxAV instance.
+ * @param friend_number The friend number the packet was received from.
+ * @param data The full packet data (including the Packet ID).
+ * @param length The length of the packet data.
+ */
+void toxav_receive_packet(ToxAV *av, Tox_Friend_Number friend_number, const uint8_t *data, size_t length);
+
+/**
  * Releases all resources associated with the A/V session.
  *
  * If any calls were ongoing, these will be forcibly terminated without
@@ -146,7 +271,8 @@ ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error);
 void toxav_kill(ToxAV *av);
 
 /**
- * Returns the Tox instance the A/V object was created for.
+ * Returns the Tox instance the A/V object was created for, or NULL for one
+ * made by toxav_new_custom.
  */
 Tox *toxav_get_tox(const ToxAV *av);
 
@@ -557,7 +683,7 @@ typedef enum Toxav_Err_Send_Frame {
     TOXAV_ERR_SEND_FRAME_NULL,
 
     /**
-     * The friend_number passed did not designate a valid friend.
+     * Not returned: a friend that doesn't exist isn't in a call either.
      */
     TOXAV_ERR_SEND_FRAME_FRIEND_NOT_FOUND,
 
@@ -610,6 +736,8 @@ typedef enum Toxav_Err_Send_Frame {
  * @param channels Number of audio channels. Supported values are 1 and 2.
  * @param sampling_rate Audio sampling rate used in this frame. Valid sampling
  *   rates are 8000, 12000, 16000, 24000, or 48000.
+ *
+ * @thread any
  */
 bool toxav_audio_send_frame(ToxAV *av, Tox_Friend_Number friend_number, const int16_t pcm[/*! sample_count * channels */],
                             size_t sample_count, uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *error);
@@ -657,6 +785,8 @@ void toxav_callback_audio_bit_rate(ToxAV *av, toxav_audio_bit_rate_cb *callback,
  * @param y Y (Luminance) plane data.
  * @param u U (Chroma) plane data.
  * @param v V (Chroma) plane data.
+ *
+ * @thread any
  */
 bool toxav_video_send_frame(
     ToxAV *av, Tox_Friend_Number friend_number, uint16_t width, uint16_t height,
