@@ -821,6 +821,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         return nullptr;
     }
     tox->mono_time = temp_mono_time;
+    tox->mono_clock = mono_time_get_mono_clock(tox->mono_time);
 
     if (tox_options_get_experimental_thread_safety(opts)) {
         pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(mem, sizeof(pthread_mutex_t));
@@ -1015,6 +1016,7 @@ void tox_kill(Tox *_Nullable tox)
     kill_messenger(tox->m);
     logger_kill(tox->log);
     mono_time_free(tox->sys.mem, tox->mono_time);
+    tox->mono_clock = nullptr;
     tox_unlock(tox);
 
     if (tox->mutex != nullptr) {
