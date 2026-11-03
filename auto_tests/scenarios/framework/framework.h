@@ -190,6 +190,13 @@ void tox_node_bootstrap(ToxNode *a, ToxNode *b);
 void tox_node_friend_add(ToxNode *a, ToxNode *b);
 
 /**
+ * Drops all UDP packets between `a` and `b`, so they can reach each other only
+ * through other nodes. Call before tox_scenario_run. Nodes with blocked links
+ * can't be reloaded.
+ */
+void tox_scenario_block_link(ToxNode *a, ToxNode *b);
+
+/**
  * Reloads a node from its own savedata.
  * This simulates a client restart.
  */
