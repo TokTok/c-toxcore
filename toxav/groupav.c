@@ -125,6 +125,7 @@ static void group_av_peer_new(void *_Nonnull object, Tox_Conference_Number confe
     peer_av->buffer = group_jbuf_new(GROUP_JBUF_SIZE);
 
     if (group_peer_set_object(group_av->g_c, conference_number, peer_number, peer_av) == -1) {
+        group_jbuf_kill(peer_av->buffer);
         free(peer_av);
     }
 }
