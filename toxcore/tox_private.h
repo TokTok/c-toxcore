@@ -542,6 +542,64 @@ size_t tox_group_peer_get_ip_address_size(const Tox *_Nonnull tox, uint32_t grou
 bool tox_group_peer_get_ip_address(const Tox *_Nonnull tox, uint32_t group_number, uint32_t peer_id, uint8_t *_Nonnull ip_addr,
                                    Tox_Err_Group_Peer_Query *_Nullable error);
 
+/*******************************************************************************
+ *
+ * :: Saving and loading groups one at a time.
+ *
+ ******************************************************************************/
+
+/**
+ * Return the size of a group's saved state, as `tox_group_get_savedata` writes
+ * it, or 0 if the group is not found.
+ *
+ * @param group_number The group number of the group to save.
+ */
+uint32_t tox_group_get_savedata_size(const Tox *_Nonnull tox, uint32_t group_number,
+                                     Tox_Err_Group_State_Query *_Nullable error);
+
+/**
+ * Write a group's state to `savedata`, as the whole instance's savedata keeps
+ * it, so that a client can keep its groups without the rest of the savedata.
+ *
+ * Call tox_group_get_savedata_size to find the size of `savedata`.
+ *
+ * @param group_number The group number of the group to save.
+ * @param savedata A memory region large enough to store the group's state.
+ *
+ * @return true on success.
+ */
+bool tox_group_get_savedata(const Tox *_Nonnull tox, uint32_t group_number, uint8_t *_Nonnull savedata,
+                            Tox_Err_Group_State_Query *_Nullable error);
+
+typedef enum Tox_Err_Group_Load {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_LOAD_OK,
+
+    /**
+     * The saved state could not be read, or the group could not be set up from
+     * it.
+     */
+    TOX_ERR_GROUP_LOAD_MALFORMED,
+} Tox_Err_Group_Load;
+
+/**
+ * Bring back a group saved with `tox_group_get_savedata`, and connect to it
+ * again unless it was disconnected when saved.
+ *
+ * The group must not be in this instance already: one loaded twice is there
+ * twice.
+ *
+ * @param savedata The group's state, as `tox_group_get_savedata` wrote it.
+ * @param length The length of `savedata`.
+ *
+ * @return the group's new group number on success, an unspecified value on
+ *   failure.
+ */
+uint32_t tox_group_load_savedata(Tox *_Nonnull tox, const uint8_t *_Nonnull savedata, size_t length,
+                                 Tox_Err_Group_Load *_Nullable error);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif
