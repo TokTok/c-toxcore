@@ -1467,6 +1467,7 @@ cc_test(
     deps = [
         ":Messenger",
         ":crypto_core",
+        ":group_announce",
         ":logger",
         ":net",
         ":network",

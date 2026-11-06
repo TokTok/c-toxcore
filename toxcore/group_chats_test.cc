@@ -13,6 +13,7 @@
 #include "../testing/support/public/simulated_environment.hh"
 #include "Messenger.h"
 #include "crypto_core.h"
+#include "group_announce.h"
 #include "group_common.h"
 #include "logger.h"
 #include "net.h"
@@ -252,6 +253,61 @@ TEST_F(GroupInviteAccepted, KeepsTheInvitedPeerUntilItsAddressIsKnown)
     ASSERT_NE(gconn, nullptr);
     EXPECT_FALSE(gconn->pending_delete);
     EXPECT_EQ(gconn->friend_number, static_cast<int>(friend_number_));
+}
+
+TEST(GroupSyncFlood, IgnoresSyncResponsesItDidNotAskFor)
+{
+    Tox_Options *opts = tox_options_new(nullptr);
+    ASSERT_NE(opts, nullptr);
+    tox_options_set_local_discovery_enabled(opts, false);
+
+    Tox_Err_New err;
+    Tox *tox = tox_new(opts, &err);
+    tox_options_free(opts);
+    ASSERT_EQ(err, TOX_ERR_NEW_OK);
+    ASSERT_NE(tox, nullptr);
+
+    const uint8_t group_name[] = "sync";
+    const uint8_t self_name[] = "host";
+    Tox_Err_Group_New gerr;
+    const uint32_t group_number = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PUBLIC, group_name,
+        sizeof(group_name) - 1, self_name, sizeof(self_name) - 1, &gerr);
+    ASSERT_EQ(gerr, TOX_ERR_GROUP_NEW_OK);
+
+    GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+    ASSERT_NE(chat, nullptr);
+
+    const Random *rng = os_random();
+    ASSERT_NE(rng, nullptr);
+
+    // Anyone can complete the handshake in a public chat.
+    uint8_t peer_pk[ENC_PUBLIC_KEY_SIZE];
+    random_bytes(rng, peer_pk, sizeof(peer_pk));
+    const int peer_number = peer_add(chat, nullptr, peer_pk);
+    ASSERT_GT(peer_number, 0);
+
+    const uint32_t peers_before = chat->numpeers;
+
+    constexpr int kFloodCount = 256;
+    for (int i = 0; i < kFloodCount; ++i) {
+        GC_Announce announce{};
+        random_bytes(rng, announce.peer_public_key, ENC_PUBLIC_KEY_SIZE);
+        announce.ip_port_is_set = true;
+        announce.ip_port.ip.family = net_family_ipv4();
+        announce.ip_port.ip.ip.v4 = get_ip4_loopback();
+        announce.ip_port.port = net_htons(33445);
+
+        uint8_t data[GCA_ANNOUNCE_MAX_SIZE];
+        const int len = gca_pack_announce(chat->log, data, sizeof(data), &announce);
+        ASSERT_GT(len, 0);
+
+        handle_gc_lossless_helper(
+            tox->m->group_handler, chat, peer_number, data, len, GP_SYNC_RESPONSE, nullptr);
+    }
+
+    EXPECT_EQ(chat->numpeers, peers_before);
+
+    tox_kill(tox);
 }
 
 // Fills a saved peer with a fully-formed UDP address and TCP relay so that it
