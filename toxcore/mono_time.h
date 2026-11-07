@@ -48,6 +48,9 @@ typedef struct Mono_Time Mono_Time;
 
 typedef uint64_t mono_time_current_time_cb(void *_Nullable user_data);
 
+typedef struct Mono_Clock Mono_Clock;
+Mono_Clock *_Nonnull mono_time_get_mono_clock(Mono_Time *_Nonnull mt);
+
 Mono_Time *_Nullable mono_time_new(const Memory *_Nonnull mem, mono_time_current_time_cb *_Nullable current_time_callback, void *_Nullable user_data);
 void mono_time_free(const Memory *_Nonnull mem, Mono_Time *_Nullable mono_time);
 /**
