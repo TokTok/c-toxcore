@@ -12,7 +12,10 @@
 
 #include "../testing/support/public/simulated_environment.hh"
 #include "Messenger.h"
+#include "bin_pack.h"
+#include "bin_unpack.h"
 #include "crypto_core.h"
+#include "group_announce.h"
 #include "group_common.h"
 #include "logger.h"
 #include "net.h"
@@ -254,6 +257,107 @@ TEST_F(GroupInviteAccepted, KeepsTheInvitedPeerUntilItsAddressIsKnown)
     EXPECT_EQ(gconn->friend_number, static_cast<int>(friend_number_));
 }
 
+TEST(GroupSyncFlood, IgnoresSyncResponsesItDidNotAskFor)
+{
+    Tox_Options *opts = tox_options_new(nullptr);
+    ASSERT_NE(opts, nullptr);
+    tox_options_set_local_discovery_enabled(opts, false);
+
+    Tox_Err_New err;
+    Tox *tox = tox_new(opts, &err);
+    tox_options_free(opts);
+    ASSERT_EQ(err, TOX_ERR_NEW_OK);
+    ASSERT_NE(tox, nullptr);
+
+    const uint8_t group_name[] = "sync";
+    const uint8_t self_name[] = "host";
+    Tox_Err_Group_New gerr;
+    const uint32_t group_number = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PUBLIC, group_name,
+        sizeof(group_name) - 1, self_name, sizeof(self_name) - 1, &gerr);
+    ASSERT_EQ(gerr, TOX_ERR_GROUP_NEW_OK);
+
+    GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+    ASSERT_NE(chat, nullptr);
+
+    const Random *rng = os_random();
+    ASSERT_NE(rng, nullptr);
+
+    // Anyone can complete the handshake in a public chat.
+    uint8_t peer_pk[ENC_PUBLIC_KEY_SIZE];
+    random_bytes(rng, peer_pk, sizeof(peer_pk));
+    const int peer_number = peer_add(chat, nullptr, peer_pk);
+    ASSERT_GT(peer_number, 0);
+
+    const uint32_t peers_before = chat->numpeers;
+
+    constexpr int kFloodCount = 256;
+    for (int i = 0; i < kFloodCount; ++i) {
+        GC_Announce announce{};
+        random_bytes(rng, announce.peer_public_key, ENC_PUBLIC_KEY_SIZE);
+        announce.ip_port_is_set = true;
+        announce.ip_port.ip.family = net_family_ipv4();
+        announce.ip_port.ip.ip.v4 = get_ip4_loopback();
+        announce.ip_port.port = net_htons(33445);
+
+        uint8_t data[GCA_ANNOUNCE_MAX_SIZE];
+        const int len = gca_pack_announce(chat->log, data, sizeof(data), &announce);
+        ASSERT_GT(len, 0);
+
+        handle_gc_lossless_helper(
+            tox->m->group_handler, chat, peer_number, data, len, GP_SYNC_RESPONSE, nullptr);
+    }
+
+    EXPECT_EQ(chat->numpeers, peers_before);
+
+    tox_kill(tox);
+}
+
+TEST(GcGroupLoad, LeavesNoGroupWhenTheSavedStateIsCutShort)
+{
+    Tox_Options *opts = tox_options_new(nullptr);
+    ASSERT_NE(opts, nullptr);
+    tox_options_set_local_discovery_enabled(opts, false);
+
+    Tox_Err_New err;
+    Tox *tox = tox_new(opts, &err);
+    tox_options_free(opts);
+    ASSERT_EQ(err, TOX_ERR_NEW_OK);
+    ASSERT_NE(tox, nullptr);
+
+    const uint8_t group_name[] = "saved";
+    const uint8_t self_name[] = "host";
+    Tox_Err_Group_New gerr;
+    const uint32_t group_number = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PRIVATE, group_name,
+        sizeof(group_name) - 1, self_name, sizeof(self_name) - 1, &gerr);
+    ASSERT_EQ(gerr, TOX_ERR_GROUP_NEW_OK);
+
+    GC_Session *c = tox->m->group_handler;
+    const GC_Chat *chat = gc_get_group(c, group_number);
+    ASSERT_NE(chat, nullptr);
+
+    bin_pack_cb *save = [](const void *obj, const Logger *logger, Bin_Pack *bp) {
+        gc_group_save(static_cast<const GC_Chat *>(obj), bp);
+        return true;
+    };
+    bin_unpack_cb *load = [](void *obj, Bin_Unpack *bu) {
+        return gc_group_load(static_cast<GC_Session *>(obj), bu) >= 0;
+    };
+    const uint32_t size = bin_pack_obj_size(save, chat, chat->log);
+    std::vector<uint8_t> saved(size);
+    ASSERT_TRUE(bin_pack_obj(save, chat, chat->log, saved.data(), size));
+
+    const uint32_t groups = gc_count_groups(c);
+
+    // Cut the saved state off halfway, and again in the saved peers, which are
+    // loaded last.
+    for (const uint32_t length : {size / 2, size - 2}) {
+        EXPECT_FALSE(bin_unpack_obj(chat->mem, load, c, saved.data(), length));
+        EXPECT_EQ(gc_count_groups(c), groups);
+    }
+
+    tox_kill(tox);
+}
+
 // Fills a saved peer with a fully-formed UDP address and TCP relay so that it
 // survives a pack/unpack round-trip unambiguously.
 void fill_saved_peer(GC_SavedPeerInfo *peer)
@@ -311,6 +415,35 @@ TEST(UnpackGcSavedPeers, DoesNotOverflowSavedPeersArray)
     EXPECT_LE(unpacked, GC_MAX_SAVED_PEERS);
 
     logger_kill(log);
+}
+
+// Peers and topic are the same here, so any sync flag we get is GF_STATE.
+uint16_t state_sync_flags(const GC_Chat *chat, const GC_Connection *gconn, uint32_t sstate_version,
+    uint16_t roles_checksum)
+{
+    return gc_get_sync_flags(chat, gconn, chat->peers_checksum, 0, sstate_version,
+        chat->moderation.sanctions_creds.version, roles_checksum, chat->topic_info.version,
+        chat->topic_info.checksum);
+}
+
+// A peer that is connected to different peers than us always sends a different
+// roles checksum, so asking it for the state again doesn't help.
+TEST(GcGetSyncFlags, AsksForTheStateOnceForEachRolesChecksum)
+{
+    auto chat = std::make_unique<GC_Chat>();
+    chat->shared_state.version = 1;
+    GC_Connection gconn{};
+
+    EXPECT_NE(state_sync_flags(chat.get(), &gconn, 1, 5), 0);
+
+    // Keep asking until the peer answers. It may have dropped the request.
+    gc_state_sync_requested(&gconn, 5);
+    EXPECT_NE(state_sync_flags(chat.get(), &gconn, 1, 5), 0);
+
+    gc_state_sync_answered(&gconn);
+    EXPECT_EQ(state_sync_flags(chat.get(), &gconn, 1, 5), 0);
+    EXPECT_NE(state_sync_flags(chat.get(), &gconn, 1, 6), 0);
+    EXPECT_NE(state_sync_flags(chat.get(), &gconn, 2, 5), 0);
 }
 
 }  // namespace

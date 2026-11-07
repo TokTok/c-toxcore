@@ -52,8 +52,9 @@ static int pack_group_announces(void *object, const Logger *logger, const Memory
 
     const GC_Peer_Announce *new_announce = gca_add_announce(mem, mono_time, gc_announces_list, &public_announce);
 
+    // Happens a lot if someone floods us with announces for new groups.
     if (new_announce == nullptr) {
-        LOGGER_ERROR(logger, "Failed to add group announce");
+        LOGGER_DEBUG(logger, "Failed to add group announce");
         return -1;
     }
 

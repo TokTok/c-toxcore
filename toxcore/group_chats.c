@@ -1642,13 +1642,18 @@ static bool send_lossless_group_packet(const GC_Chat *_Nonnull chat, GC_Connecti
     return gcc_send_lossless_packet(chat, gconn, data, length, packet_type) == 0;
 }
 
+static bool gc_sync_request_limited(const GC_Chat *_Nonnull chat)
+{
+    return !mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT);
+}
+
 /** @brief Sends a group sync request to peer.
  *
  * Returns true on success or if sync request timeout has not expired.
  */
 static bool send_gc_sync_request(GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, uint16_t sync_flags)
 {
-    if (!mono_time_is_timeout(chat->mono_time, chat->last_sync_request, GC_SYNC_REQUEST_LIMIT)) {
+    if (gc_sync_request_limited(chat)) {
         return true;
     }
 
@@ -1667,7 +1672,13 @@ static bool send_gc_sync_request(GC_Chat *_Nonnull chat, GC_Connection *_Nonnull
         length += MAX_GC_PASSWORD_SIZE;
     }
 
-    return send_lossless_group_packet(chat, gconn, data, length, GP_SYNC_REQUEST);
+    if (!send_lossless_group_packet(chat, gconn, data, length, GP_SYNC_REQUEST)) {
+        return false;
+    }
+
+    gconn->sync_requested = true;
+    gconn->sync_responses = 0;
+    return true;
 }
 
 /** @brief Sends a sync response packet to peer designated by `gconn`.
@@ -1773,6 +1784,23 @@ static bool unpack_gc_sync_announce(GC_Chat *_Nonnull chat, const uint8_t *_Nonn
 static int handle_gc_sync_response(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat, uint32_t peer_number, const uint8_t *_Nullable data,
                                    uint16_t length, void *_Nullable userdata)
 {
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return -2;
+    }
+
+    // A peer sends one sync response for each of its peers, so it can't send
+    // more than the group's peer limit for one request.
+    const uint16_t max_responses = chat->shared_state.maxpeers > 0 ? chat->shared_state.maxpeers : MAX_GC_PEERS_DEFAULT;
+
+    if (!gconn->sync_requested || gconn->sync_responses >= max_responses) {
+        LOGGER_DEBUG(chat->log, "Ignoring sync response we did not ask for from peer %u", peer_number);
+        return 0;
+    }
+
+    ++gconn->sync_responses;
+
     if (length > 0) {
         if (data == nullptr) {
             return -1;
@@ -1784,7 +1812,7 @@ static int handle_gc_sync_response(const GC_Session *_Nonnull c, GC_Chat *_Nonnu
 
     chat->connection_state = CS_CONNECTED;
 
-    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+    gconn = get_gc_connection(chat, peer_number);
 
     if (gconn == nullptr) {
         return -2;
@@ -2358,11 +2386,25 @@ static bool send_gc_broadcast_message(const GC_Chat *_Nonnull chat, const uint8_
 
 static bool group_topic_lock_enabled(const GC_Chat *_Nonnull chat);
 
-/** @brief Compares the supplied values with our own state and returns the appropriate
- * sync flags for a sync request.
- */
-static uint16_t get_sync_flags(const GC_Chat *_Nonnull chat, uint16_t peers_checksum, uint16_t peer_count, uint32_t sstate_version, uint32_t screds_version, uint16_t roles_checksum,
-                               uint32_t topic_version, uint16_t topic_checksum)
+void gc_state_sync_requested(GC_Connection *gconn, uint16_t roles_checksum)
+{
+    gconn->requested_roles_checksum = roles_checksum;
+    gconn->roles_checksum_requested = true;
+}
+
+void gc_state_sync_answered(GC_Connection *gconn)
+{
+    if (!gconn->roles_checksum_requested) {
+        return;
+    }
+
+    gconn->synced_roles_checksum = gconn->requested_roles_checksum;
+    gconn->roles_checksum_synced = true;
+    gconn->roles_checksum_requested = false;
+}
+
+uint16_t gc_get_sync_flags(const GC_Chat *chat, const GC_Connection *gconn, uint16_t peers_checksum, uint16_t peer_count, uint32_t sstate_version, uint32_t screds_version,
+                           uint16_t roles_checksum, uint32_t topic_version, uint16_t topic_checksum)
 {
     uint16_t sync_flags = 0;
 
@@ -2372,10 +2414,14 @@ static uint16_t get_sync_flags(const GC_Chat *_Nonnull chat, uint16_t peers_chec
 
     if (sstate_version > 0) {
         const uint16_t self_roles_checksum = chat->moderation.sanctions_creds.checksum + chat->roles_checksum;
+        // Only ask for the state once per roles checksum, as the checksum also
+        // depends on which peers the sender is connected to, and syncing
+        // doesn't change that.
+        const bool roles_checksum_news = !gconn->roles_checksum_synced || roles_checksum != gconn->synced_roles_checksum;
 
         if ((sstate_version > chat->shared_state.version || screds_version > chat->moderation.sanctions_creds.version)
                 || (screds_version == chat->moderation.sanctions_creds.version
-                    && roles_checksum != self_roles_checksum)) {
+                    && roles_checksum != self_roles_checksum && roles_checksum_news)) {
             sync_flags |= GF_STATE;
         }
     }
@@ -2442,14 +2488,18 @@ static bool do_gc_peer_state_sync(GC_Chat *_Nonnull chat, GC_Connection *_Nonnul
         return false;
     }
 
-    const uint16_t sync_flags = get_sync_flags(chat, peers_checksum, peer_count, sstate_version, screds_version,
+    const uint16_t sync_flags = gc_get_sync_flags(chat, gconn, peers_checksum, peer_count, sstate_version, screds_version,
                                 roles_checksum, topic_version, topic_checksum);
 
-    if (sync_flags > 0) {
-        return send_gc_sync_request(chat, gconn, sync_flags);
+    if (sync_flags == 0) {
+        return false;
     }
 
-    return false;
+    if ((sync_flags & GF_STATE) > 0 && !gc_sync_request_limited(chat)) {
+        gc_state_sync_requested(gconn, roles_checksum);
+    }
+
+    return send_gc_sync_request(chat, gconn, sync_flags);
 }
 
 /** @brief Handles a ping packet.
@@ -3034,12 +3084,21 @@ static int handle_gc_mod_list(const GC_Session *_Nonnull c, GC_Chat *_Nonnull ch
     uint16_t num_mods;
     net_unpack_u16(data, &num_mods);
 
+    // Only send the moderation event if the mod list changed, as sync packets
+    // send the same list again.
+    uint8_t old_hash[MOD_MODERATION_HASH_SIZE];
+    const bool had_hash = mod_list_make_hash(&chat->moderation, old_hash);
+
     const int unpack_ret = validate_unpack_mod_list(chat, data + sizeof(uint16_t), length - sizeof(uint16_t), num_mods);
 
     if (unpack_ret == 0) {
         update_gc_peer_roles(chat);
 
-        if (chat->connection_state == CS_CONNECTED && c->moderation != nullptr) {
+        uint8_t new_hash[MOD_MODERATION_HASH_SIZE];
+        const bool changed = !had_hash || !mod_list_make_hash(&chat->moderation, new_hash)
+                             || memcmp(old_hash, new_hash, MOD_MODERATION_HASH_SIZE) != 0;
+
+        if (changed && chat->connection_state == CS_CONNECTED && c->moderation != nullptr) {
             c->moderation(c->messenger, chat->group_number, gc_invalid_peer_id(), gc_invalid_peer_id(), MV_MOD, userdata);
         }
 
@@ -5949,6 +6008,12 @@ bool handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer
 
         case GP_SANCTIONS_LIST: {
             ret = handle_gc_sanctions_list(c, chat, data, length, userdata);
+
+            // The sanctions list is the last packet of a state sync response.
+            if (ret == 0) {
+                gc_state_sync_answered(gconn);
+            }
+
             break;
         }
 
@@ -7552,6 +7617,7 @@ int gc_group_load(GC_Session *c, Bin_Unpack *bu)
 
     if (!gc_load_unpack_group(chat, bu)) {
         LOGGER_ERROR(chat->log, "Failed to unpack group");
+        group_delete(c, chat);
         return -1;
     }
 
@@ -7559,6 +7625,7 @@ int gc_group_load(GC_Session *c, Bin_Unpack *bu)
 
     if (!init_gc_tcp_connection(c, chat)) {
         LOGGER_ERROR(chat->log, "Failed to init tcp connection");
+        group_delete(c, chat);
         return -1;
     }
 

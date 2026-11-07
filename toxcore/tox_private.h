@@ -19,6 +19,11 @@
 extern "C" {
 #endif
 
+/**
+ * @brief The current monotonic time in milliseconds.
+ *
+ * @thread any
+ */
 typedef uint64_t tox_mono_time_cb(void *_Nullable user_data);
 
 typedef struct Random Random;
@@ -541,6 +546,68 @@ size_t tox_group_peer_get_ip_address_size(const Tox *_Nonnull tox, uint32_t grou
  */
 bool tox_group_peer_get_ip_address(const Tox *_Nonnull tox, uint32_t group_number, uint32_t peer_id, uint8_t *_Nonnull ip_addr,
                                    Tox_Err_Group_Peer_Query *_Nullable error);
+
+/*******************************************************************************
+ *
+ * :: Group chat saving and loading.
+ *
+ ******************************************************************************/
+
+/**
+ * Return the size of the saved state of a group, or 0 if the group does not
+ * exist.
+ *
+ * Use this to allocate the byte array for tox_group_get_savedata.
+ *
+ * @param group_number The group number of the group to save.
+ */
+uint32_t tox_group_get_savedata_size(const Tox *_Nonnull tox, uint32_t group_number,
+                                     Tox_Err_Group_State_Query *_Nullable error);
+
+/**
+ * Write the saved state of a group to a byte array.
+ *
+ * This is the same data that the group has in the Tox instance's savedata.
+ * Clients can use it to save each group separately.
+ *
+ * Call tox_group_get_savedata_size to find the number of bytes to allocate.
+ *
+ * @param group_number The group number of the group to save.
+ * @param savedata A memory region large enough to store the group's state.
+ *
+ * @return true on success.
+ */
+bool tox_group_get_savedata(const Tox *_Nonnull tox, uint32_t group_number, uint8_t *_Nonnull savedata,
+                            Tox_Err_Group_State_Query *_Nullable error);
+
+typedef enum Tox_Err_Group_Load {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_LOAD_OK,
+
+    /**
+     * The saved state could not be parsed, or the group could not be created
+     * from it.
+     */
+    TOX_ERR_GROUP_LOAD_MALFORMED,
+} Tox_Err_Group_Load;
+
+/**
+ * Load a group from data written by tox_group_get_savedata.
+ *
+ * The group reconnects unless it was disconnected when it was saved. Do not
+ * load a group that is already in this Tox instance, or it will be there
+ * twice.
+ *
+ * @param savedata The data written by tox_group_get_savedata.
+ * @param length The length of `savedata`.
+ *
+ * @return the group number of the loaded group on success, an unspecified
+ *   value on failure.
+ */
+uint32_t tox_group_load_savedata(Tox *_Nonnull tox, const uint8_t *_Nonnull savedata, size_t length,
+                                 Tox_Err_Group_Load *_Nullable error);
 
 #ifdef __cplusplus
 } /* extern "C" */

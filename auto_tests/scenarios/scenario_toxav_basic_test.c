@@ -1,5 +1,6 @@
 #include "framework/framework.h"
 #include "../../toxav/toxav.h"
+#include "../../toxcore/tox_events.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -141,6 +142,8 @@ static void bob_script(ToxNode *self, void *ctx)
     Toxav_Err_New av_err;
     ToxAV *av = toxav_new(tox, &av_err);
     ck_assert(av_err == TOXAV_ERR_NEW_OK);
+    // A client using the events API may call tox_events_init after toxav_new.
+    tox_events_init(tox);
 
     toxav_callback_call(av, on_call, self);
     toxav_callback_call_state(av, on_call_state, self);
