@@ -110,6 +110,53 @@ TEST(Tox, ConferenceLossyPacketTooLongIsRejected)
     tox_kill(tox);
 }
 
+TEST(Tox, GroupComesBackFromItsOwnSavedata)
+{
+    SimulatedEnvironment env{12345};
+    struct Tox_Options *options = tox_options_new(nullptr);
+    ASSERT_NE(options, nullptr);
+    auto node = env.create_node(33545);
+    Tox_Options_Testing testing_opts = {};
+    testing_opts.operating_system = &node->system;
+    Tox *tox = tox_new_testing(options, nullptr, &testing_opts, nullptr);
+    tox_options_free(options);
+    ASSERT_NE(tox, nullptr);
+
+    const std::array<std::uint8_t, 3> name{'L', 'a', 'b'};
+    const std::array<std::uint8_t, 2> nick{'M', 'e'};
+    Tox_Err_Group_New err_new;
+    const std::uint32_t group = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PRIVATE, name.data(),
+        name.size(), nick.data(), nick.size(), &err_new);
+    ASSERT_EQ(err_new, TOX_ERR_GROUP_NEW_OK);
+    std::array<std::uint8_t, TOX_GROUP_CHAT_ID_SIZE> chat_id{};
+    ASSERT_TRUE(tox_group_get_chat_id(tox, group, chat_id.data(), nullptr));
+
+    Tox_Err_Group_State_Query err_query;
+    const std::uint32_t size = tox_group_get_savedata_size(tox, group, &err_query);
+    ASSERT_EQ(err_query, TOX_ERR_GROUP_STATE_QUERY_OK);
+    std::vector<std::uint8_t> savedata(size);
+    ASSERT_TRUE(tox_group_get_savedata(tox, group, savedata.data(), nullptr));
+    ASSERT_TRUE(tox_group_leave(tox, group, nullptr, 0, nullptr));
+
+    Tox_Err_Group_Load err_load;
+    const std::uint32_t loaded
+        = tox_group_load_savedata(tox, savedata.data(), savedata.size(), &err_load);
+    ASSERT_EQ(err_load, TOX_ERR_GROUP_LOAD_OK);
+    std::array<std::uint8_t, TOX_GROUP_CHAT_ID_SIZE> loaded_id{};
+    ASSERT_TRUE(tox_group_get_chat_id(tox, loaded, loaded_id.data(), nullptr));
+    EXPECT_EQ(loaded_id, chat_id);
+    EXPECT_EQ(tox_group_self_get_role(tox, loaded, nullptr), TOX_GROUP_ROLE_FOUNDER);
+
+    // A group that isn't there, and state that isn't a group's.
+    EXPECT_EQ(tox_group_get_savedata_size(tox, loaded + 1, &err_query), 0);
+    EXPECT_EQ(err_query, TOX_ERR_GROUP_STATE_QUERY_GROUP_NOT_FOUND);
+    const std::array<std::uint8_t, 4> junk{1, 2, 3, 4};
+    tox_group_load_savedata(tox, junk.data(), junk.size(), &err_load);
+    EXPECT_EQ(err_load, TOX_ERR_GROUP_LOAD_MALFORMED);
+
+    tox_kill(tox);
+}
+
 TEST(Tox, OneTest)
 {
     SimulatedEnvironment env{12345};

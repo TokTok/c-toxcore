@@ -13,6 +13,8 @@
 #include "DHT.h"
 #include "Messenger.h"
 #include "TCP_server.h"
+#include "bin_pack.h"
+#include "bin_unpack.h"
 #include "ccompat.h"
 #include "crypto_core.h"
 #include "group_chats.h"
@@ -428,4 +430,88 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
     tox_unlock(tox);
 
     return bytes;
+}
+
+static bool pack_group_handler(const void *obj, const Logger *logger, Bin_Pack *bp)
+{
+    const GC_Chat *chat = (const GC_Chat *)obj;
+    gc_group_save(chat, bp);
+    return true;
+}
+
+uint32_t tox_group_get_savedata_size(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Query *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_GROUP_NOT_FOUND);
+        return 0;
+    }
+
+    const uint32_t size = bin_pack_obj_size(pack_group_handler, chat, tox->m->log);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_OK);
+    return size;
+}
+
+bool tox_group_get_savedata(const Tox *tox, uint32_t group_number, uint8_t *savedata,
+                            Tox_Err_Group_State_Query *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    const uint32_t size = bin_pack_obj_size(pack_group_handler, chat, tox->m->log);
+    const bool packed = bin_pack_obj(pack_group_handler, chat, tox->m->log, savedata, size);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_OK);
+    return packed;
+}
+
+typedef struct Group_Load {
+    GC_Session *_Nonnull session;
+    int group_number;
+} Group_Load;
+
+static bool unpack_group_handler(void *obj, Bin_Unpack *bu)
+{
+    Group_Load *load = (Group_Load *)obj;
+    load->group_number = gc_group_load(load->session, bu);
+    return load->group_number >= 0;
+}
+
+uint32_t tox_group_load_savedata(Tox *tox, const uint8_t *savedata, size_t length, Tox_Err_Group_Load *error)
+{
+    assert(tox != nullptr);
+
+    if (length > UINT32_MAX) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_LOAD_MALFORMED);
+        return UINT32_MAX;
+    }
+
+    tox_lock(tox);
+    Group_Load load = {tox->m->group_handler, -1};
+    const bool loaded = bin_unpack_obj(tox->sys.mem, unpack_group_handler, &load, savedata, (uint32_t)length);
+    tox_unlock(tox);
+
+    if (!loaded) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_LOAD_MALFORMED);
+        return UINT32_MAX;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_LOAD_OK);
+    return (uint32_t)load.group_number;
 }
