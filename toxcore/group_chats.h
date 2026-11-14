@@ -55,6 +55,8 @@ typedef enum Group_Invite_Message_Type {
     GROUP_INVITE              = 0x00,  // Peer has initiated an invite
     GROUP_INVITE_ACCEPTED     = 0x01,  // Peer has accepted the invite
     GROUP_INVITE_CONFIRMATION = 0x02,  // Peer has confirmed the accepted invite
+    GROUP_PROBE               = 0x03,  // Peer asks whether we're in a group, without naming it
+    GROUP_PROBE_RESPONSE      = 0x04,  // Peer is in the group we asked about
 } Group_Invite_Message_Type;
 
 /** Group join rejection types. */
@@ -595,6 +597,75 @@ int gc_group_add(GC_Session *_Nonnull c, Group_Privacy_State privacy_state, cons
  */
 int gc_group_join(GC_Session *_Nonnull c, const uint8_t *_Nonnull chat_id, const uint8_t *_Nonnull nick, size_t nick_length, const uint8_t *_Nullable passwd,
                   uint16_t passwd_len);
+/** @brief The state of a group: settings, moderator list, sanctions list, and topic.
+ *
+ * Stored as the packets sent during a sync.
+ */
+typedef struct GC_State GC_State;
+
+/** @brief Joins the group `chat_id` using the secret key `self_secret_key`.
+ *
+ * If `chat_secret_key` is non-null, we join as the founder.
+ *
+ * If `state` is non-null, the group settings are loaded from it, and `privacy_state` and `passwd`
+ * are ignored. The moderator list, sanctions list, and topic are only loaded if they are valid.
+ * If `state` is null, the settings are received from a peer.
+ *
+ * @return group_number on success.
+ * @retval -1 if the group object fails to initialize.
+ * @retval -2 if the group is already in the session.
+ * @retval -3 if nick is too long.
+ * @retval -4 if nick is empty or nick length is zero.
+ * @retval -5 if `state` belongs to a different group.
+ * @retval -6 if `chat_secret_key` is not the secret key of the group.
+ * @retval -7 if the Messenger friend connection fails to initialize.
+ * @retval -8 if the password is too long.
+ */
+int gc_group_join_as(GC_Session *_Nonnull c, const uint8_t chat_id[_Nonnull CHAT_ID_SIZE], Group_Privacy_State privacy_state,
+                     const uint8_t self_secret_key[_Nonnull EXT_KEY_SEED_SIZE],
+                     const uint8_t chat_secret_key[_Nullable EXT_KEY_SEED_SIZE],
+                     const uint8_t nick[_Nullable], size_t nick_length, const uint8_t passwd[_Nullable], uint16_t passwd_len,
+                     const GC_State *_Nullable state);
+
+void gc_get_self_secret_key(const GC_Chat *_Nonnull chat, uint8_t secret_key[_Nonnull EXT_KEY_SEED_SIZE]);
+
+/** @retval false if we are not the founder. */
+bool gc_get_chat_secret_key(const GC_Chat *_Nonnull chat, uint8_t secret_key[_Nonnull EXT_KEY_SEED_SIZE]);
+
+/** @brief Returns the state of `chat`. Must be freed with gc_state_free.
+ *
+ * @retval nullptr if the group has no settings yet, or on allocation failure.
+ */
+GC_State *_Nullable gc_get_state(const GC_Chat *_Nonnull chat);
+
+/** @brief Loads a state from bytes written by gc_state_get_bytes. Must be freed with gc_state_free.
+ *
+ * @param bad_state set to true if `bytes` is not a valid state signed by the founder.
+ *
+ * @retval nullptr if the state is invalid, or on allocation failure.
+ */
+GC_State *_Nullable gc_state_load(const Memory *_Nonnull mem, const uint8_t bytes[_Nonnull], uint32_t length, bool *_Nonnull bad_state);
+
+void gc_state_free(GC_State *_Nullable state);
+
+uint32_t gc_state_bytes_size(const GC_State *_Nonnull state);
+
+/** @retval false if `length` is too small. */
+bool gc_state_get_bytes(const GC_State *_Nonnull state, uint8_t bytes[_Nonnull], uint32_t length);
+
+/* Getters for the settings and topic of a state. */
+const uint8_t *_Nonnull gc_state_get_chat_id(const GC_State *_Nonnull state);
+const uint8_t *_Nonnull gc_state_get_group_name(const GC_State *_Nonnull state);
+uint16_t gc_state_get_group_name_size(const GC_State *_Nonnull state);
+Group_Privacy_State gc_state_get_privacy_state(const GC_State *_Nonnull state);
+const uint8_t *_Nonnull gc_state_get_password(const GC_State *_Nonnull state);
+uint16_t gc_state_get_password_size(const GC_State *_Nonnull state);
+uint16_t gc_state_get_max_peers(const GC_State *_Nonnull state);
+const uint8_t *_Nonnull gc_state_get_topic(const GC_State *_Nonnull state);
+uint16_t gc_state_get_topic_size(const GC_State *_Nonnull state);
+Group_Topic_Lock gc_state_get_topic_lock_state(const GC_State *_Nonnull state);
+Group_Voice_State gc_state_get_voice_state(const GC_State *_Nonnull state);
+
 /** @brief Disconnects from all peers in a group but saves the group state for later use.
  *
  * Return true on sucess.
@@ -711,6 +782,18 @@ bool group_not_added(const GC_Session *_Nonnull c, const uint8_t *_Nonnull chat_
  * Return -5 if data contains invalid connection info.
  */
 int handle_gc_invite_confirmed_packet(const GC_Session *_Nonnull c, int friend_number, const uint8_t *_Nonnull data, uint16_t length);
+
+/** @brief Handles a group probe from a friend.
+ *
+ * Sends a response for every group whose chat ID matches the probe hash, if the group has its settings.
+ */
+void handle_gc_probe_packet(const GC_Session *_Nonnull c, int friend_number, const uint8_t data[_Nonnull], uint16_t length);
+
+/** @brief Handles a group probe response from a friend and starts a handshake with them.
+ *
+ * @retval false if we did not send a probe for this group, or the response is invalid.
+ */
+bool handle_gc_probe_response_packet(const GC_Session *_Nonnull c, int friend_number, const uint8_t data[_Nonnull], uint16_t length);
 
 /** @brief Returns the group designated by `public_key`.
  * Returns null if group does not exist.

@@ -2304,6 +2304,10 @@ static int m_handle_packet_invite_groupchat(Messenger *_Nonnull m, const int fri
         handle_gc_invite_accepted_packet(m->group_handler, friendcon_id, join_data, join_data_len);
     } else if (invite_type == GROUP_INVITE_CONFIRMATION) {
         handle_gc_invite_confirmed_packet(m->group_handler, friendcon_id, join_data, join_data_len);
+    } else if (invite_type == GROUP_PROBE) {
+        handle_gc_probe_packet(m->group_handler, friendcon_id, join_data, join_data_len);
+    } else if (invite_type == GROUP_PROBE_RESPONSE) {
+        handle_gc_probe_response_packet(m->group_handler, friendcon_id, join_data, join_data_len);
     }
 
     return 0;

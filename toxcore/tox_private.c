@@ -9,6 +9,7 @@
 #include "tox_private.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include "DHT.h"
 #include "Messenger.h"
@@ -428,4 +429,279 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
     tox_unlock(tox);
 
     return bytes;
+}
+
+static_assert(TOX_GROUP_SECRET_KEY_SIZE == EXT_KEY_SEED_SIZE,
+              "TOX_GROUP_SECRET_KEY_SIZE is assumed to be equal to EXT_KEY_SEED_SIZE");
+
+bool tox_group_self_get_secret_key(const Tox *tox, uint32_t group_number, uint8_t secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Self_Query *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_QUERY_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    gc_get_self_secret_key(chat, secret_key);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_QUERY_OK);
+    return true;
+}
+
+bool tox_group_get_chat_secret_key(const Tox *tox, uint32_t group_number, uint8_t secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Get_Chat_Secret_Key *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    const bool founder = gc_get_chat_secret_key(chat, secret_key);
+    tox_unlock(tox);
+
+    if (!founder) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_NOT_FOUNDER);
+        return false;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_OK);
+    return true;
+}
+
+struct Tox_Group_State {
+    const Memory *_Nonnull mem;
+    GC_State *_Nonnull gc_state;
+};
+
+/** @brief Takes ownership of `gc_state`, and frees it on failure. */
+static Tox_Group_State *_Nullable tox_group_state_new(const Memory *_Nonnull mem, GC_State *_Nonnull gc_state)
+{
+    Tox_Group_State *state = (Tox_Group_State *)mem_alloc(mem, sizeof(Tox_Group_State));
+
+    if (state == nullptr) {
+        gc_state_free(gc_state);
+        return nullptr;
+    }
+
+    state->mem = mem;
+    state->gc_state = gc_state;
+    return state;
+}
+
+Tox_Group_State *tox_group_get_state(const Tox *tox, uint32_t group_number, Tox_Err_Group_Get_State *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_STATE_GROUP_NOT_FOUND);
+        return nullptr;
+    }
+
+    const bool has_settings = gc_group_is_valid(chat);
+    GC_State *gc_state = has_settings ? gc_get_state(chat) : nullptr;
+    tox_unlock(tox);
+
+    if (gc_state == nullptr) {
+        SET_ERROR_PARAMETER(error, has_settings ? TOX_ERR_GROUP_GET_STATE_MALLOC : TOX_ERR_GROUP_GET_STATE_NO_STATE);
+        return nullptr;
+    }
+
+    Tox_Group_State *state = tox_group_state_new(tox->sys.mem, gc_state);
+
+    if (state == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_STATE_MALLOC);
+        return nullptr;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_STATE_OK);
+    return state;
+}
+
+Tox_Group_State *tox_group_state_load(const Tox_System *sys, const uint8_t bytes[], uint32_t bytes_size,
+                                      Tox_Err_Group_State_Load *error)
+{
+    bool bad_state = false;
+    GC_State *gc_state = gc_state_load(sys->mem, bytes, bytes_size, &bad_state);
+
+    if (gc_state == nullptr) {
+        SET_ERROR_PARAMETER(error, bad_state ? TOX_ERR_GROUP_STATE_LOAD_BAD_STATE : TOX_ERR_GROUP_STATE_LOAD_MALLOC);
+        return nullptr;
+    }
+
+    Tox_Group_State *state = tox_group_state_new(sys->mem, gc_state);
+
+    if (state == nullptr) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_LOAD_MALLOC);
+        return nullptr;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_LOAD_OK);
+    return state;
+}
+
+void tox_group_state_free(Tox_Group_State *state)
+{
+    if (state == nullptr) {
+        return;
+    }
+
+    gc_state_free(state->gc_state);
+    mem_delete(state->mem, state);
+}
+
+uint32_t tox_group_state_bytes_size(const Tox_Group_State *state)
+{
+    return gc_state_bytes_size(state->gc_state);
+}
+
+bool tox_group_state_get_bytes(const Tox_Group_State *state, uint8_t bytes[])
+{
+    return gc_state_get_bytes(state->gc_state, bytes, gc_state_bytes_size(state->gc_state));
+}
+
+void tox_group_state_get_chat_id(const Tox_Group_State *state, uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE])
+{
+    memcpy(chat_id, gc_state_get_chat_id(state->gc_state), TOX_GROUP_CHAT_ID_SIZE);
+}
+
+size_t tox_group_state_get_name_size(const Tox_Group_State *state)
+{
+    return gc_state_get_group_name_size(state->gc_state);
+}
+
+void tox_group_state_get_name(const Tox_Group_State *state, uint8_t name[])
+{
+    memcpy(name, gc_state_get_group_name(state->gc_state), gc_state_get_group_name_size(state->gc_state));
+}
+
+Tox_Group_Privacy_State tox_group_state_get_privacy_state(const Tox_Group_State *state)
+{
+    const uint8_t privacy_state = gc_state_get_privacy_state(state->gc_state);
+    return (Tox_Group_Privacy_State)privacy_state;
+}
+
+size_t tox_group_state_get_password_size(const Tox_Group_State *state)
+{
+    return gc_state_get_password_size(state->gc_state);
+}
+
+void tox_group_state_get_password(const Tox_Group_State *state, uint8_t password[])
+{
+    memcpy(password, gc_state_get_password(state->gc_state), gc_state_get_password_size(state->gc_state));
+}
+
+uint16_t tox_group_state_get_peer_limit(const Tox_Group_State *state)
+{
+    return gc_state_get_max_peers(state->gc_state);
+}
+
+size_t tox_group_state_get_topic_size(const Tox_Group_State *state)
+{
+    return gc_state_get_topic_size(state->gc_state);
+}
+
+void tox_group_state_get_topic(const Tox_Group_State *state, uint8_t topic[])
+{
+    memcpy(topic, gc_state_get_topic(state->gc_state), gc_state_get_topic_size(state->gc_state));
+}
+
+Tox_Group_Topic_Lock tox_group_state_get_topic_lock(const Tox_Group_State *state)
+{
+    const uint8_t topic_lock = gc_state_get_topic_lock_state(state->gc_state);
+    return (Tox_Group_Topic_Lock)topic_lock;
+}
+
+Tox_Group_Voice_State tox_group_state_get_voice_state(const Tox_Group_State *state)
+{
+    const uint8_t voice_state = gc_state_get_voice_state(state->gc_state);
+    return (Tox_Group_Voice_State)voice_state;
+}
+
+uint32_t tox_group_join_as(Tox *tox, const uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE], Tox_Group_Privacy_State privacy_state,
+                           const uint8_t self_secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                           const uint8_t chat_secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                           const uint8_t name[], size_t name_length, const uint8_t password[], size_t password_length,
+                           const Tox_Group_State *state, Tox_Err_Group_Join_As *error)
+{
+    assert(tox != nullptr);
+
+    if (password_length > TOX_GROUP_MAX_PASSWORD_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_PASSWORD);
+        return UINT32_MAX;
+    }
+
+    tox_lock(tox);
+    const int ret = gc_group_join_as(tox->m->group_handler, chat_id, (Group_Privacy_State)privacy_state, self_secret_key,
+                                     chat_secret_key, name, name_length, password, (uint16_t)password_length,
+                                     state != nullptr ? state->gc_state : nullptr);
+    tox_unlock(tox);
+
+    if (ret >= 0) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_OK);
+        return (uint32_t)ret;
+    }
+
+    switch (ret) {
+        case -1: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_INIT);
+            return UINT32_MAX;
+        }
+
+        case -2: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_DUPLICATE);
+            return UINT32_MAX;
+        }
+
+        case -3: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_TOO_LONG);
+            return UINT32_MAX;
+        }
+
+        case -4: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_EMPTY);
+            return UINT32_MAX;
+        }
+
+        case -5: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_BAD_STATE);
+            return UINT32_MAX;
+        }
+
+        case -6: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_BAD_CHAT_SECRET_KEY);
+            return UINT32_MAX;
+        }
+
+        case -7: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_CORE);
+            return UINT32_MAX;
+        }
+
+        case -8: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_PASSWORD);
+            return UINT32_MAX;
+        }
+    }
+
+    /* can't happen */
+    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+
+    return UINT32_MAX;
 }

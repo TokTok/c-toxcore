@@ -131,6 +131,10 @@ uint32_t tox_dht_node_public_key_size(void)
 {
     return TOX_DHT_NODE_PUBLIC_KEY_SIZE;
 }
+uint32_t tox_group_secret_key_size(void)
+{
+    return TOX_GROUP_SECRET_KEY_SIZE;
+}
 
 const char *_Nonnull tox_user_status_to_string(Tox_User_Status value)
 {
