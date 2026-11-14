@@ -202,4 +202,10 @@ void tox_scenario_set_link_loss(ToxNode *a, ToxNode *b, uint8_t percent);
  */
 void tox_node_reload(ToxNode *node);
 
+/**
+ * Like tox_node_reload, but the node comes back on another UDP port, as after
+ * a restart on another network. Peers only know its old address.
+ */
+void tox_node_reload_moved(ToxNode *node);
+
 #endif // TOX_TEST_FRAMEWORK_H

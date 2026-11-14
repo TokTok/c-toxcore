@@ -7455,9 +7455,10 @@ static void init_gc_moderation(GC_Chat *_Nonnull chat)
     chat->moderation.mem = chat->mem;
 }
 
-static bool create_new_chat_ext_keypair(GC_Chat *_Nonnull chat);
+static bool create_new_chat_ext_keypair(GC_Chat *_Nonnull chat, const uint8_t seed[_Nullable EXT_KEY_SEED_SIZE]);
 
-static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, const uint8_t *_Nonnull nick, size_t nick_length, bool founder, const Group_Privacy_State privacy_state)
+static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, const uint8_t *_Nonnull nick, size_t nick_length, bool founder, const Group_Privacy_State privacy_state,
+                            const uint8_t self_seed[_Nullable EXT_KEY_SEED_SIZE])
 {
     if (nick == nullptr || nick_length == 0) {
         return -1;
@@ -7491,7 +7492,7 @@ static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, 
     chat->last_ping_interval = tm;
     chat->friend_connection_id = -1;
 
-    if (!create_new_chat_ext_keypair(chat)) {
+    if (!create_new_chat_ext_keypair(chat, self_seed)) {
         LOGGER_ERROR(chat->log, "Failed to create extended keypair");
         group_delete(c, chat);
         return -1;
@@ -7681,7 +7682,7 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state,
         return -2;
     }
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, true, privacy_state);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, true, privacy_state, nullptr);
 
     if (group_number == -1) {
         return -3;
@@ -7803,7 +7804,7 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
         return ret != 0 ? -6 : ret;
     }
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC, nullptr);
 
     if (group_number == -1) {
         return -1;
@@ -7837,6 +7838,153 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
     update_gc_peer_roles(chat);
 
     return group_number;
+}
+
+int gc_group_join_as(GC_Session *c, const uint8_t chat_id[CHAT_ID_SIZE], const uint8_t self_secret_key[EXT_KEY_SEED_SIZE],
+                     const uint8_t chat_secret_key[EXT_KEY_SEED_SIZE], Group_Privacy_State privacy_state, const uint8_t nick[],
+                     size_t nick_length, const uint8_t passwd[], uint16_t passwd_len)
+{
+    if (nick_length > MAX_GC_NICK_SIZE) {
+        return -3;
+    }
+
+    if (nick == nullptr || nick_length == 0) {
+        return -4;
+    }
+
+    if (gc_get_group_by_public_key(c, chat_id) != nullptr) {
+        return -2;
+    }
+
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, privacy_state, self_secret_key);
+
+    if (group_number == -1) {
+        return -1;
+    }
+
+    GC_Chat *chat = gc_get_group(c, group_number);
+
+    if (chat == nullptr) {
+        return -1;
+    }
+
+    if (!expand_chat_id(&chat->chat_public_key, chat_id)) {
+        group_delete(c, chat);
+        return -1;
+    }
+
+    if (chat_secret_key != nullptr) {
+        crypto_memlock(&chat->chat_secret_key, sizeof(chat->chat_secret_key));
+
+        Extended_Public_Key chat_public_key;
+
+        if (!create_extended_keypair_from_seed(&chat_public_key, &chat->chat_secret_key, chat_secret_key)
+                || memcmp(chat_public_key.sig, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE) != 0) {
+            group_delete(c, chat);
+            return -6;
+        }
+    }
+
+    chat->connection_state = CS_CONNECTING;
+
+    if (passwd != nullptr && passwd_len > 0) {
+        if (!set_gc_password_local(chat, passwd, passwd_len)) {
+            group_delete(c, chat);
+            return -5;
+        }
+    }
+
+    // A private group is never announced, so its peers come from gc_add_saved_peer.
+    chat->join_type = HJ_PRIVATE;
+
+    if (is_public_chat(chat)) {
+        if (!m_create_group_connection(c->messenger, chat)) {
+            group_delete(c, chat);
+            return -7;
+        }
+
+        chat->join_type = HJ_PUBLIC;
+    }
+
+    update_gc_peer_roles(chat);
+
+    return group_number;
+}
+
+void gc_get_self_secret_key(const GC_Chat *chat, uint8_t secret_key[EXT_KEY_SEED_SIZE])
+{
+    extended_secret_key_seed(&chat->self_secret_key, secret_key);
+}
+
+bool gc_get_chat_secret_key(const GC_Chat *chat, uint8_t secret_key[EXT_KEY_SEED_SIZE])
+{
+    uint8_t seed[EXT_KEY_SEED_SIZE];
+    extended_secret_key_seed(&chat->chat_secret_key, seed);
+
+    Extended_Public_Key chat_public_key;
+    Extended_Secret_Key chat_secret_key;
+
+    // Only the founder has the secret key that makes the chat ID.
+    const bool founder = create_extended_keypair_from_seed(&chat_public_key, &chat_secret_key, seed)
+                         && memcmp(chat_public_key.sig, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE) == 0;
+    crypto_memzero(&chat_secret_key, sizeof(chat_secret_key));
+
+    if (founder) {
+        memcpy(secret_key, seed, EXT_KEY_SEED_SIZE);
+    }
+
+    crypto_memzero(seed, sizeof(seed));
+    return founder;
+}
+
+uint16_t gc_count_saved_peers(const GC_Chat *chat)
+{
+    uint16_t count = 0;
+
+    for (uint16_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        if (saved_peer_is_valid(&chat->saved_peers[i])) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
+const GC_SavedPeerInfo *gc_get_saved_peer(const GC_Chat *chat, uint32_t index)
+{
+    uint32_t count = 0;
+
+    for (uint16_t i = 0; i < GC_MAX_SAVED_PEERS; ++i) {
+        const GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
+
+        if (!saved_peer_is_valid(saved_peer)) {
+            continue;
+        }
+
+        if (count == index) {
+            return saved_peer;
+        }
+
+        ++count;
+    }
+
+    return nullptr;
+}
+
+bool gc_add_saved_peer(GC_Chat *chat, const GC_SavedPeerInfo *saved_peer)
+{
+    if (!saved_peer_is_valid(saved_peer)) {
+        return false;
+    }
+
+    const int idx = saved_peers_get_new_index(chat, saved_peer->public_key);
+
+    if (idx == -1) {
+        return false;
+    }
+
+    chat->saved_peers[idx] = *saved_peer;
+    return true;
 }
 
 bool gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat)
@@ -8214,7 +8362,7 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
     const uint8_t *chat_id = data;
     const uint8_t *invite_chat_pk = data + CHAT_ID_SIZE;
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC, nullptr);
 
     if (group_number == -1) {
         return -2;
@@ -8469,13 +8617,19 @@ static void create_gc_session_keypair(const Logger *log, const Random *rng, uint
  * and `self_secret_key` buffers. The first 32-bytes of the generated keys are used for
  * encryption, while the remaining 32-bytes are used for signing.
  *
+ * The keypair is made from `seed`, or from a random one if `seed` is null.
+ *
  * Return false if key generation fails.
  */
-static bool create_new_chat_ext_keypair(GC_Chat *chat)
+static bool create_new_chat_ext_keypair(GC_Chat *chat, const uint8_t seed[EXT_KEY_SEED_SIZE])
 {
     crypto_memlock(&chat->self_secret_key, sizeof(chat->self_secret_key));
 
-    if (!create_extended_keypair(&chat->self_public_key, &chat->self_secret_key, chat->rng)) {
+    const bool created = seed != nullptr
+                         ? create_extended_keypair_from_seed(&chat->self_public_key, &chat->self_secret_key, seed)
+                         : create_extended_keypair(&chat->self_public_key, &chat->self_secret_key, chat->rng);
+
+    if (!created) {
         crypto_memunlock(&chat->self_secret_key, sizeof(chat->self_secret_key));
         return false;
     }

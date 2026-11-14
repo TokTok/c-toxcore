@@ -9,6 +9,7 @@
 #include "tox_private.h"
 
 #include <assert.h>
+#include <string.h>
 
 #include "DHT.h"
 #include "Messenger.h"
@@ -428,4 +429,256 @@ uint64_t tox_netprof_get_packet_total_bytes(const Tox *tox, Tox_Netprof_Packet_T
     tox_unlock(tox);
 
     return bytes;
+}
+
+static_assert(TOX_GROUP_SECRET_KEY_SIZE == EXT_KEY_SEED_SIZE,
+              "TOX_GROUP_SECRET_KEY_SIZE is assumed to be equal to EXT_KEY_SEED_SIZE");
+
+bool tox_group_self_get_secret_key(const Tox *tox, uint32_t group_number, uint8_t secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Self_Query *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_QUERY_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    gc_get_self_secret_key(chat, secret_key);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_QUERY_OK);
+    return true;
+}
+
+bool tox_group_get_chat_secret_key(const Tox *tox, uint32_t group_number, uint8_t secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Get_Chat_Secret_Key *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    const bool founder = gc_get_chat_secret_key(chat, secret_key);
+    tox_unlock(tox);
+
+    if (!founder) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_NOT_FOUNDER);
+        return false;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_OK);
+    return true;
+}
+
+uint32_t tox_group_join_as(Tox *tox, const uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE],
+                           const uint8_t self_secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                           const uint8_t chat_secret_key[TOX_GROUP_SECRET_KEY_SIZE],
+                           Tox_Group_Privacy_State privacy_state, const uint8_t name[], size_t name_length,
+                           const uint8_t password[], size_t password_length, Tox_Err_Group_Join_As *error)
+{
+    assert(tox != nullptr);
+
+    if (password_length > TOX_GROUP_MAX_PASSWORD_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_PASSWORD);
+        return UINT32_MAX;
+    }
+
+    tox_lock(tox);
+    const int ret = gc_group_join_as(tox->m->group_handler, chat_id, self_secret_key, chat_secret_key,
+                                     (Group_Privacy_State)privacy_state, name, name_length, password,
+                                     (uint16_t)password_length);
+    tox_unlock(tox);
+
+    if (ret >= 0) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_OK);
+        return (uint32_t)ret;
+    }
+
+    switch (ret) {
+        case -1: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_INIT);
+            return UINT32_MAX;
+        }
+
+        case -2: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_DUPLICATE);
+            return UINT32_MAX;
+        }
+
+        case -3: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_TOO_LONG);
+            return UINT32_MAX;
+        }
+
+        case -4: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_EMPTY);
+            return UINT32_MAX;
+        }
+
+        case -5: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_PASSWORD);
+            return UINT32_MAX;
+        }
+
+        case -6: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_BAD_CHAT_SECRET_KEY);
+            return UINT32_MAX;
+        }
+
+        case -7: {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_AS_CORE);
+            return UINT32_MAX;
+        }
+    }
+
+    /* can't happen */
+    LOGGER_FATAL(tox->m->log, "impossible return value: %d", ret);
+
+    return UINT32_MAX;
+}
+
+uint32_t tox_group_get_peer_endpoint_count(const Tox *tox, uint32_t group_number, Tox_Err_Group_State_Query *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_GROUP_NOT_FOUND);
+        return 0;
+    }
+
+    const uint16_t count = gc_count_saved_peers(chat);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_STATE_QUERY_OK);
+    return count;
+}
+
+/** Writes the IP address of `ip_port` as a string, or an empty string if it has no valid one. */
+static void write_ip_string(const IP_Port *_Nonnull ip_port, char ip[_Nonnull TOX_GROUP_PEER_IP_STRING_MAX_LENGTH])
+{
+    Ip_Ntoa ip_str;
+
+    if (!ipport_isset(ip_port) || net_ip_ntoa(&ip_port->ip, &ip_str) == nullptr || !ip_str.ip_is_valid) {
+        ip[0] = '\0';
+        return;
+    }
+
+    memcpy(ip, ip_str.buf, ip_str.length + 1);
+}
+
+bool tox_group_get_peer_endpoint(const Tox *tox, uint32_t group_number, uint32_t index,
+                                 uint8_t public_key[TOX_GROUP_PEER_PUBLIC_KEY_SIZE], char ip[TOX_GROUP_PEER_IP_STRING_MAX_LENGTH],
+                                 uint16_t *port, uint8_t relay_public_key[TOX_PUBLIC_KEY_SIZE],
+                                 char relay_ip[TOX_GROUP_PEER_IP_STRING_MAX_LENGTH], uint16_t *relay_port,
+                                 Tox_Err_Group_Get_Peer_Endpoint *error)
+{
+    assert(tox != nullptr);
+
+    tox_lock(tox);
+    const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_PEER_ENDPOINT_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    const GC_SavedPeerInfo *saved_peer = gc_get_saved_peer(chat, index);
+
+    if (saved_peer == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_PEER_ENDPOINT_NOT_FOUND);
+        return false;
+    }
+
+    memcpy(public_key, saved_peer->public_key, TOX_GROUP_PEER_PUBLIC_KEY_SIZE);
+    write_ip_string(&saved_peer->ip_port, ip);
+    *port = net_ntohs(saved_peer->ip_port.port);
+    memcpy(relay_public_key, saved_peer->tcp_relay.public_key, TOX_PUBLIC_KEY_SIZE);
+    write_ip_string(&saved_peer->tcp_relay.ip_port, relay_ip);
+    *relay_port = net_ntohs(saved_peer->tcp_relay.ip_port.port);
+    tox_unlock(tox);
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_GET_PEER_ENDPOINT_OK);
+    return true;
+}
+
+/** Reads `ip` and `port` into `ip_port`, leaving it unset if `ip` is null. */
+static bool read_ip_port(const char *_Nullable ip, uint16_t port, IP_Port *_Nonnull ip_port)
+{
+    if (ip == nullptr) {
+        return true;
+    }
+
+    if (!addr_parse_ip(ip, &ip_port->ip)) {
+        return false;
+    }
+
+    ip_port->port = net_htons(port);
+    return true;
+}
+
+bool tox_group_add_peer_endpoint(Tox *tox, uint32_t group_number, const uint8_t public_key[TOX_GROUP_PEER_PUBLIC_KEY_SIZE],
+                                 const char *ip, uint16_t port, const uint8_t relay_public_key[TOX_PUBLIC_KEY_SIZE],
+                                 const char *relay_ip, uint16_t relay_port,
+                                 Tox_Err_Group_Add_Peer_Endpoint *error)
+{
+    assert(tox != nullptr);
+
+    GC_SavedPeerInfo saved_peer = {{0}};
+    memcpy(saved_peer.public_key, public_key, TOX_GROUP_PEER_PUBLIC_KEY_SIZE);
+
+    if (!read_ip_port(ip, port, &saved_peer.ip_port)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT);
+        return false;
+    }
+
+    if (relay_public_key != nullptr) {
+        memcpy(saved_peer.tcp_relay.public_key, relay_public_key, TOX_PUBLIC_KEY_SIZE);
+
+        if (relay_ip == nullptr || !read_ip_port(relay_ip, relay_port, &saved_peer.tcp_relay.ip_port)) {
+            SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT);
+            return false;
+        }
+    }
+
+    if (!ipport_isset(&saved_peer.ip_port) && !ipport_isset(&saved_peer.tcp_relay.ip_port)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT);
+        return false;
+    }
+
+    tox_lock(tox);
+    GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
+
+    if (chat == nullptr) {
+        tox_unlock(tox);
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_GROUP_NOT_FOUND);
+        return false;
+    }
+
+    const bool added = gc_add_saved_peer(chat, &saved_peer);
+    tox_unlock(tox);
+
+    if (!added) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_FULL);
+        return false;
+    }
+
+    SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_OK);
+    return true;
 }

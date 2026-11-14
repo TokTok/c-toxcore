@@ -542,6 +542,258 @@ size_t tox_group_peer_get_ip_address_size(const Tox *_Nonnull tox, uint32_t grou
 bool tox_group_peer_get_ip_address(const Tox *_Nonnull tox, uint32_t group_number, uint32_t peer_id, uint8_t *_Nonnull ip_addr,
                                    Tox_Err_Group_Peer_Query *_Nullable error);
 
+/*******************************************************************************
+ *
+ * :: Group chat keys and peer endpoints.
+ *
+ ******************************************************************************/
+
+/**
+ * The size of a group secret key in bytes.
+ */
+#define TOX_GROUP_SECRET_KEY_SIZE        32
+
+uint32_t tox_group_secret_key_size(void);
+
+/**
+ * Write our secret key in a group to a byte array.
+ *
+ * Our public key in the group, as tox_group_self_get_public_key gives it, is
+ * made from this key. A client that keeps it can join the group again with
+ * tox_group_join_as as the same member, so we keep our role in it. Keep it as
+ * safe as the Tox secret key.
+ *
+ * @param group_number The group number of the group.
+ * @param secret_key A memory region of at least TOX_GROUP_SECRET_KEY_SIZE
+ *   bytes.
+ *
+ * @return true on success.
+ */
+bool tox_group_self_get_secret_key(const Tox *_Nonnull tox, uint32_t group_number, uint8_t secret_key[_Nonnull TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Self_Query *_Nullable error);
+
+typedef enum Tox_Err_Group_Get_Chat_Secret_Key {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_GROUP_NOT_FOUND,
+
+    /**
+     * We don't have the group's secret key: only its founder does.
+     */
+    TOX_ERR_GROUP_GET_CHAT_SECRET_KEY_NOT_FOUNDER,
+} Tox_Err_Group_Get_Chat_Secret_Key;
+
+/**
+ * Write the group's secret key to a byte array.
+ *
+ * The Chat ID is made from this key, and only the group's founder has it. A
+ * founder who passes it to tox_group_join_as can change the group's settings
+ * again once a peer has sent them. Keep it as safe as the Tox secret key.
+ *
+ * @param group_number The group number of the group.
+ * @param secret_key A memory region of at least TOX_GROUP_SECRET_KEY_SIZE
+ *   bytes.
+ *
+ * @return true on success.
+ */
+bool tox_group_get_chat_secret_key(const Tox *_Nonnull tox, uint32_t group_number, uint8_t secret_key[_Nonnull TOX_GROUP_SECRET_KEY_SIZE],
+                                   Tox_Err_Group_Get_Chat_Secret_Key *_Nullable error);
+
+typedef enum Tox_Err_Group_Join_As {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_JOIN_AS_OK,
+
+    /**
+     * The group instance failed to initialize.
+     */
+    TOX_ERR_GROUP_JOIN_AS_INIT,
+
+    /**
+     * The group is already in this Tox instance.
+     */
+    TOX_ERR_GROUP_JOIN_AS_DUPLICATE,
+
+    /**
+     * name is NULL or name_length is zero.
+     */
+    TOX_ERR_GROUP_JOIN_AS_EMPTY,
+
+    /**
+     * name exceeds TOX_MAX_NAME_LENGTH.
+     */
+    TOX_ERR_GROUP_JOIN_AS_TOO_LONG,
+
+    /**
+     * Failed to set password. This usually occurs if the password exceeds
+     * TOX_GROUP_MAX_PASSWORD_SIZE.
+     */
+    TOX_ERR_GROUP_JOIN_AS_PASSWORD,
+
+    /**
+     * chat_secret_key isn't the secret key of the group with chat_id.
+     */
+    TOX_ERR_GROUP_JOIN_AS_BAD_CHAT_SECRET_KEY,
+
+    /**
+     * There was a core error when initiating the group.
+     */
+    TOX_ERR_GROUP_JOIN_AS_CORE,
+} Tox_Err_Group_Join_As;
+
+/**
+ * Join a group as the member that a secret key makes.
+ *
+ * Like tox_group_join, but our key in the group is made from `self_secret_key`.
+ * With the key tox_group_self_get_secret_key gave, e.g. before a restart, peers
+ * know us as before: we keep our role, and a moderator stays a moderator. Pass
+ * the group's secret key from tox_group_get_chat_secret_key to be its founder
+ * again. Any 32 random bytes make a new member. Two Tox instances must not be in
+ * a group with the same key at the same time.
+ *
+ * A public group is found through the DHT. A private group is never announced,
+ * so it only finds peers at the endpoints the client passes to
+ * tox_group_add_peer_endpoint. Anyone who has an endpoint of a member, and the
+ * password if there is one, can join a private group this way, as with an invite.
+ *
+ * The group has no settings until a peer sends them, so it isn't in the group
+ * list until then. That includes a founder: with no other member online, the
+ * group stays without settings until one comes back.
+ *
+ * @param chat_id The Chat ID of the group.
+ * @param self_secret_key Our secret key in the group, e.g. as
+ *   tox_group_self_get_secret_key gave it.
+ * @param chat_secret_key The group's secret key, as
+ *   tox_group_get_chat_secret_key gave it, or NULL if we're not its founder.
+ * @param privacy_state The group's privacy state, as
+ *   tox_group_get_privacy_state gave it.
+ * @param name The name of the peer joining the group.
+ * @param name_length The length of the peer's name. This must be greater than
+ *   zero and no larger than TOX_MAX_NAME_LENGTH.
+ * @param password The password required to join the group. Set to NULL if no
+ *   password is required.
+ * @param password_length The length of the password. If length is equal to
+ *   zero, the password parameter is ignored. length must be no larger than
+ *   TOX_GROUP_MAX_PASSWORD_SIZE.
+ *
+ * @return group_number on success, UINT32_MAX on failure.
+ */
+uint32_t tox_group_join_as(Tox *_Nonnull tox, const uint8_t chat_id[_Nonnull TOX_GROUP_CHAT_ID_SIZE],
+                           const uint8_t self_secret_key[_Nonnull TOX_GROUP_SECRET_KEY_SIZE],
+                           const uint8_t chat_secret_key[_Nullable TOX_GROUP_SECRET_KEY_SIZE], Tox_Group_Privacy_State privacy_state,
+                           const uint8_t name[_Nullable], size_t name_length, const uint8_t password[_Nullable], size_t password_length,
+                           Tox_Err_Group_Join_As *_Nullable error);
+
+/**
+ * Return the number of peer endpoints a group keeps.
+ *
+ * A peer endpoint says where a peer can be reached. A group keeps the endpoints
+ * of peers it was connected to, so it can reach them again when it has no
+ * peers. Private groups need them, because they're never announced.
+ *
+ * @param group_number The group number of the group.
+ */
+uint32_t tox_group_get_peer_endpoint_count(const Tox *_Nonnull tox, uint32_t group_number,
+        Tox_Err_Group_State_Query *_Nullable error);
+
+typedef enum Tox_Err_Group_Get_Peer_Endpoint {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_GET_PEER_ENDPOINT_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_GET_PEER_ENDPOINT_GROUP_NOT_FOUND,
+
+    /**
+     * The group has no peer endpoint with this index.
+     */
+    TOX_ERR_GROUP_GET_PEER_ENDPOINT_NOT_FOUND,
+} Tox_Err_Group_Get_Peer_Endpoint;
+
+/**
+ * Write a peer endpoint a group keeps.
+ *
+ * An endpoint has the peer's public key, and an IP address and port, a TCP
+ * relay, or both. A missing IP address or relay has an empty string as its IP
+ * address.
+ *
+ * @param group_number The group number of the group.
+ * @param index The index of the endpoint, below tox_group_get_peer_endpoint_count.
+ * @param public_key A memory region of at least TOX_GROUP_PEER_PUBLIC_KEY_SIZE
+ *   bytes for the peer's public key.
+ * @param ip A memory region of at least TOX_GROUP_PEER_IP_STRING_MAX_LENGTH
+ *   bytes for the peer's IP address, as a NUL-terminated string.
+ * @param port The peer's port.
+ * @param relay_public_key A memory region of at least TOX_PUBLIC_KEY_SIZE bytes
+ *   for the public key of the TCP relay.
+ * @param relay_ip A memory region of at least
+ *   TOX_GROUP_PEER_IP_STRING_MAX_LENGTH bytes for the TCP relay's IP address, as
+ *   a NUL-terminated string.
+ * @param relay_port The TCP relay's port.
+ *
+ * @return true on success.
+ */
+bool tox_group_get_peer_endpoint(const Tox *_Nonnull tox, uint32_t group_number, uint32_t index,
+                                 uint8_t public_key[_Nonnull TOX_GROUP_PEER_PUBLIC_KEY_SIZE], char ip[_Nonnull TOX_GROUP_PEER_IP_STRING_MAX_LENGTH],
+                                 uint16_t *_Nonnull port, uint8_t relay_public_key[_Nonnull TOX_PUBLIC_KEY_SIZE],
+                                 char relay_ip[_Nonnull TOX_GROUP_PEER_IP_STRING_MAX_LENGTH], uint16_t *_Nonnull relay_port,
+                                 Tox_Err_Group_Get_Peer_Endpoint *_Nullable error);
+
+typedef enum Tox_Err_Group_Add_Peer_Endpoint {
+    /**
+     * The function returned successfully.
+     */
+    TOX_ERR_GROUP_ADD_PEER_ENDPOINT_OK,
+
+    /**
+     * The group number passed did not designate a valid group.
+     */
+    TOX_ERR_GROUP_ADD_PEER_ENDPOINT_GROUP_NOT_FOUND,
+
+    /**
+     * The endpoint has neither an IP address nor a TCP relay, or one of its IP
+     * addresses isn't an IP address.
+     */
+    TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT,
+
+    /**
+     * Every peer endpoint the group keeps is of a peer it's connected to.
+     */
+    TOX_ERR_GROUP_ADD_PEER_ENDPOINT_FULL,
+} Tox_Err_Group_Add_Peer_Endpoint;
+
+/**
+ * Give a group a peer endpoint to connect to, e.g. one that
+ * tox_group_get_peer_endpoint gave before a restart.
+ *
+ * The group connects to the endpoints it keeps when it has no peers.
+ *
+ * @param group_number The group number of the group.
+ * @param public_key The peer's public key.
+ * @param ip The peer's IP address, or NULL if there is none.
+ * @param port The peer's port.
+ * @param relay_public_key The public key of the peer's TCP relay, or NULL if
+ *   there is none.
+ * @param relay_ip The TCP relay's IP address. Ignored if relay_public_key is
+ *   NULL.
+ * @param relay_port The TCP relay's port.
+ *
+ * @return true on success.
+ */
+bool tox_group_add_peer_endpoint(Tox *_Nonnull tox, uint32_t group_number, const uint8_t public_key[_Nonnull TOX_GROUP_PEER_PUBLIC_KEY_SIZE],
+                                 const char *_Nullable ip, uint16_t port, const uint8_t relay_public_key[_Nullable TOX_PUBLIC_KEY_SIZE],
+                                 const char *_Nullable relay_ip, uint16_t relay_port, Tox_Err_Group_Add_Peer_Endpoint *_Nullable error);
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

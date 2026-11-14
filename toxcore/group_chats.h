@@ -595,6 +595,46 @@ int gc_group_add(GC_Session *_Nonnull c, Group_Privacy_State privacy_state, cons
  */
 int gc_group_join(GC_Session *_Nonnull c, const uint8_t *_Nonnull chat_id, const uint8_t *_Nonnull nick, size_t nick_length, const uint8_t *_Nullable passwd,
                   uint16_t passwd_len);
+/** @brief Joins a group designated by `chat_id` as the member whose secret key is `self_secret_key`.
+ *
+ * If `chat_secret_key` is non-null, it is the group's secret key, which makes us able to act as its
+ * founder again. A private group is never announced: its peers come from gc_add_saved_peer.
+ *
+ * @return group_number on success.
+ * @retval -1 if the group object fails to initialize.
+ * @retval -2 if the group is already in the session.
+ * @retval -3 if nick is too long.
+ * @retval -4 if nick is empty or nick length is zero.
+ * @retval -5 if there is an error setting the group password.
+ * @retval -6 if `chat_secret_key` doesn't make `chat_id`.
+ * @retval -7 if the Messenger friend connection fails to initialize.
+ */
+int gc_group_join_as(GC_Session *_Nonnull c, const uint8_t chat_id[_Nonnull CHAT_ID_SIZE],
+                     const uint8_t self_secret_key[_Nonnull EXT_KEY_SEED_SIZE],
+                     const uint8_t chat_secret_key[_Nullable EXT_KEY_SEED_SIZE], Group_Privacy_State privacy_state,
+                     const uint8_t nick[_Nullable], size_t nick_length, const uint8_t passwd[_Nullable], uint16_t passwd_len);
+
+/** @brief Writes the secret key that makes our keypair in `chat` to `secret_key`. */
+void gc_get_self_secret_key(const GC_Chat *_Nonnull chat, uint8_t secret_key[_Nonnull EXT_KEY_SEED_SIZE]);
+
+/** @brief Writes the group's secret key to `secret_key`.
+ *
+ * @retval false if we don't have it, i.e. we're not the founder.
+ */
+bool gc_get_chat_secret_key(const GC_Chat *_Nonnull chat, uint8_t secret_key[_Nonnull EXT_KEY_SEED_SIZE]);
+
+/** @return the number of saved peers in `chat`. */
+uint16_t gc_count_saved_peers(const GC_Chat *_Nonnull chat);
+
+/** @return the saved peer at `index` in `chat`, or null if there is none. */
+const GC_SavedPeerInfo *_Nullable gc_get_saved_peer(const GC_Chat *_Nonnull chat, uint32_t index);
+
+/** @brief Adds `saved_peer` to the saved peers list of `chat`, which it connects to when it has no peers.
+ *
+ * @retval false if `saved_peer` has neither an IP/port nor a TCP relay, or the list has no room.
+ */
+bool gc_add_saved_peer(GC_Chat *_Nonnull chat, const GC_SavedPeerInfo *_Nonnull saved_peer);
+
 /** @brief Disconnects from all peers in a group but saves the group state for later use.
  *
  * Return true on sucess.

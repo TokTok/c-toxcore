@@ -791,7 +791,7 @@ void tox_node_friend_add(ToxNode *a, ToxNode *b)
     }
 }
 
-void tox_node_reload(ToxNode *node)
+static void reload(ToxNode *node, bool moved)
 {
     ck_assert(node != nullptr);
     ToxScenario *s = node->scenario;
@@ -826,6 +826,12 @@ void tox_node_reload(ToxNode *node)
     tox_options_set_savedata_type(opts, TOX_SAVEDATA_TYPE_TOX_SAVE);
     tox_options_set_savedata_data(opts, data, size);
 
+    if (moved) {
+        ck_assert(node->port < UINT16_MAX);
+        tox_options_set_start_port(opts, node->port + 1);
+        tox_options_set_end_port(opts, UINT16_MAX);
+    }
+
     Tox_Err_New err;
     Tox *new_tox = create_tox_with_port_retry(opts, node, &err);
     tox_options_free(opts);
@@ -843,6 +849,9 @@ void tox_node_reload(ToxNode *node)
     pthread_mutex_lock(&s->mutex);
     node->tox = new_tox;
     node->dispatch = new_dispatch;
+    Tox_Err_Get_Port port_err;
+    node->port = tox_self_get_udp_port(new_tox, &port_err);
+    node->mirror.udp_port = node->port;
     pthread_mutex_unlock(&s->mutex);
 
     // Re-bootstrap from siblings
@@ -851,4 +860,14 @@ void tox_node_reload(ToxNode *node)
             tox_node_bootstrap(node, s->nodes[i]);
         }
     }
+}
+
+void tox_node_reload(ToxNode *node)
+{
+    reload(node, false);
+}
+
+void tox_node_reload_moved(ToxNode *node)
+{
+    reload(node, true);
 }

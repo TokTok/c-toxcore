@@ -69,6 +69,7 @@ TEST(Tox, ConstantsAreNonZero)
     EXPECT_GT(tox_group_peer_public_key_size(), 0);
     EXPECT_GT(tox_dht_node_ip_string_size(), 0);
     EXPECT_GT(tox_dht_node_public_key_size(), 0);
+    EXPECT_GT(tox_group_secret_key_size(), 0);
 }
 
 TEST(Tox, BootstrapErrorCodes)
@@ -106,6 +107,70 @@ TEST(Tox, ConferenceLossyPacketTooLongIsRejected)
     EXPECT_EQ(
         send_group_lossy_packet(tox->m->conferences_object, conference, data.data(), UINT16_MAX),
         -1);
+
+    tox_kill(tox);
+}
+
+TEST(Tox, GroupKeepsPeerEndpointsItIsGiven)
+{
+    SimulatedEnvironment env{12345};
+    struct Tox_Options *options = tox_options_new(nullptr);
+    ASSERT_NE(options, nullptr);
+    auto node = env.create_node(33545);
+    Tox_Options_Testing testing_opts = {};
+    testing_opts.operating_system = &node->system;
+    Tox *tox = tox_new_testing(options, nullptr, &testing_opts, nullptr);
+    tox_options_free(options);
+    ASSERT_NE(tox, nullptr);
+
+    const std::array<std::uint8_t, 3> name{'L', 'a', 'b'};
+    const std::array<std::uint8_t, 2> nick{'M', 'e'};
+    const std::uint32_t group = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PRIVATE, name.data(),
+        name.size(), nick.data(), nick.size(), nullptr);
+    ASSERT_NE(group, UINT32_MAX);
+
+    std::array<std::uint8_t, TOX_GROUP_PEER_PUBLIC_KEY_SIZE> peer{1};
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> relay{2};
+    Tox_Err_Group_Add_Peer_Endpoint err_add;
+    EXPECT_FALSE(tox_group_add_peer_endpoint(
+        tox, group, peer.data(), "not an IP", 33445, nullptr, nullptr, 0, &err_add));
+    EXPECT_EQ(err_add, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT);
+    EXPECT_FALSE(tox_group_add_peer_endpoint(
+        tox, group, peer.data(), nullptr, 0, nullptr, nullptr, 0, &err_add));
+    EXPECT_EQ(err_add, TOX_ERR_GROUP_ADD_PEER_ENDPOINT_BAD_ENDPOINT);
+    ASSERT_TRUE(tox_group_add_peer_endpoint(
+        tox, group, peer.data(), "10.1.2.3", 33445, relay.data(), "10.4.5.6", 443, &err_add));
+    ASSERT_EQ(tox_group_get_peer_endpoint_count(tox, group, nullptr), 1);
+
+    std::array<std::uint8_t, TOX_GROUP_PEER_PUBLIC_KEY_SIZE> got_peer{};
+    std::array<char, TOX_GROUP_PEER_IP_STRING_MAX_LENGTH> ip{};
+    std::uint16_t port = 0;
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> got_relay{};
+    std::array<char, TOX_GROUP_PEER_IP_STRING_MAX_LENGTH> relay_ip{};
+    std::uint16_t relay_port = 0;
+    ASSERT_TRUE(tox_group_get_peer_endpoint(tox, group, 0, got_peer.data(), ip.data(), &port,
+        got_relay.data(), relay_ip.data(), &relay_port, nullptr));
+    EXPECT_EQ(got_peer, peer);
+    EXPECT_STREQ(ip.data(), "10.1.2.3");
+    EXPECT_EQ(port, 33445);
+    EXPECT_EQ(got_relay, relay);
+    EXPECT_STREQ(relay_ip.data(), "10.4.5.6");
+    EXPECT_EQ(relay_port, 443);
+
+    Tox_Err_Group_Get_Peer_Endpoint err_get;
+    EXPECT_FALSE(tox_group_get_peer_endpoint(tox, group, 1, got_peer.data(), ip.data(), &port,
+        got_relay.data(), relay_ip.data(), &relay_port, &err_get));
+    EXPECT_EQ(err_get, TOX_ERR_GROUP_GET_PEER_ENDPOINT_NOT_FOUND);
+
+    // A group can't be joined again while we're in it.
+    std::array<std::uint8_t, TOX_GROUP_CHAT_ID_SIZE> chat_id{};
+    ASSERT_TRUE(tox_group_get_chat_id(tox, group, chat_id.data(), nullptr));
+    std::array<std::uint8_t, TOX_GROUP_SECRET_KEY_SIZE> self_key{};
+    ASSERT_TRUE(tox_group_self_get_secret_key(tox, group, self_key.data(), nullptr));
+    Tox_Err_Group_Join_As err_join_as;
+    tox_group_join_as(tox, chat_id.data(), self_key.data(), nullptr,
+        TOX_GROUP_PRIVACY_STATE_PRIVATE, nick.data(), nick.size(), nullptr, 0, &err_join_as);
+    EXPECT_EQ(err_join_as, TOX_ERR_GROUP_JOIN_AS_DUPLICATE);
 
     tox_kill(tox);
 }
