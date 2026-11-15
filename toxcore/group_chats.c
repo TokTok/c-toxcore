@@ -5897,6 +5897,10 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
         return -1;
     }
 
+    if (!is_new_peer) {
+        gcc_clear_arrays(chat->mem, gconn);
+    }
+
     gcc_set_recv_message_id(gconn, 1);  // handshake request is always first packet
 
     gconn->is_pending_handshake_response = true;
