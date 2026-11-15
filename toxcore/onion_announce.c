@@ -170,6 +170,7 @@ int create_data_request(const Memory *mem, const Random *rng, uint8_t *packet, u
 
     const int len = encrypt_data(mem, encrypt_public_key, random_secret_key, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE, data, length,
                                  packet + 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE);
+    crypto_memzero(random_secret_key, sizeof(random_secret_key));
 
     if (1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + CRYPTO_PUBLIC_KEY_SIZE + len != DATA_REQUEST_MIN_SIZE +
             length) {
