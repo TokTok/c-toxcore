@@ -2,6 +2,7 @@
 #include "group_connection.h"
 // clang-format on
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -50,6 +51,12 @@ protected:
         tox_callback_group_self_join(bob_.get(), [](Tox *, uint32_t, void *user_data) {
             static_cast<GroupLossless *>(user_data)->joined_ = true;
         });
+        tox_callback_group_message(bob_.get(),
+            [](Tox *, uint32_t, uint32_t, Tox_Message_Type, const uint8_t *message, size_t length,
+                uint32_t, void *user_data) {
+                static_cast<GroupLossless *>(user_data)->received_.emplace_back(
+                    reinterpret_cast<const char *>(message), length);
+            });
 
         const uint8_t group_name[] = "lossless";
         const uint8_t name[] = "alice";
@@ -121,6 +128,7 @@ protected:
     uint32_t alice_group_ = 0;
     uint32_t bob_group_ = 0;
     bool joined_ = false;
+    std::vector<std::string> received_;
 };
 
 // Bob gets the second message first and keeps it until the first comes. His
@@ -154,6 +162,38 @@ TEST_F(GroupLossless, AcknowledgesAMessageHeldForAnEarlierOne)
 
     EXPECT_TRUE(lost_first);
     EXPECT_EQ(sends_of_second, 1);
+}
+
+// Bob holds the second message until the first comes, and then both come again
+// together. Every message still reaches him once, also a full ring later.
+TEST_F(GroupLossless, DeliversEachMessageOnceWhenOneArrivesTwice)
+{
+    // Bob can't ask for the first message, so Alice sends both again.
+    bool lost_first = false;
+    drop_ = [&](const tox::test::Packet &p) {
+        if (is_group_packet(p, NET_PACKET_GC_LOSSLESS, *bob_node_)) {
+            return !std::exchange(lost_first, true);
+        }
+        return is_group_packet(p, NET_PACKET_GC_LOSSY, *alice_node_) && received_.size() < 2;
+    };
+
+    std::vector<std::string> sent{"a", "b"};
+    send(sent[0]);
+    send(sent[1]);
+    run_for(5000);
+    ASSERT_EQ(received_, sent);
+
+    run_until(
+        [&]() {
+            if (sent.size() < 2 + GCC_BUFFER_SIZE) {
+                sent.push_back(std::to_string(sent.size()));
+                send(sent.back());
+            }
+            return false;
+        },
+        (GCC_BUFFER_SIZE + 100) * tox::test::Simulation::kDefaultTickIntervalMs);
+
+    EXPECT_THAT(received_, ::testing::ElementsAreArray(sent));
 }
 
 class GroupConnection : public ::testing::Test {
