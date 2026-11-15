@@ -6070,12 +6070,6 @@ bool handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer
         return false;
     }
 
-    peer = get_gc_peer(chat, peer_number);
-
-    if (peer != nullptr) {
-        peer->gconn.last_requested_packet_time = mono_time_get(chat->mono_time);
-    }
-
     return true;
 }
 

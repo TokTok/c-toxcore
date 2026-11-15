@@ -272,6 +272,24 @@ TEST_F(GroupLossless, DeliversNewMessagesAfterAPeerReconnects)
     EXPECT_EQ(exits_, 0);
 }
 
+// Bob asks for a message he misses as soon as the next one comes, also right
+// after handling another message.
+TEST_F(GroupLossless, AsksForAMissingMessageAtOnce)
+{
+    int lossless = 0;
+    drop_ = [&](const tox::test::Packet &p) {
+        return is_group_packet(p, NET_PACKET_GC_LOSSLESS, *bob_node_) && ++lossless == 2;
+    };
+
+    const std::vector<std::string> sent{"a", "b", "c"};
+    for (const std::string &message : sent) {
+        send(message);
+    }
+    run_until([&]() { return received_.size() == sent.size(); }, 1000);
+
+    EXPECT_EQ(received_, sent);
+}
+
 class GroupConnection : public ::testing::Test {
 protected:
     void SetUp() override
