@@ -942,6 +942,107 @@ static void test_tcp_connection2(void)
     mono_time_free(mem, mono_time);
 }
 
+static uint64_t sleep_test_time;
+static uint64_t get_sleep_test_time(void *user_data)
+{
+    return sleep_test_time;
+}
+
+static void do_tcp_sleep_test(const Logger *logger, TCP_Server *tcp_s, Mono_Time *mono_time,
+                              TCP_Connections *const *tcs, size_t tcs_count)
+{
+    for (int i = 0; i < 10; ++i) {
+        sleep_test_time += 50;
+        do_tcp_server_delay(tcp_s, mono_time, 10);
+
+        for (size_t j = 0; j < tcs_count; ++j) {
+            do_tcp_connections(logger, tcs[j], nullptr);
+        }
+    }
+}
+
+/* Alice reaches Bob and Carol through the same relay. The relay must stay
+ * awake for Bob when Carol's connection sleeps, wakes up and sleeps again. */
+static void test_tcp_connection_sleep(void)
+{
+    const Random *rng = os_random();
+    ck_assert(rng != nullptr);
+    const Network *ns = os_network();
+    ck_assert(ns != nullptr);
+    const Memory *mem = os_memory();
+    ck_assert(mem != nullptr);
+
+    sleep_test_time = 1000;
+    Mono_Time *mono_time = mono_time_new(mem, get_sleep_test_time, nullptr);
+    Logger *logger = logger_new(mem);
+
+    Net_Profile *tcp_np = netprof_new(logger, mem);
+    ck_assert(tcp_np != nullptr);
+
+    uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
+    crypto_new_keypair(rng, self_public_key, self_secret_key);
+    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
+    ck_assert(tcp_s != nullptr);
+
+    TCP_Proxy_Info proxy_info;
+    proxy_info.proxy_type = TCP_PROXY_NONE;
+
+    TCP_Connections *tcs[3];
+
+    for (size_t i = 0; i < 3; ++i) {
+        crypto_new_keypair(rng, self_public_key, self_secret_key);
+        tcs[i] = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
+        ck_assert(tcs[i] != nullptr);
+    }
+
+    TCP_Connections *alice = tcs[0];
+
+    IP_Port ip_port_tcp_s;
+    ip_port_tcp_s.port = net_htons(ports[0]);
+    ip_port_tcp_s.ip = get_loopback();
+
+    int to[3];
+
+    for (size_t i = 1; i < 3; ++i) {
+        to[i] = new_tcp_connection_to(alice, tcp_connections_public_key(tcs[i]), i);
+        ck_assert(to[i] >= 0);
+        ck_assert(add_tcp_relay_connection(alice, to[i], &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0);
+
+        const int to_alice = new_tcp_connection_to(tcs[i], tcp_connections_public_key(alice), 0);
+        ck_assert(to_alice >= 0);
+        ck_assert(add_tcp_relay_connection(tcs[i], to_alice, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0);
+    }
+
+    const int to_bob = to[1];
+    const int to_carol = to[2];
+
+    do_tcp_sleep_test(logger, tcp_s, mono_time, tcs, 3);
+    ck_assert(tcp_connection_to_online_tcp_relays(alice, to_bob) == 1);
+    ck_assert(tcp_connection_to_online_tcp_relays(alice, to_carol) == 1);
+
+    ck_assert(set_tcp_connection_to_status(alice, to_carol, false) == 0);
+    ck_assert(set_tcp_connection_to_status(alice, to_carol, true) == 0);
+    ck_assert(set_tcp_connection_to_status(alice, to_carol, false) == 0);
+
+    sleep_test_time += (TCP_CONNECTION_ANNOUNCE_TIMEOUT + 1) * 1000;
+    do_tcp_sleep_test(logger, tcp_s, mono_time, tcs, 3);
+
+    ck_assert_msg(send_packet_tcp_connection(alice, to_bob, (const uint8_t *)"Gentoo", 6) == 0,
+                  "the relay went to sleep while Bob's connection was awake");
+
+    kill_tcp_server(tcp_s);
+
+    for (size_t i = 0; i < 3; ++i) {
+        kill_tcp_connections(tcs[i]);
+    }
+
+    netprof_kill(mem, tcp_np);
+
+    logger_kill(logger);
+    mono_time_free(mem, mono_time);
+}
+
 static void tcp_suite(void)
 {
     test_basic();
@@ -950,6 +1051,7 @@ static void tcp_suite(void)
     test_client_invalid();
     test_tcp_connection();
     test_tcp_connection2();
+    test_tcp_connection_sleep();
 }
 
 int main(void)
