@@ -1080,7 +1080,7 @@ bool toxav_audio_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number,
         }
 
         /* This is more than enough always */
-        const uint16_t dest_size = sample_count + sizeof(sampling_rate);
+        const size_t dest_size = sample_count + sizeof(sampling_rate);
         VLA(uint8_t, dest, dest_size);
 
         sampling_rate = net_htonl(sampling_rate);

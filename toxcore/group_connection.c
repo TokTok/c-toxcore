@@ -187,7 +187,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *chat, GC_Connection *gcon
         return false;
     }
 
-    const uint16_t start_id = gconn->send_message_id;
+    const uint64_t start_id = gconn->send_message_id;
 
     // First packet segment is comprised of packet type + first chunk of payload
     uint8_t chunk[MAX_GC_PACKET_CHUNK_SIZE];
