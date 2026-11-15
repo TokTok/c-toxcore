@@ -1,3 +1,33 @@
+<a name="v0.2.25"></a>
+
+## v0.2.25 (2026-11-15)
+
+### Release notes
+
+Even more fixes. We will soon have caught up with over a decade of technical debt.
+
+#### Bug Fixes
+
+- Ignore group sync responses we didn't request. ([66aaefab](https://github.com/TokTok/c-toxcore/commit/66aaefabea44204832d917733f596f08867f5bb5))
+- Only sync group state once per roles checksum. ([4ac25cf9](https://github.com/TokTok/c-toxcore/commit/4ac25cf99342ed254eb63e895dceecbcd6cfc72d))
+- Remove a group if loading its saved state fails. ([9920dd7f](https://github.com/TokTok/c-toxcore/commit/9920dd7f1a126e3ac55a6a93388a7c37948a2b61))
+- Limit how many peers and relay clients we keep. ([52e69aa6](https://github.com/TokTok/c-toxcore/commit/52e69aa69ae81eeb5c65fd2f90a82cb85968a8b9))
+- Only store group announces for up to 512 groups. ([4507df69](https://github.com/TokTok/c-toxcore/commit/4507df69b1e66dbf44045d65629e9402a578e382))
+- Only queue up to 1024 priority packets per TCP connection. ([d8c37e5e](https://github.com/TokTok/c-toxcore/commit/d8c37e5e0913762fb95e5a22eadf7f435230fb08))
+- Don't free memory that's still stored elsewhere. ([4f19dcd9](https://github.com/TokTok/c-toxcore/commit/4f19dcd9f5621ded7a4b42ac67708b5408ee2820))
+- Remove group peers added by requests that then fail. ([a2a95123](https://github.com/TokTok/c-toxcore/commit/a2a9512382da52bbca82bf2db14e3b23bf6cdf31))
+- Check the handshake rate limit before adding a group peer. ([ad4acf9b](https://github.com/TokTok/c-toxcore/commit/ad4acf9b2e5a6c794207d51ab2a1f48f71234775))
+- End call ringing for inactive calls. ([87728841](https://github.com/TokTok/c-toxcore/commit/8772884176525b94c7edc1c885637ef902f18448))
+- Try a friend's newest saved TCP relays first after 65536 of them. ([fe91ead3](https://github.com/TokTok/c-toxcore/commit/fe91ead3d785827799a88fcecb122e4acb338c66))
+- Compare wrapped counters and sequence numbers modulo their size. ([531dcde9](https://github.com/TokTok/c-toxcore/commit/531dcde99bbf1d3b60e961676fa4b56fb46e3f26))
+- Only allow the 2 known conference types. ([bcd035ab](https://github.com/TokTok/c-toxcore/commit/bcd035ab9f3d41717e7105ae79fbde47d71a2356))
+- Better handling of file or AV call cancelling. ([77a32198](https://github.com/TokTok/c-toxcore/commit/77a3219820a526f1e909fc021b0d1598bf169b6e))
+- Don't read from evicted epoll TCP connections. ([a276772c](https://github.com/TokTok/c-toxcore/commit/a276772ca54f1d2bec5e292ffe769d7601446930))
+- Clean up minor group chat issue for early joins. ([7b8b1470](https://github.com/TokTok/c-toxcore/commit/7b8b147057ac35dc968bb78aafc19c6ac7802cce))
+- Finish removals when array shrinking fails. ([03098cbc](https://github.com/TokTok/c-toxcore/commit/03098cbc6b93795f6222a1c049273950e05bed03))
+- Stop memcpy-ing internal data structures into packets. ([923e0487](https://github.com/TokTok/c-toxcore/commit/923e0487e7c184ff2af3b8e48248c1930cba9cec))
+- **events:** alloc failure leading to double free ([e8ec3357](https://github.com/TokTok/c-toxcore/commit/e8ec335772df9d6e8fbd33da171632a507992dce))
+
 <a name="v0.2.24"></a>
 
 ## v0.2.24 (2026-11-01)
