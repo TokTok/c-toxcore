@@ -87,6 +87,8 @@ void NetworkUniverse::send_packet(Packet p)
 {
     std::lock_guard<std::recursive_mutex> lock(mutex_);
 
+    p.delivery_time = current_time_ms_;
+
     // Apply filters
     for (const auto &filter : filters_) {
         if (!filter(p))
@@ -99,6 +101,15 @@ void NetworkUniverse::send_packet(Packet p)
     }
 
     p.delivery_time += global_latency_ms_;
+
+    for (const auto &duplicator : duplicators_) {
+        if (const std::optional<uint64_t> delay = duplicator(p)) {
+            Packet copy = p;
+            copy.delivery_time += *delay;
+            copy.sequence_number = next_packet_id_++;
+            event_queue_.push(std::move(copy));
+        }
+    }
 
     p.sequence_number = next_packet_id_++;
 
@@ -159,6 +170,11 @@ bool is_loopback(const IP &ip)
 
 void NetworkUniverse::process_events(uint64_t current_time_ms)
 {
+    {
+        std::lock_guard<std::recursive_mutex> lock(mutex_);
+        current_time_ms_ = current_time_ms;
+    }
+
     while (true) {
         Packet p;
         std::vector<FakeTcpSocket *> tcp_targets;
@@ -286,6 +302,12 @@ void NetworkUniverse::process_events(uint64_t current_time_ms)
 }
 
 void NetworkUniverse::set_latency(uint64_t ms) { global_latency_ms_ = ms; }
+
+void NetworkUniverse::add_duplicator(PacketDuplicator duplicator)
+{
+    std::lock_guard<std::recursive_mutex> lock(mutex_);
+    duplicators_.push_back(std::move(duplicator));
+}
 
 void NetworkUniverse::set_verbose(bool verbose) { verbose_ = verbose; }
 

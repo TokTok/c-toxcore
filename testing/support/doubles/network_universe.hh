@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <vector>
 
@@ -54,6 +55,8 @@ class NetworkUniverse {
 public:
     using PacketFilter = std::function<bool(Packet &)>;
     using PacketSink = std::function<void(const Packet &)>;
+    /** Returns how long after a packet a copy of it arrives, or nothing for no copy. */
+    using PacketDuplicator = std::function<std::optional<uint64_t>(const Packet &)>;
 
     NetworkUniverse();
     ~NetworkUniverse();
@@ -76,6 +79,8 @@ public:
     bool is_verbose() const;
     void add_filter(PacketFilter filter);
     void add_observer(PacketSink sink);
+    /** Copies don't go through the filters or duplicators again. */
+    void add_duplicator(PacketDuplicator duplicator);
 
     // Helpers
     // Finds a free port starting from 'start'
@@ -94,8 +99,11 @@ private:
     std::priority_queue<Packet, std::vector<Packet>, std::greater<Packet>> event_queue_;
     std::vector<PacketFilter> filters_;
     std::vector<PacketSink> observers_;
+    std::vector<PacketDuplicator> duplicators_;
 
     uint64_t global_latency_ms_ = 0;
+    // The time of the last process_events, which a sent packet's delays count from.
+    uint64_t current_time_ms_ = 0;
     uint64_t next_packet_id_ = 0;
     bool verbose_ = false;
     std::recursive_mutex mutex_;

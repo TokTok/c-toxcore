@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <cstddef>
+#include <optional>
 
 #include "fake_sockets.hh"
 
@@ -47,6 +48,59 @@ namespace {
         // Time 100: delivered
         universe.process_events(100);
         ASSERT_EQ(s2.recvfrom(buf, 10, &from), 4);
+    }
+
+    TEST_F(NetworkUniverseTest, LatencyCountsFromWhenThePacketIsSent)
+    {
+        universe.set_latency(100);
+
+        IP_Port s2_addr;
+        ip_init(&s2_addr.ip, false);
+        s2_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        s2_addr.port = net_htons(9004);
+        s2.bind(&s2_addr);
+
+        universe.process_events(1000);
+        uint8_t data[] = "Ping";
+        s1.sendto(data, 4, &s2_addr);
+
+        IP_Port from;
+        uint8_t buf[10];
+        universe.process_events(1050);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), -1);
+
+        universe.process_events(1100);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), 4);
+    }
+
+    TEST_F(NetworkUniverseTest, DeliversADuplicateOnceAfterItsDelay)
+    {
+        universe.add_duplicator([](const Packet &) { return std::optional<uint64_t>{500}; });
+
+        IP_Port s2_addr;
+        ip_init(&s2_addr.ip, false);
+        s2_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        s2_addr.port = net_htons(9004);
+        s2.bind(&s2_addr);
+
+        universe.process_events(1000);
+        uint8_t data[] = "Ping";
+        s1.sendto(data, 4, &s2_addr);
+
+        IP_Port from;
+        uint8_t buf[10];
+        universe.process_events(1000);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), 4);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), -1);
+
+        universe.process_events(1499);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), -1);
+
+        universe.process_events(1500);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), 4);
+
+        universe.process_events(3000);
+        ASSERT_EQ(s2.recvfrom(buf, 10, &from), -1);
     }
 
     TEST_F(NetworkUniverseTest, RoutesBasedOnIpAndPort)
