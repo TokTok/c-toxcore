@@ -66,6 +66,7 @@ struct ToxScenario {
 
     pthread_mutex_t mutex;
     pthread_mutex_t clock_mutex;
+    pthread_mutex_t loss_mutex;
     pthread_cond_t cond_runner;
     pthread_cond_t cond_nodes;
 
@@ -96,11 +97,13 @@ static uint64_t get_scenario_clock(void *user_data)
 static int lossy_sendto(void *obj, Socket sock, const uint8_t *buf, size_t len, const IP_Port *addr)
 {
     const ToxNode *node = (const ToxNode *)obj;
-    const ToxScenario *s = node->scenario;
+    ToxScenario *s = node->scenario;
     const uint16_t port = net_ntohs(addr->port);
 
     for (uint32_t i = 0; i < s->num_nodes; ++i) {
+        pthread_mutex_lock(&s->loss_mutex);
         const uint8_t loss = s->link_loss[node->index][i];
+        pthread_mutex_unlock(&s->loss_mutex);
 
         if (loss > 0 && s->nodes[i]->port == port && random_range_u32(s->rng, 100) < loss) {
             return (int)len;
@@ -190,6 +193,7 @@ ToxScenario *tox_scenario_new(int argc, char *const argv[], uint64_t timeout_ms)
 
     pthread_mutex_init(&s->mutex, nullptr);
     pthread_mutex_init(&s->clock_mutex, nullptr);
+    pthread_mutex_init(&s->loss_mutex, nullptr);
     pthread_cond_init(&s->cond_runner, nullptr);
     pthread_cond_init(&s->cond_nodes, nullptr);
 
@@ -225,6 +229,7 @@ void tox_scenario_free(ToxScenario *s)
     }
     pthread_mutex_destroy(&s->mutex);
     pthread_mutex_destroy(&s->clock_mutex);
+    pthread_mutex_destroy(&s->loss_mutex);
     pthread_cond_destroy(&s->cond_runner);
     pthread_cond_destroy(&s->cond_nodes);
     free(s);
@@ -638,11 +643,18 @@ ToxNode *tox_scenario_add_node_ex(ToxScenario *s, const char *alias, tox_node_sc
 
 void tox_scenario_set_link_loss(ToxNode *a, ToxNode *b, uint8_t percent)
 {
-    ToxScenario *s = a->scenario;
-    ck_assert(!s->run_started);
+    ck_assert(!a->scenario->run_started);
+    tox_scenario_set_send_loss(a, b, percent);
+    tox_scenario_set_send_loss(b, a, percent);
+}
+
+void tox_scenario_set_send_loss(ToxNode *from, ToxNode *to, uint8_t percent)
+{
+    ToxScenario *s = from->scenario;
     ck_assert(percent <= 100);
-    s->link_loss[a->index][b->index] = percent;
-    s->link_loss[b->index][a->index] = percent;
+    pthread_mutex_lock(&s->loss_mutex);
+    s->link_loss[from->index][to->index] = percent;
+    pthread_mutex_unlock(&s->loss_mutex);
 }
 
 ToxNode *tox_scenario_add_node(ToxScenario *s, const char *alias, tox_node_script_cb *script, void *ctx, size_t ctx_size)
@@ -795,9 +807,11 @@ void tox_node_reload(ToxNode *node)
 {
     ck_assert(node != nullptr);
     ToxScenario *s = node->scenario;
+    pthread_mutex_lock(&s->loss_mutex);
     for (uint32_t i = 0; i < s->num_nodes; ++i) {
         ck_assert_msg(s->link_loss[node->index][i] == 0, "a node with lossy links can't be reloaded");
     }
+    pthread_mutex_unlock(&s->loss_mutex);
     pthread_mutex_lock(&s->mutex);
 
     // 1. Save data

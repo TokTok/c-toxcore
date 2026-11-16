@@ -24,6 +24,7 @@ cc_library(
 # Scenarios that occasionally exceed the 5s "small" timeout under contention.
 _MEDIUM_SCENARIOS = [
     "scenario_conference_av_test.c",
+    "scenario_group_message_loss_test.c",
     "scenario_overflow_recvq_test.c",
     "scenario_tox_many_tcp_test.c",
     "scenario_tox_many_test.c",

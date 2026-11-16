@@ -197,6 +197,12 @@ void tox_node_friend_add(ToxNode *a, ToxNode *b);
 void tox_scenario_set_link_loss(ToxNode *a, ToxNode *b, uint8_t percent);
 
 /**
+ * Drops `percent`% of the UDP packets `from` sends to `to`. Unlike
+ * tox_scenario_set_link_loss, it can be called while the scenario runs.
+ */
+void tox_scenario_set_send_loss(ToxNode *from, ToxNode *to, uint8_t percent);
+
+/**
  * Reloads a node from its own savedata.
  * This simulates a client restart.
  */
