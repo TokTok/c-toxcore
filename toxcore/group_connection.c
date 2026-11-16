@@ -668,7 +668,12 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gco
 
 bool gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 {
-    return encrypt_precompute(sender_pk, gconn->session_keys->secret_key, gconn->session_keys->shared_key) == 0;
+    if (encrypt_precompute(sender_pk, gconn->session_keys->secret_key, gconn->session_keys->shared_key) != 0) {
+        return false;
+    }
+
+    memcpy(gconn->peer_session_public_key, sender_pk, ENC_PUBLIC_KEY_SIZE);
+    return true;
 }
 
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)

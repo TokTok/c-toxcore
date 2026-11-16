@@ -120,6 +120,7 @@ typedef struct GC_Connection {
 
     uint8_t     session_public_key[ENC_PUBLIC_KEY_SIZE];   /* self session public key for this peer */
     GC_Session_Keys *_Nonnull session_keys;
+    uint8_t     peer_session_public_key[ENC_PUBLIC_KEY_SIZE];  /* peer's session pk the shared key is made with */
 
     int         tcp_connection_num;
     int32_t     friend_number; /* The messenger friend number associated with this group connection. Used to discover the peer's IP/port if it wasn't available during the initial invite. */

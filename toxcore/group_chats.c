@@ -4082,6 +4082,7 @@ static int handle_gc_key_exchange(const GC_Chat *_Nonnull chat, GC_Connection *_
     memcpy(gconn->session_public_key, new_session_pk, sizeof(gconn->session_public_key));
     mem_delete(chat->secure_mem, gconn->session_keys);
     gconn->session_keys = new_session_keys;
+    memcpy(gconn->peer_session_public_key, sender_public_session_key, ENC_PUBLIC_KEY_SIZE);
 
     gconn->last_key_rotation = mono_time_get(chat->mono_time);
 
@@ -5732,6 +5733,10 @@ static int handle_gc_handshake_response(const GC_Chat *_Nonnull chat, const IP_P
 
     const uint8_t *sender_session_pk = data;
 
+    // With the same session key, we handled this response before: it's a copy, or the peer sent
+    // it again because our ack was lost. A peer that starts over sends a new key.
+    const bool again = gconn->handshaked && pk_equal(gconn->peer_session_public_key, sender_session_pk);
+
     if (!gcc_make_session_shared_key(gconn, sender_session_pk)) {
         return -1;
     }
@@ -5745,7 +5750,10 @@ static int handle_gc_handshake_response(const GC_Chat *_Nonnull chat, const IP_P
 
     set_sig_pk(&gconn->addr.public_key, sig_pk);
 
-    gcc_set_recv_message_id(gconn, 2);  // handshake response is always second packet
+    // Resetting the id again would make us wait for messages we already received.
+    if (!again) {
+        gcc_set_recv_message_id(gconn, 2);  // handshake response is always second packet
+    }
 
     gconn->handshaked = true;
 
@@ -5845,6 +5853,13 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
         }
 
         if (gconn->handshaked) {
+            // A request with the same session key is a copy. A peer that starts over sends a
+            // new key.
+            if (pk_equal(gconn->peer_session_public_key, data)) {
+                LOGGER_DEBUG(chat->log, "Handshaked peer %d sent its handshake request again; ignoring", peer_number);
+                return peer_number;
+            }
+
             gconn->handshaked = false;
             LOGGER_DEBUG(chat->log, "Handshaked peer %d sent a handshake request; re-handshaking", peer_number);
         }
