@@ -669,6 +669,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gco
 void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 {
     encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
+    memcpy(gconn->peer_session_public_key, sender_pk, ENC_PUBLIC_KEY_SIZE);
 }
 
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
