@@ -963,8 +963,7 @@ static void lan_discovery(Friend_Connections *_Nonnull fr_c)
             return;
         }
         const uint16_t first = fr_c->next_lan_port;
-        uint16_t last = first + PORTS_PER_DISCOVERY;
-        last = last > TOX_PORTRANGE_TO ? TOX_PORTRANGE_TO : last;
+        const uint16_t last = (uint16_t)min_u32(first + PORTS_PER_DISCOVERY, TOX_PORTRANGE_TO);
 
         // Always send to default port
         lan_discovery_send(fr_c->net, fr_c->broadcast, dht_get_self_public_key(fr_c->dht),

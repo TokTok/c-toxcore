@@ -98,7 +98,7 @@ static bool create_forwarding_packet(const Forwarding *_Nonnull forwarding,
         packet[1] = 0;
         memcpy(packet + 1 + 1, data, length);
     } else {
-        const uint16_t sendback_len = TIMED_AUTH_SIZE + sendback_data_len;
+        const uint32_t sendback_len = TIMED_AUTH_SIZE + sendback_data_len;
 
         if (sendback_len > MAX_SENDBACK_SIZE) {
             return false;
