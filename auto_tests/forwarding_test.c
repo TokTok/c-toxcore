@@ -126,7 +126,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
         subtox->net = new_networking_ex(subtox->log, mem, ns, &ip, port, port, nullptr);
     }
 
-    subtox->dht = new_dht(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, true, true);
+    subtox->dht = new_dht(subtox->log, mem, mem, rng, ns, subtox->mono_time, subtox->net, true, true);
 
     subtox->tcp_np = netprof_new(subtox->log, mem);
     ck_assert(subtox->tcp_np != nullptr);
@@ -137,7 +137,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht, subtox->net);
     ck_assert(subtox->forwarding != nullptr);
 
-    subtox->announce = new_announcements(subtox->log, mem, rng, subtox->mono_time, subtox->forwarding, subtox->dht, subtox->net);
+    subtox->announce = new_announcements(subtox->log, mem, mem, rng, subtox->mono_time, subtox->forwarding, subtox->dht, subtox->net);
     ck_assert(subtox->announce != nullptr);
 
     return subtox;

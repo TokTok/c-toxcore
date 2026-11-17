@@ -312,6 +312,7 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
     system.ns = &c_network;
     system.rng = &c_random;
     system.mem = &c_memory;
+    system.secure_mem = &c_memory;
     system.mono_time_callback = [](void *_Nullable user_data) -> uint64_t {
         return static_cast<FakeClock *>(user_data)->current_time_ms();
     };

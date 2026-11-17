@@ -127,14 +127,14 @@ static void test_gca_announce_response_size(void)
                                    36700 + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
     ck_assert(srv_net != nullptr);
 
-    DHT *srv_dht = new_dht(srv_log, mem, rng, ns, srv_mono, srv_net, true, false);
+    DHT *srv_dht = new_dht(srv_log, mem, mem, rng, ns, srv_mono, srv_net, true, false);
     ck_assert(srv_dht != nullptr);
 
-    Onion *srv_onion = new_onion(srv_log, mem, srv_mono, rng, srv_dht, srv_net);
+    Onion *srv_onion = new_onion(srv_log, mem, mem, srv_mono, rng, srv_dht, srv_net);
     ck_assert(srv_onion != nullptr);
 
     Onion_Announce *srv_onion_a = new_onion_announce(
-                                      srv_log, mem, rng, srv_mono, srv_dht, srv_net);
+                                      srv_log, mem, mem, rng, srv_mono, srv_dht, srv_net);
     ck_assert(srv_onion_a != nullptr);
 
     GC_Announces_List *gca_list = new_gca_list(mem);

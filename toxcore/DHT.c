@@ -2521,7 +2521,7 @@ static int handle_lan_discovery(void *_Nonnull object, const IP_Port *_Nonnull s
 
 /*----------------------------------------------------------------------------------*/
 
-DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Network *ns,
+DHT *new_dht(const Logger *log, const Memory *mem, const Memory *secure_mem, const Random *rng, const Network *ns,
              Mono_Time *mono_time, Networking_Core *net,
              bool hole_punching_enabled, bool lan_discovery_enabled)
 {
@@ -2569,7 +2569,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
     crypto_new_keypair(rng, dht->self_public_key, dht->self_secret_key);
 
-    Shared_Key_Cache *const temp_shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_recv = shared_key_cache_new(log, mono_time, mem, secure_mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
     if (temp_shared_keys_recv == nullptr) {
         LOGGER_ERROR(log, "failed to initialise shared key cache");
@@ -2579,7 +2579,7 @@ DHT *new_dht(const Logger *log, const Memory *mem, const Random *rng, const Netw
 
     dht->shared_keys_recv = temp_shared_keys_recv;
 
-    Shared_Key_Cache *const temp_shared_keys_sent = shared_key_cache_new(log, mono_time, mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_sent = shared_key_cache_new(log, mono_time, mem, secure_mem, dht->self_secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
     if (temp_shared_keys_sent == nullptr) {
         LOGGER_ERROR(log, "failed to initialise shared key cache");

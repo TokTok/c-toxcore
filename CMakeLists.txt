@@ -348,6 +348,8 @@ set(toxcore_SOURCES
   toxcore/os_network.h
   toxcore/os_random.c
   toxcore/os_random.h
+  toxcore/os_secure_memory.c
+  toxcore/os_secure_memory.h
   toxcore/ping_array.c
   toxcore/ping_array.h
   toxcore/ping.c
@@ -643,6 +645,7 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
   unit_test(toxcore group_moderation)
   unit_test(toxcore list)
   unit_test(toxcore mem)
+  unit_test(toxcore os_secure_memory)
   unit_test(toxcore mono_time)
   unit_test(toxcore net_crypto)
   unit_test(toxcore network)

@@ -213,9 +213,9 @@ static bool load_unpack_keys(GC_Chat *_Nonnull chat, Bin_Unpack *_Nonnull bu)
     }
 
     if (!(unpack_extended_public_key(&chat->chat_public_key, bu)
-            && unpack_extended_secret_key(&chat->chat_secret_key, bu)
+            && unpack_extended_secret_key(&chat->secrets->chat_secret_key, bu)
             && unpack_extended_public_key(&chat->self_public_key, bu)
-            && unpack_extended_secret_key(&chat->self_secret_key, bu))) {
+            && unpack_extended_secret_key(&chat->secrets->self_secret_key, bu))) {
         LOGGER_ERROR(chat->log, "Failed to unpack keys");
         return false;
     }
@@ -408,9 +408,9 @@ static void save_pack_keys(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)
     bin_pack_array(bp, 4);
 
     pack_extended_public_key(&chat->chat_public_key, bp); // 1
-    pack_extended_secret_key(&chat->chat_secret_key, bp); // 2
+    pack_extended_secret_key(&chat->secrets->chat_secret_key, bp); // 2
     pack_extended_public_key(&chat->self_public_key, bp); // 3
-    pack_extended_secret_key(&chat->self_secret_key, bp); // 4
+    pack_extended_secret_key(&chat->secrets->self_secret_key, bp); // 4
 }
 
 static void save_pack_self_info(const GC_Chat *_Nonnull chat, Bin_Pack *_Nonnull bp)

@@ -506,6 +506,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
     const Random *const rng = sys->rng;
     const Network *const ns = sys->ns;
     const Memory *const mem = sys->mem;
+    const Memory *const secure_mem = sys->secure_mem != nullptr ? sys->secure_mem : mem;
 
     Messenger_Options m_options = {nullptr};
 
@@ -676,7 +677,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
     tox_lock(tox);
 
     Messenger_Error m_error;
-    Messenger *temp_m = new_messenger(tox->mono_time, mem, rng, ns, &m_options, &m_error);
+    Messenger *temp_m = new_messenger(tox->mono_time, mem, secure_mem, rng, ns, &m_options, &m_error);
 
     if (temp_m == nullptr) {
         switch (m_error) {

@@ -26,14 +26,16 @@ typedef struct Shared_Key_Cache Shared_Key_Cache;
 /**
  * @brief Initializes a new shared key cache.
  * @param mono_time Time object for retrieving current time.
+ * @param secure_mem Memory allocator used for the keys.
  * @param self_secret_key Our own secret key of length CRYPTO_SECRET_KEY_SIZE,
  * it must not change during the lifetime of the cache.
  * @param timeout Number of milliseconds, after which a key should be evicted.
  * @param keys_per_slot There are 256 slots, this controls how many keys are stored per slot and the size of the cache.
  * @return nullptr on error.
  */
-Shared_Key_Cache *_Nullable shared_key_cache_new(const Logger *_Nonnull log, const Mono_Time *_Nonnull mono_time, const Memory *_Nonnull mem, const uint8_t *_Nonnull self_secret_key, uint64_t timeout,
-        uint8_t keys_per_slot);
+Shared_Key_Cache *_Nullable shared_key_cache_new(
+    const Logger *_Nonnull log, const Mono_Time *_Nonnull mono_time, const Memory *_Nonnull mem, const Memory *_Nonnull secure_mem,
+    const uint8_t *_Nonnull self_secret_key, uint64_t timeout, uint8_t keys_per_slot);
 
 /**
  * @brief Deletes the cache and frees all resources.

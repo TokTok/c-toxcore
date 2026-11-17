@@ -365,7 +365,8 @@ TEST(AnnounceNodes, SetAndTest)
 
     Ptr<Networking_Core> net(new_networking_no_udp(log, &c_mem, &net_struct));
     ASSERT_NE(net, nullptr);
-    Ptr<DHT> dht(new_dht(log, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
+    Ptr<DHT> dht(
+        new_dht(log, &c_mem, &c_mem, &c_rng, &net_struct, mono_time, net.get(), true, true));
     ASSERT_NE(dht, nullptr);
 
     std::uint8_t pk_data[CRYPTO_PUBLIC_KEY_SIZE];

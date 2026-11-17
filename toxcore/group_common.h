@@ -98,6 +98,12 @@ typedef struct GC_Message_Array_Entry {
     uint64_t last_send_try;
 } GC_Message_Array_Entry;
 
+/** Allocated separately in secure memory, so resizing the peer list doesn't move the keys. */
+typedef struct GC_Session_Keys {
+    uint8_t     secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
+    uint8_t     shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
+} GC_Session_Keys;
+
 typedef struct GC_Connection {
     uint64_t send_message_id;   /* message_id of the next message we send to peer */
 
@@ -113,8 +119,7 @@ typedef struct GC_Connection {
     uint32_t    public_key_hash;   /* Jenkins one at a time hash of peer's real encryption public key */
 
     uint8_t     session_public_key[ENC_PUBLIC_KEY_SIZE];   /* self session public key for this peer */
-    uint8_t     session_secret_key[ENC_SECRET_KEY_SIZE];   /* self session secret key for this peer */
-    uint8_t     session_shared_key[CRYPTO_SHARED_KEY_SIZE];  /* made with our session sk and peer's session pk */
+    GC_Session_Keys *_Nonnull session_keys;
 
     int         tcp_connection_num;
     int32_t     friend_number; /* The messenger friend number associated with this group connection. Used to discover the peer's IP/port if it wasn't available during the initial invite. */
@@ -276,10 +281,21 @@ typedef struct GC_TopicInfo {
     uint8_t     public_sig_key[SIG_PUBLIC_KEY_SIZE];  // Public signature key of the topic setter
 } GC_TopicInfo;
 
+/**
+ * Allocated separately in secure memory, so resizing the group list doesn't move the keys.
+ *
+ * Every entry of the group list has one, from when the entry is added until it is removed.
+ */
+typedef struct GC_Chat_Secrets {
+    Extended_Secret_Key chat_secret_key;  // only used by the founder
+    Extended_Secret_Key self_secret_key;
+} GC_Chat_Secrets;
+
 typedef struct GC_Chat {
     Mono_Time       *_Nonnull mono_time;
     const Logger    *_Nonnull log;
     const Memory    *_Nonnull mem;
+    const Memory    *_Nonnull secure_mem;
     const Random    *_Nonnull rng;
 
     uint32_t        connected_tcp_relays;
@@ -312,10 +328,8 @@ typedef struct GC_Chat {
     int         group_number;
 
     Extended_Public_Key chat_public_key;  // the chat_id is the sig portion
-    Extended_Secret_Key chat_secret_key;  // only used by the founder
-
     Extended_Public_Key self_public_key;
-    Extended_Secret_Key self_secret_key;
+    GC_Chat_Secrets *_Nonnull secrets;
 
     uint64_t    time_connected;
     uint64_t    last_ping_interval;
