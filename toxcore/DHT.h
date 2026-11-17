@@ -408,7 +408,7 @@ void dht_save(const DHT *_Nonnull dht, uint8_t *_Nonnull data);
 int dht_load(DHT *_Nonnull dht, const uint8_t *_Nonnull data, uint32_t length);
 
 /** Initialize DHT. */
-DHT *_Nullable new_dht(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time, Networking_Core *_Nonnull net,
+DHT *_Nullable new_dht(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Memory *_Nonnull secure_mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Mono_Time *_Nonnull mono_time, Networking_Core *_Nonnull net,
                        bool hole_punching_enabled, bool lan_discovery_enabled);
 
 void kill_dht(DHT *_Nullable dht);

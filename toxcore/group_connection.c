@@ -634,7 +634,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gco
     }
 
     const int enc_len = group_packet_wrap(
-                            chat->log, chat->mem, chat->rng, chat->self_public_key.enc, gconn->session_shared_key, packet,
+                            chat->log, chat->mem, chat->rng, chat->self_public_key.enc, gconn->session_keys->shared_key, packet,
                             packet_size, data, length, message_id, packet_type, NET_PACKET_GC_LOSSLESS);
 
     if (enc_len < 0) {
@@ -656,7 +656,7 @@ int gcc_encrypt_and_send_lossless_packet(const GC_Chat *chat, GC_Connection *gco
 
 void gcc_make_session_shared_key(GC_Connection *gconn, const uint8_t *sender_pk)
 {
-    encrypt_precompute(sender_pk, gconn->session_secret_key, gconn->session_shared_key);
+    encrypt_precompute(sender_pk, gconn->session_keys->secret_key, gconn->session_keys->shared_key);
 }
 
 bool gcc_conn_is_direct(const Mono_Time *mono_time, const GC_Connection *gconn)
@@ -698,7 +698,7 @@ void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Grou
     }
 }
 
-void gcc_peer_cleanup(const Memory *mem, GC_Connection *gconn)
+void gcc_peer_cleanup(const Memory *mem, const Memory *secure_mem, GC_Connection *gconn)
 {
     for (size_t i = 0; i < GCC_BUFFER_SIZE; ++i) {
         mem_delete(mem, gconn->send_array[i].data);
@@ -708,8 +708,7 @@ void gcc_peer_cleanup(const Memory *mem, GC_Connection *gconn)
     mem_delete(mem, gconn->recv_array);
     mem_delete(mem, gconn->send_array);
 
-    crypto_memunlock(gconn->session_secret_key, sizeof(gconn->session_secret_key));
-    crypto_memunlock(gconn->session_shared_key, sizeof(gconn->session_shared_key));
+    mem_delete(secure_mem, gconn->session_keys);
     crypto_memzero(gconn, sizeof(GC_Connection));
 }
 
@@ -719,6 +718,6 @@ void gcc_cleanup(const GC_Chat *chat)
         GC_Connection *gconn = get_gc_connection(chat, i);
         assert(gconn != nullptr);
 
-        gcc_peer_cleanup(chat->mem, gconn);
+        gcc_peer_cleanup(chat->mem, chat->secure_mem, gconn);
     }
 }

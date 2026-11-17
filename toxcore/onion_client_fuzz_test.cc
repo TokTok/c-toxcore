@@ -56,7 +56,7 @@ public:
         // In fuzzing we might ignore assert, but setup should succeed
         node_->endpoint = node_->node->get_primary_socket();
 
-        dht_.reset(new_dht(logger_.get(), &node_->c_memory, &node_->c_random, &node_->c_network,
+        dht_.reset(new_dht(logger_.get(), &node_->c_memory, &node_->c_memory, &node_->c_random, &node_->c_network,
             mono_time_.get(), networking_.get(), true, true));
     }
 

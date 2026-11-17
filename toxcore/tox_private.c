@@ -26,6 +26,7 @@
 #include "os_memory.h"
 #include "os_network.h"
 #include "os_random.h"
+#include "os_secure_memory.h"
 #include "tox.h"
 #include "tox_struct.h"  // IWYU pragma: keep
 
@@ -44,6 +45,7 @@ Tox_System tox_default_system(void)
         os_random(),
         os_network(),
         os_memory(),
+        os_secure_memory(),
     };
     return sys;
 }

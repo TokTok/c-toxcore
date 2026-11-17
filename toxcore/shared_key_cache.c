@@ -26,6 +26,7 @@ struct Shared_Key_Cache {
     uint64_t timeout; /** After this time (in seconds), a key is erased on the next housekeeping cycle */
     const Mono_Time *_Nonnull mono_time;
     const Memory *_Nonnull mem;
+    const Memory *_Nonnull secure_mem;
     const Logger *_Nonnull log;
     uint8_t keys_per_slot;
 };
@@ -46,7 +47,7 @@ static void shared_key_set_empty(const Logger *_Nonnull log, Shared_Key *_Nonnul
     LOGGER_ASSERT(log, shared_key_is_empty(log, k), "shared key must be empty after clearing it");
 }
 
-Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_time, const Memory *mem, const uint8_t *self_secret_key, uint64_t timeout, uint8_t keys_per_slot)
+Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_time, const Memory *mem, const Memory *secure_mem, const uint8_t *self_secret_key, uint64_t timeout, uint8_t keys_per_slot)
 {
     if (mono_time == nullptr || self_secret_key == nullptr || timeout == 0 || keys_per_slot == 0) {
         return nullptr;
@@ -67,19 +68,18 @@ Shared_Key_Cache *shared_key_cache_new(const Logger *log, const Mono_Time *mono_
     res->self_secret_key = self_secret_key;
     res->mono_time = mono_time;
     res->mem = mem;
+    res->secure_mem = secure_mem;
     res->log = log;
     res->keys_per_slot = keys_per_slot;
 
     // We take one byte from the public key for each bucket and store keys_per_slot elements there
     const size_t cache_size = 256 * keys_per_slot;
-    Shared_Key *keys = (Shared_Key *)mem_valloc(mem, cache_size, sizeof(Shared_Key));
+    Shared_Key *keys = (Shared_Key *)mem_valloc(secure_mem, cache_size, sizeof(Shared_Key));
 
     if (keys == nullptr) {
         mem_delete(mem, res);
         return nullptr;
     }
-
-    crypto_memlock(keys, cache_size * sizeof(Shared_Key));
 
     res->keys = keys;
 
@@ -95,8 +95,7 @@ void shared_key_cache_free(Shared_Key_Cache *cache)
     const size_t cache_size = 256 * cache->keys_per_slot;
     // Don't leave key material in memory
     crypto_memzero(cache->keys, cache_size * sizeof(Shared_Key));
-    crypto_memunlock(cache->keys, cache_size * sizeof(Shared_Key));
-    mem_delete(cache->mem, cache->keys);
+    mem_delete(cache->secure_mem, cache->keys);
     mem_delete(cache->mem, cache);
 }
 

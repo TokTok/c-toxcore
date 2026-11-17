@@ -60,6 +60,7 @@ std::unique_ptr<ScopedToxSystem> SimulatedEnvironment::create_node(uint16_t port
 
     // Setup System
     scoped->system.mem = &scoped->c_memory;
+    scoped->system.secure_mem = &scoped->c_memory;
     scoped->system.ns = &scoped->c_network;
     scoped->system.rng = &scoped->c_random;
 

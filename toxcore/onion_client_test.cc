@@ -58,12 +58,13 @@ public:
             dht_wrapper_.get_dht(), dht_wrapper_.networking()));
 
         // Setup Onion Server
-        onion_server_.reset(new_onion(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
+        onion_server_.reset(new_onion(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_memory,
             dht_wrapper_.mono_time(), &dht_wrapper_.node().c_random, dht_wrapper_.get_dht(),
             dht_wrapper_.networking()));
 
         // Setup Onion Announce
         onion_announce_.reset(new_onion_announce(dht_wrapper_.logger(),
+            &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_memory, &dht_wrapper_.node().c_random, dht_wrapper_.mono_time(),
             dht_wrapper_.get_dht(), dht_wrapper_.networking()));
     }

@@ -125,6 +125,8 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/os_network.h \
                         ../toxcore/os_random.c \
                         ../toxcore/os_random.h \
+                        ../toxcore/os_secure_memory.c \
+                        ../toxcore/os_secure_memory.h \
                         ../toxcore/ping_array.c \
                         ../toxcore/ping_array.h \
                         ../toxcore/ping.c \

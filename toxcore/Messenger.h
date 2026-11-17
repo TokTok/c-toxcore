@@ -246,6 +246,7 @@ struct Messenger {
     Logger *_Nonnull log;
     Mono_Time *_Nonnull mono_time;
     const Memory *_Nonnull mem;
+    const Memory *_Nonnull secure_mem;
     const Random *_Nonnull rng;
     const Network *_Nonnull ns;
 
@@ -741,7 +742,7 @@ typedef enum Messenger_Error {
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *_Nullable new_messenger(Mono_Time *_Nonnull mono_time, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Messenger_Options *_Nonnull options,
+Messenger *_Nullable new_messenger(Mono_Time *_Nonnull mono_time, const Memory *_Nonnull mem, const Memory *_Nonnull secure_mem, const Random *_Nonnull rng, const Network *_Nonnull ns, Messenger_Options *_Nonnull options,
                                    Messenger_Error *_Nonnull error);
 
 /** @brief Run this before closing shop.

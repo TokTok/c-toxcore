@@ -108,26 +108,6 @@ void crypto_memzero(void *data, size_t length)
 #endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
 }
 
-bool crypto_memlock(void *data, size_t length)
-{
-#if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    return false;
-#else
-
-    return sodium_mlock(data, length) == 0;
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-}
-
-bool crypto_memunlock(void *data, size_t length)
-{
-#if defined(FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION)
-    return false;
-#else
-
-    return sodium_munlock(data, length) == 0;
-#endif /* FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION */
-}
-
 bool pk_equal(const uint8_t pk1[CRYPTO_PUBLIC_KEY_SIZE], const uint8_t pk2[CRYPTO_PUBLIC_KEY_SIZE])
 {
     return memcmp(pk1, pk2, CRYPTO_PUBLIC_KEY_SIZE) == 0;

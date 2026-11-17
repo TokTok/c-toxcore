@@ -402,29 +402,6 @@ void increment_nonce_number(uint8_t nonce[_Nonnull CRYPTO_NONCE_SIZE], uint32_t 
 void new_symmetric_key(const Random *_Nonnull rng, uint8_t key[_Nonnull CRYPTO_SYMMETRIC_KEY_SIZE]);
 
 /**
- * @brief Locks `length` bytes of memory pointed to by `data`.
- *
- * This will attempt to prevent the specified memory region from being swapped
- * to disk.
- *
- * @return true on success.
- */
-bool crypto_memlock(void *_Nonnull data, size_t length);
-
-/**
- * @brief Unlocks `length` bytes of memory pointed to by `data`.
- *
- * This allows the specified memory region to be swapped to disk.
- *
- * This function call has the side effect of zeroing the specified memory region
- * whether or not it succeeds. Therefore it should only be used once the memory
- * is no longer in use.
- *
- * @return true on success.
- */
-bool crypto_memunlock(void *_Nonnull data, size_t length);
-
-/**
  * @brief Generate a random secret HMAC key.
  */
 void new_hmac_key(const Random *_Nonnull rng, uint8_t key[_Nonnull CRYPTO_HMAC_KEY_SIZE]);

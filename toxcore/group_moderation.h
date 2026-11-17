@@ -95,7 +95,7 @@ typedef struct Moderation {
     // copies from parent/sibling chat/shared state objects
     uint8_t     founder_public_sig_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t     self_public_sig_key[SIG_PUBLIC_KEY_SIZE];
-    uint8_t     self_secret_sig_key[SIG_SECRET_KEY_SIZE];
+    const uint8_t *_Nonnull self_secret_sig_key;
     uint32_t    shared_state_version;
 } Moderation;
 

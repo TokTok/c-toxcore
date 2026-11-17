@@ -24,6 +24,7 @@ jobs:
             compcert,
             cppcheck,
             doxygen,
+            filc,
             infer,
             misra,
             modules,

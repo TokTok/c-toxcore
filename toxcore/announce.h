@@ -26,7 +26,7 @@ uint8_t announce_response_of_request_type(uint8_t request_type);
 
 typedef struct Announcements Announcements;
 
-Announcements *_Nullable new_announcements(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Random *_Nonnull rng, const Mono_Time *_Nonnull mono_time, Forwarding *_Nonnull forwarding,
+Announcements *_Nullable new_announcements(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Memory *_Nonnull secure_mem, const Random *_Nonnull rng, const Mono_Time *_Nonnull mono_time, Forwarding *_Nonnull forwarding,
         DHT *_Nonnull dht, Networking_Core *_Nonnull net);
 
 /**

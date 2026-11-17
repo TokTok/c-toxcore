@@ -172,7 +172,7 @@ bool gcc_send_lossless_packet_fragments(const GC_Chat *_Nonnull chat, GC_Connect
 int gcc_encrypt_and_send_lossless_packet(const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn, const uint8_t *_Nullable data,
         uint16_t length, uint64_t message_id, uint8_t packet_type);
 /** @brief Called when a peer leaves the group. */
-void gcc_peer_cleanup(const Memory *_Nonnull mem, GC_Connection *_Nonnull gconn);
+void gcc_peer_cleanup(const Memory *_Nonnull mem, const Memory *_Nonnull secure_mem, GC_Connection *_Nonnull gconn);
 
 /** @brief Called on group exit. */
 void gcc_cleanup(const GC_Chat *_Nonnull chat);

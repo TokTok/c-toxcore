@@ -42,6 +42,7 @@
 #include "../../../toxcore/onion_announce.h"
 #include "../../../toxcore/os_memory.h"
 #include "../../../toxcore/os_random.h"
+#include "../../../toxcore/os_secure_memory.h"
 
 // misc
 #include "../../bootstrap_node_packets.h"
@@ -291,6 +292,7 @@ int main(int argc, char *argv[])
     ip_init(&ip, enable_ipv6);
 
     const Memory *mem = os_memory();
+    const Memory *secure_mem = os_secure_memory();
     const Random *rng = os_random();
     const Network *ns = os_network();
 
@@ -340,7 +342,7 @@ int main(int argc, char *argv[])
 
     mono_time_update(mono_time);
 
-    DHT *const dht = new_dht(logger, mem, rng, ns, mono_time, net, true, enable_lan_discovery);
+    DHT *const dht = new_dht(logger, mem, secure_mem, rng, ns, mono_time, net, true, enable_lan_discovery);
 
     if (dht == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox DHT instance. Exiting.\n");
@@ -367,7 +369,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Announcements *announce = new_announcements(logger, mem, rng, mono_time, forwarding, dht, net);
+    Announcements *announce = new_announcements(logger, mem, secure_mem, rng, mono_time, forwarding, dht, net);
 
     if (announce == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize DHT announcements. Exiting.\n");
@@ -398,7 +400,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion *onion = new_onion(logger, mem, mono_time, rng, dht, net);
+    Onion *onion = new_onion(logger, mem, secure_mem, mono_time, rng, dht, net);
 
     if (onion == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion. Exiting.\n");
@@ -415,7 +417,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht, net);
+    Onion_Announce *onion_a = new_onion_announce(logger, mem, secure_mem, rng, mono_time, dht, net);
 
     if (onion_a == nullptr) {
         LOG_WRITE(LOG_LEVEL_ERROR, "Couldn't initialize Tox Onion Announce. Exiting.\n");
