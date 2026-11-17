@@ -1161,6 +1161,11 @@ bool tox_self_set_name(Tox *_Nonnull tox, const uint8_t *_Nonnull name, size_t l
         return false;
     }
 
+    if (length > TOX_MAX_NAME_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_SET_INFO_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
 
     if (setname(tox->m, name, length) == 0) {
@@ -1202,6 +1207,11 @@ bool tox_self_set_status_message(Tox *_Nonnull tox, const uint8_t *_Nonnull stat
 
     if (status_message == nullptr && length != 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_SET_INFO_NULL);
+        return false;
+    }
+
+    if (length > TOX_MAX_STATUS_MESSAGE_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_SET_INFO_TOO_LONG);
         return false;
     }
 
@@ -1307,6 +1317,11 @@ uint32_t tox_friend_add(Tox *_Nonnull tox, const Tox_Address _Nonnull address, c
     assert(tox != nullptr);
     if (address == nullptr || message == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_ADD_NULL);
+        return UINT32_MAX;
+    }
+
+    if (length > TOX_MAX_FRIEND_REQUEST_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_ADD_TOO_LONG);
         return UINT32_MAX;
     }
 
@@ -1687,6 +1702,11 @@ uint32_t tox_friend_send_message(Tox *_Nonnull tox, uint32_t friend_number, Tox_
         return 0;
     }
 
+    if (length > TOX_MAX_MESSAGE_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_SEND_MESSAGE_TOO_LONG);
+        return 0;
+    }
+
     uint32_t message_id = 0;
     tox_lock(tox);
     set_message_error(tox->m->log, m_send_message_generic(tox->m, friend_number, type, message, length, &message_id),
@@ -1909,6 +1929,11 @@ uint32_t tox_file_send(Tox *_Nonnull tox, uint32_t friend_number, uint32_t kind,
         return UINT32_MAX;
     }
 
+    if (filename_length > TOX_MAX_FILENAME_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FILE_SEND_NAME_TOO_LONG);
+        return UINT32_MAX;
+    }
+
     uint8_t f_id[FILE_ID_LENGTH];
 
     if (file_id == nullptr) {
@@ -1959,6 +1984,13 @@ bool tox_file_send_chunk(Tox *_Nonnull tox, uint32_t friend_number, uint32_t fil
 {
     assert(tox != nullptr);
     assert(length == 0 || data != nullptr);
+
+    // No chunk is this long: send_file_data, which checks the rest, takes 16 bits.
+    if (length > UINT16_MAX) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FILE_SEND_CHUNK_INVALID_LENGTH);
+        return false;
+    }
+
     tox_lock(tox);
     const int ret = send_file_data(tox->m, friend_number, file_number, position, data, length);
     tox_unlock(tox);
@@ -2390,6 +2422,12 @@ uint32_t tox_conference_join(Tox *_Nonnull tox, uint32_t friend_number, const ui
         return UINT32_MAX;
     }
 
+    // No cookie is this long: join_groupchat, which checks the rest, takes 16 bits.
+    if (length > UINT16_MAX) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_JOIN_INVALID_LENGTH);
+        return UINT32_MAX;
+    }
+
     tox_lock(tox);
     const int ret = join_groupchat(tox->m->conferences_object, friend_number, GROUPCHAT_TYPE_TEXT, cookie, length);
     tox_unlock(tox);
@@ -2434,6 +2472,12 @@ bool tox_conference_send_message(Tox *_Nonnull tox, uint32_t conference_number, 
                                  size_t length, Tox_Err_Conference_Send_Message *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_MAX_MESSAGE_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_SEND_MESSAGE_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     int ret = 0;
 
@@ -2522,6 +2566,12 @@ bool tox_conference_set_title(Tox *_Nonnull tox, uint32_t conference_number, con
                               Tox_Err_Conference_Title *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_MAX_NAME_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_CONFERENCE_TITLE_INVALID_LENGTH);
+        return false;
+    }
+
     tox_lock(tox);
     const int ret = group_title_send(tox->m->conferences_object, conference_number, title, length);
     tox_unlock(tox);
@@ -2704,6 +2754,11 @@ bool tox_friend_send_lossy_packet(Tox *_Nonnull tox, uint32_t friend_number, con
         return false;
     }
 
+    if (length > TOX_MAX_CUSTOM_PACKET_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     const int ret = m_send_custom_lossy_packet(tox->m, friend_number, data, length);
     tox_unlock(tox);
@@ -2739,6 +2794,11 @@ bool tox_friend_send_lossless_packet(Tox *_Nonnull tox, uint32_t friend_number, 
         return false;
     }
 
+    if (length > TOX_MAX_CUSTOM_PACKET_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     const int ret = send_custom_lossless_packet(tox->m, friend_number, data, length);
     tox_unlock(tox);
@@ -2760,6 +2820,11 @@ bool tox_friend_send_lossless_packet_any_id(Tox *_Nonnull tox, uint32_t friend_n
 
     if (length == 0) {
         SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_EMPTY);
+        return false;
+    }
+
+    if (length > TOX_MAX_CUSTOM_PACKET_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_FRIEND_CUSTOM_PACKET_TOO_LONG);
         return false;
     }
 
@@ -2940,6 +3005,11 @@ uint32_t tox_group_new(Tox *_Nonnull tox, Tox_Group_Privacy_State privacy_state,
 {
     assert(tox != nullptr);
 
+    if (group_name_length > TOX_GROUP_MAX_GROUP_NAME_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_NEW_TOO_LONG);
+        return UINT32_MAX;
+    }
+
     tox_lock(tox);
     const int ret = gc_group_add(tox->m->group_handler, (Group_Privacy_State) privacy_state,
                                  group_name, group_name_length, name, name_length);
@@ -2987,6 +3057,11 @@ uint32_t tox_group_join(Tox *_Nonnull tox, const Tox_Group_Chat_Id _Nonnull chat
                         const uint8_t *_Nullable password, size_t password_length, Tox_Err_Group_Join *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (password_length > TOX_GROUP_MAX_PASSWORD_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_JOIN_PASSWORD);
+        return UINT32_MAX;
+    }
 
     tox_lock(tox);
     const int ret = gc_group_join(tox->m->group_handler, chat_id, name, name_length, password, password_length);
@@ -3132,6 +3207,12 @@ bool tox_group_leave(Tox *_Nonnull tox, uint32_t group_number, const uint8_t *_N
                      Tox_Err_Group_Leave *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_GROUP_MAX_PART_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_LEAVE_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
@@ -3171,6 +3252,12 @@ bool tox_group_self_set_name(Tox *_Nonnull tox, uint32_t group_number, const uin
                              Tox_Err_Group_Self_Name_Set *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_MAX_NAME_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SELF_NAME_SET_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     const int ret = gc_set_self_nick(tox->m, group_number, name, length);
     tox_unlock(tox);
@@ -3527,6 +3614,11 @@ bool tox_group_set_topic(Tox *_Nonnull tox, uint32_t group_number, const uint8_t
 {
     assert(tox != nullptr);
 
+    if (length > TOX_GROUP_MAX_TOPIC_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_TOPIC_SET_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
@@ -3867,6 +3959,11 @@ Tox_Group_Message_Id tox_group_send_message(
 {
     assert(tox != nullptr);
 
+    if (length > TOX_GROUP_MAX_MESSAGE_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SEND_MESSAGE_TOO_LONG);
+        return -1;
+    }
+
     tox_lock(tox);
     const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
@@ -3928,6 +4025,11 @@ Tox_Group_Message_Id tox_group_send_private_message(const Tox *_Nonnull tox, uin
         Tox_Message_Type message_type, const uint8_t *_Nonnull message, size_t length, Tox_Err_Group_Send_Private_Message *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_GROUP_MAX_MESSAGE_LENGTH) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_TOO_LONG);
+        return -1;
+    }
 
     tox_lock(tox);
     const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
@@ -3996,6 +4098,11 @@ bool tox_group_send_custom_packet(const Tox *_Nonnull tox, uint32_t group_number
 {
     assert(tox != nullptr);
 
+    if (length > (lossless ? TOX_GROUP_MAX_CUSTOM_LOSSLESS_PACKET_LENGTH : TOX_GROUP_MAX_CUSTOM_LOSSY_PACKET_LENGTH)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SEND_CUSTOM_PACKET_TOO_LONG);
+        return false;
+    }
+
     tox_lock(tox);
     const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
 
@@ -4047,6 +4154,11 @@ bool tox_group_send_custom_private_packet(const Tox *_Nonnull tox, uint32_t grou
         Tox_Err_Group_Send_Custom_Private_Packet *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > (lossless ? TOX_GROUP_MAX_CUSTOM_LOSSLESS_PACKET_LENGTH : TOX_GROUP_MAX_CUSTOM_LOSSY_PACKET_LENGTH)) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_TOO_LONG);
+        return false;
+    }
 
     tox_lock(tox);
     const GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);
@@ -4167,6 +4279,17 @@ uint32_t tox_group_invite_accept(Tox *_Nonnull tox, uint32_t friend_number, cons
         return UINT32_MAX;
     }
 
+    // No invite is this long: gc_accept_invite, which checks the rest, takes 16 bits.
+    if (length > UINT16_MAX) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_INVITE_ACCEPT_BAD_INVITE);
+        return UINT32_MAX;
+    }
+
+    if (password_length > TOX_GROUP_MAX_PASSWORD_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_INVITE_ACCEPT_PASSWORD);
+        return UINT32_MAX;
+    }
+
     tox_lock(tox);
     const int ret = gc_accept_invite(tox->m->group_handler, friend_number, invite_data, length, name, name_length, password,
                                      password_length);
@@ -4224,6 +4347,11 @@ bool tox_group_set_password(Tox *_Nonnull tox, uint32_t group_number, const uint
                             Tox_Err_Group_Set_Password *_Nullable error)
 {
     assert(tox != nullptr);
+
+    if (length > TOX_GROUP_MAX_PASSWORD_SIZE) {
+        SET_ERROR_PARAMETER(error, TOX_ERR_GROUP_SET_PASSWORD_TOO_LONG);
+        return false;
+    }
 
     tox_lock(tox);
     GC_Chat *chat = gc_get_group(tox->m->group_handler, group_number);

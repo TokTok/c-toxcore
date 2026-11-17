@@ -110,6 +110,43 @@ TEST(Tox, ConferenceLossyPacketTooLongIsRejected)
     tox_kill(tox);
 }
 
+// A length too large for the type toxcore keeps it in is rejected, and not
+// taken as what is left of it in that type.
+TEST(Tox, LengthTooLargeForItsTypeIsRejected)
+{
+    SimulatedEnvironment env{12345};
+    struct Tox_Options *options = tox_options_new(nullptr);
+    ASSERT_NE(options, nullptr);
+    auto node = env.create_node(33545);
+    Tox_Options_Testing testing_opts = {};
+    testing_opts.operating_system = &node->system;
+    Tox *tox = tox_new_testing(options, nullptr, &testing_opts, nullptr);
+    tox_options_free(options);
+    ASSERT_NE(tox, nullptr);
+
+    const std::vector<std::uint8_t> data(UINT16_MAX + 4, 'a');
+
+    Tox_Err_Set_Info name_err;
+    EXPECT_FALSE(tox_self_set_name(tox, data.data(), data.size(), &name_err));
+    EXPECT_EQ(name_err, TOX_ERR_SET_INFO_TOO_LONG);
+    EXPECT_EQ(tox_self_get_name_size(tox), 0);
+
+    Tox_Err_Conference_New conference_err;
+    const std::uint32_t conference = tox_conference_new(tox, &conference_err);
+    ASSERT_EQ(conference_err, TOX_ERR_CONFERENCE_NEW_OK);
+    Tox_Err_Conference_Title title_err;
+    EXPECT_FALSE(tox_conference_set_title(tox, conference, data.data(), UINT8_MAX + 4, &title_err));
+    EXPECT_EQ(title_err, TOX_ERR_CONFERENCE_TITLE_INVALID_LENGTH);
+
+    Tox_Err_Group_New group_err;
+    EXPECT_EQ(tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PRIVATE, data.data(), data.size(),
+                  data.data(), 1, &group_err),
+        UINT32_MAX);
+    EXPECT_EQ(group_err, TOX_ERR_GROUP_NEW_TOO_LONG);
+
+    tox_kill(tox);
+}
+
 TEST(Tox, OneTest)
 {
     SimulatedEnvironment env{12345};
