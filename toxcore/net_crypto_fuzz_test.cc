@@ -85,8 +85,8 @@ void TestNetCrypto(Fuzz_Data &input)
         return;
     }
 
-    const Ptr<DHT> dht(new_dht(logger.get(), &node->c_memory, &node->c_random, &node->c_network,
-                           mono_time.get(), net.get(), false, false),
+    const Ptr<DHT> dht(new_dht(logger.get(), &node->c_memory, &node->c_memory, &node->c_random,
+                           &node->c_network, mono_time.get(), net.get(), false, false),
         kill_dht);
     if (dht == nullptr) {
         return;

@@ -238,7 +238,7 @@ protected:
         mod.log = log;
 
         std::memcpy(mod.self_public_sig_key, get_sig_pk(&pk), SIG_PUBLIC_KEY_SIZE);
-        std::memcpy(mod.self_secret_sig_key, get_sig_sk(&sk), SIG_SECRET_KEY_SIZE);
+        mod.self_secret_sig_key = get_sig_sk(&sk);
 
         ASSERT_TRUE(mod_list_add_entry(&mod, get_sig_pk(&pk)));
 

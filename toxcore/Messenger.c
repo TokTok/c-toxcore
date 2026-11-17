@@ -3396,7 +3396,7 @@ static void m_handle_friend_request(
  *
  * if error is not NULL it will be set to one of the values in the enum above.
  */
-Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *rng, const Network *ns,
+Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *secure_mem, const Random *rng, const Network *ns,
                          Messenger_Options *options, Messenger_Error *error)
 {
     if (options == nullptr) {
@@ -3416,6 +3416,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     m->log = options->log;
     m->mono_time = mono_time;
     m->mem = mem;
+    m->secure_mem = secure_mem;
     m->rng = rng;
     m->ns = ns;
     m->forwarding = nullptr;
@@ -3459,7 +3460,7 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     }
     m->net = net;
 
-    DHT *dht = new_dht(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
+    DHT *dht = new_dht(m->log, m->mem, m->secure_mem, m->rng, m->ns, m->mono_time, m->net, options->hole_punching_enabled, options->local_discovery_enabled);
     if (dht == nullptr) {
         kill_networking(m->net);
         friendreq_kill(m->fr);
@@ -3510,12 +3511,12 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Random *
     if (options->dht_announcements_enabled) {
         m->forwarding = new_forwarding(m->log, m->mem, m->rng, m->mono_time, m->dht, m->net);
         if (m->forwarding != nullptr) {
-            m->announce = new_announcements(m->log, m->mem, m->rng, m->mono_time, m->forwarding, m->dht, m->net);
+            m->announce = new_announcements(m->log, m->mem, m->secure_mem, m->rng, m->mono_time, m->forwarding, m->dht, m->net);
         }
     }
 
-    Onion *onion = new_onion(m->log, m->mem, m->mono_time, m->rng, m->dht, m->net);
-    Onion_Announce *onion_a = new_onion_announce(m->log, m->mem, m->rng, m->mono_time, m->dht, m->net);
+    Onion *onion = new_onion(m->log, m->mem, m->secure_mem, m->mono_time, m->rng, m->dht, m->net);
+    Onion_Announce *onion_a = new_onion_announce(m->log, m->mem, m->secure_mem, m->rng, m->mono_time, m->dht, m->net);
     Onion_Client *onion_c = new_onion_client(m->log, m->mem, m->rng, m->mono_time, m->net_crypto, m->dht, m->net);
     Friend_Connections *fr_c = nullptr;
 

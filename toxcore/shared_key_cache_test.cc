@@ -39,7 +39,8 @@ protected:
 
         logger = logger_new(&node->c_memory);
 
-        cache = shared_key_cache_new(logger, mono_time, &node->c_memory, alice_sk, 10000, 4);
+        cache = shared_key_cache_new(
+            logger, mono_time, &node->c_memory, &node->c_memory, alice_sk, 10000, 4);
         ASSERT_NE(cache, nullptr);
     }
 

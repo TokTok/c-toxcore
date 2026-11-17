@@ -620,7 +620,7 @@ static int handle_dht_announce_request(
     return sendpacket(announce->net, source, reply, len) == len ? 0 : -1;
 }
 
-Announcements *new_announcements(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time,
+Announcements *new_announcements(const Logger *log, const Memory *mem, const Memory *secure_mem, const Random *rng, const Mono_Time *mono_time,
                                  Forwarding *forwarding, DHT *dht, Networking_Core *net)
 {
     if (log == nullptr || mono_time == nullptr || forwarding == nullptr) {
@@ -643,7 +643,7 @@ Announcements *new_announcements(const Logger *log, const Memory *mem, const Ran
     announce->public_key = dht_get_self_public_key(announce->dht);
     announce->secret_key = dht_get_self_secret_key(announce->dht);
     new_hmac_key(announce->rng, announce->hmac_key);
-    Shared_Key_Cache *const shared_keys = shared_key_cache_new(log, mono_time, mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const shared_keys = shared_key_cache_new(log, mono_time, mem, secure_mem, announce->secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (shared_keys == nullptr) {
         mem_delete(announce->mem, announce);
         return nullptr;

@@ -28,6 +28,7 @@
 #include "../toxcore/onion_announce.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
+#include "../toxcore/os_secure_memory.h"
 #include "../toxcore/tox.h"
 
 #define TCP_RELAY_ENABLED
@@ -149,6 +150,7 @@ int main(int argc, char *argv[])
     const Random *rng = os_random();
     const Network *ns = os_network();
     const Memory *mem = os_memory();
+    const Memory *secure_mem = os_secure_memory();
 
     Logger *logger = logger_new(mem);
 
@@ -160,11 +162,11 @@ int main(int argc, char *argv[])
     const uint16_t start_port = PORT;
     const uint16_t end_port = start_port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM);
     Networking_Core *net = new_networking_ex(logger, mem, ns, &ip, start_port, end_port, nullptr);
-    DHT *dht = new_dht(logger, mem, rng, ns, mono_time, net, true, true);
-    Onion *onion = new_onion(logger, mem, mono_time, rng, dht, net);
+    DHT *dht = new_dht(logger, mem, secure_mem, rng, ns, mono_time, net, true, true);
+    Onion *onion = new_onion(logger, mem, secure_mem, mono_time, rng, dht, net);
     Forwarding *forwarding = new_forwarding(logger, mem, rng, mono_time, dht, net);
     GC_Announces_List *gc_announces_list = new_gca_list(mem);
-    Onion_Announce *onion_a = new_onion_announce(logger, mem, rng, mono_time, dht, net);
+    Onion_Announce *onion_a = new_onion_announce(logger, mem, secure_mem, rng, mono_time, dht, net);
 
 #ifdef DHT_NODE_EXTRA_PACKETS
     bootstrap_set_callbacks(net, (uint32_t)DAEMON_VERSION_NUMBER, (const uint8_t *)motd_str, sizeof(motd_str));
