@@ -33,7 +33,6 @@ RUN /bin/check-cimple $(find /src/workspace/c-toxcore -name "*.[ch]" \
  -Wno-callgraph \
  -Wno-enum-from-int \
  -Wno-nullability \
- -Wno-ownership-decls \
  -Wno-tagged-union \
  -Wno-type-check
 RUN /bin/check-c $(find /src/workspace/c-toxcore -name "*.c" \

@@ -20,7 +20,7 @@ struct Group_JitterBuffer {
     uint64_t last_queued_time;
 };
 
-void group_audio_packet_free(Group_Audio_Packet *_Nullable pk)
+void group_audio_packet_free(Group_Audio_Packet *pk)
 {
     if (pk == nullptr) {
         return;
@@ -30,7 +30,7 @@ void group_audio_packet_free(Group_Audio_Packet *_Nullable pk)
     free(pk);
 }
 
-Group_JitterBuffer *_Nullable group_jbuf_new(unsigned int capacity)
+Group_JitterBuffer *group_jbuf_new(unsigned int capacity)
 {
     unsigned int size = 1;
 
@@ -67,7 +67,7 @@ static void group_jbuf_clear(Group_JitterBuffer *_Nonnull q)
     }
 }
 
-void group_jbuf_kill(Group_JitterBuffer *_Nullable q)
+void group_jbuf_kill(Group_JitterBuffer *q)
 {
     if (q == nullptr) {
         return;
@@ -78,7 +78,7 @@ void group_jbuf_kill(Group_JitterBuffer *_Nullable q)
     free(q);
 }
 
-int group_jbuf_write(Group_JitterBuffer *_Nonnull q, const Mono_Time *_Nonnull mono_time, Group_Audio_Packet *_Nonnull pk)
+int group_jbuf_write(Group_JitterBuffer *q, const Mono_Time *mono_time, Group_Audio_Packet *pk)
 {
     const uint16_t sequnum = pk->sequnum;
 
@@ -114,7 +114,7 @@ int group_jbuf_write(Group_JitterBuffer *_Nonnull q, const Mono_Time *_Nonnull m
     return 0;
 }
 
-Group_Audio_Packet *_Nullable group_jbuf_read(Group_JitterBuffer *_Nonnull q, int *_Nonnull success)
+Group_Audio_Packet *group_jbuf_read(Group_JitterBuffer *q, int *success)
 {
     if (q->top == q->bottom) {
         *success = 0;

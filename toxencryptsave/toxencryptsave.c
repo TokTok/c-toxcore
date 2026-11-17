@@ -96,7 +96,7 @@ void tox_pass_key_free(Tox_Pass_Key *_Nullable key)
  */
 bool tox_get_salt(
     const uint8_t ciphertext[TOX_PASS_ENCRYPTION_EXTRA_LENGTH],
-    Tox_Pass_Salt salt, Tox_Err_Get_Salt *_Nullable error)
+    Tox_Pass_Salt _Nullable salt, Tox_Err_Get_Salt *_Nullable error)
 {
     if (ciphertext == nullptr || salt == nullptr) {
         SET_ERROR_PARAMETER(error, TOX_ERR_GET_SALT_NULL);
@@ -156,7 +156,7 @@ Tox_Pass_Key *_Nullable tox_pass_key_derive(
  */
 Tox_Pass_Key *_Nullable tox_pass_key_derive_with_salt(
     const uint8_t passphrase[], size_t passphrase_len,
-    const Tox_Pass_Salt salt, Tox_Err_Key_Derivation *_Nullable error)
+    const Tox_Pass_Salt _Nullable salt, Tox_Err_Key_Derivation *_Nullable error)
 {
     if (salt == nullptr || (passphrase == nullptr && passphrase_len != 0)) {
         SET_ERROR_PARAMETER(error, TOX_ERR_KEY_DERIVATION_NULL);

@@ -2707,7 +2707,7 @@ static bool node_in_list(const Node_format *_Nonnull list, uint32_t length, cons
 typedef void dht_gather_cb(const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const IP_Port *_Nonnull ipport, void *_Nullable userdata);
 
 /** Calls callback for each entry worth saving */
-static void dht_save_gather(const DHT *dht, dht_gather_cb *_Nonnull callback, void *_Nullable userdata)
+static void dht_save_gather(const DHT *_Nonnull dht, dht_gather_cb *_Nonnull callback, void *_Nullable userdata)
 {
     uint32_t entries = 0;
 

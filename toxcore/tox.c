@@ -1066,7 +1066,7 @@ uint32_t tox_iteration_interval(const Tox *_Nonnull tox)
     return ret;
 }
 
-Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, Tox_Err_Events_Iterate *_Nullable error)
+Tox_Events *tox_iterate_internal(Tox *tox, Tox_Err_Events_Iterate *error)
 {
     mono_time_update(tox->mono_time);
 
@@ -1082,7 +1082,7 @@ Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, Tox_Err_Events_Ite
     return state.events;
 }
 
-void tox_iterate_with_options(Tox *_Nonnull tox, const Tox_Iterate_Options *_Nullable options, void *_Nullable user_data)
+void tox_iterate_with_options(Tox *tox, const Tox_Iterate_Options *options, void *user_data)
 {
     assert(tox != nullptr);
     tox_lock(tox);
@@ -2808,8 +2808,8 @@ bool tox_friend_send_lossless_packet(Tox *_Nonnull tox, uint32_t friend_number, 
     return ret == 0;
 }
 
-bool tox_friend_send_lossless_packet_any_id(Tox *_Nonnull tox, uint32_t friend_number, const uint8_t *_Nonnull data,
-        size_t length, Tox_Err_Friend_Custom_Packet *_Nullable error)
+bool tox_friend_send_lossless_packet_any_id(Tox *tox, uint32_t friend_number, const uint8_t *data,
+        size_t length, Tox_Err_Friend_Custom_Packet *error)
 {
     assert(tox != nullptr);
 
@@ -3809,12 +3809,12 @@ uint32_t tox_group_get_group_list_size(const Tox *_Nonnull tox)
     return ret;
 }
 
-uint32_t tox_group_get_number_groups(const Tox *tox)
+uint32_t tox_group_get_number_groups(const Tox *_Nonnull tox)
 {
     return tox_group_get_group_list_size(tox);
 }
 
-void tox_group_get_group_list(const Tox *tox, Tox_Group_Number group_list[])
+void tox_group_get_group_list(const Tox *_Nonnull tox, Tox_Group_Number group_list[])
 {
     assert(tox != nullptr);
 
