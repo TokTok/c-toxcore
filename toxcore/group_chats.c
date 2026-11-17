@@ -1517,7 +1517,7 @@ int group_packet_wrap(
 {
     const uint16_t max_packet_size = group_packet_max_packet_size(net_packet_type);
     const uint16_t padding_len = group_packet_padding_length(length, max_packet_size);
-    const uint16_t min_packet_size = net_packet_type == NET_PACKET_GC_LOSSLESS
+    const uint32_t min_packet_size = net_packet_type == NET_PACKET_GC_LOSSLESS
                                      ? length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + GC_MESSAGE_ID_BYTES + 1
                                      : length + padding_len + CRYPTO_MAC_SIZE + 1 + ENC_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + 1;
 
@@ -7203,8 +7203,8 @@ static uint16_t get_gc_self_announce_refresh_interval(const GC_Chat *_Nonnull ch
     // with a bad case scenario where every or most peers in the group announce at the
     // same time indefinitely.
     const int rand_increment = random_u16(chat->rng) % 2 == 0 ? 5 : -5;
-    const uint16_t interval = chat->numpeers * SELF_GC_ANNOUNCE_TIMEOUT + rand_increment;
-    return min_u16(GC_MAX_SELF_ANNOUNCE_INTERVAL, interval);
+    const uint32_t interval = chat->numpeers * SELF_GC_ANNOUNCE_TIMEOUT + rand_increment;
+    return (uint16_t)min_u32(GC_MAX_SELF_ANNOUNCE_INTERVAL, interval);
 }
 
 /**
