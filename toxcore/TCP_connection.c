@@ -1534,10 +1534,9 @@ uint32_t tcp_copy_connected_relays_index(const TCP_Connections *tcp_c, Node_form
     uint32_t copied = 0;
     const uint16_t num_to_copy = min_u16(max_num, tcp_c->tcp_connections_length);
     const uint16_t start = idx % tcp_c->tcp_connections_length;
-    const uint16_t end = (start + num_to_copy) % tcp_c->tcp_connections_length;
 
-    for (uint16_t i = start; i != end; i = (i + 1) % tcp_c->tcp_connections_length) {
-        if (copy_tcp_relay_conn(tcp_c, &tcp_relays[copied], i)) {
+    for (uint16_t i = 0; i < num_to_copy; ++i) {
+        if (copy_tcp_relay_conn(tcp_c, &tcp_relays[copied], (start + i) % tcp_c->tcp_connections_length)) {
             ++copied;
         }
     }
