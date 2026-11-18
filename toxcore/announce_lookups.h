@@ -136,7 +136,7 @@ typedef struct Lookups {
 
 /**
  * Add `lookup` to `lookups`.
- * Fail if there is an existing lookup with this public key.
+ * Replaces any existing lookup with this public key.
  * Return false on failure, true otherwise.
  */
 bool add_lookup(Lookups *_Nonnull lookups, const Memory *_Nonnull mem,

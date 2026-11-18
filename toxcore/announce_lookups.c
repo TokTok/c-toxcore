@@ -250,10 +250,6 @@ bool add_lookup(Lookups *lookups, const Memory *mem,
                 const uint8_t *data_public_key, uint16_t width,
                 void *userdata, on_delete_cb *on_delete)
 {
-    if (find_lookup(lookups, data_public_key) != nullptr) {
-        return false;
-    }
-
     if (lookups->num_lookups == UINT32_MAX) {
         return false;
     }
@@ -262,6 +258,21 @@ bool add_lookup(Lookups *lookups, const Memory *mem,
 
     if (lookup == nullptr) {
         return false;
+    }
+
+    for (uint32_t i = 0; i < lookups->num_lookups; ++i) {
+        Lookup *const old = lookups->lookups[i];
+
+        if (pk_equal(data_public_key, old->data_public_key)) {
+            lookups->lookups[i] = lookup;
+
+            if (old->on_delete != nullptr) {
+                old->on_delete(old->userdata);
+            }
+
+            lookup_kill(mem, old);
+            return true;
+        }
     }
 
     Lookup **const temp = (Lookup **)mem_vrealloc(mem, lookups->lookups,
