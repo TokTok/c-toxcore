@@ -2364,9 +2364,8 @@ static void do_nat(DHT *_Nonnull dht)
 /*----------------------------------------------------------------------------------*/
 /*-----------------------END OF NAT PUNCHING FUNCTIONS------------------------------*/
 
-/** @brief Write to node a random node from all the nodes we are connected to.
+/** Write to node a random node from all the nodes we are connected to.
  * Return true if some node is found and written, false otherwise.
- * TODO(irungentoo): improve this function.
  */
 bool random_node(DHT *dht, Node_format *node, Family sa_family, bool want_announce)
 {

@@ -864,6 +864,49 @@ cc_library(
 )
 
 cc_library(
+    name = "announce_lookups",
+    srcs = ["announce_lookups.c"],
+    hdrs = ["announce_lookups.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        ":forwarding",
+        ":mem",
+        ":mono_time",
+        ":timed_auth",
+    ],
+)
+
+cc_library(
+    name = "announce_client",
+    srcs = ["announce_client.c"],
+    hdrs = ["announce_client.h"],
+    visibility = ["//c-toxcore/auto_tests:__pkg__"],
+    deps = [
+        ":DHT",
+        ":announce",
+        ":announce_lookups",
+        ":attributes",
+        ":ccompat",
+        ":crypto_core",
+        ":forwarding",
+        ":logger",
+        ":mem",
+        ":mono_time",
+        ":net",
+        ":net_crypto",
+        ":network",
+        ":ping_array",
+        ":rng",
+        ":timed_auth",
+        ":util",
+    ],
+)
+
+cc_library(
     name = "TCP_common",
     srcs = ["TCP_common.c"],
     hdrs = ["TCP_common.h"],

@@ -4,13 +4,15 @@
 
 #include "announce_lookups.h"
 
-#include "ccompat.h"
-#include "forwarding.h"
-#include "util.h"
-
-#include <assert.h>
-#include <stdlib.h>
 #include <string.h>
+
+#include "DHT.h"
+#include "attributes.h"
+#include "ccompat.h"
+#include "crypto_core.h"
+#include "forwarding.h"
+#include "mem.h"
+#include "mono_time.h"
 
 const Node_format *route_destination(const Lookup_Route *route)
 {
@@ -23,17 +25,15 @@ const uint8_t *route_destination_pk(const Lookup_Route *route)
     return dest->public_key;
 }
 
-non_null()
-static const uint8_t *lookup_node_public_key(const Lookup_Node *lookup_node)
+static const uint8_t *_Nonnull lookup_node_public_key(const Lookup_Node *_Nonnull lookup_node)
 {
     return route_destination_pk(&lookup_node->route);
 }
 
-non_null(1) nullable(3, 4)
-static Lookup *lookup_new(const uint8_t *data_public_key, uint16_t width,
-                          void *userdata, on_delete_cb *on_delete)
+Lookup *lookup_new(const Memory *mem, const uint8_t *data_public_key, uint16_t width,
+                   void *userdata, on_delete_cb *on_delete)
 {
-    Lookup *lookup = calloc(1, sizeof(Lookup));
+    Lookup *lookup = (Lookup *)mem_alloc(mem, sizeof(Lookup));
 
     if (lookup == nullptr) {
         return nullptr;
@@ -43,28 +43,26 @@ static Lookup *lookup_new(const uint8_t *data_public_key, uint16_t width,
     lookup->width = width;
     lookup->userdata = userdata;
     lookup->on_delete = on_delete;
-    lookup->nodes = calloc(width, sizeof(Lookup_Node));
-    lookup->pending = calloc(width, sizeof(Pending_Response));
 
-    if (lookup->nodes == nullptr || lookup->pending == nullptr) {
-        lookup_kill(lookup);
+    Lookup_Node *const nodes = (Lookup_Node *)mem_valloc(mem, width, sizeof(Lookup_Node));
+    Pending_Response *const pending = (Pending_Response *)mem_valloc(mem, width, sizeof(Pending_Response));
+
+    lookup->nodes = nodes;
+    lookup->pending = pending;
+
+    if (nodes == nullptr || pending == nullptr) {
+        lookup_kill(mem, lookup);
         return nullptr;
     }
 
     return lookup;
 }
 
-void lookup_kill(Lookup *lookup)
+void lookup_kill(const Memory *mem, Lookup *lookup)
 {
-    if (lookup->nodes != nullptr) {
-        free(lookup->nodes);
-    }
-
-    if (lookup->pending != nullptr) {
-        free(lookup->pending);
-    }
-
-    free(lookup);
+    mem_delete(mem, lookup->nodes);
+    mem_delete(mem, lookup->pending);
+    mem_delete(mem, lookup);
 }
 
 Lookup_Node *lookup_find_node(const Lookup *lookup, const uint8_t *public_key)
@@ -86,15 +84,16 @@ uint16_t num_lookup_nodes(const Lookup *lookup)
     uint16_t count = 0;
 
     for (uint16_t i = 0; i < lookup->width; ++i) {
-        count += lookup->nodes[i].exists;
+        if (lookup->nodes[i].exists) {
+            ++count;
+        }
     }
 
     return count;
 }
 
-non_null(1, 2) nullable(3)
-static bool lookup_add_node_opt(Lookup *lookup, const Lookup_Route *route,
-                                const uint8_t *self_public_key, bool pretend)
+static bool lookup_add_node_opt(Lookup *_Nonnull lookup, const Lookup_Route *_Nonnull route,
+                                const uint8_t *_Nullable self_public_key, bool pretend)
 {
     const Node_format *dest = route_destination(route);
     const uint8_t *new_public_key = dest->public_key;
@@ -134,7 +133,8 @@ static bool lookup_add_node_opt(Lookup *lookup, const Lookup_Route *route,
     }
 
     if (!pretend) {
-        memset(slot, 0, sizeof(Lookup_Node));
+        const Lookup_Node empty = {false};
+        *slot = empty;
         slot->route = *route;
         slot->exists = true;
     }
@@ -154,7 +154,8 @@ bool lookup_could_add_node(Lookup *lookup, const Lookup_Route *route, const uint
 
 void delete_lookup_node(Lookup_Node *lookup_node)
 {
-    memset(lookup_node, 0, sizeof(Lookup_Node));
+    const Lookup_Node empty = {false};
+    *lookup_node = empty;
 }
 
 void lookup_route_valid(Lookup *lookup, const Lookup_Route *route)
@@ -194,7 +195,7 @@ uint16_t get_shortest_routes(const Lookup *lookup, Lookup_Route *routes, uint16_
         }
 
         routes[*num_routes] = lookup_node->route;
-        ++(*num_routes);
+        ++*num_routes;
     }
 
     return min_route_length;
@@ -245,7 +246,7 @@ void delete_pending(Lookup *lookup, uint64_t ping_id)
 }
 
 
-bool add_lookup(Lookups *lookups,
+bool add_lookup(Lookups *lookups, const Memory *mem,
                 const uint8_t *data_public_key, uint16_t width,
                 void *userdata, on_delete_cb *on_delete)
 {
@@ -257,19 +258,17 @@ bool add_lookup(Lookups *lookups,
         return false;
     }
 
-    Lookup *const lookup = lookup_new(data_public_key, width, userdata, on_delete);
+    Lookup *const lookup = lookup_new(mem, data_public_key, width, userdata, on_delete);
 
     if (lookup == nullptr) {
         return false;
     }
 
-    Lookup **const temp = (lookups->num_lookups == 0) ?
-                          (Lookup **)malloc(sizeof(Lookup *)) :
-                          (Lookup **)realloc(lookups->lookups,
-                                  sizeof(Lookup *) * (lookups->num_lookups + 1));
+    Lookup **const temp = (Lookup **)mem_vrealloc(mem, lookups->lookups,
+                          lookups->num_lookups + 1, sizeof(Lookup *));
 
     if (temp == nullptr) {
-        lookup_kill(lookup);
+        lookup_kill(mem, lookup);
         return false;
     }
 
@@ -292,7 +291,7 @@ Lookup *find_lookup(const Lookups *lookups, const uint8_t *data_public_key)
 }
 
 
-bool delete_lookup(Lookups *lookups, const uint8_t *data_public_key)
+bool delete_lookup(Lookups *lookups, const Memory *mem, const uint8_t *data_public_key)
 {
     for (uint32_t i = 0; i < lookups->num_lookups; ++i) {
         Lookup *const lookup = lookups->lookups[i];
@@ -301,13 +300,13 @@ bool delete_lookup(Lookups *lookups, const uint8_t *data_public_key)
             --lookups->num_lookups;
 
             if (lookups->num_lookups == 0) {
-                free(lookups->lookups);
+                mem_delete(mem, lookups->lookups);
                 lookups->lookups = nullptr;
             } else {
                 lookups->lookups[i] = lookups->lookups[lookups->num_lookups];
 
-                Lookup **const temp = (Lookup **)realloc(lookups->lookups,
-                                      sizeof(Lookup *) * (lookups->num_lookups));
+                Lookup **const temp = (Lookup **)mem_vrealloc(mem, lookups->lookups,
+                                      lookups->num_lookups, sizeof(Lookup *));
 
                 if (temp != nullptr) {
                     lookups->lookups = temp;
@@ -318,7 +317,7 @@ bool delete_lookup(Lookups *lookups, const uint8_t *data_public_key)
                 lookup->on_delete(lookup->userdata);
             }
 
-            lookup_kill(lookup);
+            lookup_kill(mem, lookup);
 
             return true;
         }
@@ -327,9 +326,9 @@ bool delete_lookup(Lookups *lookups, const uint8_t *data_public_key)
     return false;
 }
 
-void free_lookups(Lookups *lookups)
+void free_lookups(Lookups *lookups, const Memory *mem)
 {
     while (lookups->num_lookups > 0) {
-        delete_lookup(lookups, lookups->lookups[0]->data_public_key);
+        delete_lookup(lookups, mem, lookups->lookups[0]->data_public_key);
     }
 }

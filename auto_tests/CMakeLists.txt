@@ -40,6 +40,8 @@ endfunction()
 
 auto_test(TCP)
 auto_test(announce)
+auto_test(announce_client)
+auto_test(announce_lookups)
 auto_test(crypto)
 #auto_test(dht)  # Doesn't work with UNITY_BUILD.
 auto_test(encryptsave)
