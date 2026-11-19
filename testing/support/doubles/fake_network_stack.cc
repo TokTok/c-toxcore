@@ -73,7 +73,7 @@ static const Network_Funcs kNetworkVtable = {
                 *addrs = static_cast<IP_Port *>(mem_alloc(mem, sizeof(IP_Port)));
                 memset(&(*addrs)->ip, 0, sizeof(IP));
                 ip_init(&(*addrs)->ip, false);
-                (*addrs)->ip.ip.v4.uint32 = net_htonl(0x7F000001);
+                (*addrs)->ip.value.v4.uint32 = net_htonl(0x7F000001);
                 (*addrs)->port = 0;
                 return 1;
             }

@@ -52,7 +52,7 @@ public:
             this, nullptr);
 
         // 3. Setup NetCrypto
-        TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
+        TCP_Proxy_Info proxy_info = {{}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
             dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,

@@ -216,9 +216,10 @@ static IP_Port ip_port_normalize(const IP_Port *_Nonnull ip_port)
 {
     IP_Port res = *ip_port;
 
-    if (net_family_is_ipv6(res.ip.family) && ipv6_ipv4_in_v6(&res.ip.ip.v6)) {
-        res.ip.family = net_family_ipv4();
-        res.ip.ip.v4.uint32 = res.ip.ip.v6.uint32[3];
+    if (res.ip.type == IP_TYPE_V6 && ipv6_ipv4_in_v6(&res.ip.value.v6)) {
+        const uint32_t ip4 = res.ip.value.v6.uint32[3];
+        res.ip.type = IP_TYPE_V4;
+        res.ip.value.v4.uint32 = ip4;
     }
 
     return res;
@@ -358,13 +359,13 @@ int handle_request(const Memory *mem, const uint8_t *self_public_key, const uint
     return len1;
 }
 
-int packed_node_size(Family ip_family)
+int packed_node_size(IP_Type type)
 {
-    if (net_family_is_ipv4(ip_family) || net_family_is_tcp_ipv4(ip_family)) {
+    if (type == IP_TYPE_V4) {
         return PACKED_NODE_SIZE_IP4;
     }
 
-    if (net_family_is_ipv6(ip_family) || net_family_is_tcp_ipv6(ip_family)) {
+    if (type == IP_TYPE_V6) {
         return PACKED_NODE_SIZE_IP6;
     }
 
@@ -414,7 +415,7 @@ int dht_create_packet(const Memory *mem, const Random *rng,
 static bool bin_pack_node_handler(const void *_Nonnull arr, uint32_t index, const Logger *_Nonnull logger, Bin_Pack *_Nonnull bp)
 {
     const Node_format *nodes = (const Node_format *)arr;
-    return bin_pack_ip_port(bp, logger, &nodes[index].ip_port)
+    return bin_pack_node_address(bp, logger, nodes[index].transport, &nodes[index].ip_port)
            && bin_pack_bin_b(bp, nodes[index].public_key, CRYPTO_PUBLIC_KEY_SIZE);
 }
 
@@ -438,7 +439,7 @@ int unpack_nodes(Node_format *nodes, uint16_t max_num_nodes, uint16_t *processed
     uint32_t len_processed = 0;
 
     while (num < max_num_nodes && len_processed < length) {
-        const int ipp_size = unpack_ip_port(&nodes[num].ip_port, data + len_processed, length - len_processed, tcp_enabled);
+        const int ipp_size = unpack_node_address(&nodes[num].transport, &nodes[num].ip_port, data + len_processed, length - len_processed, tcp_enabled);
 
         if (ipp_size == -1) {
             break;
@@ -519,8 +520,8 @@ static uint32_t index_of_client_ip_port(const Client_data *_Nullable array, uint
 {
     assert(size == 0 || array != nullptr);
     for (uint32_t i = 0; i < size; ++i) {
-        if ((net_family_is_ipv4(ip_port->ip.family) && ipport_equal(&array[i].assoc4.ip_port, ip_port)) ||
-                (net_family_is_ipv6(ip_port->ip.family) && ipport_equal(&array[i].assoc6.ip_port, ip_port))) {
+        if ((ip_port->ip.type == IP_TYPE_V4 && ipport_equal(&array[i].assoc4.ip_port, ip_port)) ||
+                (ip_port->ip.type == IP_TYPE_V6 && ipport_equal(&array[i].assoc6.ip_port, ip_port))) {
             return i;
         }
     }
@@ -534,10 +535,10 @@ static void update_client(const Logger *_Nonnull log, const Mono_Time *_Nonnull 
     IPPTsPng *assoc;
     int ip_version;
 
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         assoc = &client->assoc4;
         ip_version = 4;
-    } else if (net_family_is_ipv6(ip_port->ip.family)) {
+    } else if (ip_port->ip.type == IP_TYPE_V6) {
         assoc = &client->assoc6;
         ip_version = 6;
     } else {
@@ -595,7 +596,7 @@ static bool client_or_ip_port_in_list(const Logger *_Nonnull log, const Mono_Tim
     IPPTsPng *assoc;
     int ip_version;
 
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         assoc = &list[index].assoc4;
         ip_version = 4;
     } else {
@@ -614,10 +615,10 @@ static bool client_or_ip_port_in_list(const Logger *_Nonnull log, const Mono_Tim
      * If there was an association for the other IP version, it's now invalid for this new identity.
      */
     if (ip_version == 4) {
-        const IPPTsPng empty_ipptspng = {{{{0}}}};
+        const IPPTsPng empty_ipptspng = {{{IP_TYPE_UNSPEC}}};
         list[index].assoc6 = empty_ipptspng;
     } else {
-        const IPPTsPng empty_ipptspng = {{{{0}}}};
+        const IPPTsPng empty_ipptspng = {{{IP_TYPE_UNSPEC}}};
         list[index].assoc4 = empty_ipptspng;
     }
 
@@ -644,6 +645,7 @@ bool add_to_list(
 
             memcpy(node->public_key, pk_cur, CRYPTO_PUBLIC_KEY_SIZE);
             node->ip_port = ip_port_cur;
+            node->transport = TRANSPORT_UDP;
 
             memcpy(pk_cur, pk_bak, CRYPTO_PUBLIC_KEY_SIZE);
             ip_port_cur = ip_port_bak;
@@ -657,10 +659,10 @@ bool add_to_list(
 /**
  * helper for `get_close_nodes()`. argument list is a monster :D
  */
-static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull public_key, Node_format *_Nonnull nodes_list, uint32_t *_Nonnull num_nodes_ptr, Family sa_family,
+static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull public_key, Node_format *_Nonnull nodes_list, uint32_t *_Nonnull num_nodes_ptr, IP_Type sa_family,
                                   const Client_data *_Nonnull client_list, uint32_t client_list_length, bool is_lan, bool want_announce)
 {
-    if (!net_family_is_ipv4(sa_family) && !net_family_is_ipv6(sa_family) && !net_family_is_unspec(sa_family)) {
+    if (sa_family != IP_TYPE_V4 && sa_family != IP_TYPE_V6 && sa_family != IP_TYPE_UNSPEC) {
         return;
     }
 
@@ -670,9 +672,9 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull pub
         const Client_data *const client = &client_list[i];
         const IPPTsPng *ipptp;
 
-        if (net_family_is_ipv4(sa_family)) {
+        if (sa_family == IP_TYPE_V4) {
             ipptp = &client->assoc4;
-        } else if (net_family_is_ipv6(sa_family)) {
+        } else if (sa_family == IP_TYPE_V6) {
             ipptp = &client->assoc6;
         } else if (client->assoc4.timestamp >= client->assoc6.timestamp) {
             ipptp = &client->assoc4;
@@ -706,6 +708,7 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull pub
         if (num_nodes < MAX_SENT_NODES) {
             memcpy(nodes_list[num_nodes].public_key, client->public_key, CRYPTO_PUBLIC_KEY_SIZE);
             nodes_list[num_nodes].ip_port = ipptp->ip_port;
+            nodes_list[num_nodes].transport = TRANSPORT_UDP;
             ++num_nodes;
         } else {
             // TODO(zugz): this could be made significantly more efficient by
@@ -723,7 +726,7 @@ static void get_close_nodes_inner(uint64_t cur_time, const uint8_t *_Nonnull pub
  *
  * want_announce: return only nodes which implement the dht announcements protocol.
  */
-static int get_somewhat_close_nodes(uint64_t cur_time, const uint8_t *_Nonnull public_key, Node_format nodes_list[_Nonnull MAX_SENT_NODES], Family sa_family,
+static int get_somewhat_close_nodes(uint64_t cur_time, const uint8_t *_Nonnull public_key, Node_format nodes_list[_Nonnull MAX_SENT_NODES], IP_Type sa_family,
                                     const Client_data *_Nonnull close_clientlist, const DHT_Friend *_Nonnull friends_list, uint16_t friends_list_size, bool is_lan, bool want_announce)
 {
     for (uint16_t i = 0; i < MAX_SENT_NODES; ++i) {
@@ -752,7 +755,7 @@ static int get_somewhat_close_nodes(uint64_t cur_time, const uint8_t *_Nonnull p
 
 int get_close_nodes(
     const DHT *dht, const uint8_t *public_key,
-    Node_format nodes_list[MAX_SENT_NODES], Family sa_family,
+    Node_format nodes_list[MAX_SENT_NODES], IP_Type sa_family,
     bool is_lan, bool want_announce)
 {
     return get_somewhat_close_nodes(
@@ -981,7 +984,7 @@ static void update_client_with_reset(const Mono_Time *_Nonnull mono_time, Client
     IPPTsPng *ipptp_write = nullptr;
     IPPTsPng *ipptp_clear = nullptr;
 
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         ipptp_write = &client->assoc4;
         ipptp_clear = &client->assoc6;
     } else {
@@ -998,7 +1001,7 @@ static void update_client_with_reset(const Mono_Time *_Nonnull mono_time, Client
     ipptp_write->ret_ip_self = false;
 
     /* zero out other address */
-    const IPPTsPng empty_ipptp = {{{{0}}}};
+    const IPPTsPng empty_ipptp = {{{IP_TYPE_UNSPEC}}};
     *ipptp_clear = empty_ipptp;
 }
 
@@ -1020,7 +1023,7 @@ static void update_client_with_reset(const Mono_Time *_Nonnull mono_time, Client
 static bool replace_all(const DHT *_Nonnull dht, Client_data *_Nonnull list, uint16_t length, const uint8_t *_Nonnull public_key, const IP_Port *_Nonnull ip_port,
                         const uint8_t *_Nonnull comp_public_key)
 {
-    if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
+    if (ip_port->ip.type != IP_TYPE_V4 && ip_port->ip.type != IP_TYPE_V6) {
         return false;
     }
 
@@ -1093,7 +1096,7 @@ static bool is_pk_in_client_list(const Client_data *_Nonnull list, unsigned int 
         return false;
     }
 
-    const IPPTsPng *assoc = net_family_is_ipv4(ip_port->ip.family)
+    const IPPTsPng *assoc = ip_port->ip.type == IP_TYPE_V4
                             ? &list[index].assoc4
                             : &list[index].assoc6;
 
@@ -1136,6 +1139,7 @@ static bool ping_node_from_nodes_response_ok(DHT *_Nonnull dht, const uint8_t *_
             if (*num < MAX_CLOSE_TO_BOOTSTRAP_NODES) {
                 memcpy(dht->to_bootstrap[*num].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
                 dht->to_bootstrap[*num].ip_port = *ip_port;
+                dht->to_bootstrap[*num].transport = TRANSPORT_UDP;
                 ++*num;
             } else {
                 // TODO(irungentoo): ipv6 vs v4
@@ -1248,9 +1252,9 @@ static bool update_client_data(const Mono_Time *_Nonnull mono_time, Client_data 
     Client_data *const data = &array[index];
     IPPTsPng *assoc;
 
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         assoc = &data->assoc4;
-    } else if (net_family_is_ipv6(ip_port->ip.family)) {
+    } else if (ip_port->ip.type == IP_TYPE_V6) {
         assoc = &data->assoc6;
     } else {
         return true;
@@ -1296,7 +1300,7 @@ bool dht_send_nodes_request(DHT *dht, const IP_Port *ip_port, const uint8_t *pub
 
     uint8_t plain_message[PACKED_NODE_SIZE_IP6];
 
-    Node_format receiver;
+    Node_format receiver = empty_node_format;
     memcpy(receiver.public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     receiver.ip_port = *ip_port;
 
@@ -1357,7 +1361,7 @@ static int send_nodes_response(const DHT *_Nonnull dht, const IP_Port *_Nonnull 
 
     Node_format nodes_list[MAX_SENT_NODES];
     const uint32_t num_nodes =
-        get_close_nodes(dht, client_id, nodes_list, net_family_unspec(), ip_is_lan(&ip_port->ip), false);
+        get_close_nodes(dht, client_id, nodes_list, IP_TYPE_UNSPEC, ip_is_lan(&ip_port->ip), false);
 
     VLA(uint8_t, plain, 1 + node_format_size * MAX_SENT_NODES + length);
 
@@ -1631,7 +1635,7 @@ int dht_addfriend(DHT *dht, const uint8_t *public_key, dht_ip_cb *ip_callback,
     *lock_token = dht_friend_lock(dht_friend, ip_callback, data, number);
     assert(*lock_token != 0); // Friend was newly allocated
 
-    dht_friend->num_to_bootstrap = get_close_nodes(dht, dht_friend->public_key, dht_friend->to_bootstrap, net_family_unspec(),
+    dht_friend->num_to_bootstrap = get_close_nodes(dht, dht_friend->public_key, dht_friend->to_bootstrap, IP_TYPE_UNSPEC,
                                    true, false);
 
     return 0;
@@ -1869,7 +1873,7 @@ bool dht_bootstrap_from_address(DHT *dht, const char *address, bool ipv6enabled,
 
     if (ipv6enabled) {
         /* setup for getting BOTH: an IPv6 AND an IPv4 address */
-        ip_port_v64.ip.family = net_family_unspec();
+        ip_port_v64.ip.type = IP_TYPE_UNSPEC;
         ip_reset(&ip_port_v4.ip);
         ip_extra = &ip_port_v4.ip;
     }
@@ -2393,6 +2397,7 @@ static uint16_t list_nodes(const Random *_Nonnull rng, const Client_data *_Nonnu
         if (assoc != nullptr) {
             memcpy(nodes[count].public_key, list[i - 1].public_key, CRYPTO_PUBLIC_KEY_SIZE);
             nodes[count].ip_port = assoc->ip_port;
+            nodes[count].transport = TRANSPORT_UDP;
             ++count;
 
             if (count >= max_num) {
@@ -2791,7 +2796,7 @@ static void dht_save_gather(const DHT *_Nonnull dht, dht_gather_cb *_Nonnull cal
 static void cb_dht_save_size_only(const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const IP_Port *_Nonnull ipport, void *_Nullable userdata)
 {
     uint32_t *packed_size = (uint32_t *)userdata;
-    *packed_size += packed_node_size(ipport->ip.family);
+    *packed_size += packed_node_size(ipport->ip.type);
 }
 
 /** Get the size of the DHT (for saving). */
@@ -2818,6 +2823,7 @@ static void cb_dht_save(const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE
 
     memcpy(cb_ctx->clients[cb_ctx->clients_num].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     cb_ctx->clients[cb_ctx->clients_num].ip_port = *ipport;
+    cb_ctx->clients[cb_ctx->clients_num].transport = TRANSPORT_UDP;
     ++cb_ctx->clients_num;
 }
 

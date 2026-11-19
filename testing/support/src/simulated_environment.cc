@@ -43,7 +43,7 @@ std::unique_ptr<ScopedToxSystem> SimulatedEnvironment::create_node(uint16_t port
         Socket s = scoped->node->fake_network().socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         IP_Port addr;
         ip_init(&addr.ip, false);
-        addr.ip.ip.v4.uint32 = 0;
+        addr.ip.value.v4.uint32 = 0;
         addr.port = net_htons(port);
         scoped->node->fake_network().bind(s, &addr);
     }

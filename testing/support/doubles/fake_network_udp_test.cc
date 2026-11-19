@@ -66,7 +66,7 @@ namespace {
 
         ASSERT_EQ(recv_len, static_cast<int>(msg_len));
         EXPECT_STREQ(reinterpret_cast<const char *>(buffer), msg);
-        EXPECT_EQ(net_ntohl(from_addr.ip.ip.v4.uint32), net_ntohl(ip1.ip.v4.uint32));
+        EXPECT_EQ(net_ntohl(from_addr.ip.value.v4.uint32), net_ntohl(ip1.value.v4.uint32));
         EXPECT_EQ(net_ntohs(from_addr.port), 1234);
 
         stack1.close(sock1);

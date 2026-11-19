@@ -98,7 +98,7 @@ void TestNetCrypto(Fuzz_Data &input)
         return;
     }
 
-    const TCP_Proxy_Info proxy_info = {0};
+    const TCP_Proxy_Info proxy_info = {};
 
     const Ptr<Net_Crypto> net_crypto(
         new_net_crypto(logger.get(), &node->c_memory, &node->c_random, &node->c_network,

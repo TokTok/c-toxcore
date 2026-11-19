@@ -223,7 +223,7 @@ bool onion_friend_is_groupchat(const Onion_Friend *const onion_friend)
  */
 bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const uint8_t *public_key)
 {
-    if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
+    if (ip_port->ip.type != IP_TYPE_V4 && ip_port->ip.type != IP_TYPE_V6) {
         return false;
     }
 
@@ -234,6 +234,7 @@ bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const
     }
 
     onion_c->path_nodes_bs[onion_c->path_nodes_index_bs % MAX_PATH_NODES].ip_port = *ip_port;
+    onion_c->path_nodes_bs[onion_c->path_nodes_index_bs % MAX_PATH_NODES].transport = TRANSPORT_UDP;
     memcpy(onion_c->path_nodes_bs[onion_c->path_nodes_index_bs % MAX_PATH_NODES].public_key, public_key,
            CRYPTO_PUBLIC_KEY_SIZE);
 
@@ -254,7 +255,7 @@ bool onion_add_bs_path_node(Onion_Client *onion_c, const IP_Port *ip_port, const
  */
 static int onion_add_path_node(Onion_Client *_Nonnull onion_c, const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull public_key)
 {
-    if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
+    if (ip_port->ip.type != IP_TYPE_V4 && ip_port->ip.type != IP_TYPE_V6) {
         return -1;
     }
 
@@ -265,6 +266,7 @@ static int onion_add_path_node(Onion_Client *_Nonnull onion_c, const IP_Port *_N
     }
 
     onion_c->path_nodes[onion_c->path_nodes_index % MAX_PATH_NODES].ip_port = *ip_port;
+    onion_c->path_nodes[onion_c->path_nodes_index % MAX_PATH_NODES].transport = TRANSPORT_UDP;
     memcpy(onion_c->path_nodes[onion_c->path_nodes_index % MAX_PATH_NODES].public_key, public_key,
            CRYPTO_PUBLIC_KEY_SIZE);
 
@@ -315,11 +317,11 @@ uint16_t onion_backup_nodes(const Onion_Client *onion_c, Node_format *nodes, uin
     return i;
 }
 
-/** @brief Put up to max_num random nodes in nodes.
+/** @brief Put up to max_num random nodes in nodes, and how to reach the first one in first_hop.
  *
  * return the number of nodes.
  */
-static uint16_t random_nodes_path_onion(const Onion_Client *_Nonnull onion_c, Node_format *_Nonnull nodes, uint16_t max_num)
+static uint16_t random_nodes_path_onion(const Onion_Client *_Nonnull onion_c, Node_format *_Nonnull nodes, Destination *_Nonnull first_hop, uint16_t max_num)
 {
     if (max_num == 0) {
         return 0;
@@ -337,6 +339,8 @@ static uint16_t random_nodes_path_onion(const Onion_Client *_Nonnull onion_c, No
             const uint32_t rand_idx = random_range_u32(onion_c->rng, num_nodes);
             nodes[i] = onion_c->path_nodes[rand_idx];
         }
+
+        *first_hop = destination_udp(&nodes[0].ip_port);
     } else {
         const int random_tcp = get_random_tcp_con_number(onion_c->c);
 
@@ -344,9 +348,10 @@ static uint16_t random_nodes_path_onion(const Onion_Client *_Nonnull onion_c, No
             return 0;
         }
 
+        *first_hop = tcp_connections_number_to_destination(random_tcp);
+
         if (num_nodes >= 2) {
             nodes[0] = empty_node_format;
-            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(onion_c->rng, num_nodes);
@@ -360,7 +365,6 @@ static uint16_t random_nodes_path_onion(const Onion_Client *_Nonnull onion_c, No
             }
 
             nodes[0] = empty_node_format;
-            nodes[0].ip_port = tcp_connections_number_to_ip_port(random_tcp);
 
             for (unsigned int i = 1; i < max_num; ++i) {
                 const uint32_t rand_idx = random_range_u32(onion_c->rng, num_nodes_bs);
@@ -388,7 +392,9 @@ static int is_path_used(const Mono_Time *_Nonnull mono_time, const Onion_Client_
         }
 
         // TODO(irungentoo): do we really have to check it with the last node?
-        if (ipport_equal(&onion_paths->paths[i].ip_port1, &nodes[ONION_PATH_LENGTH - 1].ip_port)) {
+        const Destination *first_hop = &onion_paths->paths[i].dest1;
+
+        if (first_hop->type == DESTINATION_TYPE_UDP && ipport_equal(&first_hop->value.udp, &nodes[ONION_PATH_LENGTH - 1].ip_port)) {
             return i;
         }
     }
@@ -436,8 +442,9 @@ static int random_path(const Onion_Client *_Nonnull onion_c, Onion_Client_Paths 
 
     if (path_timed_out(onion_c->mono_time, onion_paths, pathnum)) {
         Node_format nodes[ONION_PATH_LENGTH];
+        Destination first_hop;
 
-        if (random_nodes_path_onion(onion_c, nodes, ONION_PATH_LENGTH) != ONION_PATH_LENGTH) {
+        if (random_nodes_path_onion(onion_c, nodes, &first_hop, ONION_PATH_LENGTH) != ONION_PATH_LENGTH) {
             return -1;
         }
 
@@ -447,6 +454,8 @@ static int random_path(const Onion_Client *_Nonnull onion_c, Onion_Client_Paths 
             if (create_onion_path(onion_c->rng, onion_c->dht, &onion_paths->paths[pathnum], nodes) == -1) {
                 return -1;
             }
+
+            onion_paths->paths[pathnum].dest1 = first_hop;
 
             onion_paths->path_creation_time[pathnum] = mono_time_get(onion_c->mono_time);
             onion_paths->last_path_success[pathnum] = onion_paths->path_creation_time[pathnum];
@@ -513,7 +522,7 @@ static uint32_t set_path_timeouts(Onion_Client *_Nonnull onion_c, uint32_t num, 
  */
 static int send_onion_packet_tcp_udp(const Onion_Client *_Nonnull onion_c, const Onion_Path *_Nonnull path, const IP_Port *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length)
 {
-    if (net_family_is_ipv4(path->ip_port1.ip.family) || net_family_is_ipv6(path->ip_port1.ip.family)) {
+    if (path->dest1.type == DESTINATION_TYPE_UDP) {
         uint8_t packet[ONION_MAX_PACKET_SIZE];
         const int len = create_onion_packet(onion_c->mem, onion_c->rng, packet, sizeof(packet), path, dest, data, length);
 
@@ -521,16 +530,14 @@ static int send_onion_packet_tcp_udp(const Onion_Client *_Nonnull onion_c, const
             return -1;
         }
 
-        if (sendpacket(onion_c->net, &path->ip_port1, packet, len) != len) {
+        if (sendpacket(onion_c->net, &path->dest1.value.udp, packet, len) != len) {
             return -1;
         }
 
         return 0;
     }
 
-    unsigned int tcp_connections_number;
-
-    if (ip_port_to_tcp_connections_number(&path->ip_port1, &tcp_connections_number)) {
+    if (path->dest1.type == DESTINATION_TYPE_TCP_SERVER) {
         uint8_t packet[ONION_MAX_PACKET_SIZE];
         const int len = create_onion_packet_tcp(onion_c->mem, onion_c->rng, packet, sizeof(packet), path, dest, data, length);
 
@@ -538,7 +545,7 @@ static int send_onion_packet_tcp_udp(const Onion_Client *_Nonnull onion_c, const
             return -1;
         }
 
-        return send_tcp_onion_request(onion_c->c, tcp_connections_number, packet, len);
+        return send_tcp_onion_request(onion_c->c, path->dest1.value.tcp_server, packet, len);
     }
 
     return -1;
@@ -603,7 +610,7 @@ static uint32_t check_sendback(Onion_Client *_Nonnull onion_c, const uint8_t *_N
     }
 
     memcpy(ret_pubkey, data + sizeof(uint32_t), CRYPTO_PUBLIC_KEY_SIZE);
-    unpack_ip_port(ret_ip_port, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE, SIZE_IPPORT, false);
+    unpack_ip_port(ret_ip_port, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE, SIZE_IPPORT);
     memcpy(path_num, data + sizeof(uint32_t) + CRYPTO_PUBLIC_KEY_SIZE + SIZE_IPPORT, sizeof(uint32_t));
 
     uint32_t num;
@@ -964,7 +971,7 @@ static int handle_announce_response(void *_Nonnull object, const IP_Port *_Nonnu
     }
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE] = {0};
-    IP_Port ip_port = {{{0}}};
+    IP_Port ip_port = {{IP_TYPE_UNSPEC}};
     uint32_t path_num = 0;
     const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 
@@ -1071,7 +1078,7 @@ static int handle_announce_response_old(void *_Nonnull object, const IP_Port *_N
     const uint16_t len_nodes = length - ONION_ANNOUNCE_RESPONSE_MIN_SIZE;
 
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE] = {0};
-    IP_Port ip_port = {{{0}}};
+    IP_Port ip_port = {{IP_TYPE_UNSPEC}};
     uint32_t path_num = 0;
     const uint32_t num = check_sendback(onion_c, packet + 1, public_key, &ip_port, &path_num);
 
@@ -1229,11 +1236,9 @@ static int handle_dhtpk_announce(void *_Nonnull object, const uint8_t *_Nonnull 
         }
 
         for (int i = 0; i < num_nodes; ++i) {
-            const Family family = nodes[i].ip_port.ip.family;
-
-            if (net_family_is_ipv4(family) || net_family_is_ipv6(family)) {
+            if (nodes[i].transport == TRANSPORT_UDP) {
                 dht_send_nodes_request(onion_c->dht, &nodes[i].ip_port, nodes[i].public_key, onion_c->friends_list[friend_num].dht_public_key);
-            } else if (net_family_is_tcp_ipv4(family) || net_family_is_tcp_ipv6(family)) {
+            } else {
                 if (onion_c->friends_list[friend_num].tcp_relay_node_callback != nullptr) {
                     void *obj = onion_c->friends_list[friend_num].tcp_relay_node_callback_object;
                     const uint32_t number = onion_c->friends_list[friend_num].tcp_relay_node_callback_number;
@@ -1252,8 +1257,8 @@ static int handle_tcp_onion(void *_Nonnull object, const uint8_t *_Nonnull data,
         return 1;
     }
 
-    IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_server();
+    // It came through TCP, so there's no UDP address it came from.
+    const IP_Port ip_port = {{IP_TYPE_UNSPEC}};
 
     if (data[0] == NET_PACKET_ANNOUNCE_RESPONSE) {
         return handle_announce_response(object, &ip_port, data, length, userdata);

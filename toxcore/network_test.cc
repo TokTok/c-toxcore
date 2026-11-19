@@ -24,9 +24,9 @@ TEST(IpNtoa, DoesntWriteOutOfBounds)
 {
     Ip_Ntoa ip_str;
     IP ip;
-    ip.family = net_family_ipv6();
-    ip.ip.v6.uint64[0] = -1;
-    ip.ip.v6.uint64[1] = -1;
+    ip.type = IP_TYPE_V6;
+    ip.value.v6.uint64[0] = -1;
+    ip.value.v6.uint64[1] = -1;
 
     net_ip_ntoa(&ip, &ip_str);
 
@@ -38,23 +38,23 @@ TEST(IpNtoa, ReportsInvalidIpFamily)
 {
     Ip_Ntoa ip_str;
     IP ip;
-    ip.family.value = 255 - net_family_ipv6().value;
-    ip.ip.v4.uint32 = 0;
+    ip.type = static_cast<IP_Type>(3);
+    ip.value.v4.uint32 = 0;
 
     net_ip_ntoa(&ip, &ip_str);
 
-    EXPECT_EQ(std::string(ip_str.buf), "(IP invalid, family 245)");
+    EXPECT_EQ(std::string(ip_str.buf), "(IP invalid, type 3)");
 }
 
 TEST(IpNtoa, FormatsIPv4)
 {
     Ip_Ntoa ip_str;
     IP ip;
-    ip.family = net_family_ipv4();
-    ip.ip.v4.uint8[0] = 192;
-    ip.ip.v4.uint8[1] = 168;
-    ip.ip.v4.uint8[2] = 0;
-    ip.ip.v4.uint8[3] = 13;
+    ip.type = IP_TYPE_V4;
+    ip.value.v4.uint8[0] = 192;
+    ip.value.v4.uint8[1] = 168;
+    ip.value.v4.uint8[2] = 0;
+    ip.value.v4.uint8[3] = 13;
 
     net_ip_ntoa(&ip, &ip_str);
 
@@ -65,11 +65,11 @@ TEST(IpParseAddr, FormatsIPv4)
 {
     char ip_str[IP_NTOA_LEN];
     IP ip;
-    ip.family = net_family_ipv4();
-    ip.ip.v4.uint8[0] = 192;
-    ip.ip.v4.uint8[1] = 168;
-    ip.ip.v4.uint8[2] = 0;
-    ip.ip.v4.uint8[3] = 13;
+    ip.type = IP_TYPE_V4;
+    ip.value.v4.uint8[0] = 192;
+    ip.value.v4.uint8[1] = 168;
+    ip.value.v4.uint8[2] = 0;
+    ip.value.v4.uint8[3] = 13;
 
     ip_parse_addr(&ip, ip_str, sizeof(ip_str));
 
@@ -80,9 +80,9 @@ TEST(IpParseAddr, FormatsIPv6)
 {
     char ip_str[IP_NTOA_LEN];
     IP ip;
-    ip.family = net_family_ipv6();
-    ip.ip.v6.uint64[0] = -1;
-    ip.ip.v6.uint64[1] = -1;
+    ip.type = IP_TYPE_V6;
+    ip.value.v6.uint64[0] = -1;
+    ip.value.v6.uint64[1] = -1;
 
     ip_parse_addr(&ip, ip_str, sizeof(ip_str));
 
@@ -93,11 +93,11 @@ TEST(IpportCmp, BehavesLikeMemcmp)
 {
     auto cmp_val = [](int val) { return val < 0 ? -1 : val > 0 ? 1 : 0; };
 
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {};
+    IP_Port b = {};
 
-    a.ip.family = net_family_ipv4();
-    b.ip.family = net_family_ipv4();
+    a.ip.type = IP_TYPE_V4;
+    b.ip.type = IP_TYPE_V4;
 
     a.port = 10;
     b.port = 20;
@@ -112,8 +112,8 @@ TEST(IpportCmp, BehavesLikeMemcmp)
         << "a=" << a << "\n"
         << "b=" << b;
 
-    a.ip.ip.v4.uint8[0] = 192;
-    b.ip.ip.v4.uint8[0] = 10;
+    a.ip.value.v4.uint8[0] = 192;
+    b.ip.value.v4.uint8[0] = 10;
 
     EXPECT_EQ(  //
         ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 1)
@@ -128,49 +128,49 @@ TEST(IpportCmp, BehavesLikeMemcmp)
 
 TEST(IpportCmp, Ipv6BeginAndEndCompareCorrectly)
 {
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {};
+    IP_Port b = {};
 
-    a.ip.family = net_family_ipv6();
-    b.ip.family = net_family_ipv6();
+    a.ip.type = IP_TYPE_V6;
+    b.ip.type = IP_TYPE_V6;
 
-    a.ip.ip.v6.uint8[0] = 0xab;
-    b.ip.ip.v6.uint8[0] = 0xba;
+    a.ip.value.v6.uint8[0] = 0xab;
+    b.ip.value.v6.uint8[0] = 0xba;
 
     EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), -1);
 
-    a.ip.ip.v6.uint8[0] = 0;
-    b.ip.ip.v6.uint8[0] = 0;
+    a.ip.value.v6.uint8[0] = 0;
+    b.ip.value.v6.uint8[0] = 0;
 
-    a.ip.ip.v6.uint8[15] = 0xba;
+    a.ip.value.v6.uint8[15] = 0xba;
 
     EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 1);
 }
 
 TEST(IpportCmp, UnspecAlwaysComparesEqual)
 {
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {};
+    IP_Port b = {};
 
-    a.ip.family = net_family_unspec();
-    b.ip.family = net_family_unspec();
+    a.ip.type = IP_TYPE_UNSPEC;
+    b.ip.type = IP_TYPE_UNSPEC;
 
-    a.ip.ip.v4.uint8[0] = 0xab;
-    b.ip.ip.v4.uint8[0] = 0xba;
+    a.ip.value.v4.uint8[0] = 0xab;
+    b.ip.value.v4.uint8[0] = 0xba;
 
     EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 0);
 }
 
 TEST(IpportCmp, InvalidAlwaysComparesEqual)
 {
-    IP_Port a = {0};
-    IP_Port b = {0};
+    IP_Port a = {};
+    IP_Port b = {};
 
-    a.ip.family.value = 0xff;
-    b.ip.family.value = 0xff;
+    a.ip.type = static_cast<IP_Type>(3);
+    b.ip.type = static_cast<IP_Type>(3);
 
-    a.ip.ip.v4.uint8[0] = 0xab;
-    b.ip.ip.v4.uint8[0] = 0xba;
+    a.ip.value.v4.uint8[0] = 0xab;
+    b.ip.value.v4.uint8[0] = 0xba;
 
     EXPECT_EQ(ipport_cmp_handler(&a, &b, sizeof(IP_Port)), 0);
 }
