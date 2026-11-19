@@ -34,7 +34,7 @@ void configure_fuzz_packet_source(FakeUdpSocket &socket, Fuzz_Data &input)
 
         // Dummy address (legacy Fuzz_System used 127.0.0.2:33446)
         ip_init(&from.ip, false);  // IPv4
-        from.ip.ip.v4.uint32 = net_htonl(0x7F000002);  // 127.0.0.2
+        from.ip.value.v4.uint32 = net_htonl(0x7F000002);  // 127.0.0.2
         from.port = net_htons(33446);
 
         return true;

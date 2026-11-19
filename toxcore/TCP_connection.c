@@ -596,27 +596,12 @@ void set_forwarding_packet_tcp_connection_callback(TCP_Connections *tcp_c,
     tcp_c->tcp_forwarded_response_callback_object = object;
 }
 
-/** @brief Encode tcp_connections_number as a custom ip_port.
- *
- * return ip_port.
- */
-IP_Port tcp_connections_number_to_ip_port(unsigned int tcp_connections_number)
+Destination tcp_connections_number_to_destination(unsigned int tcp_connections_number)
 {
-    IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_server();
-    ip_port.ip.ip.v6.uint32[0] = tcp_connections_number;
-    return ip_port;
-}
-
-/** @brief Decode ip_port created by tcp_connections_number_to_ip_port to tcp_connections_number.
- *
- * return true on success.
- * return false if ip_port is invalid.
- */
-bool ip_port_to_tcp_connections_number(const IP_Port *ip_port, unsigned int *tcp_connections_number)
-{
-    *tcp_connections_number = ip_port->ip.ip.v6.uint32[0];
-    return net_family_is_tcp_server(ip_port->ip.family);
+    Destination dest;
+    dest.type = DESTINATION_TYPE_TCP_SERVER;
+    dest.value.tcp_server = tcp_connections_number;
+    return dest;
 }
 
 /** @brief Find the TCP connection with public_key.
@@ -1322,15 +1307,9 @@ static int tcp_relay_on_online(TCP_Connections *_Nonnull tcp_c, int tcp_connecti
 
 static int add_tcp_relay_instance(TCP_Connections *_Nonnull tcp_c, const IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull relay_pk)
 {
-    IP_Port ipp_copy = *ip_port;
+    const IP_Port ipp_copy = *ip_port;
 
-    if (net_family_is_tcp_ipv4(ipp_copy.ip.family)) {
-        ipp_copy.ip.family = net_family_ipv4();
-    } else if (net_family_is_tcp_ipv6(ipp_copy.ip.family)) {
-        ipp_copy.ip.family = net_family_ipv6();
-    }
-
-    if (!net_family_is_ipv4(ipp_copy.ip.family) && !net_family_is_ipv6(ipp_copy.ip.family)) {
+    if (ipp_copy.ip.type != IP_TYPE_V4 && ipp_copy.ip.type != IP_TYPE_V6) {
         return -1;
     }
 
@@ -1493,21 +1472,14 @@ static bool copy_tcp_relay_conn(const TCP_Connections *_Nonnull tcp_c, Node_form
     }
     memcpy(tcp_relay->public_key, tcp_con_public_key(tcp_con->connection), CRYPTO_PUBLIC_KEY_SIZE);
     tcp_relay->ip_port = tcp_con_ip_port(tcp_con->connection);
-
-    Family *const family = &tcp_relay->ip_port.ip.family;
-
-    if (net_family_is_ipv4(*family)) {
-        *family = net_family_tcp_ipv4();
-    } else if (net_family_is_ipv6(*family)) {
-        *family = net_family_tcp_ipv6();
-    }
+    tcp_relay->transport = TRANSPORT_TCP;
 
     return true;
 }
 
 /** @brief Copy a maximum of max_num TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the copied relays have `TRANSPORT_TCP` as their transport.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.

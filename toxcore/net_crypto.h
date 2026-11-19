@@ -143,7 +143,7 @@ const uint8_t *_Nonnull nc_get_self_secret_key(const Net_Crypto *_Nonnull c);
 TCP_Connections *_Nonnull nc_get_tcp_c(const Net_Crypto *_Nonnull c);
 
 typedef struct New_Connection {
-    IP_Port source;
+    Destination source;
     uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The real public key of the peer. */
     uint8_t dht_public_key[CRYPTO_PUBLIC_KEY_SIZE]; /* The dht public key of the peer. */
     uint8_t recv_nonce[CRYPTO_NONCE_SIZE]; /* Nonce of received packets. */
@@ -333,7 +333,7 @@ int send_tcp_forward_request(const Logger *_Nonnull logger, Net_Crypto *_Nonnull
 
 /** @brief Copy a maximum of num random TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the copied relays have `TRANSPORT_TCP` as their transport.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.

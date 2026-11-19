@@ -217,7 +217,7 @@ static int handle_forward_reply(void *_Nonnull object, const IP_Port *_Nonnull s
     if (sendback_data[0] == SENDBACK_IPPORT) {
         IP_Port dest;
 
-        if (unpack_ip_port(&dest, sendback_data + 1, sendback_data_len - 1, false)
+        if (unpack_ip_port(&dest, sendback_data + 1, sendback_data_len - 1)
                 != sendback_data_len - 1) {
             return 1;
         }
@@ -227,7 +227,7 @@ static int handle_forward_reply(void *_Nonnull object, const IP_Port *_Nonnull s
 
     if (sendback_data[0] == SENDBACK_FORWARD) {
         IP_Port forwarder;
-        const int ipport_length = unpack_ip_port(&forwarder, sendback_data + 1, sendback_data_len - 1, false);
+        const int ipport_length = unpack_ip_port(&forwarder, sendback_data + 1, sendback_data_len - 1);
 
         if (ipport_length == -1) {
             return 1;

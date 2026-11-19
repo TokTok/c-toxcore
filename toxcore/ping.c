@@ -216,7 +216,7 @@ static int handle_ping_response(void *_Nonnull object, const IP_Port *_Nonnull s
 
     IP_Port ipp;
 
-    if (unpack_ip_port(&ipp, &data[CRYPTO_PUBLIC_KEY_SIZE], PING_DATA_SIZE - CRYPTO_PUBLIC_KEY_SIZE, false) == -1) {
+    if (unpack_ip_port(&ipp, &data[CRYPTO_PUBLIC_KEY_SIZE], PING_DATA_SIZE - CRYPTO_PUBLIC_KEY_SIZE) == -1) {
         return 1;
     }
 
@@ -239,7 +239,7 @@ static bool in_list(const Client_data *_Nonnull list, uint16_t length, const Mon
         if (pk_equal(list[i].public_key, public_key)) {
             const IPPTsPng *ipptp;
 
-            if (net_family_is_ipv4(ip_port->ip.family)) {
+            if (ip_port->ip.type == IP_TYPE_V4) {
                 ipptp = &list[i].assoc4;
             } else {
                 ipptp = &list[i].assoc6;

@@ -224,13 +224,14 @@ int getfriend_conn_id_pk(const Friend_Connections *fr_c, const uint8_t *real_pk)
 void friend_tcp_relays_add(Friend_TCP_Relays *relays, const IP_Port *ip_port, const uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE])
 {
     for (unsigned i = 0; i < FRIEND_MAX_STORED_TCP_RELAYS; ++i) {
-        if (!net_family_is_unspec(relays->relays[i].ip_port.ip.family)
+        if (relays->relays[i].ip_port.ip.type != IP_TYPE_UNSPEC
                 && pk_equal(relays->relays[i].public_key, public_key)) {
             relays->relays[i] = empty_node_format;
         }
     }
 
     relays->relays[relays->next].ip_port = *ip_port;
+    relays->relays[relays->next].transport = TRANSPORT_TCP;
     memcpy(relays->relays[relays->next].public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
     relays->next = (relays->next + 1) % FRIEND_MAX_STORED_TCP_RELAYS;
 }
@@ -243,7 +244,7 @@ const Node_format *friend_tcp_relays_get(const Friend_TCP_Relays *relays, uint32
 
     const Node_format *relay = &relays->relays[(relays->next + FRIEND_MAX_STORED_TCP_RELAYS - 1 - age) % FRIEND_MAX_STORED_TCP_RELAYS];
 
-    if (net_family_is_unspec(relay->ip_port.ip.family)) {
+    if (relay->ip_port.ip.type == IP_TYPE_UNSPEC) {
         return nullptr;
     }
 
@@ -267,7 +268,7 @@ static int friend_add_tcp_relay(Friend_Connections *_Nonnull fr_c, int friendcon
 
     /* Local ip and same pk means that they are hosting a TCP relay. */
     if (ip_is_local(&ipp_copy.ip) && pk_equal(friend_con->dht_temp_pk, public_key)) {
-        if (!net_family_is_unspec(friend_con->dht_ip_port.ip.family)) {
+        if (friend_con->dht_ip_port.ip.type != IP_TYPE_UNSPEC) {
             ipp_copy.ip = friend_con->dht_ip_port.ip;
         } else {
             friend_con->hosting_tcp_relay = false;
@@ -594,11 +595,12 @@ static int handle_new_connections(void *_Nonnull object, const New_Connection *_
     connection_lossy_data_handler(fr_c->net_crypto, id, &handle_lossy_packet, fr_c, friendcon_id);
     friend_con->crypt_connection_id = id;
 
-    if (!net_family_is_ipv4(n_c->source.ip.family) && !net_family_is_ipv6(n_c->source.ip.family)) {
-        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, false);
-    } else {
-        friend_con->dht_ip_port = n_c->source;
+    if (n_c->source.type == DESTINATION_TYPE_UDP
+            && (n_c->source.value.udp.ip.type == IP_TYPE_V4 || n_c->source.value.udp.ip.type == IP_TYPE_V6)) {
+        friend_con->dht_ip_port = n_c->source.value.udp;
         friend_con->dht_ip_port_lastrecv = mono_time_get(fr_c->mono_time);
+    } else {
+        set_direct_ip_port(fr_c->net_crypto, friend_con->crypt_connection_id, &friend_con->dht_ip_port, false);
     }
 
     if (!pk_equal(friend_con->dht_temp_pk, n_c->dht_public_key)) {
@@ -999,7 +1001,7 @@ void do_friend_connections(Friend_Connections *fr_c, void *userdata)
                 }
 
                 if (friend_con->dht_ip_port_lastrecv + FRIEND_DHT_TIMEOUT < temp_time) {
-                    friend_con->dht_ip_port.ip.family = net_family_unspec();
+                    friend_con->dht_ip_port.ip.type = IP_TYPE_UNSPEC;
                 }
 
                 if (friend_con->dht_lock_token > 0) {

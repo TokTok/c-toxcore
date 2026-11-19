@@ -26,11 +26,11 @@ std::optional<std::tuple<IP_Port, IP_Port, const std::uint8_t *, std::size_t>> p
 {
     CONSUME_OR_RETURN_VAL(const std::uint8_t *ipp_packed, input, SIZE_IP_PORT, std::nullopt);
     IP_Port ipp{};
-    unpack_ip_port(&ipp, ipp_packed, SIZE_IP6, true);
+    unpack_ip_port(&ipp, ipp_packed, SIZE_IP6);
 
     CONSUME_OR_RETURN_VAL(const std::uint8_t *forwarder_packed, input, SIZE_IP_PORT, std::nullopt);
     IP_Port forwarder{};
-    unpack_ip_port(&forwarder, forwarder_packed, SIZE_IP6, true);
+    unpack_ip_port(&forwarder, forwarder_packed, SIZE_IP6);
 
     // 2 bytes: size of the request
     CONSUME_OR_RETURN_VAL(

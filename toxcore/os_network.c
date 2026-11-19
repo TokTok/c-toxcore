@@ -109,11 +109,9 @@ static int make_family(int family_value)
 {
     switch (family_value) {
         case TOX_AF_INET:
-        case TCP_INET:
             return AF_INET;
 
         case TOX_AF_INET6:
-        case TCP_INET6:
             return AF_INET6;
 
         case TOX_AF_UNSPEC:
@@ -160,17 +158,17 @@ typedef struct Network_Addr {
 static void ip_port_to_network_addr(const IP_Port *_Nonnull ip_port, Network_Addr *_Nonnull addr)
 {
     addr->size = 0;
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr->addr;
         addr->size = sizeof(struct sockaddr_in);
         addr4->sin_family = AF_INET;
-        fill_addr4(&ip_port->ip.ip.v4, &addr4->sin_addr);
+        fill_addr4(&ip_port->ip.value.v4, &addr4->sin_addr);
         addr4->sin_port = ip_port->port;
-    } else if (net_family_is_ipv6(ip_port->ip.family)) {
+    } else if (ip_port->ip.type == IP_TYPE_V6) {
         struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr->addr;
         addr->size = sizeof(struct sockaddr_in6);
         addr6->sin6_family = AF_INET6;
-        fill_addr6(&ip_port->ip.ip.v6, &addr6->sin6_addr);
+        fill_addr6(&ip_port->ip.value.v6, &addr6->sin6_addr);
         addr6->sin6_port = ip_port->port;
         addr6->sin6_flowinfo = 0;
         addr6->sin6_scope_id = 0;
@@ -181,14 +179,14 @@ static bool network_addr_to_ip_port(const Network_Addr *_Nonnull addr, IP_Port *
 {
     if (addr->addr.ss_family == AF_INET) {
         const struct sockaddr_in *addr_in = (const struct sockaddr_in *)&addr->addr;
-        ip_port->ip.family = net_family_ipv4();
-        get_ip4(&ip_port->ip.ip.v4, &addr_in->sin_addr);
+        ip_port->ip.type = IP_TYPE_V4;
+        get_ip4(&ip_port->ip.value.v4, &addr_in->sin_addr);
         ip_port->port = addr_in->sin_port;
         return true;
     } else if (addr->addr.ss_family == AF_INET6) {
         const struct sockaddr_in6 *addr_in6 = (const struct sockaddr_in6 *)&addr->addr;
-        ip_port->ip.family = net_family_ipv6();
-        get_ip6(&ip_port->ip.ip.v6, &addr_in6->sin6_addr);
+        ip_port->ip.type = IP_TYPE_V6;
+        get_ip6(&ip_port->ip.value.v6, &addr_in6->sin6_addr);
         ip_port->port = addr_in6->sin6_port;
         return true;
     }
@@ -646,10 +644,10 @@ IP6 net_get_ip6_loopback(void)
 #endif /* IPV6_JOIN_GROUP */
 #endif /* IPV6_ADD_MEMBERSHIP */
 
-bool net_join_multicast(const Network *ns, Socket sock, Family family)
+bool net_join_multicast(const Network *ns, Socket sock, IP_Type type)
 {
 #ifndef ESP_PLATFORM
-    if (net_family_is_ipv6(family)) {
+    if (type == IP_TYPE_V6) {
         /* multicast local nodes */
         struct ipv6_mreq mreq = {{{{0}}}};
         mreq.ipv6mr_multiaddr.s6_addr[0] = 0xFF;
