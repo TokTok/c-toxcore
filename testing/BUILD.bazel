@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//hs-tokstyle/tools:tokstyle.bzl", "tokstyle_c_test")
 
 CIMPLE_FILES = [
@@ -18,7 +19,6 @@ sh_test(
         "-Wno-callgraph",
         "-Wno-enum-from-int",
         "-Wno-nullability",
-        "-Wno-tagged-union",
         "-Wno-type-check",
         "+RTS",
         "-N4",
