@@ -193,9 +193,9 @@ void tox_events_dispatch(Tox *tox, Tox_Events *events, void *user_data)
 
     for (uint32_t i = 0; i < size; ++i) {
         const Tox_Event *event = tox_events_get(events, i);
-        const Tox_Event_Type type = tox_event_get_type(event);
+        assert(event != nullptr);
 
-        switch (type) {
+        switch (event->type) {
             case TOX_EVENT_SELF_CONNECTION_STATUS: {
                 tox_events_handle_self_connection_status_dispatch(tox, event->data.self_connection_status, user_data);
                 break;

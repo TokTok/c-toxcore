@@ -18,7 +18,6 @@ sh_test(
         "-Wno-callgraph",
         "-Wno-enum-from-int",
         "-Wno-nullability",
-        "-Wno-tagged-union",
         "-Wno-type-check",
         "+RTS",
         "-N4",
