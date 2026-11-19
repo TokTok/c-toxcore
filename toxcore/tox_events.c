@@ -5,6 +5,7 @@
 #include "tox_events.h"
 
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "attributes.h"
@@ -95,7 +96,7 @@ Tox_Events *tox_events_iterate(Tox *tox, const Tox_Iterate_Options *options, Tox
 {
     tox_lock(tox);
     Tox_Err_Events_Iterate err;
-    Tox_Events *events = tox_iterate_internal(tox, &err);
+    Tox_Events *events = tox_iterate_internal(tox, options, &err);
 
     if (error != nullptr) {
         *error = err;

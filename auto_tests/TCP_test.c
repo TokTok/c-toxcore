@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../testing/misc_tools.h"
+#include "../toxcore/os_event.h"
 #include "../toxcore/TCP_client.h"
 #include "../toxcore/TCP_common.h"
 #include "../toxcore/TCP_server.h"
@@ -37,14 +37,77 @@ static IP get_loopback(void)
     return ip;
 }
 
-static void do_tcp_server_delay(TCP_Server *tcp_s, Mono_Time *mono_time, int delay)
+static void do_tcp_server_delay(TCP_Server *tcp_s, Ev *ev, Mono_Time *mono_time, int delay)
 {
     c_sleep(delay);
     mono_time_update(mono_time);
-    do_tcp_server(tcp_s, mono_time);
+    ev_run(ev, 0);
+    do_tcp_server(tcp_s);
     c_sleep(delay);
 }
 static uint16_t ports[NUM_PORTS] = {13215, 33445, 25643};
+
+typedef struct {
+    const Random *rng;
+    const Network *ns;
+    const Memory *mem;
+    Mono_Time *mono_time;
+    Logger *logger;
+    Net_Profile *tcp_np;
+    Ev *ev;
+    TCP_Server *tcp_s;
+    TCP_Connections *tc_1;
+    TCP_Connections *tc_2;
+} TCPTestEnvironment;
+
+static void setup_tcp_test_env(TCPTestEnvironment *env)
+{
+    env->rng = os_random();
+    ck_assert(env->rng != nullptr);
+    env->ns = os_network();
+    ck_assert(env->ns != nullptr);
+    env->mem = os_memory();
+    ck_assert(env->mem != nullptr);
+
+    env->mono_time = mono_time_new(env->mem, nullptr, nullptr);
+    env->logger = logger_new(env->mem);
+
+    env->tcp_np = netprof_new(env->logger, env->mem);
+    ck_assert(env->tcp_np != nullptr);
+
+    uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
+    crypto_new_keypair(env->rng, self_public_key, self_secret_key);
+
+    env->ev = os_event_new(env->mem, env->logger);
+    ck_assert(env->ev != nullptr);
+
+    env->tcp_s = new_tcp_server(env->logger, env->mem, env->rng, env->ns, env->mono_time, env->ev, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
+    ck_assert_msg(pk_equal(tcp_server_public_key(env->tcp_s), self_public_key), "Wrong public key");
+
+    TCP_Proxy_Info proxy_info;
+    proxy_info.proxy_type = TCP_PROXY_NONE;
+    crypto_new_keypair(env->rng, self_public_key, self_secret_key);
+    env->tc_1 = new_tcp_connections(env->logger, env->mem, env->rng, env->ns, env->mono_time, env->ev, self_secret_key, &proxy_info, env->tcp_np);
+    ck_assert_msg(env->tc_1 != nullptr, "Failed to create TCP connections");
+    ck_assert_msg(pk_equal(tcp_connections_public_key(env->tc_1), self_public_key), "Wrong public key");
+
+    crypto_new_keypair(env->rng, self_public_key, self_secret_key);
+    env->tc_2 = new_tcp_connections(env->logger, env->mem, env->rng, env->ns, env->mono_time, env->ev, self_secret_key, &proxy_info, env->tcp_np);
+    ck_assert_msg(env->tc_2 != nullptr, "Failed to create TCP connections");
+    ck_assert_msg(pk_equal(tcp_connections_public_key(env->tc_2), self_public_key), "Wrong public key");
+}
+
+static void teardown_tcp_test_env(TCPTestEnvironment *env)
+{
+    kill_tcp_server(env->tcp_s);
+    kill_tcp_connections(env->tc_1);
+    kill_tcp_connections(env->tc_2);
+    netprof_kill(env->mem, env->tcp_np);
+    logger_kill(env->logger);
+    ev_kill(env->ev);
+    mono_time_free(env->mem, env->mono_time);
+}
 
 static void test_basic(void)
 {
@@ -59,11 +122,14 @@ static void test_basic(void)
     Logger *logger = logger_new(mem);
     logger_callback_log(logger, print_debug_logger, nullptr, nullptr);
 
+    Ev *ev = os_event_new(mem, logger);
+    ck_assert(ev != nullptr);
+
     // Attempt to create a new TCP_Server instance.
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
+    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, mono_time, ev, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS,
                   "Failed to bind a TCP relay server to all %d attempted ports.", NUM_PORTS);
@@ -118,14 +184,14 @@ static void test_basic(void)
                            &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "An attempt to send the initial handshake minus last byte failed.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "The attempt to send the last byte of handshake failed.");
 
     free(handshake);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     // Receiving server response and decrypting it
     uint8_t response[TCP_SERVER_HANDSHAKE_SIZE];
@@ -165,7 +231,8 @@ static void test_basic(void)
 
         c_sleep(50);
         mono_time_update(mono_time);
-        do_tcp_server(tcp_s, mono_time);
+        ev_run(ev, 0);
+        do_tcp_server(tcp_s);
     }
 
     // Receiving the second response and verifying its validity
@@ -196,6 +263,7 @@ static void test_basic(void)
     // Closing connections.
     kill_sock(ns, sock);
     kill_tcp_server(tcp_s);
+    ev_kill(ev);
 
     logger_kill(logger);
     mono_time_free(mem, mono_time);
@@ -211,7 +279,7 @@ struct sec_TCP_con {
     uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
 };
 
-static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns, TCP_Server *tcp_s, Mono_Time *mono_time)
+static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, const Random *rng, const Network *ns, TCP_Server *tcp_s, Ev *ev, Mono_Time *mono_time)
 {
     struct sec_TCP_con *sec_c = (struct sec_TCP_con *)malloc(sizeof(struct sec_TCP_con));
     ck_assert(sec_c != nullptr);
@@ -248,12 +316,12 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
                            &localhost, nullptr) == TCP_CLIENT_HANDSHAKE_SIZE - 1,
                   "Failed to send the first portion of the handshake to the TCP relay server.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     ck_assert_msg(net_send(ns, logger, sock, handshake + (TCP_CLIENT_HANDSHAKE_SIZE - 1), 1, &localhost, nullptr) == 1,
                   "Failed to send last byte of handshake.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     uint8_t response[TCP_SERVER_HANDSHAKE_SIZE];
     uint8_t response_plain[TCP_HANDSHAKE_PLAIN_SIZE];
@@ -325,16 +393,19 @@ static void test_some(void)
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     Logger *logger = logger_new(mem);
 
+    Ev *ev = os_event_new(mem, logger);
+    ck_assert(ev != nullptr);
+
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
+    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, mono_time, ev, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create TCP relay server");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind to all ports.");
 
-    struct sec_TCP_con *con1 = new_tcp_con(logger, mem, rng, ns, tcp_s, mono_time);
-    struct sec_TCP_con *con2 = new_tcp_con(logger, mem, rng, ns, tcp_s, mono_time);
-    struct sec_TCP_con *con3 = new_tcp_con(logger, mem, rng, ns, tcp_s, mono_time);
+    struct sec_TCP_con *con1 = new_tcp_con(logger, mem, rng, ns, tcp_s, ev, mono_time);
+    struct sec_TCP_con *con2 = new_tcp_con(logger, mem, rng, ns, tcp_s, ev, mono_time);
+    struct sec_TCP_con *con3 = new_tcp_con(logger, mem, rng, ns, tcp_s, ev, mono_time);
 
     uint8_t requ_p[1 + CRYPTO_PUBLIC_KEY_SIZE];
     requ_p[0] = TCP_PACKET_ROUTING_REQUEST;
@@ -345,7 +416,7 @@ static void test_some(void)
     memcpy(requ_p + 1, con1->public_key, CRYPTO_PUBLIC_KEY_SIZE);
     write_packet_tcp_test_connection(logger, mem, con3, requ_p, sizeof(requ_p));
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     // Testing response from connection 1
     const size_t max_packet_size = 4096;
@@ -369,7 +440,7 @@ static void test_some(void)
     write_packet_tcp_test_connection(logger, mem, con3, test_packet, sizeof(test_packet));
     write_packet_tcp_test_connection(logger, mem, con3, test_packet, sizeof(test_packet));
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     len = read_packet_sec_tcp(logger, con1, data, 2 + 2 + CRYPTO_MAC_SIZE);
     ck_assert_msg(len == 2, "wrong len %d", len);
@@ -394,7 +465,7 @@ static void test_some(void)
     write_packet_tcp_test_connection(logger, mem, con1, test_packet, sizeof(test_packet));
     write_packet_tcp_test_connection(logger, mem, con1, test_packet, sizeof(test_packet));
     write_packet_tcp_test_connection(logger, mem, con1, test_packet, sizeof(test_packet));
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
     len = read_packet_sec_tcp(logger, con3, data, 2 + sizeof(test_packet) + CRYPTO_MAC_SIZE);
     ck_assert_msg(len == sizeof(test_packet), "wrong len %d", len);
     ck_assert_msg(memcmp(data, test_packet, sizeof(test_packet)) == 0, "packet is wrong %u %u %u %u", data[0], data[1],
@@ -411,7 +482,7 @@ static void test_some(void)
     const uint8_t ping_packet[1 + sizeof(uint64_t)] = {TCP_PACKET_PING, 8, 6, 9, 67};
     write_packet_tcp_test_connection(logger, mem, con1, ping_packet, sizeof(ping_packet));
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     len = read_packet_sec_tcp(logger, con1, data, 2 + sizeof(ping_packet) + CRYPTO_MAC_SIZE);
     ck_assert_msg(len == sizeof(ping_packet), "wrong len %d", len);
@@ -422,6 +493,7 @@ static void test_some(void)
 
     // Kill off the connections
     kill_tcp_server(tcp_s);
+    ev_kill(ev);
     kill_tcp_con(con1);
     kill_tcp_con(con2);
     kill_tcp_con(con3);
@@ -522,11 +594,12 @@ static void test_client(void)
 
     Logger *logger = logger_new(mem);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
+    Ev *ev = os_event_new(mem, logger);
 
     uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
+    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, mono_time, ev, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
     ck_assert_msg(tcp_s != nullptr, "Failed to create a TCP relay server.");
     ck_assert_msg(tcp_server_listen_count(tcp_s) == NUM_PORTS, "Failed to bind the relay server to all ports.");
 
@@ -538,7 +611,7 @@ static void test_client(void)
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
+    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, ev, &ip_port_tcp_s, self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
     ck_assert_msg(conn != nullptr, "Failed to create a TCP client connection.");
     // TCP sockets might need a moment before they can be written to.
     c_sleep(50);
@@ -549,7 +622,7 @@ static void test_client(void)
     ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_UNCONFIRMED, "Wrong connection status. Expected: %u, is: %u.",
                   (unsigned int)TCP_CLIENT_UNCONFIRMED, tcp_con_status(conn));
 
-    do_tcp_server_delay(tcp_s, mono_time, 50); // Now let the server handle requests...
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50); // Now let the server handle requests...
 
     const uint8_t loop_size = 3;
 
@@ -564,7 +637,7 @@ static void test_client(void)
         c_sleep(i == loop_size - 1 ? 0 : 500); // Sleep for 500ms on all except third loop.
     }
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     // And still after the server runs again.
     ck_assert_msg(tcp_con_status(conn) == TCP_CLIENT_CONFIRMED, "Wrong status. Expected: %u, is: %u", (unsigned int)TCP_CLIENT_CONFIRMED,
@@ -574,7 +647,7 @@ static void test_client(void)
     uint8_t f2_secret_key[CRYPTO_SECRET_KEY_SIZE];
     crypto_new_keypair(rng, f2_public_key, f2_secret_key);
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
-    TCP_Client_Connection *conn2 = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s, self_public_key, f2_public_key,
+    TCP_Client_Connection *conn2 = new_tcp_connection(logger, mem, mono_time, rng, ns, ev, &ip_port_tcp_s, self_public_key, f2_public_key,
                                    f2_secret_key, nullptr, nullptr);
     ck_assert_msg(conn2 != nullptr, "Failed to create a second TCP client connection.");
     c_sleep(50);
@@ -594,7 +667,7 @@ static void test_client(void)
     do_tcp_connection(logger, mono_time, conn, nullptr);
     do_tcp_connection(logger, mono_time, conn2, nullptr);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     do_tcp_connection(logger, mono_time, conn, nullptr);
     do_tcp_connection(logger, mono_time, conn2, nullptr);
@@ -606,7 +679,7 @@ static void test_client(void)
     send_routing_request(logger, conn, f2_public_key);
     send_routing_request(logger, conn2, f_public_key);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     do_tcp_connection(logger, mono_time, conn, nullptr);
     do_tcp_connection(logger, mono_time, conn2, nullptr);
@@ -620,11 +693,11 @@ static void test_client(void)
     ck_assert_msg(status_callback_connection_id == response_callback_connection_id,
                   "Status and response callback connection IDs are not equal.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     ck_assert_msg(send_data(logger, conn2, 0, data, 5) == 1, "Failed a send_data() call.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     do_tcp_connection(logger, mono_time, conn, nullptr);
     do_tcp_connection(logger, mono_time, conn2, nullptr);
@@ -632,7 +705,7 @@ static void test_client(void)
     status_callback_good = 0;
     send_disconnect_request(logger, conn2, 0);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(tcp_s, ev, mono_time, 50);
 
     do_tcp_connection(logger, mono_time, conn, nullptr);
     do_tcp_connection(logger, mono_time, conn2, nullptr);
@@ -645,6 +718,7 @@ static void test_client(void)
     kill_tcp_connection(conn2);
 
     logger_kill(logger);
+    ev_kill(ev);
     mono_time_free(mem, mono_time);
 }
 
@@ -672,7 +746,8 @@ static void test_client_invalid(void)
 
     ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
-    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, &ip_port_tcp_s,
+    Ev *ev = os_event_new(mem, logger);
+    TCP_Client_Connection *conn = new_tcp_connection(logger, mem, mono_time, rng, ns, ev, &ip_port_tcp_s,
                                   self_public_key, f_public_key, f_secret_key, nullptr, nullptr);
     ck_assert_msg(conn != nullptr, "Failed to create a TCP client connection.");
 
@@ -700,6 +775,7 @@ static void test_client_invalid(void)
     kill_tcp_connection(conn);
 
     logger_kill(logger);
+    ev_kill(ev);
     mono_time_free(mem, mono_time);
 }
 
@@ -730,101 +806,67 @@ static int tcp_data_callback(void *object, int id, const uint8_t *data, uint16_t
 
 static void test_tcp_connection(void)
 {
-    const Random *rng = os_random();
-    ck_assert(rng != nullptr);
-    const Network *ns = os_network();
-    ck_assert(ns != nullptr);
-    const Memory *mem = os_memory();
-    ck_assert(mem != nullptr);
-
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new(mem);
-
-    Net_Profile *tcp_np = netprof_new(logger, mem);
-    ck_assert(tcp_np != nullptr);
+    TCPTestEnvironment env;
+    setup_tcp_test_env(&env);
 
     tcp_data_callback_called = 0;
-    uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
-    ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
-
-    TCP_Proxy_Info proxy_info;
-    proxy_info.proxy_type = TCP_PROXY_NONE;
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
-    ck_assert_msg(tc_1 != nullptr, "Failed to create TCP connections");
-    ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
-
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
-    ck_assert_msg(tc_2 != nullptr, "Failed to create TCP connections");
-    ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
 
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(env.rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    int connection = new_tcp_connection_to(tc_1, tcp_connections_public_key(tc_2), 123);
+    int connection = new_tcp_connection_to(env.tc_1, tcp_connections_public_key(env.tc_2), 123);
     ck_assert_msg(connection == 0, "Connection id wrong");
-    ck_assert_msg(add_tcp_relay_connection(tc_1, connection, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
+    ck_assert_msg(add_tcp_relay_connection(env.tc_1, connection, &ip_port_tcp_s, tcp_server_public_key(env.tcp_s)) == 0,
                   "Could not add tcp relay to connection\n");
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
-    connection = new_tcp_connection_to(tc_2, tcp_connections_public_key(tc_1), 123);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(env.rng) % NUM_PORTS]);
+    connection = new_tcp_connection_to(env.tc_2, tcp_connections_public_key(env.tc_1), 123);
     ck_assert_msg(connection == 0, "Connection id wrong");
-    ck_assert_msg(add_tcp_relay_connection(tc_2, connection, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
+    ck_assert_msg(add_tcp_relay_connection(env.tc_2, connection, &ip_port_tcp_s, tcp_server_public_key(env.tcp_s)) == 0,
                   "Could not add tcp relay to connection\n");
 
-    ck_assert_msg(new_tcp_connection_to(tc_2, tcp_connections_public_key(tc_1), 123) == -1,
+    ck_assert_msg(new_tcp_connection_to(env.tc_2, tcp_connections_public_key(env.tc_1), 123) == -1,
                   "Managed to read same connection\n");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    int ret = send_packet_tcp_connection(tc_1, 0, (const uint8_t *)"Gentoo", 6);
+    int ret = send_packet_tcp_connection(env.tc_1, 0, (const uint8_t *)"Gentoo", 6);
     ck_assert_msg(ret == 0, "could not send packet.");
-    set_packet_tcp_connection_callback(tc_2, &tcp_data_callback, (void *) 120397);
+    set_packet_tcp_connection_callback(env.tc_2, &tcp_data_callback, (void *) 120397);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
     ck_assert_msg(tcp_data_callback_called, "could not recv packet.");
-    ck_assert_msg(tcp_connection_to_online_tcp_relays(tc_1, 0) == 1, "Wrong number of connected relays");
-    ck_assert_msg(kill_tcp_connection_to(tc_1, 0) == 0, "could not kill connection to\n");
+    ck_assert_msg(tcp_connection_to_online_tcp_relays(env.tc_1, 0) == 1, "Wrong number of connected relays");
+    ck_assert_msg(kill_tcp_connection_to(env.tc_1, 0) == 0, "could not kill connection to\n");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    ck_assert_msg(send_packet_tcp_connection(tc_1, 0, (const uint8_t *)"Gentoo", 6) == -1, "could send packet.");
-    ck_assert_msg(kill_tcp_connection_to(tc_2, 0) == 0, "could not kill connection to\n");
+    ck_assert_msg(send_packet_tcp_connection(env.tc_1, 0, (const uint8_t *)"Gentoo", 6) == -1, "could send packet.");
+    ck_assert_msg(kill_tcp_connection_to(env.tc_2, 0) == 0, "could not kill connection to\n");
 
-    kill_tcp_server(tcp_s);
-    kill_tcp_connections(tc_1);
-    kill_tcp_connections(tc_2);
-
-    netprof_kill(mem, tcp_np);
-
-    logger_kill(logger);
-    mono_time_free(mem, mono_time);
+    teardown_tcp_test_env(&env);
 }
 
 static bool tcp_oobdata_callback_called;
@@ -850,96 +892,61 @@ static int tcp_oobdata_callback(void *object, const uint8_t *public_key, unsigne
 
 static void test_tcp_connection2(void)
 {
-    const Random *rng = os_random();
-    ck_assert(rng != nullptr);
-    const Network *ns = os_network();
-    ck_assert(ns != nullptr);
-    const Memory *mem = os_memory();
-    ck_assert(mem != nullptr);
-
-    Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
-    Logger *logger = logger_new(mem);
-
-    Net_Profile *tcp_np = netprof_new(logger, mem);
-    ck_assert(tcp_np != nullptr);
+    TCPTestEnvironment env;
+    setup_tcp_test_env(&env);
 
     tcp_oobdata_callback_called = 0;
     tcp_data_callback_called = 0;
 
-    uint8_t self_public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    uint8_t self_secret_key[CRYPTO_SECRET_KEY_SIZE];
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Server *tcp_s = new_tcp_server(logger, mem, rng, ns, USE_IPV6, NUM_PORTS, ports, self_secret_key, nullptr, nullptr);
-    ck_assert_msg(pk_equal(tcp_server_public_key(tcp_s), self_public_key), "Wrong public key");
-
-    TCP_Proxy_Info proxy_info;
-    proxy_info.proxy_type = TCP_PROXY_NONE;
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_1 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
-    ck_assert_msg(tc_1 != nullptr, "Failed to create TCP connections");
-    ck_assert_msg(pk_equal(tcp_connections_public_key(tc_1), self_public_key), "Wrong public key");
-
-    crypto_new_keypair(rng, self_public_key, self_secret_key);
-    TCP_Connections *tc_2 = new_tcp_connections(logger, mem, rng, ns, mono_time, self_secret_key, &proxy_info, tcp_np);
-    ck_assert_msg(tc_2 != nullptr, "Failed to create TCP connections");
-    ck_assert_msg(pk_equal(tcp_connections_public_key(tc_2), self_public_key), "Wrong public key");
-
     IP_Port ip_port_tcp_s;
 
-    ip_port_tcp_s.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
+    ip_port_tcp_s.port = net_htons(ports[random_u32(env.rng) % NUM_PORTS]);
     ip_port_tcp_s.ip = get_loopback();
 
-    int connection = new_tcp_connection_to(tc_1, tcp_connections_public_key(tc_2), 123);
+    int connection = new_tcp_connection_to(env.tc_1, tcp_connections_public_key(env.tc_2), 123);
     ck_assert_msg(connection == 0, "Connection id wrong");
-    ck_assert_msg(add_tcp_relay_connection(tc_1, connection, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
+    ck_assert_msg(add_tcp_relay_connection(env.tc_1, connection, &ip_port_tcp_s, tcp_server_public_key(env.tcp_s)) == 0,
                   "Could not add tcp relay to connection\n");
 
-    ck_assert_msg(add_tcp_relay_global(tc_2, &ip_port_tcp_s, tcp_server_public_key(tcp_s)) == 0,
+    ck_assert_msg(add_tcp_relay_global(env.tc_2, &ip_port_tcp_s, tcp_server_public_key(env.tcp_s)) == 0,
                   "Could not add global relay");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
-    int ret = send_packet_tcp_connection(tc_1, 0, (const uint8_t *)"Gentoo", 6);
+    int ret = send_packet_tcp_connection(env.tc_1, 0, (const uint8_t *)"Gentoo", 6);
     ck_assert_msg(ret == 0, "could not send packet.");
-    set_oob_packet_tcp_connection_callback(tc_2, &tcp_oobdata_callback, tc_2);
-    set_packet_tcp_connection_callback(tc_1, &tcp_data_callback, (void *) 120397);
+    set_oob_packet_tcp_connection_callback(env.tc_2, &tcp_oobdata_callback, env.tc_2);
+    set_packet_tcp_connection_callback(env.tc_1, &tcp_data_callback, (void *) 120397);
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
     ck_assert_msg(tcp_oobdata_callback_called, "could not recv packet.");
 
-    do_tcp_server_delay(tcp_s, mono_time, 50);
+    do_tcp_server_delay(env.tcp_s, env.ev, env.mono_time, 50);
 
-    do_tcp_connections(logger, tc_1, nullptr);
-    do_tcp_connections(logger, tc_2, nullptr);
+    do_tcp_connections(env.logger, env.tc_1, nullptr);
+    do_tcp_connections(env.logger, env.tc_2, nullptr);
 
     ck_assert_msg(tcp_data_callback_called, "could not recv packet.");
-    ck_assert_msg(kill_tcp_connection_to(tc_1, 0) == 0, "could not kill connection to\n");
+    ck_assert_msg(kill_tcp_connection_to(env.tc_1, 0) == 0, "could not kill connection to\n");
 
-    netprof_kill(mem, tcp_np);
-
-    kill_tcp_server(tcp_s);
-    kill_tcp_connections(tc_1);
-    kill_tcp_connections(tc_2);
-
-    logger_kill(logger);
-    mono_time_free(mem, mono_time);
+    teardown_tcp_test_env(&env);
 }
 
 static void tcp_suite(void)

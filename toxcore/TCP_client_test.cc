@@ -9,6 +9,7 @@
 #include <cstring>
 #include <vector>
 
+#include "../testing/support/doubles/fake_event.hh"
 #include "TCP_common.h"
 #include "attributes.h"
 #include "crypto_core.h"
@@ -86,6 +87,8 @@ TEST_F(TCPClientTest, ConnectsToRelay)
     crypto_new_keypair(&client_node->c_random, client_pk, client_sk);
 
     Net_Profile *client_profile = netprof_new(client_log, &client_node->c_memory);
+    Ev *client_ev
+        = tox::test::FakeEvent::create(client_node->node->fake_network(), &client_node->c_memory);
 
     // 2. Client connects to Server
     IP_Port server_ip_port;
@@ -93,8 +96,8 @@ TEST_F(TCPClientTest, ConnectsToRelay)
     server_ip_port.port = net_htons(33445);
 
     TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,
-        client_time, &client_node->c_random, &client_node->c_network, &server_ip_port, server_pk,
-        client_pk, client_sk, nullptr, client_profile);
+        client_time, &client_node->c_random, &client_node->c_network, client_ev, &server_ip_port,
+        server_pk, client_pk, client_sk, nullptr, client_profile);
     ASSERT_NE(client_conn, nullptr);
 
     // 3. Simulation Loop
@@ -189,6 +192,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
 
     // Cleanup
     kill_tcp_connection(client_conn);
+    ev_kill(client_ev);
     net_profile_deleter(client_profile, &client_node->c_memory);
     kill_sock(&server_node->c_network, server_sock);
     if (sock_valid(accepted_sock))
@@ -227,14 +231,16 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
     crypto_new_keypair(&client_node->c_random, client_pk, client_sk);
 
     Net_Profile *client_profile = netprof_new(client_log, &client_node->c_memory);
+    Ev *client_ev
+        = tox::test::FakeEvent::create(client_node->node->fake_network(), &client_node->c_memory);
 
     IP_Port server_ip_port;
     server_ip_port.ip = server_node->node->ip;
     server_ip_port.port = net_htons(33446);
 
     TCP_Client_Connection *client_conn = new_tcp_connection(client_log, &client_node->c_memory,
-        client_time, &client_node->c_random, &client_node->c_network, &server_ip_port, server_pk,
-        client_pk, client_sk, nullptr, client_profile);
+        client_time, &client_node->c_random, &client_node->c_network, client_ev, &server_ip_port,
+        server_pk, client_pk, client_sk, nullptr, client_profile);
     ASSERT_NE(client_conn, nullptr);
 
     bool connected = false;
@@ -362,6 +368,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
 
     // Cleanup
     kill_tcp_connection(client_conn);
+    ev_kill(client_ev);
     net_profile_deleter(client_profile, &client_node->c_memory);
     kill_sock(&server_node->c_network, server_sock);
     if (sock_valid(accepted_sock))

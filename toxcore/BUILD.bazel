@@ -110,6 +110,7 @@ cc_library(
     deps = [
         ":attributes",
         ":ccompat",
+        ":mem",
         ":net",
     ],
 )
@@ -885,10 +886,6 @@ cc_library(
     name = "TCP_server",
     srcs = ["TCP_server.c"],
     hdrs = ["TCP_server.h"],
-    copts = select({
-        "//tools/config:linux": ["-DTCP_SERVER_USE_EPOLL=1"],
-        "//conditions:default": [],
-    }),
     visibility = [
         "//c-toxcore/auto_tests:__pkg__",
         "//c-toxcore/other:__pkg__",
@@ -926,6 +923,7 @@ cc_test(
         ":mono_time",
         ":net",
         ":network",
+        ":os_event",
         ":os_memory",
         ":os_network",
         ":os_random",
@@ -1026,8 +1024,10 @@ cc_test(
         ":TCP_common",
         ":crypto_core",
         ":logger",
+        ":network",
         ":os_memory",
         ":os_random",
+        "//c-toxcore/testing/support",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],

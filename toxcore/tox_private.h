@@ -24,6 +24,11 @@ typedef uint64_t tox_mono_time_cb(void *_Nullable user_data);
 typedef struct Random Random;
 typedef struct Network Network;
 typedef struct Memory Memory;
+typedef struct Logger Logger;
+typedef struct Ev Ev;
+
+/** @brief Creates the event loop for a new Tox instance, which frees it with `ev_kill`. */
+typedef Ev *_Nullable tox_ev_new_cb(void *_Nullable user_data, const Memory *_Nonnull mem, const Logger *_Nonnull log);
 
 typedef struct Tox_System {
     tox_mono_time_cb *_Nullable mono_time_callback;
@@ -31,6 +36,9 @@ typedef struct Tox_System {
     const Random *_Nullable rng;
     const Network *_Nullable ns;
     const Memory *_Nullable mem;
+    /** Without one, Tox uses the operating system's event loop. */
+    tox_ev_new_cb *_Nullable ev_new_callback;
+    void *_Nullable ev_new_user_data;
 } Tox_System;
 
 Tox_System tox_default_system(void);
@@ -61,6 +69,7 @@ typedef struct Tox_Iterate_Options Tox_Iterate_Options;
  *
  * Default values:
  * - fail_hard: false
+ * - iterate_timeout_ms: 0
  *
  * @param error An error code. Will be set to OK on success.
  * @return A new options object or NULL on failure.
@@ -85,6 +94,27 @@ void tox_iterate_options_set_fail_hard(Tox_Iterate_Options *_Nonnull options, bo
 bool tox_iterate_options_get_fail_hard(const Tox_Iterate_Options *_Nullable options);
 
 /**
+ * Set the timeout in milliseconds for the iteration.
+ *
+ * 0: Non-blocking (default).
+ * Positive: Wait up to this many milliseconds for events.
+ * -1: Wait indefinitely.
+ *
+ * Only for a Tox used from 1 thread: the wait holds the Tox lock, so calls
+ * from other threads wait until it's over.
+ *
+ * Only a packet ends the wait early. Tox's own timers don't, so with a timeout
+ * longer than `tox_iteration_interval`, pings and resends are late, and with
+ * -1 an idle Tox may never return.
+ */
+void tox_iterate_options_set_iterate_timeout_ms(Tox_Iterate_Options *_Nonnull options, int32_t iterate_timeout_ms);
+
+/**
+ * Get the timeout in milliseconds for the iteration.
+ */
+int32_t tox_iterate_options_get_iterate_timeout_ms(const Tox_Iterate_Options *_Nullable options);
+
+/**
  * Run a single tox_iterate iteration with custom options.
  */
 void tox_iterate_with_options(
@@ -95,7 +125,7 @@ void tox_iterate_with_options(
 void tox_lock(const Tox *_Nonnull tox);
 void tox_unlock(const Tox *_Nonnull tox);
 
-Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, Tox_Err_Events_Iterate *_Nullable error);
+Tox_Events *_Nullable tox_iterate_internal(Tox *_Nonnull tox, const Tox_Iterate_Options *_Nullable options, Tox_Err_Events_Iterate *_Nullable error);
 
 /**
  * Set the callback for the `friend_lossy_packet` event for a specific packet

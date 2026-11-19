@@ -9,6 +9,7 @@
 #include "../toxcore/onion_client.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
+#include "../toxcore/os_event.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -215,9 +216,9 @@ static void send_onion_packet(const Networking_Core *net, const Memory *mem, con
 /** Initialize networking.
  * Added for reverse compatibility with old new_networking calls.
  */
-static Networking_Core *new_networking(const Logger *log, const Memory *mem, const Network *ns, const IP *ip, uint16_t port)
+static Networking_Core *new_networking(const Logger *log, const Memory *mem, const Network *ns, Ev *ev, const IP *ip, uint16_t port)
 {
-    return new_networking_ex(log, mem, ns, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
+    return new_networking_ex(log, mem, ns, ev, ip, port, port + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
 }
 
 static void test_basic(void)
@@ -238,10 +239,13 @@ static void test_basic(void)
     Mono_Time *mono_time1 = mono_time_new(mem, nullptr, nullptr);
     Mono_Time *mono_time2 = mono_time_new(mem, nullptr, nullptr);
 
+    Ev *ev1 = os_event_new(mem, log1);
+    Ev *ev2 = os_event_new(mem, log2);
+
     IP ip = get_loopback();
-    Networking_Core *net1 = new_networking(log1, mem, ns, &ip, 36567);
+    Networking_Core *net1 = new_networking(log1, mem, ns, ev1, &ip, 36567);
     Onion *onion1 = new_onion(log1, mem, mono_time1, rng, new_dht(log1, mem, rng, ns, mono_time1, net1, true, false), net1);
-    Networking_Core *net2 = new_networking(log2, mem, ns, &ip, 36568);
+    Networking_Core *net2 = new_networking(log2, mem, ns, ev2, &ip, 36568);
     Onion *onion2 = new_onion(log2, mem, mono_time2, rng, new_dht(log2, mem, rng, ns, mono_time2, net2, true, false), net2);
     ck_assert_msg((onion1 != nullptr) && (onion2 != nullptr), "Onion failed initializing.");
     networking_registerhandler(onion2->net, NET_PACKET_ANNOUNCE_REQUEST, &handle_test_1, onion2);
@@ -337,8 +341,9 @@ static void test_basic(void)
     logger_callback_log(log3, print_debug_logger, nullptr, &index[2]);
 
     Mono_Time *mono_time3 = mono_time_new(mem, nullptr, nullptr);
+    Ev *ev3 = os_event_new(mem, log3);
 
-    Networking_Core *net3 = new_networking(log3, mem, ns, &ip, 36569);
+    Networking_Core *net3 = new_networking(log3, mem, ns, ev3, &ip, 36569);
     Onion *onion3 = new_onion(log3, mem, mono_time3, rng, new_dht(log3, mem, rng, ns, mono_time3, net3, true, false), net3);
     ck_assert_msg((onion3 != nullptr), "Onion failed initializing.");
 
@@ -369,6 +374,7 @@ static void test_basic(void)
         kill_onion(onion);
         kill_dht(dht);
         kill_networking(net);
+        ev_kill(ev3);
         mono_time_free(mem, mono_time3);
         logger_kill(log3);
     }
@@ -381,6 +387,7 @@ static void test_basic(void)
         kill_onion(onion);
         kill_dht(dht);
         kill_networking(net);
+        ev_kill(ev2);
         mono_time_free(mem, mono_time2);
         logger_kill(log2);
     }
@@ -393,6 +400,7 @@ static void test_basic(void)
         kill_onion(onion);
         kill_dht(dht);
         kill_networking(net);
+        ev_kill(ev1);
         mono_time_free(mem, mono_time1);
         logger_kill(log1);
     }
@@ -401,6 +409,7 @@ static void test_basic(void)
 typedef struct {
     Logger *log;
     Mono_Time *mono_time;
+    Ev *ev;
     Net_Crypto *nc;
     Net_Profile *tcp_np;
     Onion *onion;
@@ -429,14 +438,17 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
     logger_callback_log(on->log, print_debug_logger, nullptr, index);
 
     on->mono_time = mono_time_new(mem, nullptr, nullptr);
+    on->ev = os_event_new(mem, on->log);
 
-    if (!on->mono_time) {
+    if (!on->mono_time || !on->ev) {
+        ev_kill(on->ev);
+        mono_time_free(mem, on->mono_time);
         logger_kill(on->log);
         free(on);
         return nullptr;
     }
 
-    Networking_Core *net = new_networking(on->log, mem, ns, &ip, port);
+    Networking_Core *net = new_networking(on->log, mem, ns, on->ev, &ip, port);
 
     if (!net) {
         mono_time_free(mem, on->mono_time);
@@ -491,8 +503,8 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    TCP_Proxy_Info inf = {{{{0}}}};
-    on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, net, dht, &auto_test_dht_funcs, &inf, on->tcp_np);
+    const TCP_Proxy_Info inf = {{{{0}}}};
+    on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, on->ev, net, dht, &auto_test_dht_funcs, &inf, on->tcp_np);
     on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, on->nc, dht, net);
 
     if (!on->onion_c) {
@@ -531,6 +543,7 @@ static void kill_onions(const Memory *mem, Onions *on)
     netprof_kill(mem, on->tcp_np);
     kill_dht(dht);
     kill_networking(net);
+    ev_kill(on->ev);
     mono_time_free(mem, on->mono_time);
     logger_kill(on->log);
     free(on);

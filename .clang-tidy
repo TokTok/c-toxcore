@@ -42,7 +42,7 @@ CheckOptions:
   - key:             concurrency-mt-unsafe.FunctionSet
     value:           posix
   - key:             readability-function-cognitive-complexity.Threshold
-    value:           159  # TODO(iphydf): Decrease. tox_new_system is the highest at the moment.
+    value:           167  # TODO(iphydf): Decrease. tox_new_system is the highest at the moment.
   - key:             cppcoreguidelines-avoid-do-while.IgnoreMacros
     value:           true
   - key:             readability-simplify-boolean-expr.SimplifyDeMorgan

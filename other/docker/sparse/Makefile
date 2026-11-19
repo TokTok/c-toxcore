@@ -3,7 +3,7 @@ SOURCES		:= $(wildcard tox*/*.c tox*/*/*.c) \
 OBJECTS		:= $(SOURCES:.c=.o)
 
 CFLAGS		:= $(shell pkg-config --cflags libsodium opus vpx)
-CPPFLAGS	:= -DSPARSE -DTCP_SERVER_USE_EPOLL=1 -DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE
+CPPFLAGS	:= -DSPARSE -DEV_USE_EPOLL=1 -DMIN_LOGGER_LEVEL=LOGGER_LEVEL_TRACE
 
 SPARSE_FLAGS	:=				\
 	-Wsparse-error				\

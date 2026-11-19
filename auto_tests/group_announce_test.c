@@ -25,6 +25,7 @@
 #include "../toxcore/network.h"
 #include "../toxcore/onion.h"
 #include "../toxcore/onion_announce.h"
+#include "../toxcore/os_event.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
 #include "auto_test_support.h"
@@ -122,8 +123,11 @@ static void test_gca_announce_response_size(void)
 
     IP ip = get_loopback();
 
+    Ev *srv_ev = os_event_new(mem, srv_log);
+    ck_assert(srv_ev != nullptr);
+
     Networking_Core *srv_net = new_networking_ex(
-                                   srv_log, mem, ns, &ip, 36700,
+                                   srv_log, mem, ns, srv_ev, &ip, 36700,
                                    36700 + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
     ck_assert(srv_net != nullptr);
 
@@ -180,8 +184,11 @@ static void test_gca_announce_response_size(void)
     Mono_Time *cli_mono = mono_time_new(mem, nullptr, nullptr);
     ck_assert(cli_mono != nullptr);
 
+    Ev *cli_ev = os_event_new(mem, cli_log);
+    ck_assert(cli_ev != nullptr);
+
     Networking_Core *cli_net = new_networking_ex(
-                                   cli_log, mem, ns, &ip, 36701,
+                                   cli_log, mem, ns, cli_ev, &ip, 36701,
                                    36701 + (TOX_PORTRANGE_TO - TOX_PORTRANGE_FROM), nullptr);
     ck_assert(cli_net != nullptr);
 
@@ -277,6 +284,7 @@ static void test_gca_announce_response_size(void)
     /* ------------------------------------------------------------------ */
     networking_registerhandler(cli_net, NET_PACKET_ONION_RECV_3, nullptr, nullptr);
     kill_networking(cli_net);
+    ev_kill(cli_ev);
     mono_time_free(mem, cli_mono);
     logger_kill(cli_log);
 
@@ -285,6 +293,7 @@ static void test_gca_announce_response_size(void)
     kill_onion(srv_onion);
     kill_dht(srv_dht);
     kill_networking(srv_net);
+    ev_kill(srv_ev);
     mono_time_free(mem, srv_mono);
     logger_kill(srv_log);
 }

@@ -35,6 +35,7 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/os_event.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
 #include "misc_tools.h"
@@ -114,6 +115,15 @@ int main(int argc, char *argv[])
     }
 
     options.log = logger;
+
+    options.ev = os_event_new(mem, logger);
+
+    if (options.ev == nullptr) {
+        fputs("Failed to allocate event loop\n", stderr);
+        logger_kill(logger);
+        mono_time_free(mem, mono_time);
+        exit(1);
+    }
 
     Messenger_Error err;
     m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);

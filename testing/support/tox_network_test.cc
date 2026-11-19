@@ -400,5 +400,118 @@ namespace {
         EXPECT_TRUE(ctx.received);
     }
 
+    // Connections that send less than a whole packet and then nothing stay readable for good.
+    // The relay must still serve everyone else.
+    TEST(ToxNetworkTest, TcpRelayServesClientsWhileOthersSendHalfAPacket)
+    {
+        // More than one event loop run handles, fewer than the relay keeps waiting for a handshake.
+        constexpr int kHalfSenders = 100;
+        constexpr uint16_t kRelayPort = 20001;
+
+        Simulation sim{0};
+
+        struct ToxOptionsDeleter {
+            void operator()(Tox_Options *opts) { tox_options_free(opts); }
+        };
+        std::unique_ptr<Tox_Options, ToxOptionsDeleter> opts(tox_options_new(nullptr));
+        tox_options_set_ipv6_enabled(opts.get(), false);
+        tox_options_set_local_discovery_enabled(opts.get(), false);
+
+        tox_options_set_tcp_port(opts.get(), kRelayPort);
+        tox_options_set_start_port(opts.get(), kRelayPort);
+        tox_options_set_end_port(opts.get(), kRelayPort);
+        auto relay_node = sim.create_node();
+        auto relay = relay_node->create_tox(opts.get());
+        ASSERT_NE(relay, nullptr);
+
+        uint8_t relay_dht_id[TOX_PUBLIC_KEY_SIZE];
+        tox_self_get_dht_id(relay.get(), relay_dht_id);
+        char relay_ip[TOX_INET_ADDRSTRLEN];
+        ip_parse_addr(&relay_node->ip, relay_ip, sizeof(relay_ip));
+
+        // The half senders connect first, so the relay sees them before the real clients.
+        auto half_node = sim.create_node();
+        FakeNetworkStack &half_net = half_node->fake_network();
+        IP_Port relay_addr;
+        relay_addr.ip = relay_node->ip;
+        relay_addr.port = net_htons(kRelayPort);
+        std::vector<Socket> half_senders;
+        for (int i = 0; i < kHalfSenders; ++i) {
+            const Socket sock = net_socket(
+                &half_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+            half_net.connect(sock, &relay_addr);
+            half_senders.push_back(sock);
+        }
+
+        const uint64_t connected_at = sim.clock().current_time_ms() + 1000;
+        sim.run_until(
+            [&]() {
+                tox_iterate(relay.get(), nullptr);
+                return sim.clock().current_time_ms() >= connected_at;
+            },
+            2000);
+
+        for (const Socket sock : half_senders) {
+            const uint8_t byte = 0;
+            ASSERT_EQ(half_net.send(sock, &byte, 1), 1);
+        }
+
+        tox_options_set_tcp_port(opts.get(), 0);
+        tox_options_set_start_port(opts.get(), 0);
+        tox_options_set_end_port(opts.get(), 0);
+        tox_options_set_udp_enabled(opts.get(), false);
+        auto alice_node = sim.create_node();
+        auto alice = alice_node->create_tox(opts.get());
+        auto bob_node = sim.create_node();
+        auto bob = bob_node->create_tox(opts.get());
+        ASSERT_NE(alice, nullptr);
+        ASSERT_NE(bob, nullptr);
+
+        for (Tox *tox : {alice.get(), bob.get()}) {
+            ASSERT_TRUE(tox_bootstrap(tox, relay_ip, kRelayPort, relay_dht_id, nullptr));
+            ASSERT_TRUE(tox_add_tcp_relay(tox, relay_ip, kRelayPort, relay_dht_id, nullptr));
+        }
+
+        uint8_t alice_pk[TOX_PUBLIC_KEY_SIZE];
+        tox_self_get_public_key(alice.get(), alice_pk);
+        uint8_t bob_pk[TOX_PUBLIC_KEY_SIZE];
+        tox_self_get_public_key(bob.get(), bob_pk);
+        const uint32_t bob_number = tox_friend_add_norequest(alice.get(), bob_pk, nullptr);
+        ASSERT_NE(bob_number, UINT32_MAX);
+        ASSERT_NE(tox_friend_add_norequest(bob.get(), alice_pk, nullptr), UINT32_MAX);
+
+        bool received = false;
+        tox_callback_friend_message(bob.get(),
+            [](Tox *, uint32_t, Tox_Message_Type, const uint8_t *, std::size_t, void *user_data) {
+                *static_cast<bool *>(user_data) = true;
+            });
+
+        bool sent = false;
+        sim.run_until(
+            [&]() {
+                tox_iterate(relay.get(), nullptr);
+                tox_iterate(alice.get(), nullptr);
+                tox_iterate(bob.get(), &received);
+
+                if (!sent
+                    && tox_friend_get_connection_status(alice.get(), bob_number, nullptr)
+                        != TOX_CONNECTION_NONE) {
+                    const uint8_t msg[] = "hello";
+                    sent = tox_friend_send_message(alice.get(), bob_number, TOX_MESSAGE_TYPE_NORMAL,
+                               msg, sizeof(msg), nullptr)
+                        != 0;
+                }
+
+                return received;
+            },
+            120000);
+
+        EXPECT_TRUE(received);
+
+        for (const Socket sock : half_senders) {
+            half_net.close(sock);
+        }
+    }
+
 }  // namespace
 }  // namespace tox::test

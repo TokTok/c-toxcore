@@ -6,6 +6,7 @@
 #include "../toxcore/forwarding.h"
 #include "../toxcore/os_memory.h"
 #include "../toxcore/os_random.h"
+#include "../toxcore/os_event.h"
 #include "auto_test_support.h"
 #include "check_compat.h"
 
@@ -60,7 +61,9 @@ static void test_store_data(void)
     logger_callback_log(log, print_debug_logger, nullptr, nullptr);
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
     ck_assert(mono_time != nullptr);
-    Networking_Core *net = new_networking_no_udp(log, mem, ns);
+    Ev *ev = os_event_new(mem, log);
+    ck_assert(ev != nullptr);
+    Networking_Core *net = new_networking_no_udp(log, mem, ns, ev);
     ck_assert(net != nullptr);
     DHT *dht = new_dht(log, mem, rng, ns, mono_time, net, true, true);
     ck_assert(dht != nullptr);
@@ -108,6 +111,7 @@ static void test_store_data(void)
     kill_forwarding(forwarding);
     kill_dht(dht);
     kill_networking(net);
+    ev_kill(ev);
     mono_time_free(mem, mono_time);
     logger_kill(log);
 }

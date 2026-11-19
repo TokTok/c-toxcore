@@ -4,6 +4,7 @@
 
 #include "ev.h"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <cstddef>
@@ -30,6 +31,16 @@ class EvTest : public ::testing::Test {
     }
 
 protected:
+    struct Call {
+        uint32_t key;
+        Ev_Events events;
+
+        bool operator==(const Call &other) const
+        {
+            return key == other.key && events == other.events;
+        }
+    };
+
     void SetUp() override
     {
         ASSERT_NE(os_network(), nullptr);  // WSAStartup
@@ -46,36 +57,35 @@ protected:
         logger_kill(log);
     }
 
+    static void record(void *obj, uint32_t key, Ev_Events events)
+    {
+        static_cast<EvTest *>(obj)->calls.push_back({key, events});
+    }
+
+    Ev_Watch *add(Socket sock, Ev_Events events, uint32_t key)
+    {
+        return ev_add(ev, sock, events, record, this, key);
+    }
+
     const Memory *mem;
     Logger *log;
     Ev *ev;
-    int tag1;
-    int tag2;
-    int tag3;
-    int tag4;
+    std::vector<Call> calls;
 };
-
-TEST_F(EvTest, Lifecycle)
-{
-    // Already covered by SetUp/TearDown
-}
 
 TEST_F(EvTest, AddDel)
 {
     Socket s1{}, s2{};
     ASSERT_EQ(create_pair(&s1, &s2), 0);
 
-    EXPECT_TRUE(ev_add(ev, s1, EV_READ, &tag1));
-    EXPECT_TRUE(ev_add(ev, s2, EV_WRITE, &tag2));
+    Ev_Watch *w1 = add(s1, EV_READ, 1);
+    Ev_Watch *w2 = add(s2, EV_WRITE, 2);
+    EXPECT_NE(w1, nullptr);
+    EXPECT_NE(w2, nullptr);
 
-    // Adding same socket again should fail
-    EXPECT_FALSE(ev_add(ev, s1, EV_READ, &tag3));
-
-    EXPECT_TRUE(ev_del(ev, s1));
-    EXPECT_TRUE(ev_del(ev, s2));
-
-    // Deleting non-existent socket should fail
-    EXPECT_FALSE(ev_del(ev, s1));
+    ev_del(ev, w1);
+    ev_del(ev, w2);
+    ev_del(ev, nullptr);
 
     close_pair(s1, s2);
 }
@@ -85,23 +95,22 @@ TEST_F(EvTest, RunPipe)
     Socket rs{}, ws{};
     ASSERT_EQ(create_pair(&rs, &ws), 0);
 
-    EXPECT_TRUE(ev_add(ev, rs, EV_READ, &tag4));
+    Ev_Watch *w = add(rs, EV_READ, 4);
+    ASSERT_NE(w, nullptr);
 
-    Ev_Result results[1];
     // Should timeout immediately
-    EXPECT_EQ(ev_run(ev, results, 1, 0), 0);
+    EXPECT_EQ(ev_run(ev, 0), 0);
+    EXPECT_TRUE(calls.empty());
 
     // Write something to the pipe/socket
     char buf = 'x';
     ASSERT_EQ(write_socket(ws, &buf, 1), 1);
 
     // Should now be readable
-    int32_t n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
-    EXPECT_EQ(net_socket_to_native(results[0].sock), net_socket_to_native(rs));
-    EXPECT_EQ(results[0].events, EV_READ);
-    EXPECT_EQ(results[0].data, &tag4);
+    EXPECT_EQ(ev_run(ev, 100), 1);
+    EXPECT_EQ(calls, (std::vector<Call>{{4, EV_READ}}));
 
+    ev_del(ev, w);
     close_pair(rs, ws);
 }
 
@@ -111,16 +120,14 @@ TEST_F(EvTest, WriteEvent)
     ASSERT_EQ(create_pair(&rs, &ws), 0);
 
     // Register write end for EV_WRITE
-    EXPECT_TRUE(ev_add(ev, ws, EV_WRITE, &tag1));
+    Ev_Watch *w = add(ws, EV_WRITE, 1);
+    ASSERT_NE(w, nullptr);
 
-    Ev_Result results[1];
     // Should be immediately writable
-    int32_t n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
-    EXPECT_EQ(net_socket_to_native(results[0].sock), net_socket_to_native(ws));
-    EXPECT_EQ(results[0].events, EV_WRITE);
-    EXPECT_EQ(results[0].data, &tag1);
+    EXPECT_EQ(ev_run(ev, 100), 1);
+    EXPECT_EQ(calls, (std::vector<Call>{{1, EV_WRITE}}));
 
+    ev_del(ev, w);
     close_pair(rs, ws);
 }
 
@@ -129,20 +136,18 @@ TEST_F(EvTest, Mod)
     Socket rs{}, ws{};
     ASSERT_EQ(create_pair(&rs, &ws), 0);
 
-    EXPECT_TRUE(ev_add(ev, rs, EV_READ, &tag1));
-    EXPECT_TRUE(ev_mod(ev, rs, EV_READ, &tag2));
+    Ev_Watch *w = add(rs, EV_WRITE, 1);
+    ASSERT_NE(w, nullptr);
+    EXPECT_TRUE(ev_mod(ev, w, EV_READ, 2));
 
     // Write something to the pipe/socket to make it readable
     char buf = 'x';
     ASSERT_EQ(write_socket(ws, &buf, 1), 1);
 
-    Ev_Result results[1];
-    int32_t n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
-    EXPECT_EQ(net_socket_to_native(results[0].sock), net_socket_to_native(rs));
-    EXPECT_EQ(results[0].events, EV_READ);
-    EXPECT_EQ(results[0].data, &tag2);
+    EXPECT_EQ(ev_run(ev, 100), 1);
+    EXPECT_EQ(calls, (std::vector<Call>{{2, EV_READ}}));
 
+    ev_del(ev, w);
     close_pair(rs, ws);
 }
 
@@ -153,78 +158,57 @@ TEST_F(EvTest, MultipleEvents)
     ASSERT_EQ(create_pair(&rs1, &ws1), 0);
     ASSERT_EQ(create_pair(&rs2, &ws2), 0);
 
-    EXPECT_TRUE(ev_add(ev, rs1, EV_READ, &tag1));
-    EXPECT_TRUE(ev_add(ev, rs2, EV_READ, &tag2));
+    Ev_Watch *w1 = add(rs1, EV_READ, 1);
+    Ev_Watch *w2 = add(rs2, EV_READ, 2);
 
     char buf = 'x';
     ASSERT_EQ(write_socket(ws1, &buf, 1), 1);
     ASSERT_EQ(write_socket(ws2, &buf, 1), 1);
 
-    Ev_Result results[2];
-    int32_t n = ev_run(ev, results, 2, 100);
-    EXPECT_EQ(n, 2);
+    EXPECT_EQ(ev_run(ev, 100), 2);
+    EXPECT_THAT(calls, ::testing::UnorderedElementsAre(Call{1, EV_READ}, Call{2, EV_READ}));
 
-    bool found1 = false;
-    bool found2 = false;
-    for (int i = 0; i < 2; ++i) {
-        if (results[i].data == &tag1)
-            found1 = true;
-        if (results[i].data == &tag2)
-            found2 = true;
-    }
-    EXPECT_TRUE(found1);
-    EXPECT_TRUE(found2);
-
+    ev_del(ev, w1);
+    ev_del(ev, w2);
     close_pair(rs1, ws1);
     close_pair(rs2, ws2);
 }
 
-TEST_F(EvTest, MaxResults)
-{
-    Socket rs1{}, ws1{};
-    Socket rs2{}, ws2{};
-    ASSERT_EQ(create_pair(&rs1, &ws1), 0);
-    ASSERT_EQ(create_pair(&rs2, &ws2), 0);
-
-    EXPECT_TRUE(ev_add(ev, rs1, EV_READ, &tag1));
-    EXPECT_TRUE(ev_add(ev, rs2, EV_READ, &tag2));
-
-    char buf = 'x';
-    ASSERT_EQ(write_socket(ws1, &buf, 1), 1);
-    ASSERT_EQ(write_socket(ws2, &buf, 1), 1);
-
-    Ev_Result results[1];
-    int32_t n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
-
-    // The second event should still be there for the next run
-    n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
-
-    close_pair(rs1, ws1);
-    close_pair(rs2, ws2);
-}
-
-TEST_F(EvTest, EmptyLoop)
-{
-    Ev_Result results[1];
-    // Should timeout immediately
-    EXPECT_EQ(ev_run(ev, results, 1, 10), 0);
-}
-
-TEST_F(EvTest, ZeroMaxResults)
+TEST_F(EvTest, StaysReadyUntilRead)
 {
     Socket rs{}, ws{};
     ASSERT_EQ(create_pair(&rs, &ws), 0);
-    EXPECT_TRUE(ev_add(ev, rs, EV_READ, nullptr));
+    Ev_Watch *w = add(rs, EV_READ, 1);
 
     char buf = 'x';
     ASSERT_EQ(write_socket(ws, &buf, 1), 1);
 
-    Ev_Result results[1];
-    int32_t n = ev_run(ev, results, 0, 100);
-    EXPECT_LE(n, 0);
+    EXPECT_EQ(ev_run(ev, 100), 1);
+    EXPECT_EQ(ev_run(ev, 100), 1);
 
+    ev_del(ev, w);
+    close_pair(rs, ws);
+}
+
+TEST_F(EvTest, EmptyLoop)
+{
+    // Should timeout immediately
+    EXPECT_EQ(ev_run(ev, 10), 0);
+}
+
+TEST_F(EvTest, WithoutHandlerOnlyEndsTheWait)
+{
+    Socket rs{}, ws{};
+    ASSERT_EQ(create_pair(&rs, &ws), 0);
+    Ev_Watch *w = ev_add(ev, rs, EV_READ, nullptr, nullptr, 0);
+    ASSERT_NE(w, nullptr);
+
+    char buf = 'x';
+    ASSERT_EQ(write_socket(ws, &buf, 1), 1);
+
+    EXPECT_EQ(ev_run(ev, 100), 1);
+
+    ev_del(ev, w);
     close_pair(rs, ws);
 }
 
@@ -233,58 +217,141 @@ TEST_F(EvTest, ErrorEvent)
     Socket rs{}, ws{};
     ASSERT_EQ(create_pair(&rs, &ws), 0);
 
-    EXPECT_TRUE(ev_add(ev, rs, EV_READ, &tag1));
+    Ev_Watch *w = add(rs, EV_READ, 1);
 
     // Close the write end to potentially trigger something on the read end
     close_socket(ws);
 
-    Ev_Result results[1];
-    int32_t n = ev_run(ev, results, 1, 100);
     // On Linux, closing the write end of a pipe makes the read end readable (EOF).
-    EXPECT_EQ(n, 1);
-    EXPECT_EQ(net_socket_to_native(results[0].sock), net_socket_to_native(rs));
+    EXPECT_EQ(ev_run(ev, 100), 1);
+    ASSERT_EQ(calls.size(), 1);
+    EXPECT_EQ(calls[0].key, 1);
 
+    ev_del(ev, w);
     close_socket(rs);
 }
 
-TEST_F(EvTest, ReallocPointers)
+// A handler can delete a watch that is also ready in the same run.
+TEST_F(EvTest, HandlerDeletesAnotherReadyWatch)
+{
+    Socket rs1{}, ws1{};
+    Socket rs2{}, ws2{};
+    ASSERT_EQ(create_pair(&rs1, &ws1), 0);
+    ASSERT_EQ(create_pair(&rs2, &ws2), 0);
+
+    struct Deleter {
+        Ev *ev;
+        Ev_Watch *watches[2];
+        int calls;
+    } deleter{ev, {}, 0};
+
+    const auto delete_both = [](void *obj, uint32_t key, Ev_Events events) {
+        Deleter *d = static_cast<Deleter *>(obj);
+        ++d->calls;
+        ev_del(d->ev, d->watches[0]);
+        ev_del(d->ev, d->watches[1]);
+        d->watches[0] = nullptr;
+        d->watches[1] = nullptr;
+    };
+    deleter.watches[0] = ev_add(ev, rs1, EV_READ, delete_both, &deleter, 1);
+    deleter.watches[1] = ev_add(ev, rs2, EV_READ, delete_both, &deleter, 2);
+
+    char buf = 'x';
+    ASSERT_EQ(write_socket(ws1, &buf, 1), 1);
+    ASSERT_EQ(write_socket(ws2, &buf, 1), 1);
+
+    EXPECT_EQ(ev_run(ev, 100), 2);
+    EXPECT_EQ(deleter.calls, 1);
+
+    close_pair(rs1, ws1);
+    close_pair(rs2, ws2);
+}
+
+TEST_F(EvTest, ManyWatches)
 {
     Socket rs{}, ws{};
     ASSERT_EQ(create_pair(&rs, &ws), 0);
+    Ev_Watch *w = add(rs, EV_READ, 1);
 
-    // Add first socket. This will be at index 0.
-    EXPECT_TRUE(ev_add(ev, rs, EV_READ, &tag1));
-
-    // Add enough sockets to force realloc of regs array.
-    // Initial capacity is 0, then 8.
-    // We need > 8 sockets. Let's add 20 more.
+    // Enough watches for the backend to grow its arrays.
     std::vector<Socket> extra_sockets_r;
     std::vector<Socket> extra_sockets_w;
+    std::vector<Ev_Watch *> extra_watches;
 
-    for (int i = 0; i < 20; ++i) {
-        Socket r{}, w{};
-        ASSERT_EQ(create_pair(&r, &w), 0);
+    for (uint32_t i = 0; i < 20; ++i) {
+        Socket r{}, wr{};
+        ASSERT_EQ(create_pair(&r, &wr), 0);
         extra_sockets_r.push_back(r);
-        extra_sockets_w.push_back(w);
-        EXPECT_TRUE(ev_add(ev, r, EV_READ, nullptr));
+        extra_sockets_w.push_back(wr);
+        extra_watches.push_back(add(r, EV_READ, 100 + i));
+        ASSERT_NE(extra_watches.back(), nullptr);
     }
 
-    // Now write to the first socket to trigger event.
+    // Deleting from the middle moves another watch into its place.
+    ev_del(ev, extra_watches[5]);
+    extra_watches[5] = nullptr;
+
     char buf = 'x';
     ASSERT_EQ(write_socket(ws, &buf, 1), 1);
+    ASSERT_EQ(write_socket(extra_sockets_w[19], &buf, 1), 1);
 
-    Ev_Result results[1];
-    int32_t n = ev_run(ev, results, 1, 100);
-    EXPECT_EQ(n, 1);
+    EXPECT_EQ(ev_run(ev, 100), 2);
+    EXPECT_THAT(calls, ::testing::UnorderedElementsAre(Call{1, EV_READ}, Call{119, EV_READ}));
 
-    // Check if we got the correct data back
-    EXPECT_EQ(net_socket_to_native(results[0].sock), net_socket_to_native(rs));
-    EXPECT_EQ(results[0].data, &tag1);
-
-    // Cleanup
+    ev_del(ev, w);
     close_pair(rs, ws);
     for (std::size_t i = 0; i < extra_sockets_r.size(); ++i) {
+        ev_del(ev, extra_watches[i]);
         close_pair(extra_sockets_r[i], extra_sockets_w[i]);
+    }
+}
+
+// A relay has far more connections than the backend reports at a time. None of them may
+// have to wait for a later run.
+TEST_F(EvTest, HandlesEveryReadySocketInOneRun)
+{
+    constexpr uint32_t kSockets = 200;
+
+    struct Handled {
+        Ev *ev;
+        std::vector<Ev_Watch *> watches;
+        std::vector<uint32_t> handled;
+    } ctx{ev, {}, {}};
+
+    // Stops watching the socket, so that it's not found ready again.
+    const auto handle = [](void *obj, uint32_t key, Ev_Events events) {
+        auto *c = static_cast<Handled *>(obj);
+        ev_del(c->ev, c->watches[key]);
+        c->watches[key] = nullptr;
+        c->handled.push_back(key);
+    };
+
+    std::vector<Socket> sockets_r;
+    std::vector<Socket> sockets_w;
+
+    for (uint32_t i = 0; i < kSockets; ++i) {
+        Socket r{}, w{};
+        ASSERT_EQ(create_pair(&r, &w), 0);
+        sockets_r.push_back(r);
+        sockets_w.push_back(w);
+        ctx.watches.push_back(ev_add(ev, r, EV_READ, handle, &ctx, i));
+        ASSERT_NE(ctx.watches.back(), nullptr);
+
+        char buf = 'x';
+        ASSERT_EQ(write_socket(w, &buf, 1), 1);
+    }
+
+    EXPECT_EQ(ev_run(ev, 100), static_cast<int32_t>(kSockets));
+
+    std::vector<uint32_t> all(kSockets);
+    for (uint32_t i = 0; i < kSockets; ++i) {
+        all[i] = i;
+    }
+    EXPECT_THAT(ctx.handled, ::testing::UnorderedElementsAreArray(all));
+
+    for (uint32_t i = 0; i < kSockets; ++i) {
+        ev_del(ev, ctx.watches[i]);
+        close_pair(sockets_r[i], sockets_w[i]);
     }
 }
 

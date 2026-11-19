@@ -86,6 +86,7 @@ cc_binary(
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:os_event",
         "//c-toxcore/toxcore:os_memory",
         "//c-toxcore/toxcore:os_random",
     ],
