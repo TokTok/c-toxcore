@@ -121,7 +121,7 @@ TEST(AddToList, OverridesKeysWithCloserKeys)
 
     std::array<Node_format, 4> nodes{};
 
-    IP_Port ip_port = {0};
+    IP_Port ip_port = {};
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[0].data(), &ip_port, self_pk.data()));
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[1].data(), &ip_port, self_pk.data()));
     EXPECT_TRUE(add_to_list(nodes.data(), nodes.size(), keys[2].data(), &ip_port, self_pk.data()));
@@ -380,8 +380,8 @@ TEST(AnnounceNodes, SetAndTest)
     PublicKey pk2(to_array(pk_data));
     ASSERT_NE(pk2, pk1);
 
-    IP_Port ip_port = {0};
-    ip_port.ip.family = net_family_ipv4();
+    IP_Port ip_port = {};
+    ip_port.ip.type = IP_TYPE_V4;
 
     set_announce_node(dht.get(), pk1.data());
     set_announce_node(dht.get(), pk2.data());
@@ -390,12 +390,10 @@ TEST(AnnounceNodes, SetAndTest)
     EXPECT_TRUE(addto_lists(dht.get(), &ip_port, pk2.data()));
 
     Node_format nodes[MAX_SENT_NODES];
-    EXPECT_EQ(
-        0, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(0, get_close_nodes(dht.get(), self_pk.data(), nodes, IP_TYPE_UNSPEC, true, true));
     set_announce_node(dht.get(), pk1.data());
     set_announce_node(dht.get(), pk2.data());
-    EXPECT_EQ(
-        2, get_close_nodes(dht.get(), self_pk.data(), nodes, net_family_unspec(), true, true));
+    EXPECT_EQ(2, get_close_nodes(dht.get(), self_pk.data(), nodes, IP_TYPE_UNSPEC, true, true));
 
     mono_time_free(&c_mem, mono_time);
     logger_kill(log);

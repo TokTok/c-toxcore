@@ -42,7 +42,7 @@ namespace {
         // Bind
         IP_Port addr;
         ip_init(&addr.ip, false);
-        addr.ip.ip.v4.uint32 = 0;
+        addr.ip.value.v4.uint32 = 0;
         addr.port = net_htons(9002);
         ASSERT_EQ(stack.bind(udp_sock, &addr), 0);
 
@@ -62,7 +62,7 @@ namespace {
 
         IP_Port addr;
         ip_init(&addr.ip, false);
-        addr.ip.ip.v4.uint32 = 0;
+        addr.ip.value.v4.uint32 = 0;
         addr.port = net_htons(9003);
         ASSERT_EQ(stack.bind(tcp_sock, &addr), 0);
         ASSERT_EQ(stack.listen(tcp_sock, 5), 0);
@@ -73,7 +73,7 @@ namespace {
 
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);  // Localhost
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);  // Localhost
         server_addr.port = net_htons(9003);
 
         ASSERT_EQ(client_stack.connect(client_sock, &server_addr), -1);
@@ -95,7 +95,7 @@ namespace {
 
         IP_Port bind_addr;
         ip_init(&bind_addr.ip, false);
-        bind_addr.ip.ip.v4.uint32 = net_htonl(0x14000001);
+        bind_addr.ip.value.v4.uint32 = net_htonl(0x14000001);
         bind_addr.port = net_htons(12345);
         ASSERT_EQ(my_stack.bind(sock, &bind_addr), 0);
         ASSERT_EQ(my_stack.listen(sock, 5), 0);
@@ -105,7 +105,7 @@ namespace {
 
         IP_Port connect_addr;
         ip_init(&connect_addr.ip, false);
-        connect_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        connect_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         connect_addr.port = net_htons(12345);
 
         // Should redirect to 20.0.0.1:12345 because 127.0.0.1 is not bound
@@ -124,7 +124,7 @@ namespace {
         Socket server = stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         IP_Port addr;
         ip_init(&addr.ip, false);
-        addr.ip.ip.v4.uint32 = 0;
+        addr.ip.value.v4.uint32 = 0;
         addr.port = net_htons(33445);
         ASSERT_EQ(stack.bind(server, &addr), 0);
 
@@ -132,7 +132,7 @@ namespace {
         Socket client = stack.socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(33445);
 
         // Should find a free port (not 33445)

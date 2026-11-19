@@ -216,7 +216,11 @@ int send_announce_request(
         return -1;
     }
 
-    if (sendpacket(net, &path->ip_port1, packet, len) != len) {
+    if (path->dest1.type != DESTINATION_TYPE_UDP) {
+        return -1;
+    }
+
+    if (sendpacket(net, &path->dest1.value.udp, packet, len) != len) {
         return -1;
     }
 
@@ -258,7 +262,11 @@ int send_data_request(
         return -1;
     }
 
-    if (sendpacket(net, &path->ip_port1, packet, len) != len) {
+    if (path->dest1.type != DESTINATION_TYPE_UDP) {
+        return -1;
+    }
+
+    if (sendpacket(net, &path->dest1.value.udp, packet, len) != len) {
         return -1;
     }
 
@@ -525,7 +533,7 @@ static int handle_announce_request_common(
     /* Respond with a announce response packet */
     Node_format nodes_list[MAX_SENT_NODES];
     const unsigned int num_nodes =
-        get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, net_family_unspec(), ip_is_lan(&source->ip), false);
+        get_close_nodes(onion_a->dht, plain + ONION_PING_ID_SIZE, nodes_list, IP_TYPE_UNSPEC, ip_is_lan(&source->ip), false);
 
     assert(num_nodes <= UINT8_MAX);
 

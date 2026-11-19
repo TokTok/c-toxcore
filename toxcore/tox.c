@@ -624,7 +624,7 @@ static Tox *_Nullable tox_new_system(const struct Tox_Options *_Nullable options
         ip_init(&m_options.proxy_info.ip_port.ip, m_options.ipv6enabled);
 
         if (m_options.ipv6enabled) {
-            m_options.proxy_info.ip_port.ip.family = net_family_unspec();
+            m_options.proxy_info.ip_port.ip.type = IP_TYPE_UNSPEC;
         }
 
         const char *const proxy_host = tox_options_get_proxy_host(opts);
@@ -952,7 +952,7 @@ bool tox_bootstrap(Tox *_Nonnull tox, const char *_Nonnull host, uint16_t port, 
     bool udp_success = tox->m->options.udp_disabled;
 
     for (int32_t i = 0; i < count; ++i) {
-        if (!tox->m->options.ipv6enabled && net_family_is_ipv6(root[i].ip.family)) {
+        if (!tox->m->options.ipv6enabled && root[i].ip.type == IP_TYPE_V6) {
             // We can't use ipv6 when it's disabled.
             continue;
         }

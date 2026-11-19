@@ -86,7 +86,43 @@ IP4 get_ip4_broadcast(void);
 IP6 get_ip6_loopback(void);
 IP6 get_ip6_broadcast(void);
 
-Socket net_socket(const Network *_Nonnull ns, Family domain, int type, int protocol);
+Socket net_socket(const Network *_Nonnull ns, IP_Type domain, int type, int protocol);
+
+/** How a node is reached: with UDP packets, or with a TCP connection to it as a relay. */
+typedef enum Transport {
+    TRANSPORT_UDP,
+    TRANSPORT_TCP,
+} Transport;
+
+/** A client of our TCP server: its connection and the number that tells it apart from earlier clients there. */
+typedef struct TCP_Client_Id {
+    uint32_t con_id;
+    uint64_t identifier;
+} TCP_Client_Id;
+
+typedef enum Destination_Type {
+    DESTINATION_TYPE_UDP,
+    DESTINATION_TYPE_TCP_SERVER,
+    DESTINATION_TYPE_TCP_CLIENT,
+} Destination_Type;
+
+typedef union Destination_Value {
+    IP_Port udp;
+    uint32_t tcp_server;
+    TCP_Client_Id tcp_client;
+} Destination_Value;
+
+/**
+ * Where a packet goes: a UDP address, one of our connections to a TCP server
+ * (by its number in TCP_Connections) or a client of our TCP server.
+ */
+typedef struct Destination {
+    Destination_Type type;
+    Destination_Value value;
+} Destination;
+
+/** @brief The destination for packets to the UDP address `ip_port`. */
+Destination destination_udp(const IP_Port *_Nonnull ip_port);
 
 /**
  * Check if socket is valid.
@@ -235,14 +271,14 @@ void ipport_copy(IP_Port *_Nonnull target, const IP_Port *_Nonnull source);
  *
  * @param[in,out] ns Network object.
  * @param[in] address a hostname (or something parseable to an IP address).
- * @param[in,out] to to.family MUST be initialized, either set to a specific IP version
- *   (TOX_AF_INET/TOX_AF_INET6) or to the unspecified TOX_AF_UNSPEC (0), if both
- *   IP versions are acceptable.
+ * @param[in,out] to to.type MUST be initialized, either set to a specific IP version
+ *   (IP_TYPE_V4/IP_TYPE_V6) or to IP_TYPE_UNSPEC, if both IP versions are
+ *   acceptable.
  * @param[out] extra can be NULL and is only set in special circumstances, see returns.
  * @param[in] dns_enabled if false, DNS resolution is skipped.
  *
  * Returns in `*to` a matching address (IPv6 or IPv4).
- * Returns in `*extra`, if not NULL, an IPv4 address, if `to->family` was `TOX_AF_UNSPEC`.
+ * Returns in `*extra`, if not NULL, an IPv4 address, if `to->type` was `IP_TYPE_UNSPEC`.
  *
  * @return true on success, false on failure
  */
@@ -255,7 +291,7 @@ typedef int packet_handler_cb(void *_Nullable object, const IP_Port *_Nonnull so
 
 typedef struct Networking_Core Networking_Core;
 
-Family net_family(const Networking_Core *_Nonnull net);
+IP_Type net_ip_type(const Networking_Core *_Nonnull net);
 uint16_t net_port(const Networking_Core *_Nonnull net);
 
 /** Close the socket. */
@@ -367,6 +403,9 @@ int32_t net_getipport(const Network *_Nonnull ns, const Memory *_Nonnull mem, co
 void net_freeipport(const Memory *_Nonnull mem, IP_Port *_Nullable ip_ports);
 bool bin_pack_ip_port(Bin_Pack *_Nonnull bp, const Logger *_Nonnull logger, const IP_Port *_Nonnull ip_port);
 
+/** @brief Packs the address of a node: TCP relays get their own family bytes. */
+bool bin_pack_node_address(Bin_Pack *_Nonnull bp, const Logger *_Nonnull logger, Transport transport, const IP_Port *_Nonnull ip_port);
+
 /** @brief Pack an IP_Port structure into data of max size length.
  *
  * Packed_length is the offset of data currently packed.
@@ -383,12 +422,19 @@ int pack_ip_port(const Logger *_Nonnull logger, uint8_t *_Nonnull data, uint16_t
  * @return size of unpacked ip_port on success.
  * @retval -1 on failure.
  */
-int unpack_ip_port(IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull data, uint16_t length, bool tcp_enabled);
+int unpack_ip_port(IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull data, uint16_t length);
+
+/** @brief Unpack the address of a node, which can be a TCP relay if `tcp_enabled`.
+ *
+ * @return size of the unpacked address on success.
+ * @retval -1 on failure.
+ */
+int unpack_node_address(Transport *_Nonnull transport, IP_Port *_Nonnull ip_port, const uint8_t *_Nonnull data, uint16_t length, bool tcp_enabled);
 
 /**
  * @return true on success, false on failure.
  */
-bool bind_to_port(const Network *_Nonnull ns, Socket sock, Family family, uint16_t port);
+bool bind_to_port(const Network *_Nonnull ns, Socket sock, IP_Type type, uint16_t port);
 
 /** @brief Initialize networking.
  * Bind to ip and port.

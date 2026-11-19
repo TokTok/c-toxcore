@@ -168,13 +168,14 @@ Node_format random_node_format(const Random *_Nonnull rng)
     auto const pk = random_pk(rng);
     std::copy(pk.begin(), pk.end(), node.public_key);
     node.ip_port = random_ip_port(rng);
+    node.transport = TRANSPORT_UDP;
     return node;
 }
 
 bool operator==(Node_format const &a, Node_format const &b)
 {
     return std::memcmp(a.public_key, b.public_key, sizeof(a.public_key)) == 0
-        && a.ip_port == b.ip_port;
+        && a.ip_port == b.ip_port && a.transport == b.transport;
 }
 
 std::ostream &operator<<(std::ostream &out, Node_format const &v)

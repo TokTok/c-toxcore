@@ -21,7 +21,7 @@ FakeSocket::FakeSocket(NetworkUniverse &universe, int type)
     , type_(type)
 {
     ip_init(&ip_, false);
-    ip_.ip.v4.uint32 = net_htonl(0x7F000001);
+    ip_.value.v4.uint32 = net_htonl(0x7F000001);
 }
 
 FakeSocket::~FakeSocket() = default;

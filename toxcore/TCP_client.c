@@ -251,15 +251,15 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *_Non
     tcp_conn->con.last_packet[2] = TCP_SOCKS5_PROXY_HS_RESERVED;
     uint16_t length = 3;
 
-    if (net_family_is_ipv4(tcp_conn->ip_port.ip.family)) {
+    if (tcp_conn->ip_port.ip.type == IP_TYPE_V4) {
         tcp_conn->con.last_packet[3] = TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV4;
         ++length;
-        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v4.uint8, sizeof(IP4));
+        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.value.v4.uint8, sizeof(IP4));
         length += sizeof(IP4);
-    } else {
+    } else if (tcp_conn->ip_port.ip.type == IP_TYPE_V6) {
         tcp_conn->con.last_packet[3] = TCP_SOCKS5_PROXY_HS_ADDR_TYPE_IPV6;
         ++length;
-        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.ip.v6.uint8, sizeof(IP6));
+        memcpy(tcp_conn->con.last_packet + length, tcp_conn->ip_port.ip.value.v6.uint8, sizeof(IP6));
         length += sizeof(IP6);
     }
 
@@ -277,7 +277,7 @@ static void proxy_socks5_generate_connection_request(TCP_Client_Connection *_Non
  */
 static int proxy_socks5_read_connection_response(const Logger *_Nonnull logger, const TCP_Client_Connection *_Nonnull tcp_conn)
 {
-    if (net_family_is_ipv4(tcp_conn->ip_port.ip.family)) {
+    if (tcp_conn->ip_port.ip.type == IP_TYPE_V4) {
         uint8_t data[4 + sizeof(IP4) + sizeof(uint16_t)];
         const TCP_Connection *con = &tcp_conn->con;
         const int ret = read_tcp_packet(logger, con->mem, con->ns, con->sock, data, sizeof(data), &con->ip_port);
@@ -604,27 +604,27 @@ TCP_Client_Connection *new_tcp_connection(
     assert(rng != nullptr);
     assert(ns != nullptr);
 
-    if (!net_family_is_ipv4(ip_port->ip.family) && !net_family_is_ipv6(ip_port->ip.family)) {
-        LOGGER_ERROR(logger, "Invalid IP family: %d", ip_port->ip.family.value);
+    if (ip_port->ip.type != IP_TYPE_V4 && ip_port->ip.type != IP_TYPE_V6) {
+        LOGGER_ERROR(logger, "Invalid IP type: %d", (int)ip_port->ip.type);
         return nullptr;
     }
 
-    const TCP_Proxy_Info default_proxyinfo = {{{{0}}}};
+    const TCP_Proxy_Info default_proxyinfo = {{{IP_TYPE_UNSPEC}}};
 
     if (proxy_info == nullptr) {
         proxy_info = &default_proxyinfo;
     }
 
-    Family family = ip_port->ip.family;
+    IP_Type type = ip_port->ip.type;
 
     if (proxy_info->proxy_type != TCP_PROXY_NONE) {
-        family = proxy_info->ip_port.ip.family;
+        type = proxy_info->ip_port.ip.type;
     }
 
-    const Socket sock = net_socket(ns, family, TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    const Socket sock = net_socket(ns, type, TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
     if (!sock_valid(sock)) {
-        LOGGER_ERROR(logger, "Failed to create TCP socket with family %d", family.value);
+        LOGGER_ERROR(logger, "Failed to create TCP socket with IP type %d", (int)type);
         return nullptr;
     }
 
