@@ -24,11 +24,10 @@ int32_t toxav_join_av_groupchat(Tox *_Nonnull tox, Tox_Friend_Number friend_numb
                              (audio_data_cb *)audio_callback, userdata);
 }
 
-int32_t toxav_group_send_audio(Tox *_Nonnull tox, Tox_Conference_Number conference_number, const int16_t *_Nonnull pcm, uint32_t samples,
-                               uint8_t channels,
-                               uint32_t sample_rate)
+int32_t toxav_group_send_audio(Tox *_Nonnull tox, Tox_Conference_Number conference_number, const int16_t *_Nonnull pcm, uint32_t sample_count,
+                               Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate)
 {
-    return group_send_audio(tox->m->conferences_object, conference_number, pcm, samples, channels, sample_rate);
+    return group_send_audio(tox->m->conferences_object, conference_number, pcm, sample_count, channels, sampling_rate);
 }
 
 int32_t toxav_groupchat_enable_av(Tox *_Nonnull tox, Tox_Conference_Number conference_number, toxav_audio_data_cb *_Nullable audio_callback,

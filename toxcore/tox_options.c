@@ -75,35 +75,35 @@ bool tox_options_set_proxy_host(Tox_Options *_Nonnull options, const char *_Null
     options->owned_proxy_host = owned_ptr;
     return true;
 }
-uint16_t tox_options_get_proxy_port(const Tox_Options *_Nonnull options)
+Tox_Port tox_options_get_proxy_port(const Tox_Options *_Nonnull options)
 {
     return options->proxy_port;
 }
-void tox_options_set_proxy_port(Tox_Options *_Nonnull options, uint16_t proxy_port)
+void tox_options_set_proxy_port(Tox_Options *_Nonnull options, Tox_Port proxy_port)
 {
     options->proxy_port = proxy_port;
 }
-uint16_t tox_options_get_start_port(const Tox_Options *_Nonnull options)
+Tox_Port tox_options_get_start_port(const Tox_Options *_Nonnull options)
 {
     return options->start_port;
 }
-void tox_options_set_start_port(Tox_Options *_Nonnull options, uint16_t start_port)
+void tox_options_set_start_port(Tox_Options *_Nonnull options, Tox_Port start_port)
 {
     options->start_port = start_port;
 }
-uint16_t tox_options_get_end_port(const Tox_Options *_Nonnull options)
+Tox_Port tox_options_get_end_port(const Tox_Options *_Nonnull options)
 {
     return options->end_port;
 }
-void tox_options_set_end_port(Tox_Options *_Nonnull options, uint16_t end_port)
+void tox_options_set_end_port(Tox_Options *_Nonnull options, Tox_Port end_port)
 {
     options->end_port = end_port;
 }
-uint16_t tox_options_get_tcp_port(const Tox_Options *_Nonnull options)
+Tox_Port tox_options_get_tcp_port(const Tox_Options *_Nonnull options)
 {
     return options->tcp_port;
 }
-void tox_options_set_tcp_port(Tox_Options *_Nonnull options, uint16_t tcp_port)
+void tox_options_set_tcp_port(Tox_Options *_Nonnull options, Tox_Port tcp_port)
 {
     options->tcp_port = tcp_port;
 }

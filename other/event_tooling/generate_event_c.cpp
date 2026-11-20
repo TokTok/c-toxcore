@@ -61,7 +61,7 @@ std::string bin_pack_name_from_type(const std::string& type) {
         return "bin_pack_u64";
     } else if (type == "uint32_t") {
         return "bin_pack_u32";
-    } else if (type == "uint16_t") {
+    } else if (type == "uint16_t" || type == "Tox_Port") {
         return "bin_pack_u16";
     } else if (type == "uint8_t") {
         return "bin_pack_u8";
@@ -100,7 +100,7 @@ std::string bin_unpack_name_from_type(const std::string& type) {
         return "bin_unpack_u64";
     } else if (type == "uint32_t") {
         return "bin_unpack_u32";
-    } else if (type == "uint16_t") {
+    } else if (type == "uint16_t" || type == "Tox_Port") {
         return "bin_unpack_u16";
     } else if (type == "uint8_t") {
         return "bin_unpack_u8";
@@ -137,7 +137,7 @@ std::string bin_unpack_name_from_type(const std::string& type) {
 }
 
 std::string zero_initializer_for_type(const std::string& type) {
-    if (type == "uint64_t" || type == "uint32_t" || type == "uint16_t" || type == "uint8_t") {
+    if (type == "uint64_t" || type == "uint32_t" || type == "uint16_t" || type == "uint8_t" || type == "Tox_Port") {
         return "0";
     } else if (type == "bool") {
         return "false";
@@ -183,12 +183,16 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 
     bool need_string_h = false;
     bool need_tox_unpack_h = false;
+    bool need_tox_options_h = false;
     for (const auto& t : event_types) {
         std::visit(
             overloaded{
                 [&](const EventTypeTrivial& t) {
                     if (bin_unpack_name_from_type(t.type).rfind("tox_", 0) == 0) {
                         need_tox_unpack_h = true;
+                    }
+                    if (t.type == "Tox_Port") {
+                        need_tox_options_h = true;
                     }
                 },
                 [&](const EventTypeByteRange&) {
@@ -223,6 +227,11 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h")";
+
+    if (need_tox_options_h) {
+        f << R"(
+#include "../tox_options.h")";
+    }
 
     if (need_tox_unpack_h) {
         f << R"(
@@ -455,7 +464,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             overloaded{
                 [&](const EventTypeTrivial& t) {
                     f << bin_pack_name_from_type(t.type);
-                    if (t.type.rfind("Tox_", 0) == 0) {
+                    if (bin_pack_name_from_type(t.type).rfind("tox_", 0) == 0) {
                         f << "(event->" << t.name << ", bp)";
                     } else {
                         f << "(bp, event->" << t.name << ")";
@@ -495,7 +504,7 @@ void generate_event_impl(const std::string& event_name, const std::vector<EventT
             overloaded{
                 [&](const EventTypeTrivial& t) {
                     f << bin_unpack_name_from_type(t.type);
-                    if (t.type.rfind("Tox_", 0) == 0) {
+                    if (bin_unpack_name_from_type(t.type).rfind("tox_", 0) == 0) {
                         f << "(&event->" << t.name << ", bu)";
                     } else {
                         f << "(bu, &event->" << t.name << ")";
@@ -1031,7 +1040,7 @@ int main(int argc, char** argv) {
             {
                 EventTypeByteArray{"public_key", "TOX_PUBLIC_KEY_SIZE"},
                 EventTypeByteRange{"ip", "ip_length", "ip_length", "char", "uint32_t", true},
-                EventTypeTrivial{"uint16_t", "port"},
+                EventTypeTrivial{"Tox_Port", "port"},
             }
         },
     };
