@@ -5,6 +5,8 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_LOG_LEVEL_H
 #define C_TOXCORE_TOXCORE_TOX_LOG_LEVEL_H
 
+#include "tox_attributes.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +41,7 @@ typedef enum Tox_Log_Level {
     TOX_LOG_LEVEL_ERROR,
 } Tox_Log_Level;
 
-const char *tox_log_level_to_string(Tox_Log_Level value);
+const char *_Nonnull tox_log_level_to_string(Tox_Log_Level value);
 
 //!TOKSTYLE-
 #ifndef DOXYGEN_IGNORE

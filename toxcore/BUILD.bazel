@@ -1532,6 +1532,7 @@ cc_library(
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
         ":ccompat",
+        ":tox_attributes",
         ":tox_log_level",
     ],
 )
@@ -1541,7 +1542,10 @@ cc_library(
     srcs = ["tox_log_level.c"],
     hdrs = ["tox_log_level.h"],
     visibility = ["//c-toxcore:__subpackages__"],
-    deps = [":attributes"],
+    deps = [
+        ":attributes",
+        ":tox_attributes",
+    ],
 )
 
 cc_library(
@@ -1614,6 +1618,7 @@ cc_library(
         ":attributes",
         ":ccompat",
         ":tox",
+        ":tox_attributes",
     ],
 )
 
