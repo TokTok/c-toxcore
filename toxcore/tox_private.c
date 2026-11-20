@@ -28,6 +28,7 @@
 #include "os_random.h"
 #include "os_secure_memory.h"
 #include "tox.h"
+#include "tox_options.h"
 #include "tox_struct.h"  // IWYU pragma: keep
 
 #define SET_ERROR_PARAMETER(param, x) \
@@ -106,8 +107,8 @@ void tox_callback_dht_nodes_response(Tox *tox, tox_dht_nodes_response_cb *callba
     tox->dht_nodes_response_callback = callback;
 }
 
-bool tox_dht_send_nodes_request(const Tox *tox, const uint8_t *public_key, const char *ip, uint16_t port,
-                                const uint8_t *target_public_key, Tox_Err_Dht_Send_Nodes_Request *error)
+bool tox_dht_send_nodes_request(const Tox *tox, const uint8_t public_key[TOX_DHT_NODE_PUBLIC_KEY_SIZE], const char *ip, Tox_Port port,
+                                const uint8_t target_public_key[TOX_DHT_NODE_PUBLIC_KEY_SIZE], Tox_Err_Dht_Send_Nodes_Request *error)
 {
     assert(tox != nullptr);
 

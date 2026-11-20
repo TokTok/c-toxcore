@@ -17,6 +17,7 @@
 
 #include "tox.h"
 #include "tox_attributes.h"
+#include "tox_options.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -365,7 +366,7 @@ const char *_Nullable tox_event_dht_nodes_response_get_ip(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
 uint32_t tox_event_dht_nodes_response_get_ip_length(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
-uint16_t tox_event_dht_nodes_response_get_port(
+Tox_Port tox_event_dht_nodes_response_get_port(
     const Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response);
 
 typedef enum Tox_Event_Type {

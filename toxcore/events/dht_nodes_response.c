@@ -15,6 +15,7 @@
 #include "../tox.h"
 #include "../tox_event.h"
 #include "../tox_events.h"
+#include "../tox_options.h"
 #include "../tox_struct.h"
 
 /*****************************************************
@@ -27,7 +28,7 @@ struct Tox_Event_Dht_Nodes_Response {
     uint8_t public_key[TOX_PUBLIC_KEY_SIZE];
     char *_Nullable ip;
     uint32_t ip_length;
-    uint16_t port;
+    Tox_Port port;
 };
 
 static bool tox_event_dht_nodes_response_set_public_key(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response, const uint8_t public_key[TOX_PUBLIC_KEY_SIZE])
@@ -84,12 +85,12 @@ const char *tox_event_dht_nodes_response_get_ip(const Tox_Event_Dht_Nodes_Respon
     return dht_nodes_response->ip;
 }
 
-static void tox_event_dht_nodes_response_set_port(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response, uint16_t port)
+static void tox_event_dht_nodes_response_set_port(Tox_Event_Dht_Nodes_Response *_Nonnull dht_nodes_response, Tox_Port port)
 {
     assert(dht_nodes_response != nullptr);
     dht_nodes_response->port = port;
 }
-uint16_t tox_event_dht_nodes_response_get_port(const Tox_Event_Dht_Nodes_Response *dht_nodes_response)
+Tox_Port tox_event_dht_nodes_response_get_port(const Tox_Event_Dht_Nodes_Response *dht_nodes_response)
 {
     assert(dht_nodes_response != nullptr);
     return dht_nodes_response->port;
@@ -201,7 +202,7 @@ bool tox_event_dht_nodes_response_unpack(
 void tox_events_handle_dht_nodes_response(
     const uint8_t *public_key,
     const char *ip, uint32_t ip_length,
-    uint16_t port,
+    Tox_Port port,
     Tox_Events_State *state)
 {
     Tox_Event_Dht_Nodes_Response *dht_nodes_response = tox_event_dht_nodes_response_new(state->mem);
