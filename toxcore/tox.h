@@ -583,7 +583,7 @@ const char *tox_err_bootstrap_to_string(Tox_Err_Bootstrap value);
  *   (TOX_DHT_ID_SIZE bytes).
  * @return true on success.
  */
-bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
+bool tox_bootstrap(Tox *tox, const char *host, Tox_Port port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
 
 /**
  * @brief Adds additional host:port pair as TCP relay.
@@ -599,7 +599,7 @@ bool tox_bootstrap(Tox *tox, const char *host, uint16_t port, const Tox_Dht_Id p
  *   (TOX_DHT_ID_SIZE bytes).
  * @return true on success.
  */
-bool tox_add_tcp_relay(Tox *tox, const char *host, uint16_t port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
+bool tox_add_tcp_relay(Tox *tox, const char *host, Tox_Port port, const Tox_Dht_Id public_key, Tox_Err_Bootstrap *error);
 
 /**
  * @brief Protocols that can be used to connect to the network or friends.
@@ -3049,14 +3049,14 @@ void tox_self_get_dht_id(const Tox *tox, Tox_Dht_Id dht_id);
 /**
  * @brief Return the UDP port this Tox instance is bound to.
  */
-uint16_t tox_self_get_udp_port(const Tox *tox, Tox_Err_Get_Port *error);
+Tox_Port tox_self_get_udp_port(const Tox *tox, Tox_Err_Get_Port *error);
 
 /**
  * @brief Return the TCP port this Tox instance is bound to.
  *
  * This is only relevant if the instance is acting as a TCP relay.
  */
-uint16_t tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error);
+Tox_Port tox_self_get_tcp_port(const Tox *tox, Tox_Err_Get_Port *error);
 
 /** @} */
 

@@ -23,6 +23,11 @@ struct Tox;
  */
 
 /**
+ * @brief A TCP or UDP port number.
+ */
+typedef uint16_t Tox_Port;
+
+/**
  * @brief Type of proxy used to connect to TCP relays.
  */
 typedef enum Tox_Proxy_Type {
@@ -172,7 +177,7 @@ struct Tox_Options {
      * Ports must be in the range (1, 65535). The value is ignored if
      * proxy_type is TOX_PROXY_TYPE_NONE.
      */
-    uint16_t proxy_port;
+    Tox_Port proxy_port;
 
     /**
      * The start port of the inclusive port range to attempt to use.
@@ -186,12 +191,12 @@ struct Tox_Options {
      * Having start_port > end_port will yield the same behavior as if
      * start_port and end_port were swapped.
      */
-    uint16_t start_port;
+    Tox_Port start_port;
 
     /**
      * The end port of the inclusive port range to attempt to use.
      */
-    uint16_t end_port;
+    Tox_Port end_port;
 
     /**
      * The port to use for the TCP server (relay). If 0, the TCP server is
@@ -204,7 +209,7 @@ struct Tox_Options {
      * it is recommended to enable TCP server only if the user has an option
      * to disable it.
      */
-    uint16_t tcp_port;
+    Tox_Port tcp_port;
 
     /**
      * Enables or disables UDP hole-punching. (Default: enabled).
@@ -339,21 +344,21 @@ const char *tox_options_get_proxy_host(const Tox_Options *options);
 
 bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
 
-uint16_t tox_options_get_proxy_port(const Tox_Options *options);
+Tox_Port tox_options_get_proxy_port(const Tox_Options *options);
 
-void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port);
+void tox_options_set_proxy_port(Tox_Options *options, Tox_Port proxy_port);
 
-uint16_t tox_options_get_start_port(const Tox_Options *options);
+Tox_Port tox_options_get_start_port(const Tox_Options *options);
 
-void tox_options_set_start_port(Tox_Options *options, uint16_t start_port);
+void tox_options_set_start_port(Tox_Options *options, Tox_Port start_port);
 
-uint16_t tox_options_get_end_port(const Tox_Options *options);
+Tox_Port tox_options_get_end_port(const Tox_Options *options);
 
-void tox_options_set_end_port(Tox_Options *options, uint16_t end_port);
+void tox_options_set_end_port(Tox_Options *options, Tox_Port end_port);
 
-uint16_t tox_options_get_tcp_port(const Tox_Options *options);
+Tox_Port tox_options_get_tcp_port(const Tox_Options *options);
 
-void tox_options_set_tcp_port(Tox_Options *options, uint16_t tcp_port);
+void tox_options_set_tcp_port(Tox_Options *options, Tox_Port tcp_port);
 
 bool tox_options_get_hole_punching_enabled(const Tox_Options *options);
 
