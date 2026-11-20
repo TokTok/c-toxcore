@@ -2040,7 +2040,8 @@ int group_title_get_size(const Group_Chats *g_c, uint32_t groupnumber)
 
 /** @brief Get group title from groupnumber and put it in title.
  *
- * Title needs to be a valid memory location with a size of at least MAX_NAME_LENGTH (128) bytes.
+ * Title needs to be NULL or a valid memory location with a size of at least
+ * MAX_NAME_LENGTH (128) bytes. If it is NULL, nothing is copied.
  *
  * @return length of copied title if success.
  * @retval -1 if groupnumber is invalid.
@@ -2058,7 +2059,10 @@ int group_title_get(const Group_Chats *g_c, uint32_t groupnumber, uint8_t *title
         return -2;
     }
 
-    memcpy(title, g->title, g->title_len);
+    if (title != nullptr) {
+        memcpy(title, g->title, g->title_len);
+    }
+
     return g->title_len;
 }
 

@@ -165,7 +165,7 @@ uint16_t gc_get_wrapped_packet_size(uint16_t length, Net_Packet_Type packet_type
  * Returns -4 if the sender does not have permission to speak.
  * Returns -5 if the packet fails to send.
  */
-int gc_send_message(const GC_Chat *_Nonnull chat, const uint8_t *_Nonnull message, uint16_t length, uint8_t type,
+int gc_send_message(const GC_Chat *_Nonnull chat, const uint8_t *_Nullable message, uint16_t length, uint8_t type,
                     uint32_t *_Nullable message_id);
 /** @brief Sends a private message to peer_id.
  *
@@ -179,7 +179,7 @@ int gc_send_message(const GC_Chat *_Nonnull chat, const uint8_t *_Nonnull messag
  * Returns -5 if the sender has the observer role.
  * Returns -6 if the packet fails to send.
  */
-int gc_send_private_message(const GC_Chat *_Nonnull chat, GC_Peer_Id peer_id, uint8_t type, const uint8_t *_Nonnull message,
+int gc_send_private_message(const GC_Chat *_Nonnull chat, GC_Peer_Id peer_id, uint8_t type, const uint8_t *_Nullable message,
                             uint16_t length, uint32_t *_Nullable message_id);
 /** @brief Sends a custom packet to the group. If lossless is true, the packet will be lossless.
  *
@@ -190,7 +190,7 @@ int gc_send_private_message(const GC_Chat *_Nonnull chat, GC_Peer_Id peer_id, ui
  * Returns -2 if the message pointer is NULL or length is zero.
  * Returns -3 if the packet did not successfully send to any peer.
  */
-int gc_send_custom_packet(const GC_Chat *_Nonnull chat, bool lossless, const uint8_t *_Nonnull data, uint16_t length);
+int gc_send_custom_packet(const GC_Chat *_Nonnull chat, bool lossless, const uint8_t *_Nullable data, uint16_t length);
 
 /** @brief Sends a custom private packet to the peer designated by peer_id.
  *
@@ -202,7 +202,7 @@ int gc_send_custom_packet(const GC_Chat *_Nonnull chat, bool lossless, const uin
  * @retval -3 if the supplied peer_id does not designate a valid peer.
  * @retval -4 if the packet fails to send.
  */
-int gc_send_custom_private_packet(const GC_Chat *_Nonnull chat, bool lossless, GC_Peer_Id peer_id, const uint8_t *_Nonnull message, uint16_t length);
+int gc_send_custom_private_packet(const GC_Chat *_Nonnull chat, bool lossless, GC_Peer_Id peer_id, const uint8_t *_Nullable message, uint16_t length);
 
 /** @brief Sets ignore for peer_id.
  *
@@ -241,7 +241,7 @@ uint16_t gc_get_topic_size(const GC_Chat *_Nonnull chat);
  * Call `gc_get_group_name_size` to determine the allocation size for the `group_name`
  * parameter.
  */
-void gc_get_group_name(const GC_Chat *_Nonnull chat, uint8_t *_Nonnull group_name);
+void gc_get_group_name(const GC_Chat *_Nonnull chat, uint8_t *_Nullable group_name);
 
 /** @brief Returns the group name length. */
 uint16_t gc_get_group_name_size(const GC_Chat *_Nonnull chat);
@@ -255,7 +255,7 @@ uint16_t gc_get_group_name_size(const GC_Chat *_Nonnull chat);
  *
  * The data received is equal to the data received by the last password callback.
  */
-void gc_get_password(const GC_Chat *_Nonnull chat, uint8_t *_Nonnull password);
+void gc_get_password(const GC_Chat *_Nonnull chat, uint8_t *_Nullable password);
 
 /** @brief Returns the group password length. */
 uint16_t gc_get_password_size(const GC_Chat *_Nonnull chat);
@@ -295,13 +295,13 @@ uint16_t gc_get_max_peers(const GC_Chat *_Nonnull chat);
  * Returns -3 if the length is zero or nick is a NULL pointer.
  * Returns -4 if the packet fails to send.
  */
-int gc_set_self_nick(const Messenger *_Nonnull m, int group_number, const uint8_t *_Nonnull nick, uint16_t length);
+int gc_set_self_nick(const Messenger *_Nonnull m, int group_number, const uint8_t *_Nullable nick, uint16_t length);
 
 /** @brief Copies your own name to `nick`.
  *
  * If `nick` is null this function has no effect.
  */
-void gc_get_self_nick(const GC_Chat *_Nonnull chat, uint8_t *_Nonnull nick);
+void gc_get_self_nick(const GC_Chat *_Nonnull chat, uint8_t *_Nullable nick);
 
 /** @brief Return your own nick length.
  *

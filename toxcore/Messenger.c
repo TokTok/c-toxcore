@@ -1212,7 +1212,7 @@ int32_t file_by_id(const Messenger *m, uint32_t friendnumber, const uint8_t *fil
  * @retval 0 on failure
  */
 static bool file_sendrequest(const Messenger *_Nonnull m, int32_t friendnumber, uint8_t filenumber, uint32_t file_type, uint64_t filesize, const uint8_t *_Nonnull file_id,
-                             const uint8_t *_Nonnull filename, uint16_t filename_length)
+                             const uint8_t *_Nullable filename, uint16_t filename_length)
 {
     if (!m_friend_exists(m, friendnumber)) {
         return false;

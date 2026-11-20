@@ -215,13 +215,14 @@ int group_title_get_size(const Group_Chats *_Nonnull g_c, uint32_t groupnumber);
 
 /** @brief Get group title from groupnumber and put it in title.
  *
- * Title needs to be a valid memory location with a size of at least MAX_NAME_LENGTH (128) bytes.
+ * Title needs to be NULL or a valid memory location with a size of at least
+ * MAX_NAME_LENGTH (128) bytes. If it is NULL, nothing is copied.
  *
  * @return length of copied title if success.
  * @retval -1 if groupnumber is invalid.
  * @retval -2 if title is too long or empty.
  */
-int group_title_get(const Group_Chats *_Nonnull g_c, uint32_t groupnumber, uint8_t *_Nonnull title);
+int group_title_get(const Group_Chats *_Nonnull g_c, uint32_t groupnumber, uint8_t *_Nullable title);
 
 /**
  * @return the number of (frozen, if frozen is true) peers in the group chat on success.
@@ -277,7 +278,7 @@ int group_get_type(const Group_Chats *_Nonnull g_c, uint32_t groupnumber);
  * @retval false on failure.
  * @retval true on success.
  */
-bool conference_get_id(const Group_Chats *_Nonnull g_c, uint32_t groupnumber, uint8_t *_Nonnull id);
+bool conference_get_id(const Group_Chats *_Nonnull g_c, uint32_t groupnumber, uint8_t *_Nullable id);
 
 int32_t conference_by_id(const Group_Chats *_Nonnull g_c, const uint8_t *_Nonnull id);
 

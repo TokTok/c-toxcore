@@ -5,6 +5,16 @@
 #ifndef C_TOXCORE_TOXCORE_TOX_LOG_LEVEL_H
 #define C_TOXCORE_TOXCORE_TOX_LOG_LEVEL_H
 
+//!TOKSTYLE-
+
+/* Only clang knows these, as in tox_attributes.h, which this header doesn't include. */
+#ifndef __clang__
+#define _Nonnull
+#define _Nullable
+#endif
+
+//!TOKSTYLE+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -39,7 +49,7 @@ typedef enum Tox_Log_Level {
     TOX_LOG_LEVEL_ERROR,
 } Tox_Log_Level;
 
-const char *tox_log_level_to_string(Tox_Log_Level value);
+const char *_Nonnull tox_log_level_to_string(Tox_Log_Level value);
 
 //!TOKSTYLE-
 #ifndef DOXYGEN_IGNORE
