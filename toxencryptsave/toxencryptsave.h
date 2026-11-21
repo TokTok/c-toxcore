@@ -14,6 +14,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
+//!TOKSTYLE-
+
+/* Only clang knows these, as in tox_attributes.h, which this header doesn't include. */
+#ifndef __clang__
+#define _Nonnull
+#define _Nullable
+#endif
+
+//!TOKSTYLE+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -90,7 +100,7 @@ typedef enum Tox_Err_Key_Derivation {
 
 } Tox_Err_Key_Derivation;
 
-const char *tox_err_key_derivation_to_string(Tox_Err_Key_Derivation error);
+const char *_Nonnull tox_err_key_derivation_to_string(Tox_Err_Key_Derivation error);
 
 typedef enum Tox_Err_Encryption {
 
@@ -118,7 +128,7 @@ typedef enum Tox_Err_Encryption {
 
 } Tox_Err_Encryption;
 
-const char *tox_err_encryption_to_string(Tox_Err_Encryption error);
+const char *_Nonnull tox_err_encryption_to_string(Tox_Err_Encryption error);
 
 typedef enum Tox_Err_Decryption {
 
@@ -158,7 +168,7 @@ typedef enum Tox_Err_Decryption {
 
 } Tox_Err_Decryption;
 
-const char *tox_err_decryption_to_string(Tox_Err_Decryption error);
+const char *_Nonnull tox_err_decryption_to_string(Tox_Err_Decryption error);
 
 /*******************************************************************************
  *
@@ -185,8 +195,8 @@ const char *tox_err_decryption_to_string(Tox_Err_Decryption error);
  *
  * @return true on success.
  */
-bool tox_pass_encrypt(const uint8_t plaintext[], size_t plaintext_len, const uint8_t passphrase[], size_t passphrase_len,
-                      uint8_t ciphertext[/*! plaintext_len + TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Encryption *error);
+bool tox_pass_encrypt(const uint8_t plaintext[_Nullable], size_t plaintext_len, const uint8_t passphrase[_Nullable], size_t passphrase_len,
+                      uint8_t ciphertext[_Nullable /*! plaintext_len + TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Encryption *_Nullable error);
 
 /**
  * Decrypts the given data with the given passphrase.
@@ -204,8 +214,8 @@ bool tox_pass_encrypt(const uint8_t plaintext[], size_t plaintext_len, const uin
  *
  * @return true on success.
  */
-bool tox_pass_decrypt(const uint8_t ciphertext[], size_t ciphertext_len, const uint8_t passphrase[],
-                      size_t passphrase_len, uint8_t plaintext[/*! ciphertext_len - TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Decryption *error);
+bool tox_pass_decrypt(const uint8_t ciphertext[_Nullable], size_t ciphertext_len, const uint8_t passphrase[_Nullable],
+                      size_t passphrase_len, uint8_t plaintext[_Nullable /*! ciphertext_len - TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Decryption *_Nullable error);
 
 /*******************************************************************************
  *
@@ -234,7 +244,7 @@ typedef struct Tox_Pass_Key Tox_Pass_Key;
  * Deallocate a Tox_Pass_Key. This function behaves like `free()`, so NULL is an
  * acceptable argument value.
  */
-void tox_pass_key_free(Tox_Pass_Key *key);
+void tox_pass_key_free(Tox_Pass_Key *_Nullable key);
 
 /**
  * Generates a secret symmetric key from the given passphrase.
@@ -251,9 +261,9 @@ void tox_pass_key_free(Tox_Pass_Key *key);
  *
  * @return new symmetric key on success, NULL on failure.
  */
-Tox_Pass_Key *tox_pass_key_derive(
-    const uint8_t passphrase[], size_t passphrase_len,
-    Tox_Err_Key_Derivation *error);
+Tox_Pass_Key *_Nullable tox_pass_key_derive(
+    const uint8_t passphrase[_Nullable], size_t passphrase_len,
+    Tox_Err_Key_Derivation *_Nullable error);
 
 /**
  * Same as above, except use the given salt for deterministic key derivation.
@@ -264,9 +274,9 @@ Tox_Pass_Key *tox_pass_key_derive(
  *
  * @return new symmetric key on success, NULL on failure.
  */
-Tox_Pass_Key *tox_pass_key_derive_with_salt(
-    const uint8_t passphrase[], size_t passphrase_len,
-    const Tox_Pass_Salt salt, Tox_Err_Key_Derivation *error);
+Tox_Pass_Key *_Nullable tox_pass_key_derive_with_salt(
+    const uint8_t passphrase[_Nullable], size_t passphrase_len,
+    const Tox_Pass_Salt _Nonnull salt, Tox_Err_Key_Derivation *_Nullable error);
 
 /**
  * Encrypt a plain text with a key produced by tox_pass_key_derive or
@@ -281,8 +291,8 @@ Tox_Pass_Key *tox_pass_key_derive_with_salt(
  *
  * @return true on success.
  */
-bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t plaintext[], size_t plaintext_len,
-                          uint8_t ciphertext[/*! plaintext_len + TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Encryption *error);
+bool tox_pass_key_encrypt(const Tox_Pass_Key *_Nonnull key, const uint8_t plaintext[_Nullable], size_t plaintext_len,
+                          uint8_t ciphertext[_Nullable /*! plaintext_len + TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Encryption *_Nullable error);
 
 /**
  * This is the inverse of tox_pass_key_encrypt, also using only keys produced by
@@ -295,8 +305,8 @@ bool tox_pass_key_encrypt(const Tox_Pass_Key *key, const uint8_t plaintext[], si
  *
  * @return true on success.
  */
-bool tox_pass_key_decrypt(const Tox_Pass_Key *key, const uint8_t ciphertext[], size_t ciphertext_len,
-                          uint8_t plaintext[/*! ciphertext_len - TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Decryption *error);
+bool tox_pass_key_decrypt(const Tox_Pass_Key *_Nonnull key, const uint8_t ciphertext[_Nullable], size_t ciphertext_len,
+                          uint8_t plaintext[_Nullable /*! ciphertext_len - TOX_PASS_ENCRYPTION_EXTRA_LENGTH */], Tox_Err_Decryption *_Nullable error);
 
 typedef enum Tox_Err_Get_Salt {
 
@@ -318,7 +328,7 @@ typedef enum Tox_Err_Get_Salt {
 
 } Tox_Err_Get_Salt;
 
-const char *tox_err_get_salt_to_string(Tox_Err_Get_Salt error);
+const char *_Nonnull tox_err_get_salt_to_string(Tox_Err_Get_Salt error);
 
 /**
  * Retrieves the salt used to encrypt the given data.
@@ -344,8 +354,8 @@ const char *tox_err_get_salt_to_string(Tox_Err_Get_Salt error);
  * @return true on success.
  */
 bool tox_get_salt(
-    const uint8_t ciphertext[TOX_PASS_ENCRYPTION_EXTRA_LENGTH],
-    Tox_Pass_Salt salt, Tox_Err_Get_Salt *error);
+    const uint8_t ciphertext[_Nonnull TOX_PASS_ENCRYPTION_EXTRA_LENGTH],
+    Tox_Pass_Salt _Nullable salt, Tox_Err_Get_Salt *_Nullable error);
 
 /**
  * Determines whether or not the given data is encrypted by this module.
@@ -363,7 +373,7 @@ bool tox_get_salt(
  *
  * @return true if the data is encrypted by this module.
  */
-bool tox_is_data_encrypted(const uint8_t data[TOX_PASS_ENCRYPTION_EXTRA_LENGTH]);
+bool tox_is_data_encrypted(const uint8_t data[_Nonnull TOX_PASS_ENCRYPTION_EXTRA_LENGTH]);
 
 #ifdef __cplusplus
 } /* extern "C" */

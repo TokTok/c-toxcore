@@ -132,7 +132,7 @@ uint32_t tox_dht_node_public_key_size(void)
     return TOX_DHT_NODE_PUBLIC_KEY_SIZE;
 }
 
-const char *_Nonnull tox_user_status_to_string(Tox_User_Status value)
+const char *tox_user_status_to_string(Tox_User_Status value)
 {
     switch (value) {
         case TOX_USER_STATUS_NONE:
@@ -147,7 +147,7 @@ const char *_Nonnull tox_user_status_to_string(Tox_User_Status value)
 
     return "<invalid Tox_User_Status>";
 }
-const char *_Nonnull tox_message_type_to_string(Tox_Message_Type value)
+const char *tox_message_type_to_string(Tox_Message_Type value)
 {
     switch (value) {
         case TOX_MESSAGE_TYPE_NORMAL:
@@ -159,7 +159,7 @@ const char *_Nonnull tox_message_type_to_string(Tox_Message_Type value)
 
     return "<invalid Tox_Message_Type>";
 }
-const char *_Nonnull tox_proxy_type_to_string(Tox_Proxy_Type value)
+const char *tox_proxy_type_to_string(Tox_Proxy_Type value)
 {
     switch (value) {
         case TOX_PROXY_TYPE_NONE:
@@ -174,7 +174,7 @@ const char *_Nonnull tox_proxy_type_to_string(Tox_Proxy_Type value)
 
     return "<invalid Tox_Proxy_Type>";
 }
-const char *_Nonnull tox_savedata_type_to_string(Tox_Savedata_Type value)
+const char *tox_savedata_type_to_string(Tox_Savedata_Type value)
 {
     switch (value) {
         case TOX_SAVEDATA_TYPE_NONE:
@@ -189,7 +189,7 @@ const char *_Nonnull tox_savedata_type_to_string(Tox_Savedata_Type value)
 
     return "<invalid Tox_Savedata_Type>";
 }
-const char *_Nonnull tox_err_options_new_to_string(Tox_Err_Options_New value)
+const char *tox_err_options_new_to_string(Tox_Err_Options_New value)
 {
     switch (value) {
         case TOX_ERR_OPTIONS_NEW_OK:
@@ -201,7 +201,7 @@ const char *_Nonnull tox_err_options_new_to_string(Tox_Err_Options_New value)
 
     return "<invalid Tox_Err_Options_New>";
 }
-const char *_Nonnull tox_err_new_to_string(Tox_Err_New value)
+const char *tox_err_new_to_string(Tox_Err_New value)
 {
     switch (value) {
         case TOX_ERR_NEW_OK:
@@ -237,7 +237,7 @@ const char *_Nonnull tox_err_new_to_string(Tox_Err_New value)
 
     return "<invalid Tox_Err_New>";
 }
-const char *_Nonnull tox_err_bootstrap_to_string(Tox_Err_Bootstrap value)
+const char *tox_err_bootstrap_to_string(Tox_Err_Bootstrap value)
 {
     switch (value) {
         case TOX_ERR_BOOTSTRAP_OK:
@@ -255,7 +255,7 @@ const char *_Nonnull tox_err_bootstrap_to_string(Tox_Err_Bootstrap value)
 
     return "<invalid Tox_Err_Bootstrap>";
 }
-const char *_Nonnull tox_connection_to_string(Tox_Connection value)
+const char *tox_connection_to_string(Tox_Connection value)
 {
     switch (value) {
         case TOX_CONNECTION_NONE:
@@ -270,7 +270,7 @@ const char *_Nonnull tox_connection_to_string(Tox_Connection value)
 
     return "<invalid Tox_Connection>";
 }
-const char *_Nonnull tox_err_set_info_to_string(Tox_Err_Set_Info value)
+const char *tox_err_set_info_to_string(Tox_Err_Set_Info value)
 {
     switch (value) {
         case TOX_ERR_SET_INFO_OK:
@@ -285,7 +285,7 @@ const char *_Nonnull tox_err_set_info_to_string(Tox_Err_Set_Info value)
 
     return "<invalid Tox_Err_Set_Info>";
 }
-const char *_Nonnull tox_err_friend_add_to_string(Tox_Err_Friend_Add value)
+const char *tox_err_friend_add_to_string(Tox_Err_Friend_Add value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_ADD_OK:
@@ -318,7 +318,7 @@ const char *_Nonnull tox_err_friend_add_to_string(Tox_Err_Friend_Add value)
 
     return "<invalid Tox_Err_Friend_Add>";
 }
-const char *_Nonnull tox_err_friend_delete_to_string(Tox_Err_Friend_Delete value)
+const char *tox_err_friend_delete_to_string(Tox_Err_Friend_Delete value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_DELETE_OK:
@@ -330,7 +330,7 @@ const char *_Nonnull tox_err_friend_delete_to_string(Tox_Err_Friend_Delete value
 
     return "<invalid Tox_Err_Friend_Delete>";
 }
-const char *_Nonnull tox_err_friend_by_public_key_to_string(Tox_Err_Friend_By_Public_Key value)
+const char *tox_err_friend_by_public_key_to_string(Tox_Err_Friend_By_Public_Key value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_BY_PUBLIC_KEY_OK:
@@ -345,7 +345,7 @@ const char *_Nonnull tox_err_friend_by_public_key_to_string(Tox_Err_Friend_By_Pu
 
     return "<invalid Tox_Err_Friend_By_Public_Key>";
 }
-const char *_Nonnull tox_err_friend_get_public_key_to_string(Tox_Err_Friend_Get_Public_Key value)
+const char *tox_err_friend_get_public_key_to_string(Tox_Err_Friend_Get_Public_Key value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_GET_PUBLIC_KEY_OK:
@@ -357,7 +357,7 @@ const char *_Nonnull tox_err_friend_get_public_key_to_string(Tox_Err_Friend_Get_
 
     return "<invalid Tox_Err_Friend_Get_Public_Key>";
 }
-const char *_Nonnull tox_err_friend_get_last_online_to_string(Tox_Err_Friend_Get_Last_Online value)
+const char *tox_err_friend_get_last_online_to_string(Tox_Err_Friend_Get_Last_Online value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_GET_LAST_ONLINE_OK:
@@ -369,7 +369,7 @@ const char *_Nonnull tox_err_friend_get_last_online_to_string(Tox_Err_Friend_Get
 
     return "<invalid Tox_Err_Friend_Get_Last_Online>";
 }
-const char *_Nonnull tox_err_friend_query_to_string(Tox_Err_Friend_Query value)
+const char *tox_err_friend_query_to_string(Tox_Err_Friend_Query value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_QUERY_OK:
@@ -384,7 +384,7 @@ const char *_Nonnull tox_err_friend_query_to_string(Tox_Err_Friend_Query value)
 
     return "<invalid Tox_Err_Friend_Query>";
 }
-const char *_Nonnull tox_err_set_typing_to_string(Tox_Err_Set_Typing value)
+const char *tox_err_set_typing_to_string(Tox_Err_Set_Typing value)
 {
     switch (value) {
         case TOX_ERR_SET_TYPING_OK:
@@ -396,7 +396,7 @@ const char *_Nonnull tox_err_set_typing_to_string(Tox_Err_Set_Typing value)
 
     return "<invalid Tox_Err_Set_Typing>";
 }
-const char *_Nonnull tox_err_friend_send_message_to_string(Tox_Err_Friend_Send_Message value)
+const char *tox_err_friend_send_message_to_string(Tox_Err_Friend_Send_Message value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_SEND_MESSAGE_OK:
@@ -423,7 +423,7 @@ const char *_Nonnull tox_err_friend_send_message_to_string(Tox_Err_Friend_Send_M
 
     return "<invalid Tox_Err_Friend_Send_Message>";
 }
-const char *_Nonnull tox_file_control_to_string(Tox_File_Control value)
+const char *tox_file_control_to_string(Tox_File_Control value)
 {
     switch (value) {
         case TOX_FILE_CONTROL_RESUME:
@@ -438,7 +438,7 @@ const char *_Nonnull tox_file_control_to_string(Tox_File_Control value)
 
     return "<invalid Tox_File_Control>";
 }
-const char *_Nonnull tox_err_file_control_to_string(Tox_Err_File_Control value)
+const char *tox_err_file_control_to_string(Tox_Err_File_Control value)
 {
     switch (value) {
         case TOX_ERR_FILE_CONTROL_OK:
@@ -468,7 +468,7 @@ const char *_Nonnull tox_err_file_control_to_string(Tox_Err_File_Control value)
 
     return "<invalid Tox_Err_File_Control>";
 }
-const char *_Nonnull tox_err_file_seek_to_string(Tox_Err_File_Seek value)
+const char *tox_err_file_seek_to_string(Tox_Err_File_Seek value)
 {
     switch (value) {
         case TOX_ERR_FILE_SEEK_OK:
@@ -495,7 +495,7 @@ const char *_Nonnull tox_err_file_seek_to_string(Tox_Err_File_Seek value)
 
     return "<invalid Tox_Err_File_Seek>";
 }
-const char *_Nonnull tox_err_file_get_to_string(Tox_Err_File_Get value)
+const char *tox_err_file_get_to_string(Tox_Err_File_Get value)
 {
     switch (value) {
         case TOX_ERR_FILE_GET_OK:
@@ -513,7 +513,7 @@ const char *_Nonnull tox_err_file_get_to_string(Tox_Err_File_Get value)
 
     return "<invalid Tox_Err_File_Get>";
 }
-const char *_Nonnull tox_err_file_by_id_to_string(Tox_Err_File_By_Id value)
+const char *tox_err_file_by_id_to_string(Tox_Err_File_By_Id value)
 {
     switch (value) {
         case TOX_ERR_FILE_BY_ID_OK:
@@ -531,7 +531,7 @@ const char *_Nonnull tox_err_file_by_id_to_string(Tox_Err_File_By_Id value)
 
     return "<invalid Tox_Err_File_By_Id>";
 }
-const char *_Nonnull tox_err_file_send_to_string(Tox_Err_File_Send value)
+const char *tox_err_file_send_to_string(Tox_Err_File_Send value)
 {
     switch (value) {
         case TOX_ERR_FILE_SEND_OK:
@@ -555,7 +555,7 @@ const char *_Nonnull tox_err_file_send_to_string(Tox_Err_File_Send value)
 
     return "<invalid Tox_Err_File_Send>";
 }
-const char *_Nonnull tox_err_file_send_chunk_to_string(Tox_Err_File_Send_Chunk value)
+const char *tox_err_file_send_chunk_to_string(Tox_Err_File_Send_Chunk value)
 {
     switch (value) {
         case TOX_ERR_FILE_SEND_CHUNK_OK:
@@ -588,7 +588,7 @@ const char *_Nonnull tox_err_file_send_chunk_to_string(Tox_Err_File_Send_Chunk v
 
     return "<invalid Tox_Err_File_Send_Chunk>";
 }
-const char *_Nonnull tox_conference_type_to_string(Tox_Conference_Type value)
+const char *tox_conference_type_to_string(Tox_Conference_Type value)
 {
     switch (value) {
         case TOX_CONFERENCE_TYPE_TEXT:
@@ -600,7 +600,7 @@ const char *_Nonnull tox_conference_type_to_string(Tox_Conference_Type value)
 
     return "<invalid Tox_Conference_Type>";
 }
-const char *_Nonnull tox_err_conference_new_to_string(Tox_Err_Conference_New value)
+const char *tox_err_conference_new_to_string(Tox_Err_Conference_New value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_NEW_OK:
@@ -612,7 +612,7 @@ const char *_Nonnull tox_err_conference_new_to_string(Tox_Err_Conference_New val
 
     return "<invalid Tox_Err_Conference_New>";
 }
-const char *_Nonnull tox_err_conference_delete_to_string(Tox_Err_Conference_Delete value)
+const char *tox_err_conference_delete_to_string(Tox_Err_Conference_Delete value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_DELETE_OK:
@@ -624,7 +624,7 @@ const char *_Nonnull tox_err_conference_delete_to_string(Tox_Err_Conference_Dele
 
     return "<invalid Tox_Err_Conference_Delete>";
 }
-const char *_Nonnull tox_err_conference_peer_query_to_string(Tox_Err_Conference_Peer_Query value)
+const char *tox_err_conference_peer_query_to_string(Tox_Err_Conference_Peer_Query value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_PEER_QUERY_OK:
@@ -642,7 +642,7 @@ const char *_Nonnull tox_err_conference_peer_query_to_string(Tox_Err_Conference_
 
     return "<invalid Tox_Err_Conference_Peer_Query>";
 }
-const char *_Nonnull tox_err_conference_set_max_offline_to_string(Tox_Err_Conference_Set_Max_Offline value)
+const char *tox_err_conference_set_max_offline_to_string(Tox_Err_Conference_Set_Max_Offline value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_SET_MAX_OFFLINE_OK:
@@ -654,7 +654,7 @@ const char *_Nonnull tox_err_conference_set_max_offline_to_string(Tox_Err_Confer
 
     return "<invalid Tox_Err_Conference_Set_Max_Offline>";
 }
-const char *_Nonnull tox_err_conference_invite_to_string(Tox_Err_Conference_Invite value)
+const char *tox_err_conference_invite_to_string(Tox_Err_Conference_Invite value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_INVITE_OK:
@@ -672,7 +672,7 @@ const char *_Nonnull tox_err_conference_invite_to_string(Tox_Err_Conference_Invi
 
     return "<invalid Tox_Err_Conference_Invite>";
 }
-const char *_Nonnull tox_err_conference_join_to_string(Tox_Err_Conference_Join value)
+const char *tox_err_conference_join_to_string(Tox_Err_Conference_Join value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_JOIN_OK:
@@ -702,7 +702,7 @@ const char *_Nonnull tox_err_conference_join_to_string(Tox_Err_Conference_Join v
 
     return "<invalid Tox_Err_Conference_Join>";
 }
-const char *_Nonnull tox_err_conference_send_message_to_string(Tox_Err_Conference_Send_Message value)
+const char *tox_err_conference_send_message_to_string(Tox_Err_Conference_Send_Message value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_SEND_MESSAGE_OK:
@@ -723,7 +723,7 @@ const char *_Nonnull tox_err_conference_send_message_to_string(Tox_Err_Conferenc
 
     return "<invalid Tox_Err_Conference_Send_Message>";
 }
-const char *_Nonnull tox_err_conference_title_to_string(Tox_Err_Conference_Title value)
+const char *tox_err_conference_title_to_string(Tox_Err_Conference_Title value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_TITLE_OK:
@@ -741,7 +741,7 @@ const char *_Nonnull tox_err_conference_title_to_string(Tox_Err_Conference_Title
 
     return "<invalid Tox_Err_Conference_Title>";
 }
-const char *_Nonnull tox_err_conference_get_type_to_string(Tox_Err_Conference_Get_Type value)
+const char *tox_err_conference_get_type_to_string(Tox_Err_Conference_Get_Type value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_GET_TYPE_OK:
@@ -753,7 +753,7 @@ const char *_Nonnull tox_err_conference_get_type_to_string(Tox_Err_Conference_Ge
 
     return "<invalid Tox_Err_Conference_Get_Type>";
 }
-const char *_Nonnull tox_err_conference_by_id_to_string(Tox_Err_Conference_By_Id value)
+const char *tox_err_conference_by_id_to_string(Tox_Err_Conference_By_Id value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_BY_ID_OK:
@@ -768,7 +768,7 @@ const char *_Nonnull tox_err_conference_by_id_to_string(Tox_Err_Conference_By_Id
 
     return "<invalid Tox_Err_Conference_By_Id>";
 }
-const char *_Nonnull tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_Uid value)
+const char *tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_Uid value)
 {
     switch (value) {
         case TOX_ERR_CONFERENCE_BY_UID_OK:
@@ -783,7 +783,7 @@ const char *_Nonnull tox_err_conference_by_uid_to_string(Tox_Err_Conference_By_U
 
     return "<invalid Tox_Err_Conference_By_Uid>";
 }
-const char *_Nonnull tox_err_friend_custom_packet_to_string(Tox_Err_Friend_Custom_Packet value)
+const char *tox_err_friend_custom_packet_to_string(Tox_Err_Friend_Custom_Packet value)
 {
     switch (value) {
         case TOX_ERR_FRIEND_CUSTOM_PACKET_OK:
@@ -813,7 +813,7 @@ const char *_Nonnull tox_err_friend_custom_packet_to_string(Tox_Err_Friend_Custo
 
     return "<invalid Tox_Err_Friend_Custom_Packet>";
 }
-const char *_Nonnull tox_err_get_port_to_string(Tox_Err_Get_Port value)
+const char *tox_err_get_port_to_string(Tox_Err_Get_Port value)
 {
     switch (value) {
         case TOX_ERR_GET_PORT_OK:
@@ -825,7 +825,7 @@ const char *_Nonnull tox_err_get_port_to_string(Tox_Err_Get_Port value)
 
     return "<invalid Tox_Err_Get_Port>";
 }
-const char *_Nonnull tox_group_privacy_state_to_string(Tox_Group_Privacy_State value)
+const char *tox_group_privacy_state_to_string(Tox_Group_Privacy_State value)
 {
     switch (value) {
         case TOX_GROUP_PRIVACY_STATE_PUBLIC:
@@ -837,7 +837,7 @@ const char *_Nonnull tox_group_privacy_state_to_string(Tox_Group_Privacy_State v
 
     return "<invalid Tox_Group_Privacy_State>";
 }
-const char *_Nonnull tox_group_topic_lock_to_string(Tox_Group_Topic_Lock value)
+const char *tox_group_topic_lock_to_string(Tox_Group_Topic_Lock value)
 {
     switch (value) {
         case TOX_GROUP_TOPIC_LOCK_ENABLED:
@@ -849,7 +849,7 @@ const char *_Nonnull tox_group_topic_lock_to_string(Tox_Group_Topic_Lock value)
 
     return "<invalid Tox_Group_Topic_Lock>";
 }
-const char *_Nonnull tox_group_voice_state_to_string(Tox_Group_Voice_State value)
+const char *tox_group_voice_state_to_string(Tox_Group_Voice_State value)
 {
     switch (value) {
         case TOX_GROUP_VOICE_STATE_ALL:
@@ -864,7 +864,7 @@ const char *_Nonnull tox_group_voice_state_to_string(Tox_Group_Voice_State value
 
     return "<invalid Tox_Group_Voice_State>";
 }
-const char *_Nonnull tox_group_role_to_string(Tox_Group_Role value)
+const char *tox_group_role_to_string(Tox_Group_Role value)
 {
     switch (value) {
         case TOX_GROUP_ROLE_FOUNDER:
@@ -882,7 +882,7 @@ const char *_Nonnull tox_group_role_to_string(Tox_Group_Role value)
 
     return "<invalid Tox_Group_Role>";
 }
-const char *_Nonnull tox_err_group_new_to_string(Tox_Err_Group_New value)
+const char *tox_err_group_new_to_string(Tox_Err_Group_New value)
 {
     switch (value) {
         case TOX_ERR_GROUP_NEW_OK:
@@ -906,7 +906,7 @@ const char *_Nonnull tox_err_group_new_to_string(Tox_Err_Group_New value)
 
     return "<invalid Tox_Err_Group_New>";
 }
-const char *_Nonnull tox_err_group_by_id_to_string(Tox_Err_Group_By_Id value)
+const char *tox_err_group_by_id_to_string(Tox_Err_Group_By_Id value)
 {
     switch (value) {
         case TOX_ERR_GROUP_BY_ID_OK:
@@ -921,7 +921,7 @@ const char *_Nonnull tox_err_group_by_id_to_string(Tox_Err_Group_By_Id value)
 
     return "<invalid Tox_Err_Group_By_Id>";
 }
-const char *_Nonnull tox_err_group_join_to_string(Tox_Err_Group_Join value)
+const char *tox_err_group_join_to_string(Tox_Err_Group_Join value)
 {
     switch (value) {
         case TOX_ERR_GROUP_JOIN_OK:
@@ -948,7 +948,7 @@ const char *_Nonnull tox_err_group_join_to_string(Tox_Err_Group_Join value)
 
     return "<invalid Tox_Err_Group_Join>";
 }
-const char *_Nonnull tox_err_group_is_connected_to_string(Tox_Err_Group_Is_Connected value)
+const char *tox_err_group_is_connected_to_string(Tox_Err_Group_Is_Connected value)
 {
     switch (value) {
         case TOX_ERR_GROUP_IS_CONNECTED_OK:
@@ -960,7 +960,7 @@ const char *_Nonnull tox_err_group_is_connected_to_string(Tox_Err_Group_Is_Conne
 
     return "<invalid Tox_Err_Group_Is_Connected>";
 }
-const char *_Nonnull tox_err_group_disconnect_to_string(Tox_Err_Group_Disconnect value)
+const char *tox_err_group_disconnect_to_string(Tox_Err_Group_Disconnect value)
 {
     switch (value) {
         case TOX_ERR_GROUP_DISCONNECT_OK:
@@ -975,7 +975,7 @@ const char *_Nonnull tox_err_group_disconnect_to_string(Tox_Err_Group_Disconnect
 
     return "<invalid Tox_Err_Group_Disconnect>";
 }
-const char *_Nonnull tox_err_group_reconnect_to_string(Tox_Err_Group_Reconnect value)
+const char *tox_err_group_reconnect_to_string(Tox_Err_Group_Reconnect value)
 {
     switch (value) {
         case TOX_ERR_GROUP_RECONNECT_OK:
@@ -990,7 +990,7 @@ const char *_Nonnull tox_err_group_reconnect_to_string(Tox_Err_Group_Reconnect v
 
     return "<invalid Tox_Err_Group_Reconnect>";
 }
-const char *_Nonnull tox_err_group_leave_to_string(Tox_Err_Group_Leave value)
+const char *tox_err_group_leave_to_string(Tox_Err_Group_Leave value)
 {
     switch (value) {
         case TOX_ERR_GROUP_LEAVE_OK:
@@ -1008,7 +1008,7 @@ const char *_Nonnull tox_err_group_leave_to_string(Tox_Err_Group_Leave value)
 
     return "<invalid Tox_Err_Group_Leave>";
 }
-const char *_Nonnull tox_err_group_self_query_to_string(Tox_Err_Group_Self_Query value)
+const char *tox_err_group_self_query_to_string(Tox_Err_Group_Self_Query value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SELF_QUERY_OK:
@@ -1020,7 +1020,7 @@ const char *_Nonnull tox_err_group_self_query_to_string(Tox_Err_Group_Self_Query
 
     return "<invalid Tox_Err_Group_Self_Query>";
 }
-const char *_Nonnull tox_err_group_self_name_set_to_string(Tox_Err_Group_Self_Name_Set value)
+const char *tox_err_group_self_name_set_to_string(Tox_Err_Group_Self_Name_Set value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SELF_NAME_SET_OK:
@@ -1041,7 +1041,7 @@ const char *_Nonnull tox_err_group_self_name_set_to_string(Tox_Err_Group_Self_Na
 
     return "<invalid Tox_Err_Group_Self_Name_Set>";
 }
-const char *_Nonnull tox_err_group_self_status_set_to_string(Tox_Err_Group_Self_Status_Set value)
+const char *tox_err_group_self_status_set_to_string(Tox_Err_Group_Self_Status_Set value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SELF_STATUS_SET_OK:
@@ -1056,7 +1056,7 @@ const char *_Nonnull tox_err_group_self_status_set_to_string(Tox_Err_Group_Self_
 
     return "<invalid Tox_Err_Group_Self_Status_Set>";
 }
-const char *_Nonnull tox_err_group_peer_query_to_string(Tox_Err_Group_Peer_Query value)
+const char *tox_err_group_peer_query_to_string(Tox_Err_Group_Peer_Query value)
 {
     switch (value) {
         case TOX_ERR_GROUP_PEER_QUERY_OK:
@@ -1071,7 +1071,7 @@ const char *_Nonnull tox_err_group_peer_query_to_string(Tox_Err_Group_Peer_Query
 
     return "<invalid Tox_Err_Group_Peer_Query>";
 }
-const char *_Nonnull tox_err_group_state_query_to_string(Tox_Err_Group_State_Query value)
+const char *tox_err_group_state_query_to_string(Tox_Err_Group_State_Query value)
 {
     switch (value) {
         case TOX_ERR_GROUP_STATE_QUERY_OK:
@@ -1083,7 +1083,7 @@ const char *_Nonnull tox_err_group_state_query_to_string(Tox_Err_Group_State_Que
 
     return "<invalid Tox_Err_Group_State_Query>";
 }
-const char *_Nonnull tox_err_group_topic_set_to_string(Tox_Err_Group_Topic_Set value)
+const char *tox_err_group_topic_set_to_string(Tox_Err_Group_Topic_Set value)
 {
     switch (value) {
         case TOX_ERR_GROUP_TOPIC_SET_OK:
@@ -1110,7 +1110,7 @@ const char *_Nonnull tox_err_group_topic_set_to_string(Tox_Err_Group_Topic_Set v
 
     return "<invalid Tox_Err_Group_Topic_Set>";
 }
-const char *_Nonnull tox_err_group_send_message_to_string(Tox_Err_Group_Send_Message value)
+const char *tox_err_group_send_message_to_string(Tox_Err_Group_Send_Message value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SEND_MESSAGE_OK:
@@ -1140,7 +1140,7 @@ const char *_Nonnull tox_err_group_send_message_to_string(Tox_Err_Group_Send_Mes
 
     return "<invalid Tox_Err_Group_Send_Message>";
 }
-const char *_Nonnull tox_err_group_send_private_message_to_string(Tox_Err_Group_Send_Private_Message value)
+const char *tox_err_group_send_private_message_to_string(Tox_Err_Group_Send_Private_Message value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_OK:
@@ -1173,7 +1173,7 @@ const char *_Nonnull tox_err_group_send_private_message_to_string(Tox_Err_Group_
 
     return "<invalid Tox_Err_Group_Send_Private_Message>";
 }
-const char *_Nonnull tox_err_group_send_custom_packet_to_string(Tox_Err_Group_Send_Custom_Packet value)
+const char *tox_err_group_send_custom_packet_to_string(Tox_Err_Group_Send_Custom_Packet value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SEND_CUSTOM_PACKET_OK:
@@ -1197,7 +1197,7 @@ const char *_Nonnull tox_err_group_send_custom_packet_to_string(Tox_Err_Group_Se
 
     return "<invalid Tox_Err_Group_Send_Custom_Packet>";
 }
-const char *_Nonnull tox_err_group_send_custom_private_packet_to_string(Tox_Err_Group_Send_Custom_Private_Packet value)
+const char *tox_err_group_send_custom_private_packet_to_string(Tox_Err_Group_Send_Custom_Private_Packet value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_OK:
@@ -1224,7 +1224,7 @@ const char *_Nonnull tox_err_group_send_custom_private_packet_to_string(Tox_Err_
 
     return "<invalid Tox_Err_Group_Send_Custom_Private_Packet>";
 }
-const char *_Nonnull tox_err_group_invite_friend_to_string(Tox_Err_Group_Invite_Friend value)
+const char *tox_err_group_invite_friend_to_string(Tox_Err_Group_Invite_Friend value)
 {
     switch (value) {
         case TOX_ERR_GROUP_INVITE_FRIEND_OK:
@@ -1248,7 +1248,7 @@ const char *_Nonnull tox_err_group_invite_friend_to_string(Tox_Err_Group_Invite_
 
     return "<invalid Tox_Err_Group_Invite_Friend>";
 }
-const char *_Nonnull tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_Accept value)
+const char *tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_Accept value)
 {
     switch (value) {
         case TOX_ERR_GROUP_INVITE_ACCEPT_OK:
@@ -1281,7 +1281,7 @@ const char *_Nonnull tox_err_group_invite_accept_to_string(Tox_Err_Group_Invite_
 
     return "<invalid Tox_Err_Group_Invite_Accept>";
 }
-const char *_Nonnull tox_group_exit_type_to_string(Tox_Group_Exit_Type value)
+const char *tox_group_exit_type_to_string(Tox_Group_Exit_Type value)
 {
     switch (value) {
         case TOX_GROUP_EXIT_TYPE_QUIT:
@@ -1305,7 +1305,7 @@ const char *_Nonnull tox_group_exit_type_to_string(Tox_Group_Exit_Type value)
 
     return "<invalid Tox_Group_Exit_Type>";
 }
-const char *_Nonnull tox_group_join_fail_to_string(Tox_Group_Join_Fail value)
+const char *tox_group_join_fail_to_string(Tox_Group_Join_Fail value)
 {
     switch (value) {
         case TOX_GROUP_JOIN_FAIL_PEER_LIMIT:
@@ -1320,7 +1320,7 @@ const char *_Nonnull tox_group_join_fail_to_string(Tox_Group_Join_Fail value)
 
     return "<invalid Tox_Group_Join_Fail>";
 }
-const char *_Nonnull tox_err_group_set_password_to_string(Tox_Err_Group_Set_Password value)
+const char *tox_err_group_set_password_to_string(Tox_Err_Group_Set_Password value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_PASSWORD_OK:
@@ -1347,7 +1347,7 @@ const char *_Nonnull tox_err_group_set_password_to_string(Tox_Err_Group_Set_Pass
 
     return "<invalid Tox_Err_Group_Set_Password>";
 }
-const char *_Nonnull tox_err_group_set_topic_lock_to_string(Tox_Err_Group_Set_Topic_Lock value)
+const char *tox_err_group_set_topic_lock_to_string(Tox_Err_Group_Set_Topic_Lock value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_TOPIC_LOCK_OK:
@@ -1374,7 +1374,7 @@ const char *_Nonnull tox_err_group_set_topic_lock_to_string(Tox_Err_Group_Set_To
 
     return "<invalid Tox_Err_Group_Set_Topic_Lock>";
 }
-const char *_Nonnull tox_err_group_set_voice_state_to_string(Tox_Err_Group_Set_Voice_State value)
+const char *tox_err_group_set_voice_state_to_string(Tox_Err_Group_Set_Voice_State value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_VOICE_STATE_OK:
@@ -1398,7 +1398,7 @@ const char *_Nonnull tox_err_group_set_voice_state_to_string(Tox_Err_Group_Set_V
 
     return "<invalid Tox_Err_Group_Set_Voice_State>";
 }
-const char *_Nonnull tox_err_group_set_privacy_state_to_string(Tox_Err_Group_Set_Privacy_State value)
+const char *tox_err_group_set_privacy_state_to_string(Tox_Err_Group_Set_Privacy_State value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_PRIVACY_STATE_OK:
@@ -1422,7 +1422,7 @@ const char *_Nonnull tox_err_group_set_privacy_state_to_string(Tox_Err_Group_Set
 
     return "<invalid Tox_Err_Group_Set_Privacy_State>";
 }
-const char *_Nonnull tox_err_group_set_peer_limit_to_string(Tox_Err_Group_Set_Peer_Limit value)
+const char *tox_err_group_set_peer_limit_to_string(Tox_Err_Group_Set_Peer_Limit value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_PEER_LIMIT_OK:
@@ -1446,7 +1446,7 @@ const char *_Nonnull tox_err_group_set_peer_limit_to_string(Tox_Err_Group_Set_Pe
 
     return "<invalid Tox_Err_Group_Set_Peer_Limit>";
 }
-const char *_Nonnull tox_err_group_set_ignore_to_string(Tox_Err_Group_Set_Ignore value)
+const char *tox_err_group_set_ignore_to_string(Tox_Err_Group_Set_Ignore value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_IGNORE_OK:
@@ -1464,7 +1464,7 @@ const char *_Nonnull tox_err_group_set_ignore_to_string(Tox_Err_Group_Set_Ignore
 
     return "<invalid Tox_Err_Group_Set_Ignore>";
 }
-const char *_Nonnull tox_err_group_set_role_to_string(Tox_Err_Group_Set_Role value)
+const char *tox_err_group_set_role_to_string(Tox_Err_Group_Set_Role value)
 {
     switch (value) {
         case TOX_ERR_GROUP_SET_ROLE_OK:
@@ -1491,7 +1491,7 @@ const char *_Nonnull tox_err_group_set_role_to_string(Tox_Err_Group_Set_Role val
 
     return "<invalid Tox_Err_Group_Set_Role>";
 }
-const char *_Nonnull tox_err_group_kick_peer_to_string(Tox_Err_Group_Kick_Peer value)
+const char *tox_err_group_kick_peer_to_string(Tox_Err_Group_Kick_Peer value)
 {
     switch (value) {
         case TOX_ERR_GROUP_KICK_PEER_OK:
@@ -1518,7 +1518,7 @@ const char *_Nonnull tox_err_group_kick_peer_to_string(Tox_Err_Group_Kick_Peer v
 
     return "<invalid Tox_Err_Group_Kick_Peer>";
 }
-const char *_Nonnull tox_group_mod_event_to_string(Tox_Group_Mod_Event value)
+const char *tox_group_mod_event_to_string(Tox_Group_Mod_Event value)
 {
     switch (value) {
         case TOX_GROUP_MOD_EVENT_KICK:

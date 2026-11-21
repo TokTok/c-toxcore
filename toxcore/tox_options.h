@@ -10,6 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "tox_attributes.h"
 #include "tox_log_level.h"
 
 #ifdef __cplusplus
@@ -42,7 +43,7 @@ typedef enum Tox_Proxy_Type {
     TOX_PROXY_TYPE_SOCKS5,
 } Tox_Proxy_Type;
 
-const char *tox_proxy_type_to_string(Tox_Proxy_Type value);
+const char *_Nonnull tox_proxy_type_to_string(Tox_Proxy_Type value);
 
 /**
  * @brief Type of savedata to create the Tox instance from.
@@ -64,7 +65,7 @@ typedef enum Tox_Savedata_Type {
     TOX_SAVEDATA_TYPE_SECRET_KEY,
 } Tox_Savedata_Type;
 
-const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
+const char *_Nonnull tox_savedata_type_to_string(Tox_Savedata_Type value);
 
 /**
  * @brief This event is triggered when Tox logs an internal message.
@@ -87,9 +88,9 @@ const char *tox_savedata_type_to_string(Tox_Savedata_Type value);
  * @param message The log message.
  * @param user_data The user data pointer passed to tox_new in options.
  */
-typedef void tox_log_cb(struct Tox *tox, Tox_Log_Level level, const char *file,
-                        uint32_t line, const char *func, const char *message,
-                        void *user_data);
+typedef void tox_log_cb(struct Tox *_Nonnull tox, Tox_Log_Level level, const char *_Nonnull file,
+                        uint32_t line, const char *_Nonnull func, const char *_Nonnull message,
+                        void *_Nullable user_data);
 
 /**
  * @brief This struct contains all the startup options for Tox.
@@ -164,7 +165,7 @@ struct Tox_Options {
      * The data pointed at by this member is owned by the user, so must
      * outlive the options object (unless experimental_owned_data is set).
      */
-    const char *proxy_host;
+    const char *_Nullable proxy_host;
 
     /**
      * The port to use to connect to the proxy server.
@@ -222,7 +223,7 @@ struct Tox_Options {
      * The data pointed at by this member is owned by the user, so must
      * outlive the options object (unless experimental_owned_data is set).
      */
-    const uint8_t *savedata_data;
+    const uint8_t *_Nullable savedata_data;
 
     /**
      * The length of the savedata.
@@ -232,12 +233,12 @@ struct Tox_Options {
     /**
      * Logging callback for the new Tox instance.
      */
-    tox_log_cb *log_callback;
+    tox_log_cb *_Nullable log_callback;
 
     /**
      * User data pointer passed to the logging callback.
      */
-    void *log_user_data;
+    void *_Nullable log_user_data;
 
     /*
      * These options are experimental, so avoid writing code that depends on
@@ -304,99 +305,99 @@ struct Tox_Options {
      * @brief Owned pointer to the savedata data.
      * @private
      */
-    uint8_t *owned_savedata_data;
+    uint8_t *_Nullable owned_savedata_data;
 
     /**
      * @brief Owned pointer to the proxy host.
      * @private
      */
-    char *owned_proxy_host;
+    char *_Nullable owned_proxy_host;
 };
 #endif /* TOX_HIDE_DEPRECATED */
 
-bool tox_options_get_ipv6_enabled(const Tox_Options *options);
+bool tox_options_get_ipv6_enabled(const Tox_Options *_Nonnull options);
 
-void tox_options_set_ipv6_enabled(Tox_Options *options, bool ipv6_enabled);
+void tox_options_set_ipv6_enabled(Tox_Options *_Nonnull options, bool ipv6_enabled);
 
-bool tox_options_get_udp_enabled(const Tox_Options *options);
+bool tox_options_get_udp_enabled(const Tox_Options *_Nonnull options);
 
-void tox_options_set_udp_enabled(Tox_Options *options, bool udp_enabled);
+void tox_options_set_udp_enabled(Tox_Options *_Nonnull options, bool udp_enabled);
 
-bool tox_options_get_local_discovery_enabled(const Tox_Options *options);
+bool tox_options_get_local_discovery_enabled(const Tox_Options *_Nonnull options);
 
-void tox_options_set_local_discovery_enabled(Tox_Options *options, bool local_discovery_enabled);
+void tox_options_set_local_discovery_enabled(Tox_Options *_Nonnull options, bool local_discovery_enabled);
 
-bool tox_options_get_dht_announcements_enabled(const Tox_Options *options);
+bool tox_options_get_dht_announcements_enabled(const Tox_Options *_Nonnull options);
 
 void tox_options_set_dht_announcements_enabled(
-    Tox_Options *options, bool dht_announcements_enabled);
+    Tox_Options *_Nonnull options, bool dht_announcements_enabled);
 
-Tox_Proxy_Type tox_options_get_proxy_type(const Tox_Options *options);
+Tox_Proxy_Type tox_options_get_proxy_type(const Tox_Options *_Nonnull options);
 
-void tox_options_set_proxy_type(Tox_Options *options, Tox_Proxy_Type proxy_type);
+void tox_options_set_proxy_type(Tox_Options *_Nonnull options, Tox_Proxy_Type proxy_type);
 
-const char *tox_options_get_proxy_host(const Tox_Options *options);
+const char *_Nullable tox_options_get_proxy_host(const Tox_Options *_Nonnull options);
 
-bool tox_options_set_proxy_host(Tox_Options *options, const char *proxy_host);
+bool tox_options_set_proxy_host(Tox_Options *_Nonnull options, const char *_Nullable proxy_host);
 
-uint16_t tox_options_get_proxy_port(const Tox_Options *options);
+uint16_t tox_options_get_proxy_port(const Tox_Options *_Nonnull options);
 
-void tox_options_set_proxy_port(Tox_Options *options, uint16_t proxy_port);
+void tox_options_set_proxy_port(Tox_Options *_Nonnull options, uint16_t proxy_port);
 
-uint16_t tox_options_get_start_port(const Tox_Options *options);
+uint16_t tox_options_get_start_port(const Tox_Options *_Nonnull options);
 
-void tox_options_set_start_port(Tox_Options *options, uint16_t start_port);
+void tox_options_set_start_port(Tox_Options *_Nonnull options, uint16_t start_port);
 
-uint16_t tox_options_get_end_port(const Tox_Options *options);
+uint16_t tox_options_get_end_port(const Tox_Options *_Nonnull options);
 
-void tox_options_set_end_port(Tox_Options *options, uint16_t end_port);
+void tox_options_set_end_port(Tox_Options *_Nonnull options, uint16_t end_port);
 
-uint16_t tox_options_get_tcp_port(const Tox_Options *options);
+uint16_t tox_options_get_tcp_port(const Tox_Options *_Nonnull options);
 
-void tox_options_set_tcp_port(Tox_Options *options, uint16_t tcp_port);
+void tox_options_set_tcp_port(Tox_Options *_Nonnull options, uint16_t tcp_port);
 
-bool tox_options_get_hole_punching_enabled(const Tox_Options *options);
+bool tox_options_get_hole_punching_enabled(const Tox_Options *_Nonnull options);
 
-void tox_options_set_hole_punching_enabled(Tox_Options *options, bool hole_punching_enabled);
+void tox_options_set_hole_punching_enabled(Tox_Options *_Nonnull options, bool hole_punching_enabled);
 
-Tox_Savedata_Type tox_options_get_savedata_type(const Tox_Options *options);
+Tox_Savedata_Type tox_options_get_savedata_type(const Tox_Options *_Nonnull options);
 
-void tox_options_set_savedata_type(Tox_Options *options, Tox_Savedata_Type savedata_type);
+void tox_options_set_savedata_type(Tox_Options *_Nonnull options, Tox_Savedata_Type savedata_type);
 
-const uint8_t *tox_options_get_savedata_data(const Tox_Options *options);
+const uint8_t *_Nullable tox_options_get_savedata_data(const Tox_Options *_Nonnull options);
 
 bool tox_options_set_savedata_data(
-    Tox_Options *options, const uint8_t savedata_data[], size_t length);
+    Tox_Options *_Nonnull options, const uint8_t savedata_data[_Nullable], size_t length);
 
-size_t tox_options_get_savedata_length(const Tox_Options *options);
+size_t tox_options_get_savedata_length(const Tox_Options *_Nonnull options);
 
-void tox_options_set_savedata_length(Tox_Options *options, size_t savedata_length);
+void tox_options_set_savedata_length(Tox_Options *_Nonnull options, size_t savedata_length);
 
-tox_log_cb *tox_options_get_log_callback(const Tox_Options *options);
+tox_log_cb *_Nullable tox_options_get_log_callback(const Tox_Options *_Nonnull options);
 
-void tox_options_set_log_callback(Tox_Options *options, tox_log_cb *log_callback);
+void tox_options_set_log_callback(Tox_Options *_Nonnull options, tox_log_cb *_Nullable log_callback);
 
-void *tox_options_get_log_user_data(const Tox_Options *options);
+void *_Nullable tox_options_get_log_user_data(const Tox_Options *_Nonnull options);
 
-void tox_options_set_log_user_data(Tox_Options *options, void *log_user_data);
+void tox_options_set_log_user_data(Tox_Options *_Nonnull options, void *_Nullable log_user_data);
 
-bool tox_options_get_experimental_owned_data(const Tox_Options *options);
+bool tox_options_get_experimental_owned_data(const Tox_Options *_Nonnull options);
 
-void tox_options_set_experimental_owned_data(Tox_Options *options, bool experimental_owned_data);
+void tox_options_set_experimental_owned_data(Tox_Options *_Nonnull options, bool experimental_owned_data);
 
-bool tox_options_get_experimental_thread_safety(const Tox_Options *options);
+bool tox_options_get_experimental_thread_safety(const Tox_Options *_Nonnull options);
 
 void tox_options_set_experimental_thread_safety(
-    Tox_Options *options, bool experimental_thread_safety);
+    Tox_Options *_Nonnull options, bool experimental_thread_safety);
 
-bool tox_options_get_experimental_groups_persistence(const Tox_Options *options);
+bool tox_options_get_experimental_groups_persistence(const Tox_Options *_Nonnull options);
 
 void tox_options_set_experimental_groups_persistence(
-    Tox_Options *options, bool experimental_groups_persistence);
+    Tox_Options *_Nonnull options, bool experimental_groups_persistence);
 
-bool tox_options_get_experimental_disable_dns(const Tox_Options *options);
+bool tox_options_get_experimental_disable_dns(const Tox_Options *_Nonnull options);
 
-void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experimental_disable_dns);
+void tox_options_set_experimental_disable_dns(Tox_Options *_Nonnull options, bool experimental_disable_dns);
 
 /**
  * @brief Initialises a Tox_Options object with the default options.
@@ -409,7 +410,7 @@ void tox_options_set_experimental_disable_dns(Tox_Options *options, bool experim
  *
  * @param options An options object to be filled with default options.
  */
-void tox_options_default(Tox_Options *options);
+void tox_options_default(Tox_Options *_Nonnull options);
 
 /**
  * @brief Copy all options from one object to another.
@@ -421,7 +422,7 @@ void tox_options_default(Tox_Options *options);
  * @param dest The options object to be written to.
  * @param src The options object to be read from.
  */
-void tox_options_copy(Tox_Options *dest, const Tox_Options *src);
+void tox_options_copy(Tox_Options *_Nullable dest, const Tox_Options *_Nullable src);
 
 typedef enum Tox_Err_Options_New {
     /**
@@ -435,7 +436,7 @@ typedef enum Tox_Err_Options_New {
     TOX_ERR_OPTIONS_NEW_MALLOC,
 } Tox_Err_Options_New;
 
-const char *tox_err_options_new_to_string(Tox_Err_Options_New value);
+const char *_Nonnull tox_err_options_new_to_string(Tox_Err_Options_New value);
 
 /**
  * @brief Allocates a new Tox_Options object and initialises it with the default
@@ -449,7 +450,7 @@ const char *tox_err_options_new_to_string(Tox_Err_Options_New value);
  *
  * @return A new Tox_Options object with default options or NULL on failure.
  */
-Tox_Options *tox_options_new(Tox_Err_Options_New *error);
+Tox_Options *_Nullable tox_options_new(Tox_Err_Options_New *_Nullable error);
 
 /**
  * @brief Releases all resources associated with an options objects.
@@ -457,7 +458,7 @@ Tox_Options *tox_options_new(Tox_Err_Options_New *error);
  * Passing a pointer that was not returned by tox_options_new results in
  * undefined behaviour.
  */
-void tox_options_free(Tox_Options *options);
+void tox_options_free(Tox_Options *_Nullable options);
 
 /** @} */
 
