@@ -31,6 +31,8 @@ typedef struct Tox_System {
     const Random *_Nullable rng;
     const Network *_Nullable ns;
     const Memory *_Nullable mem;
+    /** Memory allocator for secrets. If null, `mem` is used. */
+    const Memory *_Nullable secure_mem;
 } Tox_System;
 
 Tox_System tox_default_system(void);

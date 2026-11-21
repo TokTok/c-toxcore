@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     options.log = logger;
 
     Messenger_Error err;
-    m = new_messenger(mono_time, mem, os_random(), os_network(), &options, &err);
+    m = new_messenger(mono_time, mem, mem, os_random(), os_network(), &options, &err);
 
     if (!m) {
         fprintf(stderr, "Failed to allocate messenger datastructure: %u\n", err);

@@ -165,6 +165,7 @@ protected:
 
         chat_->log = log_;
         chat_->mem = mem_;
+        chat_->secure_mem = mem_;
         chat_->rng = os_random();
         chat_->mono_time = mono_time_;
 
@@ -174,11 +175,15 @@ protected:
             mem_valloc(mem_, GCC_BUFFER_SIZE, sizeof(GC_Message_Array_Entry)));
         ASSERT_NE(gconn_.send_array, nullptr);
         ASSERT_NE(gconn_.recv_array, nullptr);
+
+        gconn_.session_keys
+            = static_cast<GC_Session_Keys *>(mem_alloc(mem_, sizeof(GC_Session_Keys)));
+        ASSERT_NE(gconn_.session_keys, nullptr);
     }
 
     void TearDown() override
     {
-        gcc_peer_cleanup(mem_, &gconn_);
+        gcc_peer_cleanup(mem_, mem_, &gconn_);
         mono_time_free(mem_, mono_time_);
         logger_kill(log_);
     }

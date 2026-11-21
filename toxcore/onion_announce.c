@@ -703,7 +703,7 @@ static int handle_data_request(void *_Nonnull object, const IP_Port *_Nonnull so
     return 0;
 }
 
-Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
+Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const Memory *secure_mem, const Random *rng, const Mono_Time *mono_time, DHT *dht,
                                    Networking_Core *net)
 {
     if (dht == nullptr) {
@@ -716,7 +716,7 @@ Onion_Announce *new_onion_announce(const Logger *log, const Memory *mem, const R
         return nullptr;
     }
 
-    Shared_Key_Cache *const shared_keys_recv = shared_key_cache_new(log, mono_time, mem, dht_get_self_secret_key(dht), KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const shared_keys_recv = shared_key_cache_new(log, mono_time, mem, secure_mem, dht_get_self_secret_key(dht), KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
     if (shared_keys_recv == nullptr) {
         mem_delete(mem, onion_a);
         return nullptr;

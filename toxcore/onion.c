@@ -717,7 +717,7 @@ void set_callback_handle_recv_1(Onion *onion, onion_recv_1_cb *function, void *o
     onion->callback_object = object;
 }
 
-Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_time, const Random *rng, DHT *dht, Networking_Core *net)
+Onion *new_onion(const Logger *log, const Memory *mem, const Memory *secure_mem, const Mono_Time *mono_time, const Random *rng, DHT *dht, Networking_Core *net)
 {
     if (dht == nullptr) {
         return nullptr;
@@ -739,9 +739,9 @@ Onion *new_onion(const Logger *log, const Memory *mem, const Mono_Time *mono_tim
     onion->timestamp = mono_time_get(onion->mono_time);
 
     const uint8_t *secret_key = dht_get_self_secret_key(dht);
-    Shared_Key_Cache *const temp_shared_keys_1 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    Shared_Key_Cache *const temp_shared_keys_2 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
-    Shared_Key_Cache *const temp_shared_keys_3 = shared_key_cache_new(log, mono_time, mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_1 = shared_key_cache_new(log, mono_time, mem, secure_mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_2 = shared_key_cache_new(log, mono_time, mem, secure_mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
+    Shared_Key_Cache *const temp_shared_keys_3 = shared_key_cache_new(log, mono_time, mem, secure_mem, secret_key, KEYS_TIMEOUT, MAX_KEYS_PER_SLOT);
 
     if (temp_shared_keys_1 == nullptr || temp_shared_keys_2 == nullptr || temp_shared_keys_3 == nullptr) {
         shared_key_cache_free(temp_shared_keys_3);
