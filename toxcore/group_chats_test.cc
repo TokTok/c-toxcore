@@ -4,13 +4,18 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <utility>
 #include <vector>
 
 #include "../testing/support/public/simulated_environment.hh"
+#include "../testing/support/public/simulation.hh"
 #include "Messenger.h"
 #include "bin_pack.h"
 #include "bin_unpack.h"
@@ -460,6 +465,129 @@ TEST(GcGetSyncFlags, AsksForTheStateOnceForEachRolesChecksum)
     EXPECT_EQ(state_sync_flags(chat.get(), &gconn, 1, 5), 0);
     EXPECT_NE(state_sync_flags(chat.get(), &gconn, 1, 6), 0);
     EXPECT_NE(state_sync_flags(chat.get(), &gconn, 2, 5), 0);
+}
+
+// The network delivers a copy of every group handshake packet between Alice and Bob 3 seconds
+// late, after they have connected. They must stay connected.
+TEST(GroupNetwork, StaysConnectedWhenAHandshakeArrivesAgain)
+{
+    tox::test::Simulation sim{1};
+
+    std::unique_ptr<Tox_Options, decltype(&tox_options_free)> opts(
+        tox_options_new(nullptr), tox_options_free);
+    tox_options_set_ipv6_enabled(opts.get(), false);
+    tox_options_set_local_discovery_enabled(opts.get(), false);
+
+    constexpr uint16_t kDhtPort = 20001;
+    auto dht_node = sim.create_node();
+    tox_options_set_start_port(opts.get(), kDhtPort);
+    tox_options_set_end_port(opts.get(), kDhtPort);
+    auto dht = dht_node->create_tox(opts.get());
+    ASSERT_NE(dht, nullptr);
+    uint8_t dht_id[TOX_PUBLIC_KEY_SIZE];
+    tox_self_get_dht_id(dht.get(), dht_id);
+    char dht_ip[TOX_INET_ADDRSTRLEN];
+    ip_parse_addr(&dht_node->ip, dht_ip, sizeof(dht_ip));
+
+    tox_options_set_start_port(opts.get(), 33445);
+    tox_options_set_end_port(opts.get(), 33445);
+    auto alice_node = sim.create_node();
+    auto alice = alice_node->create_tox(opts.get());
+    auto bob_node = sim.create_node();
+    auto bob = bob_node->create_tox(opts.get());
+    ASSERT_NE(alice, nullptr);
+    ASSERT_NE(bob, nullptr);
+    for (Tox *tox : {alice.get(), bob.get()}) {
+        ASSERT_TRUE(tox_bootstrap(tox, dht_ip, kDhtPort, dht_id, nullptr));
+    }
+
+    struct Peer {
+        uint64_t joined_at = 0;
+        int received = 0;
+        int exits = 0;
+    } a, b;
+
+    // Where and when each copy arrives.
+    auto copies = std::make_shared<std::vector<std::pair<IP, uint64_t>>>();
+    static constexpr uint64_t kCopyDelay = 3000;
+    sim.net().add_duplicator([a_ip = alice_node->ip, b_ip = bob_node->ip, copies](
+                                 const tox::test::Packet &p) -> std::optional<uint64_t> {
+        const bool between = (ip_equal(&p.from.ip, &a_ip) && ip_equal(&p.to.ip, &b_ip))
+            || (ip_equal(&p.from.ip, &b_ip) && ip_equal(&p.to.ip, &a_ip));
+        if (p.is_tcp || !between || p.data.empty() || p.data[0] != NET_PACKET_GC_HANDSHAKE) {
+            return std::nullopt;
+        }
+        copies->emplace_back(p.to.ip, p.delivery_time + kCopyDelay);
+        return kCopyDelay;
+    });
+
+    const uint8_t name[] = "test";
+    const uint32_t group = tox_group_new(alice.get(), TOX_GROUP_PRIVACY_STATE_PUBLIC, name,
+        sizeof(name) - 1, name, sizeof(name) - 1, nullptr);
+    uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
+    ASSERT_TRUE(tox_group_get_chat_id(alice.get(), group, chat_id, nullptr));
+
+    struct PeerCtx {
+        tox::test::Simulation *sim;
+        Peer *peer;
+    } a_ctx{&sim, &a}, b_ctx{&sim, &b};
+    const auto on_join = [](Tox *, uint32_t, uint32_t, void *user_data) {
+        auto *ctx = static_cast<PeerCtx *>(user_data);
+        ctx->peer->joined_at = ctx->sim->clock().current_time_ms();
+    };
+    const auto on_exit = [](Tox *, uint32_t, uint32_t, Tox_Group_Exit_Type, const uint8_t *, size_t,
+                             const uint8_t *, size_t,
+                             void *user_data) { ++static_cast<PeerCtx *>(user_data)->peer->exits; };
+    const auto on_message
+        = [](Tox *, uint32_t, uint32_t, Tox_Message_Type, const uint8_t *, size_t, uint32_t,
+              void *user_data) { ++static_cast<PeerCtx *>(user_data)->peer->received; };
+    for (Tox *tox : {alice.get(), bob.get()}) {
+        tox_callback_group_peer_join(tox, on_join);
+        tox_callback_group_peer_exit(tox, on_exit);
+        tox_callback_group_message(tox, on_message);
+    }
+
+    const auto run_until = [&](std::function<bool()> condition, uint64_t timeout_ms) {
+        sim.run_until(
+            [&]() {
+                tox_iterate(dht.get(), nullptr);
+                tox_iterate(alice.get(), &a_ctx);
+                tox_iterate(bob.get(), &b_ctx);
+                return condition();
+            },
+            timeout_ms);
+    };
+
+    run_until([]() { return false; }, 30000);
+    Tox_Err_Group_Join err_join;
+    const uint32_t bob_group
+        = tox_group_join(bob.get(), chat_id, name, sizeof(name) - 1, nullptr, 0, &err_join);
+    ASSERT_EQ(err_join, TOX_ERR_GROUP_JOIN_OK);
+    run_until([&]() { return a.joined_at != 0 && b.joined_at != 0; }, 120000);
+    ASSERT_NE(a.joined_at, 0);
+    ASSERT_NE(b.joined_at, 0);
+    run_until([]() { return false; }, 2 * kCopyDelay);
+
+    // Make sure a copy arrived after they connected, or this test checks nothing.
+    const bool late_copy = std::any_of(copies->begin(), copies->end(), [&](const auto &copy) {
+        const uint64_t joined_at
+            = ip_equal(&copy.first, &alice_node->ip) ? a.joined_at : b.joined_at;
+        return copy.second > joined_at;
+    });
+    ASSERT_TRUE(late_copy) << "no handshake copy arrived after its peer joined";
+
+    for (int i = 0; i < 10; ++i) {
+        const uint8_t msg[] = "m";
+        tox_group_send_message(alice.get(), group, TOX_MESSAGE_TYPE_NORMAL, msg, 1, nullptr);
+        tox_group_send_message(bob.get(), bob_group, TOX_MESSAGE_TYPE_NORMAL, msg, 1, nullptr);
+    }
+    // Long enough for them to time each other out if the connection broke.
+    run_until([]() { return false; }, (GC_CONFIRMED_PEER_TIMEOUT + 10) * 1000);
+
+    EXPECT_EQ(a.received, 10);
+    EXPECT_EQ(b.received, 10);
+    EXPECT_EQ(a.exits, 0);
+    EXPECT_EQ(b.exits, 0);
 }
 
 }  // namespace
