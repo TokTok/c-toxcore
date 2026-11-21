@@ -4468,6 +4468,9 @@ const char *tox_err_group_send_custom_packet_to_string(Tox_Err_Group_Send_Custom
  * must be split by the client and sent as separate packets. Other clients can
  * then reassemble the fragments. Packets may not be empty.
  *
+ * Start each packet with a 16-bit packet ID from docs/Group-Custom-Packets.md,
+ * so that clients can tell their packets apart.
+ *
  * @param group_number The group number of the group the packet is intended for.
  * @param lossless True if the packet should be lossless.
  * @param data A byte array containing the packet data.
@@ -4541,6 +4544,9 @@ const char *tox_err_group_send_custom_private_packet_to_string(Tox_Err_Group_Sen
  * The packet length may not exceed TOX_MAX_CUSTOM_PACKET_SIZE. Larger packets
  * must be split by the client and sent as separate packets. Other clients can
  * then reassemble the fragments. Packets may not be empty.
+ *
+ * Start each packet with a 16-bit packet ID from docs/Group-Custom-Packets.md,
+ * so that clients can tell their packets apart.
  *
  * @param group_number The group number of the group the packet is intended for.
  * @param peer_id The ID of the peer the packet is intended for.
