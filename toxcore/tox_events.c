@@ -47,10 +47,8 @@ void tox_events_init(Tox *tox)
     tox->conference_peer_list_changed_callback = nullptr;
     tox->dht_nodes_response_callback = nullptr;
 
-    for (uint32_t i = 0; i < UINT8_MAX + 1; ++i) {
-        tox->friend_lossy_packet_callback_per_pktid[i] = nullptr;
-        tox->friend_lossless_packet_callback_per_pktid[i] = nullptr;
-    }
+    tox_callback_friend_lossy_packet(tox, nullptr);
+    tox_callback_friend_lossless_packet(tox, nullptr);
 
     tox->group_peer_name_callback = nullptr;
     tox->group_peer_status_callback = nullptr;

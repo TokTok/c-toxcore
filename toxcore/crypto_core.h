@@ -289,6 +289,26 @@ typedef struct Extended_Secret_Key {
  */
 bool create_extended_keypair(Extended_Public_Key *_Nonnull pk, Extended_Secret_Key *_Nonnull sk, const Random *_Nonnull rng);
 
+/**
+ * @brief The number of bytes in the seed used to create an extended keypair.
+ */
+#define EXT_KEY_SEED_SIZE 32
+
+/**
+ * @brief Creates an extended keypair from `seed`.
+ *
+ * create_extended_keypair does the same with a random seed.
+ *
+ * @retval true on success.
+ */
+bool create_extended_keypair_from_seed(Extended_Public_Key *_Nonnull pk, Extended_Secret_Key *_Nonnull sk,
+                                       const uint8_t seed[_Nonnull EXT_KEY_SEED_SIZE]);
+
+/**
+ * @brief Writes the seed that `sk` was created from.
+ */
+void extended_secret_key_seed(const Extended_Secret_Key *_Nonnull sk, uint8_t seed[_Nonnull EXT_KEY_SEED_SIZE]);
+
 /** Functions for groupchat extended keys */
 const uint8_t *_Nonnull get_enc_key(const Extended_Public_Key *_Nonnull key);
 const uint8_t *_Nonnull get_sig_pk(const Extended_Public_Key *_Nonnull key);

@@ -54,6 +54,9 @@
 
 #define GC_SHARED_STATE_ENC_PACKET_SIZE (SIGNATURE_SIZE + GC_PACKED_SHARED_STATE_SIZE)
 
+/* Size of the nonce that is hashed with the chat ID in a group probe */
+#define GC_PROBE_NONCE_SIZE 32
+
 /* Header information attached to all broadcast messages: broadcast_type */
 #define GC_BROADCAST_ENC_HEADER_SIZE 1
 
@@ -3165,6 +3168,29 @@ static int handle_gc_sanctions_list_error(GC_Chat *_Nonnull chat)
     return 0;
 }
 
+/** @brief Unpacks a sanctions list packet into `sanctions` and validates it against the moderator list.
+ *
+ * @param sanctions must have room for `num_sanctions` entries.
+ */
+static bool unpack_checked_gc_sanctions_list(const GC_Chat *_Nonnull chat, const uint8_t *_Nonnull data, uint16_t length,
+        Mod_Sanction *_Nonnull sanctions, uint16_t num_sanctions, Mod_Sanction_Creds *_Nonnull creds)
+{
+    const int unpacked_num = sanctions_list_unpack(sanctions, creds, num_sanctions, data + sizeof(uint16_t),
+                             length - sizeof(uint16_t), nullptr);
+
+    if (unpacked_num != num_sanctions) {
+        LOGGER_WARNING(chat->log, "Failed to unpack sanctions list: %d", unpacked_num);
+        return false;
+    }
+
+    if (!sanctions_list_check_integrity(&chat->moderation, creds, sanctions, num_sanctions)) {
+        LOGGER_WARNING(chat->log, "Sanctions list failed integrity check");
+        return false;
+    }
+
+    return true;
+}
+
 /** @brief Handles a sanctions list packet.
  *
  * Return 0 if packet is handled correctly.
@@ -3194,17 +3220,7 @@ static int handle_gc_sanctions_list(const GC_Session *_Nonnull c, GC_Chat *_Nonn
         return -1;
     }
 
-    const int unpacked_num = sanctions_list_unpack(sanctions, &creds, num_sanctions, data + sizeof(uint16_t),
-                             length - sizeof(uint16_t), nullptr);
-
-    if (unpacked_num != num_sanctions) {
-        LOGGER_WARNING(chat->log, "Failed to unpack sanctions list: %d", unpacked_num);
-        mem_delete(chat->mem, sanctions);
-        return handle_gc_sanctions_list_error(chat);
-    }
-
-    if (!sanctions_list_check_integrity(&chat->moderation, &creds, sanctions, num_sanctions)) {
-        LOGGER_WARNING(chat->log, "Sanctions list failed integrity check");
+    if (!unpack_checked_gc_sanctions_list(chat, data, length, sanctions, num_sanctions, &creds)) {
         mem_delete(chat->mem, sanctions);
         return handle_gc_sanctions_list_error(chat);
     }
@@ -3941,6 +3957,25 @@ static bool handle_gc_topic_validate(const GC_Chat *_Nonnull chat, const GC_Peer
     return true;
 }
 
+static bool unpack_signed_gc_topic(const Logger *_Nonnull log, GC_TopicInfo *_Nonnull topic_info, const uint8_t *_Nonnull data,
+                                   uint16_t length)
+{
+    if (unpack_gc_topic_info(topic_info, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE) == -1) {
+        LOGGER_WARNING(log, "failed to unpack topic");
+        return false;
+    }
+
+    const uint8_t *signature = data;
+
+    if (crypto_sign_verify_detached(signature, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE,
+                                    topic_info->public_sig_key) == -1) {
+        LOGGER_WARNING(log, "failed to verify topic signature");
+        return false;
+    }
+
+    return true;
+}
+
 /** @brief Handles a topic packet.
  *
  * Return 0 if packet is correctly handled.
@@ -3957,18 +3992,11 @@ static int handle_gc_topic(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat,
 
     GC_TopicInfo topic_info;
 
-    if (unpack_gc_topic_info(&topic_info, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE) == -1) {
-        LOGGER_WARNING(chat->log, "failed to unpack topic");
+    if (!unpack_signed_gc_topic(chat->log, &topic_info, data, length)) {
         return 0;
     }
 
     const uint8_t *signature = data;
-
-    if (crypto_sign_verify_detached(signature, data + SIGNATURE_SIZE, length - SIGNATURE_SIZE,
-                                    topic_info.public_sig_key) == -1) {
-        LOGGER_WARNING(chat->log, "failed to verify topic signature");
-        return 0;
-    }
 
     const bool topic_lock_enabled = group_topic_lock_enabled(chat);
 
@@ -5897,6 +5925,10 @@ static int handle_gc_handshake_request(GC_Chat *_Nonnull chat, const IP_Port *_N
         return -1;
     }
 
+    if (!is_new_peer) {
+        gcc_clear_arrays(chat->mem, gconn);
+    }
+
     gcc_set_recv_message_id(gconn, 1);  // handshake request is always first packet
 
     gconn->is_pending_handshake_response = true;
@@ -6064,12 +6096,6 @@ bool handle_gc_lossless_helper(const GC_Session *c, GC_Chat *chat, uint32_t peer
         LOGGER_DEBUG(chat->log, "Lossless packet handle error %d: type: 0x%02x, peernumber: %u",
                      ret, packet_type, peer_number);
         return false;
-    }
-
-    peer = get_gc_peer(chat, peer_number);
-
-    if (peer != nullptr) {
-        peer->gconn.last_requested_packet_time = mono_time_get(chat->mono_time);
     }
 
     return true;
@@ -6952,10 +6978,42 @@ static void do_peer_connections(const GC_Session *_Nonnull c, GC_Chat *_Nonnull 
     }
 }
 
+static void make_gc_probe_hash(uint8_t hash[_Nonnull CRYPTO_SHA256_SIZE], const uint8_t chat_id[_Nonnull CHAT_ID_SIZE],
+                               const uint8_t nonce[_Nonnull GC_PROBE_NONCE_SIZE])
+{
+    uint8_t data[CHAT_ID_SIZE + GC_PROBE_NONCE_SIZE];
+    memcpy(data, chat_id, CHAT_ID_SIZE);
+    memcpy(data + CHAT_ID_SIZE, nonce, GC_PROBE_NONCE_SIZE);
+    crypto_sha256(hash, data, sizeof(data));
+}
+
+/** @brief Sends a group probe to all online friends.
+ *
+ * The probe contains a hash of the chat ID, so friends who are not in the group don't learn the chat ID.
+ */
+static void probe_friends(const Messenger *_Nonnull m, const GC_Chat *_Nonnull chat)
+{
+    uint8_t packet[2 + GC_PROBE_NONCE_SIZE + CRYPTO_SHA256_SIZE];
+    packet[0] = GP_FRIEND_INVITE;
+    packet[1] = GROUP_PROBE;
+
+    uint8_t *nonce = packet + 2;
+    random_bytes(chat->rng, nonce, GC_PROBE_NONCE_SIZE);
+    make_gc_probe_hash(packet + 2 + GC_PROBE_NONCE_SIZE, get_chat_id(&chat->chat_public_key), nonce);
+
+    for (uint32_t i = 0; i < m->numfriends; ++i) {
+        if (m->friendlist[i].status == FRIEND_ONLINE) {
+            send_group_invite_packet(m, i, packet, sizeof(packet));
+        }
+    }
+}
+
 /** @brief Executes pending handshakes for peers.
  *
  * If our peerlist is empty we periodically try to
  * load peers from our saved peers list and initiate handshake requests with them.
+ * We also send a group probe to our friends, because a friend can be reached even
+ * if their address has changed.
  */
 #define LOAD_PEERS_TIMEOUT (GC_UNCONFIRMED_PEER_TIMEOUT + 10)
 static bool copy_friend_ip_port_to_gconn(const Messenger *_Nonnull m, int friend_number, GC_Connection *_Nonnull gconn);
@@ -6989,6 +7047,7 @@ static void do_handshakes(const GC_Session *_Nonnull c, GC_Chat *_Nonnull chat)
 
         if (mono_time_is_timeout(chat->mono_time, chat->last_time_peers_loaded, LOAD_PEERS_TIMEOUT)) {
             load_gc_peers(chat, chat->saved_peers, GC_MAX_SAVED_PEERS);
+            probe_friends(c->messenger, chat);
             chat->last_time_peers_loaded = tm;
         }
     }
@@ -7455,9 +7514,10 @@ static void init_gc_moderation(GC_Chat *_Nonnull chat)
     chat->moderation.mem = chat->mem;
 }
 
-static bool create_new_chat_ext_keypair(GC_Chat *_Nonnull chat);
+static bool create_new_chat_ext_keypair(GC_Chat *_Nonnull chat, const uint8_t seed[_Nullable EXT_KEY_SEED_SIZE]);
 
-static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, const uint8_t *_Nonnull nick, size_t nick_length, bool founder, const Group_Privacy_State privacy_state)
+static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, const uint8_t *_Nonnull nick, size_t nick_length, bool founder, const Group_Privacy_State privacy_state,
+                            const uint8_t self_seed[_Nullable EXT_KEY_SEED_SIZE])
 {
     if (nick == nullptr || nick_length == 0) {
         return -1;
@@ -7491,7 +7551,7 @@ static int create_new_group(const Memory *_Nonnull mem, GC_Session *_Nonnull c, 
     chat->last_ping_interval = tm;
     chat->friend_connection_id = -1;
 
-    if (!create_new_chat_ext_keypair(chat)) {
+    if (!create_new_chat_ext_keypair(chat, self_seed)) {
         LOGGER_ERROR(chat->log, "Failed to create extended keypair");
         group_delete(c, chat);
         return -1;
@@ -7681,7 +7741,7 @@ int gc_group_add(GC_Session *c, Group_Privacy_State privacy_state,
         return -2;
     }
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, true, privacy_state);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, true, privacy_state, nullptr);
 
     if (group_number == -1) {
         return -3;
@@ -7803,7 +7863,7 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
         return ret != 0 ? -6 : ret;
     }
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC, nullptr);
 
     if (group_number == -1) {
         return -1;
@@ -7837,6 +7897,427 @@ int gc_group_join(GC_Session *c, const uint8_t *chat_id, const uint8_t *nick, si
     update_gc_peer_roles(chat);
 
     return group_number;
+}
+
+#define GC_MOD_LIST_PACKET_MAX_SIZE (sizeof(uint16_t) + MOD_MAX_NUM_MODERATORS * MOD_LIST_ENTRY_SIZE)
+#define GC_SANCTIONS_LIST_PACKET_MAX_SIZE (sizeof(uint16_t) + MOD_MAX_NUM_SANCTIONS * MOD_SANCTION_PACKED_SIZE +\
+                                           MOD_SANCTIONS_CREDS_SIZE)
+#define GC_TOPIC_PACKET_MAX_SIZE (SIGNATURE_SIZE + MAX_GC_TOPIC_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE)
+
+/** @brief The chat ID and the group state packets as they are sent during a sync. */
+typedef struct GC_Packed_State {
+    uint8_t chat_id[CHAT_ID_SIZE];
+    uint8_t shared_state[GC_SHARED_STATE_ENC_PACKET_SIZE];
+    uint8_t mod_list[GC_MOD_LIST_PACKET_MAX_SIZE];
+    uint16_t mod_list_length;
+    // Empty if we have no signed sanctions credentials.
+    uint8_t sanctions_list[GC_SANCTIONS_LIST_PACKET_MAX_SIZE];
+    uint16_t sanctions_list_length;
+    // Empty if we have no signed topic.
+    uint8_t topic[GC_TOPIC_PACKET_MAX_SIZE];
+    uint16_t topic_length;
+} GC_Packed_State;
+
+/** @retval false if the group has no settings yet. */
+static bool make_gc_packed_state(const GC_Chat *_Nonnull chat, GC_Packed_State *_Nonnull packed)
+{
+    if (chat->shared_state.version == 0) {
+        return false;
+    }
+
+    memcpy(packed->chat_id, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE);
+
+    if (make_gc_shared_state_packet(chat, packed->shared_state, sizeof(packed->shared_state)) != GC_SHARED_STATE_ENC_PACKET_SIZE) {
+        return false;
+    }
+
+    const int mod_list_length = make_gc_mod_list_packet(chat, packed->mod_list, sizeof(packed->mod_list),
+                                chat->moderation.num_mods * MOD_LIST_ENTRY_SIZE);
+
+    if (mod_list_length < 0) {
+        return false;
+    }
+
+    packed->mod_list_length = (uint16_t)mod_list_length;
+    packed->sanctions_list_length = 0;
+
+    if (chat->moderation.sanctions_creds.version > 0) {
+        const int sanctions_list_length = make_gc_sanctions_list_packet(chat, packed->sanctions_list,
+                                          sizeof(packed->sanctions_list));
+
+        if (sanctions_list_length < 0) {
+            return false;
+        }
+
+        packed->sanctions_list_length = (uint16_t)sanctions_list_length;
+    }
+
+    packed->topic_length = 0;
+    const int topic_length = make_gc_topic_packet(chat, packed->topic, sizeof(packed->topic));
+
+    if (topic_length > SIGNATURE_SIZE
+            && crypto_sign_verify_detached(packed->topic, packed->topic + SIGNATURE_SIZE, topic_length - SIGNATURE_SIZE,
+                                           chat->topic_info.public_sig_key) == 0) {
+        packed->topic_length = (uint16_t)topic_length;
+    }
+
+    return true;
+}
+
+static bool pack_gc_packed_state(const void *_Nullable obj, const Logger *_Nullable logger, Bin_Pack *_Nonnull bp)
+{
+    const GC_Packed_State *packed = (const GC_Packed_State *)obj;
+    assert(packed != nullptr);
+
+    return bin_pack_array(bp, 5)
+           && bin_pack_bin(bp, packed->chat_id, CHAT_ID_SIZE)
+           && bin_pack_bin(bp, packed->shared_state, GC_SHARED_STATE_ENC_PACKET_SIZE)
+           && bin_pack_bin(bp, packed->mod_list, packed->mod_list_length)
+           && bin_pack_bin(bp, packed->sanctions_list, packed->sanctions_list_length)
+           && bin_pack_bin(bp, packed->topic, packed->topic_length);
+}
+
+static bool unpack_gc_packed_state(void *_Nonnull obj, Bin_Unpack *_Nonnull bu)
+{
+    GC_Packed_State *packed = (GC_Packed_State *)obj;
+
+    return bin_unpack_array_fixed(bu, 5, nullptr)
+           && bin_unpack_bin_fixed(bu, packed->chat_id, CHAT_ID_SIZE)
+           && bin_unpack_bin_fixed(bu, packed->shared_state, GC_SHARED_STATE_ENC_PACKET_SIZE)
+           && bin_unpack_bin_max(bu, packed->mod_list, &packed->mod_list_length, sizeof(packed->mod_list))
+           && bin_unpack_bin_max(bu, packed->sanctions_list, &packed->sanctions_list_length, sizeof(packed->sanctions_list))
+           && bin_unpack_bin_max(bu, packed->topic, &packed->topic_length, sizeof(packed->topic));
+}
+
+struct GC_State {
+    const Memory *_Nonnull mem;
+    GC_Packed_State packed;
+    GC_SharedState shared_state;
+    /* Empty if `packed` has no topic with a valid signature. */
+    GC_TopicInfo topic_info;
+};
+
+/** @brief Unpacks the settings and topic from `state->packed`.
+ *
+ * @retval false if the settings are not signed by the founder of the group.
+ */
+static bool check_gc_state(GC_State *_Nonnull state)
+{
+    const GC_Packed_State *packed = &state->packed;
+    Extended_Public_Key chat_public_key;
+
+    if (!expand_chat_id(&chat_public_key, packed->chat_id)
+            || crypto_sign_verify_detached(packed->shared_state, packed->shared_state + SIGNATURE_SIZE, GC_PACKED_SHARED_STATE_SIZE,
+                                           get_sig_pk(&chat_public_key)) == -1
+            || unpack_gc_shared_state(&state->shared_state, packed->shared_state + SIGNATURE_SIZE, GC_PACKED_SHARED_STATE_SIZE) == 0
+            || state->shared_state.version == 0
+            || !validate_gc_shared_state(&state->shared_state)) {
+        return false;
+    }
+
+    const GC_TopicInfo no_topic = {0};
+    state->topic_info = no_topic;
+
+    if (packed->topic_length >= SIGNATURE_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE) {
+        GC_TopicInfo topic_info;
+        const uint16_t info_length = packed->topic_length - SIGNATURE_SIZE;
+
+        if (unpack_gc_topic_info(&topic_info, packed->topic + SIGNATURE_SIZE, info_length) != -1
+                && crypto_sign_verify_detached(packed->topic, packed->topic + SIGNATURE_SIZE, info_length, topic_info.public_sig_key) != -1
+                && topic_info.checksum == get_gc_topic_checksum(&topic_info)) {
+            state->topic_info = topic_info;
+        }
+    }
+
+    return true;
+}
+
+GC_State *gc_get_state(const GC_Chat *chat)
+{
+    GC_State *state = (GC_State *)mem_alloc(chat->mem, sizeof(GC_State));
+
+    if (state == nullptr) {
+        return nullptr;
+    }
+
+    state->mem = chat->mem;
+
+    if (!make_gc_packed_state(chat, &state->packed) || !check_gc_state(state)) {
+        mem_delete(chat->mem, state);
+        return nullptr;
+    }
+
+    return state;
+}
+
+GC_State *gc_state_load(const Memory *mem, const uint8_t bytes[], uint32_t length, bool *bad_state)
+{
+    *bad_state = false;
+
+    GC_State *state = (GC_State *)mem_alloc(mem, sizeof(GC_State));
+
+    if (state == nullptr) {
+        return nullptr;
+    }
+
+    state->mem = mem;
+
+    if (!bin_unpack_obj(mem, unpack_gc_packed_state, &state->packed, bytes, length) || !check_gc_state(state)) {
+        *bad_state = true;
+        mem_delete(mem, state);
+        return nullptr;
+    }
+
+    return state;
+}
+
+void gc_state_free(GC_State *state)
+{
+    if (state == nullptr) {
+        return;
+    }
+
+    // The settings contain the group password.
+    const Memory *mem = state->mem;
+    crypto_memzero(state, sizeof(GC_State));
+    mem_delete(mem, state);
+}
+
+uint32_t gc_state_bytes_size(const GC_State *state)
+{
+    return bin_pack_obj_size(pack_gc_packed_state, &state->packed, nullptr);
+}
+
+bool gc_state_get_bytes(const GC_State *state, uint8_t bytes[], uint32_t length)
+{
+    return bin_pack_obj(pack_gc_packed_state, &state->packed, nullptr, bytes, length);
+}
+
+const uint8_t *gc_state_get_chat_id(const GC_State *state)
+{
+    return state->packed.chat_id;
+}
+
+const uint8_t *gc_state_get_group_name(const GC_State *state)
+{
+    return state->shared_state.group_name;
+}
+
+uint16_t gc_state_get_group_name_size(const GC_State *state)
+{
+    return state->shared_state.group_name_len;
+}
+
+Group_Privacy_State gc_state_get_privacy_state(const GC_State *state)
+{
+    return state->shared_state.privacy_state;
+}
+
+const uint8_t *gc_state_get_password(const GC_State *state)
+{
+    return state->shared_state.password;
+}
+
+uint16_t gc_state_get_password_size(const GC_State *state)
+{
+    return state->shared_state.password_length;
+}
+
+uint16_t gc_state_get_max_peers(const GC_State *state)
+{
+    return state->shared_state.maxpeers;
+}
+
+const uint8_t *gc_state_get_topic(const GC_State *state)
+{
+    return state->topic_info.topic;
+}
+
+uint16_t gc_state_get_topic_size(const GC_State *state)
+{
+    return state->topic_info.length;
+}
+
+Group_Topic_Lock gc_state_get_topic_lock_state(const GC_State *state)
+{
+    return state->shared_state.topic_lock == GC_TOPIC_LOCK_ENABLED ? TL_ENABLED : TL_DISABLED;
+}
+
+Group_Voice_State gc_state_get_voice_state(const GC_State *state)
+{
+    return state->shared_state.voice_state;
+}
+
+/** @brief Loads the sanctions list from `packed` if it is valid for our moderator list. */
+static void restore_gc_sanctions_list(GC_Chat *_Nonnull chat, const GC_Packed_State *_Nonnull packed)
+{
+    if (packed->sanctions_list_length < sizeof(uint16_t)) {
+        return;
+    }
+
+    uint16_t num_sanctions;
+    net_unpack_u16(packed->sanctions_list, &num_sanctions);
+
+    if (num_sanctions > MOD_MAX_NUM_SANCTIONS) {
+        return;
+    }
+
+    Mod_Sanction *sanctions = (Mod_Sanction *)mem_valloc(chat->mem, num_sanctions, sizeof(Mod_Sanction));
+
+    if (sanctions == nullptr) {
+        return;
+    }
+
+    Mod_Sanction_Creds creds;
+
+    if (!unpack_checked_gc_sanctions_list(chat, packed->sanctions_list, packed->sanctions_list_length, sanctions,
+                                          num_sanctions, &creds)) {
+        mem_delete(chat->mem, sanctions);
+        return;
+    }
+
+    chat->moderation.sanctions_creds = creds;
+    chat->moderation.sanctions = sanctions;
+    chat->moderation.num_sanctions = num_sanctions;
+}
+
+/** @brief Loads the moderator list, sanctions list, and topic from `packed`, skipping the ones that are invalid.
+ *
+ * Skipped parts are received from peers later.
+ */
+static void restore_gc_moderation_and_topic(GC_Chat *_Nonnull chat, const GC_Packed_State *_Nonnull packed)
+{
+    if (packed->mod_list_length >= sizeof(uint16_t)) {
+        uint16_t num_mods;
+        net_unpack_u16(packed->mod_list, &num_mods);
+
+        if (validate_unpack_mod_list(chat, packed->mod_list + sizeof(uint16_t), packed->mod_list_length - sizeof(uint16_t),
+                                     num_mods) != 0) {
+            LOGGER_WARNING(chat->log, "Kept moderator list doesn't match the settings");
+        }
+    }
+
+    restore_gc_sanctions_list(chat, packed);
+
+    if (packed->topic_length >= SIGNATURE_SIZE + GC_MIN_PACKED_TOPIC_INFO_SIZE) {
+        GC_TopicInfo topic_info;
+
+        if (unpack_signed_gc_topic(chat->log, &topic_info, packed->topic, packed->topic_length)
+                && topic_info.checksum == get_gc_topic_checksum(&topic_info)) {
+            chat->topic_info = topic_info;
+            memcpy(chat->topic_sig, packed->topic, SIGNATURE_SIZE);
+        }
+    }
+}
+
+int gc_group_join_as(GC_Session *c, const uint8_t chat_id[CHAT_ID_SIZE], Group_Privacy_State privacy_state,
+                     const uint8_t self_secret_key[EXT_KEY_SEED_SIZE], const uint8_t chat_secret_key[EXT_KEY_SEED_SIZE],
+                     const uint8_t nick[], size_t nick_length, const uint8_t passwd[], uint16_t passwd_len,
+                     const GC_State *state)
+{
+    if (nick_length > MAX_GC_NICK_SIZE) {
+        return -3;
+    }
+
+    if (nick == nullptr || nick_length == 0) {
+        return -4;
+    }
+
+    if (state != nullptr && memcmp(state->packed.chat_id, chat_id, CHAT_ID_SIZE) != 0) {
+        return -5;
+    }
+
+    if (gc_get_group_by_public_key(c, chat_id) != nullptr) {
+        return -2;
+    }
+
+    const Group_Privacy_State privacy = state != nullptr ? state->shared_state.privacy_state : privacy_state;
+
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, privacy, self_secret_key);
+
+    if (group_number == -1) {
+        return -1;
+    }
+
+    GC_Chat *chat = gc_get_group(c, group_number);
+
+    if (chat == nullptr) {
+        return -1;
+    }
+
+    if (!expand_chat_id(&chat->chat_public_key, chat_id)) {
+        group_delete(c, chat);
+        return -1;
+    }
+
+    if (chat_secret_key != nullptr) {
+        crypto_memlock(&chat->chat_secret_key, sizeof(chat->chat_secret_key));
+
+        Extended_Public_Key public_key_from_secret;
+
+        if (!create_extended_keypair_from_seed(&public_key_from_secret, &chat->chat_secret_key, chat_secret_key)
+                || memcmp(public_key_from_secret.sig, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE) != 0) {
+            group_delete(c, chat);
+            return -6;
+        }
+    }
+
+    if (state != nullptr) {
+        chat->shared_state = state->shared_state;
+        memcpy(chat->shared_state_sig, state->packed.shared_state, SIGNATURE_SIZE);
+        init_gc_moderation(chat);
+        restore_gc_moderation_and_topic(chat, &state->packed);
+    } else if (passwd != nullptr && passwd_len > 0) {
+        // We need the password to connect before a peer sends us the settings.
+        if (!set_gc_password_local(chat, passwd, passwd_len)) {
+            group_delete(c, chat);
+            return -8;
+        }
+    }
+
+    chat->connection_state = CS_CONNECTING;
+
+    // Private groups are not announced on the DHT, so we find peers through our friends.
+    chat->join_type = HJ_PRIVATE;
+
+    if (privacy == GI_PUBLIC) {
+        if (!m_create_group_connection(c->messenger, chat)) {
+            group_delete(c, chat);
+            return -7;
+        }
+
+        chat->join_type = HJ_PUBLIC;
+    }
+
+    update_gc_peer_roles(chat);
+
+    return group_number;
+}
+
+void gc_get_self_secret_key(const GC_Chat *chat, uint8_t secret_key[EXT_KEY_SEED_SIZE])
+{
+    extended_secret_key_seed(&chat->self_secret_key, secret_key);
+}
+
+bool gc_get_chat_secret_key(const GC_Chat *chat, uint8_t secret_key[EXT_KEY_SEED_SIZE])
+{
+    uint8_t seed[EXT_KEY_SEED_SIZE];
+    extended_secret_key_seed(&chat->chat_secret_key, seed);
+
+    Extended_Public_Key chat_public_key;
+    Extended_Secret_Key chat_secret_key;
+
+    // Only the founder has the secret key that matches the chat ID.
+    const bool founder = create_extended_keypair_from_seed(&chat_public_key, &chat_secret_key, seed)
+                         && memcmp(chat_public_key.sig, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE) == 0;
+    crypto_memzero(&chat_secret_key, sizeof(chat_secret_key));
+
+    if (founder) {
+        memcpy(secret_key, seed, EXT_KEY_SEED_SIZE);
+    }
+
+    crypto_memzero(seed, sizeof(seed));
+    return founder;
 }
 
 bool gc_disconnect_from_group(const GC_Session *c, GC_Chat *chat)
@@ -8046,6 +8527,37 @@ static bool copy_friend_ip_port_to_gconn(const Messenger *m, int friend_number, 
     return true;
 }
 
+/** @brief Starts a handshake with `gconn` using the connection info of friend `friend_number`.
+ *
+ * Uses the IP/port of the friend and the TCP relays in `tcp_relays`.
+ *
+ * @retval false if neither is available.
+ */
+static bool connect_through_friend(const Messenger *_Nonnull m, const GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn,
+                                   int friend_number, const Node_format *_Nonnull tcp_relays, int num_nodes)
+{
+    bool has_ip_port = gcc_ip_port_is_set(gconn);
+    if (!has_ip_port) {
+        has_ip_port = copy_friend_ip_port_to_gconn(m, friend_number, gconn);
+    }
+    gconn->friend_number = friend_number;
+
+    uint32_t tcp_relays_added = 0;
+
+    if (num_nodes > 0) {
+        tcp_relays_added = add_gc_tcp_relays(chat, gconn, tcp_relays, num_nodes);
+    }
+
+    if (tcp_relays_added == 0 && !has_ip_port) {
+        LOGGER_ERROR(chat->log, "Got invalid connection info from peer");
+        return false;
+    }
+
+    gconn->pending_handshake_type = HS_INVITE_REQUEST;
+
+    return true;
+}
+
 int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, const uint8_t *data, uint16_t length)
 {
     if (length < GC_JOIN_DATA_LENGTH) {
@@ -8081,26 +8593,13 @@ int handle_gc_invite_confirmed_packet(const GC_Session *c, int friend_number, co
                                        nullptr, data + ENC_PUBLIC_KEY_SIZE + CHAT_ID_SIZE,
                                        length - GC_JOIN_DATA_LENGTH, true);
 
-    bool has_ip_port = gcc_ip_port_is_set(gconn);
-    if (!has_ip_port) {
-        has_ip_port = copy_friend_ip_port_to_gconn(c->messenger, friend_number, gconn);
-    }
-    gconn->friend_number = friend_number;
-
-    uint32_t tcp_relays_added = 0;
-
-    if (num_nodes > 0) {
-        tcp_relays_added = add_gc_tcp_relays(chat, gconn, tcp_relays, num_nodes);
-    } else {
+    if (num_nodes <= 0) {
         LOGGER_WARNING(chat->log, "Invite confirm packet did not contain any TCP relays");
     }
 
-    if (tcp_relays_added == 0 && !has_ip_port) {
-        LOGGER_ERROR(chat->log, "Got invalid connection info from peer");
+    if (!connect_through_friend(c->messenger, chat, gconn, friend_number, tcp_relays, num_nodes)) {
         return -5;
     }
-
-    gconn->pending_handshake_type = HS_INVITE_REQUEST;
 
     return 0;
 }
@@ -8192,6 +8691,120 @@ bool handle_gc_invite_accepted_packet(const GC_Session *c, int friend_number, co
     return send_gc_invite_confirmed_packet(m, chat, friend_number, out_data, len);
 }
 
+/** @brief Sends a group probe response with our public key and TCP relays to friend `friend_number`. */
+static void send_gc_probe_response(const Messenger *_Nonnull m, const GC_Chat *_Nonnull chat, int friend_number)
+{
+    uint8_t packet[2 + GC_JOIN_DATA_LENGTH + (GCC_MAX_TCP_SHARED_RELAYS * PACKED_NODE_SIZE_IP6)];
+    packet[0] = GP_FRIEND_INVITE;
+    packet[1] = GROUP_PROBE_RESPONSE;
+    uint16_t length = 2;
+
+    memcpy(packet + length, get_chat_id(&chat->chat_public_key), CHAT_ID_SIZE);
+    length += CHAT_ID_SIZE;
+    memcpy(packet + length, chat->self_public_key.enc, ENC_PUBLIC_KEY_SIZE);
+    length += ENC_PUBLIC_KEY_SIZE;
+
+    Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
+    const uint32_t num_tcp_relays = tcp_copy_connected_relays(nc_get_tcp_c(m->net_crypto), tcp_relays, GCC_MAX_TCP_SHARED_RELAYS);
+
+    if (num_tcp_relays > 0) {
+        const int nodes_len = pack_nodes(chat->log, packet + length, sizeof(packet) - length, tcp_relays,
+                                         (uint16_t)num_tcp_relays);
+
+        if (nodes_len > 0) {
+            length += nodes_len;
+        }
+    }
+
+    if (!send_group_invite_packet(m, friend_number, packet, length)) {
+        LOGGER_WARNING(chat->log, "Failed to send group probe response");
+    }
+}
+
+void handle_gc_probe_packet(const GC_Session *c, int friend_number, const uint8_t data[], uint16_t length)
+{
+    if (length < GC_PROBE_NONCE_SIZE + CRYPTO_SHA256_SIZE) {
+        return;
+    }
+
+    const uint8_t *nonce = data;
+    const uint8_t *hash = data + GC_PROBE_NONCE_SIZE;
+
+    for (uint32_t i = 0; i < c->chats_index; ++i) {
+        const GC_Chat *chat = &c->chats[i];
+
+        // We can't accept new peers without the group settings.
+        if (chat->connection_state == CS_NONE || chat->connection_state == CS_DISCONNECTED
+                || chat->shared_state.version == 0) {
+            continue;
+        }
+
+        uint8_t chat_hash[CRYPTO_SHA256_SIZE];
+        make_gc_probe_hash(chat_hash, get_chat_id(&chat->chat_public_key), nonce);
+
+        if (crypto_sha256_eq(chat_hash, hash)) {
+            send_gc_probe_response(c->messenger, chat, friend_number);
+        }
+    }
+}
+
+bool handle_gc_probe_response_packet(const GC_Session *c, int friend_number, const uint8_t data[], uint16_t length)
+{
+    if (length < GC_JOIN_DATA_LENGTH || !friend_is_valid(c->messenger, friend_number)) {
+        return false;
+    }
+
+    const uint8_t *chat_id = data;
+    const uint8_t *peer_pk = data + CHAT_ID_SIZE;
+
+    GC_Chat *chat = gc_get_group_by_public_key(c, chat_id);
+
+    if (chat == nullptr || !group_can_handle_packets(chat)) {
+        return false;
+    }
+
+    // A probe is sent on each attempt to load peers. Responses are accepted until the next attempt.
+    if (chat->last_time_peers_loaded == 0
+            || mono_time_is_timeout(chat->mono_time, chat->last_time_peers_loaded, LOAD_PEERS_TIMEOUT)) {
+        return false;
+    }
+
+    if (memcmp(peer_pk, chat->self_public_key.enc, ENC_PUBLIC_KEY_SIZE) == 0) {
+        return false;
+    }
+
+    int peer_number = get_peer_number_of_enc_pk(chat, peer_pk, false);
+    const bool is_new_peer = peer_number < 0;
+
+    if (is_new_peer) {
+        peer_number = peer_add(chat, nullptr, peer_pk);
+    }
+
+    GC_Connection *gconn = get_gc_connection(chat, peer_number);
+
+    if (gconn == nullptr) {
+        return false;
+    }
+
+    if (gconn->handshaked) {
+        return true;
+    }
+
+    Node_format tcp_relays[GCC_MAX_TCP_SHARED_RELAYS];
+    const int num_nodes = unpack_nodes(tcp_relays, GCC_MAX_TCP_SHARED_RELAYS, nullptr, data + GC_JOIN_DATA_LENGTH,
+                                       length - GC_JOIN_DATA_LENGTH, true);
+
+    if (!connect_through_friend(c->messenger, chat, gconn, friend_number, tcp_relays, num_nodes)) {
+        if (is_new_peer) {
+            gcc_mark_for_deletion(gconn, chat->tcp_conn, GC_EXIT_TYPE_DISCONNECTED, nullptr, 0);
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
 int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, uint16_t length, const uint8_t *nick,
                      size_t nick_length, const uint8_t *passwd, uint16_t passwd_len)
 {
@@ -8214,7 +8827,7 @@ int gc_accept_invite(GC_Session *c, int32_t friend_number, const uint8_t *data, 
     const uint8_t *chat_id = data;
     const uint8_t *invite_chat_pk = data + CHAT_ID_SIZE;
 
-    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC);
+    const int group_number = create_new_group(c->messenger->mem, c, nick, nick_length, false, GI_PUBLIC, nullptr);
 
     if (group_number == -1) {
         return -2;
@@ -8469,13 +9082,19 @@ static void create_gc_session_keypair(const Logger *log, const Random *rng, uint
  * and `self_secret_key` buffers. The first 32-bytes of the generated keys are used for
  * encryption, while the remaining 32-bytes are used for signing.
  *
+ * The keypair is created from `seed`, or from a random seed if `seed` is null.
+ *
  * Return false if key generation fails.
  */
-static bool create_new_chat_ext_keypair(GC_Chat *chat)
+static bool create_new_chat_ext_keypair(GC_Chat *chat, const uint8_t seed[EXT_KEY_SEED_SIZE])
 {
     crypto_memlock(&chat->self_secret_key, sizeof(chat->self_secret_key));
 
-    if (!create_extended_keypair(&chat->self_public_key, &chat->self_secret_key, chat->rng)) {
+    const bool created = seed != nullptr
+                         ? create_extended_keypair_from_seed(&chat->self_public_key, &chat->self_secret_key, seed)
+                         : create_extended_keypair(&chat->self_public_key, &chat->self_secret_key, chat->rng);
+
+    if (!created) {
         crypto_memunlock(&chat->self_secret_key, sizeof(chat->self_secret_key));
         return false;
     }

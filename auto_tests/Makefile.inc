@@ -48,6 +48,7 @@ TESTS = \
 	scenario_group_invite_test \
 	scenario_group_message_test \
 	scenario_group_moderation_test \
+	scenario_group_restore_test \
 	scenario_group_save_test \
 	scenario_group_state_test \
 	scenario_group_sync_test \
@@ -253,6 +254,10 @@ scenario_group_message_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
 scenario_group_moderation_test_SOURCES = ../auto_tests/scenarios/scenario_group_moderation_test.c
 scenario_group_moderation_test_CFLAGS = $(AUTOTEST_CFLAGS)
 scenario_group_moderation_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
+
+scenario_group_restore_test_SOURCES = ../auto_tests/scenarios/scenario_group_restore_test.c
+scenario_group_restore_test_CFLAGS = $(AUTOTEST_CFLAGS)
+scenario_group_restore_test_LDADD = $(AUTOTEST_LDADD) libscenario_framework.la
 
 scenario_group_save_test_SOURCES = ../auto_tests/scenarios/scenario_group_save_test.c
 scenario_group_save_test_CFLAGS = $(AUTOTEST_CFLAGS)

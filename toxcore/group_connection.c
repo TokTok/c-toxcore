@@ -83,6 +83,16 @@ void gcc_set_recv_message_id(GC_Connection *gconn, uint64_t id)
     gconn->received_message_id = id;
 }
 
+void gcc_clear_arrays(const Memory *mem, GC_Connection *gconn)
+{
+    for (uint16_t i = 0; i < GCC_BUFFER_SIZE; ++i) {
+        clear_array_entry(mem, &gconn->send_array[i]);
+        clear_array_entry(mem, &gconn->recv_array[i]);
+    }
+
+    gconn->last_chunk_id = 0;
+}
+
 /** @brief Puts packet data in array_entry.
  *
  * Requires an empty array entry to be passed, and must not modify the passed

@@ -22,6 +22,11 @@ extern "C" {
 #define RTP_HEADER_SIZE 80
 
 /**
+ * The largest packet RTP sends: the largest Tox custom packet.
+ */
+#define RTP_MAX_PACKET_SIZE 1373
+
+/**
  * Number of 32 bit padding fields between @ref RTPHeader::offset_lower and
  * everything before it.
  */
@@ -73,6 +78,11 @@ void rtp_session_set_ssrc(RTPSession *_Nonnull session, uint32_t ssrc);
 
 typedef int rtp_m_cb(const Mono_Time *_Nonnull mono_time, void *_Nonnull cs, RTPMessage *_Nonnull msg);
 
+/**
+ * Called by frame sends, which may run on any thread.
+ *
+ * @thread any
+ */
 typedef int rtp_send_packet_cb(void *_Nullable user_data, const uint8_t *_Nonnull data, uint16_t length);
 typedef void rtp_add_recv_cb(void *_Nullable user_data, uint32_t bytes);
 typedef void rtp_add_lost_cb(void *_Nullable user_data, uint32_t bytes);

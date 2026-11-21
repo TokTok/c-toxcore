@@ -2,6 +2,7 @@
 #include "group_connection.h"
 // clang-format on
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <cstdint>
@@ -40,16 +41,11 @@ protected:
         ASSERT_TRUE(
             tox::test::connect_friends(sim_, *alice_node_, alice_.get(), *bob_node_, bob_.get()));
 
-        tox_callback_group_invite(bob_.get(),
-            [](Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
-                const uint8_t *, size_t, void *user_data) {
-                const uint8_t name[] = "bob";
-                static_cast<GroupLossless *>(user_data)->bob_group_ = tox_group_invite_accept(
-                    tox, friend_number, data, length, name, sizeof(name) - 1, nullptr, 0, nullptr);
-            });
-        tox_callback_group_self_join(bob_.get(), [](Tox *, uint32_t, void *user_data) {
-            static_cast<GroupLossless *>(user_data)->joined_ = true;
-        });
+        set_bob_callbacks();
+        tox_callback_group_peer_exit(alice_.get(),
+            [](Tox *, uint32_t, uint32_t, Tox_Group_Exit_Type, const uint8_t *, size_t,
+                const uint8_t *, size_t,
+                void *user_data) { ++static_cast<GroupLossless *>(user_data)->exits_; });
 
         const uint8_t group_name[] = "lossless";
         const uint8_t name[] = "alice";
@@ -72,6 +68,56 @@ protected:
         sim_.net().add_filter([this](tox::test::Packet &p) { return !(drop_ && drop_(p)); });
     }
 
+    void set_bob_callbacks()
+    {
+        tox_callback_group_invite(bob_.get(),
+            [](Tox *tox, uint32_t friend_number, const uint8_t *data, size_t length,
+                const uint8_t *, size_t, void *user_data) {
+                const uint8_t name[] = "bob";
+                static_cast<GroupLossless *>(user_data)->bob_group_ = tox_group_invite_accept(
+                    tox, friend_number, data, length, name, sizeof(name) - 1, nullptr, 0, nullptr);
+            });
+        tox_callback_group_self_join(bob_.get(), [](Tox *, uint32_t, void *user_data) {
+            static_cast<GroupLossless *>(user_data)->joined_ = true;
+        });
+        tox_callback_group_message(bob_.get(),
+            [](Tox *, uint32_t, uint32_t, Tox_Message_Type, const uint8_t *message, size_t length,
+                uint32_t, void *user_data) {
+                static_cast<GroupLossless *>(user_data)->received_.emplace_back(
+                    reinterpret_cast<const char *>(message), length);
+            });
+    }
+
+    // Bob crashes, so Alice still holds him as a peer, and comes back from his
+    // savedata.
+    void restart_bob()
+    {
+        std::vector<uint8_t> savedata(tox_get_savedata_size(bob_.get()));
+        tox_get_savedata(bob_.get(), savedata.data());
+
+        drop_ = [this](const tox::test::Packet &p) { return ip_equal(&p.from.ip, &bob_node_->ip); };
+        bob_.reset();
+        drop_ = nullptr;
+
+        bob_ = new_tox(*bob_node_, savedata);
+        ASSERT_NE(bob_, nullptr);
+        set_bob_callbacks();
+    }
+
+    static SimulatedNode::ToxPtr new_tox(
+        SimulatedNode &node, const std::vector<uint8_t> &savedata = {})
+    {
+        std::unique_ptr<Tox_Options, decltype(&tox_options_free)> opts(
+            tox_options_new(nullptr), tox_options_free);
+        tox_options_set_ipv6_enabled(opts.get(), false);
+        tox_options_set_experimental_groups_persistence(opts.get(), true);
+        if (!savedata.empty()) {
+            tox_options_set_savedata_type(opts.get(), TOX_SAVEDATA_TYPE_TOX_SAVE);
+            tox_options_set_savedata_data(opts.get(), savedata.data(), savedata.size());
+        }
+        return node.create_tox(opts.get());
+    }
+
     // The filter outlives the test's locals.
     void TearDown() override { drop_ = nullptr; }
 
@@ -79,6 +125,9 @@ protected:
     {
         return !p.data.empty() && p.data[0] == type && ip_equal(&p.to.ip, &to.ip);
     }
+
+    // Bob's connection to Alice, the only other peer.
+    GC_Connection *bob_conn() { return conn(bob_.get(), bob_group_); }
 
     // Peer 0 is us, so peer 1 is the other one.
     static GC_Connection *conn(const Tox *tox, uint32_t group_number)
@@ -116,11 +165,13 @@ protected:
     tox::test::Simulation sim_{12345};
     std::unique_ptr<SimulatedNode> alice_node_ = sim_.create_node();
     std::unique_ptr<SimulatedNode> bob_node_ = sim_.create_node();
-    SimulatedNode::ToxPtr alice_ = alice_node_->create_tox();
-    SimulatedNode::ToxPtr bob_ = bob_node_->create_tox();
+    SimulatedNode::ToxPtr alice_ = new_tox(*alice_node_);
+    SimulatedNode::ToxPtr bob_ = new_tox(*bob_node_);
     uint32_t alice_group_ = 0;
     uint32_t bob_group_ = 0;
     bool joined_ = false;
+    int exits_ = 0;
+    std::vector<std::string> received_;
 };
 
 // Bob gets the second message first and keeps it until the first comes. His
@@ -154,6 +205,89 @@ TEST_F(GroupLossless, AcknowledgesAMessageHeldForAnEarlierOne)
 
     EXPECT_TRUE(lost_first);
     EXPECT_EQ(sends_of_second, 1);
+}
+
+// Bob holds the second message until the first comes, and then both come again
+// together. Every message still reaches him once, also a full ring later.
+TEST_F(GroupLossless, DeliversEachMessageOnceWhenOneArrivesTwice)
+{
+    // Bob can't ask for the first message, so Alice sends both again.
+    bool lost_first = false;
+    drop_ = [&](const tox::test::Packet &p) {
+        if (is_group_packet(p, NET_PACKET_GC_LOSSLESS, *bob_node_)) {
+            return !std::exchange(lost_first, true);
+        }
+        return is_group_packet(p, NET_PACKET_GC_LOSSY, *alice_node_) && received_.size() < 2;
+    };
+
+    std::vector<std::string> sent{"a", "b"};
+    send(sent[0]);
+    send(sent[1]);
+    run_for(5000);
+    ASSERT_EQ(received_, sent);
+
+    run_until(
+        [&]() {
+            if (sent.size() < 2 + GCC_BUFFER_SIZE) {
+                sent.push_back(std::to_string(sent.size()));
+                send(sent.back());
+            }
+            return false;
+        },
+        (GCC_BUFFER_SIZE + 100) * tox::test::Simulation::kDefaultTickIntervalMs);
+
+    EXPECT_THAT(received_, ::testing::ElementsAreArray(sent));
+}
+
+// Bob comes back while Alice still waits for him to acknowledge messages from
+// before. Those can't be sent on the new connection, and they mustn't keep the
+// new messages from him.
+TEST_F(GroupLossless, DeliversNewMessagesAfterAPeerReconnects)
+{
+    drop_ = [this](const tox::test::Packet &p) { return ip_equal(&p.to.ip, &bob_node_->ip); };
+    for (int i = 0; i < 5; ++i) {
+        send("lost");
+    }
+    run_for(1000);
+    drop_ = nullptr;
+
+    received_.clear();
+    restart_bob();
+    run_until([&]() { return bob_conn() != nullptr && bob_conn()->confirmed; }, 30000);
+    ASSERT_NE(bob_conn(), nullptr);
+    ASSERT_TRUE(bob_conn()->confirmed);
+
+    std::vector<std::string> sent;
+    run_until(
+        [&]() {
+            if (sent.size() < 100) {
+                sent.push_back(std::to_string(sent.size()));
+                send(sent.back());
+            }
+            return false;
+        },
+        (GC_CONFIRMED_PEER_TIMEOUT + 10) * 1000);
+
+    EXPECT_THAT(received_, ::testing::ElementsAreArray(sent));
+    EXPECT_EQ(exits_, 0);
+}
+
+// Bob asks for a message he misses as soon as the next one comes, also right
+// after handling another message.
+TEST_F(GroupLossless, AsksForAMissingMessageAtOnce)
+{
+    int lossless = 0;
+    drop_ = [&](const tox::test::Packet &p) {
+        return is_group_packet(p, NET_PACKET_GC_LOSSLESS, *bob_node_) && ++lossless == 2;
+    };
+
+    const std::vector<std::string> sent{"a", "b", "c"};
+    for (const std::string &message : sent) {
+        send(message);
+    }
+    run_until([&]() { return received_.size() == sent.size(); }, 1000);
+
+    EXPECT_EQ(received_, sent);
 }
 
 class GroupConnection : public ::testing::Test {

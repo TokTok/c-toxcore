@@ -76,6 +76,9 @@ void gcc_set_send_message_id(GC_Connection *_Nonnull gconn, uint64_t id);
 /** @brief Sets the received_message_id for `gconn` to `id`. */
 void gcc_set_recv_message_id(GC_Connection *_Nonnull gconn, uint64_t id);
 
+/** @brief Clears the send and receive arrays for `gconn`, whose message ids start over. */
+void gcc_clear_arrays(const Memory *_Nonnull mem, GC_Connection *_Nonnull gconn);
+
 /**
  * @brief Returns true if the ip_port is set for gconn.
  */

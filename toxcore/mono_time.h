@@ -46,6 +46,11 @@ extern "C" {
  */
 typedef struct Mono_Time Mono_Time;
 
+/**
+ * @brief The current monotonic time in milliseconds.
+ *
+ * @thread any
+ */
 typedef uint64_t mono_time_current_time_cb(void *_Nullable user_data);
 
 Mono_Time *_Nullable mono_time_new(const Memory *_Nonnull mem, mono_time_current_time_cb *_Nullable current_time_callback, void *_Nullable user_data);
