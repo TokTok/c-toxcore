@@ -102,6 +102,31 @@ typedef uint32_t Tox_Conference_Peer_Number;
 typedef struct ToxAV ToxAV;
 #endif /* TOXAV_DEFINED */
 
+/**
+ * @brief A bit rate in kbit/sec.
+ */
+typedef uint32_t Toxav_Bit_Rate;
+
+/**
+ * @brief An audio sampling rate in Hz.
+ */
+typedef uint32_t Toxav_Sampling_Rate;
+
+/**
+ * @brief The number of audio channels.
+ */
+typedef uint8_t Toxav_Channels;
+
+/**
+ * @brief A video frame's width in pixels.
+ */
+typedef uint16_t Toxav_Width;
+
+/**
+ * @brief A video frame's height in pixels.
+ */
+typedef uint16_t Toxav_Height;
+
 /** @{
  * @brief Creation and destruction
  */
@@ -269,7 +294,7 @@ typedef enum Toxav_Err_Call {
  * @param video_bit_rate Video bit rate in kbit/sec. Set this to 0 to disable
  *   video sending.
  */
-bool toxav_call(ToxAV *av, Tox_Friend_Number friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate,
+bool toxav_call(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
                 Toxav_Err_Call *error);
 
 /**
@@ -338,7 +363,7 @@ typedef enum Toxav_Err_Answer {
  * @param video_bit_rate Video bit rate in kbit/sec. Set this to 0 to disable
  *   video sending.
  */
-bool toxav_answer(ToxAV *av, Tox_Friend_Number friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate,
+bool toxav_answer(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
                   Toxav_Err_Answer *error);
 
 /** @} */
@@ -612,7 +637,7 @@ typedef enum Toxav_Err_Send_Frame {
  *   rates are 8000, 12000, 16000, 24000, or 48000.
  */
 bool toxav_audio_send_frame(ToxAV *av, Tox_Friend_Number friend_number, const int16_t pcm[/*! sample_count * channels */],
-                            size_t sample_count, uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *error);
+                            size_t sample_count, Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, Toxav_Err_Send_Frame *error);
 
 /**
  * Set the bit rate to be used in subsequent audio frames.
@@ -623,7 +648,7 @@ bool toxav_audio_send_frame(ToxAV *av, Tox_Friend_Number friend_number, const in
  *
  * @return true on success.
  */
-bool toxav_audio_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, uint32_t bit_rate, Toxav_Err_Bit_Rate_Set *error);
+bool toxav_audio_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate, Toxav_Err_Bit_Rate_Set *error);
 
 /**
  * The function type for the audio_bit_rate callback. The event is triggered
@@ -634,7 +659,7 @@ bool toxav_audio_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, uint32
  *   bit rate.
  * @param audio_bit_rate Suggested maximum audio bit rate in kbit/sec.
  */
-typedef void toxav_audio_bit_rate_cb(ToxAV *av, Tox_Friend_Number friend_number, uint32_t audio_bit_rate, void *user_data);
+typedef void toxav_audio_bit_rate_cb(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, void *user_data);
 
 /**
  * Set the callback for the `audio_bit_rate` event. Pass NULL to unset.
@@ -659,7 +684,7 @@ void toxav_callback_audio_bit_rate(ToxAV *av, toxav_audio_bit_rate_cb *callback,
  * @param v V (Chroma) plane data.
  */
 bool toxav_video_send_frame(
-    ToxAV *av, Tox_Friend_Number friend_number, uint16_t width, uint16_t height,
+    ToxAV *av, Tox_Friend_Number friend_number, Toxav_Width width, Toxav_Height height,
     const uint8_t y[/*! width * height */],
     const uint8_t u[/*! width/2 * height/2 */],
     const uint8_t v[/*! width/2 * height/2 */],
@@ -674,7 +699,7 @@ bool toxav_video_send_frame(
  *
  * @return true on success.
  */
-bool toxav_video_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, uint32_t bit_rate, Toxav_Err_Bit_Rate_Set *error);
+bool toxav_video_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate, Toxav_Err_Bit_Rate_Set *error);
 
 /**
  * The function type for the video_bit_rate callback. The event is triggered
@@ -685,7 +710,7 @@ bool toxav_video_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, uint32
  *   bit rate.
  * @param video_bit_rate Suggested maximum video bit rate in kbit/sec.
  */
-typedef void toxav_video_bit_rate_cb(ToxAV *av, Tox_Friend_Number friend_number, uint32_t video_bit_rate, void *user_data);
+typedef void toxav_video_bit_rate_cb(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate video_bit_rate, void *user_data);
 
 /**
  * Set the callback for the `video_bit_rate` event. Pass NULL to unset.
@@ -712,7 +737,7 @@ void toxav_callback_video_bit_rate(ToxAV *av, toxav_video_bit_rate_cb *callback,
  *
  */
 typedef void toxav_audio_receive_frame_cb(ToxAV *av, Tox_Friend_Number friend_number, const int16_t pcm[/*! sample_count * channels */], size_t sample_count,
-        uint8_t channels, uint32_t sampling_rate, void *user_data);
+        Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, void *user_data);
 
 /**
  * Set the callback for the `audio_receive_frame` event. Pass NULL to unset.
@@ -743,7 +768,7 @@ void toxav_callback_audio_receive_frame(ToxAV *av, toxav_audio_receive_frame_cb 
  */
 typedef void toxav_video_receive_frame_cb(
     ToxAV *av, Tox_Friend_Number friend_number,
-    uint16_t width, uint16_t height,
+    Toxav_Width width, Toxav_Height height,
     const uint8_t y[/*! max(width, abs(ystride)) * height */],
     const uint8_t u[/*! max((width+1)/2, abs(ustride)) * ((height+1)/2) */],
     const uint8_t v[/*! max((width+1)/2, abs(vstride)) * ((height+1)/2) */],
@@ -769,12 +794,12 @@ void toxav_callback_video_receive_frame(ToxAV *av, toxav_video_receive_frame_cb 
 #ifndef APIGEN_IGNORE
 // TODO(iphydf): Use this better typed one instead of the void-pointer one
 // below.
-typedef void toxav_group_audio_cb(Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, const int16_t pcm[],
-                                  uint32_t samples, uint8_t channels, uint32_t sample_rate, void *user_data);
+typedef void toxav_group_audio_cb(Tox *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, const int16_t pcm[/*! sample_count * channels */],
+                                  uint32_t sample_count, Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, void *user_data);
 #endif /* APIGEN_IGNORE */
 
-typedef void toxav_audio_data_cb(void *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, const int16_t pcm[],
-                                 uint32_t samples, uint8_t channels, uint32_t sample_rate, void *userdata);
+typedef void toxav_audio_data_cb(void *tox, Tox_Conference_Number conference_number, Tox_Conference_Peer_Number peer_number, const int16_t pcm[/*! sample_count * channels */],
+                                 uint32_t sample_count, Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, void *userdata);
 
 /** @brief Create a new ToxAV group.
  *
@@ -782,7 +807,7 @@ typedef void toxav_audio_data_cb(void *tox, Tox_Conference_Number conference_num
  * @retval -1 on failure.
  *
  * Note that total size of pcm in bytes is equal to
- * `samples * channels * sizeof(int16_t)`.
+ * `sample_count * channels * sizeof(int16_t)`.
  */
 int32_t toxav_add_av_groupchat(Tox *tox, toxav_audio_data_cb *audio_callback, void *userdata);
 
@@ -792,7 +817,7 @@ int32_t toxav_add_av_groupchat(Tox *tox, toxav_audio_data_cb *audio_callback, vo
  * @retval -1 on failure.
  *
  * Note that total size of pcm in bytes is equal to
- * `samples * channels * sizeof(int16_t)`.
+ * `sample_count * channels * sizeof(int16_t)`.
  */
 int32_t toxav_join_av_groupchat(
     Tox *tox, Tox_Friend_Number friend_number, const uint8_t data[], uint16_t length,
@@ -804,18 +829,18 @@ int32_t toxav_join_av_groupchat(
  * @retval -1 on failure.
  *
  * Note that total size of pcm in bytes is equal to
- * `samples * channels * sizeof(int16_t)`.
+ * `sample_count * channels * sizeof(int16_t)`.
  *
  * Valid number of samples are `(sample rate) * (audio length) / 1000`
  *   (Valid values for audio length are: 2.5, 5, 10, 20, 40 or 60 ms)
  * Valid number of channels are 1 or 2.
  * Valid sample rates are 8000, 12000, 16000, 24000, or 48000.
  *
- * Recommended values are: samples = 960, channels = 1, sample_rate = 48000
+ * Recommended values are: sample_count = 960, channels = 1, sampling_rate = 48000
  */
 int32_t toxav_group_send_audio(
-    Tox *tox, Tox_Conference_Number conference_number, const int16_t pcm[], uint32_t samples, uint8_t channels,
-    uint32_t sample_rate);
+    Tox *tox, Tox_Conference_Number conference_number, const int16_t pcm[/*! sample_count * channels */], uint32_t sample_count, Toxav_Channels channels,
+    Toxav_Sampling_Rate sampling_rate);
 
 /** @brief Enable A/V in a groupchat.
  *
@@ -831,7 +856,7 @@ int32_t toxav_group_send_audio(
  * @retval -1 on failure.
  *
  * Note that total size of pcm in bytes is equal to
- * `samples * channels * sizeof(int16_t)`.
+ * `sample_count * channels * sizeof(int16_t)`.
  */
 int32_t toxav_groupchat_enable_av(
     Tox *tox, Tox_Conference_Number conference_number,

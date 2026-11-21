@@ -936,7 +936,7 @@ static int32_t resolve_bootstrap_node(Tox *_Nullable tox, const char *_Nullable 
     return count;
 }
 
-bool tox_bootstrap(Tox *_Nonnull tox, const char *_Nonnull host, uint16_t port, const Tox_Dht_Id _Nonnull public_key, Tox_Err_Bootstrap *_Nullable error)
+bool tox_bootstrap(Tox *_Nonnull tox, const char *_Nonnull host, Tox_Port port, const Tox_Dht_Id _Nonnull public_key, Tox_Err_Bootstrap *_Nullable error)
 {
     IP_Port *root;
     const int32_t count = resolve_bootstrap_node(tox, host, port, public_key, &root, error);
@@ -992,7 +992,7 @@ bool tox_bootstrap(Tox *_Nonnull tox, const char *_Nonnull host, uint16_t port, 
     return true;
 }
 
-bool tox_add_tcp_relay(Tox *_Nonnull tox, const char *_Nonnull host, uint16_t port, const Tox_Dht_Id _Nonnull public_key,
+bool tox_add_tcp_relay(Tox *_Nonnull tox, const char *_Nonnull host, Tox_Port port, const Tox_Dht_Id _Nonnull public_key,
                        Tox_Err_Bootstrap *_Nullable error)
 {
     IP_Port *root;
@@ -2857,7 +2857,7 @@ void tox_self_get_dht_id(const Tox *_Nonnull tox, Tox_Dht_Id _Nonnull dht_id)
     }
 }
 
-uint16_t tox_self_get_udp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nullable error)
+Tox_Port tox_self_get_udp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nullable error)
 {
     assert(tox != nullptr);
     tox_lock(tox);
@@ -2873,7 +2873,7 @@ uint16_t tox_self_get_udp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nulla
     return port;
 }
 
-uint16_t tox_self_get_tcp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nullable error)
+Tox_Port tox_self_get_tcp_port(const Tox *_Nonnull tox, Tox_Err_Get_Port *_Nullable error)
 {
     assert(tox != nullptr);
     tox_lock(tox);

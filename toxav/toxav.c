@@ -580,7 +580,7 @@ void toxav_iterate(ToxAV *_Nonnull av)
     toxav_video_iterate(av);
 }
 
-bool toxav_call(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate,
+bool toxav_call(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
                 Toxav_Err_Call *_Nullable error)
 {
     Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
@@ -634,7 +634,7 @@ void toxav_callback_call(ToxAV *_Nonnull av, toxav_call_cb *_Nullable callback, 
     pthread_mutex_unlock(av->mutex);
 }
 
-bool toxav_answer(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint32_t audio_bit_rate, uint32_t video_bit_rate,
+bool toxav_answer(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
                   Toxav_Err_Answer *_Nullable error)
 {
     pthread_mutex_lock(av->mutex);
@@ -863,7 +863,7 @@ bool toxav_call_control(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Tox
     return rc == TOXAV_ERR_CALL_CONTROL_OK;
 }
 
-bool toxav_audio_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint32_t bit_rate,
+bool toxav_audio_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
                               Toxav_Err_Bit_Rate_Set *_Nullable error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
@@ -936,7 +936,7 @@ RETURN:
     return rc == TOXAV_ERR_BIT_RATE_SET_OK;
 }
 
-bool toxav_video_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint32_t bit_rate,
+bool toxav_video_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
                               Toxav_Err_Bit_Rate_Set *_Nullable error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
@@ -1026,7 +1026,7 @@ void toxav_callback_video_bit_rate(ToxAV *_Nonnull av, toxav_video_bit_rate_cb *
 }
 
 bool toxav_audio_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const int16_t *_Nullable pcm, size_t sample_count,
-                            uint8_t channels, uint32_t sampling_rate, Toxav_Err_Send_Frame *_Nullable error)
+                            Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, Toxav_Err_Send_Frame *_Nullable error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
     ToxAVCall *call;
@@ -1135,7 +1135,7 @@ static Toxav_Err_Send_Frame send_frames(const ToxAV *_Nonnull av, ToxAVCall *_No
     return TOXAV_ERR_SEND_FRAME_OK;
 }
 
-bool toxav_video_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, uint16_t width, uint16_t height,
+bool toxav_video_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Width width, Toxav_Height height,
                             const uint8_t *_Nullable y, const uint8_t *_Nullable u, const uint8_t *_Nullable v, Toxav_Err_Send_Frame *_Nullable error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;

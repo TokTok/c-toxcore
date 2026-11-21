@@ -158,8 +158,8 @@ uint32_t tox_dht_node_public_key_size(void);
  * @param port The node's port.
  */
 typedef void tox_dht_nodes_response_cb(
-    Tox *_Nonnull tox, const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint32_t ip_length,
-    uint16_t port, void *_Nullable user_data);
+    Tox *_Nonnull tox, const uint8_t public_key[_Nonnull TOX_PUBLIC_KEY_SIZE], const char *_Nonnull ip, uint32_t ip_length,
+    Tox_Port port, void *_Nullable user_data);
 
 /**
  * Set the callback for the `dht_nodes_response` event. Pass NULL to unset.
@@ -217,8 +217,8 @@ typedef enum Tox_Err_Dht_Send_Nodes_Request {
  *
  * @return true on success.
  */
-bool tox_dht_send_nodes_request(const Tox *_Nonnull tox, const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint16_t port,
-                                const uint8_t *_Nonnull target_public_key, Tox_Err_Dht_Send_Nodes_Request *_Nullable error);
+bool tox_dht_send_nodes_request(const Tox *_Nonnull tox, const uint8_t public_key[_Nonnull TOX_DHT_NODE_PUBLIC_KEY_SIZE], const char *_Nonnull ip, Tox_Port port,
+                                const uint8_t target_public_key[_Nonnull TOX_DHT_NODE_PUBLIC_KEY_SIZE], Tox_Err_Dht_Send_Nodes_Request *_Nullable error);
 
 /**
  * This function returns the number of DHT nodes in the closelist.
