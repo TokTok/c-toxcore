@@ -77,6 +77,8 @@ exclusive_tests = {
         "//c-toxcore/toxcore:TCP_connection",
         "//c-toxcore/toxcore:TCP_server",
         "//c-toxcore/toxcore:announce",
+        "//c-toxcore/toxcore:announce_client",
+        "//c-toxcore/toxcore:announce_lookups",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:crypto_core",
         "//c-toxcore/toxcore:forwarding",

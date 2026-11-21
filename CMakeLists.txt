@@ -235,6 +235,10 @@ set(toxcore_SOURCES
   third_party/cmp/cmp.h
   toxcore/announce.c
   toxcore/announce.h
+  toxcore/announce_client.c
+  toxcore/announce_client.h
+  toxcore/announce_lookups.c
+  toxcore/announce_lookups.h
   toxcore/bin_pack.c
   toxcore/bin_pack.h
   toxcore/bin_unpack.c
