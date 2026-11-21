@@ -23,6 +23,7 @@
 #include "net_crypto.h"
 #include "net_profile.h"
 #include "network.h"
+#include "os_clock.h"
 #include "os_memory.h"
 #include "os_network.h"
 #include "os_random.h"
@@ -41,6 +42,7 @@ Tox_System tox_default_system(void)
     const Tox_System sys = {
         nullptr,  // mono_time_callback
         nullptr,  // mono_time_user_data
+        os_clock(),
         os_random(),
         os_network(),
         os_memory(),
