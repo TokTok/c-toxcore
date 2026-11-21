@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-typedef int onion_recv_1_cb(void *_Nullable object, const IP_Port *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length);
+typedef int onion_recv_1_cb(void *_Nullable object, const Destination *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length);
 
 typedef struct Onion {
     const Logger *_Nonnull log;
@@ -71,7 +71,7 @@ typedef struct Onion_Path {
     uint8_t public_key2[CRYPTO_PUBLIC_KEY_SIZE];
     uint8_t public_key3[CRYPTO_PUBLIC_KEY_SIZE];
 
-    IP_Port     ip_port1;
+    Destination dest1;
     uint8_t     node_public_key1[CRYPTO_PUBLIC_KEY_SIZE];
 
     IP_Port     ip_port2;
@@ -141,12 +141,12 @@ int send_onion_response(const Logger *_Nonnull log, const Networking_Core *_Nonn
  *
  * Used to handle these packets that are received in a non traditional way (by TCP for example).
  *
- * Source family must be set to something else than TOX_AF_INET6 or TOX_AF_INET so that the callback gets called
+ * The source must be a client of our TCP server, so that the callback gets called
  * when the response is received.
  */
-int onion_send_1(const Onion *_Nonnull onion, const uint8_t *_Nonnull plain, uint16_t len, const IP_Port *_Nonnull source, const uint8_t *_Nonnull nonce);
+int onion_send_1(const Onion *_Nonnull onion, const uint8_t *_Nonnull plain, uint16_t len, const Destination *_Nonnull source, const uint8_t *_Nonnull nonce);
 
-/** Set the callback to be called when the dest ip_port doesn't have TOX_AF_INET6 or TOX_AF_INET as the family. */
+/** Set the callback to be called when the response goes back to a client of our TCP server, not to a UDP address. */
 void set_callback_handle_recv_1(Onion *_Nonnull onion, onion_recv_1_cb *_Nullable function, void *_Nullable object);
 Onion *_Nullable new_onion(const Logger *_Nonnull log, const Memory *_Nonnull mem, const Mono_Time *_Nonnull mono_time, const Random *_Nonnull rng, DHT *_Nonnull dht, Networking_Core *_Nonnull net);
 

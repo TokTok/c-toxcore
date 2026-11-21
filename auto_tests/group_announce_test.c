@@ -38,11 +38,11 @@ static inline IP get_loopback(void)
 {
     IP ip;
 #if USE_IPV6
-    ip.family = net_family_ipv6();
-    ip.ip.v6 = get_ip6_loopback();
+    ip.type = IP_TYPE_V6;
+    ip.value.v6 = get_ip6_loopback();
 #else
-    ip.family = net_family_ipv4();
-    ip.ip.v4 = get_ip4_loopback();
+    ip.type = IP_TYPE_V4;
+    ip.value.v4 = get_ip4_loopback();
 #endif
     return ip;
 }
@@ -68,18 +68,19 @@ static void fill_max_public_announce(const Random *rng, GC_Public_Announce *ann,
     memcpy(ann->chat_public_key, chat_pk, ENC_PUBLIC_KEY_SIZE);
     random_bytes(rng, ann->base_announce.peer_public_key, ENC_PUBLIC_KEY_SIZE);
 
-    ann->base_announce.ip_port.ip.family = net_family_ipv6();
-    random_bytes(rng, ann->base_announce.ip_port.ip.ip.v6.uint8,
-                 sizeof(ann->base_announce.ip_port.ip.ip.v6.uint8));
-    ann->base_announce.ip_port.port   = net_htons(33445);
+    ann->base_announce.ip_port.ip.type = IP_TYPE_V6;
+    random_bytes(rng, ann->base_announce.ip_port.ip.value.v6.uint8,
+                 sizeof(ann->base_announce.ip_port.ip.value.v6.uint8));
+    ann->base_announce.ip_port.port = net_htons(33445);
     ann->base_announce.ip_port_is_set = true;
 
     ann->base_announce.tcp_relays_count = GCA_MAX_ANNOUNCED_TCP_RELAYS;
     random_bytes(rng, ann->base_announce.tcp_relays[0].public_key,
                  CRYPTO_PUBLIC_KEY_SIZE);
-    ann->base_announce.tcp_relays[0].ip_port.ip.family = net_family_tcp_ipv6();
-    random_bytes(rng, ann->base_announce.tcp_relays[0].ip_port.ip.ip.v6.uint8,
-                 sizeof(ann->base_announce.tcp_relays[0].ip_port.ip.ip.v6.uint8));
+    ann->base_announce.tcp_relays[0].ip_port.ip.type = IP_TYPE_V6;
+    ann->base_announce.tcp_relays[0].transport = TRANSPORT_TCP;
+    random_bytes(rng, ann->base_announce.tcp_relays[0].ip_port.ip.value.v6.uint8,
+                 sizeof(ann->base_announce.tcp_relays[0].ip_port.ip.value.v6.uint8));
     ann->base_announce.tcp_relays[0].ip_port.port = net_htons(33445);
 }
 
@@ -90,11 +91,11 @@ static void fill_small_public_announce(const Random *rng, GC_Public_Announce *an
     memcpy(ann->chat_public_key, chat_pk, ENC_PUBLIC_KEY_SIZE);
     random_bytes(rng, ann->base_announce.peer_public_key, ENC_PUBLIC_KEY_SIZE);
 
-    ann->base_announce.ip_port.ip.family = net_family_ipv4();
-    ann->base_announce.ip_port.ip.ip.v4  = get_ip4_loopback();
-    ann->base_announce.ip_port.port       = net_htons(33445);
-    ann->base_announce.ip_port_is_set     = true;
-    ann->base_announce.tcp_relays_count   = 0;
+    ann->base_announce.ip_port.ip.type = IP_TYPE_V4;
+    ann->base_announce.ip_port.ip.value.v4 = get_ip4_loopback();
+    ann->base_announce.ip_port.port = net_htons(33445);
+    ann->base_announce.ip_port_is_set = true;
+    ann->base_announce.tcp_relays_count = 0;
 }
 
 static void test_gca_announce_response_size(void)
@@ -161,12 +162,12 @@ static void test_gca_announce_response_size(void)
         uint8_t fake_pk[CRYPTO_PUBLIC_KEY_SIZE];
         random_bytes(rng, fake_pk, sizeof(fake_pk));
         IP_Port fake_ipp;
-        fake_ipp.ip.family         = net_family_ipv4();
-        fake_ipp.ip.ip.v4.uint8[0] = 10;
-        fake_ipp.ip.ip.v4.uint8[1] = 0;
-        fake_ipp.ip.ip.v4.uint8[2] = 0;
-        fake_ipp.ip.ip.v4.uint8[3] = (uint8_t)(i + 1);
-        fake_ipp.port              = net_htons(33445 + i);
+        fake_ipp.ip.type = IP_TYPE_V4;
+        fake_ipp.ip.value.v4.uint8[0] = 10;
+        fake_ipp.ip.value.v4.uint8[1] = 0;
+        fake_ipp.ip.value.v4.uint8[2] = 0;
+        fake_ipp.ip.value.v4.uint8[3] = (uint8_t)(i + 1);
+        fake_ipp.port = net_htons(33445 + i);
         addto_lists(srv_dht, &fake_ipp, fake_pk);
     }
 

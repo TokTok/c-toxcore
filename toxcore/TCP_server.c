@@ -358,7 +358,7 @@ static int handle_tcp_handshake(const Logger *_Nonnull logger, TCP_Secure_Connec
         return -1;
     }
 
-    const IP_Port ipp = {{{0}}};
+    const IP_Port ipp = {{IP_TYPE_UNSPEC}};
 
     if (TCP_SERVER_HANDSHAKE_SIZE != net_send(con->con.ns, logger, con->con.sock, response, TCP_SERVER_HANDSHAKE_SIZE, &ipp, con->con.net_profile)) {
         crypto_memzero(shared_key, sizeof(shared_key));
@@ -573,35 +573,34 @@ static int rm_connection_index(TCP_Server *tcp_server, TCP_Secure_Connection *co
     return -1;
 }
 
-/** @brief Encode con_id and identifier as a custom IP_Port.
- *
- * @return ip_port.
- */
-static IP_Port con_id_to_ip_port(uint32_t con_id, uint64_t identifier)
+/** @brief The destination for packets to the client on connection `con_id`. */
+static Destination con_id_to_destination(uint32_t con_id, uint64_t identifier)
 {
-    IP_Port ip_port = {{{0}}};
-    ip_port.ip.family = net_family_tcp_client();
-    ip_port.ip.ip.v6.uint32[0] = con_id;
-    ip_port.ip.ip.v6.uint64[1] = identifier;
-    return ip_port;
-
+    Destination dest;
+    dest.type = DESTINATION_TYPE_TCP_CLIENT;
+    dest.value.tcp_client.con_id = con_id;
+    dest.value.tcp_client.identifier = identifier;
+    return dest;
 }
 
-/** @brief Decode ip_port created by con_id_to_ip_port to con_id.
+/** @brief Finds the connection of the client that `dest` was made for.
  *
  * @retval true on success.
- * @retval false if ip_port is invalid.
+ * @retval false if `dest` is not one of our clients, or that client is gone.
  */
-static bool ip_port_to_con_id(const TCP_Server *_Nonnull tcp_server, const IP_Port *_Nonnull ip_port, uint32_t *_Nonnull con_id)
+static bool destination_to_con_id(const TCP_Server *_Nonnull tcp_server, const Destination *_Nonnull dest, uint32_t *_Nonnull con_id)
 {
-    *con_id = ip_port->ip.ip.v6.uint32[0];
+    if (dest->type != DESTINATION_TYPE_TCP_CLIENT) {
+        return false;
+    }
 
-    return net_family_is_tcp_client(ip_port->ip.family) &&
-           *con_id < tcp_server->size_accepted_connections &&
-           tcp_server->accepted_connection_array[*con_id].identifier == ip_port->ip.ip.v6.uint64[1];
+    *con_id = dest->value.tcp_client.con_id;
+
+    return *con_id < tcp_server->size_accepted_connections &&
+           tcp_server->accepted_connection_array[*con_id].identifier == dest->value.tcp_client.identifier;
 }
 
-static int handle_onion_recv_1(void *_Nonnull object, const IP_Port *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length)
+static int handle_onion_recv_1(void *_Nonnull object, const Destination *_Nonnull dest, const uint8_t *_Nonnull data, uint16_t length)
 {
     TCP_Server *tcp_server = (TCP_Server *)object;
 
@@ -611,7 +610,7 @@ static int handle_onion_recv_1(void *_Nonnull object, const IP_Port *_Nonnull de
 
     uint32_t index;
 
-    if (!ip_port_to_con_id(tcp_server, dest, &index)) {
+    if (!destination_to_con_id(tcp_server, dest, &index)) {
         return 1;
     }
 
@@ -764,7 +763,7 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
                     return -1;
                 }
 
-                const IP_Port source = con_id_to_ip_port(con_id, con->identifier);
+                const Destination source = con_id_to_destination(con_id, con->identifier);
                 onion_send_1(tcp_server->onion, data + 1 + CRYPTO_NONCE_SIZE, length - (1 + CRYPTO_NONCE_SIZE), &source,
                              data + 1);
             }
@@ -789,7 +788,7 @@ static int handle_tcp_packet(TCP_Server *_Nonnull tcp_server, uint32_t con_id, c
             net_pack_u64(sendback_data + 1 + sizeof(uint32_t), con->identifier);
 
             IP_Port dest;
-            const int ipport_length = unpack_ip_port(&dest, data + 1, length - 1, false);
+            const int ipport_length = unpack_ip_port(&dest, data + 1, length - 1);
 
             if (ipport_length == -1) {
                 return -1;
@@ -911,18 +910,18 @@ static int accept_connection(TCP_Server *_Nonnull tcp_server, Socket sock)
     return index;
 }
 
-static Socket new_listening_tcp_socket(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, Family family, uint16_t port)
+static Socket new_listening_tcp_socket(const Logger *_Nonnull logger, const Memory *_Nonnull mem, const Network *_Nonnull ns, IP_Type type, uint16_t port)
 {
-    const Socket sock = net_socket(ns, family, TOX_SOCK_STREAM, TOX_PROTO_TCP);
+    const Socket sock = net_socket(ns, type, TOX_SOCK_STREAM, TOX_PROTO_TCP);
 
     if (!sock_valid(sock)) {
-        LOGGER_ERROR(logger, "TCP socket creation failed (family = %d)", family.value);
+        LOGGER_ERROR(logger, "TCP socket creation failed (IP type = %d)", (int)type);
         return net_invalid_socket();
     }
 
     bool ok = set_socket_nonblock(ns, sock);
 
-    if (ok && net_family_is_ipv6(family)) {
+    if (ok && type == IP_TYPE_V6) {
         ok = set_socket_dualstack(ns, sock);
     }
 
@@ -930,12 +929,12 @@ static Socket new_listening_tcp_socket(const Logger *_Nonnull logger, const Memo
         ok = set_socket_reuseaddr(ns, sock);
     }
 
-    ok = ok && bind_to_port(ns, sock, family, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
+    ok = ok && bind_to_port(ns, sock, type, port) && (net_listen(ns, sock, TCP_MAX_BACKLOG) == 0);
 
     if (!ok) {
         Net_Strerror error_str;
-        LOGGER_WARNING(logger, "could not bind to TCP port %d (family = %d): %s",
-                       port, family.value, net_strerror(net_error(), &error_str));
+        LOGGER_WARNING(logger, "could not bind to TCP port %d (IP type = %d): %s",
+                       port, (int)type, net_strerror(net_error(), &error_str));
         kill_sock(ns, sock);
         return net_invalid_socket();
     }
@@ -1002,10 +1001,10 @@ TCP_Server *new_tcp_server(const Logger *logger, const Memory *mem, const Random
 
 #endif /* TCP_SERVER_USE_EPOLL */
 
-    const Family family = ipv6_enabled ? net_family_ipv6() : net_family_ipv4();
+    const IP_Type type = ipv6_enabled ? IP_TYPE_V6 : IP_TYPE_V4;
 
     for (uint32_t i = 0; i < num_sockets; ++i) {
-        const Socket sock = new_listening_tcp_socket(logger, mem, ns, family, ports[i]);
+        const Socket sock = new_listening_tcp_socket(logger, mem, ns, type, ports[i]);
 
         if (!sock_valid(sock)) {
             continue;

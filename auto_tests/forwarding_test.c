@@ -21,11 +21,11 @@ static inline IP get_loopback(void)
 {
     IP ip;
 #if USE_IPV6
-    ip.family = net_family_ipv6();
-    ip.ip.v6 = get_ip6_loopback();
+    ip.type = IP_TYPE_V6;
+    ip.value.v6 = get_ip6_loopback();
 #else
-    ip.family = net_family_ipv4();
-    ip.ip.v4 = get_ip4_loopback();
+    ip.type = IP_TYPE_V4;
+    ip.value.v4 = get_ip4_loopback();
 #endif
     return ip;
 }
@@ -131,7 +131,7 @@ static Forwarding_Subtox *new_forwarding_subtox(const Memory *mem, bool no_udp, 
     subtox->tcp_np = netprof_new(subtox->log, mem);
     ck_assert(subtox->tcp_np != nullptr);
 
-    const TCP_Proxy_Info inf = {{{{0}}}};
+    const TCP_Proxy_Info inf = {{{IP_TYPE_UNSPEC}}};
     subtox->c = new_net_crypto(subtox->log, mem, rng, ns, subtox->mono_time, subtox->net, subtox->dht, &auto_test_dht_funcs, &inf, subtox->tcp_np);
 
     subtox->forwarding = new_forwarding(subtox->log, mem, rng, subtox->mono_time, subtox->dht, subtox->net);
@@ -317,7 +317,7 @@ static void test_forwarding(void)
         ck_assert(NUM_FORWARDER - NUM_FORWARDER_TCP > 1);
 
         for (uint32_t i = NUM_FORWARDER_TCP; i < NUM_FORWARDER; ++i) {
-            ck_assert_msg(get_close_nodes(subtoxes[i]->dht, dht_get_self_public_key(subtoxes[i]->dht), nodes, net_family_unspec(), true,
+            ck_assert_msg(get_close_nodes(subtoxes[i]->dht, dht_get_self_public_key(subtoxes[i]->dht), nodes, IP_TYPE_UNSPEC, true,
                                           true) > 0,
                           "node %u has no nodes marked as announce nodes", i);
         }

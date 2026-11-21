@@ -20,19 +20,15 @@
 #define USE_IPV6 1
 #endif
 
-#if !USE_IPV6
-#define net_family_ipv6 net_family_ipv4
-#endif
-
 static IP get_loopback(void)
 {
     IP ip;
 #if USE_IPV6
-    ip.family = net_family_ipv6();
-    ip.ip.v6 = get_ip6_loopback();
+    ip.type = IP_TYPE_V6;
+    ip.value.v6 = get_ip6_loopback();
 #else
-    ip.family = net_family_ipv4();
-    ip.ip.v4 = get_ip4_loopback();
+    ip.type = IP_TYPE_V4;
+    ip.value.v4 = get_ip4_loopback();
 #endif
     return ip;
 }
@@ -75,7 +71,7 @@ static void test_basic(void)
 
     // Check all opened ports for connectivity.
     for (uint8_t i = 0; i < NUM_PORTS; i++) {
-        sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+        sock = net_socket(ns, localhost.ip.type, TOX_SOCK_STREAM, TOX_PROTO_TCP);
         localhost.port = net_htons(ports[i]);
         Net_Err_Connect err;
         bool ret = net_connect(ns, mem, logger, sock, &localhost, &err);
@@ -217,10 +213,9 @@ static struct sec_TCP_con *new_tcp_con(const Logger *logger, const Memory *mem, 
     ck_assert(sec_c != nullptr);
     sec_c->ns = ns;
     sec_c->mem = mem;
-    Socket sock = net_socket(ns, net_family_ipv6(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
-
     IP_Port localhost;
     localhost.ip = get_loopback();
+    Socket sock = net_socket(ns, localhost.ip.type, TOX_SOCK_STREAM, TOX_PROTO_TCP);
     localhost.port = net_htons(ports[random_u32(rng) % NUM_PORTS]);
 
     Net_Err_Connect err;

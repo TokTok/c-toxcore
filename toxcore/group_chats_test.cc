@@ -63,8 +63,8 @@ protected:
         socket_ = host_->node->get_primary_socket();
         ASSERT_NE(socket_, nullptr);
 
-        sender_.ip.family = net_family_ipv4();
-        sender_.ip.ip.v4.uint32 = net_htonl(0x0a000002);
+        sender_.ip.type = IP_TYPE_V4;
+        sender_.ip.value.v4.uint32 = net_htonl(0x0a000002);
         sender_.port = net_htons(33446);
     }
 
@@ -290,8 +290,8 @@ protected:
             GC_Announce announce{};
             random_bytes(rng(), announce.peer_public_key, ENC_PUBLIC_KEY_SIZE);
             announce.ip_port_is_set = true;
-            announce.ip_port.ip.family = net_family_ipv4();
-            announce.ip_port.ip.ip.v4 = get_ip4_loopback();
+            announce.ip_port.ip.type = IP_TYPE_V4;
+            announce.ip_port.ip.value.v4 = get_ip4_loopback();
             announce.ip_port.port = net_htons(33445);
 
             uint8_t data[GCA_ANNOUNCE_MAX_SIZE];
@@ -378,14 +378,14 @@ TEST(GcGroupLoad, LeavesNoGroupWhenTheSavedStateIsCutShort)
 // survives a pack/unpack round-trip unambiguously.
 void fill_saved_peer(GC_SavedPeerInfo *peer)
 {
-    peer->ip_port.ip.family = net_family_ipv4();
-    peer->ip_port.ip.ip.v4.uint8[0] = 0x7f;
-    peer->ip_port.ip.ip.v4.uint8[3] = 0x01;
+    peer->ip_port.ip.type = IP_TYPE_V4;
+    peer->ip_port.ip.value.v4.uint8[0] = 0x7f;
+    peer->ip_port.ip.value.v4.uint8[3] = 0x01;
     peer->ip_port.port = 0x1234;
 
-    peer->tcp_relay.ip_port.ip.family = net_family_ipv4();
-    peer->tcp_relay.ip_port.ip.ip.v4.uint8[0] = 0x7f;
-    peer->tcp_relay.ip_port.ip.ip.v4.uint8[3] = 0x02;
+    peer->tcp_relay.ip_port.ip.type = IP_TYPE_V4;
+    peer->tcp_relay.ip_port.ip.value.v4.uint8[0] = 0x7f;
+    peer->tcp_relay.ip_port.ip.value.v4.uint8[3] = 0x02;
     peer->tcp_relay.ip_port.port = 0x1234;
     std::memset(peer->tcp_relay.public_key, 0xab, sizeof(peer->tcp_relay.public_key));
 

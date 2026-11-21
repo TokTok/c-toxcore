@@ -683,7 +683,7 @@ bool gcc_conn_should_try_direct(const Mono_Time *mono_time, const GC_Connection 
 
 bool gcc_direct_conn_is_possible(const GC_Chat *chat, const GC_Connection *gconn)
 {
-    return !net_family_is_unspec(gconn->addr.ip_port.ip.family) && !net_family_is_unspec(net_family(chat->net));
+    return gconn->addr.ip_port.ip.type != IP_TYPE_UNSPEC && net_ip_type(chat->net) != IP_TYPE_UNSPEC;
 }
 
 void gcc_mark_for_deletion(GC_Connection *gconn, TCP_Connections *tcp_conn, Group_Exit_Type type,

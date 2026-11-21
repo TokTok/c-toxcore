@@ -14,10 +14,10 @@ namespace {
         {
             IP ip;
             ip_init(&ip, false);
-            ip.ip.v4.uint8[0] = a;
-            ip.ip.v4.uint8[1] = b;
-            ip.ip.v4.uint8[2] = c;
-            ip.ip.v4.uint8[3] = d;
+            ip.value.v4.uint8[0] = a;
+            ip.value.v4.uint8[1] = b;
+            ip.value.v4.uint8[2] = c;
+            ip.value.v4.uint8[3] = d;
             return ip;
         }
     };
@@ -292,7 +292,7 @@ namespace {
         client.set_ip(node_ip);
         IP loopback_ip;
         ip_init(&loopback_ip, false);
-        loopback_ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        loopback_ip.value.v4.uint32 = net_htonl(0x7F000001);
         IP_Port server_loopback_addr{loopback_ip, net_htons(port)};
 
         client.connect(&server_loopback_addr);
@@ -468,7 +468,7 @@ namespace {
         client.set_ip(node_ip);
         IP loopback_ip;
         ip_init(&loopback_ip, false);
-        loopback_ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        loopback_ip.value.v4.uint32 = net_htonl(0x7F000001);
         IP_Port server_loopback_addr{loopback_ip, net_htons(port)};
 
         // Client connects to 127.0.0.1
