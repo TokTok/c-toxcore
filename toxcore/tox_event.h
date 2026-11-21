@@ -263,7 +263,8 @@ void tox_events_handle_conference_message(uint32_t conference_number, uint32_t p
 void tox_events_handle_conference_peer_list_changed(uint32_t conference_number, Tox_Events_State *_Nonnull state);
 void tox_events_handle_conference_peer_name(uint32_t conference_number, uint32_t peer_number, const uint8_t *_Nonnull name, size_t length, Tox_Events_State *_Nonnull state);
 void tox_events_handle_conference_title(uint32_t conference_number, uint32_t peer_number, const uint8_t *_Nonnull title, size_t length, Tox_Events_State *_Nonnull state);
-void tox_events_handle_dht_nodes_response(const uint8_t *_Nonnull public_key, const char *_Nonnull ip, uint32_t ip_length, uint16_t port, Tox_Events_State *_Nonnull state);
+void tox_events_handle_dht_nodes_response(const uint8_t *_Nonnull src_public_key, const char *_Nonnull src_ip, uint32_t src_ip_length, uint16_t src_port, const uint8_t *_Nonnull public_key,
+        const char *_Nonnull ip, uint32_t ip_length, uint16_t port, Tox_Events_State *_Nonnull state);
 void tox_events_handle_file_chunk_request(uint32_t friend_number, uint32_t file_number, uint64_t position, size_t length, Tox_Events_State *_Nonnull state);
 void tox_events_handle_file_recv(uint32_t friend_number, uint32_t file_number, uint32_t kind, uint64_t file_size, const uint8_t *_Nonnull filename, size_t filename_length,
                                  Tox_Events_State *_Nonnull state);
