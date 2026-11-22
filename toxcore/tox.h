@@ -4085,7 +4085,7 @@ uint32_t tox_group_get_group_list_size(const Tox *tox);
  * @deprecated Use tox_group_get_group_list_size instead.
  */
 uint32_t tox_group_get_number_groups(const Tox *tox);
-#endif
+#endif /* TOX_HIDE_DEPRECATED */
 
 /**
  * Copy a list of valid group numbers into the array group_list.
