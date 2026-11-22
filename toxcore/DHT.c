@@ -25,6 +25,7 @@
 #include "shared_key_cache.h"
 #include "sort.h"
 #include "state.h"
+#include "util.h"
 
 /** The timeout after which a node is discarded completely. */
 #define KILL_NODE_TIMEOUT (BAD_NODE_TIMEOUT + PING_INTERVAL)
@@ -2704,7 +2705,44 @@ static bool node_in_list(const Node_format *_Nonnull list, uint32_t length, cons
     return false;
 }
 
+/** Whether the close list or one of the first num_friends friends' lists has the node. */
+static bool node_in_dht_lists(const DHT *_Nonnull dht, uint32_t num_friends, const Node_format *_Nonnull node)
+{
+    if (node_in_client_list(dht->close_clientlist, LCLIENT_LIST, node)) {
+        return true;
+    }
+
+    for (uint32_t i = 0; i < num_friends; ++i) {
+        if (node_in_client_list(dht->friends_list[i].client_list, MAX_FRIEND_CLIENTS, node)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 typedef void dht_gather_cb(const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const IP_Port *_Nonnull ipport, void *_Nullable userdata);
+
+/** Gathers a friend's client, unless the close list or an earlier friend's list already gave it. */
+static uint32_t dht_save_gather_friend_client(const DHT *_Nonnull dht, uint32_t friend_index,
+        const uint8_t public_key[_Nonnull CRYPTO_PUBLIC_KEY_SIZE], const IPPTsPng *_Nonnull assoc,
+        dht_gather_cb *_Nonnull callback, void *_Nullable userdata)
+{
+    if (assoc->timestamp == 0) {
+        return 0;
+    }
+
+    Node_format node;
+    memcpy(node.public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    node.ip_port = assoc->ip_port;
+
+    if (node_in_dht_lists(dht, friend_index, &node)) {
+        return 0;
+    }
+
+    callback(public_key, &assoc->ip_port, userdata);
+    return 1;
+}
 
 /** Calls callback for each entry worth saving */
 static void dht_save_gather(const DHT *_Nonnull dht, dht_gather_cb *_Nonnull callback, void *_Nullable userdata)
@@ -2726,31 +2764,17 @@ static void dht_save_gather(const DHT *_Nonnull dht, dht_gather_cb *_Nonnull cal
         const DHT_Friend *const fr = &dht->friends_list[i];
 
         for (uint32_t j = 0; j < MAX_FRIEND_CLIENTS; ++j) {
-            if (fr->client_list[j].assoc4.timestamp != 0) {
-                callback(fr->client_list[j].public_key, &fr->client_list[j].assoc4.ip_port, userdata);
-                ++entries;
-            }
-            if (fr->client_list[j].assoc6.timestamp != 0) {
-                callback(fr->client_list[j].public_key, &fr->client_list[j].assoc6.ip_port, userdata);
-                ++entries;
-            }
+            const Client_data *const client = &fr->client_list[j];
+            entries += dht_save_gather_friend_client(dht, i, client->public_key, &client->assoc4, callback, userdata);
+            entries += dht_save_gather_friend_client(dht, i, client->public_key, &client->assoc6, callback, userdata);
         }
     }
 
+    const uint32_t num_saved_friends = min_u32(DHT_FAKE_FRIEND_NUMBER, dht->num_friends);
+
     for (uint32_t i = 0; i < dht->loaded_num_nodes && entries < MAX_SAVED_DHT_NODES; ++i) {
         /* check for duplicate */
-        if (node_in_client_list(dht->close_clientlist, LCLIENT_LIST, &dht->loaded_nodes_list[i])) {
-            continue;
-        }
-        bool exists = false;
-        for (uint32_t j = 0; j < DHT_FAKE_FRIEND_NUMBER && j < dht->num_friends; ++j) {
-            const DHT_Friend *const fr = &dht->friends_list[j];
-            if (node_in_client_list(fr->client_list, MAX_FRIEND_CLIENTS, &dht->loaded_nodes_list[i])) {
-                exists = true;
-                break;
-            }
-        }
-        if (exists) {
+        if (node_in_dht_lists(dht, num_saved_friends, &dht->loaded_nodes_list[i])) {
             continue;
         }
 

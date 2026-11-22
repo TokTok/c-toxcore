@@ -57,10 +57,17 @@ static void peer_script(ToxNode *self, void *ctx)
     WAIT_UNTIL(tox_node_is_friend_connected(self, 0));
     tox_node_log(self, "Connected to friend");
 
-    // Reload test
+    // Reload test: a store/load/store cycle gives back savedata of the same size.
+    const size_t save_size1 = tox_get_savedata_size(tox);
+
     tox_node_log(self, "Reloading...");
     tox_node_reload(self);
     tox_node_log(self, "Reloaded");
+    tox = tox_node_get_tox(self);
+
+    const size_t save_size2 = tox_get_savedata_size(tox);
+    ck_assert_msg(save_size1 == save_size2, "Tox save data changed in size from a store/load cycle: %u -> %u",
+                  (unsigned)save_size1, (unsigned)save_size2);
 
     WAIT_UNTIL(tox_node_is_self_connected(self));
     WAIT_UNTIL(tox_node_is_friend_connected(self, 0));
