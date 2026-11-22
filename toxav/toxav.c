@@ -337,6 +337,11 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
         goto RETURN;
     }
 
+    if (tox_get_av_object(tox) != nullptr) {
+        rc = TOXAV_ERR_NEW_MULTIPLE;
+        goto RETURN;
+    }
+
     av = (ToxAV *)calloc(1, sizeof(ToxAV));
 
     if (av == nullptr) {
