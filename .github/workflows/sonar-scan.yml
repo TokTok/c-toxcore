@@ -17,12 +17,12 @@ jobs:
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
           submodules: recursive
       - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v8
       - name: Install dependencies and prepare build
         run: |
           .github/scripts/sonar-prepare
@@ -33,7 +33,7 @@ jobs:
         run: ls -l "${{ env.BUILD_WRAPPER_OUT_DIR }}/compile_commands.json"
       - name: SonarQube Scan
         if: github.event_name == 'push'
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v8
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:

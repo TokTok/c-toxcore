@@ -62,7 +62,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
         with:
           driver: docker
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       # TSan can't run with the high ASLR entropy of newer kernels.
@@ -74,7 +74,7 @@ jobs:
   coverage-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build, test, and upload coverage
@@ -83,7 +83,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Build and test
@@ -98,11 +98,11 @@ jobs:
       VCPKG_ROOT: "C:/vcpkg"
       VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
@@ -119,7 +119,7 @@ jobs:
   build-netbsd:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Test in NetBSD
@@ -155,7 +155,7 @@ jobs:
   build-freebsd:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Test in FreeBSD
@@ -193,11 +193,11 @@ jobs:
   mypy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Set up Python 3.13
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.13
       - name: Install mypy
