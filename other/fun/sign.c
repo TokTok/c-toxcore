@@ -16,6 +16,8 @@
  * NOTE: The signature is appended to the end of the file.
  */
 #include <sodium.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "../../toxcore/ccompat.h"
