@@ -2797,6 +2797,11 @@ static int handle_gc_peer_info_response(const GC_Session *_Nonnull c, GC_Chat *_
         return -6;
     }
 
+    // A confirmed peer that reconnects may have changed its name or status.
+    const bool new_nick = peer->nick_length != peer_info->nick_length
+                          || memcmp(peer->nick, peer_info->nick, peer_info->nick_length) != 0;
+    const bool new_status = peer->status != peer_info->status;
+
     if (peer_update(chat, peer_info, peer_number) == -1) {
         LOGGER_WARNING(chat->log, "peer_update() failed");
         mem_delete(chat->mem, peer_info);
@@ -2807,6 +2812,14 @@ static int handle_gc_peer_info_response(const GC_Session *_Nonnull c, GC_Chat *_
 
     const bool was_confirmed = gconn->confirmed;
     gconn->confirmed = true;
+
+    if (was_confirmed && new_nick && c->nick_change != nullptr) {
+        c->nick_change(c->messenger, chat->group_number, peer->peer_id, peer->nick, peer->nick_length, userdata);
+    }
+
+    if (was_confirmed && new_status && c->status_change != nullptr) {
+        c->status_change(c->messenger, chat->group_number, peer->peer_id, peer->status, userdata);
+    }
 
     update_gc_peer_roles(chat);
 

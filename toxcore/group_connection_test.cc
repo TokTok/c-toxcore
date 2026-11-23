@@ -111,6 +111,18 @@ protected:
         run_until([]() { return false; }, ms);
     }
 
+    void watch_bob()
+    {
+        tox_callback_group_peer_join(alice_.get(), [](Tox *, uint32_t, uint32_t, void *user_data) {
+            ++static_cast<GroupLossless *>(user_data)->bob_joins_;
+        });
+        tox_callback_group_peer_name(alice_.get(),
+            [](Tox *, uint32_t, uint32_t, const uint8_t *name, size_t length, void *user_data) {
+                static_cast<GroupLossless *>(user_data)->bob_name_.assign(
+                    reinterpret_cast<const char *>(name), length);
+            });
+    }
+
     std::function<bool(const tox::test::Packet &)> drop_;
 
     tox::test::Simulation sim_{12345};
@@ -121,6 +133,9 @@ protected:
     uint32_t alice_group_ = 0;
     uint32_t bob_group_ = 0;
     bool joined_ = false;
+    // Bob as Alice's client sees him.
+    std::string bob_name_ = "bob";
+    int bob_joins_ = 0;
 };
 
 // Bob gets the second message first and keeps it until the first comes. His
@@ -154,6 +169,36 @@ TEST_F(GroupLossless, AcknowledgesAMessageHeldForAnEarlierOne)
 
     EXPECT_TRUE(lost_first);
     EXPECT_EQ(sends_of_second, 1);
+}
+
+// Bob's client restarts with a new name before Alice times him out, so only
+// his peer info carries it.
+TEST_F(GroupLossless, ReportsANameChangedWhileAway)
+{
+    watch_bob();
+
+    // Alice must not hear him leave.
+    drop_ = [&](const tox::test::Packet &p) { return ip_equal(&p.to.ip, &alice_node_->ip); };
+    ASSERT_TRUE(tox_group_disconnect(bob_.get(), bob_group_, nullptr));
+    const uint8_t new_name[] = "bobby";
+    Tox_Err_Group_Self_Name_Set err;
+    tox_group_self_set_name(bob_.get(), bob_group_, new_name, sizeof(new_name) - 1, &err);
+    ASSERT_TRUE(
+        err == TOX_ERR_GROUP_SELF_NAME_SET_OK || err == TOX_ERR_GROUP_SELF_NAME_SET_FAIL_SEND);
+    run_for(1000);
+
+    drop_ = nullptr;
+    // Joining a group we're already in reconnects to it (the name is ignored).
+    uint8_t chat_id[TOX_GROUP_CHAT_ID_SIZE];
+    ASSERT_TRUE(tox_group_get_chat_id(bob_.get(), bob_group_, chat_id, nullptr));
+    Tox_Err_Group_Join join_err;
+    tox_group_join(bob_.get(), chat_id, new_name, sizeof(new_name) - 1, nullptr, 0, &join_err);
+    ASSERT_EQ(join_err, TOX_ERR_GROUP_JOIN_OK);
+    run_until([&]() { return bob_name_ == "bobby"; }, 30000);
+
+    EXPECT_EQ(bob_name_, "bobby");
+    // Alice still had him as a member.
+    EXPECT_EQ(bob_joins_, 0);
 }
 
 class GroupConnection : public ::testing::Test {
