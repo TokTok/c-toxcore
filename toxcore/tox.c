@@ -250,15 +250,20 @@ static void tox_conference_peer_list_changed_handler(Messenger *m, uint32_t conf
 }
 
 static dht_nodes_response_cb tox_dht_nodes_response_handler;
-static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *node, void *user_data)
+static void tox_dht_nodes_response_handler(const DHT *dht, const Node_format *_Nonnull src_node,
+        const Node_format *node, void *user_data)
 {
     struct Tox_Userdata *tox_data = (struct Tox_Userdata *)user_data;
+
+    Ip_Ntoa src_ip_str;
+    net_ip_ntoa(&src_node->ip_port.ip, &src_ip_str);
 
     Ip_Ntoa ip_str;
     net_ip_ntoa(&node->ip_port.ip, &ip_str);
 
-    tox_events_handle_dht_nodes_response(node->public_key, ip_str.buf, ip_str.length,
-                                         net_ntohs(node->ip_port.port), tox_data->state);
+    tox_events_handle_dht_nodes_response(src_node->public_key, src_ip_str.buf, src_ip_str.length,
+                                         net_ntohs(src_node->ip_port.port), node->public_key, ip_str.buf,
+                                         ip_str.length, net_ntohs(node->ip_port.port), tox_data->state);
 }
 
 static m_friend_lossy_packet_cb tox_friend_lossy_packet_handler;
