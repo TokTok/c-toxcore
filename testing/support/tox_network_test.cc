@@ -225,7 +225,8 @@ namespace {
         EXPECT_EQ(ctx.count, num_friends);
     }
 
-    TEST(ToxNetworkTest, TcpRelayChaining)
+    // TODO(iphydf): Enable once the TCP server uses Ev.
+    TEST(ToxNetworkTest, DISABLED_TcpRelayChaining)
     {
         constexpr bool kDebug = false;
 

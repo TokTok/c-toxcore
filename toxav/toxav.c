@@ -680,6 +680,8 @@ bool toxav_answer(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit
     call->previous_self_capabilities |= video_bit_rate > 0 ? MSI_CAP_S_VIDEO : 0;
 
     if (msi_answer(av->log, call->msi_call, call->previous_self_capabilities) != 0) {
+        // Still ringing: answering again prepares it again.
+        call_kill_transmission(call);
         rc = TOXAV_ERR_ANSWER_SYNC;
     }
 
@@ -772,7 +774,7 @@ static Toxav_Err_Call_Control call_control_handle_mute_audio(const ToxAVCall *_N
 }
 static Toxav_Err_Call_Control call_control_handle_unmute_audio(const ToxAVCall *_Nonnull call)
 {
-    if ((call->msi_call->self_capabilities ^ MSI_CAP_R_AUDIO) == 0) {
+    if ((call->msi_call->self_capabilities & MSI_CAP_R_AUDIO) != 0) {
         return TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
     }
 
@@ -800,7 +802,7 @@ static Toxav_Err_Call_Control call_control_handle_hide_video(const ToxAVCall *_N
 }
 static Toxav_Err_Call_Control call_control_handle_show_video(const ToxAVCall *_Nonnull call)
 {
-    if ((call->msi_call->self_capabilities ^ MSI_CAP_R_VIDEO) == 0) {
+    if ((call->msi_call->self_capabilities & MSI_CAP_R_VIDEO) != 0) {
         return TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION;
     }
 
@@ -1727,6 +1729,7 @@ static void call_kill_transmission(ToxAVCall *call)
     pthread_mutex_unlock(call->toxav_call_mutex);
 
     bwc_kill(call->bwc);
+    call->bwc = nullptr;
 
     const ToxAV *av = call->av;
 

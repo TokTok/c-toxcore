@@ -253,7 +253,7 @@ typedef enum Toxav_Err_Call {
     TOXAV_ERR_CALL_MALLOC,
 
     /**
-     * Synchronization error occurred.
+     * The call couldn't be made or sent now. Try again later.
      */
     TOXAV_ERR_CALL_SYNC,
 
@@ -320,7 +320,7 @@ typedef enum Toxav_Err_Answer {
     TOXAV_ERR_ANSWER_OK,
 
     /**
-     * Synchronization error occurred.
+     * The answer couldn't be made or sent now. Try again later.
      */
     TOXAV_ERR_ANSWER_SYNC,
 
@@ -493,7 +493,7 @@ typedef enum Toxav_Err_Call_Control {
     TOXAV_ERR_CALL_CONTROL_OK,
 
     /**
-     * Synchronization error occurred.
+     * The change couldn't be made or sent now. Try again later.
      */
     TOXAV_ERR_CALL_CONTROL_SYNC,
 

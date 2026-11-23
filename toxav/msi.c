@@ -177,23 +177,30 @@ int msi_invite(const Logger *log, MSISession *session, MSICall **call, uint32_t 
         return -1;
     }
 
-    MSICall *temp = new_call(session, friend_number);
-
-    if (temp == nullptr) {
-        pthread_mutex_unlock(session->mutex);
-        return -1;
-    }
-
-    temp->self_capabilities = capabilities;
-
     MSIMessage msg;
     msg_init(&msg, REQU_INIT);
 
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, session, temp->friend_number, &msg);
+    // Nothing resends it, so a call the friend won't hear of is no call.
+    if (send_message(log, session, friend_number, &msg) != 0) {
+        LOGGER_WARNING(log, "Failed to send the invite to friend %u", friend_number);
+        pthread_mutex_unlock(session->mutex);
+        return -1;
+    }
 
+    MSICall *temp = new_call(session, friend_number);
+
+    if (temp == nullptr) {
+        // The friend stops ringing.
+        msg_init(&msg, REQU_POP);
+        send_message(log, session, friend_number, &msg);
+        pthread_mutex_unlock(session->mutex);
+        return -1;
+    }
+
+    temp->self_capabilities = capabilities;
     temp->state = MSI_CALL_REQUESTING;
 
     *call = temp;
@@ -228,7 +235,12 @@ int msi_hangup(const Logger *log, MSICall *call)
     MSIMessage msg;
     msg_init(&msg, REQU_POP);
 
-    send_message(log, session, call->friend_number, &msg);
+    // Nothing resends it, so a call the friend won't hear ended goes on.
+    if (send_message(log, session, call->friend_number, &msg) != 0) {
+        LOGGER_WARNING(log, "Failed to send the hangup to friend %u", call->friend_number);
+        pthread_mutex_unlock(session->mutex);
+        return -1;
+    }
 
     kill_call(log, call);
     pthread_mutex_unlock(session->mutex);
@@ -259,16 +271,20 @@ int msi_answer(const Logger *log, MSICall *call, uint8_t capabilities)
         return -1;
     }
 
-    call->self_capabilities = capabilities;
-
     MSIMessage msg;
     msg_init(&msg, REQU_PUSH);
 
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, session, call->friend_number, &msg);
+    // Nothing resends it, so a call the friend won't hear answered still rings.
+    if (send_message(log, session, call->friend_number, &msg) != 0) {
+        LOGGER_WARNING(log, "Failed to send the answer to friend %u", call->friend_number);
+        pthread_mutex_unlock(session->mutex);
+        return -1;
+    }
 
+    call->self_capabilities = capabilities;
     call->state = MSI_CALL_ACTIVE;
     pthread_mutex_unlock(session->mutex);
 
@@ -297,15 +313,20 @@ int msi_change_capabilities(const Logger *log, MSICall *call, uint8_t capabiliti
         return -1;
     }
 
-    call->self_capabilities = capabilities;
-
     MSIMessage msg;
     msg_init(&msg, REQU_PUSH);
 
     msg.capabilities.exists = true;
     msg.capabilities.value = capabilities;
 
-    send_message(log, session, call->friend_number, &msg);
+    // Nothing resends it, so one the friend won't hear of is no change.
+    if (send_message(log, session, call->friend_number, &msg) != 0) {
+        LOGGER_WARNING(log, "Failed to send capabilities to friend %u", call->friend_number);
+        pthread_mutex_unlock(session->mutex);
+        return -1;
+    }
+
+    call->self_capabilities = capabilities;
 
     pthread_mutex_unlock(session->mutex);
     return 0;

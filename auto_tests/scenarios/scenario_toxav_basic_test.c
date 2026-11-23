@@ -160,13 +160,19 @@ static void bob_script(ToxNode *self, void *ctx)
     toxav_answer(av, 0, 48, 4000, &answer_err);
     ck_assert(answer_err == TOXAV_ERR_ANSWER_OK);
 
+    // Bob gets audio and video already.
+    Toxav_Err_Call_Control cc_err;
+    toxav_call_control(av, 0, TOXAV_CALL_CONTROL_UNMUTE_AUDIO, &cc_err);
+    ck_assert(cc_err == TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION);
+    toxav_call_control(av, 0, TOXAV_CALL_CONTROL_SHOW_VIDEO, &cc_err);
+    ck_assert(cc_err == TOXAV_ERR_CALL_CONTROL_INVALID_TRANSITION);
+
     // Wait a bit and hang up
     for (int i = 0; i < 10; i++) {
         toxav_iterate(av);
         tox_scenario_yield(self);
     }
     tox_node_log(self, "Bob: Hanging up...");
-    Toxav_Err_Call_Control cc_err;
     toxav_call_control(av, 0, TOXAV_CALL_CONTROL_CANCEL, &cc_err);
     ck_assert(cc_err == TOXAV_ERR_CALL_CONTROL_OK);
 

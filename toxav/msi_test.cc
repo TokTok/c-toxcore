@@ -31,11 +31,16 @@ struct MockMsi {
 
     MSICall *_Nullable last_call = nullptr;
     MSIError last_error = MSI_E_NONE;
+    // Like toxcore with its send queue full.
+    bool refuse_sends = false;
 
     static int send_packet(void *_Nullable user_data, std::uint32_t friend_number,
         const std::uint8_t *_Nonnull data, std::size_t length)
     {
         auto *self = static_cast<MockMsi *>(user_data);
+        if (self->refuse_sends) {
+            return -1;
+        }
         self->sent_packets.emplace_back(data, data + length);
         self->sent_to_friends.push_back(friend_number);
         return 0;
@@ -147,6 +152,18 @@ TEST_F(MsiTest, Invite)
     EXPECT_EQ(pkt.back(), 0);
 }
 
+TEST_F(MsiTest, InviteUnsent)
+{
+    MSICall *call = nullptr;
+
+    // The friend would never ring, so there's no call.
+    mock.refuse_sends = true;
+    EXPECT_EQ(msi_invite(log, session, &call, 123, MSI_CAP_S_AUDIO), -1);
+
+    mock.refuse_sends = false;
+    EXPECT_EQ(msi_invite(log, session, &call, 123, MSI_CAP_S_AUDIO), 0);
+}
+
 TEST_F(MsiTest, HandleIncomingInvite)
 {
     std::uint32_t friend_number = 456;
@@ -191,6 +208,22 @@ TEST_F(MsiTest, Answer)
     EXPECT_EQ(pkt[2], 1);  // REQU_PUSH
 }
 
+TEST_F(MsiTest, AnswerUnsent)
+{
+    std::uint32_t friend_number = 456;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, MSI_CAP_S_AUDIO, 0};
+    msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
+    MSICall *call = mock.last_call;
+
+    // The friend would never know, so it still rings.
+    mock.refuse_sends = true;
+    EXPECT_EQ(msi_answer(log, call, MSI_CAP_S_AUDIO), -1);
+    EXPECT_EQ(call->state, MSI_CALL_REQUESTED);
+
+    mock.refuse_sends = false;
+    EXPECT_EQ(msi_answer(log, call, MSI_CAP_S_AUDIO), 0);
+}
+
 TEST_F(MsiTest, Hangup)
 {
     MSICall *call = nullptr;
@@ -204,6 +237,23 @@ TEST_F(MsiTest, Hangup)
     const auto &pkt = mock.sent_packets[0];
     // REQU_POP (2)
     EXPECT_EQ(pkt[2], 2);
+}
+
+TEST_F(MsiTest, HangupUnsent)
+{
+    MSICall *call = nullptr;
+    msi_invite(log, session, &call, 123, 0);
+
+    // The friend would never know, so the call goes on.
+    mock.refuse_sends = true;
+    EXPECT_EQ(msi_hangup(log, call), -1);
+    EXPECT_EQ(call->state, MSI_CALL_REQUESTING);
+
+    mock.refuse_sends = false;
+    mock.sent_packets.clear();
+    EXPECT_EQ(msi_hangup(log, call), 0);
+    ASSERT_EQ(mock.sent_packets.size(), 1u);
+    EXPECT_EQ(mock.sent_packets[0][2], 2);  // REQU_POP
 }
 
 TEST_F(MsiTest, ChangeCapabilities)
@@ -224,6 +274,20 @@ TEST_F(MsiTest, ChangeCapabilities)
     ASSERT_EQ(mock.sent_packets.size(), 1u);
     EXPECT_EQ(mock.sent_packets[0][2], 1);  // REQU_PUSH
     EXPECT_EQ(mock.sent_packets[0][5], new_caps);
+}
+
+TEST_F(MsiTest, ChangeCapabilitiesUnsent)
+{
+    std::uint32_t friend_number = 123;
+    std::uint8_t invite_pkt[] = {1, 1, 0, 3, 1, 0, 0};
+    msi_handle_packet(session, log, friend_number, invite_pkt, sizeof(invite_pkt));
+    MSICall *call = mock.last_call;
+    msi_answer(log, call, MSI_CAP_R_AUDIO);
+
+    // The friend would never know, so it's no change.
+    mock.refuse_sends = true;
+    EXPECT_EQ(msi_change_capabilities(log, call, MSI_CAP_S_VIDEO), -1);
+    EXPECT_EQ(call->self_capabilities, MSI_CAP_R_AUDIO);
 }
 
 TEST_F(MsiTest, PeerTimeout)
