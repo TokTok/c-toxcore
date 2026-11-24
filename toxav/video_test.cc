@@ -143,6 +143,62 @@ TEST_F(VideoTest, EncodeDecodeSequence)
     vc_kill(vc);
 }
 
+TEST_F(VideoTest, EncodeDecodeOddSize)
+{
+    VideoTestData data;
+    VCSession *vc = vc_new(mem, log, mono_time, 123, VideoTestData::receive_frame, &data);
+    ASSERT_NE(vc, nullptr);
+
+    RtpMock rtp_mock;
+    RTPSession *send_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    RTPSession *recv_rtp = rtp_new(log, RTP_TYPE_VIDEO, mono_time, RtpMock::send_packet, &rtp_mock,
+        nullptr, nullptr, nullptr, vc, RtpMock::video_cb);
+    rtp_mock.recv_session = recv_rtp;
+
+    const std::uint16_t width = 161;
+    const std::uint16_t height = 121;
+    const std::uint16_t chroma_width = width / 2;
+    const std::uint16_t chroma_height = height / 2;
+
+    ASSERT_EQ(vc_reconfigure_encoder(vc, 2000, width, height, -1), 0);
+
+    // Draw vertical stripes so that a slanted picture doesn't match.
+    std::vector<std::uint8_t> y(static_cast<std::size_t>(width) * height);
+    std::vector<std::uint8_t> u(static_cast<std::size_t>(chroma_width) * chroma_height);
+    std::vector<std::uint8_t> v(u.size(), 128);
+
+    for (std::size_t i = 0; i < y.size(); ++i) {
+        y[i] = (i % width) / 16 % 2 == 0 ? 50 : 200;
+    }
+
+    for (std::size_t i = 0; i < u.size(); ++i) {
+        u[i] = (i % chroma_width) / 8 % 2 == 0 ? 80 : 180;
+    }
+
+    ASSERT_EQ(vc_encode(vc, width, height, y.data(), u.data(), v.data(), VC_EFLAG_FORCE_KF), 0);
+    vc_increment_frame_counter(vc);
+
+    std::uint8_t *pkt_data;
+    std::uint32_t pkt_size;
+    bool is_keyframe;
+
+    while (vc_get_cx_data(vc, &pkt_data, &pkt_size, &is_keyframe)) {
+        ASSERT_EQ(rtp_send_data(log, send_rtp, pkt_data, pkt_size, is_keyframe), 0);
+    }
+
+    vc_iterate(vc);
+
+    ASSERT_EQ(data.width, width);
+    ASSERT_EQ(data.height, height);
+    EXPECT_LT(data.calculate_mse(y), 100.0);
+    EXPECT_LT(calculate_video_mse(chroma_width, chroma_height, data.ustride, data.u, u), 100.0);
+
+    rtp_kill(log, send_rtp);
+    rtp_kill(log, recv_rtp);
+    vc_kill(vc);
+}
+
 TEST_F(VideoTest, EncodeDecodeResolutionChange)
 {
     VideoTestData data;
