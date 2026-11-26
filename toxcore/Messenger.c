@@ -3423,8 +3423,27 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
     m->announce = nullptr;
     m->tcp_server = nullptr;
 
+    // Copy options by value.
+    m->options = *options;
+    // Make our own copy of Tox_Option's owned arrays/strings that must outlive
+    // this function call.
+    m->options.proxy_info.socks5_username = memdup(m->mem, options->proxy_info.socks5_username, options->proxy_info.socks5_username_length);
+    m->options.proxy_info.socks5_password = memdup(m->mem, options->proxy_info.socks5_password, options->proxy_info.socks5_password_length);
+    if ((options->proxy_info.socks5_username != nullptr && m->options.proxy_info.socks5_username == nullptr)
+            || (options->proxy_info.socks5_password != nullptr && m->options.proxy_info.socks5_password == nullptr)) {
+        LOGGER_WARNING(m->log, "failed to copy SOCKS5 proxy username or password");
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
+        mem_delete(mem, m);
+        return nullptr;
+    }
+    // The same options, but with arrays/strings now being owned by us.
+    options = &m->options;
+
     Friend_Requests *fr = friendreq_new(mem);
     if (fr == nullptr) {
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3455,6 +3474,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
             *error = MESSENGER_ERROR_PORT;
         }
 
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3464,6 +3485,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
     if (dht == nullptr) {
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3475,13 +3498,14 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
     m->tcp_np = tcp_np;
 
     Net_Crypto *net_crypto = new_net_crypto(m->log, m->mem, m->rng, m->ns, m->mono_time, m->net, m->dht, &m_dht_funcs, &options->proxy_info, m->tcp_np);
-
     if (net_crypto == nullptr) {
         LOGGER_WARNING(m->log, "net_crypto initialisation failed");
 
@@ -3489,6 +3513,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3503,6 +3529,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3540,6 +3568,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3566,6 +3596,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         kill_dht(m->dht);
         kill_networking(m->net);
         friendreq_kill(m->fr);
+        mem_delete(mem, m->options.proxy_info.socks5_username);
+        mem_delete(mem, m->options.proxy_info.socks5_password);
         mem_delete(mem, m);
         return nullptr;
     }
@@ -3592,6 +3624,8 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
             kill_dht(m->dht);
             kill_networking(m->net);
             friendreq_kill(m->fr);
+            mem_delete(mem, m->options.proxy_info.socks5_username);
+            mem_delete(mem, m->options.proxy_info.socks5_password);
             mem_delete(mem, m);
 
             if (error != nullptr) {
@@ -3602,7 +3636,6 @@ Messenger *new_messenger(Mono_Time *mono_time, const Memory *mem, const Memory *
         }
     }
 
-    m->options = *options;
     friendreq_init(m->fr, m->fr_c);
     set_nospam(m->fr, random_u32(m->rng));
     set_filter_function(m->fr, &friend_already_added, m);
@@ -3655,6 +3688,8 @@ void kill_messenger(Messenger *m)
     friendreq_kill(m->fr);
 
     mem_delete(m->mem, m->options.state_plugins);
+    mem_delete(m->mem, m->options.proxy_info.socks5_username);
+    mem_delete(m->mem, m->options.proxy_info.socks5_password);
     mem_delete(m->mem, m);
 }
 
