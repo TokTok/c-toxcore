@@ -26,6 +26,7 @@
 #include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
 
+static_assert(MSI_PACKET_ID == PACKET_ID_MSI, "ToxAV and toxcore disagree on the MSI packet ID");
 static_assert(RTP_MAX_PACKET_SIZE == TOX_MAX_CUSTOM_PACKET_SIZE, "ToxAV and toxcore disagree on the packet size");
 
 #define VIDEO_SEND_X_KEYFRAMES_FIRST 7 // force the first n frames to be keyframes!
@@ -34,6 +35,16 @@ static_assert(RTP_MAX_PACKET_SIZE == TOX_MAX_CUSTOM_PACKET_SIZE, "ToxAV and toxc
 #define IDLE_ITERATION_INTERVAL_MS 1000
 
 typedef struct ToxAVCall ToxAVCall;
+
+/**
+ * Sends a packet to a friend.
+ *
+ * @param data The packet, starting with its packet ID.
+ *
+ * @return true if the packet was sent.
+ */
+typedef bool toxav_send_packet_cb(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
+                                  void *_Nonnull user_data);
 
 static ToxAVCall *_Nullable call_get(ToxAV *_Nonnull av, uint32_t friend_number);
 static RTPSession *_Nullable rtp_session_get(ToxAVCall *_Nullable call, int payload_type);
@@ -93,6 +104,11 @@ struct ToxAV {
     Tox *_Nonnull tox;
     MSISession *_Nonnull msi;
 
+    /* How ToxAV reaches friends: through its Tox instance. */
+    toxav_send_packet_cb *_Nonnull send_lossy;
+    toxav_send_packet_cb *_Nonnull send_lossless;
+    void *_Nonnull network_user_data;
+
     ToxAVCall *_Nullable calls;
     pthread_mutex_t *_Nonnull mutex;
 
@@ -124,17 +140,33 @@ struct ToxAV {
 
 static void callback_bwc(BWController *_Nonnull bwc, Tox_Friend_Number friend_number, float loss, void *_Nonnull user_data);
 
-static int msi_send_packet(void *_Nonnull user_data, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length)
+static bool legacy_send_lossy(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
+                              void *_Nonnull user_data)
 {
     Tox *tox = (Tox *)user_data;
+    Tox_Err_Friend_Custom_Packet error;
+    tox_friend_send_lossy_packet(tox, friend_number, data, length, &error);
+    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK;
+}
+
+static bool legacy_send_lossless(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
+                                 void *_Nonnull user_data)
+{
+    Tox *tox = (Tox *)user_data;
+    Tox_Err_Friend_Custom_Packet error;
+    tox_friend_send_lossless_packet(tox, friend_number, data, length, &error);
+    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK;
+}
+
+static int msi_send_packet(void *_Nonnull user_data, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length)
+{
+    ToxAV *av = (ToxAV *)user_data;
     const size_t length_new = length + 1;
     VLA(uint8_t, data_new, length_new);
-    data_new[0] = PACKET_ID_MSI;
+    data_new[0] = MSI_PACKET_ID;
     memcpy(data_new + 1, data, length);
 
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossless_packet(tox, friend_number, data_new, length_new, &error);
-    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK ? 0 : -1;
+    return av->send_lossless(av, friend_number, data_new, length_new, av->network_user_data) ? 0 : -1;
 }
 
 static void handle_msi_packet(Tox *_Nonnull tox, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length,
@@ -156,10 +188,9 @@ static void handle_msi_packet(Tox *_Nonnull tox, uint32_t friend_number, const u
 
 static int rtp_send_packet(void *_Nonnull user_data, const uint8_t *_Nonnull data, uint16_t length)
 {
-    ToxAVCall *call = (ToxAVCall *)user_data;
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossy_packet(call->av->tox, call->friend_number, data, length, &error);
-    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK ? 0 : -1;
+    const ToxAVCall *call = (const ToxAVCall *)user_data;
+    ToxAV *av = call->av;
+    return av->send_lossy(av, call->friend_number, data, length, av->network_user_data) ? 0 : -1;
 }
 
 static void rtp_add_recv(void *_Nullable user_data, uint32_t bytes)
@@ -361,8 +392,11 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
     av->mem = tox->sys.mem;
     av->log = tox->m->log;
     av->tox = tox;
+    av->send_lossy = legacy_send_lossy;
+    av->send_lossless = legacy_send_lossless;
+    av->network_user_data = tox;
 
-    av->msi = msi_new(av->log, msi_send_packet, av->tox, &callbacks, av);
+    av->msi = msi_new(av->log, msi_send_packet, av, &callbacks, av);
 
     tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_AUDIO);
     tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_VIDEO);
