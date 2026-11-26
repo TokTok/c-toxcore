@@ -173,18 +173,8 @@ typedef int tcp_oob_cb(void *_Nonnull object, const uint8_t *_Nonnull public_key
 /** @brief Set the callback for TCP oob data packets. */
 void set_oob_packet_tcp_connection_callback(TCP_Connections *_Nonnull tcp_c, tcp_oob_cb *_Nonnull tcp_oob_callback, void *_Nonnull object);
 
-/** @brief Encode tcp_connections_number as a custom ip_port.
- *
- * return ip_port.
- */
-IP_Port tcp_connections_number_to_ip_port(unsigned int tcp_connections_number);
-
-/** @brief Decode ip_port created by tcp_connections_number_to_ip_port to tcp_connections_number.
- *
- * return true on success.
- * return false if ip_port is invalid.
- */
-bool ip_port_to_tcp_connections_number(const IP_Port *_Nonnull ip_port, unsigned int *_Nonnull tcp_connections_number);
+/** @brief The destination for packets that go through our TCP connection `tcp_connections_number`. */
+Destination tcp_connections_number_to_destination(unsigned int tcp_connections_number);
 
 /** @brief Create a new TCP connection to public_key.
  *
@@ -248,7 +238,7 @@ int add_tcp_relay_global(TCP_Connections *_Nonnull tcp_c, const IP_Port *_Nonnul
 
 /** @brief Copy a maximum of max_num TCP relays we are connected to to tcp_relays.
  *
- * NOTE that the family of the copied ip ports will be set to TCP_INET or TCP_INET6.
+ * NOTE that the copied relays have `TRANSPORT_TCP` as their transport.
  *
  * return number of relays copied to tcp_relays on success.
  * return 0 on failure.

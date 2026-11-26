@@ -175,9 +175,9 @@ protected:
         auto &ann1 = announces_.back();
 
         ann1.peer_public_key[0] = 0xae;
-        ann1.ip_port.ip.family = net_family_ipv4();
-        ann1.ip_port.ip.ip.v4.uint8[0] = 0x7f;  // 127.0.0.1
-        ann1.ip_port.ip.ip.v4.uint8[3] = 0x1;
+        ann1.ip_port.ip.type = IP_TYPE_V4;
+        ann1.ip_port.ip.value.v4.uint8[0] = 0x7f;  // 127.0.0.1
+        ann1.ip_port.ip.value.v4.uint8[3] = 0x1;
         ann1.ip_port_is_set = 1;
 
         // Add an announce with TCP relay.
@@ -185,13 +185,13 @@ protected:
         auto &ann2 = announces_.back();
 
         ann2.peer_public_key[0] = 0xaf;  // different key
-        ann2.ip_port.ip.family = net_family_ipv4();
-        ann2.ip_port.ip.ip.v4.uint8[0] = 0x7f;  // 127.0.0.2
-        ann2.ip_port.ip.ip.v4.uint8[3] = 0x2;
+        ann2.ip_port.ip.type = IP_TYPE_V4;
+        ann2.ip_port.ip.value.v4.uint8[0] = 0x7f;  // 127.0.0.2
+        ann2.ip_port.ip.value.v4.uint8[3] = 0x2;
         ann2.ip_port_is_set = 1;
         ann2.tcp_relays_count = 1;
-        ann2.tcp_relays[0].ip_port.ip.family = net_family_ipv4();
-        ann2.tcp_relays[0].ip_port.ip.ip.v4 = get_ip4_broadcast();
+        ann2.tcp_relays[0].ip_port.ip.type = IP_TYPE_V4;
+        ann2.tcp_relays[0].ip_port.ip.value.v4 = get_ip4_broadcast();
         ann2.tcp_relays[0].public_key[0] = 0xea;
     }
 

@@ -69,10 +69,10 @@ TEST_F(TCPClientTest, ConnectsToRelay)
 
     // 1. Setup Server Socket
     Socket server_sock
-        = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+        = net_socket(&server_node->c_network, IP_TYPE_V4, TOX_SOCK_STREAM, TOX_PROTO_TCP);
     ASSERT_TRUE(sock_valid(server_sock));
     ASSERT_TRUE(set_socket_nonblock(&server_node->c_network, server_sock));
-    ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, net_family_ipv4(), 33445));
+    ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, IP_TYPE_V4, 33445));
     ASSERT_EQ(0, net_listen(&server_node->c_network, server_sock, 5));
 
     // Server Keys
@@ -118,7 +118,7 @@ TEST_F(TCPClientTest, ConnectsToRelay)
         // Server handles handshake
         if (sock_valid(accepted_sock)) {
             std::uint8_t buf[TCP_CLIENT_HANDSHAKE_SIZE];
-            IP_Port remote = {{{0}}};
+            IP_Port remote = {{IP_TYPE_UNSPEC}};
             int len = net_recv(
                 &server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
 
@@ -212,10 +212,10 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
     Mono_Time *client_time = create_mono_time(&client_node->c_memory);
 
     Socket server_sock
-        = net_socket(&server_node->c_network, net_family_ipv4(), TOX_SOCK_STREAM, TOX_PROTO_TCP);
+        = net_socket(&server_node->c_network, IP_TYPE_V4, TOX_SOCK_STREAM, TOX_PROTO_TCP);
     ASSERT_TRUE(sock_valid(server_sock));
     ASSERT_TRUE(set_socket_nonblock(&server_node->c_network, server_sock));
-    ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, net_family_ipv4(), 33446));
+    ASSERT_TRUE(bind_to_port(&server_node->c_network, server_sock, IP_TYPE_V4, 33446));
     ASSERT_EQ(0, net_listen(&server_node->c_network, server_sock, 5));
 
     std::uint8_t server_pk[CRYPTO_PUBLIC_KEY_SIZE];
@@ -255,7 +255,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
             packet.data() + sizeof(std::uint16_t));
         increment_nonce(sent_nonce);
 
-        IP_Port remote = {{{0}}};
+        IP_Port remote = {{IP_TYPE_UNSPEC}};
         net_send(&server_node->c_network, server_log, accepted_sock, packet.data(), packet_size,
             &remote, nullptr);
     };
@@ -273,7 +273,7 @@ TEST_F(TCPClientTest, SendDataIntegerOverflow)
 
         if (sock_valid(accepted_sock) && !connected) {
             std::uint8_t buf[TCP_CLIENT_HANDSHAKE_SIZE];
-            IP_Port remote = {{{0}}};
+            IP_Port remote = {{IP_TYPE_UNSPEC}};
             int len = net_recv(
                 &server_node->c_network, server_log, accepted_sock, buf, sizeof(buf), &remote);
 

@@ -23,7 +23,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(8080);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
@@ -56,7 +56,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(8081);
 
         server.bind(&server_addr);
@@ -86,7 +86,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(8082);
 
         server.bind(&server_addr);
@@ -138,7 +138,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(9000);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
@@ -163,7 +163,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(9001);
 
         server.bind(&server_addr);
@@ -197,7 +197,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(9002);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
@@ -233,7 +233,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(8082);
 
         ASSERT_EQ(server.bind(&server_addr), 0);
@@ -267,7 +267,7 @@ namespace {
     {
         IP_Port server_addr;
         ip_init(&server_addr.ip, false);
-        server_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        server_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         server_addr.port = net_htons(8083);
 
         server.bind(&server_addr);

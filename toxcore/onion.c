@@ -47,40 +47,45 @@ static void change_symmetric_key(Onion *_Nonnull onion)
     }
 }
 
+/** The family byte of a client of our TCP server in the data a response comes back with. */
+#define TCP_CLIENT_FAMILY (TOX_AF_INET6 + 1)
+
 /** packing and unpacking functions */
 static void ip_pack_to_bytes(uint8_t *_Nonnull data, const IP *_Nonnull source)
 {
-    data[0] = source->family.value;
+    memzero(data + 1, SIZE_IP6);
 
-    if (net_family_is_ipv4(source->family) || net_family_is_tox_tcp_ipv4(source->family)) {
-        memzero(data + 1, SIZE_IP6);
-        memcpy(data + 1, source->ip.v4.uint8, SIZE_IP4);
+    if (source->type == IP_TYPE_V4) {
+        data[0] = TOX_AF_INET;
+        memcpy(data + 1, source->value.v4.uint8, SIZE_IP4);
+    } else if (source->type == IP_TYPE_V6) {
+        data[0] = TOX_AF_INET6;
+        memcpy(data + 1, source->value.v6.uint8, SIZE_IP6);
     } else {
-        memcpy(data + 1, source->ip.v6.uint8, SIZE_IP6);
+        data[0] = TOX_AF_UNSPEC;
     }
 }
 
 /** return 0 on success, -1 on failure. */
-static int ip_unpack_from_bytes(IP *_Nonnull target, const uint8_t *_Nonnull data, unsigned int data_size, bool disable_family_check)
+static int ip_unpack_from_bytes(IP *_Nonnull target, const uint8_t *_Nonnull data, unsigned int data_size)
 {
     if (data_size < (1 + SIZE_IP6)) {
         return -1;
     }
 
-    // TODO(iphydf): Validate input.
-    target->family.value = data[0];
-
-    if (net_family_is_ipv4(target->family) || net_family_is_tox_tcp_ipv4(target->family)) {
-        memcpy(target->ip.v4.uint8, data + 1, SIZE_IP4);
-    } else {
-        memcpy(target->ip.v6.uint8, data + 1, SIZE_IP6);
+    if (data[0] == TOX_AF_INET) {
+        target->type = IP_TYPE_V4;
+        memcpy(target->value.v4.uint8, data + 1, SIZE_IP4);
+        return 0;
     }
 
-    const bool valid = disable_family_check ||
-                       net_family_is_ipv4(target->family) ||
-                       net_family_is_ipv6(target->family);
+    if (data[0] == TOX_AF_INET6) {
+        target->type = IP_TYPE_V6;
+        memcpy(target->value.v6.uint8, data + 1, SIZE_IP6);
+        return 0;
+    }
 
-    return valid ? 0 : -1;
+    return -1;
 }
 
 static void ipport_pack(uint8_t *_Nonnull data, const IP_Port *_Nonnull source)
@@ -90,18 +95,56 @@ static void ipport_pack(uint8_t *_Nonnull data, const IP_Port *_Nonnull source)
 }
 
 /** return 0 on success, -1 on failure. */
-static int ipport_unpack(IP_Port *_Nonnull target, const uint8_t *_Nonnull data, unsigned int data_size, bool disable_family_check)
+static int ipport_unpack(IP_Port *_Nonnull target, const uint8_t *_Nonnull data, unsigned int data_size)
 {
     if (data_size < (SIZE_IP + SIZE_PORT)) {
         return -1;
     }
 
-    if (ip_unpack_from_bytes(&target->ip, data, data_size, disable_family_check) == -1) {
+    if (ip_unpack_from_bytes(&target->ip, data, data_size) == -1) {
         return -1;
     }
 
     memcpy(&target->port, data + SIZE_IP, SIZE_PORT);
     return 0;
+}
+
+/** @brief Packs where a response goes back to, in SIZE_IPPORT bytes.
+ *
+ * Only a UDP address or a client of our TCP server sends us packets to forward.
+ */
+static void destination_pack(uint8_t *_Nonnull data, const Destination *_Nonnull source)
+{
+    if (source->type == DESTINATION_TYPE_UDP) {
+        ipport_pack(data, &source->value.udp);
+        return;
+    }
+
+    memzero(data, SIZE_IPPORT);
+
+    if (source->type == DESTINATION_TYPE_TCP_CLIENT) {
+        data[0] = TCP_CLIENT_FAMILY;
+        memcpy(data + 1, &source->value.tcp_client.con_id, sizeof(uint32_t));
+        memcpy(data + 1 + sizeof(uint64_t), &source->value.tcp_client.identifier, sizeof(uint64_t));
+    }
+}
+
+/** return 0 on success, -1 on failure. */
+static int destination_unpack(Destination *_Nonnull target, const uint8_t *_Nonnull data, unsigned int data_size)
+{
+    if (data_size < SIZE_IPPORT) {
+        return -1;
+    }
+
+    if (data[0] == TCP_CLIENT_FAMILY) {
+        target->type = DESTINATION_TYPE_TCP_CLIENT;
+        memcpy(&target->value.tcp_client.con_id, data + 1, sizeof(uint32_t));
+        memcpy(&target->value.tcp_client.identifier, data + 1 + sizeof(uint64_t), sizeof(uint64_t));
+        return 0;
+    }
+
+    target->type = DESTINATION_TYPE_UDP;
+    return ipport_unpack(&target->value.udp, data, data_size);
 }
 
 /** @brief Create a new onion path.
@@ -124,7 +167,7 @@ int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, c
     // If the first hop is a tcp-relay, pubkey and sharedkey are never written or read, so we ignore the error.
     // TODO(Green-Sky): refactor how tcp-relay onions work, maybe do a separate 2 hop onion path function.
     if (encrypt_precompute(nodes[0].public_key, dht_get_self_secret_key(dht), temp_path.shared_key1) != 0 &&
-            !net_family_is_tcp_server(nodes[0].ip_port.ip.family)) {
+            nodes[0].transport != TRANSPORT_TCP) {
         return -1;
     }
     memcpy(temp_path.public_key1, dht_get_self_public_key(dht), CRYPTO_PUBLIC_KEY_SIZE);
@@ -148,7 +191,7 @@ int create_onion_path(const Random *rng, const DHT *dht, Onion_Path *new_path, c
 
     crypto_memzero(random_secret_key, sizeof(random_secret_key));
 
-    temp_path.ip_port1 = nodes[0].ip_port;
+    temp_path.dest1 = destination_udp(&nodes[0].ip_port);
     temp_path.ip_port2 = nodes[1].ip_port;
     temp_path.ip_port3 = nodes[2].ip_port;
 
@@ -175,9 +218,17 @@ int onion_path_to_nodes(Node_format *nodes, unsigned int num_nodes, const Onion_
         return -1;
     }
 
-    nodes[0].ip_port = path->ip_port1;
+    if (path->dest1.type == DESTINATION_TYPE_UDP) {
+        nodes[0].ip_port = path->dest1.value.udp;
+    } else {
+        ipport_reset(&nodes[0].ip_port);
+    }
+
     nodes[1].ip_port = path->ip_port2;
     nodes[2].ip_port = path->ip_port3;
+    nodes[0].transport = TRANSPORT_UDP;
+    nodes[1].transport = TRANSPORT_UDP;
+    nodes[2].transport = TRANSPORT_UDP;
 
     memcpy(nodes[0].public_key, path->node_public_key1, CRYPTO_PUBLIC_KEY_SIZE);
     memcpy(nodes[1].public_key, path->node_public_key2, CRYPTO_PUBLIC_KEY_SIZE);
@@ -374,10 +425,11 @@ static int handle_send_initial(void *_Nonnull object, const IP_Port *_Nonnull so
         return 1;
     }
 
-    return onion_send_1(onion, plain, len, source, packet + 1);
+    const Destination dest = destination_udp(source);
+    return onion_send_1(onion, plain, len, &dest, packet + 1);
 }
 
-int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const IP_Port *source, const uint8_t *nonce)
+int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const Destination *source, const uint8_t *nonce)
 {
     const uint16_t max_len = ONION_MAX_PACKET_SIZE + SIZE_IPPORT - (1 + CRYPTO_NONCE_SIZE + ONION_RETURN_1);
     if (len > max_len) {
@@ -391,7 +443,7 @@ int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const I
 
     IP_Port send_to;
 
-    if (ipport_unpack(&send_to, plain, len, false) == -1) {
+    if (ipport_unpack(&send_to, plain, len) == -1) {
         return 1;
     }
 
@@ -401,7 +453,7 @@ int onion_send_1(const Onion *onion, const uint8_t *plain, uint16_t len, const I
     }
 
     uint8_t ip_port[SIZE_IPPORT];
-    ipport_pack(ip_port, source);
+    destination_pack(ip_port, source);
 
     uint8_t data[ONION_MAX_PACKET_SIZE] = {0};
     data[0] = NET_PACKET_ONION_SEND_1;
@@ -461,7 +513,7 @@ static int handle_send_1(void *_Nonnull object, const IP_Port *_Nonnull source, 
 
     IP_Port send_to;
 
-    if (ipport_unpack(&send_to, plain, len, false) == -1) {
+    if (ipport_unpack(&send_to, plain, len) == -1) {
         return 1;
     }
 
@@ -540,7 +592,7 @@ static int handle_send_2(void *_Nonnull object, const IP_Port *_Nonnull source, 
 
     IP_Port send_to;
 
-    if (ipport_unpack(&send_to, plain, len, false) == -1) {
+    if (ipport_unpack(&send_to, plain, len) == -1) {
         return 1;
     }
 
@@ -607,7 +659,7 @@ static int handle_recv_3(void *_Nonnull object, const IP_Port *_Nonnull source, 
 
     IP_Port send_to;
 
-    if (ipport_unpack(&send_to, plain, len, false) == -1) {
+    if (ipport_unpack(&send_to, plain, len) == -1) {
         LOGGER_DEBUG(onion->log, "failed to unpack IP/Port");
         return 1;
     }
@@ -659,7 +711,7 @@ static int handle_recv_2(void *_Nonnull object, const IP_Port *_Nonnull source, 
 
     IP_Port send_to;
 
-    if (ipport_unpack(&send_to, plain, len, false) == -1) {
+    if (ipport_unpack(&send_to, plain, len) == -1) {
         return 1;
     }
 
@@ -708,22 +760,24 @@ static int handle_recv_1(void *_Nonnull object, const IP_Port *_Nonnull source, 
         return 1;
     }
 
-    IP_Port send_to;
+    Destination send_to;
 
-    if (ipport_unpack(&send_to, plain, len, true) == -1) {
+    if (destination_unpack(&send_to, plain, len) == -1) {
         LOGGER_DEBUG(onion->log, "failed to unpack IP/Port");
         return 1;
     }
 
     const uint16_t data_len = length - (1 + RETURN_1);
 
-    if (onion->recv_1_function != nullptr &&
-            !net_family_is_ipv4(send_to.ip.family) &&
-            !net_family_is_ipv6(send_to.ip.family)) {
+    if (send_to.type != DESTINATION_TYPE_UDP) {
+        if (onion->recv_1_function == nullptr) {
+            return 1;
+        }
+
         return onion->recv_1_function(onion->callback_object, &send_to, packet + (1 + RETURN_1), data_len);
     }
 
-    if ((uint32_t)sendpacket(onion->net, &send_to, packet + (1 + RETURN_1), data_len) != data_len) {
+    if ((uint32_t)sendpacket(onion->net, &send_to.value.udp, packet + (1 + RETURN_1), data_len) != data_len) {
         return 1;
     }
 

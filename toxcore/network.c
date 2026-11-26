@@ -126,7 +126,7 @@ struct Networking_Core {
     Packet_Handler packethandlers[256];
     const Network *_Nonnull ns;
 
-    Family family;
+    IP_Type type;
     uint16_t port;
     /* Our UDP socket. */
     Socket sock;
@@ -134,9 +134,17 @@ struct Networking_Core {
     Net_Profile *_Nullable udp_net_profile;
 };
 
-Family net_family(const Networking_Core *net)
+Destination destination_udp(const IP_Port *ip_port)
 {
-    return net->family;
+    Destination dest;
+    dest.type = DESTINATION_TYPE_UDP;
+    dest.value.udp = *ip_port;
+    return dest;
+}
+
+IP_Type net_ip_type(const Networking_Core *net)
+{
+    return net->type;
 }
 
 uint16_t net_port(const Networking_Core *net)
@@ -147,18 +155,35 @@ uint16_t net_port(const Networking_Core *net)
 /* Basic network functions:
  */
 
+/** The family number the Network functions take for sockets and name lookups. */
+static int ip_type_to_af(IP_Type type)
+{
+    switch (type) {
+        case IP_TYPE_UNSPEC:
+            return TOX_AF_UNSPEC;
+
+        case IP_TYPE_V4:
+            return TOX_AF_INET;
+
+        case IP_TYPE_V6:
+            return TOX_AF_INET6;
+    }
+
+    return TOX_AF_UNSPEC;
+}
+
 bool net_socket_family_compatible(const Networking_Core *net, const IP_Port *ip_port, bool log_warning)
 {
-    if (!net_family_is_ipv4(net->family) || net_family_is_ipv4(ip_port->ip.family)) {
+    if (net->type != IP_TYPE_V4 || ip_port->ip.type == IP_TYPE_V4) {
         return true;
     }
     Ip_Ntoa ip_str;
     if (log_warning) {
-        LOGGER_WARNING(net->log, "attempted to send message with network family %d (probably IPv6) on IPv4 socket (%s)",
-                       ip_port->ip.family.value, net_ip_ntoa(&ip_port->ip, &ip_str));
+        LOGGER_WARNING(net->log, "attempted to send message with IP type %d (probably IPv6) on IPv4 socket (%s)",
+                       (int)ip_port->ip.type, net_ip_ntoa(&ip_port->ip, &ip_str));
     } else {
-        LOGGER_TRACE(net->log, "attempted to send message with network family %d (probably IPv6) on IPv4 socket (%s)",
-                     ip_port->ip.family.value, net_ip_ntoa(&ip_port->ip, &ip_str));
+        LOGGER_TRACE(net->log, "attempted to send message with IP type %d (probably IPv6) on IPv4 socket (%s)",
+                     (int)ip_port->ip.type, net_ip_ntoa(&ip_port->ip, &ip_str));
     }
     return false;
 }
@@ -167,13 +192,13 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
 {
     IP_Port ipp_copy = *ip_port;
 
-    if (net_family_is_unspec(ipp_copy.ip.family)) {
+    if (ipp_copy.ip.type == IP_TYPE_UNSPEC) {
         // TODO(iphydf): Make this an error. Currently this fails sometimes when
         // called from DHT.c:do_ping_and_sendnode_requests.
         return -1;
     }
 
-    if (net_family_is_unspec(net->family)) { /* Socket not initialized */
+    if (net->type == IP_TYPE_UNSPEC) { /* Socket not initialized */
         // TODO(iphydf): Make this an error. Currently, the onion client calls
         // this via DHT nodes requests.
         LOGGER_WARNING(net->log, "attempted to send message of length %u on uninitialised socket", packet.length);
@@ -187,7 +212,7 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
         return -1;
     }
 
-    if (net_family_is_ipv4(ipp_copy.ip.family) && net_family_is_ipv6(net->family)) {
+    if (ipp_copy.ip.type == IP_TYPE_V4 && net->type == IP_TYPE_V6) {
         /* must convert to IPV4-in-IPV6 address */
         IP6 ip6;
 
@@ -196,10 +221,10 @@ int net_send_packet(const Networking_Core *net, const IP_Port *ip_port, Net_Pack
         ip6.uint32[0] = 0;
         ip6.uint32[1] = 0;
         ip6.uint32[2] = net_htonl(0xFFFF);
-        ip6.uint32[3] = ipp_copy.ip.ip.v4.uint32;
+        ip6.uint32[3] = ipp_copy.ip.value.v4.uint32;
 
-        ipp_copy.ip.family = net_family_ipv6();
-        ipp_copy.ip.ip.v6 = ip6;
+        ipp_copy.ip.type = IP_TYPE_V6;
+        ipp_copy.ip.value.v6 = ip6;
     }
 
     const long res = ns_sendto(net->ns, net->sock, packet.data, packet.length, &ipp_copy);
@@ -250,9 +275,10 @@ static int receivepacket(const Network *_Nonnull ns, const Logger *_Nonnull log,
 
     *length = (uint32_t)fail_or_len;
 
-    if (net_family_is_ipv6(ip_port->ip.family) && ipv6_ipv4_in_v6(&ip_port->ip.ip.v6)) {
-        ip_port->ip.family = net_family_ipv4();
-        ip_port->ip.ip.v4.uint32 = ip_port->ip.ip.v6.uint32[3];
+    if (ip_port->ip.type == IP_TYPE_V6 && ipv6_ipv4_in_v6(&ip_port->ip.value.v6)) {
+        const uint32_t ip4 = ip_port->ip.value.v6.uint32[3];
+        ip_port->ip.type = IP_TYPE_V4;
+        ip_port->ip.value.v4.uint32 = ip4;
     }
 
     net_log_data(log, "=>O", data, MAX_UDP_PACKET_SIZE, ip_port, *length);
@@ -268,7 +294,7 @@ void networking_registerhandler(Networking_Core *net, uint8_t byte, packet_handl
 
 void networking_poll(const Networking_Core *net, void *userdata)
 {
-    if (net_family_is_unspec(net->family)) {
+    if (net->type == IP_TYPE_UNSPEC) {
         /* Socket not initialized */
         return;
     }
@@ -333,8 +359,8 @@ Networking_Core *new_networking_ex(
     }
 
     /* maybe check for invalid IPs like 224+.x.y.z? if there is any IP set ever */
-    if (!net_family_is_ipv4(ip->family) && !net_family_is_ipv6(ip->family)) {
-        LOGGER_ERROR(log, "invalid address family: %u", ip->family.value);
+    if (ip->type != IP_TYPE_V4 && ip->type != IP_TYPE_V6) {
+        LOGGER_ERROR(log, "invalid IP type: %d", (int)ip->type);
         return nullptr;
     }
 
@@ -355,12 +381,12 @@ Networking_Core *new_networking_ex(
     temp->ns = ns;
     temp->log = log;
     temp->mem = mem;
-    temp->family = ip->family;
+    temp->type = ip->type;
     temp->port = 0;
 
     /* Initialize our socket. */
     /* add log message what we're creating */
-    temp->sock = net_socket(ns, temp->family, TOX_SOCK_DGRAM, TOX_PROTO_UDP);
+    temp->sock = net_socket(ns, temp->type, TOX_SOCK_DGRAM, TOX_PROTO_UDP);
 
     /* Check for socket error. */
     if (!sock_valid(temp->sock)) {
@@ -413,9 +439,9 @@ Networking_Core *new_networking_ex(
     /* Bind our socket to port PORT and the given IP address (usually 0.0.0.0 or ::) */
     uint16_t *portptr = nullptr;
     IP_Port addr;
-    ip_init(&addr.ip, net_family_is_ipv6(temp->family));
+    ip_init(&addr.ip, temp->type == IP_TYPE_V6);
 
-    if (net_family_is_ipv4(temp->family) || net_family_is_ipv6(temp->family)) {
+    if (temp->type == IP_TYPE_V4 || temp->type == IP_TYPE_V6) {
         ip_copy(&addr.ip, ip);
         addr.port = 0;
         portptr = &addr.port;
@@ -424,7 +450,7 @@ Networking_Core *new_networking_ex(
         return nullptr;
     }
 
-    if (net_family_is_ipv6(ip->family)) {
+    if (ip->type == IP_TYPE_V6) {
         const bool is_dualstack = set_socket_dualstack(ns, temp->sock);
 
         if (is_dualstack) {
@@ -433,7 +459,7 @@ Networking_Core *new_networking_ex(
             LOGGER_ERROR(log, "Dual-stack socket failed to enable, won't be able to receive from/send to IPv4 addresses");
         }
 
-        if (!net_join_multicast(ns, temp->sock, ip->family)) {
+        if (!net_join_multicast(ns, temp->sock, ip->type)) {
             const int neterror = net_error();
             Net_Strerror error_str;
             LOGGER_INFO(log, "Failed to activate local multicast membership in FF02::1. (%d, %s)", neterror, net_strerror(neterror, &error_str));
@@ -533,7 +559,7 @@ void kill_networking(Networking_Core *net)
         return;
     }
 
-    if (!net_family_is_unspec(net->family)) {
+    if (net->type != IP_TYPE_UNSPEC) {
         /* Socket is initialized, so we close it. */
         kill_sock(net->ns, net->sock);
     }
@@ -548,28 +574,23 @@ bool ip_equal(const IP *a, const IP *b)
         return false;
     }
 
-    /* same family */
-    if (a->family.value == b->family.value) {
-        if (net_family_is_ipv4(a->family) || net_family_is_tcp_ipv4(a->family)) {
-            return a->ip.v4.uint32 == b->ip.v4.uint32;
-        }
+    if (a->type == IP_TYPE_V4 && b->type == IP_TYPE_V4) {
+        return a->value.v4.uint32 == b->value.v4.uint32;
+    }
 
-        if (net_family_is_ipv6(a->family) || net_family_is_tcp_ipv6(a->family)) {
-            return a->ip.v6.uint64[0] == b->ip.v6.uint64[0] &&
-                   a->ip.v6.uint64[1] == b->ip.v6.uint64[1];
-        }
-
-        return false;
+    if (a->type == IP_TYPE_V6 && b->type == IP_TYPE_V6) {
+        return a->value.v6.uint64[0] == b->value.v6.uint64[0] &&
+               a->value.v6.uint64[1] == b->value.v6.uint64[1];
     }
 
     /* different family: check on the IPv6 one if it is the IPv4 one embedded */
-    if (net_family_is_ipv4(a->family) && net_family_is_ipv6(b->family)) {
-        if (ipv6_ipv4_in_v6(&b->ip.v6)) {
-            return a->ip.v4.uint32 == b->ip.v6.uint32[3];
+    if (a->type == IP_TYPE_V4 && b->type == IP_TYPE_V6) {
+        if (ipv6_ipv4_in_v6(&b->value.v6)) {
+            return a->value.v4.uint32 == b->value.v6.uint32[3];
         }
-    } else if (net_family_is_ipv6(a->family) && net_family_is_ipv4(b->family)) {
-        if (ipv6_ipv4_in_v6(&a->ip.v6)) {
-            return a->ip.v6.uint32[3] == b->ip.v4.uint32;
+    } else if (a->type == IP_TYPE_V6 && b->type == IP_TYPE_V4) {
+        if (ipv6_ipv4_in_v6(&a->value.v6)) {
+            return a->value.v6.uint32[3] == b->value.v4.uint32;
         }
     }
 
@@ -605,25 +626,16 @@ static int ip6_cmp(const IP6 *_Nonnull a, const IP6 *_Nonnull b)
 
 static int ip_cmp(const IP *_Nonnull a, const IP *_Nonnull b)
 {
-    const int res = cmp_uint(a->family.value, b->family.value);
+    const int res = cmp_uint(a->type, b->type);
     if (res != 0) {
         return res;
     }
-    switch (a->family.value) {
-        case TOX_AF_UNSPEC:
-            return 0;
-        case TOX_AF_INET:
-        case TCP_INET:
-        case TOX_TCP_INET:
-            return ip4_cmp(&a->ip.v4, &b->ip.v4);
-        case TOX_AF_INET6:
-        case TCP_INET6:
-        case TOX_TCP_INET6:
-        case TCP_SERVER_FAMILY:  // these happen to be ipv6 according to TCP_server.c.
-        case TCP_CLIENT_FAMILY:
-            return ip6_cmp(&a->ip.v6, &b->ip.v6);
+    if (a->type == IP_TYPE_V4 && b->type == IP_TYPE_V4) {
+        return ip4_cmp(&a->value.v4, &b->value.v4);
     }
-    // Invalid, we don't compare any further and consider them equal.
+    if (a->type == IP_TYPE_V6 && b->type == IP_TYPE_V6) {
+        return ip6_cmp(&a->value.v6, &b->value.v6);
+    }
     return 0;
 }
 
@@ -649,9 +661,8 @@ void ip_reset(IP *ip)
     }
 
     IP empty;
-    empty.family.value = 0;
-    empty.ip.v6.uint64[0] = 0;
-    empty.ip.v6.uint64[1] = 0;
+    empty.type = IP_TYPE_UNSPEC;
+    memset(&empty.value, 0, sizeof(empty.value));
 
     *ip = empty;
 }
@@ -666,9 +677,8 @@ void ipport_reset(IP_Port *ipport)
     // Leave padding bytes as uninitialized data. This should not matter, because we
     // then set all the actual fields to 0.
     IP_Port empty;
-    empty.ip.family.value = 0;
-    empty.ip.ip.v6.uint64[0] = 0;
-    empty.ip.ip.v6.uint64[1] = 0;
+    empty.ip.type = IP_TYPE_UNSPEC;
+    memset(&empty.ip.value, 0, sizeof(empty.ip.value));
     empty.port = 0;
 
     *ipport = empty;
@@ -682,7 +692,7 @@ void ip_init(IP *ip, bool ipv6enabled)
     }
 
     ip_reset(ip);
-    ip->family = ipv6enabled ? net_family_ipv6() : net_family_ipv4();
+    ip->type = ipv6enabled ? IP_TYPE_V6 : IP_TYPE_V4;
 }
 
 /** checks if ip is valid */
@@ -692,7 +702,7 @@ bool ip_isset(const IP *ip)
         return false;
     }
 
-    return !net_family_is_unspec(ip->family);
+    return ip->type != IP_TYPE_UNSPEC;
 }
 
 /** checks if ip is valid */
@@ -729,8 +739,8 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
     // Write to a temporary object first, so that padding bytes are
     // uninitialised and msan can catch mistakes in downstream code.
     IP_Port tmp;
-    tmp.ip.family = source->ip.family;
-    tmp.ip.ip = source->ip.ip;
+    tmp.ip.type = source->ip.type;
+    tmp.ip.value = source->ip.value;
     tmp.port = source->port;
 
     *target = tmp;
@@ -738,44 +748,33 @@ void ipport_copy(IP_Port *target, const IP_Port *source)
 
 /** @brief Packs an IP structure.
  *
- * It's the caller's responsibility to make sure `is_ipv4` tells the truth. This
- * function is an implementation detail of @ref bin_pack_ip_port.
- *
- * @param is_ipv4 whether this IP is an IP4 or IP6.
+ * This function is an implementation detail of @ref bin_pack_node_address.
  *
  * @retval true on success.
  */
-static bool bin_pack_ip(Bin_Pack *_Nonnull bp, const IP *_Nonnull ip, bool is_ipv4)
+static bool bin_pack_ip(Bin_Pack *_Nonnull bp, const IP *_Nonnull ip)
 {
-    if (is_ipv4) {
-        return bin_pack_bin_b(bp, ip->ip.v4.uint8, SIZE_IP4);
-    } else {
-        return bin_pack_bin_b(bp, ip->ip.v6.uint8, SIZE_IP6);
+    if (ip->type == IP_TYPE_V4) {
+        return bin_pack_bin_b(bp, ip->value.v4.uint8, SIZE_IP4);
     }
+
+    if (ip->type == IP_TYPE_V6) {
+        return bin_pack_bin_b(bp, ip->value.v6.uint8, SIZE_IP6);
+    }
+
+    return false;
 }
 
-/** @brief Packs an IP_Port structure.
- *
- * @retval true on success.
- */
-bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port)
+bool bin_pack_node_address(Bin_Pack *bp, const Logger *logger, Transport transport, const IP_Port *ip_port)
 {
-    bool is_ipv4;
+    const bool tcp = transport == TRANSPORT_TCP;
     uint8_t family;
 
-    if (net_family_is_ipv4(ip_port->ip.family)) {
+    if (ip_port->ip.type == IP_TYPE_V4) {
         // TODO(irungentoo): use functions to convert endianness
-        is_ipv4 = true;
-        family = TOX_AF_INET;
-    } else if (net_family_is_tcp_ipv4(ip_port->ip.family)) {
-        is_ipv4 = true;
-        family = TOX_TCP_INET;
-    } else if (net_family_is_ipv6(ip_port->ip.family)) {
-        is_ipv4 = false;
-        family = TOX_AF_INET6;
-    } else if (net_family_is_tcp_ipv6(ip_port->ip.family)) {
-        is_ipv4 = false;
-        family = TOX_TCP_INET6;
+        family = tcp ? TOX_TCP_INET : TOX_AF_INET;
+    } else if (ip_port->ip.type == IP_TYPE_V6) {
+        family = tcp ? TOX_TCP_INET6 : TOX_AF_INET6;
     } else {
         Ip_Ntoa ip_str;
         // TODO(iphydf): Find out why we're trying to pack invalid IPs, stop
@@ -785,8 +784,17 @@ bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port
     }
 
     return bin_pack_u08_b(bp, family)
-           && bin_pack_ip(bp, &ip_port->ip, is_ipv4)
+           && bin_pack_ip(bp, &ip_port->ip)
            && bin_pack_u16_b(bp, net_ntohs(ip_port->port));
+}
+
+/** @brief Packs an IP_Port structure.
+ *
+ * @retval true on success.
+ */
+bool bin_pack_ip_port(Bin_Pack *bp, const Logger *logger, const IP_Port *ip_port)
+{
+    return bin_pack_node_address(bp, logger, TRANSPORT_UDP, ip_port);
 }
 
 static bool bin_pack_ip_port_handler(const void *_Nonnull obj, const Logger *_Nonnull logger, Bin_Pack *_Nonnull bp)
@@ -812,51 +820,52 @@ int pack_ip_port(const Logger *logger, uint8_t *data, uint16_t length, const IP_
     return (int)size;
 }
 
-int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled)
+int unpack_node_address(Transport *transport, IP_Port *ip_port, const uint8_t *data, uint16_t length, bool tcp_enabled)
 {
     if (data == nullptr || length == 0 || ip_port == nullptr) {
         return -1;
     }
 
-    bool is_ipv4;
-    Family host_family;
+    IP_Type type;
+    Transport node_transport;
 
     if (data[0] == TOX_AF_INET) {
-        is_ipv4 = true;
-        host_family = net_family_ipv4();
+        type = IP_TYPE_V4;
+        node_transport = TRANSPORT_UDP;
     } else if (data[0] == TOX_TCP_INET) {
         if (!tcp_enabled) {
             return -1;
         }
 
-        is_ipv4 = true;
-        host_family = net_family_tcp_ipv4();
+        type = IP_TYPE_V4;
+        node_transport = TRANSPORT_TCP;
     } else if (data[0] == TOX_AF_INET6) {
-        is_ipv4 = false;
-        host_family = net_family_ipv6();
+        type = IP_TYPE_V6;
+        node_transport = TRANSPORT_UDP;
     } else if (data[0] == TOX_TCP_INET6) {
         if (!tcp_enabled) {
             return -1;
         }
 
-        is_ipv4 = false;
-        host_family = net_family_tcp_ipv6();
+        type = IP_TYPE_V6;
+        node_transport = TRANSPORT_TCP;
     } else {
         return -1;
     }
 
     ipport_reset(ip_port);
 
-    if (is_ipv4) {
+    if (type == IP_TYPE_V4) {
         const uint32_t size = 1 + SIZE_IP4 + sizeof(uint16_t);
 
         if (size > length) {
             return -1;
         }
 
-        ip_port->ip.family = host_family;
-        memcpy(ip_port->ip.ip.v4.uint8, data + 1, SIZE_IP4);
+        ip_port->ip.type = IP_TYPE_V4;
+        memcpy(ip_port->ip.value.v4.uint8, data + 1, SIZE_IP4);
         memcpy(&ip_port->port, data + 1 + SIZE_IP4, sizeof(uint16_t));
+        *transport = node_transport;
         return size;
     } else {
         const uint32_t size = 1 + SIZE_IP6 + sizeof(uint16_t);
@@ -865,11 +874,18 @@ int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length, bool 
             return -1;
         }
 
-        ip_port->ip.family = host_family;
-        memcpy(ip_port->ip.ip.v6.uint8, data + 1, SIZE_IP6);
+        ip_port->ip.type = IP_TYPE_V6;
+        memcpy(ip_port->ip.value.v6.uint8, data + 1, SIZE_IP6);
         memcpy(&ip_port->port, data + 1 + SIZE_IP6, sizeof(uint16_t));
+        *transport = node_transport;
         return size;
     }
+}
+
+int unpack_ip_port(IP_Port *ip_port, const uint8_t *data, uint16_t length)
+{
+    Transport transport;
+    return unpack_node_address(&transport, ip_port, data, length, false);
 }
 
 const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str)
@@ -885,7 +901,7 @@ const char *net_ip_ntoa(const IP *ip, Ip_Ntoa *ip_str)
     }
 
     if (!ip_parse_addr(ip, ip_str->buf, sizeof(ip_str->buf))) {
-        snprintf(ip_str->buf, sizeof(ip_str->buf), "(IP invalid, family %u)", ip->family.value);
+        snprintf(ip_str->buf, sizeof(ip_str->buf), "(IP invalid, type %d)", (int)ip->type);
         ip_str->length = (uint16_t)strlen(ip_str->buf);
         return ip_str->buf;
     }
@@ -904,12 +920,12 @@ bool ip_parse_addr(const IP *ip, char *address, size_t length)
         return false;
     }
 
-    if (net_family_is_ipv4(ip->family) || net_family_is_tcp_ipv4(ip->family)) {
-        return net_inet_ntop4(&ip->ip.v4, address, length) != nullptr;
+    if (ip->type == IP_TYPE_V4) {
+        return net_inet_ntop4(&ip->value.v4, address, length) != nullptr;
     }
 
-    if (net_family_is_ipv6(ip->family) || net_family_is_tcp_ipv6(ip->family)) {
-        return net_inet_ntop6(&ip->ip.v6, address, length) != nullptr;
+    if (ip->type == IP_TYPE_V6) {
+        return net_inet_ntop6(&ip->value.v6, address, length) != nullptr;
     }
 
     return false;
@@ -921,13 +937,19 @@ bool addr_parse_ip(const char *address, IP *to)
         return false;
     }
 
-    if (net_inet_pton4(address, &to->ip.v4) == 1) {
-        to->family = net_family_ipv4();
+    IP4 ip4;
+
+    if (net_inet_pton4(address, &ip4) == 1) {
+        to->type = IP_TYPE_V4;
+        to->value.v4 = ip4;
         return true;
     }
 
-    if (net_inet_pton6(address, &to->ip.v6) == 1) {
-        to->family = net_family_ipv6();
+    IP6 ip6;
+
+    if (net_inet_pton6(address, &ip6) == 1) {
+        to->type = IP_TYPE_V6;
+        to->value.v6 = ip6;
         return true;
     }
 
@@ -944,14 +966,14 @@ bool addr_parse_ip(const char *address, IP *to)
  * Uses the first IPv4/IPv6 addresses returned by getaddrinfo.
  *
  * @param address a hostname (or something parseable to an IP address)
- * @param to to.family MUST be initialized, either set to a specific IP version
- *   (TOX_AF_INET/TOX_AF_INET6) or to the unspecified TOX_AF_UNSPEC (0), if both
- *   IP versions are acceptable
+ * @param to to.type MUST be initialized, either set to a specific IP version
+ *   (IP_TYPE_V4/IP_TYPE_V6) or to IP_TYPE_UNSPEC, if both IP versions are
+ *   acceptable
  * @param extra can be NULL and is only set in special circumstances, see returns
  *
  * Returns in `*to` a valid IPAny (v4/v6),
- * prefers v6 if `ip.family` was TOX_AF_UNSPEC and both available
- * Returns in `*extra` an IPv4 address, if family was TOX_AF_UNSPEC and `*to` is TOX_AF_INET6
+ * prefers v6 if `ip.type` was IP_TYPE_UNSPEC and both available
+ * Returns in `*extra` an IPv4 address, if the type was IP_TYPE_UNSPEC and `*to` is IP_TYPE_V6
  *
  * @return false on failure, true on success.
  */
@@ -967,10 +989,10 @@ static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem,
         return false;
     }
 
-    const int family = to->family.value;
+    const IP_Type type = to->type;
 
     IP_Port *addrs = nullptr;
-    const int rc = ns_getaddrinfo(ns, mem, address, family, 0, &addrs);
+    const int rc = ns_getaddrinfo(ns, mem, address, ip_type_to_af(type), 0, &addrs);
 
     // Lookup failed / empty.
     if (rc <= 0) {
@@ -988,8 +1010,8 @@ static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem,
     bool done = false;
 
     for (int i = 0; i < rc && !done; ++i) {
-        if (net_family_is_ipv4(addrs[i].ip.family)) {
-            if (addrs[i].ip.family.value == to->family.value) { /* AF_INET requested, done */
+        if (addrs[i].ip.type == IP_TYPE_V4) {
+            if (type == IP_TYPE_V4) { /* AF_INET requested, done */
                 ip_copy(to, &addrs[i].ip);
                 result = TOX_ADDR_RESOLVE_INET;
                 done = true;
@@ -997,8 +1019,8 @@ static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem,
                 ip_copy(&ip4, &addrs[i].ip);
                 result |= TOX_ADDR_RESOLVE_INET;
             }
-        } else if (net_family_is_ipv6(addrs[i].ip.family)) {
-            if (addrs[i].ip.family.value == to->family.value) { /* AF_INET6 requested, done */
+        } else if (addrs[i].ip.type == IP_TYPE_V6) {
+            if (type == IP_TYPE_V6) { /* AF_INET6 requested, done */
                 ip_copy(to, &addrs[i].ip);
                 result = TOX_ADDR_RESOLVE_INET6;
                 done = true;
@@ -1009,7 +1031,7 @@ static bool addr_resolve(const Network *_Nonnull ns, const Memory *_Nonnull mem,
         }
     }
 
-    if (family == TOX_AF_UNSPEC) {
+    if (type == IP_TYPE_UNSPEC) {
         if ((result & TOX_ADDR_RESOLVE_INET6) != 0) {
             ip_copy(to, &ip6);
 
@@ -1052,7 +1074,7 @@ const char *net_err_connect_to_string(Net_Err_Connect err)
 
 bool net_connect(const Network *ns, const Memory *mem, const Logger *log, Socket sock, const IP_Port *ip_port, Net_Err_Connect *err)
 {
-    if (!(net_family_is_ipv4(ip_port->ip.family) || net_family_is_ipv6(ip_port->ip.family))) {
+    if (!(ip_port->ip.type == IP_TYPE_V4 || ip_port->ip.type == IP_TYPE_V6)) {
         Ip_Ntoa ip_str;
         LOGGER_ERROR(log, "cannot connect to %s:%d which is neither IPv4 nor IPv6",
                      net_ip_ntoa(&ip_port->ip, &ip_str), net_ntohs(ip_port->port));
@@ -1094,7 +1116,7 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
     assert(node != nullptr);
 
     // Try parsing as IP address first.
-    IP_Port parsed = {{{0}}};
+    IP_Port parsed = {{IP_TYPE_UNSPEC}};
     // Initialise to nullptr. In error paths, at least we initialise the out
     // parameter.
     *res = nullptr;
@@ -1121,8 +1143,8 @@ int32_t net_getipport(const Network *ns, const Memory *mem, const char *node, IP
         if (ip_port == nullptr) {
             abort();
         }
-        ip_port->ip.ip.v4.uint32 = net_htonl(0x7F000003); // 127.0.0.3
-        ip_port->ip.family = net_family_ipv4();
+        ip_port->ip.type = IP_TYPE_V4;
+        ip_port->ip.value.v4.uint32 = net_htonl(0x7F000003); // 127.0.0.3
 
         *res = ip_port;
         return 1;
@@ -1155,26 +1177,19 @@ void net_freeipport(const Memory *mem, IP_Port *ip_ports)
     mem_delete(mem, ip_ports);
 }
 
-bool bind_to_port(const Network *ns, Socket sock, Family family, uint16_t port)
+bool bind_to_port(const Network *ns, Socket sock, IP_Type type, uint16_t port)
 {
     IP_Port addr;
-    ip_init(&addr.ip, net_family_is_ipv6(family));
-    addr.ip.family = family;
-
-    if (net_family_is_ipv4(family)) {
-        addr.ip.ip.v4.uint32 = 0;
-    } else {
-        memset(addr.ip.ip.v6.uint8, 0, 16);
-    }
+    ip_init(&addr.ip, type == IP_TYPE_V6);
 
     addr.port = net_htons(port);
 
     return ns_bind(ns, sock, &addr) == 0;
 }
 
-Socket net_socket(const Network *ns, Family domain, int type, int protocol)
+Socket net_socket(const Network *ns, IP_Type domain, int type, int protocol)
 {
-    return ns_socket(ns, domain.value, type, protocol);
+    return ns_socket(ns, ip_type_to_af(domain), type, protocol);
 }
 
 uint16_t net_socket_data_recv_buffer(const Network *ns, Socket sock)

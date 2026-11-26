@@ -20,11 +20,11 @@ static inline IP get_loopback(void)
 {
     IP ip;
 #if USE_IPV6
-    ip.family = net_family_ipv6();
-    ip.ip.v6 = get_ip6_loopback();
+    ip.type = IP_TYPE_V6;
+    ip.value.v6 = get_ip6_loopback();
 #else
-    ip.family = net_family_ipv4();
-    ip.ip.v4 = get_ip4_loopback();
+    ip.type = IP_TYPE_V4;
+    ip.value.v4 = get_ip4_loopback();
 #endif
     return ip;
 }
@@ -209,7 +209,8 @@ static void send_onion_packet(const Networking_Core *net, const Memory *mem, con
     uint8_t packet[ONION_MAX_PACKET_SIZE];
     const int len = create_onion_packet(mem, rng, packet, sizeof(packet), path, dest, data, length);
     ck_assert_msg(len != -1, "failed to create onion packet");
-    ck_assert_msg(sendpacket(net, &path->ip_port1, packet, len) == len, "failed to send onion packet");
+    ck_assert(path->dest1.type == DESTINATION_TYPE_UDP);
+    ck_assert_msg(sendpacket(net, &path->dest1.value.udp, packet, len) == len, "failed to send onion packet");
 }
 
 /** Initialize networking.
@@ -250,11 +251,13 @@ static void test_basic(void)
     Node_format n1;
     memcpy(n1.public_key, dht_get_self_public_key(onion1->dht), CRYPTO_PUBLIC_KEY_SIZE);
     n1.ip_port = on1;
+    n1.transport = TRANSPORT_UDP;
 
     IP_Port on2 = {ip, net_port(onion2->net)};
     Node_format n2;
     memcpy(n2.public_key, dht_get_self_public_key(onion2->dht), CRYPTO_PUBLIC_KEY_SIZE);
     n2.ip_port = on2;
+    n2.transport = TRANSPORT_UDP;
 
     const char req_message[] = "Install Gentoo";
     uint8_t req_packet[1 + sizeof(req_message)];
@@ -411,7 +414,7 @@ typedef struct {
 static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, uint32_t *index)
 {
     IP ip = get_loopback();
-    ip.ip.v6.uint8[15] = 1;
+    ip.value.v6.uint8[15] = 1;
     const Network *ns = os_network();
     Onions *on = (Onions *)malloc(sizeof(Onions));
 
@@ -491,7 +494,7 @@ static Onions *new_onions(const Memory *mem, const Random *rng, uint16_t port, u
         return nullptr;
     }
 
-    TCP_Proxy_Info inf = {{{{0}}}};
+    TCP_Proxy_Info inf = {{{IP_TYPE_UNSPEC}}};
     on->nc = new_net_crypto(on->log, mem, rng, ns, on->mono_time, net, dht, &auto_test_dht_funcs, &inf, on->tcp_np);
     on->onion_c = new_onion_client(on->log, mem, rng, on->mono_time, on->nc, dht, net);
 

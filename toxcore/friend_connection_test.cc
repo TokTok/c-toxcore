@@ -50,7 +50,7 @@ public:
             nullptr, nullptr);
 
         // Setup NetCrypto
-        TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
+        TCP_Proxy_Info proxy_info = {{}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_wrapper_.logger(), &dht_wrapper_.node().c_memory,
             &dht_wrapper_.node().c_random, &dht_wrapper_.node().c_network, dht_wrapper_.mono_time(),
             dht_wrapper_.networking(), dht_wrapper_.get_dht(), &DHTWrapper::funcs, &proxy_info,
@@ -190,7 +190,7 @@ TEST(FriendTcpRelays, NewestFirstJustPastSixteenBitCount)
 {
     Friend_TCP_Relays relays{};
     IP_Port ip_port{};
-    ip_port.ip.family = net_family_ipv4();
+    ip_port.ip.type = IP_TYPE_V4;
 
     // A 16-bit count of the added relays wraps around here.
     const std::uint32_t count = (1 << 16) + 2;
