@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -220,6 +221,30 @@ TEST_F(AnnounceClientTest, ALookupNeedsANode)
         nodes[0]->secret_key(), kData, sizeof(kData)));
 }
 
+TEST_F(AnnounceClientTest, IsNotAnnouncedBeforeAnyNodeStoresIt)
+{
+    auto nodes = make_nodes(1);
+
+    for (std::uint16_t width = 1; width <= 8; ++width) {
+        ASSERT_TRUE(announce_client_add_announce(nodes[0]->client(), nodes[0]->public_key(), width,
+            nodes[0]->secret_key(), kData, sizeof(kData)));
+        EXPECT_FALSE(announce_client_is_announced(nodes[0]->client(), nodes[0]->public_key()))
+            << "width " << width;
+    }
+}
+
+TEST_F(AnnounceClientTest, IsAnnouncedOnceHalfTheNodesOnTheListStoreIt)
+{
+    auto nodes = make_nodes(2);
+    nodes[0]->add_node(*nodes[1]);
+    const std::uint8_t *const pk = nodes[1]->public_key();
+
+    ASSERT_TRUE(announce_client_add_announce(
+        nodes[0]->client(), pk, 4, nodes[1]->secret_key(), kData, sizeof(kData)));
+    EXPECT_TRUE(
+        run_until(nodes, [&] { return announce_client_is_announced(nodes[0]->client(), pk); }));
+}
+
 TEST_F(AnnounceClientTest, StoresOnAndRetrievesFromTheOnlyOtherNode)
 {
     announce_and_retrieve(line(2), 0, 1, 0, 2);
@@ -238,29 +263,105 @@ TEST_F(AnnounceClientTest, FindsTheTargetInSmallAndLargeCompleteGraphs)
     announce_and_retrieve(complete(25), 0, 1, 2, 4);
 }
 
+constexpr std::size_t kDhtHeaderSize = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE;
+
+struct Request {
+    std::uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
+    std::vector<std::uint8_t> plain;
+};
+
+bool open_request(const Memory *_Nonnull mem, const std::uint8_t *_Nonnull packet, std::size_t size,
+    std::uint8_t type, const std::uint8_t *_Nonnull secret_key,
+    const std::uint8_t *_Nonnull data_pk, Request &request)
+{
+    if (size < kDhtHeaderSize + CRYPTO_MAC_SIZE + CRYPTO_PUBLIC_KEY_SIZE + sizeof(std::uint64_t)
+        || packet[0] != type
+        || encrypt_precompute(packet + 1, secret_key, request.shared_key) != 0) {
+        return false;
+    }
+
+    request.plain.resize(size - kDhtHeaderSize - CRYPTO_MAC_SIZE);
+    return decrypt_data_symmetric(mem, request.shared_key, packet + 1 + CRYPTO_PUBLIC_KEY_SIZE,
+               packet + kDhtHeaderSize, size - kDhtHeaderSize, request.plain.data())
+        == static_cast<std::int32_t>(request.plain.size())
+        && pk_equal(request.plain.data(), data_pk);
+}
+
+std::vector<std::uint8_t> search_response(const Logger *_Nonnull log,
+    const std::uint8_t *_Nonnull data_pk, const std::vector<Node_format> &nodes, bool would_accept,
+    std::size_t junk, const Request &request)
+{
+    std::array<std::uint8_t, CRYPTO_PUBLIC_KEY_SIZE + 1 + TIMED_AUTH_SIZE + 1 + 1> header{};
+    std::memcpy(header.data(), data_pk, CRYPTO_PUBLIC_KEY_SIZE);
+    header[header.size() - 2] = would_accept ? 1 : 0;
+    header[header.size() - 1] = static_cast<std::uint8_t>(nodes.size());
+
+    std::vector<std::uint8_t> packed(nodes.size() * PACKED_NODE_SIZE_IP6);
+
+    if (!nodes.empty()) {
+        const int packed_size
+            = pack_nodes(log, packed.data(), static_cast<std::uint16_t>(packed.size()),
+                nodes.data(), static_cast<std::uint16_t>(nodes.size()));
+
+        if (packed_size <= 0) {
+            ADD_FAILURE() << "couldn't pack the listed nodes";
+            return {};
+        }
+
+        packed.resize(packed_size);
+    }
+
+    std::vector<std::uint8_t> response(header.begin(), header.end());
+    response.insert(response.end(), packed.begin(), packed.end());
+    response.insert(response.end(), junk, 0xff);
+    response.insert(
+        response.end(), request.plain.end() - sizeof(std::uint64_t), request.plain.end());
+    return response;
+}
+
+std::vector<std::uint8_t> search_reply(const Memory *_Nonnull mem, const Random *_Nonnull rng,
+    const std::uint8_t *_Nonnull public_key, const Request &request,
+    const std::vector<std::uint8_t> &response)
+{
+    std::vector<std::uint8_t> reply(kDhtHeaderSize + response.size() + CRYPTO_MAC_SIZE);
+    const int reply_size = dht_create_packet(mem, rng, public_key, request.shared_key,
+        NET_PACKET_DATA_SEARCH_RESPONSE, response.data(), response.size(), reply.data(),
+        reply.size());
+    EXPECT_EQ(reply_size, static_cast<int>(reply.size()));
+    return reply;
+}
+
+Node_format unreachable_node(const std::uint8_t *_Nonnull public_key)
+{
+    Node_format node{};
+    std::memcpy(node.public_key, public_key, CRYPTO_PUBLIC_KEY_SIZE);
+    ip_init(&node.ip_port.ip, false);
+    node.ip_port.ip.ip.v4.uint32 = net_htonl(0x0a000009);
+    node.ip_port.port = net_htons(kBasePort);
+    return node;
+}
+
 class LyingResponder {
 public:
     LyingResponder(SimulatedEnvironment &env, std::uint16_t port,
         const std::uint8_t *_Nonnull data_pk, std::size_t junk)
         : dht_(env, port)
+        , data_pk_(data_pk, data_pk + CRYPTO_PUBLIC_KEY_SIZE)
+        , junk_(junk)
     {
+        std::uint8_t listed_pk[CRYPTO_PUBLIC_KEY_SIZE];
         std::uint8_t listed_sk[CRYPTO_SECRET_KEY_SIZE];
-        crypto_new_keypair(&dht_.node().c_random, listed_.public_key, listed_sk);
-        ip_init(&listed_.ip_port.ip, false);
-        listed_.ip_port.ip.ip.v4.uint32 = net_htonl(0x0a000009);
-        listed_.ip_port.port = net_htons(kBasePort);
+        crypto_new_keypair(&dht_.node().c_random, listed_pk, listed_sk);
+        listed_ = unreachable_node(listed_pk);
 
-        FakeUdpSocket *socket = dht_.node().endpoint;
-        socket->set_recv_observer(
-            [this, socket,
-                key = std::vector<std::uint8_t>(data_pk, data_pk + CRYPTO_PUBLIC_KEY_SIZE),
-                junk](const std::vector<std::uint8_t> &packet, const IP_Port &from) {
+        dht_.node().endpoint->set_recv_observer(
+            [this](const std::vector<std::uint8_t> &packet, const IP_Port &from) {
                 if (!packet.empty() && packet[0] == NET_PACKET_FORWARD_REQUEST) {
                     asked_to_forward_ = true;
                 }
 
                 if (!answered_) {
-                    answered_ = answer(socket, packet, from, key.data(), junk);
+                    answered_ = answer(packet, from);
                 }
             });
     }
@@ -273,68 +374,151 @@ public:
     void poll() { networking_poll(dht_.networking(), nullptr); }
 
 private:
-    bool answer(FakeUdpSocket *_Nonnull socket, const std::vector<std::uint8_t> &packet,
-        const IP_Port &from, const std::uint8_t *_Nonnull data_pk, std::size_t junk)
+    bool answer(const std::vector<std::uint8_t> &packet, const IP_Port &from)
     {
-        constexpr std::size_t header = 1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE;
-
-        if (packet.size()
-                < header + CRYPTO_MAC_SIZE + CRYPTO_PUBLIC_KEY_SIZE + sizeof(std::uint64_t)
-            || packet[0] != NET_PACKET_DATA_SEARCH_REQUEST) {
-            return false;
-        }
-
         const Memory *mem = &dht_.node().c_memory;
-        std::uint8_t shared_key[CRYPTO_SHARED_KEY_SIZE];
+        Request request;
 
-        if (encrypt_precompute(packet.data() + 1, dht_.dht_secret_key(), shared_key) != 0) {
+        if (!open_request(mem, packet.data(), packet.size(), NET_PACKET_DATA_SEARCH_REQUEST,
+                dht_.dht_secret_key(), data_pk_.data(), request)) {
             return false;
         }
 
-        std::vector<std::uint8_t> request(packet.size() - header - CRYPTO_MAC_SIZE);
+        const std::vector<std::uint8_t> response
+            = search_response(dht_.logger(), data_pk_.data(), {listed_}, false, junk_, request);
 
-        if (decrypt_data_symmetric(mem, shared_key, packet.data() + 1 + CRYPTO_PUBLIC_KEY_SIZE,
-                packet.data() + header, packet.size() - header, request.data())
-                != static_cast<std::int32_t>(request.size())
-            || !pk_equal(request.data(), data_pk)) {
+        if (response.empty()) {
             return false;
         }
 
-        constexpr std::size_t nodes_start = CRYPTO_PUBLIC_KEY_SIZE + 1 + TIMED_AUTH_SIZE + 1 + 1;
-        std::vector<std::uint8_t> response(
-            nodes_start + PACKED_NODE_SIZE_IP6 + junk + sizeof(std::uint64_t), 0);
-        std::memcpy(response.data(), data_pk, CRYPTO_PUBLIC_KEY_SIZE);
-        response[nodes_start - 1] = 1;
-
-        const int packed_size
-            = pack_nodes(dht_.logger(), &response[nodes_start], PACKED_NODE_SIZE_IP6, &listed_, 1);
-        if (packed_size <= 0) {
-            ADD_FAILURE() << "couldn't pack the listed node";
-            return false;
-        }
-
-        response.resize(nodes_start + packed_size + junk + sizeof(std::uint64_t));
-
-        std::uint8_t *const after_node = &response[nodes_start + packed_size];
-        std::memset(after_node, 0xff, junk);
-        std::memcpy(after_node + junk, &request[request.size() - sizeof(std::uint64_t)],
-            sizeof(std::uint64_t));
-
-        std::vector<std::uint8_t> reply(
-            1 + CRYPTO_PUBLIC_KEY_SIZE + CRYPTO_NONCE_SIZE + response.size() + CRYPTO_MAC_SIZE);
-        const int reply_size = dht_create_packet(mem, &dht_.node().c_random, dht_.dht_public_key(),
-            shared_key, NET_PACKET_DATA_SEARCH_RESPONSE, response.data(), response.size(),
-            reply.data(), reply.size());
-        EXPECT_EQ(reply_size, static_cast<int>(reply.size()));
-
-        socket->sendto(reply.data(), reply.size(), &from);
+        const std::vector<std::uint8_t> reply
+            = search_reply(mem, &dht_.node().c_random, public_key(), request, response);
+        dht_.node().endpoint->sendto(reply.data(), reply.size(), &from);
         return true;
     }
 
     WrappedDHT dht_;
+    std::vector<std::uint8_t> data_pk_;
+    std::size_t junk_;
     Node_format listed_{};
     bool answered_ = false;
     bool asked_to_forward_ = false;
+};
+
+class DisplacedResponder {
+public:
+    DisplacedResponder(
+        SimulatedEnvironment &env, std::uint16_t port, const std::uint8_t *_Nonnull data_pk)
+        : dht_(env, port)
+        , data_pk_(data_pk, data_pk + CRYPTO_PUBLIC_KEY_SIZE)
+    {
+        const Random *rng = &dht_.node().c_random;
+
+        do {
+            crypto_new_keypair(rng, closer_pk_, closer_sk_);
+        } while (id_closest(data_pk, closer_pk_, public_key()) != 1);
+
+        std::uint8_t closest_sk[CRYPTO_SECRET_KEY_SIZE];
+
+        do {
+            crypto_new_keypair(rng, closest_pk_, closest_sk);
+        } while (id_closest(data_pk, closest_pk_, closer_pk_) != 1);
+
+        dht_.node().endpoint->set_recv_observer(
+            [this](const std::vector<std::uint8_t> &packet, const IP_Port &from) {
+                receive(packet, from);
+            });
+    }
+
+    const std::uint8_t *_Nonnull public_key() const { return dht_.dht_public_key(); }
+    IP_Port ip_port() const { return dht_.get_ip_port(); }
+    bool answered_off_the_list() const { return answered_off_the_list_; }
+    bool asked_to_store() const { return asked_to_store_; }
+
+    void poll()
+    {
+        if (!held_reply_.empty()) {
+            dht_.node().endpoint->sendto(held_reply_.data(), held_reply_.size(), &held_reply_to_);
+            held_reply_.clear();
+            answered_off_the_list_ = true;
+        }
+
+        networking_poll(dht_.networking(), nullptr);
+    }
+
+private:
+    void receive(const std::vector<std::uint8_t> &packet, const IP_Port &from)
+    {
+        if (packet.empty()) {
+            return;
+        }
+
+        if (packet[0] == NET_PACKET_STORE_ANNOUNCE_REQUEST) {
+            asked_to_store_ = true;
+            return;
+        }
+
+        if (packet[0] == NET_PACKET_FORWARD_REQUEST && packet.size() > 1 + CRYPTO_PUBLIC_KEY_SIZE
+            && pk_equal(packet.data() + 1, closer_pk_)) {
+            forwarded_.assign(packet.begin() + 1 + CRYPTO_PUBLIC_KEY_SIZE, packet.end());
+            return;
+        }
+
+        const Memory *mem = &dht_.node().c_memory;
+        const Random *rng = &dht_.node().c_random;
+        Request request;
+
+        if (!open_request(mem, packet.data(), packet.size(), NET_PACKET_DATA_SEARCH_REQUEST,
+                dht_.dht_secret_key(), data_pk_.data(), request)) {
+            return;
+        }
+
+        ++searches_;
+
+        if (searches_ == 1) {
+            const std::vector<std::uint8_t> reply = search_reply(mem, rng, public_key(), request,
+                search_response(dht_.logger(), data_pk_.data(), {unreachable_node(closer_pk_)},
+                    true, 0, request));
+            dht_.node().endpoint->sendto(reply.data(), reply.size(), &from);
+            return;
+        }
+
+        if (searches_ != 2 || forwarded_.empty()) {
+            return;
+        }
+
+        Request closer_request;
+
+        if (!open_request(mem, forwarded_.data(), forwarded_.size(), NET_PACKET_DATA_SEARCH_REQUEST,
+                closer_sk_, data_pk_.data(), closer_request)) {
+            ADD_FAILURE() << "couldn't read the request forwarded to the closer node";
+            return;
+        }
+
+        std::vector<std::uint8_t> forwarding = {NET_PACKET_FORWARDING, 0};
+        const std::vector<std::uint8_t> closer_reply
+            = search_reply(mem, rng, closer_pk_, closer_request,
+                search_response(dht_.logger(), data_pk_.data(), {}, false, 0, closer_request));
+        forwarding.insert(forwarding.end(), closer_reply.begin(), closer_reply.end());
+        dht_.node().endpoint->sendto(forwarding.data(), forwarding.size(), &from);
+
+        held_reply_ = search_reply(mem, rng, public_key(), request,
+            search_response(
+                dht_.logger(), data_pk_.data(), {unreachable_node(closest_pk_)}, true, 0, request));
+        held_reply_to_ = from;
+    }
+
+    WrappedDHT dht_;
+    std::vector<std::uint8_t> data_pk_;
+    std::uint8_t closer_pk_[CRYPTO_PUBLIC_KEY_SIZE];
+    std::uint8_t closer_sk_[CRYPTO_SECRET_KEY_SIZE];
+    std::uint8_t closest_pk_[CRYPTO_PUBLIC_KEY_SIZE];
+    std::vector<std::uint8_t> forwarded_;
+    std::vector<std::uint8_t> held_reply_;
+    IP_Port held_reply_to_{};
+    int searches_ = 0;
+    bool answered_off_the_list_ = false;
+    bool asked_to_store_ = false;
 };
 
 class AnnounceClientResponseTest : public AnnounceClientTest {
@@ -378,6 +562,38 @@ TEST_F(AnnounceClientResponseTest, IgnoresAResponseWithBytesAfterTheNodes)
 TEST_F(AnnounceClientResponseTest, IgnoresAResponseWithAByteAfterTheNodes)
 {
     EXPECT_FALSE(follows_listed_node(1));
+}
+
+TEST_F(AnnounceClientResponseTest, DoesNotStoreOnANodeOffTheListThatNamedACloserOne)
+{
+    std::vector<std::unique_ptr<AnnounceNode>> nodes = make_nodes(1);
+    AnnounceNode &alice = *nodes[0];
+
+    std::uint8_t data_pk[CRYPTO_PUBLIC_KEY_SIZE];
+    std::uint8_t data_sk[CRYPTO_SECRET_KEY_SIZE];
+    crypto_new_keypair(alice.rng(), data_pk, data_sk);
+
+    DisplacedResponder bob(env, kBasePort + 1, data_pk);
+    alice.add_node(bob.ip_port(), bob.public_key());
+
+    ASSERT_TRUE(
+        announce_client_add_announce(alice.client(), data_pk, 1, data_sk, kData, sizeof(kData)));
+
+    for (int i = 0; i < 200 && !bob.answered_off_the_list(); ++i) {
+        env.advance_time(100);
+        alice.poll();
+        bob.poll();
+    }
+
+    ASSERT_TRUE(bob.answered_off_the_list());
+
+    for (int i = 0; i < 10; ++i) {
+        env.advance_time(100);
+        alice.poll();
+        bob.poll();
+    }
+
+    EXPECT_FALSE(bob.asked_to_store());
 }
 
 class AnnounceClientDhtTest : public AnnounceClientTest {

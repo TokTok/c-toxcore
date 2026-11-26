@@ -156,7 +156,7 @@ static bool is_announced(const Mono_Time *_Nonnull mono_time, const Lookup *_Non
         }
     }
 
-    return count >= lookup->width / 2;
+    return count > 0 && 2 * count >= num_lookup_nodes(lookup);
 }
 
 #define ANNOUNCE_CLIENT_PING_ARRAY_SIZE 512
@@ -581,6 +581,7 @@ static void process_data_search_response(Announce_Client *_Nonnull announce_clie
     const Lookup_Data *const lookup_data = get_lookup_data(lookup);
     Lookup_Route base_routes[MAX_LOOKUP_WIDTH];
     uint16_t num_base_routes = 0;
+    const bool was_listed = responder_lookup_node != nullptr;
     bool added = false;
     bool do_announce = lookup_data->announce_length > 0 && would_accept;
 
@@ -632,8 +633,8 @@ static void process_data_search_response(Announce_Client *_Nonnull announce_clie
             if (send_data_search_request(announce_client, lookup, &new_route)) {
                 ++sent;
 
-                do_announce &= !(added && (id_closest(lookup->data_public_key,
-                                                      route_destination_pk(route), nodes[i].public_key) == 2));
+                do_announce &= !(!was_listed && (id_closest(lookup->data_public_key,
+                                                 route_destination_pk(route), nodes[i].public_key) == 2));
             }
         }
     }
