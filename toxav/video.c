@@ -544,6 +544,31 @@ int vc_reconfigure_encoder(VCSession *vc, uint32_t bit_rate, uint16_t width, uin
     return 0;
 }
 
+/**
+ * Copy a packed plane into an image plane, which may be larger. The last
+ * column and row are repeated to fill the rest.
+ */
+static void copy_plane(uint8_t *_Nonnull dst, int dst_stride, uint16_t width, uint16_t height,
+                       const uint8_t *_Nonnull src, uint16_t src_width, uint16_t src_height)
+{
+    for (uint16_t row = 0; row < height; ++row) {
+        uint8_t *line = &dst[(size_t)row * (size_t)dst_stride];
+
+        if (src_width == 0 || src_height == 0) {
+            // A 1 pixel wide or high picture has no chroma, so we make it grey.
+            memset(line, 128, width);
+            continue;
+        }
+
+        const uint16_t src_row = min_u16(row, (uint16_t)(src_height - 1));
+        memcpy(line, &src[(size_t)src_row * src_width], src_width);
+
+        for (uint16_t col = src_width; col < width; ++col) {
+            line[col] = line[src_width - 1];
+        }
+    }
+}
+
 int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
               const uint8_t *u, const uint8_t *v, int encode_flags)
 {
@@ -563,9 +588,11 @@ int vc_encode(VCSession *vc, uint16_t width, uint16_t height, const uint8_t *y,
 
     vpx_image_t *img = &vc->raw_encoder_frame;
 
-    memcpy(img->planes[VPX_PLANE_Y], y, (size_t)width * height);
-    memcpy(img->planes[VPX_PLANE_U], u, ((size_t)width / 2) * (height / 2));
-    memcpy(img->planes[VPX_PLANE_V], v, ((size_t)width / 2) * (height / 2));
+    const uint16_t chroma_width = (uint16_t)((width + 1) / 2);
+    const uint16_t chroma_height = (uint16_t)((height + 1) / 2);
+    copy_plane(img->planes[VPX_PLANE_Y], img->stride[VPX_PLANE_Y], width, height, y, width, height);
+    copy_plane(img->planes[VPX_PLANE_U], img->stride[VPX_PLANE_U], chroma_width, chroma_height, u, width / 2, height / 2);
+    copy_plane(img->planes[VPX_PLANE_V], img->stride[VPX_PLANE_V], chroma_width, chroma_height, v, width / 2, height / 2);
 
     int vpx_flags = 0;
 
