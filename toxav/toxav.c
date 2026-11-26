@@ -2,7 +2,7 @@
  * Copyright © 2016-2026 The TokTok team.
  * Copyright © 2013-2015 Tox project.
  */
-#include "toxav.h"
+#include "av_core.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -15,20 +15,12 @@
 #include "rtp.h"
 #include "video.h"
 
-#include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
 #include "../toxcore/mem.h"
 #include "../toxcore/mono_time.h"
 #include "../toxcore/net.h"
-#include "../toxcore/net_crypto.h"
-#include "../toxcore/tox.h"
-#include "../toxcore/tox_private.h"
-#include "../toxcore/tox_struct.h"  // IWYU pragma: keep
 #include "../toxcore/util.h"
-
-static_assert(MSI_PACKET_ID == PACKET_ID_MSI, "ToxAV and toxcore disagree on the MSI packet ID");
-static_assert(RTP_MAX_PACKET_SIZE == TOX_MAX_CUSTOM_PACKET_SIZE, "ToxAV and toxcore disagree on the packet size");
 
 #define VIDEO_SEND_X_KEYFRAMES_FIRST 7 // force the first n frames to be keyframes!
 
@@ -36,19 +28,6 @@ static_assert(RTP_MAX_PACKET_SIZE == TOX_MAX_CUSTOM_PACKET_SIZE, "ToxAV and toxc
 #define IDLE_ITERATION_INTERVAL_MS 1000
 
 typedef struct ToxAVCall ToxAVCall;
-
-/**
- * Sends a packet to a friend.
- *
- * @param data The packet, starting with its packet ID.
- *
- * @return true if the packet was sent.
- */
-typedef bool toxav_send_packet_cb(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
-                                  void *_Nonnull user_data);
-
-/** Tells whether a friend exists, or whether it's connected. */
-typedef bool toxav_friend_query_cb(Tox_Friend_Number friend_number, void *_Nonnull user_data);
 
 static ToxAVCall *_Nullable call_get(ToxAV *_Nonnull av, uint32_t friend_number);
 static RTPSession *_Nullable rtp_session_get(ToxAVCall *_Nullable call, int payload_type);
@@ -104,15 +83,14 @@ typedef struct DecodeTimeStats {
 
 struct ToxAV {
     const struct Memory *_Nonnull mem;
-    Logger *_Nonnull log;
-    Tox *_Nonnull tox;
+    const Logger *_Nonnull log;
     MSISession *_Nonnull msi;
 
-    /* How ToxAV reaches friends: through its Tox instance. */
-    toxav_send_packet_cb *_Nonnull send_lossy;
-    toxav_send_packet_cb *_Nonnull send_lossless;
-    toxav_friend_query_cb *_Nonnull friend_exists;
-    toxav_friend_query_cb *_Nonnull friend_connected;
+    /* How ToxAV reaches friends. */
+    av_core_send_packet_cb *_Nonnull send_lossy;
+    av_core_send_packet_cb *_Nonnull send_lossless;
+    av_core_friend_query_cb *_Nonnull friend_exists;
+    av_core_friend_query_cb *_Nonnull friend_connected;
     void *_Nonnull network_user_data;
 
     ToxAVCall *_Nullable calls;
@@ -145,37 +123,6 @@ struct ToxAV {
 };
 
 static void callback_bwc(BWController *_Nonnull bwc, Tox_Friend_Number friend_number, float loss, void *_Nonnull user_data);
-
-static bool legacy_send_lossy(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
-                              void *_Nonnull user_data)
-{
-    Tox *tox = (Tox *)user_data;
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossy_packet(tox, friend_number, data, length, &error);
-    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK;
-}
-
-static bool legacy_send_lossless(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
-                                 void *_Nonnull user_data)
-{
-    Tox *tox = (Tox *)user_data;
-    Tox_Err_Friend_Custom_Packet error;
-    tox_friend_send_lossless_packet(tox, friend_number, data, length, &error);
-    return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK;
-}
-
-static bool legacy_friend_exists(Tox_Friend_Number friend_number, void *_Nonnull user_data)
-{
-    const Tox *tox = (const Tox *)user_data;
-    return tox_friend_exists(tox, friend_number);
-}
-
-static bool legacy_friend_connected(Tox_Friend_Number friend_number, void *_Nonnull user_data)
-{
-    const Tox *tox = (const Tox *)user_data;
-    Tox_Err_Friend_Query error;
-    return tox_friend_get_connection_status(tox, friend_number, &error) != TOX_CONNECTION_NONE;
-}
 
 static bool friend_exists(const ToxAV *_Nonnull av, Tox_Friend_Number friend_number)
 {
@@ -265,8 +212,7 @@ static void handle_bwc_packet(ToxAV *_Nonnull toxav, Tox_Friend_Number friend_nu
     bwc_handle_packet(bwc, data, length);
 }
 
-/** Handles a packet from a friend, starting with its packet ID. */
-static void receive_packet(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length)
+void av_core_receive_packet(ToxAV *av, Tox_Friend_Number friend_number, const uint8_t *data, size_t length)
 {
     if (length == 0) {
         return;
@@ -290,15 +236,6 @@ static void receive_packet(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, 
         default:
             // Unknown packet
             break;
-    }
-}
-
-static void legacy_handle_packet(Tox *_Nonnull tox, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
-                                 void *_Nullable user_data)
-{
-    ToxAV *av = (ToxAV *)tox_get_av_object(tox);
-    if (av != nullptr) {
-        receive_packet(av, friend_number, data, length);
     }
 }
 
@@ -405,7 +342,7 @@ static pthread_mutex_t *_Nullable recursive_mutex_new(const Memory *_Nonnull mem
     return mutex;
 }
 
-/** Frees what toxav_new made before its MSI session. */
+/** Frees what av_core_new made before its MSI session. */
 static void toxav_free(ToxAV *_Nonnull av)
 {
     mono_time_free(av->mem, av->toxav_mono_time);
@@ -418,7 +355,8 @@ static void toxav_free(ToxAV *_Nonnull av)
     mem_delete(av->mem, av);
 }
 
-ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
+ToxAV *av_core_new(const Memory *mem, const Logger *log, mono_time_current_time_cb *current_time,
+                   void *current_time_user_data, const Av_Core_Network *network)
 {
     const MSICallbacks callbacks = {
         callback_invite,
@@ -429,98 +367,53 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
         callback_capabilities,
     };
 
-    Toxav_Err_New rc;
-    ToxAV *av = nullptr;
-
-    if (tox == nullptr) {
-        rc = TOXAV_ERR_NEW_NULL;
-        goto FAILURE;
-    }
-
-    if (tox_get_av_object(tox) != nullptr) {
-        rc = TOXAV_ERR_NEW_MULTIPLE;
-        goto FAILURE;
-    }
-
-    rc = TOXAV_ERR_NEW_MALLOC;
-    av = (ToxAV *)mem_alloc(tox->sys.mem, sizeof(ToxAV));
+    ToxAV *av = (ToxAV *)mem_alloc(mem, sizeof(ToxAV));
 
     if (av == nullptr) {
-        goto FAILURE;
+        return nullptr;
     }
 
-    av->mem = tox->sys.mem;
-    av->log = tox->m->log;
-    av->tox = tox;
-    av->send_lossy = legacy_send_lossy;
-    av->send_lossless = legacy_send_lossless;
-    av->friend_exists = legacy_friend_exists;
-    av->friend_connected = legacy_friend_connected;
-    av->network_user_data = tox;
+    av->mem = mem;
+    av->log = log;
+    av->send_lossy = network->send_lossy;
+    av->send_lossless = network->send_lossless;
+    av->friend_exists = network->friend_exists;
+    av->friend_connected = network->friend_connected;
+    av->network_user_data = network->user_data;
     av->mutex = recursive_mutex_new(av->mem);
 
     if (av->mutex == nullptr) {
-        goto FAILURE;
+        toxav_free(av);
+        return nullptr;
     }
 
-    av->toxav_mono_time = mono_time_new(av->mem, tox->sys.mono_time_callback, tox->sys.mono_time_user_data);
+    av->toxav_mono_time = mono_time_new(av->mem, current_time, current_time_user_data);
 
     if (av->toxav_mono_time == nullptr) {
-        goto FAILURE;
+        toxav_free(av);
+        return nullptr;
     }
 
     av->msi = msi_new(av->log, msi_send_packet, av, &callbacks, av);
 
     if (av->msi == nullptr) {
-        goto FAILURE;
+        toxav_free(av);
+        return nullptr;
     }
 
     init_decode_time_stats(&av->audio_stats);
     init_decode_time_stats(&av->video_stats);
 
-    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, RTP_TYPE_AUDIO);
-    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, RTP_TYPE_VIDEO);
-    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, BWC_PACKET_ID);
-    tox_callback_friend_lossless_packet_per_pktid(tox, legacy_handle_packet, PACKET_ID_MSI);
-
-    // save ToxAV object into toxcore
-    tox_set_av_object(tox, av);
-
-    if (error != nullptr) {
-        *error = TOXAV_ERR_NEW_OK;
-    }
-
     return av;
-
-FAILURE:
-    if (error != nullptr) {
-        *error = rc;
-    }
-
-    if (av != nullptr) {
-        toxav_free(av);
-    }
-
-    return nullptr;
 }
 
-void toxav_kill(ToxAV *_Nullable av)
+void av_core_kill(ToxAV *av)
 {
     if (av == nullptr) {
         return;
     }
 
     pthread_mutex_lock(av->mutex);
-
-    // unregister callbacks
-    for (uint8_t i = PACKET_ID_RANGE_LOSSY_AV_START; i <= PACKET_ID_RANGE_LOSSY_AV_END; ++i) {
-        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, i);
-    }
-
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_AUDIO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_VIDEO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, BWC_PACKET_ID);
-    tox_callback_friend_lossless_packet_per_pktid(av->tox, nullptr, PACKET_ID_MSI);
 
     /* To avoid possible deadlocks */
     while (av->msi != nullptr && msi_kill(av->log, av->msi) != 0) {
@@ -540,20 +433,12 @@ void toxav_kill(ToxAV *_Nullable av)
     }
 
     pthread_mutex_unlock(av->mutex);
-
-    // set ToxAV object to NULL in toxcore, to signal ToxAV has been shutdown
-    tox_set_av_object(av->tox, nullptr);
-
     toxav_free(av);
 }
 
-Tox *_Nonnull toxav_get_tox(const ToxAV *_Nonnull av)
+void *av_core_network_user_data(const ToxAV *av)
 {
-    Tox *tox;
-    pthread_mutex_lock(av->mutex);
-    tox = av->tox;
-    pthread_mutex_unlock(av->mutex);
-    return tox;
+    return av->network_user_data;
 }
 
 uint32_t toxav_audio_iteration_interval(const ToxAV *_Nonnull av)

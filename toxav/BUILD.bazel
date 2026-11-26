@@ -307,12 +307,51 @@ cc_test(
 )
 
 cc_test(
+    name = "toxav_compat_test",
+    size = "small",
+    srcs = ["toxav_compat_test.cc"],
+    deps = [
+        ":toxav",
+        "//c-toxcore/toxcore:tox",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "toxav_core",
+    srcs = ["toxav.c"],
+    hdrs = [
+        "av_core.h",
+        "toxav.h",
+    ],
+    deps = [
+        ":audio",
+        ":bwcontroller",
+        ":msi",
+        ":rtp",
+        ":video",
+        "//c-toxcore/toxcore:attributes",
+        "//c-toxcore/toxcore:ccompat",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:mem",
+        "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:net",
+        "//c-toxcore/toxcore:util",
+        "@libsodium",
+        "@opus",
+    ],
+)
+
+cc_test(
     name = "toxav_test",
     size = "small",
     srcs = ["toxav_test.cc"],
     deps = [
-        ":toxav",
-        "//c-toxcore/toxcore:tox",
+        ":av_test_support",
+        ":toxav_core",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:os_memory",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -323,26 +362,23 @@ cc_library(
     srcs = [
         "groupav.c",
         "groupav.h",
-        "toxav.c",
+        "toxav_compat.c",
         "toxav_old.c",
     ],
     hdrs = ["toxav.h"],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":audio",
         ":bwcontroller",
         ":group_jitter_buffer",
         ":msi",
         ":rtp",
-        ":video",
+        ":toxav_core",
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:group",
         "//c-toxcore/toxcore:logger",
-        "//c-toxcore/toxcore:mem",
         "//c-toxcore/toxcore:mono_time",
-        "//c-toxcore/toxcore:net",
         "//c-toxcore/toxcore:net_crypto",
         "//c-toxcore/toxcore:tox",
         "//c-toxcore/toxcore:util",

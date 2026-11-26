@@ -427,6 +427,7 @@ if(BUILD_TOXAV)
   set(toxcore_SOURCES ${toxcore_SOURCES}
     toxav/audio.c
     toxav/audio.h
+    toxav/av_core.h
     toxav/bwcontroller.c
     toxav/bwcontroller.h
     toxav/group_jitter_buffer.c
@@ -441,6 +442,7 @@ if(BUILD_TOXAV)
     toxav/rtp.h
     toxav/toxav.c
     toxav/toxav.h
+    toxav/toxav_compat.c
     toxav/toxav_old.c
     toxav/video.c
     toxav/video.h)
@@ -627,6 +629,8 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
     unit_test(toxav ring_buffer)
     unit_test(toxav rtp)
     unit_test(toxav toxav)
+    target_link_libraries(unit_toxav_test PRIVATE av_test_support)
+    unit_test(toxav toxav_compat)
     unit_test(toxav video)
     target_link_libraries(unit_video_test PRIVATE av_test_support)
   endif()
