@@ -1551,6 +1551,26 @@ static ToxAVCall *call_remove(ToxAV *av, ToxAVCall *call)
     return next;
 }
 
+static void call_kill_audio(ToxAVCall *_Nonnull call)
+{
+    pthread_mutex_lock(call->mutex_audio);
+    rtp_kill(call->av->log, call->audio_rtp);
+    ac_kill(call->audio);
+    call->audio_rtp = nullptr;
+    call->audio = nullptr;
+    pthread_mutex_unlock(call->mutex_audio);
+}
+
+static void call_kill_video(ToxAVCall *_Nonnull call)
+{
+    pthread_mutex_lock(call->mutex_video);
+    rtp_kill(call->av->log, call->video_rtp);
+    vc_kill(call->video);
+    call->video_rtp = nullptr;
+    call->video = nullptr;
+    pthread_mutex_unlock(call->mutex_video);
+}
+
 static bool call_prepare_transmission(ToxAVCall *call)
 {
     /* Assumes mutex locked */
@@ -1627,16 +1647,10 @@ static bool call_prepare_transmission(ToxAVCall *call)
     return true;
 
 FAILURE:
+    call_kill_audio(call);
+    call_kill_video(call);
     bwc_kill(call->bwc);
     call->bwc = nullptr;
-    rtp_kill(av->log, call->audio_rtp);
-    ac_kill(call->audio);
-    call->audio_rtp = nullptr;
-    call->audio = nullptr;
-    rtp_kill(av->log, call->video_rtp);
-    vc_kill(call->video);
-    call->video_rtp = nullptr;
-    call->video = nullptr;
     pthread_mutex_destroy(call->mutex_video);
 FAILURE_2:
     pthread_mutex_destroy(call->mutex_audio);
@@ -1651,27 +1665,13 @@ static void call_kill_transmission(ToxAVCall *call)
 
     call->active = false;
 
-    pthread_mutex_lock(call->mutex_audio);
-    pthread_mutex_unlock(call->mutex_audio);
-    pthread_mutex_lock(call->mutex_video);
-    pthread_mutex_unlock(call->mutex_video);
     pthread_mutex_lock(call->toxav_call_mutex);
     pthread_mutex_unlock(call->toxav_call_mutex);
 
+    call_kill_audio(call);
+    call_kill_video(call);
     bwc_kill(call->bwc);
     call->bwc = nullptr;
-
-    const ToxAV *av = call->av;
-
-    rtp_kill(av->log, call->audio_rtp);
-    ac_kill(call->audio);
-    call->audio_rtp = nullptr;
-    call->audio = nullptr;
-
-    rtp_kill(av->log, call->video_rtp);
-    vc_kill(call->video);
-    call->video_rtp = nullptr;
-    call->video = nullptr;
 
     pthread_mutex_destroy(call->mutex_audio);
     pthread_mutex_destroy(call->mutex_video);
