@@ -18,9 +18,10 @@
 #include "../toxcore/Messenger.h"
 #include "../toxcore/ccompat.h"
 #include "../toxcore/logger.h"
+#include "../toxcore/mem.h"
 #include "../toxcore/mono_time.h"
+#include "../toxcore/net.h"
 #include "../toxcore/net_crypto.h"
-#include "../toxcore/network.h"
 #include "../toxcore/tox.h"
 #include "../toxcore/tox_private.h"
 #include "../toxcore/tox_struct.h"  // IWYU pragma: keep
@@ -392,6 +393,31 @@ static void init_decode_time_stats(DecodeTimeStats *_Nonnull d)
     d->interval = IDLE_ITERATION_INTERVAL_MS;
 }
 
+static pthread_mutex_t *_Nullable recursive_mutex_new(const Memory *_Nonnull mem)
+{
+    pthread_mutex_t *mutex = (pthread_mutex_t *)mem_alloc(mem, sizeof(pthread_mutex_t));
+
+    if (mutex != nullptr && create_recursive_mutex(mutex) != 0) {
+        mem_delete(mem, mutex);
+        return nullptr;
+    }
+
+    return mutex;
+}
+
+/** Frees what toxav_new made before its MSI session. */
+static void toxav_free(ToxAV *_Nonnull av)
+{
+    mono_time_free(av->mem, av->toxav_mono_time);
+
+    if (av->mutex != nullptr) {
+        pthread_mutex_destroy(av->mutex);
+        mem_delete(av->mem, av->mutex);
+    }
+
+    mem_delete(av->mem, av);
+}
+
 ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
 {
     const MSICallbacks callbacks = {
@@ -403,36 +429,24 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
         callback_capabilities,
     };
 
-    Toxav_Err_New rc = TOXAV_ERR_NEW_OK;
+    Toxav_Err_New rc;
     ToxAV *av = nullptr;
 
     if (tox == nullptr) {
         rc = TOXAV_ERR_NEW_NULL;
-        goto RETURN;
+        goto FAILURE;
     }
 
     if (tox_get_av_object(tox) != nullptr) {
         rc = TOXAV_ERR_NEW_MULTIPLE;
-        goto RETURN;
+        goto FAILURE;
     }
 
-    av = (ToxAV *)calloc(1, sizeof(ToxAV));
+    rc = TOXAV_ERR_NEW_MALLOC;
+    av = (ToxAV *)mem_alloc(tox->sys.mem, sizeof(ToxAV));
 
     if (av == nullptr) {
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
-    }
-
-    av->mutex = (pthread_mutex_t *)mem_alloc(tox->sys.mem, sizeof(pthread_mutex_t));
-    if (av->mutex == nullptr) {
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
-    }
-
-    if (create_recursive_mutex(av->mutex) != 0) {
-        mem_delete(tox->sys.mem, av->mutex);
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
+        goto FAILURE;
     }
 
     av->mem = tox->sys.mem;
@@ -443,50 +457,51 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
     av->friend_exists = legacy_friend_exists;
     av->friend_connected = legacy_friend_connected;
     av->network_user_data = tox;
+    av->mutex = recursive_mutex_new(av->mem);
+
+    if (av->mutex == nullptr) {
+        goto FAILURE;
+    }
+
+    av->toxav_mono_time = mono_time_new(av->mem, tox->sys.mono_time_callback, tox->sys.mono_time_user_data);
+
+    if (av->toxav_mono_time == nullptr) {
+        goto FAILURE;
+    }
 
     av->msi = msi_new(av->log, msi_send_packet, av, &callbacks, av);
 
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, RTP_TYPE_AUDIO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, RTP_TYPE_VIDEO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, BWC_PACKET_ID);
-    tox_callback_friend_lossless_packet_per_pktid(av->tox, legacy_handle_packet, PACKET_ID_MSI);
-
-    av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
-
     if (av->msi == nullptr) {
-        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_AUDIO);
-        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, RTP_TYPE_VIDEO);
-        tox_callback_friend_lossy_packet_per_pktid(av->tox, nullptr, BWC_PACKET_ID);
-        tox_callback_friend_lossless_packet_per_pktid(av->tox, nullptr, PACKET_ID_MSI);
-
-        mono_time_free(tox->sys.mem, av->toxav_mono_time);
-
-        pthread_mutex_destroy(av->mutex);
-        mem_delete(tox->sys.mem, av->mutex);
-        rc = TOXAV_ERR_NEW_MALLOC;
-        goto RETURN;
+        goto FAILURE;
     }
 
     init_decode_time_stats(&av->audio_stats);
     init_decode_time_stats(&av->video_stats);
 
+    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, RTP_TYPE_VIDEO);
+    tox_callback_friend_lossy_packet_per_pktid(tox, legacy_handle_packet, BWC_PACKET_ID);
+    tox_callback_friend_lossless_packet_per_pktid(tox, legacy_handle_packet, PACKET_ID_MSI);
+
     // save ToxAV object into toxcore
-    tox_set_av_object(av->tox, av);
+    tox_set_av_object(tox, av);
 
-RETURN:
+    if (error != nullptr) {
+        *error = TOXAV_ERR_NEW_OK;
+    }
 
+    return av;
+
+FAILURE:
     if (error != nullptr) {
         *error = rc;
     }
 
-    if (rc != TOXAV_ERR_NEW_OK) {
-        if (av != nullptr) {
-            free(av);
-            av = nullptr;
-        }
+    if (av != nullptr) {
+        toxav_free(av);
     }
 
-    return av;
+    return nullptr;
 }
 
 void toxav_kill(ToxAV *_Nullable av)
@@ -524,16 +539,12 @@ void toxav_kill(ToxAV *_Nullable av)
         }
     }
 
-    mono_time_free(av->tox->sys.mem, av->toxav_mono_time);
-
     pthread_mutex_unlock(av->mutex);
-    pthread_mutex_destroy(av->mutex);
-    mem_delete(av->tox->sys.mem, av->mutex);
 
     // set ToxAV object to NULL in toxcore, to signal ToxAV has been shutdown
     tox_set_av_object(av->tox, nullptr);
 
-    free(av);
+    toxav_free(av);
 }
 
 Tox *_Nonnull toxav_get_tox(const ToxAV *_Nonnull av)
@@ -1173,8 +1184,7 @@ bool toxav_audio_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number,
         const size_t dest_size = sample_count + sizeof(sampling_rate);
         VLA(uint8_t, dest, dest_size);
 
-        sampling_rate = net_htonl(sampling_rate);
-        memcpy(dest, &sampling_rate, sizeof(sampling_rate));
+        net_pack_u32(dest, sampling_rate);
         const int vrc = ac_encode(call->audio, pcm, sample_count,
                                   dest + sizeof(sampling_rate), dest_size - sizeof(sampling_rate));
 
@@ -1216,8 +1226,7 @@ static Toxav_Err_Send_Frame send_frames(const ToxAV *_Nonnull av, ToxAVCall *_No
                             is_keyframe);
 
         if (res < 0) {
-            Net_Strerror error_str;
-            LOGGER_WARNING(av->log, "Could not send video frame: %s", net_strerror(net_error(), &error_str));
+            LOGGER_WARNING(av->log, "Could not send video frame");
             return TOXAV_ERR_SEND_FRAME_RTP_FAILED;
         }
     }
