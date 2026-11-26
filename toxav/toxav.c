@@ -46,6 +46,9 @@ typedef struct ToxAVCall ToxAVCall;
 typedef bool toxav_send_packet_cb(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
                                   void *_Nonnull user_data);
 
+/** Tells whether a friend exists, or whether it's connected. */
+typedef bool toxav_friend_query_cb(Tox_Friend_Number friend_number, void *_Nonnull user_data);
+
 static ToxAVCall *_Nullable call_get(ToxAV *_Nonnull av, uint32_t friend_number);
 static RTPSession *_Nullable rtp_session_get(ToxAVCall *_Nullable call, int payload_type);
 static BWController *_Nullable bwc_controller_get(const ToxAVCall *_Nullable call);
@@ -107,6 +110,8 @@ struct ToxAV {
     /* How ToxAV reaches friends: through its Tox instance. */
     toxav_send_packet_cb *_Nonnull send_lossy;
     toxav_send_packet_cb *_Nonnull send_lossless;
+    toxav_friend_query_cb *_Nonnull friend_exists;
+    toxav_friend_query_cb *_Nonnull friend_connected;
     void *_Nonnull network_user_data;
 
     ToxAVCall *_Nullable calls;
@@ -156,6 +161,29 @@ static bool legacy_send_lossless(ToxAV *_Nonnull av, Tox_Friend_Number friend_nu
     Tox_Err_Friend_Custom_Packet error;
     tox_friend_send_lossless_packet(tox, friend_number, data, length, &error);
     return error == TOX_ERR_FRIEND_CUSTOM_PACKET_OK;
+}
+
+static bool legacy_friend_exists(Tox_Friend_Number friend_number, void *_Nonnull user_data)
+{
+    const Tox *tox = (const Tox *)user_data;
+    return tox_friend_exists(tox, friend_number);
+}
+
+static bool legacy_friend_connected(Tox_Friend_Number friend_number, void *_Nonnull user_data)
+{
+    const Tox *tox = (const Tox *)user_data;
+    Tox_Err_Friend_Query error;
+    return tox_friend_get_connection_status(tox, friend_number, &error) != TOX_CONNECTION_NONE;
+}
+
+static bool friend_exists(const ToxAV *_Nonnull av, Tox_Friend_Number friend_number)
+{
+    return av->friend_exists(friend_number, av->network_user_data);
+}
+
+static bool friend_is_connected(const ToxAV *_Nonnull av, Tox_Friend_Number friend_number)
+{
+    return av->friend_connected(friend_number, av->network_user_data);
 }
 
 static int msi_send_packet(void *_Nonnull user_data, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length)
@@ -412,6 +440,8 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
     av->tox = tox;
     av->send_lossy = legacy_send_lossy;
     av->send_lossless = legacy_send_lossless;
+    av->friend_exists = legacy_friend_exists;
+    av->friend_connected = legacy_friend_connected;
     av->network_user_data = tox;
 
     av->msi = msi_new(av->log, msi_send_packet, av, &callbacks, av);
@@ -570,12 +600,11 @@ static void iterate_common(ToxAV *_Nonnull av, bool audio)
     int32_t frame_time = IDLE_ITERATION_INTERVAL_MS;
 
     for (ToxAVCall *i = av->calls; i != nullptr; i = i->next) {
+        const Tox_Friend_Number fid = i->friend_number;
+        const bool is_offline = !friend_is_connected(av, fid);
+
         pthread_mutex_lock(i->toxav_call_mutex);
         pthread_mutex_unlock(av->mutex);
-
-        const uint32_t fid = i->friend_number;
-        Tox_Err_Friend_Query f_con_query_error;
-        const bool is_offline = tox_friend_get_connection_status(av->tox, fid, &f_con_query_error) == TOX_CONNECTION_NONE;
 
         /* A call still ringing ends too, or it would stay forever. */
         if (is_offline) {
@@ -648,6 +677,11 @@ bool toxav_call(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_R
         goto RETURN;
     }
 
+    if (!friend_exists(av, friend_number)) {
+        rc = TOXAV_ERR_CALL_FRIEND_NOT_FOUND;
+        goto RETURN;
+    }
+
     call = call_new(av, friend_number, &rc);
 
     if (call == nullptr) {
@@ -696,7 +730,7 @@ bool toxav_answer(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit
     Toxav_Err_Answer rc = TOXAV_ERR_ANSWER_OK;
     ToxAVCall *call;
 
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         rc = TOXAV_ERR_ANSWER_FRIEND_NOT_FOUND;
         goto RETURN;
     }
@@ -892,7 +926,7 @@ static Toxav_Err_Call_Control call_control_handle(ToxAV *_Nonnull av, ToxAVCall 
 }
 static Toxav_Err_Call_Control call_control(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Call_Control control)
 {
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         return TOXAV_ERR_CALL_CONTROL_FRIEND_NOT_FOUND;
     }
 
@@ -925,7 +959,7 @@ bool toxav_audio_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_numbe
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
     ToxAVCall *call;
 
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         rc = TOXAV_ERR_BIT_RATE_SET_FRIEND_NOT_FOUND;
         goto RETURN;
     }
@@ -998,7 +1032,7 @@ bool toxav_video_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_numbe
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
     ToxAVCall *call;
 
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         rc = TOXAV_ERR_BIT_RATE_SET_FRIEND_NOT_FOUND;
         goto RETURN;
     }
@@ -1087,7 +1121,7 @@ bool toxav_audio_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number,
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
     ToxAVCall *call;
 
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         rc = TOXAV_ERR_SEND_FRAME_FRIEND_NOT_FOUND;
         goto RETURN;
     }
@@ -1199,7 +1233,7 @@ bool toxav_video_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number,
 
     int video_encode_flags = 0;
 
-    if (!tox_friend_exists(av->tox, friend_number)) {
+    if (!friend_exists(av, friend_number)) {
         rc = TOXAV_ERR_SEND_FRAME_FRIEND_NOT_FOUND;
         goto RETURN;
     }
@@ -1517,17 +1551,7 @@ static ToxAVCall *call_new(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Err
     Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
     ToxAVCall *call = nullptr;
 
-    Tox_Err_Friend_Query f_con_query_error;
-    Tox_Connection f_con_status = TOX_CONNECTION_NONE;
-
-    if (!tox_friend_exists(av->tox, friend_number)) {
-        rc = TOXAV_ERR_CALL_FRIEND_NOT_FOUND;
-        goto RETURN;
-    }
-
-    f_con_status = tox_friend_get_connection_status(av->tox, friend_number, &f_con_query_error);
-
-    if (f_con_status == TOX_CONNECTION_NONE) {
+    if (!friend_is_connected(av, friend_number)) {
         rc = TOXAV_ERR_CALL_FRIEND_NOT_CONNECTED;
         goto RETURN;
     }
