@@ -489,7 +489,7 @@ int unpack_gc_saved_peers(GC_Chat *chat, const uint8_t *data, uint16_t length)
     for (size_t i = 0; unpacked_len < length && i < GC_MAX_SAVED_PEERS; ++i) {
         GC_SavedPeerInfo *saved_peer = &chat->saved_peers[i];
 
-        const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len, false);
+        const int ipp_len = unpack_ip_port(&saved_peer->ip_port, data + unpacked_len, length - unpacked_len);
 
         if (ipp_len > 0) {
             unpacked_len += ipp_len;
@@ -2534,10 +2534,10 @@ static int handle_gc_ping(GC_Chat *_Nonnull chat, GC_Connection *_Nonnull gconn,
     do_gc_peer_state_sync(chat, gconn, data, length);
 
     if (length > GC_PING_PACKET_MIN_DATA_SIZE) {
-        IP_Port ip_port = {{{0}}};
+        IP_Port ip_port = {{IP_TYPE_UNSPEC}};
 
         if (unpack_ip_port(&ip_port, data + GC_PING_PACKET_MIN_DATA_SIZE,
-                           length - GC_PING_PACKET_MIN_DATA_SIZE, false) > 0) {
+                           length - GC_PING_PACKET_MIN_DATA_SIZE) > 0) {
             gcc_set_ip_port(gconn, &ip_port);
             add_gc_saved_peers(chat, gconn);
         }

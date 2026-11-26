@@ -28,7 +28,7 @@ namespace {
 
         IP_Port s2_addr;
         ip_init(&s2_addr.ip, false);
-        s2_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        s2_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         s2_addr.port = net_htons(9004);
         s2.bind(&s2_addr);
 
@@ -56,7 +56,7 @@ namespace {
 
         IP_Port s2_addr;
         ip_init(&s2_addr.ip, false);
-        s2_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        s2_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         s2_addr.port = net_htons(9004);
         s2.bind(&s2_addr);
 
@@ -79,7 +79,7 @@ namespace {
 
         IP_Port s2_addr;
         ip_init(&s2_addr.ip, false);
-        s2_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        s2_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         s2_addr.port = net_htons(9004);
         s2.bind(&s2_addr);
 
@@ -107,9 +107,9 @@ namespace {
     {
         IP ip1{}, ip2{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x01010101);
+        ip1.value.v4.uint32 = net_htonl(0x01010101);
         ip_init(&ip2, false);
-        ip2.ip.v4.uint32 = net_htonl(0x02020202);
+        ip2.value.v4.uint32 = net_htonl(0x02020202);
 
         uint16_t port = 33445;
 
@@ -150,9 +150,9 @@ namespace {
     {
         IP ip1{}, ip2{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x01010101);
+        ip1.value.v4.uint32 = net_htonl(0x01010101);
         ip_init(&ip2, false);
-        ip2.ip.v4.uint32 = net_htonl(0x02020202);
+        ip2.value.v4.uint32 = net_htonl(0x02020202);
 
         FakeUdpSocket sock1{universe};
         sock1.set_ip(ip1);
@@ -170,16 +170,16 @@ namespace {
     {
         IP ip1{}, ip2{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x7F000001);
+        ip1.value.v4.uint32 = net_htonl(0x7F000001);
         ip_init(&ip2, false);
-        ip2.ip.v4.uint32 = net_htonl(0x7F000001);
+        ip2.value.v4.uint32 = net_htonl(0x7F000001);
 
         uint16_t port = 12345;
 
         // Force different garbage in the union padding for IPv4
         // The union is 16 bytes. IP4 is 4 bytes. Trailing 12 bytes are unused.
-        memset(ip1.ip.v6.uint8 + 4, 0x11, 12);
-        memset(ip2.ip.v6.uint8 + 4, 0x22, 12);
+        memset(ip1.value.v6.uint8 + 4, 0x11, 12);
+        memset(ip2.value.v6.uint8 + 4, 0x22, 12);
 
         NetworkUniverse::IP_Port_Key key1{ip1, port};
         NetworkUniverse::IP_Port_Key key2{ip2, port};
@@ -189,8 +189,8 @@ namespace {
         EXPECT_FALSE(key2 < key1);
 
         // Now try with different IPv4 but same garbage
-        ip2.ip.v4.uint32 = net_htonl(0x7F000002);
-        memset(ip2.ip.v6.uint8 + 4, 0x11, 12);  // same garbage as ip1
+        ip2.value.v4.uint32 = net_htonl(0x7F000002);
+        memset(ip2.value.v6.uint8 + 4, 0x11, 12);  // same garbage as ip1
         NetworkUniverse::IP_Port_Key key3{ip2, port};
 
         EXPECT_TRUE(key1 < key3 || key3 < key1);
@@ -200,11 +200,11 @@ namespace {
     {
         IP ip1{}, ip2{};
         ip_init(&ip1, false);  // IPv4
-        ip1.ip.v4.uint32 = net_htonl(0x01020304);
+        ip1.value.v4.uint32 = net_htonl(0x01020304);
         ip_init(&ip2, true);  // IPv6
         // Set IPv6 bytes to match IPv4 bytes at the beginning
-        memset(ip2.ip.v6.uint8, 0, 16);
-        ip2.ip.v6.uint32[0] = net_htonl(0x01020304);
+        memset(ip2.value.v6.uint8, 0, 16);
+        ip2.value.v6.uint32[0] = net_htonl(0x01020304);
 
         uint16_t port = 12345;
 
@@ -229,7 +229,7 @@ namespace {
             auto sock = std::make_unique<FakeUdpSocket>(universe);
             IP ip{};
             ip_init(&ip, false);
-            ip.ip.v4.uint32 = net_htonl(0x0A000000 + i);  // 10.0.x.y
+            ip.value.v4.uint32 = net_htonl(0x0A000000 + i);  // 10.0.x.y
             sock->set_ip(ip);
 
             IP_Port addr{ip, net_htons(33445)};
@@ -262,7 +262,7 @@ namespace {
     {
         IP ip1{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x7F000001);
+        ip1.value.v4.uint32 = net_htonl(0x7F000001);
 
         FakeUdpSocket sock{universe};
         sock.set_ip(ip1);
@@ -273,7 +273,7 @@ namespace {
         IP_Port target_addr;
         memset(&target_addr, 0xAA, sizeof(target_addr));
         ip_init(&target_addr.ip, false);
-        target_addr.ip.ip.v4.uint32 = net_htonl(0x7F000001);
+        target_addr.ip.value.v4.uint32 = net_htonl(0x7F000001);
         target_addr.port = net_htons(12345);
 
         FakeUdpSocket sender{universe};
@@ -296,7 +296,7 @@ namespace {
     {
         IP ip1{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x0A000001);  // 10.0.0.1
+        ip1.value.v4.uint32 = net_htonl(0x0A000001);  // 10.0.0.1
 
         uint16_t port = 12345;
         IP_Port local_addr{ip1, net_htons(port)};
@@ -308,7 +308,7 @@ namespace {
 
         IP remote_ip{};
         ip_init(&remote_ip, false);
-        remote_ip.ip.v4.uint32 = net_htonl(0x0A000002);  // 10.0.0.2
+        remote_ip.value.v4.uint32 = net_htonl(0x0A000002);  // 10.0.0.2
         IP_Port remote_addr{remote_ip, net_htons(33445)};
 
         auto established_sock = FakeTcpSocket::create_connected(universe, remote_addr, port);
@@ -340,9 +340,9 @@ namespace {
     {
         IP ip1{}, ip2{};
         ip_init(&ip1, false);
-        ip1.ip.v4.uint32 = net_htonl(0x0A000001);
+        ip1.value.v4.uint32 = net_htonl(0x0A000001);
         ip_init(&ip2, false);
-        ip2.ip.v4.uint32 = net_htonl(0x0A000002);
+        ip2.value.v4.uint32 = net_htonl(0x0A000002);
 
         uint16_t port = 33445;
         IP_Port addr1{ip1, net_htons(port)};

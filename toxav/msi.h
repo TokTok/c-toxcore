@@ -15,6 +15,8 @@
 extern "C" {
 #endif
 
+#define MSI_PACKET_ID 69
+
 /**
  * Error codes.
  */

@@ -441,11 +441,16 @@ if(BUILD_TOXAV)
     toxav/rtp.h
     toxav/toxav.c
     toxav/toxav.h
+    toxav/tox_av.h
+    toxav/tox_av_private.h
+    toxav/toxav_compat.c
     toxav/toxav_old.c
+    toxav/toxav_struct.h
     toxav/video.c
     toxav/video.h)
   set(toxcore_API_HEADERS ${toxcore_API_HEADERS}
-    ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav)
+    ${toxcore_SOURCE_DIR}/toxav/toxav.h^toxav
+    ${toxcore_SOURCE_DIR}/toxav/tox_av.h^tox)
 
   if(TARGET Opus::opus AND TARGET libvpx::libvpx)
     set(toxcore_LINK_LIBRARIES ${toxcore_LINK_LIBRARIES} Opus::opus libvpx::libvpx)
@@ -627,6 +632,8 @@ if(UNITTEST AND TARGET GTest::gtest AND TARGET GTest::gmock)
     unit_test(toxav ring_buffer)
     unit_test(toxav rtp)
     unit_test(toxav toxav)
+    target_link_libraries(unit_toxav_test PRIVATE av_test_support)
+    unit_test(toxav toxav_compat)
     unit_test(toxav video)
     target_link_libraries(unit_video_test PRIVATE av_test_support)
   endif()

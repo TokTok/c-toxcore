@@ -28,10 +28,6 @@ typedef struct Socket {
 #define SIZE_PORT 2
 #define SIZE_IPPORT (SIZE_IP + SIZE_PORT)
 
-typedef struct Family {
-    uint8_t value;
-} Family;
-
 typedef union IP4 {
     uint32_t uint32;
     uint16_t uint16[2];
@@ -45,14 +41,20 @@ typedef union IP6 {
     uint64_t uint64[2];
 } IP6;
 
-typedef union IP_Union {
+typedef enum IP_Type {
+    IP_TYPE_UNSPEC,
+    IP_TYPE_V4,
+    IP_TYPE_V6,
+} IP_Type;
+
+typedef union IP_Value {
     IP4 v4;
     IP6 v6;
-} IP_Union;
+} IP_Value;
 
 typedef struct IP {
-    Family family;
-    IP_Union ip;
+    IP_Type type;
+    IP_Value value;
 } IP;
 
 typedef struct IP_Port {
@@ -72,12 +74,6 @@ typedef struct IP_Port {
 
 #define TOX_PROTO_TCP 1
 #define TOX_PROTO_UDP 2
-
-/** TCP related */
-#define TCP_CLIENT_FAMILY (TOX_AF_INET6 + 1)
-#define TCP_INET (TOX_AF_INET6 + 2)
-#define TCP_INET6 (TOX_AF_INET6 + 3)
-#define TCP_SERVER_FAMILY (TOX_AF_INET6 + 4)
 
 int net_socket_to_native(Socket sock);
 Socket net_socket_from_native(int sock);
@@ -141,28 +137,6 @@ int ns_setsockopt(const Network *_Nonnull ns, Socket sock, int level, int optnam
 int ns_getaddrinfo(const Network *_Nonnull ns, const Memory *_Nonnull mem, const char *_Nonnull address, int family, int protocol, IP_Port *_Nullable *_Nonnull addrs);
 int ns_freeaddrinfo(const Network *_Nonnull ns, const Memory *_Nonnull mem, IP_Port *_Nullable addrs);
 
-bool net_family_is_unspec(Family family);
-bool net_family_is_ipv4(Family family);
-bool net_family_is_ipv6(Family family);
-bool net_family_is_tcp_server(Family family);
-bool net_family_is_tcp_client(Family family);
-bool net_family_is_tcp_ipv4(Family family);
-bool net_family_is_tcp_ipv6(Family family);
-bool net_family_is_tox_tcp_ipv4(Family family);
-bool net_family_is_tox_tcp_ipv6(Family family);
-
-Family net_family_unspec(void);
-Family net_family_ipv4(void);
-Family net_family_ipv6(void);
-Family net_family_tcp_server(void);
-Family net_family_tcp_client(void);
-Family net_family_tcp_ipv4(void);
-Family net_family_tcp_ipv6(void);
-Family net_family_tox_tcp_ipv4(void);
-Family net_family_tox_tcp_ipv6(void);
-
-const char *_Nonnull net_family_to_string(Family family);
-
 uint32_t net_htonl(uint32_t hostlong);
 uint16_t net_htons(uint16_t hostshort);
 uint32_t net_ntohl(uint32_t hostlong);
@@ -215,7 +189,7 @@ IP4 net_get_ip4_broadcast(void);
 IP6 net_get_ip6_loopback(void);
 IP6 net_get_ip6_broadcast(void);
 
-bool net_join_multicast(const Network *_Nonnull ns, Socket sock, Family family);
+bool net_join_multicast(const Network *_Nonnull ns, Socket sock, IP_Type type);
 
 bool net_set_socket_nonblock(const Network *_Nonnull ns, Socket sock);
 bool net_set_socket_nosigpipe(const Network *_Nonnull ns, Socket sock);

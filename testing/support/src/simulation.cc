@@ -241,7 +241,7 @@ std::unique_ptr<SimulatedNode> Simulation::create_node()
 {
     auto node = std::make_unique<SimulatedNode>(*this, ++node_count_);
     if (net_->is_verbose()) {
-        uint32_t ip4 = net_ntohl(node->ip.ip.v4.uint32);
+        uint32_t ip4 = net_ntohl(node->ip.value.v4.uint32);
         std::cerr << "[Simulation] Created node " << node_count_ << " with IP "
                   << ((ip4 >> 24) & 0xFF) << "." << ((ip4 >> 16) & 0xFF) << "."
                   << ((ip4 >> 8) & 0xFF) << "." << (ip4 & 0xFF) << std::endl;
@@ -288,7 +288,7 @@ SimulatedNode::ToxPtr SimulatedNode::create_tox(const Tox_Options *_Nullable opt
         [](Tox *tox, Tox_Log_Level level, const char *file, uint32_t line, const char *func,
             const char *message, void *user_data) {
             SimulatedNode *node = static_cast<SimulatedNode *>(user_data);
-            uint32_t ip4 = net_ntohl(node->ip.ip.v4.uint32);
+            uint32_t ip4 = net_ntohl(node->ip.value.v4.uint32);
 
             LogMetadata md{level, file, line, func, message, ip4 & 0xFF};
             const auto &filter = node->simulation().log_filter();

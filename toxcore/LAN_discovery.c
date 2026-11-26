@@ -90,16 +90,16 @@ static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem
         IP_ADAPTER_INFO *adapter = adapter_info;
 
         while (adapter != nullptr) {
-            IP if_ip = {0};
-            IP subnet_mask = {0};
+            IP if_ip = {IP_TYPE_UNSPEC};
+            IP subnet_mask = {IP_TYPE_UNSPEC};
 
             if (addr_parse_ip(adapter->IpAddressList.IpMask.String, &subnet_mask)
                     && addr_parse_ip(adapter->IpAddressList.IpAddress.String, &if_ip)) {
-                if (net_family_is_ipv4(if_ip.family) && net_family_is_ipv4(subnet_mask.family)) {
-                    if (if_ip.ip.v4.uint32 != 0 && subnet_mask.ip.v4.uint32 != 0) {
+                if (if_ip.type == IP_TYPE_V4 && subnet_mask.type == IP_TYPE_V4) {
+                    if (if_ip.value.v4.uint32 != 0 && subnet_mask.value.v4.uint32 != 0) {
                         IP *ip = &broadcast->ips[broadcast->count];
-                        ip->family = net_family_ipv4();
-                        ip->ip.v4.uint32 = if_ip.ip.v4.uint32 | ~subnet_mask.ip.v4.uint32;
+                        ip->type = IP_TYPE_V4;
+                        ip->value.v4.uint32 = if_ip.value.v4.uint32 | ~subnet_mask.value.v4.uint32;
                         ++broadcast->count;
 
                         if (broadcast->count >= MAX_INTERFACES) {
@@ -138,7 +138,7 @@ static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem
      * so it's wrapped in `__linux__` for now.
      * Definitely won't work like this on Windows...
      */
-    const Socket sock = net_socket(ns, net_family_ipv4(), TOX_SOCK_STREAM, 0);
+    const Socket sock = net_socket(ns, IP_TYPE_V4, TOX_SOCK_STREAM, 0);
 
     if (!sock_valid(sock)) {
         mem_delete(mem, broadcast);
@@ -184,11 +184,11 @@ static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem
         }
 
         IP *ip = &broadcast->ips[broadcast->count];
-        ip->family = net_family_ipv4();
-        ip->ip.v4.uint32 = broadaddr4->sin_addr.s_addr;
+        ip->type = IP_TYPE_V4;
+        ip->value.v4.uint32 = broadaddr4->sin_addr.s_addr;
 
         // if no broadcast address
-        if (ip->ip.v4.uint32 == 0) {
+        if (ip->value.v4.uint32 == 0) {
             if (ioctl(net_socket_to_native(sock), SIOCGIFADDR, &i_faces[i]) < 0) {
                 continue;
             }
@@ -201,7 +201,7 @@ static Broadcast_Info *_Nullable fetch_broadcast_info(const Memory *_Nonnull mem
 
             if (ip4_is_local(&ip4_staging)) {
                 // this is 127.x.x.x
-                ip->ip.v4.uint32 = ip4_staging.uint32;
+                ip->value.v4.uint32 = ip4_staging.uint32;
             } else {
                 // give up.
                 continue;
@@ -255,27 +255,27 @@ static bool send_broadcasts(const Networking_Core *_Nonnull net, const Broadcast
 }
 
 /** Return the broadcast ip. */
-static IP broadcast_ip(Family family_socket, Family family_broadcast)
+static IP broadcast_ip(IP_Type socket_type, IP_Type broadcast_type)
 {
     IP ip;
     ip_reset(&ip);
 
-    if (net_family_is_ipv6(family_socket)) {
-        if (net_family_is_ipv6(family_broadcast)) {
-            ip.family = net_family_ipv6();
+    if (socket_type == IP_TYPE_V6) {
+        if (broadcast_type == IP_TYPE_V6) {
+            ip.type = IP_TYPE_V6;
             /* `FF02::1` is - according to RFC 4291 - multicast all-nodes link-local */
             /* `FE80::*:` MUST be exact, for that we would need to look over all
              * interfaces and check in which status they are */
-            ip.ip.v6.uint8[0] = 0xFF;
-            ip.ip.v6.uint8[1] = 0x02;
-            ip.ip.v6.uint8[15] = 0x01;
-        } else if (net_family_is_ipv4(family_broadcast)) {
-            ip.family = net_family_ipv6();
-            ip.ip.v6 = get_ip6_broadcast();
+            ip.value.v6.uint8[0] = 0xFF;
+            ip.value.v6.uint8[1] = 0x02;
+            ip.value.v6.uint8[15] = 0x01;
+        } else if (broadcast_type == IP_TYPE_V4) {
+            ip.type = IP_TYPE_V6;
+            ip.value.v6 = get_ip6_broadcast();
         }
-    } else if (net_family_is_ipv4(family_socket) && net_family_is_ipv4(family_broadcast)) {
-        ip.family = net_family_ipv4();
-        ip.ip.v4 = get_ip4_broadcast();
+    } else if (socket_type == IP_TYPE_V4 && broadcast_type == IP_TYPE_V4) {
+        ip.type = IP_TYPE_V4;
+        ip.value.v4 = get_ip4_broadcast();
     }
 
     return ip;
@@ -292,19 +292,23 @@ static bool ip4_is_local(const IP4 *ip4)
  */
 bool ip_is_local(const IP *ip)
 {
-    if (net_family_is_ipv4(ip->family)) {
-        return ip4_is_local(&ip->ip.v4);
+    if (ip->type == IP_TYPE_V4) {
+        return ip4_is_local(&ip->value.v4);
+    }
+
+    if (ip->type != IP_TYPE_V6) {
+        return false;
     }
 
     /* embedded IPv4-in-IPv6 */
-    if (ipv6_ipv4_in_v6(&ip->ip.v6)) {
+    if (ipv6_ipv4_in_v6(&ip->value.v6)) {
         IP4 ip4;
-        ip4.uint32 = ip->ip.v6.uint32[3];
+        ip4.uint32 = ip->value.v6.uint32[3];
         return ip4_is_local(&ip4);
     }
 
     /* localhost in IPv6 (::1) */
-    return ip->ip.v6.uint64[0] == 0 && ip->ip.v6.uint32[2] == 0 && ip->ip.v6.uint32[3] == net_htonl(1);
+    return ip->value.v6.uint64[0] == 0 && ip->value.v6.uint32[2] == 0 && ip->value.v6.uint32[3] == net_htonl(1);
 }
 
 static bool ip4_is_lan(const IP4 *_Nonnull ip4)
@@ -341,22 +345,22 @@ bool ip_is_lan(const IP *ip)
         return true;
     }
 
-    if (net_family_is_ipv4(ip->family)) {
-        return ip4_is_lan(&ip->ip.v4);
+    if (ip->type == IP_TYPE_V4) {
+        return ip4_is_lan(&ip->value.v4);
     }
 
-    if (net_family_is_ipv6(ip->family)) {
+    if (ip->type == IP_TYPE_V6) {
         /* autogenerated for each interface: `FE80::*` (up to `FEBF::*`)
          * `FF02::1` is - according to RFC 4291 - multicast all-nodes link-local */
-        if (((ip->ip.v6.uint8[0] == 0xFF) && (ip->ip.v6.uint8[1] < 3) && (ip->ip.v6.uint8[15] == 1)) ||
-                ((ip->ip.v6.uint8[0] == 0xFE) && ((ip->ip.v6.uint8[1] & 0xC0) == 0x80))) {
+        if (((ip->value.v6.uint8[0] == 0xFF) && (ip->value.v6.uint8[1] < 3) && (ip->value.v6.uint8[15] == 1)) ||
+                ((ip->value.v6.uint8[0] == 0xFE) && ((ip->value.v6.uint8[1] & 0xC0) == 0x80))) {
             return true;
         }
 
         /* embedded IPv4-in-IPv6 */
-        if (ipv6_ipv4_in_v6(&ip->ip.v6)) {
+        if (ipv6_ipv4_in_v6(&ip->value.v6)) {
             IP4 ip4;
-            ip4.uint32 = ip->ip.v6.uint32[3];
+            ip4.uint32 = ip->value.v6.uint32[3];
             return ip4_is_lan(&ip4);
         }
     }
@@ -382,8 +386,8 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
     ip_port.port = port;
 
     /* IPv6 multicast */
-    if (net_family_is_ipv6(net_family(net))) {
-        ip_port.ip = broadcast_ip(net_family_ipv6(), net_family_ipv6());
+    if (net_ip_type(net) == IP_TYPE_V6) {
+        ip_port.ip = broadcast_ip(IP_TYPE_V6, IP_TYPE_V6);
 
         if (ip_isset(&ip_port.ip) && sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
             res = true;
@@ -391,7 +395,7 @@ bool lan_discovery_send(const Networking_Core *net, const Broadcast_Info *broadc
     }
 
     /* IPv4 broadcast (has to be IPv4-in-IPv6 mapping if socket is IPv6 */
-    ip_port.ip = broadcast_ip(net_family(net), net_family_ipv4());
+    ip_port.ip = broadcast_ip(net_ip_type(net), IP_TYPE_V4);
 
     if (ip_isset(&ip_port.ip) && sendpacket(net, &ip_port, data, 1 + CRYPTO_PUBLIC_KEY_SIZE) > 0) {
         res = true;

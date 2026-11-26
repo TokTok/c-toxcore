@@ -95,7 +95,7 @@ public:
         , net_crypto_(nullptr, [](Net_Crypto *c) { kill_net_crypto(c); })
         , onion_client_(nullptr, [](Onion_Client *c) { kill_onion_client(c); })
     {
-        TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
+        TCP_Proxy_Info proxy_info = {{}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_.logger(), &dht_.node().c_memory,
             &dht_.node().c_random, &dht_.node().c_network, dht_.mono_time(), dht_.networking(),
             dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get()));

@@ -3,7 +3,10 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("@rules_shell//shell:sh_library.bzl", "sh_library")
 
 exports_files(
-    srcs = ["toxav.h"],
+    srcs = [
+        "tox_av.h",
+        "toxav.h",
+    ],
     visibility = ["//c-toxcore:__pkg__"],
 )
 
@@ -11,7 +14,10 @@ exports_files(
 # things depend on the public API header.
 cc_library(
     name = "public_api",
-    hdrs = ["toxav.h"],
+    hdrs = [
+        "tox_av.h",
+        "toxav.h",
+    ],
     deps = ["//c-toxcore/toxcore:attributes"],
 )
 
@@ -307,12 +313,51 @@ cc_test(
 )
 
 cc_test(
+    name = "toxav_compat_test",
+    size = "small",
+    srcs = ["toxav_compat_test.cc"],
+    deps = [
+        ":toxav",
+        "//c-toxcore/toxcore:tox",
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "toxav_core",
+    srcs = ["toxav.c"],
+    hdrs = [
+        "tox_av.h",
+        "tox_av_private.h",
+        "toxav_struct.h",
+    ],
+    deps = [
+        ":audio",
+        ":bwcontroller",
+        ":msi",
+        ":rtp",
+        ":video",
+        "//c-toxcore/toxcore:attributes",
+        "//c-toxcore/toxcore:ccompat",
+        "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:mem",
+        "//c-toxcore/toxcore:mono_time",
+        "//c-toxcore/toxcore:net",
+        "//c-toxcore/toxcore:os_memory",
+        "//c-toxcore/toxcore:util",
+        "@libsodium",
+        "@opus",
+    ],
+)
+
+cc_test(
     name = "toxav_test",
     size = "small",
     srcs = ["toxav_test.cc"],
     deps = [
-        ":toxav",
-        "//c-toxcore/toxcore:tox",
+        ":av_test_support",
+        ":toxav_core",
         "@com_google_googletest//:gtest",
         "@com_google_googletest//:gtest_main",
     ],
@@ -323,23 +368,23 @@ cc_library(
     srcs = [
         "groupav.c",
         "groupav.h",
-        "toxav.c",
+        "toxav_compat.c",
         "toxav_old.c",
     ],
-    hdrs = ["toxav.h"],
+    hdrs = [
+        "tox_av.h",
+        "toxav.h",
+    ],
     visibility = ["//c-toxcore:__subpackages__"],
     deps = [
-        ":audio",
-        ":bwcontroller",
         ":group_jitter_buffer",
-        ":msi",
-        ":rtp",
-        ":video",
+        ":toxav_core",
         "//c-toxcore/toxcore:Messenger",
         "//c-toxcore/toxcore:attributes",
         "//c-toxcore/toxcore:ccompat",
         "//c-toxcore/toxcore:group",
         "//c-toxcore/toxcore:logger",
+        "//c-toxcore/toxcore:mem",
         "//c-toxcore/toxcore:mono_time",
         "//c-toxcore/toxcore:net_crypto",
         "//c-toxcore/toxcore:network",
@@ -357,4 +402,22 @@ sh_library(
         "*.h",
     ]),
     visibility = ["//c-toxcore/testing:__pkg__"],
+)
+
+cc_fuzz_test(
+    name = "toxav_fuzz_test",
+    srcs = ["toxav_fuzz_test.cc"],
+    copts = ["-UNDEBUG"],
+    # corpus = ["//tools/toktok-fuzzer/corpus:toxav_fuzz_test"],
+    deps = [
+        ":toxav_core",
+        "//c-toxcore/toxcore:os_memory",
+        "//c-toxcore/testing/support",
+    ],
+)
+
+cc_binary(
+    name = "toxav_fuzz_seed_gen",
+    srcs = ["toxav_fuzz_seed_gen.cc"],
+    visibility = ["//visibility:public"],
 )

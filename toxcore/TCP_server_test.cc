@@ -57,8 +57,8 @@ TEST(TCPServer, SurvivesSameKeyReconnectWithPendingData)
     Mono_Time *mono_time = mono_time_new(mem, nullptr, nullptr);
 
     IP_Port relay;
-    relay.ip.family = net_family_ipv4();
-    relay.ip.ip.v4 = get_ip4_loopback();
+    relay.ip.type = IP_TYPE_V4;
+    relay.ip.value.v4 = get_ip4_loopback();
     relay.port = net_htons(kRelayPort);
 
     auto confirm = [&](const uint8_t *pk, const uint8_t *sk) -> TCP_Client_Connection * {

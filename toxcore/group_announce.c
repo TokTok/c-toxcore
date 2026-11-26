@@ -203,7 +203,7 @@ static int gca_unpack_announce(const Logger *_Nonnull log, const uint8_t *_Nonnu
             return -1;
         }
 
-        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset, false);
+        const int ip_port_length = unpack_ip_port(&announce->ip_port, data + offset, length - offset);
 
         if (ip_port_length == -1) {
             LOGGER_ERROR(log, "Failed to unpack ip_port");

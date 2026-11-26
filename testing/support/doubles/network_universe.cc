@@ -35,14 +35,14 @@ bool NetworkUniverse::IP_Port_Key::operator<(const IP_Port_Key &other) const
 {
     if (port != other.port)
         return port < other.port;
-    if (ip.family.value != other.ip.family.value)
-        return ip.family.value < other.ip.family.value;
+    if (ip.type != other.ip.type)
+        return ip.type < other.ip.type;
 
-    if (net_family_is_ipv4(ip.family)) {
-        return ip.ip.v4.uint32 < other.ip.ip.v4.uint32;
+    if (ip.type == IP_TYPE_V4) {
+        return ip.value.v4.uint32 < other.ip.value.v4.uint32;
     }
 
-    return std::memcmp(&ip.ip.v6, &other.ip.ip.v6, sizeof(ip.ip.v6)) < 0;
+    return std::memcmp(&ip.value.v6, &other.ip.value.v6, sizeof(ip.value.v6)) < 0;
 }
 
 NetworkUniverse::NetworkUniverse() { }
@@ -131,9 +131,9 @@ void NetworkUniverse::send_packet(Packet p)
 
 static bool is_ipv4_mapped(const IP &ip)
 {
-    if (!net_family_is_ipv6(ip.family))
+    if (ip.type != IP_TYPE_V6)
         return false;
-    const uint8_t *b = ip.ip.v6.uint8;
+    const uint8_t *b = ip.value.v6.uint8;
     for (int i = 0; i < 10; ++i)
         if (b[i] != 0)
             return false;
@@ -146,18 +146,18 @@ static IP extract_ipv4(const IP &ip)
 {
     IP ip4;
     ip_init(&ip4, false);
-    const uint8_t *b = ip.ip.v6.uint8;
-    std::memcpy(ip4.ip.v4.uint8, b + 12, 4);
+    const uint8_t *b = ip.value.v6.uint8;
+    std::memcpy(ip4.value.v4.uint8, b + 12, 4);
     return ip4;
 }
 
 bool is_loopback(const IP &ip)
 {
-    if (net_family_is_ipv4(ip.family)) {
-        return ip.ip.v4.uint32 == net_htonl(0x7F000001);
+    if (ip.type == IP_TYPE_V4) {
+        return ip.value.v4.uint32 == net_htonl(0x7F000001);
     }
-    if (net_family_is_ipv6(ip.family)) {
-        const uint8_t *b = ip.ip.v6.uint8;
+    if (ip.type == IP_TYPE_V6) {
+        const uint8_t *b = ip.value.v6.uint8;
         for (int i = 0; i < 15; ++i) {
             if (b[i] != 0) {
                 return false;
@@ -219,9 +219,9 @@ void NetworkUniverse::process_events(uint64_t current_time_ms)
                         && tcp_bindings_.count({target_ip, net_ntohs(p.to.port)}) == 0) {
                         if (verbose_) {
                             std::cerr << "[NetworkUniverse] Loopback packet to "
-                                      << static_cast<int>(target_ip.ip.v4.uint8[3])
+                                      << static_cast<int>(target_ip.value.v4.uint8[3])
                                       << " redirected to "
-                                      << static_cast<int>(p.from.ip.ip.v4.uint8[3]) << std::endl;
+                                      << static_cast<int>(p.from.ip.value.v4.uint8[3]) << std::endl;
                         }
                         target_ip = p.from.ip;
                     }
@@ -252,16 +252,16 @@ void NetworkUniverse::process_events(uint64_t current_time_ms)
 
                     if (verbose_) {
                         std::cerr << "[NetworkUniverse] Routing TCP to "
-                                  << static_cast<int>(target_ip.ip.v4.uint8[0]) << "."
-                                  << static_cast<int>(target_ip.ip.v4.uint8[3]) << ":"
+                                  << static_cast<int>(target_ip.value.v4.uint8[0]) << "."
+                                  << static_cast<int>(target_ip.value.v4.uint8[3]) << ":"
                                   << net_ntohs(p.to.port)
                                   << ". Targets found: " << tcp_targets.size() << std::endl;
                     }
                     if (tcp_targets.empty()) {
                         if (verbose_) {
                             std::cerr << "[NetworkUniverse] WARNING: No TCP targets for "
-                                      << static_cast<int>(target_ip.ip.v4.uint8[0]) << "."
-                                      << static_cast<int>(target_ip.ip.v4.uint8[3]) << ":"
+                                      << static_cast<int>(target_ip.value.v4.uint8[0]) << "."
+                                      << static_cast<int>(target_ip.value.v4.uint8[3]) << ":"
                                       << net_ntohs(p.to.port) << std::endl;
                         }
                     }

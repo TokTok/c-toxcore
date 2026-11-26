@@ -160,8 +160,9 @@ typedef struct Client_data {
 /*----------------------------------------------------------------------------------*/
 
 typedef struct Node_format {
-    uint8_t     public_key[CRYPTO_PUBLIC_KEY_SIZE];
-    IP_Port     ip_port;
+    uint8_t public_key[CRYPTO_PUBLIC_KEY_SIZE];
+    IP_Port ip_port;
+    Transport transport;
 } Node_format;
 
 extern const Node_format empty_node_format;
@@ -171,10 +172,10 @@ typedef struct DHT_Friend DHT_Friend;
 const uint8_t *_Nonnull dht_friend_public_key(const DHT_Friend *_Nonnull dht_friend);
 const Client_data *_Nonnull dht_friend_client(const DHT_Friend *_Nonnull dht_friend, size_t index);
 
-/** @return packet size of packed node with ip_family on success.
+/** @return packet size of packed node with IP type `type` on success.
  * @retval -1 on failure.
  */
-int packed_node_size(Family ip_family);
+int packed_node_size(IP_Type type);
 
 /** @brief Encrypt plain and write resulting DHT packet into packet with max size length.
  *
@@ -322,7 +323,7 @@ void set_announce_node(DHT *_Nonnull dht, const uint8_t *_Nonnull public_key);
  *
  * @return the number of nodes returned.
  */
-int get_close_nodes(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, Node_format nodes_list[_Nonnull MAX_SENT_NODES], Family sa_family, bool is_lan, bool want_announce);
+int get_close_nodes(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, Node_format nodes_list[_Nonnull MAX_SENT_NODES], IP_Type sa_family, bool is_lan, bool want_announce);
 
 /** @brief Put up to max_num nodes in nodes from the random friends.
  *
