@@ -169,15 +169,8 @@ static int msi_send_packet(void *_Nonnull user_data, uint32_t friend_number, con
     return av->send_lossless(av, friend_number, data_new, length_new, av->network_user_data) ? 0 : -1;
 }
 
-static void handle_msi_packet(Tox *_Nonnull tox, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length,
-                              void *_Nullable user_data)
+static void handle_msi_packet(ToxAV *_Nonnull toxav, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length)
 {
-    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
-
-    if (toxav == nullptr) {
-        return;
-    }
-
     if (length < 2) {
         LOGGER_ERROR(toxav->log, "MSI packet is less than 2 bytes in size");
         return;
@@ -205,14 +198,8 @@ static void rtp_add_lost(void *_Nullable user_data, uint32_t bytes)
     bwc_add_lost(bwc, bytes);
 }
 
-static void handle_rtp_packet(Tox *_Nonnull tox, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length, void *_Nullable user_data)
+static void handle_rtp_packet(ToxAV *_Nonnull toxav, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length)
 {
-    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
-
-    if (toxav == nullptr) {
-        return;
-    }
-
     ToxAVCall *call = call_get(toxav, friend_number);
 
     if (call == nullptr) {
@@ -232,14 +219,8 @@ static void handle_rtp_packet(Tox *_Nonnull tox, Tox_Friend_Number friend_number
     rtp_receive_packet(session, data, length);
 }
 
-static void handle_bwc_packet(Tox *_Nonnull tox, uint32_t friend_number, const uint8_t *_Nonnull data, size_t length, void *_Nullable user_data)
+static void handle_bwc_packet(ToxAV *_Nonnull toxav, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length)
 {
-    ToxAV *toxav = (ToxAV *)tox_get_av_object(tox);
-
-    if (toxav == nullptr) {
-        return;
-    }
-
     const ToxAVCall *call = call_get(toxav, friend_number);
 
     if (call == nullptr) {
@@ -253,6 +234,43 @@ static void handle_bwc_packet(Tox *_Nonnull tox, uint32_t friend_number, const u
     }
 
     bwc_handle_packet(bwc, data, length);
+}
+
+/** Handles a packet from a friend, starting with its packet ID. */
+static void receive_packet(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length)
+{
+    if (length == 0) {
+        return;
+    }
+
+    const uint8_t packet_id = data[0];
+    switch (packet_id) {
+        case MSI_PACKET_ID: {
+            handle_msi_packet(av, friend_number, data, length);
+            break;
+        }
+        case RTP_TYPE_AUDIO:
+        case RTP_TYPE_VIDEO: {
+            handle_rtp_packet(av, friend_number, data, length);
+            break;
+        }
+        case BWC_PACKET_ID: {
+            handle_bwc_packet(av, friend_number, data, length);
+            break;
+        }
+        default:
+            // Unknown packet
+            break;
+    }
+}
+
+static void legacy_handle_packet(Tox *_Nonnull tox, Tox_Friend_Number friend_number, const uint8_t *_Nonnull data, size_t length,
+                                 void *_Nullable user_data)
+{
+    ToxAV *av = (ToxAV *)tox_get_av_object(tox);
+    if (av != nullptr) {
+        receive_packet(av, friend_number, data, length);
+    }
 }
 
 static void handle_audio_frame(uint32_t friend_number, const int16_t *_Nonnull pcm, size_t sample_count, uint8_t channels,
@@ -398,10 +416,10 @@ ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
 
     av->msi = msi_new(av->log, msi_send_packet, av, &callbacks, av);
 
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_AUDIO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_rtp_packet, RTP_TYPE_VIDEO);
-    tox_callback_friend_lossy_packet_per_pktid(av->tox, handle_bwc_packet, BWC_PACKET_ID);
-    tox_callback_friend_lossless_packet_per_pktid(av->tox, handle_msi_packet, PACKET_ID_MSI);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, RTP_TYPE_AUDIO);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, RTP_TYPE_VIDEO);
+    tox_callback_friend_lossy_packet_per_pktid(av->tox, legacy_handle_packet, BWC_PACKET_ID);
+    tox_callback_friend_lossless_packet_per_pktid(av->tox, legacy_handle_packet, PACKET_ID_MSI);
 
     av->toxav_mono_time = mono_time_new(tox->sys.mem, nullptr, nullptr);
 
