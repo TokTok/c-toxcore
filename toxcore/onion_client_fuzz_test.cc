@@ -98,7 +98,8 @@ public:
         TCP_Proxy_Info proxy_info = {{0}, TCP_PROXY_NONE};
         net_crypto_.reset(new_net_crypto(dht_.logger(), &dht_.node().c_memory,
             &dht_.node().c_random, &dht_.node().c_network, dht_.mono_time(), dht_.networking(),
-            dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get()));
+            dht_.get_dht(), &FuzzDHT::funcs, &proxy_info, net_profile_.get(),
+            CRYPTO_HANDSHAKE_MODE_NOISE_BOTH));
 
         onion_client_.reset(
             new_onion_client(dht_.logger(), &dht_.node().c_memory, &dht_.node().c_random,

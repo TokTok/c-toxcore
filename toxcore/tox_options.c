@@ -181,6 +181,15 @@ void tox_options_set_experimental_groups_persistence(
 {
     options->experimental_groups_persistence = experimental_groups_persistence;
 }
+Tox_Handshake_Mode tox_options_get_handshake_mode(const Tox_Options *_Nonnull options)
+{
+    return options->handshake_mode;
+}
+void tox_options_set_handshake_mode(
+    Tox_Options *_Nonnull options, Tox_Handshake_Mode handshake_mode)
+{
+    options->handshake_mode = handshake_mode;
+}
 bool tox_options_get_experimental_disable_dns(const Tox_Options *_Nonnull options)
 {
     return options->experimental_disable_dns;
@@ -255,6 +264,7 @@ void tox_options_default(Tox_Options *_Nonnull options)
         tox_options_set_dht_announcements_enabled(options, true);
         tox_options_set_experimental_thread_safety(options, false);
         tox_options_set_experimental_groups_persistence(options, false);
+        tox_options_set_handshake_mode(options, TOX_HANDSHAKE_MODE_NOISE_AND_LEGACY);
         tox_options_set_experimental_disable_dns(options, false);
         tox_options_set_experimental_owned_data(options, false);
     }

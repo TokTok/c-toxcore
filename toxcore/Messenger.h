@@ -77,6 +77,7 @@ typedef struct Messenger_Options {
     Logger *_Nonnull log;
 
     bool ipv6enabled;
+    Crypto_Handshake_Mode handshake_mode;
     bool udp_disabled;
     TCP_Proxy_Info proxy_info;
     uint16_t port_range[2];
