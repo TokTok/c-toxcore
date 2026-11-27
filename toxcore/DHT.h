@@ -248,6 +248,8 @@ typedef void dht_nodes_response_cb(const DHT *_Nonnull dht, const Node_format *_
 
 /** Sets the callback to be triggered on a nodes response. */
 void dht_callback_nodes_response(DHT *_Nonnull dht, dht_nodes_response_cb *_Nullable function);
+
+void dht_callback_data_search_response(DHT *_Nonnull dht, packet_handler_cb *_Nullable function, void *_Nullable object);
 /** @brief Add a new friend to the friends list.
  * @param public_key must be CRYPTO_PUBLIC_KEY_SIZE bytes long.
  *
@@ -389,6 +391,11 @@ int route_packet(const DHT *_Nonnull dht, const uint8_t *_Nonnull public_key, co
  * @return number of nodes the packet was sent to.
  */
 uint32_t route_to_friend(const DHT *_Nonnull dht, const uint8_t *_Nonnull friend_id, const Net_Packet *_Nonnull packet);
+
+/** Write to node a random node from all the nodes we are connected to.
+ * Return true if some node is found and written, false otherwise.
+ */
+bool random_node(DHT *_Nonnull dht, Node_format *_Nonnull node, Family sa_family, bool want_announce);
 
 /** Function to handle crypto packets. */
 void cryptopacket_registerhandler(DHT *_Nonnull dht, uint8_t byte, cryptopacket_handler_cb *_Nullable cb, void *_Nullable object);

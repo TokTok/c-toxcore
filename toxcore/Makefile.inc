@@ -53,6 +53,10 @@ libtoxcore_la_SOURCES = ../third_party/cmp/cmp.c \
                         ../toxcore/events/group_voice_state.c \
                         ../toxcore/announce.c \
                         ../toxcore/announce.h \
+                        ../toxcore/announce_client.c \
+                        ../toxcore/announce_client.h \
+                        ../toxcore/announce_lookups.c \
+                        ../toxcore/announce_lookups.h \
                         ../toxcore/attributes.h \
                         ../toxcore/bin_pack.c \
                         ../toxcore/bin_pack.h \
