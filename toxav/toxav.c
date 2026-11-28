@@ -320,7 +320,7 @@ static void init_decode_time_stats(DecodeTimeStats *_Nonnull d)
     d->interval = IDLE_ITERATION_INTERVAL_MS;
 }
 
-ToxAV *_Nullable toxav_new(Tox *_Nonnull tox, Toxav_Err_New *_Nullable error)
+ToxAV *toxav_new(Tox *tox, Toxav_Err_New *error)
 {
     const MSICallbacks callbacks = {
         callback_invite,
@@ -412,7 +412,7 @@ RETURN:
     return av;
 }
 
-void toxav_kill(ToxAV *_Nullable av)
+void toxav_kill(ToxAV *av)
 {
     if (av == nullptr) {
         return;
@@ -459,7 +459,7 @@ void toxav_kill(ToxAV *_Nullable av)
     free(av);
 }
 
-Tox *_Nonnull toxav_get_tox(const ToxAV *_Nonnull av)
+Tox *toxav_get_tox(const ToxAV *av)
 {
     Tox *tox;
     pthread_mutex_lock(av->mutex);
@@ -468,17 +468,17 @@ Tox *_Nonnull toxav_get_tox(const ToxAV *_Nonnull av)
     return tox;
 }
 
-uint32_t toxav_audio_iteration_interval(const ToxAV *_Nonnull av)
+uint32_t toxav_audio_iteration_interval(const ToxAV *av)
 {
     return av->calls != nullptr ? av->audio_stats.interval : IDLE_ITERATION_INTERVAL_MS;
 }
 
-uint32_t toxav_video_iteration_interval(const ToxAV *_Nonnull av)
+uint32_t toxav_video_iteration_interval(const ToxAV *av)
 {
     return av->calls != nullptr ? av->video_stats.interval : IDLE_ITERATION_INTERVAL_MS;
 }
 
-uint32_t toxav_iteration_interval(const ToxAV *_Nonnull av)
+uint32_t toxav_iteration_interval(const ToxAV *av)
 {
     return min_u32(toxav_audio_iteration_interval(av),
                    toxav_video_iteration_interval(av));
@@ -571,24 +571,24 @@ static void iterate_common(ToxAV *_Nonnull av, bool audio)
     pthread_mutex_unlock(av->mutex);
 }
 
-void toxav_audio_iterate(ToxAV *_Nonnull av)
+void toxav_audio_iterate(ToxAV *av)
 {
     iterate_common(av, true);
 }
 
-void toxav_video_iterate(ToxAV *_Nonnull av)
+void toxav_video_iterate(ToxAV *av)
 {
     iterate_common(av, false);
 }
 
-void toxav_iterate(ToxAV *_Nonnull av)
+void toxav_iterate(ToxAV *av)
 {
     toxav_audio_iterate(av);
     toxav_video_iterate(av);
 }
 
-bool toxav_call(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
-                Toxav_Err_Call *_Nullable error)
+bool toxav_call(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
+                Toxav_Err_Call *error)
 {
     Toxav_Err_Call rc = TOXAV_ERR_CALL_OK;
     ToxAVCall *call;
@@ -633,7 +633,7 @@ RETURN:
     return rc == TOXAV_ERR_CALL_OK;
 }
 
-void toxav_callback_call(ToxAV *_Nonnull av, toxav_call_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_call(ToxAV *av, toxav_call_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->ccb = callback;
@@ -641,8 +641,8 @@ void toxav_callback_call(ToxAV *_Nonnull av, toxav_call_cb *_Nullable callback, 
     pthread_mutex_unlock(av->mutex);
 }
 
-bool toxav_answer(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
-                  Toxav_Err_Answer *_Nullable error)
+bool toxav_answer(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate audio_bit_rate, Toxav_Bit_Rate video_bit_rate,
+                  Toxav_Err_Answer *error)
 {
     pthread_mutex_lock(av->mutex);
 
@@ -697,7 +697,7 @@ RETURN:
     return rc == TOXAV_ERR_ANSWER_OK;
 }
 
-void toxav_callback_call_state(ToxAV *_Nonnull av, toxav_call_state_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_call_state(ToxAV *av, toxav_call_state_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->scb = callback;
@@ -857,7 +857,7 @@ static Toxav_Err_Call_Control call_control(ToxAV *_Nonnull av, Tox_Friend_Number
 
     return call_control_handle(call, control);
 }
-bool toxav_call_control(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Call_Control control, Toxav_Err_Call_Control *_Nullable error)
+bool toxav_call_control(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Call_Control control, Toxav_Err_Call_Control *error)
 {
     pthread_mutex_lock(av->mutex);
 
@@ -872,8 +872,8 @@ bool toxav_call_control(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Tox
     return rc == TOXAV_ERR_CALL_CONTROL_OK;
 }
 
-bool toxav_audio_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
-                              Toxav_Err_Bit_Rate_Set *_Nullable error)
+bool toxav_audio_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
+                              Toxav_Err_Bit_Rate_Set *error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
     ToxAVCall *call;
@@ -945,8 +945,8 @@ RETURN:
     return rc == TOXAV_ERR_BIT_RATE_SET_OK;
 }
 
-bool toxav_video_set_bit_rate(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
-                              Toxav_Err_Bit_Rate_Set *_Nullable error)
+bool toxav_video_set_bit_rate(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Bit_Rate bit_rate,
+                              Toxav_Err_Bit_Rate_Set *error)
 {
     Toxav_Err_Bit_Rate_Set rc = TOXAV_ERR_BIT_RATE_SET_OK;
     ToxAVCall *call;
@@ -1018,7 +1018,7 @@ RETURN:
     return rc == TOXAV_ERR_BIT_RATE_SET_OK;
 }
 
-void toxav_callback_audio_bit_rate(ToxAV *_Nonnull av, toxav_audio_bit_rate_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_audio_bit_rate(ToxAV *av, toxav_audio_bit_rate_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->abcb = callback;
@@ -1026,7 +1026,7 @@ void toxav_callback_audio_bit_rate(ToxAV *_Nonnull av, toxav_audio_bit_rate_cb *
     pthread_mutex_unlock(av->mutex);
 }
 
-void toxav_callback_video_bit_rate(ToxAV *_Nonnull av, toxav_video_bit_rate_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_video_bit_rate(ToxAV *av, toxav_video_bit_rate_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->vbcb = callback;
@@ -1034,8 +1034,8 @@ void toxav_callback_video_bit_rate(ToxAV *_Nonnull av, toxav_video_bit_rate_cb *
     pthread_mutex_unlock(av->mutex);
 }
 
-bool toxav_audio_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, const int16_t *_Nullable pcm, size_t sample_count,
-                            Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, Toxav_Err_Send_Frame *_Nullable error)
+bool toxav_audio_send_frame(ToxAV *av, Tox_Friend_Number friend_number, const int16_t *pcm, size_t sample_count,
+                            Toxav_Channels channels, Toxav_Sampling_Rate sampling_rate, Toxav_Err_Send_Frame *error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
     ToxAVCall *call;
@@ -1144,8 +1144,8 @@ static Toxav_Err_Send_Frame send_frames(const ToxAV *_Nonnull av, ToxAVCall *_No
     return TOXAV_ERR_SEND_FRAME_OK;
 }
 
-bool toxav_video_send_frame(ToxAV *_Nonnull av, Tox_Friend_Number friend_number, Toxav_Width width, Toxav_Height height,
-                            const uint8_t *_Nullable y, const uint8_t *_Nullable u, const uint8_t *_Nullable v, Toxav_Err_Send_Frame *_Nullable error)
+bool toxav_video_send_frame(ToxAV *av, Tox_Friend_Number friend_number, Toxav_Width width, Toxav_Height height,
+                            const uint8_t *y, const uint8_t *u, const uint8_t *v, Toxav_Err_Send_Frame *error)
 {
     Toxav_Err_Send_Frame rc = TOXAV_ERR_SEND_FRAME_OK;
     ToxAVCall *call;
@@ -1229,7 +1229,7 @@ RETURN:
     return rc == TOXAV_ERR_SEND_FRAME_OK;
 }
 
-void toxav_callback_audio_receive_frame(ToxAV *_Nonnull av, toxav_audio_receive_frame_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_audio_receive_frame(ToxAV *av, toxav_audio_receive_frame_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->acb = callback;
@@ -1247,7 +1247,7 @@ void toxav_callback_audio_receive_frame(ToxAV *_Nonnull av, toxav_audio_receive_
     pthread_mutex_unlock(av->mutex);
 }
 
-void toxav_callback_video_receive_frame(ToxAV *_Nonnull av, toxav_video_receive_frame_cb *_Nullable callback, void *_Nullable user_data)
+void toxav_callback_video_receive_frame(ToxAV *av, toxav_video_receive_frame_cb *callback, void *user_data)
 {
     pthread_mutex_lock(av->mutex);
     av->vcb = callback;

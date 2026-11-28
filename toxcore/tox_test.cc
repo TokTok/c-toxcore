@@ -84,6 +84,135 @@ TEST(Tox, BootstrapErrorCodes)
     tox_kill(tox);
 }
 
+// As tox.h says: with length 0, the name and status message can be NULL, and
+// are set back to empty.
+TEST(Tox, NullWithLengthZeroClearsNameAndStatusMessage)
+{
+    Tox *tox = tox_new(nullptr, nullptr);
+    ASSERT_NE(tox, nullptr);
+
+    const std::array<std::uint8_t, 4> text = {'t', 'e', 'x', 't'};
+    ASSERT_TRUE(tox_self_set_name(tox, text.data(), text.size(), nullptr));
+    ASSERT_TRUE(tox_self_set_status_message(tox, text.data(), text.size(), nullptr));
+
+    Tox_Err_Set_Info err;
+    EXPECT_TRUE(tox_self_set_name(tox, nullptr, 0, &err));
+    EXPECT_EQ(err, TOX_ERR_SET_INFO_OK);
+    EXPECT_EQ(tox_self_get_name_size(tox), 0);
+
+    EXPECT_TRUE(tox_self_set_status_message(tox, nullptr, 0, &err));
+    EXPECT_EQ(err, TOX_ERR_SET_INFO_OK);
+    EXPECT_EQ(tox_self_get_status_message_size(tox), 0);
+
+    tox_kill(tox);
+}
+
+TEST(Tox, FileSendTakesNullFilenameWithLengthZero)
+{
+    Tox *tox = tox_new(nullptr, nullptr);
+    ASSERT_NE(tox, nullptr);
+
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> friend_pk;
+    friend_pk.fill(0x01);
+    const Tox_Friend_Number friend_number = tox_friend_add_norequest(tox, friend_pk.data(), nullptr);
+    ASSERT_NE(friend_number, UINT32_MAX);
+
+    // The friend isn't online, so this only gets past the argument checks.
+    Tox_Err_File_Send err;
+    tox_file_send(tox, friend_number, TOX_FILE_KIND_AVATAR, 0, nullptr, nullptr, 0, &err);
+    EXPECT_EQ(err, TOX_ERR_FILE_SEND_FRIEND_NOT_CONNECTED);
+
+    tox_kill(tox);
+}
+
+// As tox.h says: these group functions take NULL as they take an empty buffer,
+// a NULL topic unsets the topic, and a NULL buffer to write into has no effect.
+TEST(Tox, GroupFunctionsTakeNullAsDocumented)
+{
+    Tox *tox = tox_new(nullptr, nullptr);
+    ASSERT_NE(tox, nullptr);
+
+    const std::array<std::uint8_t, 4> text = {'t', 'e', 'x', 't'};
+    Tox_Err_Group_New new_err;
+    const Tox_Group_Number group = tox_group_new(tox, TOX_GROUP_PRIVACY_STATE_PRIVATE, text.data(),
+        text.size(), text.data(), text.size(), &new_err);
+    ASSERT_EQ(new_err, TOX_ERR_GROUP_NEW_OK);
+
+    ASSERT_TRUE(tox_group_set_topic(tox, group, text.data(), text.size(), nullptr));
+    Tox_Err_Group_Topic_Set topic_err;
+    EXPECT_TRUE(tox_group_set_topic(tox, group, nullptr, text.size(), &topic_err));
+    EXPECT_EQ(topic_err, TOX_ERR_GROUP_TOPIC_SET_OK);
+    EXPECT_EQ(tox_group_get_topic_size(tox, group, nullptr), 0);
+
+    const Tox_Group_Peer_Number self = tox_group_self_get_peer_id(tox, group, nullptr);
+    Tox_Err_Group_Peer_Query peer_err;
+    EXPECT_TRUE(tox_group_peer_get_public_key(tox, group, self, nullptr, &peer_err));
+    EXPECT_EQ(peer_err, TOX_ERR_GROUP_PEER_QUERY_OK);
+    EXPECT_TRUE(tox_group_peer_get_name(tox, group, self, nullptr, &peer_err));
+    EXPECT_EQ(peer_err, TOX_ERR_GROUP_PEER_QUERY_OK);
+
+    Tox_Err_Group_Self_Query self_err;
+    EXPECT_TRUE(tox_group_self_get_name(tox, group, nullptr, &self_err));
+    EXPECT_EQ(self_err, TOX_ERR_GROUP_SELF_QUERY_OK);
+    EXPECT_TRUE(tox_group_self_get_public_key(tox, group, nullptr, &self_err));
+    EXPECT_EQ(self_err, TOX_ERR_GROUP_SELF_QUERY_OK);
+
+    Tox_Err_Group_State_Query state_err;
+    EXPECT_TRUE(tox_group_get_name(tox, group, nullptr, &state_err));
+    EXPECT_EQ(state_err, TOX_ERR_GROUP_STATE_QUERY_OK);
+    EXPECT_TRUE(tox_group_get_chat_id(tox, group, nullptr, &state_err));
+    EXPECT_EQ(state_err, TOX_ERR_GROUP_STATE_QUERY_OK);
+    EXPECT_TRUE(tox_group_get_password(tox, group, nullptr, &state_err));
+    EXPECT_EQ(state_err, TOX_ERR_GROUP_STATE_QUERY_OK);
+
+    Tox_Err_Group_Self_Name_Set name_err;
+    EXPECT_FALSE(tox_group_self_set_name(tox, group, nullptr, 0, &name_err));
+    EXPECT_EQ(name_err, TOX_ERR_GROUP_SELF_NAME_SET_INVALID);
+
+    Tox_Err_Group_Send_Message message_err;
+    tox_group_send_message(tox, group, TOX_MESSAGE_TYPE_NORMAL, nullptr, 0, &message_err);
+    EXPECT_EQ(message_err, TOX_ERR_GROUP_SEND_MESSAGE_EMPTY);
+
+    Tox_Err_Group_Send_Private_Message private_err;
+    tox_group_send_private_message(
+        tox, group, self, TOX_MESSAGE_TYPE_NORMAL, nullptr, 0, &private_err);
+    EXPECT_EQ(private_err, TOX_ERR_GROUP_SEND_PRIVATE_MESSAGE_EMPTY);
+
+    Tox_Err_Group_Send_Custom_Packet packet_err;
+    tox_group_send_custom_packet(tox, group, true, nullptr, 0, &packet_err);
+    EXPECT_EQ(packet_err, TOX_ERR_GROUP_SEND_CUSTOM_PACKET_EMPTY);
+
+    Tox_Err_Group_Send_Custom_Private_Packet private_packet_err;
+    tox_group_send_custom_private_packet(tox, group, self, true, nullptr, 0, &private_packet_err);
+    EXPECT_EQ(private_packet_err, TOX_ERR_GROUP_SEND_CUSTOM_PRIVATE_PACKET_EMPTY);
+
+    tox_kill(tox);
+}
+
+// A NULL public key buffer has no effect, as tox.h says, but the error still
+// says whether the friend exists.
+TEST(Tox, FriendPublicKeyIntoNullStillSaysWhetherTheFriendExists)
+{
+    Tox *tox = tox_new(nullptr, nullptr);
+    ASSERT_NE(tox, nullptr);
+
+    Tox_Err_Friend_Get_Public_Key err = TOX_ERR_FRIEND_GET_PUBLIC_KEY_OK;
+    EXPECT_FALSE(tox_friend_get_public_key(tox, 0, nullptr, &err));
+    EXPECT_EQ(err, TOX_ERR_FRIEND_GET_PUBLIC_KEY_FRIEND_NOT_FOUND);
+
+    std::array<std::uint8_t, TOX_PUBLIC_KEY_SIZE> public_key{};
+    public_key[0] = 1;
+    const Tox_Friend_Number friend_number
+        = tox_friend_add_norequest(tox, public_key.data(), nullptr);
+    ASSERT_NE(friend_number, UINT32_MAX);
+
+    err = TOX_ERR_FRIEND_GET_PUBLIC_KEY_FRIEND_NOT_FOUND;
+    EXPECT_TRUE(tox_friend_get_public_key(tox, friend_number, nullptr, &err));
+    EXPECT_EQ(err, TOX_ERR_FRIEND_GET_PUBLIC_KEY_OK);
+
+    tox_kill(tox);
+}
+
 // A conference lossy packet too long to send is rejected before it is put
 // together.
 TEST(Tox, ConferenceLossyPacketTooLongIsRejected)

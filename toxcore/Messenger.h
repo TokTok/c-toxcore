@@ -450,7 +450,7 @@ int setfriendname(Messenger *_Nonnull m, int32_t friendnumber, const uint8_t *_N
  * @retval 0 if success.
  * @retval -1 if failure.
  */
-int setname(Messenger *_Nonnull m, const uint8_t *_Nonnull name, uint16_t length);
+int setname(Messenger *_Nonnull m, const uint8_t *_Nullable name, uint16_t length);
 
 /**
  * @brief Get your nickname.
@@ -484,7 +484,7 @@ int m_get_self_name_size(const Messenger *_Nonnull m);
  * @retval 0 if success.
  * @retval -1 if failure.
  */
-int m_set_statusmessage(Messenger *_Nonnull m, const uint8_t *_Nonnull status, uint16_t length);
+int m_set_statusmessage(Messenger *_Nonnull m, const uint8_t *_Nullable status, uint16_t length);
 int m_set_userstatus(Messenger *_Nonnull m, uint8_t status);
 
 /**
@@ -640,7 +640,7 @@ int32_t file_by_id(const Messenger *_Nonnull m, uint32_t friendnumber, const uin
  * @retval -3 if no more file sending slots left.
  * @retval -4 if could not send packet (friend offline).
  */
-long int new_filesender(const Messenger *_Nonnull m, int32_t friendnumber, uint32_t file_type, uint64_t filesize, const uint8_t *_Nonnull file_id, const uint8_t *_Nonnull filename,
+long int new_filesender(const Messenger *_Nonnull m, int32_t friendnumber, uint32_t file_type, uint64_t filesize, const uint8_t *_Nonnull file_id, const uint8_t *_Nullable filename,
                         uint16_t filename_length);
 
 /** @brief Send a file control request.
